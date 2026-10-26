@@ -1,6 +1,5 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
-import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { encounterEffectRepeatSavePendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import { effectRepeatSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
@@ -176,21 +175,6 @@ export function createEffectRepeatSaveContext(input: {
     }),
     remaining: input.remaining
   })
-}
-
-/** Names a pending repeat save for its roller: the damage behind it and its DC. */
-export function effectRepeatSaveRollTrigger(
-  context: NativeEffectRepeatSaveContext
-): EncounterRuleRollTriggerDto {
-  return {
-    kind: 'EFFECT_REPEAT_SAVE',
-    damage: {
-      amount: context.application.appliedAmount,
-      typeLabel: context.trigger.damageTypeLabel
-    },
-    sourceLabel: context.trigger.sourceLabel,
-    dc: context.trigger.dc
-  }
 }
 
 /**

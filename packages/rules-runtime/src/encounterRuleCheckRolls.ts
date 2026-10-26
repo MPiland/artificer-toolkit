@@ -14,6 +14,7 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
+import type { DamageSaveSource } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 
@@ -97,6 +98,12 @@ export function withMinimumRoll(
  * Concentration check adds the actor, the damage that triggered it, the DC and whether
  * Concentration was kept; an effect repeat save is a plain saving-throw card.
  */
+const DAMAGE_SAVE_ROLL_LABELS: Record<DamageSaveSource, string> = {
+  CONCENTRATION: 'Concentration',
+  EFFECT_REPEAT_SAVE: 'Repeat save',
+  MASSIVE_DAMAGE: 'Massive damage'
+}
+
 export function concentrationCheckRollRecord(input: {
   output: ReturnType<typeof damageSaveCheckApplicationOutputDtoSchema.parse>
   actorLabel: string
@@ -129,7 +136,7 @@ export function concentrationCheckRollRecord(input: {
     characterLabel: input.actorLabel,
     source: {
       kind: 'SAVING_THROW',
-      label: output.source === 'CONCENTRATION' ? 'Concentration' : 'Repeat save'
+      label: DAMAGE_SAVE_ROLL_LABELS[output.source]
     },
     ruleset: input.ruleset,
     createdAt: input.createdAt,

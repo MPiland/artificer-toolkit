@@ -26,6 +26,10 @@ import {
   concentrationCommandId,
   concentrationOccurrenceId
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  encounterMassiveDamageRule,
+  massiveDamageRulePinned
+} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -40,6 +44,7 @@ import {
   readHolderEndState
 } from './concentrationEnd.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { readEncounterActorMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
@@ -341,7 +346,8 @@ export async function persistEncounterConcentrationChildren(
       .withIndex('by_publicId', (q) => q.eq('id', expectedId))
       .unique()
     if (existing) throw new Error('The concentration child occurrence already exists.')
-    // The rule definition that proves the check: Concentration's, or the effect's frozen save.
+    // The rule definition that proves the check: Concentration's, the effect's frozen save, or the
+    // massive-damage rule's save.
     let source: { id: string; checksum: string }
     let cleanup: { slot: MaintainedSlot; cleanup: NonNullable<CleanupOutput> } | null = null
     if (output.source === 'CONCENTRATION' && isMaintainedDamageApplication(application)) {
@@ -373,10 +379,7 @@ export async function persistEncounterConcentrationChildren(
       )
         throw new Error('Live Session concentration skipped applications mismatch.')
       if (output.cleanup) cleanup = { slot, cleanup: output.cleanup }
-    } else if (
-      output.source === 'EFFECT_REPEAT_SAVE' &&
-      !isMaintainedDamageApplication(application)
-    ) {
+    } else if (output.source === 'EFFECT_REPEAT_SAVE' && 'activeEffectId' in application) {
       const effect = await readEffectRepeatSaveRow(ctx, {
         encounterId: state.id,
         holder: target,
@@ -384,6 +387,11 @@ export async function persistEncounterConcentrationChildren(
       })
       const frozen = effect.definition.frozenGraph.source
       source = { id: frozen.definitionId, checksum: frozen.checksum }
+    } else if (output.source === 'MASSIVE_DAMAGE' && 'optionalCombatDefinitionId' in application) {
+      const rule = encounterMassiveDamageRule(state)
+      if (!massiveDamageRulePinned(rule, output))
+        throw new Error('Live Session concentration receipt scope mismatch.')
+      source = rule.published
     } else throw new Error('Live Session concentration child is unexpected.')
     if (
       state.automationMode === 'MANUAL' ||
@@ -463,7 +471,7 @@ export async function persistEncounterConcentrationChildren(
     const context = pending.applicationContext
     const damage = unboundDamageSaveApplication(application)
     const target = actors.find((actor) => actor.id === application.targetActorId)
-    // The rule definition that proves the check, and the state or effect it was started from.
+    // The rule definition that proves the check, and the state, effect or rule it was started from.
     let source: { id: string; checksum: string }
     let pinned: unknown
     let expectedPin: unknown
@@ -484,7 +492,7 @@ export async function persistEncounterConcentrationChildren(
       }
     } else if (
       context.source === 'EFFECT_REPEAT_SAVE' &&
-      !isMaintainedDamageApplication(application) &&
+      'activeEffectId' in application &&
       target
     ) {
       const effect = await readEffectRepeatSaveRow(ctx, {
@@ -500,6 +508,20 @@ export async function persistEncounterConcentrationChildren(
         version: effect.version,
         lifecycleChecksum: effect.lifecycleChecksum
       }
+    } else if (
+      context.source === 'MASSIVE_DAMAGE' &&
+      'optionalCombatDefinitionId' in application &&
+      target
+    ) {
+      const rule = encounterMassiveDamageRule(state)
+      if (!massiveDamageRulePinned(rule, context))
+        throw new Error('Live Session pending concentration scope mismatch.')
+      source = rule.published
+      pinned = context.maximumHitPoints
+      expectedPin = await readEncounterActorMaximumHitPoints(ctx, {
+        encounterId: state.id,
+        actor: target
+      })
     } else throw new Error('Live Session pending concentration scope mismatch.')
     if (
       !target ||

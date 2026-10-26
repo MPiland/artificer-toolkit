@@ -8,8 +8,14 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { isEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { effectRepeatSaveApplications } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
+import {
+  encounterMassiveDamageRule,
+  massiveDamageSaveApplications
+} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
+import type { OptionalCombatPolicyInput } from '@artificer-toolkit/rules-runtime/optionalCombatPolicyCapability'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readEncounterActorMaximumHitPoints } from './characterMaximumHitPoints.js'
 import { readDeadCharacterIds } from './characterStates.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { endEncounterEscapedEffect } from './escapedEffectEndPersistence.js'
@@ -111,18 +117,52 @@ export async function bindEncounterEffectRepeatSaves(
 }
 
 /**
+ * Binds a damaging command's finalized damage to the massive-damage saves the Encounter's rule owes
+ * (ATTACK-16), measured against each holder's committed maximum hit points: the same derivation the
+ * room planned from.
+ */
+export async function bindEncounterMassiveDamageSaves(
+  ctx: EncounterCharacterWriteTransaction,
+  input: {
+    state: OptionalCombatPolicyInput & { id: string }
+    actors: readonly EncounterRunActorState[]
+    applications: readonly ConcentrationDamageApplicationDto[]
+  }
+) {
+  const rule = encounterMassiveDamageRule(input.state)
+  if (!rule) return []
+  const holders = new Map<string, { defeated: boolean; maximumHitPoints: number }>()
+  for (const actorId of new Set(input.applications.map(({ targetActorId }) => targetActorId))) {
+    const actor = input.actors.find(({ id }) => id === actorId)
+    const maximumHitPoints =
+      actor &&
+      (await readEncounterActorMaximumHitPoints(ctx, { encounterId: input.state.id, actor }))
+    if (!actor || !maximumHitPoints) continue
+    holders.set(actorId, {
+      defeated: isEncounterActorDefeated(actor, await readDeadCharacterIds(ctx, [actor])),
+      maximumHitPoints
+    })
+  }
+  return massiveDamageSaveApplications({ rule, applications: input.applications, holders })
+}
+
+/**
  * The one damage-save chain a damaging command owes (D167): the Concentration checks its caller
- * bound plus the effect repeat saves its finalized damage meets, in canonical order. Every damage
- * source persists through this, so each derives the chain the room planned.
+ * bound plus the effect repeat saves and massive-damage saves its finalized damage meets, in
+ * canonical order. Every damage source persists through this, so each derives the chain the room
+ * planned.
  */
 export async function bindEncounterDamageSaveChain(
   ctx: EncounterCharacterWriteTransaction,
-  input: Parameters<typeof bindEncounterEffectRepeatSaves>[1] & {
-    concentration: readonly DamageSaveApplicationDto[]
-  }
+  input: Parameters<typeof bindEncounterEffectRepeatSaves>[1] &
+    Parameters<typeof bindEncounterMassiveDamageSaves>[1] & {
+      concentration: readonly DamageSaveApplicationDto[]
+    }
 ) {
-  const { concentration, ...repeat } = input
-  return [...concentration, ...(await bindEncounterEffectRepeatSaves(ctx, repeat))].sort(
-    compareDamageSaveApplications
-  )
+  const { concentration, ...damage } = input
+  return [
+    ...concentration,
+    ...(await bindEncounterEffectRepeatSaves(ctx, damage)),
+    ...(await bindEncounterMassiveDamageSaves(ctx, damage))
+  ].sort(compareDamageSaveApplications)
 }

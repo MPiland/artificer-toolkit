@@ -49,17 +49,54 @@ export const effectRepeatSaveDamageApplicationDtoSchema = lazySchema(() =>
   z.extend(concentrationDamageApplicationDtoSchema, { activeEffectId: ruleExecutionUuidSchema })
 )
 
-/** A check the damage chain still owes: a Concentration save or an effect's repeat save. */
+/** One damaged holder's massive-damage save (ATTACK-16), bound to the optional rule that owes it. */
+export const massiveDamageSaveDamageApplicationDtoSchema = lazySchema(() =>
+  z.extend(concentrationDamageApplicationDtoSchema, {
+    optionalCombatDefinitionId: ruleExecutionUuidSchema
+  })
+)
+
+/** A check the damage chain still owes: a Concentration save, an effect's repeat save or a massive-damage save. */
 export const damageSaveApplicationDtoSchema = lazySchema(() =>
   z.union([
     concentrationMaintainedDamageApplicationDtoSchema,
-    effectRepeatSaveDamageApplicationDtoSchema
+    effectRepeatSaveDamageApplicationDtoSchema,
+    massiveDamageSaveDamageApplicationDtoSchema
   ])
 )
 
 export type DamageSaveApplicationDto = z.infer<typeof damageSaveApplicationDtoSchema>
 
-/** Whether a chain item is a Concentration check rather than an effect repeat save. */
+/** The save sources of the damage chain (D167), in the order a damage application owes them. */
+export const DAMAGE_SAVE_SOURCES = [
+  'CONCENTRATION',
+  'EFFECT_REPEAT_SAVE',
+  'MASSIVE_DAMAGE'
+] as const
+
+export type DamageSaveSource = (typeof DAMAGE_SAVE_SOURCES)[number]
+
+/** A damage application that may name what it checks; a bare one is the check being settled. */
+export type DamageSaveBindable = ConcentrationDamageApplicationDto & {
+  maintainedStateId?: string
+  activeEffectId?: string
+  optionalCombatDefinitionId?: string
+}
+
+/** What a chain item checks: the Concentration state, the effect or the optional rule; null when bare. */
+export function damageSaveBinding(
+  entry: DamageSaveBindable
+): { source: DamageSaveSource; id: string } | null {
+  if (entry.maintainedStateId !== undefined)
+    return { source: 'CONCENTRATION', id: entry.maintainedStateId }
+  if (entry.activeEffectId !== undefined)
+    return { source: 'EFFECT_REPEAT_SAVE', id: entry.activeEffectId }
+  if (entry.optionalCombatDefinitionId !== undefined)
+    return { source: 'MASSIVE_DAMAGE', id: entry.optionalCombatDefinitionId }
+  return null
+}
+
+/** Whether a chain item is a Concentration check rather than another source's save. */
 export function isMaintainedDamageApplication(
   entry: DamageSaveApplicationDto
 ): entry is ConcentrationMaintainedDamageApplicationDto {
@@ -71,21 +108,21 @@ export function damageSaveApplicationsAfterRelease(
   entries: readonly DamageSaveApplicationDto[],
   activeEffectId: string
 ): DamageSaveApplicationDto[] {
-  return entries.filter(
-    (entry) => isMaintainedDamageApplication(entry) || entry.activeEffectId !== activeEffectId
-  )
+  return entries.filter((entry) => {
+    const binding = damageSaveBinding(entry)
+    return binding?.source !== 'EFFECT_REPEAT_SAVE' || binding.id !== activeEffectId
+  })
 }
 
-/** A chain item's damage without the state or effect it was bound to. */
+/** A chain item's damage without the state, effect or rule it was bound to. */
 export function unboundDamageSaveApplication(
   entry: DamageSaveApplicationDto
 ): ConcentrationDamageApplicationDto {
-  const { maintainedStateId, activeEffectId, ...damage } = entry as DamageSaveApplicationDto & {
-    maintainedStateId?: string
-    activeEffectId?: string
-  }
+  const { maintainedStateId, activeEffectId, optionalCombatDefinitionId, ...damage } =
+    entry as DamageSaveBindable
   void maintainedStateId
   void activeEffectId
+  void optionalCombatDefinitionId
   return damage
 }
 
@@ -111,21 +148,19 @@ export function compareConcentrationDamageApplications(
 }
 
 /**
- * Chain order: damage order, then Concentration before an effect's repeat save, then the bound id.
- * A bare application (the check being settled) sorts before its own bound twins.
+ * Chain order: damage order, then the save source (`DAMAGE_SAVE_SOURCES`), then the bound id. A
+ * bare application (the check being settled) sorts before its own bound twins.
  */
 export function compareDamageSaveApplications(
-  left: ConcentrationDamageApplicationDto & { maintainedStateId?: string; activeEffectId?: string },
-  right: ConcentrationDamageApplicationDto & { maintainedStateId?: string; activeEffectId?: string }
+  left: DamageSaveBindable,
+  right: DamageSaveBindable
 ): number {
   const byDamage = compareConcentrationDamageApplications(left, right)
   if (byDamage !== 0) return byDamage
-  const key = (value: typeof left) =>
-    value.maintainedStateId !== undefined
-      ? `0:${value.maintainedStateId}`
-      : value.activeEffectId !== undefined
-        ? `1:${value.activeEffectId}`
-        : ''
+  const key = (value: DamageSaveBindable) => {
+    const binding = damageSaveBinding(value)
+    return binding ? `${DAMAGE_SAVE_SOURCES.indexOf(binding.source)}:${binding.id}` : ''
+  }
   const leftKey = key(left)
   const rightKey = key(right)
   return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0

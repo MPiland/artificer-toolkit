@@ -18,6 +18,7 @@ import {
   concentrationCheckTriggerDtoSchema,
   concentrationDamageApplicationDtoSchema,
   concentrationMaintainedDamageApplicationDtoSchema,
+  massiveDamageSaveDamageApplicationDtoSchema,
   type DamageSaveApplicationDto
 } from './ruleExecutionConcentration.js'
 
@@ -204,6 +205,25 @@ export const ruleCheckRollEvidenceDtoSchema = lazySchema(() =>
   z.strictObject(ruleCheckRollFields()).check(z.superRefine(checkRollMatchesRollMode))
 )
 
+/** The pins every settled damage save keeps: the saving throw, the vocabulary and the holder's stream. */
+const damageSaveHolderPinFields = () => ({
+  savingThrowAbilityDefinitionId: uuidSchema,
+  systemVocabularySnapshot: z.strictObject({
+    id: uuidSchema,
+    version: integerSchema.check(z.gte(1)),
+    checksum: checksumSchema
+  }),
+  /** The pinned Character stream; null for a Creature or custom actor holder. */
+  targetCharacter: z.nullable(
+    z.strictObject({
+      streamVersion: aggregateVersionSchema,
+      baseProjectionChecksum: checksumSchema,
+      campaignOverlayChecksum: checksumSchema,
+      mechanicalContextChecksum: checksumSchema
+    })
+  )
+})
+
 export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -216,21 +236,7 @@ export const concentrationCheckApplicationOutputDtoSchema = lazySchema(() =>
         id: uuidSchema,
         checksum: checksumSchema
       }),
-      savingThrowAbilityDefinitionId: uuidSchema,
-      systemVocabularySnapshot: z.strictObject({
-        id: uuidSchema,
-        version: integerSchema.check(z.gte(1)),
-        checksum: checksumSchema
-      }),
-      /** The pinned Character stream; null for a Creature or custom actor holder. */
-      targetCharacter: z.nullable(
-        z.strictObject({
-          streamVersion: aggregateVersionSchema,
-          baseProjectionChecksum: checksumSchema,
-          campaignOverlayChecksum: checksumSchema,
-          mechanicalContextChecksum: checksumSchema
-        })
-      ),
+      ...damageSaveHolderPinFields(),
       application: concentrationMaintainedDamageApplicationDtoSchema,
       /** The context's display trigger, so every settled check can be logged without its context. */
       trigger: concentrationCheckTriggerDtoSchema,
@@ -307,21 +313,7 @@ export const effectRepeatSaveApplicationOutputDtoSchema = lazySchema(() =>
         version: integerSchema.check(z.gte(0)),
         lifecycleChecksum: checksumSchema
       }),
-      savingThrowAbilityDefinitionId: uuidSchema,
-      systemVocabularySnapshot: z.strictObject({
-        id: uuidSchema,
-        version: integerSchema.check(z.gte(1)),
-        checksum: checksumSchema
-      }),
-      /** The pinned Character stream; null for a Creature or custom actor holder. */
-      targetCharacter: z.nullable(
-        z.strictObject({
-          streamVersion: aggregateVersionSchema,
-          baseProjectionChecksum: checksumSchema,
-          campaignOverlayChecksum: checksumSchema,
-          mechanicalContextChecksum: checksumSchema
-        })
-      ),
+      ...damageSaveHolderPinFields(),
       application: concentrationDamageApplicationDtoSchema,
       trigger: concentrationCheckTriggerDtoSchema,
       outcome: z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE']),
@@ -362,10 +354,54 @@ export const effectRepeatSaveApplicationOutputDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * A massive-damage save, settled (ATTACK-16). The check only records its outcome; what a failure
+ * leads to is the System's own follow-up, so the save itself changes no Run state.
+ */
+export const massiveDamageSaveApplicationOutputDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('DAMAGE_SAVE_CHECK'),
+      source: z.literal('MASSIVE_DAMAGE'),
+      schemaVersion: z.literal(1),
+      occurrenceId: uuidSchema,
+      parentOccurrenceId: uuidSchema,
+      optionalCombatDefinition: z.strictObject({
+        id: uuidSchema,
+        version: integerSchema.check(z.gte(1)),
+        checksum: checksumSchema
+      }),
+      ...damageSaveHolderPinFields(),
+      application: massiveDamageSaveDamageApplicationDtoSchema,
+      trigger: concentrationCheckTriggerDtoSchema,
+      outcome: z.enum(['SAVE_SUCCESS', 'SAVE_FAILURE']),
+      d20: ruleCheckD20EvidenceDtoSchema,
+      contextChecksum: checksumSchema,
+      nextOccurrenceId: z.nullable(uuidSchema)
+    })
+    .check(
+      z.superRefine((value, context) => {
+        if (value.application.optionalCombatDefinitionId !== value.optionalCombatDefinition.id)
+          context.addIssue({
+            code: 'custom',
+            path: ['application', 'optionalCombatDefinitionId'],
+            message: 'The massive-damage save must name the pinned rule.'
+          })
+        if (value.trigger.dc !== value.d20.dc)
+          context.addIssue({
+            code: 'custom',
+            path: ['trigger', 'dc'],
+            message: 'The massive-damage trigger must name the checked DC.'
+          })
+      })
+    )
+)
+
 export const damageSaveCheckApplicationOutputDtoSchema = lazySchema(() =>
   z.discriminatedUnion('source', [
     concentrationCheckApplicationOutputDtoSchema,
-    effectRepeatSaveApplicationOutputDtoSchema
+    effectRepeatSaveApplicationOutputDtoSchema,
+    massiveDamageSaveApplicationOutputDtoSchema
   ])
 )
 
@@ -375,9 +411,13 @@ type DamageSaveCheckApplicationOutput = z.infer<typeof damageSaveCheckApplicatio
 export function damageSaveCheckBoundApplication(
   output: DamageSaveCheckApplicationOutput
 ): DamageSaveApplicationDto {
-  return output.source === 'CONCENTRATION'
-    ? output.application
-    : { ...output.application, activeEffectId: output.activeEffect.id }
+  switch (output.source) {
+    case 'CONCENTRATION':
+    case 'MASSIVE_DAMAGE':
+      return output.application
+    case 'EFFECT_REPEAT_SAVE':
+      return { ...output.application, activeEffectId: output.activeEffect.id }
+  }
 }
 
 /**
@@ -385,7 +425,14 @@ export function damageSaveCheckBoundApplication(
  * lost Concentration, or an effect a made repeat save ended.
  */
 export function damageSaveCheckMutatesRun(output: DamageSaveCheckApplicationOutput) {
-  return output.outcome === (output.source === 'CONCENTRATION' ? 'SAVE_FAILURE' : 'SAVE_SUCCESS')
+  switch (output.source) {
+    case 'CONCENTRATION':
+      return output.outcome === 'SAVE_FAILURE'
+    case 'EFFECT_REPEAT_SAVE':
+      return output.outcome === 'SAVE_SUCCESS'
+    case 'MASSIVE_DAMAGE':
+      return false
+  }
 }
 
 /**

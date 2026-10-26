@@ -14,7 +14,9 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import {
   compareDamageSaveApplications,
   damageSaveApplicationsAfterRelease,
-  isMaintainedDamageApplication
+  isMaintainedDamageApplication,
+  unboundDamageSaveApplication,
+  type ConcentrationMaintainedDamageApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
   damageSaveCheckBoundApplication,
@@ -22,6 +24,10 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  encounterMassiveDamageRule,
+  massiveDamageRulePinned
+} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -94,8 +100,8 @@ export async function persistEncounterConcentrationResponse(
     throw new Error('Live Session concentration response carries unexpected ends.')
   const output = execution.applicationOutputs
   const failed = output.outcome === 'SAVE_FAILURE'
-  // The save the roller made: Concentration's derived one, or the effect's frozen policy.
-  const save = context.source === 'CONCENTRATION' ? context.save : context.d20Policy
+  // The save the roller made: the effect's frozen policy, or the holder's derived one.
+  const save = context.source === 'EFFECT_REPEAT_SAVE' ? context.d20Policy : context.save
   requireDerivedD20Mode({
     gameSystemId: state.gameSystemId,
     contributors: output.d20.contributors,
@@ -155,6 +161,28 @@ export async function persistEncounterConcentrationResponse(
       output.d20.dc !== context.d20Policy.dc
     )
       throw new Error('Live Session repeat save result does not match its pending evidence.')
+  } else if (context.source === 'MASSIVE_DAMAGE' && output.source === 'MASSIVE_DAMAGE') {
+    const rule = encounterMassiveDamageRule(state)
+    if (
+      !massiveDamageRulePinned(rule, context) ||
+      execution.evidence.source.definitionId !== rule.published.id ||
+      execution.evidence.source.checksum !== rule.published.checksum ||
+      checksumCanonicalJson(output.optionalCombatDefinition) !==
+        checksumCanonicalJson(context.optionalCombatDefinition) ||
+      checksumCanonicalJson(output.application) !==
+        checksumCanonicalJson({
+          ...context.application,
+          optionalCombatDefinitionId: context.optionalCombatDefinition.id
+        }) ||
+      execution.outputs.targetActorId !== context.application.targetActorId ||
+      execution.outputs.contributorChecksum !== context.save.contributorChecksum ||
+      execution.outputs.naturalD20 !== output.d20.selectedNatural ||
+      execution.outputs.dc !== context.trigger.dc ||
+      output.d20.dc !== context.trigger.dc
+    )
+      throw new Error(
+        'Live Session massive-damage save result does not match its pending evidence.'
+      )
   } else throw new Error('Live Session damage save result does not match its pending evidence.')
 
   const store = createActiveRuleEffectStore(ctx)
@@ -182,30 +210,42 @@ export async function persistEncounterConcentrationResponse(
   )
     throw new Error('Live Session concentration target changed.')
   // The chain after the answered check, in canonical order: Concentration checks re-derived from the
-  // parent's damage and the committed slots, effect checks proved to be on the parent and still held.
+  // parent's damage and the committed slots; effect and massive-damage checks proved to be on the
+  // parent and still owed by a held effect or the Encounter's pinned rule.
   const bound = damageSaveCheckBoundApplication(output)
-  const effectItems = context.remaining.filter(
-    (entry): entry is Extract<typeof entry, { activeEffectId: string }> =>
+  const massiveRule = encounterMassiveDamageRule(state)
+  const boundItems = context.remaining.filter(
+    (entry): entry is Exclude<typeof entry, ConcentrationMaintainedDamageApplicationDto> =>
       !isMaintainedDamageApplication(entry)
   )
-  for (const item of effectItems) {
-    const { activeEffectId, ...damage } = item
+  for (const item of boundItems) {
+    const damage = unboundDamageSaveApplication(item)
     const holder = admission.actors.find((actor) => actor.id === damage.targetActorId)
-    if (
-      !holder ||
-      !admission.parentApplications.some(
-        (application) => checksumRuleDocument(application) === checksumRuleDocument(damage)
-      ) ||
-      !(await store.list(turnEffectOwner(holder, state.id))).some(({ id }) => id === activeEffectId)
+    const onParent = admission.parentApplications.some(
+      (application) => checksumRuleDocument(application) === checksumRuleDocument(damage)
     )
-      throw new Error('Live Session repeat save damage order changed.')
+    if ('activeEffectId' in item) {
+      if (
+        !holder ||
+        !onParent ||
+        !(await store.list(turnEffectOwner(holder, state.id))).some(
+          ({ id }) => id === item.activeEffectId
+        )
+      )
+        throw new Error('Live Session repeat save damage order changed.')
+    } else if (
+      !holder ||
+      !onParent ||
+      item.optionalCombatDefinitionId !== massiveRule?.pin.definitionId
+    )
+      throw new Error('Live Session massive-damage save damage order changed.')
   }
   const remaining = [
     ...admission.parentApplications.slice(admission.applicationIndex).flatMap((application) => {
       const maintainedStateId = slots.get(application.targetActorId)?.id
       return maintainedStateId ? [{ ...application, maintainedStateId }] : []
     }),
-    ...effectItems
+    ...boundItems
   ]
     .sort(compareDamageSaveApplications)
     .filter((entry) => compareDamageSaveApplications(entry, bound) > 0)
@@ -262,7 +302,11 @@ export async function persistEncounterConcentrationResponse(
         (next ? concentrationOccurrenceId(context.parentOccurrenceId, next) : null)
     )
       throw new Error('Live Session repeat save successor mismatch.')
-  }
+  } else if (
+    output.nextOccurrenceId !==
+    (remaining[0] ? concentrationOccurrenceId(context.parentOccurrenceId, remaining[0]) : null)
+  )
+    throw new Error('Live Session massive-damage save successor mismatch.')
 
   // Remaining checks the commit auto-rolled; one version advance covers every state change (D23).
   const commitMutated =

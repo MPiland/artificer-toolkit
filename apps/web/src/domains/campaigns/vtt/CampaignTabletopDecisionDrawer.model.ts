@@ -85,6 +85,8 @@ export function rollPromptText(
   if (trigger?.kind === 'CONCENTRATION') return concentrationPromptText(actorLabel, trigger)
   if (trigger?.kind === 'EFFECT_REPEAT_SAVE')
     return `Repeat save for ${actorLabel}: ${concentrationTriggerText(trigger)}`
+  if (trigger?.kind === 'MASSIVE_DAMAGE')
+    return `Massive damage save for ${actorLabel}: ${concentrationTriggerText(trigger)}`
   if (trigger?.kind === 'DEATH_SAVE') return deathSavePromptText(actorLabel, trigger)
   if (trigger?.kind === 'BASIC_ACTION_CHECK')
     return `${trigger.actionLabel}: ${trigger.checkLabel}${trigger.dc === null ? '' : ` DC ${trigger.dc}`}`

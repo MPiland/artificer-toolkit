@@ -1,4 +1,4 @@
-import { concentrationRollTrigger } from './encounterConcentration.js'
+import { damageSaveRollTrigger } from './encounterConcentration.js'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -93,7 +93,7 @@ export function projectEncounterSpatialOccurrenceSummary(
             occurrenceVersion: occurrence.version,
             encounterVersion,
             rollerActorId: context.phase.concentration.application.targetActorId,
-            trigger: concentrationRollTrigger(context.phase.concentration),
+            trigger: damageSaveRollTrigger(context.phase.concentration),
             request: {
               requestId: pendingSnapshot.request.requestId,
               min: 1,

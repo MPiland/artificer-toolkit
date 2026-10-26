@@ -9,7 +9,10 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
+import type { MovementTarget } from './encounterMovementTargets.js'
+import type { MaintenanceLinkSaveFacts } from './maintenanceLinkCapability.js'
 import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
@@ -289,8 +292,21 @@ export interface FlankingInput extends OptionalCombatPolicyInput {
 }
 
 /**
+ * The Encounter's active massive-damage rule (ATTACK-16): one damage source of at least
+ * `threshold` of the holder's maximum hit points owes a save of `savingThrowAbilityDefinitionId`
+ * against `difficultyClass`, rolled through `published`, the graph this exact definition builds.
+ */
+export interface MassiveDamageRule {
+  readonly pin: OptionalCombatPolicyPin
+  readonly threshold: { readonly numerator: number; readonly denominator: number }
+  readonly savingThrowAbilityDefinitionId: string
+  readonly difficultyClass: number
+  readonly published: ServerPublishedRuleDefinitionDto
+}
+
+/**
  * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale,
- * Facing, Flanking, attack-applied effects and consequence tables.
+ * Facing, Flanking, Massive Damage, attack-applied effects and consequence tables.
  */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
@@ -319,4 +335,12 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   flankingParticipantCapabilityDefinitionId(input: OptionalCombatPolicyInput): string | null
   /** The attack's flanking contributor, or null when the attack is not flanked. */
   resolveFlanking(input: FlankingInput): OptionalCombatD20Contributor | null
+  /** The Encounter's active massive-damage rule, or null when it is off. */
+  massiveDamageRule(input: OptionalCombatPolicyInput): MassiveDamageRule | null
+  /** The facts a holder's massive-damage save runs `rule.published` with. */
+  massiveDamageSaveFacts(input: {
+    rule: MassiveDamageRule
+    targetActorId: string
+    target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
+  }): MaintenanceLinkSaveFacts
 }
