@@ -2233,8 +2233,9 @@ preparation functions, without serializing database contexts or Maps.
 
 **Encounter preparation.** `encounterMovementTargets` owns target facts, effect reductions and reaction
 source compilation; `encounterMechanicsBatchPlan` owns the Character/actor transition plan;
-`encounterActionSources` and `encounterActionMechanicsPreparation` own action source resolution and
-target, resource, relationship and execution-plan preparation; `encounterActionEffects` and
+`encounterActionSources` and `encounterActionMechanicsPreparation` own action source resolution (Creature
+feature, basic action, repeat path, Character action, and an optional combat rule's own action, `RULE`:
+see [D&D optional combat](dnd5e-optional-combat.md)) and target, resource, relationship and execution-plan preparation; `encounterActionEffects` and
 `encounterActionEconomy` own effect planning and allowance calculation (no reads for Manual mode or
 actions without an allowance); `encounterCreatureEquipmentSources` owns Equipment snapshot pinning and
 loadout binding checks. The room reads actors, effects and definitions through its read ports and commits

@@ -3,6 +3,7 @@ import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
+import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
@@ -187,7 +188,8 @@ async function loadActionSource(
     input.actor.kind === 'CREATURE' ||
     (input.actor.kind === 'CHARACTER' && input.actor.form !== null) ||
     basicActions.length > 0 ||
-    parseRepeatPathActionId(input.actor.id, input.actionId)
+    parseRepeatPathActionId(input.actor.id, input.actionId) ||
+    parseEncounterRuleActionId(input.actor.id, input.actionId)
       ? await tx.ports.requireSystem(input.gameSystemId)
       : undefined
   // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
@@ -218,6 +220,7 @@ async function loadActionSource(
     basicActions,
     granted,
     repeat,
+    rules: state,
     spells
   })
 }
