@@ -44,3 +44,23 @@ entries dropped, empty record removed, START_OF_TURN unchanged); `encounterAttac
 (marker only; homebrew without `fromSourceOnly` frees anyone); `nativeRoomMarking.test.ts` (room
 journey: free advantaged OA, Scene undo refused, second OA spends the reaction, third has none,
 PREVIOUS_TURN renews the free one).
+
+## T3: integrate and settings gate (AC ATTACK-13.3)
+
+- `MARK` joins `INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES`, so Campaign settings offer and save it.
+- Opportunity attacks (`encounterMovementReactionEffects.ts`) and Legendary Action attacks
+  (`encounterTurnLegendaryAction.ts`) build the mover's/target's grant triggers with
+  `prepareAttackTargetGrantTriggers`, so they mark; replaced marks join the ended grants.
+- Legendary persistence (`turnResourcesPersistence.ts`) reads the grant ids from both mechanics batch
+  kinds (Character targets too) and ends the owner's earlier `PER_SOURCE` mark on other holders.
+- Fix: the Legendary plan numbers its new effects (`createdOrdinal`) after the effects the target
+  keeps, since persistence deletes the ended and replaced ones before creating; a Character re-marked
+  by the same owner was rejected ("Created action effect changed before settlement").
+- Deferred: area attacks with an attack roll do not mark (rare; several targets in one command would
+  each replace against pre-command effects). Logged in future-enhancements Deferred edge cases.
+- Unintegrated fixture in the settings tests moved from MARK to CLIMB_ONTO_LARGER_CREATURE.
+
+Proofs: `apps/apis/convex/campaigns/playSettingsOptions.test.ts` (offers Marking);
+`playSettings.test.ts` (an unintegrated rule is still refused); `nativeRoomMarking.test.ts` (an
+opportunity attack moves the mark); `nativeRoomLegendary.test.ts` (a Legendary attack marks and moves
+the mark between creatures, marks a Character once, none while off).
