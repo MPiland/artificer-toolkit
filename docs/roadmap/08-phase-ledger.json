@@ -23764,6 +23764,14 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-25 (user yes): fileSizeBudget.json refused 3 of 4 m442 attempts because sourceRatchets.mjs makes every slice that shrinks a listed file lower its cap line. Closed 2026-10-24 by RELIABILITY-19.T1."
+            },
+            {
+              "id": "RELIABILITY-19.2",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "text": "When two merged slices both shrink a file listed in scripts/fileSizeBudget.json and the merged file ends up below both caps, merge-slice lowers that entry to the merged size and continues; a merged file above its resolved cap still refuses. The ADR 0039 shrink-only ratchet is unchanged.",
+              "note": "Registered 2026-10-25 (user yes): the SPELLS-31.T5b + T4k2d1 batch (run 40262719408) was refused because effectActionCompiler.ts shrank to 4172 under the 4182 cap."
             }
           ],
           "tasks": [
@@ -23783,6 +23791,23 @@
               "mergedAt": "2026-10-26T00:39:21Z",
               "proof": "Tests 40247096640 green on 108828c79 (Live path-filtered); red proof RED 5/44; reviewed; merged by hand (workflow change) in m452 with ci/merge-m452 backstop.",
               "note": " Merged in m452."
+            },
+            {
+              "id": "RELIABILITY-19.T2",
+              "status": "TODO",
+              "closes": [
+                "RELIABILITY-19.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": [
+                  "RELIABILITY-19.T1"
+                ]
+              },
+              "text": "In scripts/mergeSlice.mjs resolveBudgetConflict, after the per-entry minimum, lower each entry the ratchet reports as shrunk to its merged code-line count and re-run ratchetProblems; refuse on growth or any other problem. Unit-test both paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges)."
             }
           ]
         }
