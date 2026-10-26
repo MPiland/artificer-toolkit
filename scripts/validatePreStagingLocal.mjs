@@ -653,16 +653,11 @@ function stage(name, label, command, args, environment) {
   return { args, command, environment, label, name }
 }
 
-function changedPathFromStatus(entry) {
-  const path = entry.slice(3)
-  return path.includes(' -> ') ? path.split(' -> ').at(-1) : path
-}
-
 function acceptedChangedPaths(status) {
   return status
     .split(/\r?\n/u)
     .filter(Boolean)
-    .map(changedPathFromStatus)
+    .map((entry) => entry.slice(3).split(' -> ').at(-1))
     .filter(Boolean)
     .filter((path) => !isExcludedArtifact(path))
     .sort()

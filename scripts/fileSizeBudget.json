@@ -12,5 +12,5 @@
   "packages/source-data/src/srd/classes/warlock.ts": 2147,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,
   "scripts/phase8/buildPhaseLedger.mjs": 2240,
-  "scripts/validatePreStagingLocal.mjs": 1547
+  "scripts/validatePreStagingLocal.mjs": 1544
 }
