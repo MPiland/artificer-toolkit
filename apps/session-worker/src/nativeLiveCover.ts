@@ -5,7 +5,10 @@ import type {
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { resolveEncounterCover } from '@artificer-toolkit/rules-runtime/encounterCover'
+import {
+  resolveEncounterCover,
+  type EncounterCoverFacts
+} from '@artificer-toolkit/rules-runtime/encounterCover'
 import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { readNativeLivePerceptionScene } from './nativeTurnEffectPerception.js'
 
@@ -52,10 +55,8 @@ export async function readNativeLiveCover(input: {
 }
 
 /** Refuses a target the cover blocks as a domain rejection, so the table is told why. */
-export function refuseBlockedCover<
-  Cover extends { tier: { blocksTargeting: boolean; label: string } | null }
->(cover: Cover, refuse: boolean): Cover {
-  if (refuse && cover.tier?.blocksTargeting)
+export function refuseBlockedCover(cover: EncounterCoverFacts | null, refuse: boolean) {
+  if (refuse && cover?.tier?.blocksTargeting)
     rejectDomain('TARGET_UNAVAILABLE', `The target has ${cover.tier.label.toLowerCase()}.`)
   return cover
 }
