@@ -33,6 +33,7 @@ import {
   adjudicationSelectionValues,
   contestCheckEvidence,
   decisionTitle,
+  movementPassageOptionLabel,
   rollPromptText,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
@@ -317,8 +318,7 @@ export function CampaignTabletopDecisionDrawer({
                     void resolve({ kind: 'PASSAGE_OPTION', optionId: option.optionId })
                   }
                 >
-                  {option.ruleKind === 'OVERRUN' ? 'Overrun' : 'Tumble'} ·{' '}
-                  {option.economy === 'ACTION' ? 'Action' : 'Bonus action'}
+                  {movementPassageOptionLabel(option)}
                 </Button>
               ))}
               <Button

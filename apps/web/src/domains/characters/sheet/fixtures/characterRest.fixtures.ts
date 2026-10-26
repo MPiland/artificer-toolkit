@@ -87,6 +87,7 @@ export const characterSheetMulticlassFixture = {
     activeGrants: [],
     standingEffects: [],
     concentration: null,
+    consequences: [],
     exhaustion: {
       label: 'Exhaustion',
       description: dnd5e2014ExhaustionDescription,

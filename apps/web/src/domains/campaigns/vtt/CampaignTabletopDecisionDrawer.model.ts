@@ -57,6 +57,23 @@ export function addedDieEntries(
   )
 }
 
+type MovementPassageOption = Extract<
+  PendingEncounterRuleOccurrenceSummaryDto,
+  { kind: 'MOVEMENT_PASSAGE_CHOICE' }
+>['options'][number]
+
+const MOVEMENT_PASSAGE_RULE_LABELS: Record<MovementPassageOption['ruleKind'], string> = {
+  OVERRUN: 'Overrun',
+  TUMBLE: 'Tumble',
+  CLIMB_ONTO_LARGER_CREATURE: 'Climb onto'
+}
+
+/** "Climb onto · Strength (Athletics) · Action": the rule, the mover's check and its cost. */
+export function movementPassageOptionLabel(option: MovementPassageOption): string {
+  const economy = option.economy === 'ACTION' ? 'Action' : 'Bonus action'
+  return `${MOVEMENT_PASSAGE_RULE_LABELS[option.ruleKind]} · ${option.initiatorCheckLabel} · ${economy}`
+}
+
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {
   if (kind === 'D20_EVIDENCE') return 'Roll required'
   if (kind === 'MOVEMENT_REACTION') return 'Reaction available'

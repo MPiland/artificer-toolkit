@@ -1,5 +1,8 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
-import type { ConsequenceRollTriggerDto } from '@artificer-toolkit/schema/shared/consequenceRolls'
+import type {
+  ConsequenceRollTableDto,
+  ConsequenceRollTriggerDto
+} from '@artificer-toolkit/schema/shared/consequenceRolls'
 import type {
   EncounterActorMoraleDto,
   EncounterMoraleOfferDto
@@ -85,6 +88,20 @@ export interface OverrunContestProposal extends TumbleContestProposal {
     readonly initiatorContributors: readonly OptionalMovementContributor[]
     readonly initiatorMode: string
   }
+}
+
+/** Climb-onto facts; the initiator check is the climber's pick from the rule's authored checks. */
+export interface ClimbOntoPreparationInput extends TumblePreparationInput {
+  readonly initiatorCheckDefinitionId: string
+  readonly initiatorSizeRank: number | null
+  readonly targetSizeRank: number | null
+}
+
+/** A sealed climb-onto contest before either participant rolls; winning stops at contact. */
+export interface ClimbOntoContestProposal {
+  readonly contest: TumbleContestProposal['contest']
+  readonly consumes: TumbleContestProposal['consumes']
+  readonly pin: OptionalCombatPolicyPin
 }
 
 export interface CleavingInput extends OptionalCombatPolicyInput {
@@ -233,16 +250,10 @@ export interface AttackAppliedEffect {
  * An authored table the GM may be offered a roll on (ATTACK-15): the events that offer it and the
  * rows of its die. Rows are ordered and never overlap; a roll between rows lands on none.
  */
-export interface ConsequenceRollTable {
+export interface ConsequenceRollTable extends Readonly<ConsequenceRollTableDto> {
   readonly pin: OptionalCombatPolicyPin
   readonly label: string
   readonly triggers: readonly ConsequenceRollTriggerDto[]
-  readonly dieFaces: number
-  readonly rows: readonly {
-    readonly rowId: string
-    readonly minimum: number
-    readonly maximum: number
-  }[]
 }
 
 /**
@@ -303,6 +314,9 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   prepareTumbleContest(
     input: TumblePreparationInput
   ): OptionalCombatResolution<TumbleContestProposal>
+  prepareClimbOntoContest(
+    input: ClimbOntoPreparationInput
+  ): OptionalCombatResolution<ClimbOntoContestProposal>
   resolveCleaving(input: CleavingInput): OptionalCombatResolution<CleavingProposal>
   /** Triggers each actor may be checked for now; an actor with none is absent from the map. */
   offerMoraleTriggers(

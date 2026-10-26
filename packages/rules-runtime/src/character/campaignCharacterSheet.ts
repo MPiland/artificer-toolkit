@@ -122,7 +122,7 @@ export function projectCharacterSheetForViewer(
   context: CharacterSheetCampaignContext
 ): CharacterSheetResponseDto {
   const { partyVisibility, ...sharedMeta } = sheet.meta
-  const endActiveEffects = context.isCampaignOwner && context.campaignStatus === 'ACTIVE'
+  const gmControls = context.isCampaignOwner && context.campaignStatus === 'ACTIVE'
   const projected = {
     ...sheet,
     meta: {
@@ -137,7 +137,8 @@ export function projectCharacterSheetForViewer(
               managePrivateNotes: true,
               manageInventory: true,
               openBuilder: true,
-              endActiveEffects
+              endActiveEffects: gmControls,
+              removeConsequences: gmControls
             }
           : context.viewer === 'CAMPAIGN_OWNER'
             ? {
@@ -145,14 +146,16 @@ export function projectCharacterSheetForViewer(
                 managePrivateNotes: false,
                 manageInventory: context.campaignStatus === 'ACTIVE',
                 openBuilder: false,
-                endActiveEffects
+                endActiveEffects: gmControls,
+                removeConsequences: gmControls
               }
             : {
                 managePlayState: false,
                 managePrivateNotes: false,
                 manageInventory: false,
                 openBuilder: false,
-                endActiveEffects
+                endActiveEffects: gmControls,
+                removeConsequences: gmControls
               }
     }
   }

@@ -271,6 +271,10 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
           )
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        type: z.literal('REMOVE_CONSEQUENCE'),
+        consequenceId: stringSchema.check(z.uuid())
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('USE_RESOURCE'),
         resourceGrantId: stringSchema,
         actionId: z.optional(stringSchema.check(z.minLength(1))),

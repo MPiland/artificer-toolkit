@@ -24,6 +24,11 @@ export function optionalCombatCheckDefinitionIds(
         document.parameters.initiatorCheckDefinitionId,
         document.parameters.targetCheckDefinitionId
       ]
+    case 'CLIMB_ONTO_LARGER_CREATURE':
+      return [
+        ...document.parameters.initiatorCheckDefinitionIds,
+        document.parameters.targetCheckDefinitionId
+      ]
     case 'SHOVE_ASIDE':
       return [
         document.parameters.initiatorCheckDefinitionId,

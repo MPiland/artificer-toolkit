@@ -6,11 +6,14 @@ import {
   type OptionalCombatPolicyDefinition
 } from './optionalCombatDefinition.js'
 import {
+  DND5E_CLIMB_ONTO_LARGER_CREATURE_POLICY_MODULE,
   DND5E_OVERRUN_POLICY_MODULE,
   DND5E_TUMBLE_POLICY_MODULE
 } from './policyModuleRegistration.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import type {
+  ClimbOntoContestProposal,
+  ClimbOntoPreparationInput,
   MovementPassageProposal,
   OptionalCombatResolution,
   OptionalMovementContributor,
@@ -64,10 +67,15 @@ type ValidPassageFacts<TInput extends TumblePreparationInput> = TInput & {
   readonly passageAlreadyUsedThisTurn: boolean
 }
 
-function validCommonPassageFacts(
-  input: OverrunPreparationInput
+function validCommonPassageFacts<
+  TInput extends TumblePreparationInput & {
+    readonly initiatorSizeRank: number | null
+    readonly targetSizeRank: number | null
+  }
+>(
+  input: TInput
 ): input is ValidPassageFacts<
-  OverrunPreparationInput & { readonly initiatorSizeRank: number; readonly targetSizeRank: number }
+  TInput & { readonly initiatorSizeRank: number; readonly targetSizeRank: number }
 > {
   return (
     exactUuid(input.initiatorActorId) &&
@@ -174,6 +182,49 @@ export function prepareDnd5eTumbleContest(
         targetCheckDefinitionId: parameters.targetCheckDefinitionId
       },
       passage: passage(input.blockerActorId)
+    }
+  }
+}
+
+/**
+ * Seals an available climb-onto contest before either participant rolls: the target must be at
+ * least the authored number of sizes larger, the economy authored, and the check one of the
+ * climber's authored choices.
+ */
+export function prepareDnd5eClimbOntoContest(
+  input: ClimbOntoPreparationInput
+): OptionalCombatResolution<ClimbOntoContestProposal> {
+  const definition = exactOptionalCombatDefinition({
+    ...input,
+    kind: 'CLIMB_ONTO_LARGER_CREATURE',
+    module: DND5E_CLIMB_ONTO_LARGER_CREATURE_POLICY_MODULE
+  })
+  if (!definition) return { kind: 'INERT' }
+  const parameters = definition.document.parameters
+  if (parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE') return { kind: 'INERT' }
+  if (!validCommonPassageFacts(input)) {
+    return { kind: 'JUDGMENT_REQUIRED', reason: 'MISSING_CLIMB_ONTO_FACTS' }
+  }
+  const economy = input.actionEconomy
+  if (
+    economy === null ||
+    !input.actionEconomyAvailable ||
+    input.passageAlreadyUsedThisTurn ||
+    !parameters.economies.includes(economy) ||
+    !parameters.initiatorCheckDefinitionIds.includes(input.initiatorCheckDefinitionId) ||
+    input.targetSizeRank - input.initiatorSizeRank < parameters.minimumTargetSizeSteps
+  ) {
+    return { kind: 'NOT_APPLICABLE' }
+  }
+  return {
+    kind: 'PROPOSED',
+    proposal: {
+      pin: optionalCombatPolicyPin(definition),
+      consumes: { economy, amount: 1 },
+      contest: {
+        initiatorCheckDefinitionId: input.initiatorCheckDefinitionId,
+        targetCheckDefinitionId: parameters.targetCheckDefinitionId
+      }
     }
   }
 }

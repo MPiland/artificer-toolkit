@@ -133,6 +133,7 @@ export function createOptionalCombatActionSelectionDescriptor(input: {
       break
     case 'OVERRUN':
     case 'TUMBLE':
+    case 'CLIMB_ONTO_LARGER_CREATURE':
       break
     case 'SHOVE_ASIDE':
       fields.push(
