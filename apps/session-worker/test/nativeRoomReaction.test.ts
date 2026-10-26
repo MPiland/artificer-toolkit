@@ -1035,9 +1035,7 @@ describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', 
         characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
       ],
       ownerFeatureId: creatureFeature(bite, 'Bite').id,
-      characterClassFeatures: [deflectMissiles()],
-      // The app rolls the reduction's d10 as a 5 (a raw roll is the face less one).
-      rolls: [4]
+      characterClassFeatures: [deflectMissiles()]
     })
   }
 
@@ -1050,8 +1048,16 @@ describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', 
       optionId: pending.options[0].optionId
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
-    // The reduction's d10 waits on the GM's roll.
-    const rolled = await room.rollDice(await room.pendingDecision())
+    // The reduction's d10 waits on the attacker's roller, who enters a 5.
+    const dice = await room.pendingDecision()
+    if (dice.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+      throw new Error(`Expected the reduction die, got ${dice.pending.kind}.`)
+    expect(dice.pending.request).toMatchObject({ min: 1, max: 10 })
+    const rolled = await room.resolve(dice, {
+      kind: 'ENTER_INTEGER',
+      requestId: dice.pending.request.requestId,
+      value: 5
+    })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
 
     const batch = characterBatch(await readRoomHistory(room.room.base.stub))
