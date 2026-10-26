@@ -304,6 +304,18 @@ const PARITY: Record<CommandType, Entry> = {
       point: { x: 0, y: 0 }
     })
   },
+  SET_ZONE_DCS: {
+    access: 'TABLE',
+    rule: table('MOVE-3.3: the GM sets the spot and disarm DCs that conceal a placed zone'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'SET_ZONE_DCS',
+      spatialEffectId: SOME_ID,
+      spotDc: { value: 15, source: 'FLAT' },
+      disarmDc: null
+    })
+  },
   MORALE_SAVE: {
     access: 'TABLE',
     rule: table(

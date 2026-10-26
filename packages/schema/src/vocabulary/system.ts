@@ -112,6 +112,53 @@ const systemInitiativePolicyDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A System's cover tiers, ascending. A tier applies when at least `minBlockedLines` of the four
+ * lines to a target square's corners are blocked; it adds `bonus` to AC and Dexterity saves, or
+ * blocks targeting outright. Creatures alone give at most `creatureMaxTierCode`.
+ */
+const systemCoverRulesDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      tiers: z
+        .array(
+          z.strictObject({
+            code: z.string().check(z.minLength(1)),
+            label: z.string().check(z.minLength(1)),
+            minBlockedLines: z.number().check(z.int()).check(z.gte(1)).check(z.lte(4)),
+            bonus: z.number().check(z.int()).check(z.gte(0)),
+            blocksTargeting: z.boolean()
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(4)),
+      creatureMaxTierCode: z.nullable(z.string())
+    })
+    .check(
+      z.superRefine((rules, context) => {
+        for (const [index, tier] of rules.tiers.entries()) {
+          if (index > 0 && tier.minBlockedLines <= rules.tiers[index - 1]!.minBlockedLines) {
+            context.addIssue({
+              code: 'custom',
+              path: ['tiers', index, 'minBlockedLines'],
+              message: 'Cover tiers must ascend by blocked lines.'
+            })
+          }
+        }
+        if (
+          rules.creatureMaxTierCode !== null &&
+          !rules.tiers.some((tier) => tier.code === rules.creatureMaxTierCode)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['creatureMaxTierCode'],
+            message: 'The creature cover cap must name one of the cover tiers.'
+          })
+        }
+      })
+    )
+)
+
 /** A System document: UUID-backed abilities, check definitions and passives. */
 export const systemAuthoredDtoSchema = lazySchema(() =>
   z
@@ -122,7 +169,8 @@ export const systemAuthoredDtoSchema = lazySchema(() =>
       skills: z.array(systemCheckDefinitionDtoSchema),
       passives: z.array(systemPassiveDefinitionDtoSchema),
       initiativePolicy: z.optional(systemInitiativePolicyDtoSchema),
-      defaults: z.optional(systemDefaultsDtoSchema)
+      defaults: z.optional(systemDefaultsDtoSchema),
+      cover: z.optional(systemCoverRulesDtoSchema)
     })
     .check(
       z.superRefine((document, context) => {

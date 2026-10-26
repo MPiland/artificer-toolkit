@@ -243,7 +243,8 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       turnMovement,
       halfSpeedFields: [],
       auras: [],
-      movementCostZones: []
+      movementCostZones: [],
+      placedZones: []
     })
   }
 

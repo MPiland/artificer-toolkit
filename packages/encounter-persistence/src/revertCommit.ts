@@ -39,6 +39,7 @@ export type RevertScope = {
         | 'ESCAPE'
         | 'SET_CONCEALMENT_OBSERVERS'
         | 'PLACE_ZONE'
+        | 'SET_ZONE_DCS'
         | 'CREATURE_REST'
         | 'MOVE_HELD_EFFECT'
         | 'CHANGE_FACING'

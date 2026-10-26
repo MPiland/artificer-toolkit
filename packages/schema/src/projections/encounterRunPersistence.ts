@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import { spatialRuleEffectStateDtoSchema } from '../shared/spatial.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
@@ -596,6 +597,18 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.literal('PLACE_ZONE'),
       /** The Scene zone the GM placed (MOVE-3.2), which the GM's undo removes. */
       receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('SET_ZONE_DCS'),
+      /**
+       * The zone's state before the GM set its DCs (MOVE-3.3) and its version after, so the GM's
+       * undo restores it while nothing has touched the zone since.
+       */
+      receipt: z.strictObject({
+        spatialEffectId: postgresUuidSchema,
+        before: spatialRuleEffectStateDtoSchema,
+        afterVersion: z.number().check(z.int()).check(z.positive())
+      })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),

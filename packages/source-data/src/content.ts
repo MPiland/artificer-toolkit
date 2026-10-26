@@ -1,4 +1,5 @@
 import { AUTHORED_RECORD_STATUS } from '@artificer-toolkit/shared'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type {
   AuthoredRecordStatus,
   BackgroundAuthored,
@@ -127,6 +128,7 @@ export interface SystemSeedRecord {
   passives: SystemPassiveSeedRecord[]
   initiativePolicy?: { defaultDefinitionId: string }
   defaults?: { damageTypeId: string; conditionTypeId: string; movementTypeId: string }
+  cover?: SystemAuthoredDto['cover']
 }
 
 /**

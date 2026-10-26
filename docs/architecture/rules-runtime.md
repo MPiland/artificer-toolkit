@@ -1114,6 +1114,20 @@ through the stage's point-area pick and sends `PLACE_ZONE`. It offers undo while
 action, sending `REVERT_LAST_ACTION` at the placement's committed version so a later command makes the undo stale.
 The stage does not yet draw a placed zone's outline.
 
+**Concealed zones (MOVE-3.3, server current; GM DC input and map outline on web pending).** A zone fixed to the Scene
+may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's Stealth or Sleight of Hand roll result
+(`PLACER_ROLL`). They live in the zone's mutable `spatialState` (`concealment: { spotDc, knownByActorIds }` and
+`disarmDc`), not its placement, because the GM sets them at placement (`PLACE_ZONE` `spotDc`/`disarmDc`) or later
+(`SET_ZONE_DCS`, GM-only, receipt `{ spatialEffectId, before, afterVersion }`; GM undo restores `before` while the zone
+is still at `afterVersion`). `withZoneDcs` (`encounterZoneConcealment.ts`) makes the placer, the zone's
+`origin.sourceActorId`, know of a newly concealed zone; a GM-placed zone has no placer, so only the GM knows of it.
+Concealment is separate from the placement's `visibility`/`revealed` pair, which hides a zone from everyone until it
+triggers. `readEncounterSessionState` redacts per member once, for Convex and the room alike: the GM reads every zone,
+and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`
+(`zoneConcealedFrom`), so `halfSpeedFields`, `movementCostZones` and the new `placedZones` (the outlines the map draws)
+leave it out. Only the GM reads the DCs in `placedZones`. The movement path still triggers a concealed zone for every
+mover; an unaware mover's careful-crossing rules are MOVE-3.6.
+
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
 `zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
@@ -1818,6 +1832,16 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
+- **Cover tiers (SPELLS-14.T1).** `resolveSquareGridCover` (`packages/shared/src/domains/vtt/optionalCombatGeometry.ts`) works out
+  a target's cover on a square grid by the corner method: from the origin corner (an attacker's space, or an area's point of origin)
+  that leaves the least cover, one line to each corner of the target's least-covered square, with corners inset a hair so a wall on
+  a space's own edge still counts. A barrier that stops movement along a line blocks it (closed doors do, open ones do not), and so
+  does another creature's space. The tiers are System data: the System document's optional `cover` (`systemAuthoredDtoSchema`)
+  lists ascending tiers with their blocked-line threshold, bonus and whether they block targeting, plus the highest tier creatures
+  give on their own. Walls give the tier their lines reach; creatures add lines only up to that cap. The SRD authors half (1 line,
+  +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
+  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space. Applying the bonus to
+  attacks and area saves is SPELLS-14.T2.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
