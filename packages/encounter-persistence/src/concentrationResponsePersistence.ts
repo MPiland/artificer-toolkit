@@ -21,7 +21,7 @@ import {
 import {
   damageSaveCheckBoundApplication,
   damageSaveCheckMutatesRun
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {

@@ -1,5 +1,5 @@
 import { encounterMassiveDamageSavePendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
-import { massiveDamageSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { massiveDamageSaveApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   concentrationDamageSourceLabel,
   type ConcentrationDamageApplicationDto

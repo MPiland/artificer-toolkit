@@ -4,10 +4,8 @@ import {
   type RollRecordDto,
   type RollRuleCheckDto
 } from '@artificer-toolkit/schema/api/rolls'
-import type {
-  damageSaveCheckApplicationOutputDtoSchema,
-  ruleCheckD20EvidenceDtoSchema
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type { ruleCheckD20EvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type { damageSaveCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   d20AddedDiceTotal,

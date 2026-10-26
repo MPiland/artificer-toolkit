@@ -11,7 +11,7 @@ import {
   type ConcentrationMaintainedDamageApplicationDto,
   type DamageSaveApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
-import { damageSaveCheckBoundApplication } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { damageSaveCheckBoundApplication } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import {
@@ -53,7 +53,7 @@ import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 import type {
   concentrationCheckApplicationOutputDtoSchema,
   damageSaveCheckApplicationOutputDtoSchema
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 
 type ConcentrationDamageApplication = ReturnType<
   typeof nativeConcentrationDamageApplications

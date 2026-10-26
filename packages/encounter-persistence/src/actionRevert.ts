@@ -9,10 +9,8 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  damageSaveCheckMutatesRun,
-  type ConcentrationEndReason
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { type ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { damageSaveCheckMutatesRun } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,

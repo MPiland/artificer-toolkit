@@ -7,7 +7,7 @@ import {
 import {
   damageSaveCheckBoundApplication,
   damageSaveCheckMutatesRun
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   storedRuleExecutionResultDtoSchema,
   type StoredRuleExecutionResultDto
