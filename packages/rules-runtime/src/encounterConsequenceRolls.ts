@@ -185,6 +185,9 @@ export function withoutConsequenceRollOffer(
 }
 
 /** The row a roll lands on; null when it falls in a gap between the authored rows. */
-export function consequenceRollRow(table: ConsequenceRollTable, roll: number): string | null {
-  return table.rows.find((row) => row.minimum <= roll && roll <= row.maximum)?.rowId ?? null
+export function consequenceRollRow(
+  table: ConsequenceRollTable,
+  roll: number
+): ConsequenceRollTable['rows'][number] | null {
+  return table.rows.find((row) => row.minimum <= roll && roll <= row.maximum) ?? null
 }

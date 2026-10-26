@@ -1,5 +1,5 @@
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
-import { Button, Collapse, Group, Text } from '@mantine/core'
+import { Button, Collapse, Group, Stack, Text } from '@mantine/core'
 import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
@@ -144,6 +144,45 @@ export function CharacterSheetOverviewStatusStrip({
                   {standing.returnsOn === 'LONG_REST' ? 'long rest' : 'short rest'}
                 </Text>
               </Text>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {sheet.overview.consequences.length > 0 ? (
+        // Effects and recovery are the GM's rulings (D187a): the table's healing shows as guidance.
+        <ul aria-label='Lingering consequences' className={activeGrantStyles.list}>
+          {sheet.overview.consequences.map((consequence) => (
+            <li key={consequence.id} className={activeGrantStyles.item}>
+              <Stack gap={0}>
+                <Text size='xs'>
+                  {consequence.label}
+                  <Text c='dimmed' component='span' size='xs'>
+                    {' · '}
+                    {consequence.tableLabel}
+                  </Text>
+                </Text>
+                <Text size='xs'>{consequence.effect}</Text>
+                <Text c='dimmed' size='xs'>
+                  Healing: {consequence.healing}
+                </Text>
+              </Stack>
+              {sheet.meta.capabilities.removeConsequences ? (
+                <Button
+                  aria-label={`Remove ${consequence.label}`}
+                  disabled={pending}
+                  size='compact-xs'
+                  variant='default'
+                  onClick={() =>
+                    submitCommand({
+                      type: 'REMOVE_CONSEQUENCE',
+                      consequenceId: consequence.id,
+                      expectedVersion: sheet.meta.streamVersion
+                    })
+                  }
+                >
+                  Remove
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>

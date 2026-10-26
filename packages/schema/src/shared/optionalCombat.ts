@@ -4,7 +4,10 @@ import { z, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
-import { consequenceRollTriggersDtoSchema } from './consequenceRolls.js'
+import {
+  consequenceRollTableDtoSchema,
+  consequenceRollTriggersDtoSchema
+} from './consequenceRolls.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
@@ -91,18 +94,6 @@ const dnd5eOptionalCombatOperationDurationDtoSchema = lazySchema(() =>
   z.enum(['PERMANENT', 'UNTIL_END_OF_NEXT_TURN', 'UNTIL_CLEARED'])
 )
 
-const dnd5eOptionalCombatCheckEffectDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('effect', [
-    z.strictObject({ effect: z.literal('RETAIN_INJURY') }),
-    z.strictObject({ effect: z.literal('ALLOW_ATTEMPTED_COMBAT_ACTION') }),
-    z.strictObject({ effect: z.literal('DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION') }),
-    z.strictObject({
-      effect: z.literal('SET_REACTION_AVAILABILITY'),
-      available: z.literal(false),
-      duration: z.literal('UNTIL_START_OF_NEXT_TURN')
-    })
-  ])
-)
 export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
   z.discriminatedUnion('primitive', [
     z.strictObject({
@@ -145,13 +136,6 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('CREATE_INJURY_RECORD'),
-      target: z.literal('SUBJECT'),
-      injuryDefinitionId: serverUuidIdentityDtoSchema,
-      duration: z.enum(['PERMANENT', 'UNTIL_CLEARED'])
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
       primitive: z.literal('APPLY_RESTRICTION'),
       target: z.literal('SUBJECT'),
       restrictionDefinitionId: serverUuidIdentityDtoSchema,
@@ -173,42 +157,6 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
       cadence: z.enum(['DAILY', 'REST']),
       duration: z.enum(['PERMANENT', 'UNTIL_CLEARED'])
     }),
-    z
-      .strictObject({
-        id: serverUuidIdentityDtoSchema,
-        primitive: z.literal('REQUIRE_CHECK'),
-        target: z.literal('SUBJECT'),
-        abilityDefinitionId: serverUuidIdentityDtoSchema,
-        difficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
-        trigger: z.literal('BEFORE_COMBAT_ACTION'),
-        successEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).check(z.length(2)),
-        failureEffects: z.array(dnd5eOptionalCombatCheckEffectDtoSchema).check(z.length(3))
-      })
-      .check(
-        z.superRefine((operation, context) => {
-          const effects = (items: readonly { readonly effect: string }[]) =>
-            items.map((item) => item.effect).sort()
-          if (
-            effects(operation.successEffects).join('|') !==
-              'ALLOW_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY' ||
-            effects(operation.failureEffects).join('|') !==
-              'DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION|RETAIN_INJURY|SET_REACTION_AVAILABILITY'
-          ) {
-            context.addIssue({
-              code: 'custom',
-              path: ['failureEffects'],
-              message:
-                'Combat-action checks require their exact closed success and failure effects.'
-            })
-          }
-        })
-      ),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('JUDGMENT_REQUIRED'),
-      target: dnd5eOptionalCombatOperationTargetDtoSchema,
-      reason: z.enum(['UNNORMALIZED_INJURY_CONSEQUENCE', 'UNNORMALIZED_RECOVERY'])
-    }),
     z.strictObject({
       id: serverUuidIdentityDtoSchema,
       primitive: z.literal('SET_MORALE_DISPOSITION'),
@@ -228,15 +176,6 @@ const dnd5eOptionalCombatOutcomeDescriptorDtoSchema = lazySchema(() =>
       'STABLE_AT_ZERO',
       'STUNNED_UNTIL_END_OF_NEXT_TURN',
       'IMPAIRED_UNTIL_END_OF_NEXT_TURN',
-      'LOSE_EYE',
-      'LOSE_ARM_OR_HAND',
-      'LOSE_FOOT_OR_LEG',
-      'LIMP',
-      'INTERNAL_INJURY',
-      'BROKEN_RIBS',
-      'HORRIBLE_SCAR',
-      'FESTERING_WOUND',
-      'MINOR_SCAR',
       'CONTINUE',
       'FLEE',
       'SURRENDER'
@@ -248,36 +187,12 @@ const dnd5eOptionalCombatOutcomeDescriptorDtoSchema = lazySchema(() =>
   })
 )
 
-const dnd5eOptionalCombatRecoveryDescriptorDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      kind: z.literal('NONE'),
-      operations: z.array(dnd5eOptionalCombatOperationDtoSchema).check(z.length(0))
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      kind: z.enum([
-        'MAGICAL_RESTORATION',
-        'MEDICAL_TREATMENT',
-        'NATURAL_HEALING',
-        'JUDGMENT_REQUIRED'
-      ]),
-      operations: z
-        .array(dnd5eOptionalCombatOperationDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(4))
-    })
-  ])
-)
-
 const dnd5eOptionalCombatBandDtoSchema = lazySchema(() =>
   z
     .strictObject({
       minimum: boundedD20Schema,
       maximum: boundedD20Schema,
-      outcome: dnd5eOptionalCombatOutcomeDescriptorDtoSchema,
-      recovery: z.nullable(dnd5eOptionalCombatRecoveryDescriptorDtoSchema)
+      outcome: dnd5eOptionalCombatOutcomeDescriptorDtoSchema
     })
     .check(
       z.superRefine((band, context) => {
@@ -301,7 +216,6 @@ const dnd5eOptionalCombatBandsDtoSchema = lazySchema(() =>
       z.superRefine((bands, context) => {
         let previousMaximum = 0
         const outcomeIds = new Set<string>()
-        const recoveryIds = new Set<string>()
         for (const [index, band] of bands.entries()) {
           if (band.minimum <= previousMaximum) {
             context.addIssue({
@@ -317,15 +231,7 @@ const dnd5eOptionalCombatBandsDtoSchema = lazySchema(() =>
               message: 'Optional combat outcome identities must be unique.'
             })
           }
-          if (band.recovery !== null && recoveryIds.has(band.recovery.id)) {
-            context.addIssue({
-              code: 'custom',
-              path: [index, 'recovery', 'id'],
-              message: 'Optional combat recovery identities must be unique.'
-            })
-          }
           outcomeIds.add(band.outcome.id)
-          if (band.recovery !== null) recoveryIds.add(band.recovery.id)
           previousMaximum = band.maximum
         }
       })
@@ -508,7 +414,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('INJURIES'),
       triggers: consequenceRollTriggersDtoSchema,
-      bands: dnd5eOptionalCombatBandsDtoSchema
+      table: consequenceRollTableDtoSchema
     }),
     z.strictObject({
       kind: z.literal('MASSIVE_DAMAGE'),
@@ -691,9 +597,6 @@ export type MoraleDispositionDto = z.infer<typeof moraleDispositionDtoSchema>
 export type Dnd5eOptionalCombatOperationDto = z.infer<typeof dnd5eOptionalCombatOperationDtoSchema>
 export type Dnd5eOptionalCombatOutcomeDescriptorDto = z.infer<
   typeof dnd5eOptionalCombatOutcomeDescriptorDtoSchema
->
-export type Dnd5eOptionalCombatRecoveryDescriptorDto = z.infer<
-  typeof dnd5eOptionalCombatRecoveryDescriptorDtoSchema
 >
 export type Dnd5eOptionalCombatReusableDefinitionDocumentDto = z.infer<
   typeof dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema

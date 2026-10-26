@@ -1,5 +1,7 @@
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { composeRunActorState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -8,6 +10,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
@@ -18,9 +21,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
+import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { movementRoom } from './movementRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
+import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 
 const FIGHTER_ACTOR_ID = testUuid(0xd00)
@@ -39,23 +42,33 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/** Zero-based d20 face of a hit that is not a critical. */
+const HIT_FACE = 18
+const RANGE = ['TARGET_RANGE_UNCHECKED' as const]
+
 /**
- * A Fighter and a seeded SRD Ogre. The Fighter carries `compatibleGreatclub`, which publishes it
- * and a Dagger (with the Club every room publishes) into the room's R2 content: the sources a
- * replacement reads.
+ * A seeded SRD Ogre on its turn beside a Fighter. The Fighter carries `compatibleGreatclub`, which
+ * publishes it and a Dagger (with the Club every room publishes) into the room's R2 content: the
+ * sources a replacement reads. With `autoRoll` the GM's rolls are made for them, so the Ogre's
+ * attack with its held weapon resolves in one command.
  */
-async function equipmentRoom(creatureName = 'Ogre') {
-  const ogre = srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature(creatureName) })
-  const room = await movementRoom({
-    actors: [characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }), ogre],
-    moverActorId: FIGHTER_ACTOR_ID,
-    positions: { [FIGHTER_ACTOR_ID]: { x: 150, y: 150 }, [OGRE_ID]: { x: 250, y: 150 } },
-    characterEquipment: creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace]
-  })
-  const heldEntryId = snapshotCreatureEquipmentLoadout(ogre).find(
+async function equipmentRoom(creatureName = 'Ogre', autoRoll?: 'GAME_MASTER') {
+  const creature = seededSrdCreature(creatureName)
+  const ogre = srdCreatureActor({ id: OGRE_ID, creature })
+  const heldEntry = snapshotCreatureEquipmentLoadout(ogre).find(
     (entry) => entry.useState === 'MAIN_HAND'
-  )?.id
-  if (!heldEntryId) throw new Error('The Ogre holds no main-hand item.')
+  )
+  const attackFeatureId = heldEntry?.actionFeatureIds[0]
+  if (!heldEntry || !attackFeatureId) throw new Error('The Ogre holds no main-hand weapon.')
+  const heldEntryId = heldEntry.id
+  const acting = await actionRoom({
+    actors: [ogre, characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+    ownerFeatureId: attackFeatureId,
+    characterEquipment:
+      creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace],
+    ...(autoRoll && { autoRoll, rolls: [HIT_FACE] })
+  })
+  const room = acting.room
   const stub = room.base.stub
 
   /** The Ogre as the room stores it, with the snapshot its record names. */
@@ -80,9 +93,11 @@ async function equipmentRoom(creatureName = 'Ogre') {
     actorId?: string
     commandId?: string
     expectedVersion?: number
+    /** The socket's commands that send it: the GM's unless a player's. */
+    via?: Pick<typeof room, 'send'>
   }) {
     const commandId = input.commandId ?? crypto.randomUUID()
-    return room.send(commandId, {
+    return (input.via ?? room).send(commandId, {
       scope: 'ENCOUNTER',
       command: {
         type: 'REPLACE_CREATURE_EQUIPMENT',
@@ -96,10 +111,30 @@ async function equipmentRoom(creatureName = 'Ogre') {
     })
   }
 
+  /** The Ogre's attack on the Fighter with the weapon it holds, sent as soon as it is called. */
+  function attack(expectedVersion: number, commandId = crypto.randomUUID()) {
+    const command: ResolveEncounterActionInputDto = {
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: RANGE,
+      encounterId: room.encounterId,
+      commandId,
+      expectedVersion,
+      actorId: OGRE_ID,
+      target: { kind: 'ACTOR', actorId: FIGHTER_ACTOR_ID },
+      actionId: acting.actionId,
+      optionalCombatIntent: null,
+      sceneContext: null
+    }
+    return room.send(commandId, { scope: 'ENCOUNTER', command })
+  }
+
   return {
+    room,
     heldEntryId,
     storedOgre,
     runVersion,
+    attack,
     /**
      * A replacement the rules refuse: the member is told only that the command could not be
      * completed, so the cause is read off what the room logged.
@@ -151,6 +186,22 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(source!.sourceChecksum).toBe(checksumRuleDocument(compatibleGreatclub))
     expect(source!.compilation.authoredChecksum).toBe(source!.sourceChecksum)
     expect(after.currentHitPoints).toBe(before.currentHitPoints)
+    // The source evidence the command records is the closed pin the snapshot now holds.
+    const { commands } = await readRoomHistory(room.room.base.stub)
+    expect(commands.find((command) => command.commandId === commandId)).toMatchObject({
+      commandType: 'REPLACE_CREATURE_EQUIPMENT',
+      creatureEquipmentReplacement: {
+        actorId: OGRE_ID,
+        loadoutEntryId: room.heldEntryId,
+        equipmentId: compatibleGreatclub.id,
+        sourceRevision: source!.sourceRevision,
+        sourceVersionId: source!.sourceVersionId,
+        sourceChecksum: source!.sourceChecksum
+      }
+    })
+    const payloadOf = (actor: typeof before) =>
+      requireSnapshotIdentity(composeRunActorState(actor, actor.snapshot)).payload
+    expect(payloadOf(after)).toEqual(payloadOf(before))
 
     const replay = await room.replace({
       equipmentId: compatibleGreatclub.id,
@@ -227,5 +278,160 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_REJECTED')
     expect(causes).toEqual(['Only a Creature with a frozen source can replace Equipment.'])
     expect(await room.runVersion()).toBe(versionBefore)
+  })
+})
+
+describe('who may replace a loadout, and when (ATTACK-6.4)', () => {
+  it('refuses a player: replacing an actor’s loadout is the GM’s', async () => {
+    const room = await equipmentRoom()
+    const before = await room.storedOgre()
+    const versionBefore = await room.runVersion()
+
+    const answer = await room.replace({
+      equipmentId: compatibleGreatclub.id,
+      via: await room.room.asPlayer()
+    })
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'GM_ONLY' })
+    expect(await room.runVersion()).toBe(versionBefore)
+    expect(await room.storedOgre()).toEqual(before)
+  })
+
+  it('refuses a replacement while the Ogre’s attack waits on a roll', async () => {
+    const room = await equipmentRoom()
+    const attacked = await room.attack(await room.runVersion())
+    expect(attacked.type, JSON.stringify(attacked)).toBe('COMMAND_COMMITTED')
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (!decision) throw new Error('The attack is not waiting on a roll.')
+    const before = await room.storedOgre()
+
+    const answer = await room.replace({
+      equipmentId: compatibleGreatclub.id,
+      expectedVersion: decision.encounterVersion
+    })
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'PENDING_DECISION' })
+    expect(await room.runVersion()).toBe(decision.encounterVersion)
+    expect(await room.storedOgre()).toEqual(before)
+  })
+
+  it('refuses a replacement once the Run is completed', async () => {
+    const room = await equipmentRoom()
+    const commandId = crypto.randomUUID()
+    const completed = await room.room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'COMPLETE',
+        encounterId: room.room.encounterId,
+        commandId,
+        expectedVersion: await room.runVersion()
+      }
+    })
+    expect(completed.type, JSON.stringify(completed)).toBe('COMMAND_COMMITTED')
+    // A completed Run clears its actors' snapshots, so its stored rows are what must not change.
+    const before = await readRoomHistory(room.room.base.stub)
+
+    const answer = await room.replace({ equipmentId: compatibleGreatclub.id })
+
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'ENCOUNTER_NOT_ACTIVE' })
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+  })
+})
+
+/**
+ * The GM replaces the Ogre's held weapon while the Ogre's attack is in flight: both are sent at the
+ * same Run version before either is answered. The room runs one, refuses the other as stale, and
+ * the loser, sent again at the version it now reads, runs against the winner's state.
+ */
+describe('a loadout replacement racing the Ogre’s attack (ATTACK-6.5, ATTACK-6.6)', () => {
+  /** The room's Run history after the race: its version and the commands it committed. */
+  async function settled(room: Awaited<ReturnType<typeof equipmentRoom>>) {
+    const { runs, commands } = await readRoomHistory(room.room.base.stub)
+    return { version: runs[0]!.version, commandIds: commands.map(({ commandId }) => commandId) }
+  }
+
+  it('replacement first: the attack is refused as stale, and its retry uses the new weapon', async () => {
+    const room = await equipmentRoom('Ogre', 'GAME_MASTER')
+    const start = await settled(room)
+    const replacementId = crypto.randomUUID()
+    const attackId = crypto.randomUUID()
+
+    const [replaced, attacked] = await Promise.all([
+      room.replace({
+        equipmentId: compatibleGreatclub.id,
+        commandId: replacementId,
+        expectedVersion: start.version
+      }),
+      room.attack(start.version, attackId)
+    ])
+
+    expect(replaced.type, JSON.stringify(replaced)).toBe('COMMAND_COMMITTED')
+    expect(attacked).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'VERSION_STALE' })
+    const afterRace = await settled(room)
+    expect(afterRace).toEqual({
+      version: start.version + 1,
+      commandIds: [...start.commandIds, replacementId]
+    })
+    const replacedOgre = await room.storedOgre()
+    expect(
+      snapshotCreatureEquipmentSources(replacedOgre).find(
+        ({ loadoutEntryId }) => loadoutEntryId === room.heldEntryId
+      )?.equipmentId
+    ).toBe(compatibleGreatclub.id)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+
+    const retryId = crypto.randomUUID()
+    const retried = await room.attack(afterRace.version, retryId)
+
+    expect(retried.type, JSON.stringify(retried)).toBe('COMMAND_COMMITTED')
+    expect((await settled(room)).commandIds).toEqual([...afterRace.commandIds, retryId])
+    expect(snapshotCreatureEquipmentLoadout(await room.storedOgre())).toEqual(
+      snapshotCreatureEquipmentLoadout(replacedOgre)
+    )
+  })
+
+  it('attack first: the replacement is refused as stale, and its retry replaces the weapon', async () => {
+    const room = await equipmentRoom('Ogre', 'GAME_MASTER')
+    const start = await settled(room)
+    const before = await room.storedOgre()
+    const attackId = crypto.randomUUID()
+    const replacementId = crypto.randomUUID()
+
+    const [attacked, replaced] = await Promise.all([
+      room.attack(start.version, attackId),
+      room.replace({
+        equipmentId: compatibleGreatclub.id,
+        commandId: replacementId,
+        expectedVersion: start.version
+      })
+    ])
+
+    expect(attacked.type, JSON.stringify(attacked)).toBe('COMMAND_COMMITTED')
+    expect(replaced).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'VERSION_STALE' })
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const afterRace = await settled(room)
+    expect(afterRace.commandIds).toEqual([...start.commandIds, attackId])
+    expect(afterRace.version).toBeGreaterThan(start.version)
+    expect(snapshotCreatureEquipmentLoadout(await room.storedOgre())).toEqual(
+      snapshotCreatureEquipmentLoadout(before)
+    )
+
+    const retryId = crypto.randomUUID()
+    const retried = await room.replace({
+      equipmentId: compatibleGreatclub.id,
+      commandId: retryId,
+      expectedVersion: afterRace.version
+    })
+
+    expect(retried.type, JSON.stringify(retried)).toBe('COMMAND_COMMITTED')
+    expect(await settled(room)).toEqual({
+      version: afterRace.version + 1,
+      commandIds: [...afterRace.commandIds, retryId]
+    })
+    expect(
+      snapshotCreatureEquipmentSources(await room.storedOgre()).find(
+        ({ loadoutEntryId }) => loadoutEntryId === room.heldEntryId
+      )?.equipmentId
+    ).toBe(compatibleGreatclub.id)
   })
 })

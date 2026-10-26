@@ -23,7 +23,7 @@ const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
 )
 if (!injuries || injuries.document.parameters.kind !== 'INJURIES')
   throw new Error('Missing published Injuries.')
-const injuryBands = injuries.document.parameters.bands
+const injuryRows = injuries.document.parameters.table.rows
 
 /** The offer an earlier command's damage left the GM: the room tests of that damage prove it. */
 const offer: EncounterConsequenceRollOfferDto = {
@@ -93,7 +93,7 @@ describe('Consequence roll receipts in the native room (ATTACK-15.1)', () => {
         decision: 'ACCEPT',
         dieFaces: 20,
         roll: 1,
-        rowId: injuryBands.find((band) => band.minimum <= 1 && 1 <= band.maximum)!.outcome.id
+        rowId: injuryRows.find(({ minimum, maximum }) => minimum <= 1 && 1 <= maximum)!.id
       }
     })
   })

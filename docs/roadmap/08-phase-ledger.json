@@ -8261,25 +8261,27 @@
             },
             {
               "text": "The GM can replace an active Creature actor's loadout.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ATTACK-6.T1 (m462); see each task's proof."],
               "origin": ["P81-CREATURE-GEAR-ACTOR-REPLACE"],
-              "note": "REPLACE_CREATURE_EQUIPMENT and equipmentCommands.test.ts exist; verify against the original scenario before accepting.",
+              "note": "REPLACE_CREATURE_EQUIPMENT and equipmentCommands.test.ts exist; verify against the original scenario before accepting. Closed 2026-10-24 by ATTACK-6.T1.",
               "id": "ATTACK-6.4"
             },
             {
               "text": "A loadout replacement and an action racing: replacement first leaves one consistent result.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ATTACK-6.T1 (m462); see each task's proof."],
               "origin": ["P81-RACE-LOADOUT-ACTION-REPLACE-FIRST"],
-              "id": "ATTACK-6.5"
+              "id": "ATTACK-6.5",
+              "note": "Closed 2026-10-24 by ATTACK-6.T1."
             },
             {
               "text": "A loadout replacement and an action racing: action first leaves one consistent result.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ATTACK-6.T1 (m462); see each task's proof."],
               "origin": ["P81-RACE-LOADOUT-ACTION-ACTION-FIRST"],
-              "id": "ATTACK-6.6"
+              "id": "ATTACK-6.6",
+              "note": "Closed 2026-10-24 by ATTACK-6.T1."
             }
           ],
           "wsjf": {
@@ -8291,7 +8293,7 @@
           "tasks": [
             {
               "id": "ATTACK-6.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-6.4", "ATTACK-6.5", "ATTACK-6.6"],
               "wsjf": {
                 "bv": 5,
@@ -8300,8 +8302,9 @@
                 "size": 3
               },
               "text": "Verify 6.4 against the original scenario and add the two race tests (replacement first, action first).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m462.",
+              "mergedAt": "2026-10-26T14:46:54Z",
+              "proof": "Tests 40270715422 green on 840b2017b (Live path-filtered); reviewed (test-only, no product bug); merged in m462 batch"
             },
             {
               "id": "ATTACK-6.T2",
@@ -14824,15 +14827,25 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
-              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
+              "proof": [
+                "apps/session-worker/test/nativeRoomTranquility.test.ts",
+                "packages/rules-runtime/src/__tests__/standingEffects.test.ts",
+                "apps/session-worker/test/nativeRoomStandingEffect.test.ts",
+                "apps/apis/convex/characters/sheetRestStandingEffect.test.ts",
+                "packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts",
+                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
+              ]
             },
             {
               "id": "SPELLS-31.2",
               "text": "An author can give a feature (Class, Feat, Creature trait) an always-on effect with no duration that ends on any condition from the existing End On list and returns after a long rest or a short rest. While it is held it applies its grants. Once ended it stays ended until its rest turns it back on. It works for Characters and Creatures, an action's undo restores it, and the Sheet shows it as active or as 'ended until <rest>', never as a use. Tranquility is authored this way with no feature-specific code, and its closed-rule kind is deleted.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-31.T4k2d1 (m459), SPELLS-31.T4k2d2 (m462); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits). T4k2d1 proofs (m459): packages/rules-runtime/src/__tests__/standingEffects.test.ts, apps/session-worker/test/nativeRoomStandingEffect.test.ts, apps/apis/convex/characters/sheetRestStandingEffect.test.ts, packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts, apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx; closes with T4k2d2."
+              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits). T4k2d1 proofs (m459): packages/rules-runtime/src/__tests__/standingEffects.test.ts, apps/session-worker/test/nativeRoomStandingEffect.test.ts, apps/apis/convex/characters/sheetRestStandingEffect.test.ts, packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts, apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx; closes with T4k2d2. Closed 2026-10-24 by SPELLS-31.T4k2d1, SPELLS-31.T4k2d2."
             }
           ],
           "tasks": [
@@ -15178,7 +15191,7 @@
             },
             {
               "id": "SPELLS-31.T4k2d2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1", "SPELLS-31.2"],
               "wsjf": {
                 "bv": 3,
@@ -15188,7 +15201,9 @@
                 "after": ["SPELLS-31.T4k2d1"]
               },
               "text": "Tranquility as a standing effect: returns on long rest, incoming-attack gate at DERIVED_DC Wisdom, Sanctuary's ATTACK_ROLL and SPELL_CAST vs ENEMY end triggers; delete CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY; room test (the ward stops an attacker, the holder's attack ends it, a long rest restores it).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "mergedAt": "2026-10-26T14:46:54Z",
+              "proof": "Tests 40270253751 and Live 40270253660 green on 487d1cca4; reviewed (data-only Tranquility); merged in m462 batch",
+              "note": " Merged in m462."
             },
             {
               "id": "SPELLS-31.T4l1",

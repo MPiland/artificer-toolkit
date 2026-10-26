@@ -7,7 +7,8 @@ import { characterSheetStateSchema } from './characterSheetState.js'
  * write touches one small record (ADR 0035 Amendment 12). Exactly these fields are what the room
  * holds and checkpoints for a Character:
  * - hit points (current, temporary, hit dice), inspiration, class and other resources, spell slots,
- *   conditions, exhaustion and the creatures spells cast from the Sheet conjured, from `state`;
+ *   conditions, exhaustion, recorded consequences (such as lingering injuries) and the creatures
+ *   spells cast from the Sheet conjured, from `state`;
  * - the equipped and attuned item ids (item-use state), from `state.equipment`;
  * - resource usage and party visibility, from the Sheet state.
  * Everything else stays in the Character document and Sheet state.
@@ -20,6 +21,7 @@ export const characterPlayStateSchema = lazySchema(() => {
     spellSlots,
     conditions,
     exhaustion,
+    consequences,
     spellSummons,
     equipment
   } = characterStateDtoSchema.shape
@@ -32,6 +34,7 @@ export const characterPlayStateSchema = lazySchema(() => {
     spellSlots,
     conditions,
     exhaustion,
+    consequences,
     spellSummons,
     equipped: equipment.shape.equipped,
     attuned: equipment.shape.attuned,
@@ -52,6 +55,7 @@ export const characterStructureStateSchema = lazySchema(() =>
       spellSlots: true,
       conditions: true,
       exhaustion: true,
+      consequences: true,
       spellSummons: true,
       equipment: true
     }),
@@ -194,6 +198,7 @@ export function splitCharacterStatePlay(state: CharacterState): {
     spellSlots,
     conditions,
     exhaustion,
+    consequences,
     spellSummons,
     equipment,
     ...structure
@@ -209,6 +214,7 @@ export function splitCharacterStatePlay(state: CharacterState): {
       ...(spellSlots === undefined ? {} : { spellSlots }),
       ...(conditions === undefined ? {} : { conditions }),
       ...(exhaustion === undefined ? {} : { exhaustion }),
+      ...(consequences === undefined ? {} : { consequences }),
       ...(spellSummons === undefined ? {} : { spellSummons }),
       equipped,
       attuned
@@ -228,6 +234,7 @@ export function mergeCharacterStatePlay(
     spellSlots,
     conditions,
     exhaustion,
+    consequences,
     spellSummons,
     equipped,
     attuned
@@ -241,6 +248,7 @@ export function mergeCharacterStatePlay(
     ...(spellSlots === undefined ? {} : { spellSlots }),
     ...(conditions === undefined ? {} : { conditions }),
     ...(exhaustion === undefined ? {} : { exhaustion }),
+    ...(consequences === undefined ? {} : { consequences }),
     ...(spellSummons === undefined ? {} : { spellSummons }),
     equipment: { ...structure.equipment, equipped, attuned }
   }

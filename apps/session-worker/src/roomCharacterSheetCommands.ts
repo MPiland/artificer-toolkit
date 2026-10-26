@@ -32,7 +32,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
-import { assertCampaignGmSheetCommandAllowed } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
+import {
+  assertCampaignGmSheetCommandAllowed,
+  assertGmOnlySheetCommandAllowed
+} from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
@@ -146,6 +149,7 @@ export async function executeRoomCharacterSheetCommand(input: {
       actor.kind === 'CHARACTER' && actor.sourceId === characterId && actor.frozenState === null
   )
   if (assignment.userId !== userId) assertCampaignGmSheetCommandAllowed(command)
+  assertGmOnlySheetCommandAllowed(command, membership.role === 'OWNER')
   if (!holder) {
     // The caster is outside this Run, so Convex owns their play. Only ending a Concentration whose
     // carried grants a Character the Run holds still carries reaches the room (SPELLS-5.11, Q1).

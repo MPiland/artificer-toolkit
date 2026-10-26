@@ -624,6 +624,14 @@ function projectCommon<
           )
         }
       }
+    case 'REMOVE_CONSEQUENCE':
+      return {
+        ...sheet,
+        overview: {
+          ...sheet.overview,
+          consequences: sheet.overview.consequences.filter(({ id }) => id !== command.consequenceId)
+        }
+      }
 
     case 'SET_HIT_POINTS':
     case 'ADJUST_HIT_POINTS':
@@ -890,6 +898,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':
     case 'REMOVE_CONDITION':
+    case 'REMOVE_CONSEQUENCE':
     case 'USE_RESOURCE':
     case 'RESTORE_RESOURCE':
     case 'USE_SPELL_SLOT':

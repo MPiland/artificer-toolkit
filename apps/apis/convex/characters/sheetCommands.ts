@@ -49,7 +49,8 @@ import {
   validateSheetAdjustmentTarget,
   validateSpellMechanicCustomization,
   validateSpellSource,
-  assertCampaignGmSheetCommandAllowed
+  assertCampaignGmSheetCommandAllowed,
+  assertGmOnlySheetCommandAllowed
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
@@ -131,6 +132,7 @@ function applySupportedCommand(
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':
     case 'REMOVE_CONDITION':
+    case 'REMOVE_CONSEQUENCE':
     case 'CREATE_NOTE':
     case 'UPDATE_NOTE':
     case 'DELETE_NOTE':
@@ -178,6 +180,7 @@ export async function executeCharacterSheetCommand(
       throw new Error('Archived Campaigns are read-only.')
     assertCampaignGmSheetCommandAllowed(input.command)
   }
+  assertGmOnlySheetCommandAllowed(input.command, initial.campaignContext.isCampaignOwner)
   if (
     (input.command.type === 'SET_HIT_POINTS' &&
       (input.command.current !== undefined || input.command.temp !== undefined)) ||

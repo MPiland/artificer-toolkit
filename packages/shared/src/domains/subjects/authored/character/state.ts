@@ -116,6 +116,22 @@ export interface CharacterExhaustionState {
 }
 
 /**
+ * A consequence table row the GM accepted for this Character, such as a lingering injury (ATTACK-15).
+ * It keeps the row's text as rolled and lasts until the GM removes it.
+ */
+export interface CharacterConsequenceState {
+  /** The resolve command that recorded it. */
+  id: string
+  definitionId: string
+  rowId: string
+  tableLabel: string
+  label: string
+  effect: string
+  healing: string
+  recordedAt: string
+}
+
+/**
  * A creature a Sheet spell cast conjured outside an Encounter (D190). It holds the stat block values
  * the cast resolved against the caster, never the plan's expressions.
  */
@@ -192,6 +208,7 @@ export interface CharacterState {
   spellSlots?: CharacterSpellSlotUsageState[]
   conditions?: CharacterConditionState[]
   exhaustion?: CharacterExhaustionState
+  consequences?: CharacterConsequenceState[]
   spellSummons?: CharacterSpellSummonState[]
   noteGroups?: CharacterNoteGroupState[]
   notes?: CharacterNoteState[]
