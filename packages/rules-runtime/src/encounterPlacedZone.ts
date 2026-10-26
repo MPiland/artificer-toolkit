@@ -115,7 +115,8 @@ type PlacedZoneInput = {
   encounterId: string
   occurrenceId: string
   rootCommandId: string
-  sourceActorId: string
+  /** The creature whose action placed the zone; null for a GM's environmental zone (MOVE-3.2). */
+  sourceActorId: string | null
   point: ScenePoint
   area: SpatialAreaShape
   /** The user's token; a SOURCE zone follows it. */

@@ -593,6 +593,11 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('PLACE_ZONE'),
+      /** The Scene zone the GM placed (MOVE-3.2), which the GM's undo removes. */
+      receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),
       /** Each actor's morale record before and after the GM's check or confirmation (ENCOUNTER-6.2). */
       receipt: z.strictObject({

@@ -1099,6 +1099,16 @@ settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice,
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
+**GM environmental zones (MOVE-3.2, ADR 0038, server current; tabletop tool MOVE-3.T1b pending).** The GM command
+`PLACE_ZONE` carries an authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome (the zone `outcome` node map's values) and a
+Scene point. `planEncounterEnvironmentalZone` (`encounterEnvironmentalZone.ts`) wraps it in the passive Effect an item
+leaving it authors and runs the same `compileEffect`, `bindEncounterEffect`, `compilePassiveZone`,
+`evaluateEncounterZoneTarget` and `planEncounterPlacedZone` path, fixed to the Scene with `origin.sourceActorId: null`.
+No creature stands behind it, so a zone that needs one (maintenance, a cast save DC, a source grant, retaliation,
+unaffected picks, required sight, a non-fixed escape DC, a source-turn trigger or a source-ability save bonus) is
+refused as `TARGET_UNAVAILABLE`. `placeEnvironmentalZone` (`encounter-persistence`) stores it with receipt
+`{ spatialEffectId }`, and GM undo (`REVERT_LAST_ACTION`) deletes it. Entries then settle as every placed zone's do.
+
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
 `zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
