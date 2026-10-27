@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/shared/vtt'
 import { EncounterValidationError } from './encounterErrors.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
-import { sliceMovementPath } from './encounterMovementPath.js'
+import { sliceMovementPath, terminalMovementPathEnd } from './encounterMovementPath.js'
 import { spatialExecutionStopsMovement } from './encounterSpatialCandidateExecution.js'
 
 type Point = { x: number; y: number }
@@ -35,7 +35,8 @@ function pathLength(path: readonly Point[]): number {
 /**
  * The part of a bound move's path its prepared outcome actually walks, and where the token stops.
  * A pause stops at its decision point; a terminal result at its first STOP interruption. Fog
- * exploration follows this segment.
+ * exploration follows this segment. A won passage that enters the blocker's space walks to the
+ * contact and steps in from there, at no further cost.
  */
 export function preparedMovementSegment(input: {
   path: readonly Point[]
@@ -49,12 +50,15 @@ export function preparedMovementSegment(input: {
   }
   let endDistance: number
   let position: Point
+  let pathEnd: Point
   if (outcome.kind === 'PENDING') {
     const { root } = readEncounterMovementPendingContext(outcome.pendingSnapshot)
     endDistance = root.pathStartDistance
     position = root.currentPosition
+    pathEnd = position
   } else {
     position = outcome.result.terminalPosition
+    pathEnd = terminalMovementPathEnd(outcome)
     const stops = [
       ...outcome.result.reactionExecutions
         .filter((entry) => entry.execution.movementInterruption?.kind === 'STOP')
@@ -70,7 +74,7 @@ export function preparedMovementSegment(input: {
   }
   const path = sliceMovementPath(input.path, startDistance, endDistance)
   const last = path.at(-1)!
-  if (Math.abs(last.x - position.x) > 1e-8 || Math.abs(last.y - position.y) > 1e-8)
+  if (Math.abs(last.x - pathEnd.x) > 1e-8 || Math.abs(last.y - pathEnd.y) > 1e-8)
     throw new EncounterValidationError(
       'Prepared movement does not match its authoritative path segment.'
     )

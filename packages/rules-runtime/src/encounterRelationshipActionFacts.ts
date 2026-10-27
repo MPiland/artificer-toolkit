@@ -117,7 +117,7 @@ export function lockedRelationshipActionFacts(input: {
       }
       if (
         module.kind === 'SOURCE_ATTACK_ROLL_INFLUENCE' &&
-        (module.actionEffectIds === null ||
+        (module.actionEffectIds.length === 0 ||
           module.actionEffectIds.includes(input.actionEffectId)) &&
         relationshipTargetActorId === input.targetActorId
       ) {

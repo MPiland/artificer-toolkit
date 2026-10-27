@@ -498,27 +498,14 @@ describe('Disarm settlement plan', () => {
   })
 
   it('refuses a contest that is not a Disarm', () => {
-    const disarm = creatureContest()
-    const { origin } = disarm
-    if (origin.kind !== 'OPTIONAL_COMBAT')
-      throw new Error('The fixture Disarm is an optional combat contest.')
-    const shove = prepareEncounterContestPendingContext({
-      ...disarm,
+    const shove: ServerContestCheckPendingApplicationContextDto = {
+      ...creatureContest(),
       origin: {
-        ...origin,
-        actionKind: 'SHOVE_ASIDE',
-        selection: {
-          kind: 'SHOVE_ASIDE',
-          defenderCheckDefinitionId: DEFENDER_CHECK_ID,
-          destination: { x: 5, y: 0 },
-          displacement: { amount: 5, unit: 'FEET', sceneUnits: 1 },
-          sceneId: '00000000-0000-4000-8000-00000000d10e',
-          sceneVersion: 1,
-          targetTokenId: '00000000-0000-4000-8000-00000000d10f',
-          stateChecksum: 'f'.repeat(64)
-        }
+        kind: 'BASIC_ACTION',
+        initiatorCheckDefinitionId: DEFENDER_CHECK_ID,
+        actionLabel: 'Shove'
       }
-    })
+    }
     expect(() =>
       planEncounterDisarmSuccess({ target: creatureTarget(), contest: shove, character: null })
     ).toThrow('Disarm settlement requires a Disarm contest.')

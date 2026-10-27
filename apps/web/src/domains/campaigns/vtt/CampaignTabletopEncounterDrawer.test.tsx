@@ -29,6 +29,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -70,6 +71,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -110,6 +112,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={onRelease}
@@ -151,6 +154,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -178,6 +182,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -202,6 +207,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -233,6 +239,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -269,6 +276,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -295,6 +303,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -327,6 +336,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='OWNER'
         scene={tabletopLiveScene}
+        session={undefined}
         onCommand={onCommand}
         onEndCharacterConcentration={() => undefined}
         onRelease={vi.fn()}
@@ -376,6 +386,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -438,6 +449,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={vi.fn()}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -487,6 +499,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -526,6 +539,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -571,6 +585,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={onCommand}
           onEndCharacterConcentration={onEndCharacterConcentration}
           onRelease={vi.fn()}
@@ -600,6 +615,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -632,6 +648,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='OWNER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={onCommand}
           onEndCharacterConcentration={onEndCharacterConcentration}
           onRelease={vi.fn()}
@@ -673,6 +690,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role='PLAYER'
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={() => undefined}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -718,6 +736,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
         pending={false}
         role='PLAYER'
         scene={tabletopLiveScene}
+        session={undefined}
         targeting={targeting}
         onCommand={() => undefined}
         onEndCharacterConcentration={() => undefined}
@@ -823,6 +842,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
           pending={false}
           role={role}
           scene={tabletopLiveScene}
+          session={undefined}
           onCommand={onCommand}
           onEndCharacterConcentration={() => undefined}
           onRelease={vi.fn()}
@@ -895,6 +915,60 @@ describe('CampaignTabletopEncounterDrawer', () => {
 
       expect(screen.queryByText(/Hidden from|Noticed by/)).toBeNull()
       expect(screen.queryByRole('button', { name: /Stop hiding|Hide .* from/ })).toBeNull()
+    })
+  })
+
+  it('shows the GM each zone sighting quietly and dismisses it with the Run version', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const [actor] = tabletopGmEncounter.actors
+    const zoneId = '00000000-0000-4000-8000-0000000000e1'
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        holds={[]}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        session={{
+          pendingZoneSightings: [{ spatialEffectId: zoneId, actorId: actor.id }],
+          placedZones: [
+            {
+              id: zoneId,
+              label: 'Pit trap',
+              shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 },
+              spotDc: { value: 15, source: 'FLAT' },
+              disarmDc: null,
+              unawareActorIds: [actor.id]
+            }
+          ]
+        }}
+        onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    const sightings = screen.getByRole('group', { name: 'Zone sightings' })
+    expect(within(sightings).getByText(`${actor.label} may have noticed Pit trap`)).toBeVisible()
+    await user.click(
+      within(sightings).getByRole('button', {
+        name: `Dismiss ${actor.label}'s sighting of Pit trap`
+      })
+    )
+
+    expect(onCommand).toHaveBeenCalledWith({
+      type: 'DISMISS_ZONE_SIGHTING',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: zoneId,
+      actorId: actor.id
     })
   })
 })

@@ -32117,11 +32117,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -32258,6 +32254,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -61527,11 +61524,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -61668,6 +61661,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -90946,11 +90940,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -91087,6 +91077,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -120356,11 +120347,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -120497,6 +120484,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -149801,11 +149789,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -149942,6 +149926,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -179211,11 +179196,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -179352,6 +179333,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -208592,11 +208574,7 @@ export declare const api: {
                       kind: "OVERRUN";
                       targetCheckDefinitionId: string;
                     }
-                  | {
-                      defenderCheckDefinitionIds: Array<string>;
-                      initiatorCheckDefinitionId: string;
-                      kind: "SHOVE_ASIDE";
-                    }
+                  | { kind: "SHOVE_ASIDE" }
                   | {
                       initiatorCheckDefinitionId: string;
                       kind: "TUMBLE";
@@ -208732,6 +208710,7 @@ export declare const api: {
                           >;
                         };
                       }>;
+                      failedSaveEffectId?: string;
                       kind: "MASSIVE_DAMAGE";
                       savingThrowAbilityDefinitionId: string;
                       savingThrowDifficultyClass: number;
@@ -237731,11 +237710,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -237872,6 +237847,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -267141,11 +267117,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -267282,6 +267254,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -287257,6 +287230,7 @@ export declare const api: {
             short?: string | null;
           }>;
           userId: string;
+          zoneSpotPassiveDefinitionId?: string;
         } | null
       >;
       list: FunctionReference<
@@ -302893,6 +302867,16 @@ export declare const internal: {
       >;
     };
     heads: {
+      awaitCompilation: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          revisionBuiltFrom: number;
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeId: string;
+        },
+        null
+      >;
       claimSupersededObjects: FunctionReference<
         "mutation",
         "internal",
@@ -303033,7 +303017,8 @@ export declare const internal: {
           scope: "SOURCE" | "CAMPAIGN";
           scopeId: string;
         },
-        { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { pendingCompilation: true }
       >;
     };
     manifest: {

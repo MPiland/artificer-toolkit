@@ -40,7 +40,7 @@ const localSessionWorker = {
 const localWebApp = { port: 3000 }
 // Application secrets loaded from the local environment files; the Worker child does not receive them.
 const loadedEnvironmentNames = new Set()
-const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
+export const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
 const localProofDirectory = 'local-validation/local-convex-proofs'
 const localResetDirectory = 'local-validation/convex-reset'
 const remoteOnlyEnvironmentNames = new Set([
@@ -552,7 +552,7 @@ export async function startLocalWebApp(artifactDirectory) {
 export async function ensureLocalConvexFixtures(artifactDirectory) {
   const logPath = resolve(artifactDirectory, 'local-convex-fixtures.log')
   await run(
-    'pwsh.exe',
+    'pwsh',
     [
       '-NoProfile',
       '-NonInteractive',
@@ -771,7 +771,7 @@ function localProofStage(proof, kind) {
       ? `account-deletion-browser${releaseProofAttempt}`
       : `r08-${releaseProofAttempt}-${kind}-${proof}`
   return {
-    ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh.exe', [
+    ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh', [
       '-NoProfile',
       '-NonInteractive',
       '-File',
@@ -813,7 +813,7 @@ const stages = [
     'generate:srd:manifest'
   ]),
   // Prelaunch schema changes can reject old fixtures before codegen finishes its push.
-  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh.exe', [
+  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh', [
     '-NoProfile',
     '-NonInteractive',
     '-File',

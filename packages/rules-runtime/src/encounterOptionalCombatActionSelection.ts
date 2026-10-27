@@ -1,26 +1,17 @@
 import type { OptionalCombatActionIntentDto } from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterOptionalCombatSnapshotDto } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 type OptionalDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
-type SelectionRole = 'DEFENDER_CHECK' | 'DESTINATION' | 'HELD_ITEM' | 'NEXT_TARGET'
+type SelectionRole = 'DEFENDER_CHECK' | 'HELD_ITEM' | 'NEXT_TARGET'
 
-interface EntityField {
+interface OptionalCombatActionSelectionField {
   readonly fieldId: string
   readonly kind: 'ENTITY'
   readonly role: SelectionRole
   readonly allowedEntityIds: readonly string[]
 }
-
-interface PositionField {
-  readonly allowedPositions: readonly { readonly x: number; readonly y: number }[]
-  readonly fieldId: string
-  readonly kind: 'POSITION'
-  readonly role: SelectionRole
-}
-
-type OptionalCombatActionSelectionField = EntityField | PositionField
 
 export interface OptionalCombatActionSelectionDescriptor {
   readonly optionId: string
@@ -32,7 +23,6 @@ export interface OptionalCombatActionSelectionDescriptor {
 interface OptionalCombatActionSelection {
   readonly definition: OptionalDefinition
   readonly entities: Readonly<Partial<Record<SelectionRole, string>>>
-  readonly positions: Readonly<Partial<Record<SelectionRole, { x: number; y: number }>>>
 }
 
 function canonicalIds(values: readonly string[]): readonly string[] {
@@ -61,35 +51,12 @@ function entityField(
   definitionId: string,
   role: SelectionRole,
   allowedEntityIds: readonly string[]
-): EntityField {
+): OptionalCombatActionSelectionField {
   const allowed = canonicalIds(allowedEntityIds)
   if (allowed.length === 0) {
     throw new Error('Optional combat entity selection requires at least one candidate.')
   }
   return { fieldId: fieldId(definitionId, role), kind: 'ENTITY', role, allowedEntityIds: allowed }
-}
-
-function canonicalPositions(
-  values: readonly { readonly x: number; readonly y: number }[]
-): readonly { readonly x: number; readonly y: number }[] {
-  if (values.length === 0 || values.length > RULE_GRAPH_LIMITS.NODES) {
-    throw new Error('Optional combat position selection requires at least one candidate.')
-  }
-  const seen = new Set<string>()
-  return values
-    .map((value) => {
-      if (!Number.isFinite(value.x) || !Number.isFinite(value.y)) {
-        throw new Error('Optional combat position selection candidates must be finite.')
-      }
-      const point = { x: value.x === 0 ? 0 : value.x, y: value.y === 0 ? 0 : value.y }
-      const identity = `${point.x}:${point.y}`
-      if (seen.has(identity)) {
-        throw new Error('Optional combat position selection candidates must be unique.')
-      }
-      seen.add(identity)
-      return point
-    })
-    .sort((left, right) => left.x - right.x || left.y - right.y)
 }
 
 function intersect(
@@ -110,7 +77,6 @@ export function createOptionalCombatActionSelectionDescriptor(input: {
   readonly definition: OptionalDefinition
   readonly heldItemIds?: readonly string[]
   readonly eligibleTargetActorIds?: readonly string[]
-  readonly allowedDestinationPositions?: readonly { readonly x: number; readonly y: number }[]
   readonly targetCheckDefinitionIds?: readonly string[]
   readonly targetActorId: string
 }): OptionalCombatActionSelectionDescriptor {
@@ -135,21 +101,6 @@ export function createOptionalCombatActionSelectionDescriptor(input: {
     case 'TUMBLE':
     case 'CLIMB_ONTO_LARGER_CREATURE':
       break
-    case 'SHOVE_ASIDE':
-      fields.push(
-        entityField(
-          input.definition.definitionId,
-          'DEFENDER_CHECK',
-          intersect(parameters.defenderCheckDefinitionIds, input.targetCheckDefinitionIds ?? [])
-        ),
-        {
-          fieldId: fieldId(input.definition.definitionId, 'DESTINATION'),
-          kind: 'POSITION',
-          role: 'DESTINATION',
-          allowedPositions: canonicalPositions(input.allowedDestinationPositions ?? [])
-        }
-      )
-      break
     case 'CLEAVING':
       // Cleaving is evaluated only after the original attack has terminally
       // settled. Its next-target decision is an Encounter-owned child
@@ -160,19 +111,11 @@ export function createOptionalCombatActionSelectionDescriptor(input: {
   }
   fields.sort((left, right) => left.fieldId.localeCompare(right.fieldId))
   const selectionContract = checksumRuleDocument(
-    fields.map((field) =>
-      field.kind === 'ENTITY'
-        ? {
-            fieldId: field.fieldId,
-            kind: field.kind,
-            allowedEntityIds: field.allowedEntityIds
-          }
-        : {
-            fieldId: field.fieldId,
-            kind: field.kind,
-            allowedPositions: field.allowedPositions
-          }
-    )
+    fields.map((field) => ({
+      fieldId: field.fieldId,
+      kind: field.kind,
+      allowedEntityIds: field.allowedEntityIds
+    }))
   )
   return {
     definitionId: input.definition.definitionId,
@@ -207,28 +150,15 @@ export function resolveOptionalCombatActionSelection(input: {
     throw new Error('Optional combat action selection is stale.')
   }
   const entities: Partial<Record<SelectionRole, string>> = {}
-  const positions: Partial<Record<SelectionRole, { x: number; y: number }>> = {}
   for (const [index, field] of input.descriptor.fields.entries()) {
     const selection = input.intent.selections[index]
-    if (!selection || selection.fieldId !== field.fieldId || selection.value.kind !== field.kind) {
+    if (!selection || selection.fieldId !== field.fieldId) {
       throw new Error('Optional combat action selection does not match its issued field.')
     }
-    if (field.kind === 'ENTITY' && selection.value.kind === 'ENTITY') {
-      if (!field.allowedEntityIds.includes(selection.value.entityId)) {
-        throw new Error('Optional combat action entity selection is unavailable.')
-      }
-      entities[field.role] = selection.value.entityId
-    } else if (field.kind === 'POSITION' && selection.value.kind === 'POSITION') {
-      const position = selection.value.position
-      if (
-        !field.allowedPositions.some(
-          (candidate) => candidate.x === position.x && candidate.y === position.y
-        )
-      ) {
-        throw new Error('Optional combat position selection is unavailable.')
-      }
-      positions[field.role] = position
+    if (!field.allowedEntityIds.includes(selection.value.entityId)) {
+      throw new Error('Optional combat action entity selection is unavailable.')
     }
+    entities[field.role] = selection.value.entityId
   }
-  return { definition: input.definition, entities, positions }
+  return { definition: input.definition, entities }
 }

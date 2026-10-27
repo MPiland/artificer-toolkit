@@ -435,6 +435,7 @@ export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'
   | 'trackAmmunition'
+  | 'zoneNoticing'
   | 'automaticCover'
   | 'autoRoll'
   | 'playerControlledActorIds'
@@ -443,6 +444,7 @@ export interface ActionRoomConfig extends Pick<
   | 'spatialEffects'
   | 'sceneGrid'
   | 'optionalCombatKinds'
+  | 'optionalCombatHomebrew'
   | 'sides'
   | 'rolls'
   | 'fallbackRoll'

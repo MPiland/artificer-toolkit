@@ -1,7 +1,7 @@
 {
-  "apps/session-worker/src/nativeEncounterRules.ts": 1624,
-  "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx": 1550,
-  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1801,
+  "apps/session-worker/src/nativeEncounterRules.ts": 1623,
+  "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx": 1549,
+  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1797,
   "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2622,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,

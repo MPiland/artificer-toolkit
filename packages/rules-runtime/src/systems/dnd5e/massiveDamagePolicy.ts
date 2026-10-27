@@ -90,7 +90,8 @@ export function dnd5eMassiveDamageRule(input: OptionalCombatPolicyInput): Massiv
     published: massiveDamageSaveGraph({
       definitionId: definition.definitionId,
       savingThrowAbilityDefinitionId: parameters.savingThrowAbilityDefinitionId
-    })
+    }),
+    failedSaveEffectId: parameters.failedSaveEffectId ?? null
   }
 }
 

@@ -1222,15 +1222,17 @@ function renderWindow(
     halfSpeedFields: [],
     auras: [],
     movementCostZones: [],
-    placedZones: []
+    placedZones: [],
+    pendingZoneSightings: []
   }
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
     queryFn: async () => activeState
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
   const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
+  const rollPreferences = { autoRollDice: true, gmRollVisibility: 'PUBLIC' as const }
   queryClient.setQueryDefaults(rollPreferencesQuery.queryKey, {
-    queryFn: async () => ({ autoRollDice: true, gmRollVisibility: 'PUBLIC' as const })
+    queryFn: async () => rollPreferences
   })
   queryClient.setQueryDefaults(skippedActionChoicesQuery.queryKey, {
     queryFn: async () => null
@@ -1260,10 +1262,7 @@ function renderWindow(
   seedTabletopSystem(queryClient, campaign)
   queryClient.setQueryData(activeEncounterQuery.queryKey, activeState)
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
-  queryClient.setQueryData(rollPreferencesQuery.queryKey, {
-    autoRollDice: true,
-    gmRollVisibility: 'PUBLIC'
-  })
+  queryClient.setQueryData(rollPreferencesQuery.queryKey, rollPreferences)
   const convex = new ConvexReactClient('https://story-fixture.convex.cloud', {
     logger: false
   })

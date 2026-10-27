@@ -47,12 +47,23 @@ export const build = internalAction({
         const sources: ContentSnapshotListSource[] = []
         let cursor: string | null = null
         for (let isDone = false; !isDone;) {
-          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
-            await ctx.runQuery(internal.contentSnapshots.heads.readScopeKind, {
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await ctx.runQuery(
+            internal.contentSnapshots.heads.readScopeKind,
+            {
               ...ref,
               kind,
               paginationOpts: { numItems: CONTENT_SNAPSHOT_READ_PAGE_SIZE, cursor }
+            }
+          )
+          if ('pendingCompilation' in page) {
+            await ctx.runMutation(internal.contentSnapshots.heads.awaitCompilation, {
+              ...ref,
+              revisionBuiltFrom: start.revision
             })
+            return null
+          }
           // Parsed from the query's own serialization; the part build validates every root.
           for (const json of page.sources)
             sources.push(JSON.parse(json) as ContentSnapshotListSource)

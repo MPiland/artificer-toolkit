@@ -190,7 +190,8 @@ export const optionalCombatPassageContinuationDtoSchema = lazySchema(() =>
 
 /**
  * A movement passage contest's sealed choice. `successMovement` is what the rule's policy has a won
- * contest do to the movement: pass through the blocker and continue, or stop at the contact point.
+ * contest do to the movement: pass through the blocker and continue, or end the move inside the
+ * blocker's space, stepping in from the contact point (a climb onto a larger creature).
  */
 function movementPassageSelectionDtoSchema<
   const TKind extends 'OVERRUN' | 'TUMBLE' | 'CLIMB_ONTO_LARGER_CREATURE'
@@ -201,7 +202,7 @@ function movementPassageSelectionDtoSchema<
     initiatorCheckDefinitionId: uuidSchema,
     initiatorCheckLabel: identifierSchema,
     defenderCheckDefinitionId: uuidSchema,
-    successMovement: z.enum(['PASS_THROUGH', 'STOP_AT_CONTACT'])
+    successMovement: z.enum(['PASS_THROUGH', 'ENTER_BLOCKER_SPACE'])
   })
 }
 
@@ -215,20 +216,6 @@ const optionalCombatPassageSelectionDtoSchema = lazySchema(() =>
       heldItemId: uuidSchema,
       defenderCheckDefinitionId: uuidSchema,
       heldItemStateChecksum: checksumSchema
-    }),
-    z.strictObject({
-      kind: z.literal('SHOVE_ASIDE'),
-      defenderCheckDefinitionId: uuidSchema,
-      destination: z.strictObject({ x: z.number(), y: z.number() }),
-      displacement: z.strictObject({
-        amount: z.literal(5),
-        unit: z.literal('FEET'),
-        sceneUnits: z.number().check(z.positive())
-      }),
-      sceneId: uuidSchema,
-      sceneVersion: nonNegativeIntegerSchema,
-      targetTokenId: uuidSchema,
-      stateChecksum: checksumSchema
     })
   ])
 )
@@ -238,13 +225,7 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('OPTIONAL_COMBAT'),
-      actionKind: z.enum([
-        'DISARM',
-        'SHOVE_ASIDE',
-        'OVERRUN',
-        'TUMBLE',
-        'CLIMB_ONTO_LARGER_CREATURE'
-      ]),
+      actionKind: z.enum(['DISARM', 'OVERRUN', 'TUMBLE', 'CLIMB_ONTO_LARGER_CREATURE']),
       pin: z.strictObject({
         snapshotChecksum: checksumSchema,
         definitionId: uuidSchema,

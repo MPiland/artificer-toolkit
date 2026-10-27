@@ -1,4 +1,5 @@
 import { encounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
+import { systemTriggerCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
   characterActor,
@@ -72,6 +73,32 @@ describe('a rule-owned action named through the public command (ATTACK-16.T1b)',
       type: 'COMMAND_REJECTED',
       reason: 'SOURCE_REQUIREMENTS_NOT_MET'
     })
+    expect(await room.version()).toBe(version)
+  })
+
+  it('is refused when it claims a rule raised it with no failed save behind it', async () => {
+    const room = await ruleRoom()
+    const version = await room.version()
+    const parentCommandId = crypto.randomUUID()
+    const actionId = encounterRuleActionId(
+      OGRE_ID,
+      DND5E_MASSIVE_DAMAGE_DEFINITION_ID,
+      RAISED_EFFECT_ID
+    )
+    const answer = await room.send({
+      type: 'RESOLVE_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: systemTriggerCommandId(parentCommandId, OGRE_ID, actionId),
+      expectedVersion: version,
+      actorId: OGRE_ID,
+      actionId,
+      target: { kind: 'ACTOR', actorId: OGRE_ID },
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: [],
+      sceneContext: null,
+      systemTrigger: { parentCommandId, trigger: 'RULE' }
+    })
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'COMMAND_ID_REUSED' })
     expect(await room.version()).toBe(version)
   })
 })
