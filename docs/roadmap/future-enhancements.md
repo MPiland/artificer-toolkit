@@ -625,6 +625,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Held-creature riders (SPELLS-33.T6a3, D187a):** the grapple, start-of-turn damage and held-only targeting are data; these ship as GM rulings or description:
   - **Auto-hit on a held target:** the Marilith Tail's automatic hit against the creature it grapples.
   - **Reel held creatures:** the Roper pulling each creature it grapples 25 feet toward it.
+  - **Hold-scoped grants (ATTACK-5.T4 ruling, 2026-10-27):** the Roper Tendril's disadvantage on Strength checks and saves lasts only while it grapples. That disadvantage would also apply to the held creature's Athletics escape attempts. It ships as a GM ruling beside the hold. Automating it needs an ActorRelationship module that ties an APPLY_GRANT's lifetime to the hold.
   - **Hold end-after-N conditions (SPELLS-33.T6n2 ruling):** the Stirge detaches after draining 10 hit points, and the Purple Worm and Kraken regurgitate after taking 30 damage in one turn. These ship as `MANUAL_ADJUDICATION` riders. The source-turn recurrence (T6n2) and the hit point loss (T6n2b) automate; the counter that ends the hold does not. Any creature's action to detach the Stirge stays a ruling.
   - **Damage transfer to a held creature:** Cloaker Damage Transfer.
   - **Damage to a grappler and touch retaliation:** Barbed Devil Barbed Hide.
