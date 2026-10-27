@@ -9,11 +9,11 @@ import { encounterReadTransaction } from './encounterPorts'
 import { readActiveRun } from './projectionReads'
 
 /**
- * The Builder-owned Character structure: a Character with a large inventory or spell list must not
- * make the tabletop's session read heavier, so the read never hydrates it.
+ * The Builder-owned Character collections and draft: a Character with a large inventory or spell
+ * list must not make the tabletop's session read heavier, so the read checks the build checksum
+ * and never hydrates them.
  */
 const CHARACTER_STRUCTURE_TABLES = [
-  'characterBuildStates',
   'characterDrafts',
   'characterInventoryItems',
   'characterCurrencyGroups',

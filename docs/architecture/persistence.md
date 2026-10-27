@@ -216,8 +216,9 @@ GM actor sides and decision settlement; `timelinePages.ts`: one timeline page) l
 `activeReads` and `projectionReads` and the room's pushed `ENCOUNTER_SESSION` frame
 ([Held Encounter session](live-sessions.md#held-encounter-session)) call the same readers, so they cannot
 drift; Convex keeps authorization, receipt-ledger loading and read budgets. Convex's Campaign-conditions
-port checks a Character's assignment from its head (`requireAssignedActiveCharacterHead`) and never
-hydrates the Builder-owned structure, so a session read does not grow with a Character's inventory or
+port checks a Character's assignment from its head and verifies its play record and build checksum
+(`requireIntactAssignedActiveCharacter`, `readVerifiedCharacterBuild`) but never hydrates the
+Builder-owned collections or draft, so a session read does not grow with a Character's inventory or
 spells (RELIABILITY-21.T4, `encounters/activeReadBudget.test.ts`).
 
 ### Rule-raised (SYSTEM) action admission (current, SPELLS-33.T6e1, D161 candidate)

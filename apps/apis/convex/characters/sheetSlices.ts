@@ -6,10 +6,7 @@ import {
   characterSheetSliceResponseDtoSchema,
   type CharacterSheetSliceResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetSlices'
-import {
-  readCharacterBuildFields,
-  readCharacterCollectionValues
-} from '@artificer-toolkit/schema/projections/characterOperationalState'
+import { readCharacterCollectionValues } from '@artificer-toolkit/schema/projections/characterOperationalState'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import { projectCharacterSheetNotes } from '@artificer-toolkit/rules-runtime/character/sheetNotes'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -27,7 +24,8 @@ import {
   readCharacterCollection,
   readCharacterHead,
   readCharacterPlay,
-  readCharacterPlayRow
+  readCharacterPlayRow,
+  readVerifiedCharacterBuild
 } from './stateDocuments'
 import { loadCharacterSheet } from './sheetPreparation'
 import {
@@ -62,21 +60,11 @@ export async function loadCharacterSheetNotes(
     throw new Error('Stored Character route identity mismatch.')
   if (head.status !== 'ACTIVE')
     throw new Error('Character requires Builder repair before the Sheet can be read.')
-  const [play, build, notes, groups] = await Promise.all([
-    readCharacterPlayRow(ctx, head.id),
-    ctx.db
-      .query('characterBuildStates')
-      .withIndex('by_characterId', (q) => q.eq('characterId', head.id))
-      .unique(),
+  const [{ play, fields }, notes, groups] = await Promise.all([
+    readVerifiedCharacterBuild(ctx, head),
     readCharacterCollection(ctx, 'characterNotes', head.id),
     readCharacterCollection(ctx, 'characterNoteGroups', head.id)
   ])
-  if (play.userId !== head.userId || play.characterId !== head.id)
-    throw new Error('Stored Character identity mismatch.')
-  readCharacterPlay(play)
-  if (!build) throw new Error('Stored Character build state is unavailable.')
-  const { _id, _creationTime, ...buildFields } = build
-  const fields = readCharacterBuildFields(head.id, buildFields)
   const noteValues = readCharacterCollectionValues(
     head.id,
     notes,

@@ -25,7 +25,7 @@ import {
 import { readDefinitionRoot } from '../content/definitionStore'
 import { requireSystem } from '../content/systemDocuments'
 import { requireIdentity } from '../lib/identity'
-import { requireAssignedActiveCharacterHead } from '../liveSessions/characterRulesCapture'
+import { requireIntactAssignedActiveCharacter } from '../liveSessions/characterRulesCapture'
 import {
   createConvexEncounterStore,
   createConvexEncounterStoreReader
@@ -73,7 +73,7 @@ function readPorts(ctx: QueryCtx): EncounterReadPorts {
     readAssignedCharacter: (campaign, membership) =>
       readCampaignAssignedCharacter(ctx, campaign, membership),
     readCampaignCharacterConditions: async (campaign, characterId) => {
-      await requireAssignedActiveCharacterHead(ctx, campaign, characterId, campaign.ownerUserId)
+      await requireIntactAssignedActiveCharacter(ctx, campaign, characterId, campaign.ownerUserId)
       return (await readCampaignCharacterState(ctx, campaign.id, characterId)).state.conditions
     },
     readCurrentDefinition: async (definitionId, ownerUserId) =>
