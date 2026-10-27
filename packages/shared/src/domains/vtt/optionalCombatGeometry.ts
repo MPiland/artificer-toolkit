@@ -588,6 +588,31 @@ function closestFootprintCells(input: {
   return closest === null ? null : { source: closest.source, target: closest.target }
 }
 
+/** An arc as the bearings (degrees clockwise from the top of the map) it covers on the Scene. */
+export interface FacingArcSector {
+  readonly arc: FacingArc
+  readonly fromBearing: number
+  readonly toBearing: number
+}
+
+/**
+ * Turns a token's authored arc offsets into the Scene bearings each arc covers, so a drawn arc is
+ * exactly what `classifySquareGridFacingArc` classifies a direction into. Empty for a non-finite
+ * rotation.
+ */
+export function facingArcSectors(input: {
+  readonly arcs: readonly FacingArcRange[]
+  readonly rotationDegrees: number
+}): FacingArcSector[] {
+  const rotation = normalizeDegrees(input.rotationDegrees)
+  if (rotation === null) return []
+  return input.arcs.map(({ arc, fromDegrees, toDegrees }) => ({
+    arc,
+    fromBearing: rotation + fromDegrees,
+    toBearing: rotation + toDegrees
+  }))
+}
+
 /** Classifies a point against a token's orientation; rotation never changes collision geometry. */
 export function classifySquareGridFacingArc(input: {
   readonly arcs: readonly FacingArcRange[]

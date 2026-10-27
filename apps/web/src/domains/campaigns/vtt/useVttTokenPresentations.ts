@@ -23,6 +23,7 @@ export function useVttTokenPresentations({
   lootActorIds,
   pending,
   scene,
+  selectedTokenId,
   targetEntries
 }: Omit<Input, 'encounter' | 'scene' | 'conditionTypes' | 'coverTiers' | 'targetableTokenIds'> & {
   encounter: Input['encounter'] | undefined
@@ -52,6 +53,7 @@ export function useVttTokenPresentations({
             lootActorIds,
             pending,
             scene,
+            selectedTokenId,
             targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
           })
         : undefined,
@@ -66,6 +68,7 @@ export function useVttTokenPresentations({
       lootActorIds,
       pending,
       scene,
+      selectedTokenId,
       targetEntries
     ]
   )

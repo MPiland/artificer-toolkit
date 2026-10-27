@@ -367,6 +367,12 @@ function projectGmFacts(
           actors: encounter.actors.map(moraleActorFacts)
         }) ?? new Map())
       : new Map()
+  const facingRule = encounterFacingRule({
+    automationMode: encounter.automationMode,
+    gameSystemId: encounter.gameSystemId,
+    optionalCombatSnapshot: encounter.optionalCombatSnapshot ?? null,
+    optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum ?? null
+  })
   return encounterGmProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -398,13 +404,13 @@ function projectGmFacts(
         label: definition.label,
         kind: definition.document.kind
       })) ?? [],
-    facingStepDegrees:
-      encounterFacingRule({
-        automationMode: encounter.automationMode,
-        gameSystemId: encounter.gameSystemId,
-        optionalCombatSnapshot: encounter.optionalCombatSnapshot ?? null,
-        optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum ?? null
-      })?.facingStepDegrees ?? null,
+    facingStepDegrees: facingRule?.facingStepDegrees ?? null,
+    facingArcs:
+      facingRule?.arcs.map(({ arc, fromDegrees, toDegrees }) => ({
+        arc,
+        fromDegrees,
+        toDegrees
+      })) ?? null,
     version: encounter.version,
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),

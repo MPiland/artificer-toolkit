@@ -81,6 +81,7 @@ function MovementFixture({
               artUrl: null,
               dispositionLabel: null,
               facing,
+              facingArcs: null,
               fillColor: 0x1971c2,
               halo: null,
               marked: false,

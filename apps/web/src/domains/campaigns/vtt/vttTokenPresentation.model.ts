@@ -6,6 +6,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
 import {
   activeGrantLabel,
   activeGrantTimeLeft
@@ -63,6 +64,8 @@ export function buildVttTokenPresentations(input: {
   /** The defeated creatures carrying loot tables; the GM's view only, so players never see a marker. */
   lootActorIds?: ReadonlySet<string>
   scene: CampaignSceneStateDto
+  /** The token the member selected; with the current-turn token, it shows its Facing arcs. */
+  selectedTokenId?: string | null
   /** The tokens the caster can pick while targeting; empty when no one is targeting. */
   targetableTokenIds?: ReadonlySet<string>
 }): Record<string, VttTokenPresentation> {
@@ -154,6 +157,13 @@ export function buildVttTokenPresentations(input: {
       artUrl: input.artUrls?.[token.id] ?? null,
       dispositionLabel,
       facing: Boolean(actor) && input.encounter.facingStepDegrees !== null,
+      facingArcs:
+        actor && input.encounter.facingArcs && (isCurrent || token.id === input.selectedTokenId)
+          ? facingArcSectors({
+              arcs: input.encounter.facingArcs,
+              rotationDegrees: token.rotationDegrees
+            })
+          : null,
       fillColor: healthColour ?? deterministicTokenColour(actor?.id ?? token.id),
       halo:
         reactionAvailable || isCurrent
