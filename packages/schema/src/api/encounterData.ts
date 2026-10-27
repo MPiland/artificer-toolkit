@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { automationModeDtoSchema } from './campaignSettings.js'
+import { automationModeDtoSchema, zoneNoticingModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
 import {
   creatureQualifiedDamageDefenseDtoSchema,
@@ -309,6 +309,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     automationMode: automationModeDtoSchema,
     /** Frozen from the Campaign at Run start: ammunition attacks draw pieces from the chosen stack. */
     trackAmmunition: z._default(z.boolean(), false),
+    /** Frozen from the Campaign at Run start: how concealed zones are noticed (MOVE-3.5). */
+    zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
     /** Frozen from the Campaign at Run start: cover is worked out from the Scene for attacks and area saves. */
     automaticCover: z._default(z.boolean(), true),
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
@@ -720,7 +722,15 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           disarmDc: z.nullable(zoneDcDtoSchema)
         })
       )
-      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The concealed zones a Character has been sighted near whose passive Perception met the spot
+     * DC and that the GM has not yet revealed or dismissed (MOVE-3.5). Only the GM reads it; a
+     * player's list is always empty.
+     */
+    pendingZoneSightings: z
+      .array(z.strictObject({ spatialEffectId: postgresUuidSchema, actorId: uuidSchema }))
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE * MAX_ENCOUNTER_ACTORS))
   })
 )
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>

@@ -11,7 +11,7 @@ import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/a
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
+import { applyRoomForcedMovements, readRoomForcedMovementPick } from './roomActionForcedMovement.js'
 import { planNativeLiveContest, type planNativeLiveContestRolls } from './nativeContest.js'
 import type { MovementSettlementContext } from './roomMovementSettlementCallbacks.js'
 import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
@@ -37,7 +37,8 @@ export async function executeRoomEncounterContest(input: {
   const plan = await planNativeLiveContest(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
-    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
+    captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+    forcedMovementPick: (pick) => readRoomForcedMovementPick({ ctx, transaction, ...pick })
   })
   if (plan.kind === 'REPLAY') return plan.result
   return persistRoomEncounterContest({

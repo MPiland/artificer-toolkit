@@ -32,7 +32,8 @@ function heldAt(version: number): HeldEncounterSession {
       halfSpeedFields: [],
       auras: [],
       movementCostZones: [],
-      placedZones: []
+      placedZones: [],
+      pendingZoneSightings: []
     },
     preparedPending: [],
     actorSides: null,

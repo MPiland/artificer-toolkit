@@ -83,7 +83,8 @@ export async function readEncounterSessionState(
       halfSpeedFields: [],
       auras: [],
       movementCostZones: [],
-      placedZones: []
+      placedZones: [],
+      pendingZoneSightings: []
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   const encounter = await presentEncounterRun(ctx, row, campaign, membership)
@@ -118,7 +119,15 @@ export async function readEncounterSessionState(
             }
           ]
         : []
-    )
+    ),
+    pendingZoneSightings:
+      membership.role === 'OWNER'
+        ? spatialRows.flatMap(({ id, spatialState }) =>
+            (spatialState.concealment?.sightings ?? []).flatMap(({ actorId, status }) =>
+              status === 'PROMPTED' ? [{ spatialEffectId: id, actorId }] : []
+            )
+          )
+        : []
   }
 }
 

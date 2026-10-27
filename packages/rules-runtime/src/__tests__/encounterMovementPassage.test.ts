@@ -24,6 +24,7 @@ import type { EncounterActionEconomyConsumption } from '../encounterActionEconom
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
+import { preparePassageAppliedEffects } from '../encounterPassageAppliedEffects.js'
 import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
@@ -794,6 +795,54 @@ describe('climbing onto a suitably larger creature, as an authored passage conte
       expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
     }
   )
+})
+
+describe('the cling a won climb gives its target, authored on the climb definition (MOVE-4.T2a)', () => {
+  const movementTarget = (actor: EncounterRunActorState) =>
+    buildMovementTarget({
+      actor,
+      activeEffects: [],
+      gameSystemId: SRD_SYSTEM_ID,
+      campaignId: ids.campaign,
+      characterFacts: null
+    })
+  const clingFor = (definitionId: string, state = runState('ASSISTED', [climbOnto])) =>
+    preparePassageAppliedEffects({
+      state,
+      definitionId,
+      occurrenceId: ids.command,
+      commandId: ids.command,
+      occurredAt: timestamp,
+      source: movementTarget(source),
+      target: movementTarget(creature({ id: ids.first, disposition: 'HOSTILE', size: 'LARGE' })),
+      activeEffectsByActorId: new Map()
+    })
+
+  it('plans the authored hold on the climbed creature, sourced by the climber, with advantage on every attack', () => {
+    const [cling, ...rest] = clingFor(climbOnto.id)
+    expect(rest).toEqual([])
+    expect(cling).toMatchObject({
+      owner: { kind: 'ENCOUNTER_ACTOR', targetActorId: ids.first },
+      definition: {
+        origin: {
+          kind: 'ENCOUNTER',
+          sourceActorId: ids.source,
+          sourceOccurrenceId: ids.command
+        }
+      }
+    })
+    expect(JSON.stringify(cling)).toContain('SOURCE_ATTACK_ROLL_INFLUENCE')
+    expect(JSON.stringify(cling)).toContain('SOURCE_FOLLOWS_TARGET')
+  })
+
+  it('derives the same record for the same occurrence, so a replay settles once', () => {
+    expect(clingFor(climbOnto.id)).toEqual(clingFor(climbOnto.id))
+  })
+
+  it('gives nothing for another passage definition or while the climb rule is disabled', () => {
+    expect(clingFor(overrun.id)).toEqual([])
+    expect(clingFor(climbOnto.id, runState('ASSISTED', [overrun]))).toEqual([])
+  })
 })
 
 /** Seals the mover's `ruleKind` contest, paid with its Action, against the first blocker. */

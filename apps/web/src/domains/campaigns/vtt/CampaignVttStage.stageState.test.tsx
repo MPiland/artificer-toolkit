@@ -130,6 +130,7 @@ function heldRoom(
       halfSpeedFields: [],
       movementCostZones: [],
       placedZones: [],
+      pendingZoneSightings: [],
       auras: []
     },
     preparedPending: [],

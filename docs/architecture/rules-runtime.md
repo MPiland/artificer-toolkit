@@ -1883,7 +1883,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
   free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
   attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
-  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  outcome (`planForcedMovementDestination` in `nativeForcedMovementDestination.ts`, shared with a won contest, over
+  `holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
@@ -2880,7 +2881,10 @@ Every application goes through `planEncounterMechanicsBatch` and settles one gen
 (`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
 `CONTESTED_ACTION` output. The shared settler `settleTargetOutcome` (`targetOutcomeSettlement.ts`) re-applies the
 receipt applications in Convex and refuses a checksum mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
-contest outcome whose push owes a destination pick fails closed.
+won outcome whose push owes a destination pick (D157) pauses the contest as `contestPhase: 'DESTINATION'`: the sealed
+choice from `holdForForcedMovementDestination` holds the settled outcome completion, so the resume restores it
+(`planNativeTargetOutcome` `held`, fenced by its facts and published checksums) instead of re-rolling, and settles the
+answered square with `settleForcedMovementDestination` before the commit.
 
 **Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
 check-settled kind (CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
