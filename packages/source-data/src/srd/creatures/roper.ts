@@ -202,33 +202,20 @@ export const roper: CreatureAuthored = {
                     escapeDc: 15,
                     heldAtOnce: 6,
                     untilEnds: ['RESTRAINED']
-                  })
+                  }),
+                  {
+                    id: S.actionId(239, 505),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Tendril weakens the grappled target',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "Until this grapple ends, the target has disadvantage on Strength checks and Strength saving throws, and the roper can't use the same tendril on another target: the GM applies the disadvantage."
+                  }
                 ]
               }
             }
           ]
-        },
-        S.closedRuleEffect({
-          id: S.actionId(239, 505),
-          order: 2,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(239, 605),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 50,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_TENDRIL
-        })
+        }
       ],
       order: 6
     },

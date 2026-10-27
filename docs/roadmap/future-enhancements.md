@@ -100,6 +100,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Dislodged climber with no free square (MOVE-4.T3a):** a dislodge that wins when no free square lies 5 feet from the target leaves the climber where it was. Its space then overlaps a target it no longer clings to. This is rare and the GM can move the token by hand. The fix is to fall back to the nearest free square.
+
 - **Cover on paths without a Scene (SPELLS-14.T2):** automatic cover is read only where the Worker has the Scene, for attacks, spells, areas and opportunity attacks. Three paths apply no cover: a spell attack resumed after a Counterspell pause, an area's collision revalidation, and other reactions. All three are rare. The GM can adjust by hand. The fix is to pass the Scene's cover reader into those resume paths.
 - **Area attacks do not mark under Marking (ATTACK-13.T3):** an area action with an attack roll (rare in melee) gives no mark, because its targets settle in one command and each would replace the attacker's mark against the effects held before the command, leaving several marks from one attacker. The GM marks by hand. The fix is to apply area marks after the command's grants settle, keeping only the last target's.
 - **Massive damage from forced-movement damage (ATTACK-16.T1c1):** damage a creature takes during forced movement (falling, a hazard on the path) goes through the movement damage chain, which holds only Concentration saves, so it never owes a massive-damage save. Attack, area, cleave and turn damage all do. A single movement hit of half a creature's maximum hit points is rare, and the GM can apply System Shock by hand.
@@ -625,6 +627,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Held-creature riders (SPELLS-33.T6a3, D187a):** the grapple, start-of-turn damage and held-only targeting are data; these ship as GM rulings or description:
   - **Auto-hit on a held target:** the Marilith Tail's automatic hit against the creature it grapples.
   - **Reel held creatures:** the Roper pulling each creature it grapples 25 feet toward it.
+  - **Hold-scoped grants (ATTACK-5.T4 ruling, 2026-10-27):** the Roper Tendril's disadvantage on Strength checks and saves lasts only while it grapples. That disadvantage would also apply to the held creature's Athletics escape attempts. It ships as a GM ruling beside the hold. Automating it needs an ActorRelationship module that ties an APPLY_GRANT's lifetime to the hold.
   - **Hold end-after-N conditions (SPELLS-33.T6n2 ruling):** the Stirge detaches after draining 10 hit points, and the Purple Worm and Kraken regurgitate after taking 30 damage in one turn. These ship as `MANUAL_ADJUDICATION` riders. The source-turn recurrence (T6n2) and the hit point loss (T6n2b) automate; the counter that ends the hold does not. Any creature's action to detach the Stirge stays a ruling.
   - **Damage transfer to a held creature:** Cloaker Damage Transfer.
   - **Damage to a grappler and touch retaliation:** Barbed Devil Barbed Hide.
