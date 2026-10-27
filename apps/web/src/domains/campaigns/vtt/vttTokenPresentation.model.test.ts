@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   tabletopConditions,
@@ -109,7 +110,7 @@ describe('VTT token presentation model', () => {
     const scene = sceneForActor()
     const token = { ...scene.tokens[0]!, rotationDegrees: 90 }
     const present = (
-      encounter: Partial<typeof tabletopGmEncounter>,
+      encounter: Partial<EncounterGmProjectionDto>,
       selectedTokenId: string | null
     ) =>
       buildVttTokenPresentations({

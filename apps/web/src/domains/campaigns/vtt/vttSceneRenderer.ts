@@ -43,9 +43,6 @@ import {
   darknessZoneStyle,
   dashedPolygonSegments,
   dimOverlayAlpha,
-  facingArcColours,
-  facingArcRadius,
-  facingArcWedge,
   ellipseArcPoints,
   describeSceneLighting,
   gmDarknessCapAlpha,
@@ -86,6 +83,12 @@ import {
   type VttSenseReach,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
+import {
+  createFacingArcWedges,
+  createFacingIndicator,
+  facingArcDiagnostics,
+  tokenFacingLabel
+} from './vttTokenFacing'
 import { createVttAreaAimGesture } from './vttAreaAimGesture'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
 import { clampVttZoomScale } from './vttZoom.model'
@@ -312,8 +315,6 @@ const outerRingGap = 0.07
 const selectionOutlineOffset = 16
 const tokenBodyLabel = 'token-body'
 const tokenCrosshairLabel = 'token-crosshair'
-const tokenFacingLabel = 'token-facing'
-const tokenFacingArcLabelPrefix = 'token-facing-arc:'
 const tokenFillLabel = 'token-fill'
 const tokenHaloLabelPrefix = 'token-halo:'
 const tokenOuterRingLabel = 'token-outer-ring'
@@ -1722,16 +1723,7 @@ export async function createVttSceneRenderer(
       halo.label = `${tokenHaloLabelPrefix}${presentation.halo.label}`
       visual.addChild(halo)
     }
-    // The facing arcs sit under the token, so only the part past its footprint shows.
-    for (const sector of presentation?.facingArcs ?? []) {
-      const color = facingArcColours[sector.arc]
-      const wedge = new pixi.Graphics()
-        .poly(facingArcWedge(sector, facingArcRadius(token)).flatMap(({ x, y }) => [x, y]))
-        .fill({ alpha: 0.22, color })
-        .stroke({ alpha: 0.8, color, width: 2 })
-      wedge.label = `${tokenFacingArcLabelPrefix}${sector.arc}`
-      visual.addChild(wedge)
-    }
+    visual.addChild(...createFacingArcWedges(pixi, token, presentation?.facingArcs ?? []))
     // The plate spans the footprint; the fill, art and inner ring sit inside it, under the outer ring.
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
@@ -1780,26 +1772,7 @@ export async function createVttSceneRenderer(
           label.visible = true
         })
     }
-    if (presentation?.facing) {
-      const facing = new pixi.Container()
-      facing.addChild(
-        new pixi.Graphics()
-          .arc(0, 0, Math.max(token.width, token.height) / 2 + 12, (-3 * Math.PI) / 4, -Math.PI / 4)
-          .stroke({ alpha: 0.9, color: 0xffffff, width: 3 })
-      )
-      facing.addChild(
-        new pixi.Graphics()
-          .moveTo(0, -token.height / 2 - 10)
-          .lineTo(-7, -token.height / 2 + 1)
-          .lineTo(7, -token.height / 2 + 1)
-          .closePath()
-          .fill(0xffffff)
-          .stroke({ color: 0x101315, width: 2 })
-      )
-      facing.label = tokenFacingLabel
-      facing.rotation = (token.rotationDegrees * Math.PI) / 180
-      visual.addChild(facing)
-    }
+    if (presentation?.facing) visual.addChild(createFacingIndicator(pixi, token))
     if (presentation?.marked) {
       const crosshair = new pixi.Graphics()
         .moveTo(-token.width / 2 - 5, 0)
@@ -2653,12 +2626,10 @@ export async function createVttSceneRenderer(
             bodyFillColor:
               drawnStyles(visual.getChildByLabel(tokenFillLabel), 'fill')[0]?.color ?? null,
             crosshairDrawn: visual.getChildByLabel(tokenCrosshairLabel) !== null,
-            facingArcs: visual.children
-              .filter((child) => child.label?.startsWith(tokenFacingArcLabelPrefix))
-              .map((child) => ({
-                arc: child.label.slice(tokenFacingArcLabelPrefix.length),
-                polygon: drawnStyles(child, 'fill')[0]?.paths[0] ?? []
-              })),
+            facingArcs: facingArcDiagnostics(
+              visual,
+              (wedge) => drawnStyles(wedge, 'fill')[0]?.paths[0] ?? []
+            ),
             facingRotationDegrees: facing ? (facing.rotation * 180) / Math.PI : null,
             footprint: { height: body?.height ?? 0, width: body?.width ?? 0 },
             halo:

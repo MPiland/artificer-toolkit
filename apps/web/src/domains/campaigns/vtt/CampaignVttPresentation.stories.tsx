@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { useEffect, useRef, useState } from 'react'
 import { expect, waitFor, within } from 'storybook/test'
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
   campaignSceneStateDtoSchema,
@@ -87,15 +88,16 @@ const emberActor = {
   healthBand: 'CRITICAL' as const
 }
 const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
+const presentationFacingArcs: NonNullable<EncounterGmProjectionDto['facingArcs']> = [
+  { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+  { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+  { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+  { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+]
 const presentationEncounter = {
   ...tabletopGmEncounter,
   actors: [emberActor, wardenActor],
-  facingArcs: [
-    { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
-    { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
-    { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
-    { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
-  ],
+  facingArcs: presentationFacingArcs,
   facingStepDegrees: 45
 }
 function reactionPending(reactor: {
