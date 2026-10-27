@@ -93,7 +93,7 @@ describe('lingering creature riders from core options (D187a)', () => {
 
   it.each([
     { creature: couatl, label: 'Bite', kinds: ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'] },
-    { creature: hornedDevil, label: 'Tail', kinds: ['FOLLOW_UP_CHECK', 'MANUAL_ADJUDICATION'] }
+    { creature: hornedDevil, label: 'Tail', kinds: ['MANUAL_ADJUDICATION'] }
   ])(
     'rules on the $creature.label $label rider when the save fails',
     ({ creature, label, kinds }) => {

@@ -652,6 +652,33 @@ describe('seeded SRD Creature hit riders in the room', () => {
     )
   })
 
+  it('deals the Horned Devil’s Tail damage and fails the Character’s save into the infernal wound ruling (ATTACK-5.T4)', async () => {
+    // 1d8 + 6 piercing with the die rolling 1; the Character's DC 17 Constitution save fails.
+    const room = await hitRiderRoom({
+      creature: 'Horned Devil',
+      feature: 'Tail',
+      playerAutoRoll: false,
+      rolls: [18, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 17, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([[7, damageTypeId('PIERCING')]])
+  })
+
+  it('grapples and restrains the Character with the Roper’s Tendril beside the Strength ruling, dealing no damage (ATTACK-5.T4)', async () => {
+    const room = await hitRiderRoom({
+      creature: 'Roper',
+      feature: 'Tendril',
+      playerAutoRoll: true,
+      rolls: [18]
+    })
+    const batch = await settle(room, null)
+    expect(batch.damage).toEqual([])
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
+    )
+  })
+
   it('grapples and restrains a Creature with one hit of the Giant Toad’s Bite, held by one relationship effect', async () => {
     const toad = seededSrdCreature('Giant Toad')
     const room = await actionRoom({
