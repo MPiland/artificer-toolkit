@@ -586,13 +586,22 @@ describe('content snapshot builds', () => {
       })
       const marked = await head(srdSource)
       // A seed marks the head between a build's reads; a head write from the build would race them.
+      // convex-test runs one transaction at a time in arrival order, so holding that turn queues the
+      // build's first read ahead of the import, and the import ahead of the build's next read.
+      await Promise.all([import('./actions'), import('./heads')])
+      const nextMacrotask = () => new Promise((resolve) => setImmediate(resolve))
+      let releaseTurn = () => {}
+      const heldTurn = t.run(() => new Promise<void>((resolve) => (releaseTurn = resolve)))
       const building = t.action(internal.contentSnapshots.actions.build, srdSource)
+      await nextMacrotask()
       const dwarfSubject = importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })
-      await t.mutation(internal.content.import.importSubjects, {
+      const importing = t.mutation(internal.content.import.importSubjects, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [dwarfSubject]
       })
-      await building
+      await nextMacrotask()
+      releaseTurn()
+      await Promise.all([heldTurn, importing, building])
       expect(await head(srdSource)).toEqual({ ...marked, revision: marked!.revision + 1 })
 
       await syncImportedDerived(t, subjects)
