@@ -49,13 +49,19 @@ import {
 } from './effectActionOutcomeNodes.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 
-export type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
+/** A hit's damage, or a GM ruling beside it (a lycanthrope's curse), settled before its immediate save. */
+export type ImmediatePrimaryEntry = CompiledEffectGroup['entries'][number] & {
   resultBlockId: string
   outcome: Extract<
     Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>['outcome'],
-    { effectKind: 'DAMAGE' }
+    { effectKind: 'DAMAGE' | 'MANUAL_ADJUDICATION' }
   >
 }
+
+type ImmediatePrimaryDamageOutcome = Extract<
+  ImmediatePrimaryEntry['outcome'],
+  { effectKind: 'DAMAGE' }
+>
 
 export type ImmediateSaveEntry = CompiledEffectGroup['entries'][number] & {
   resultBlockId: string
@@ -140,11 +146,11 @@ export function escalatingImmediateSave(save: FollowUpSaveOutcome): {
 export function immediateFollowUpSaveEntries(
   entries: readonly CompiledEffectGroup['entries'][number][]
 ): {
-  primaryDamageEntries: readonly ImmediatePrimaryDamageEntry[]
+  primaryEntries: readonly ImmediatePrimaryEntry[]
   saveEntry: ImmediateSaveEntry
 } | null {
   const saveEntry = entries.at(-1)
-  const primaryDamageEntries = entries.slice(0, -1)
+  const primaryEntries = entries.slice(0, -1)
   if (!saveEntry) return null
   if (!('resultBlockId' in saveEntry) || !('outcome' in saveEntry)) return null
   const resultBlockId = saveEntry.resultBlockId
@@ -152,14 +158,14 @@ export function immediateFollowUpSaveEntries(
     saveEntry.resolutionKind !== 'DIRECT' ||
     // A hit with no damage before its save (Spit Poison) is a SINGLE group of that one save.
     (saveEntry.groupKind !== 'SEQUENTIAL' &&
-      !(primaryDamageEntries.length === 0 && saveEntry.groupKind === 'SINGLE')) ||
+      !(primaryEntries.length === 0 && saveEntry.groupKind === 'SINGLE')) ||
     saveEntry.pathCode !== 'ON_HIT' ||
     saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
   ) {
     return null
   }
-  const primary = [] as ImmediatePrimaryDamageEntry[]
-  for (const entry of primaryDamageEntries) {
+  const primary = [] as ImmediatePrimaryEntry[]
+  for (const entry of primaryEntries) {
     if (!('resultBlockId' in entry) || !('outcome' in entry)) return null
     const outcome = entry.outcome
     if (
@@ -167,17 +173,18 @@ export function immediateFollowUpSaveEntries(
       entry.groupKind !== 'SEQUENTIAL' ||
       entry.pathCode !== 'ON_HIT' ||
       entry.resultBlockId !== resultBlockId ||
-      outcome.effectKind !== 'DAMAGE' ||
-      primaryDamageDiceCount(outcome) === null ||
       !UUID.test(entry.entryId) ||
-      !isUuid(outcome.damageTypeId)
+      (outcome.effectKind !== 'MANUAL_ADJUDICATION' &&
+        (outcome.effectKind !== 'DAMAGE' ||
+          primaryDamageDiceCount(outcome) === null ||
+          !isUuid(outcome.damageTypeId)))
     ) {
       return null
     }
-    primary.push(entry as ImmediatePrimaryDamageEntry)
+    primary.push(entry as ImmediatePrimaryEntry)
   }
   return {
-    primaryDamageEntries: primary,
+    primaryEntries: primary,
     saveEntry: saveEntry as ImmediateSaveEntry
   }
 }
@@ -207,9 +214,7 @@ export function exactFailureMarginRider(rider: FailureMarginRiderAuthored): bool
  * The dice one primary hit-damage outcome requests before the nested save: its exact bounded
  * term (a flat modifier or ability bonuses allowed, at most 15 dice) or none for a fixed amount.
  */
-export function primaryDamageDiceCount(
-  outcome: ImmediatePrimaryDamageEntry['outcome']
-): number | null {
+export function primaryDamageDiceCount(outcome: ImmediatePrimaryDamageOutcome): number | null {
   if (outcome.scalingKind !== 'NONE') return null
   if (outcome.valueKind === 'FIXED')
     return Number.isSafeInteger(outcome.amount) && outcome.amount > 0 && !outcome.bonuses?.length
@@ -306,8 +311,12 @@ export function immediateFollowUpSaveGraphDefinition(
   const dice = diceConfig === undefined ? null : boundedDiceTerm(diceConfig)
   if (dice && dice.modifier !== 0)
     unsupported('D&D immediate follow-up save dice exceed the exact bounded contract.')
-  const primaryDiceCount = resolved.primaryDamageEntries.reduce(
-    (total, entry) => total + (primaryDamageDiceCount(entry.outcome) ?? 0),
+  // A GM ruling before the save rolls nothing and sizes nothing.
+  const primaryDamage = resolved.primaryEntries.flatMap(({ outcome }) =>
+    outcome.effectKind === 'DAMAGE' ? [outcome] : []
+  )
+  const primaryDiceCount = primaryDamage.reduce(
+    (total, outcome) => total + (primaryDamageDiceCount(outcome) ?? 0),
     0
   )
   // One TEST d20, doubled primary critical dice, one nested save d20, and the nested damage dice
@@ -343,7 +352,7 @@ export function immediateFollowUpSaveGraphDefinition(
         const source = outcome.amountSource
         if (
           source.kind !== 'DAMAGE_TAKEN' ||
-          source.damageOutcomeId !== resolved.primaryDamageEntries[0]?.outcome.id ||
+          source.damageOutcomeId !== primaryDamage[0]?.id ||
           !UUID.test(source.damageOutcomeId) ||
           !hitPointMaximumReductionRecoveryTagsSchema.safeParse(outcome.recoveryTags).success
         )

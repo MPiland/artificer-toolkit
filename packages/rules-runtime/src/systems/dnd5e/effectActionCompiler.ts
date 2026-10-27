@@ -2805,17 +2805,16 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const owed = (entry: CompiledEffectGroup['entries'][number]) =>
       entryOwed(entry, input.action.compiledEffect.id, input.facts)
     // A rider merged into the hit (D164 Charge) deals its damage and calls its save only when owed.
-    const owedPrimaryEntries = immediate.primaryDamageEntries.filter(owed)
+    const owedPrimaryEntries = immediate.primaryEntries.filter(owed)
     const saveOwed = owed(immediate.saveEntry)
     if (owedPrimaryEntries.length === 0 && !saveOwed) return null
     const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
-      if (!('outcome' in primaryDamageEntry))
-        unsupported('D&D immediate follow-up save primary damage is unavailable.')
       const primaryDamage = specializedTestOutcome(primaryDamageEntry)
       const nodePrefix =
         owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
-      // A fixed amount ("1 piercing damage") has no dice to double on a critical hit.
-      if (primaryDamage.kind === 'DAMAGE')
+      // A fixed amount ("1 piercing damage") has no dice to double on a critical hit, and a GM
+      // ruling beside the damage (a lycanthrope's curse) proposes its instructions without any.
+      if (primaryDamage.kind === 'DAMAGE' || primaryDamage.kind === 'MANUAL_ADJUDICATION')
         return fixedOutcomeGraphDefinition({
           action: input.action,
           entry: primaryDamageEntry,

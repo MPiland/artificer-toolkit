@@ -6,6 +6,7 @@ import { readEncounterActorConditionState } from '../encounterCharacterMechanics
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import { lockedRelationshipActionFacts } from '../encounterRelationshipActionFacts.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
+import { DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import {
@@ -118,6 +119,13 @@ function heldActionFacts(input: {
         activeEffectsByActorId: new Map([[TARGET_ID, [{ id: testUuid(0xb7), definition }]]])
       }
     })
+}
+
+/** Whether the hit proposed a GM ruling (a MANUAL_ADJUDICATION outcome applies nothing itself). */
+function gmRulingProposed(execution: Awaited<ReturnType<typeof attackOgre>>['execution']) {
+  return execution.execution.evidence.trace.some(
+    ({ operation }) => operation.key === DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY
+  )
 }
 
 /** One end-of-turn tick of a timed condition on the Ogre, with the given turns remaining. */
@@ -916,5 +924,39 @@ describe('a straight-line Charge rides only its named attack (SPELLS-33 T5n2, D1
       resultPath: 'ON_SAVE_FAIL'
     })
     expect(failed.conditionIds).toEqual([srdCondition('Prone')])
+  })
+
+  it('proposes the Wereboar’s curse ruling ahead of its Charge save after a 15-foot charge (ATTACK-5.T4w)', async () => {
+    // Tusks, +5: 2d6 + 3 slashing and the curse ruling; Charge: 2d6 more, then DC 13 Strength or prone.
+    const failed = await attackOgre({
+      attacker: 'Wereboar',
+      feature: 'Tusks (Boar or Hybrid Form Only)',
+      closedFeet: 15,
+      rolls: [9, 0, 0, 0, 0, 0]
+    })
+    expect(failed.damage).toEqual([
+      [2 + 3, srdDamageTypeId('SLASHING')],
+      [2, srdDamageTypeId('SLASHING')]
+    ])
+    expect(failed.execution.nestedD20).toMatchObject({
+      total: 1 + 4,
+      defenseOrDc: 13,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.conditionIds).toEqual([srdCondition('Prone')])
+    expect(gmRulingProposed(failed.execution)).toBe(true)
+  })
+
+  it('proposes the Wereboar’s curse ruling beside its Tusks damage when it did not charge (ATTACK-5.T4w)', async () => {
+    const short = await attackOgre({
+      attacker: 'Wereboar',
+      feature: 'Tusks (Boar or Hybrid Form Only)',
+      closedFeet: 10,
+      rolls: [9, 0, 0]
+    })
+    expect(short.damage).toEqual([[2 + 3, srdDamageTypeId('SLASHING')]])
+    expect(short.execution.nestedD20).toBeNull()
+    expect(short.conditionIds).toEqual([])
+    expect(gmRulingProposed(short.execution)).toBe(true)
   })
 })
