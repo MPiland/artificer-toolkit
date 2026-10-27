@@ -20106,10 +20106,13 @@
             {
               "id": "RELIABILITY-21.4",
               "text": "encounters/activeReads:active stays under the 1 s query limit on a CI runner.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/activeReadBudget.test.ts",
+                "apps/apis/convex/contentSnapshots/build.test.ts"
+              ],
               "origin": [],
-              "note": "Proof: (flaky proofs)."
+              "note": "Proof: (flaky proofs). Closed 2026-10-27 by RELIABILITY-21.T4, RELIABILITY-21.T11."
             },
             {
               "id": "RELIABILITY-21.5",
@@ -20138,10 +20141,10 @@
             {
               "id": "RELIABILITY-21.8",
               "text": "Account deletion closes the deleted subject's live sockets, so revocation reports no user.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T8 (m506); see each task's proof."],
               "origin": [],
-              "note": "Proof: account-deletion."
+              "note": "Proof: account-deletion. Closed 2026-10-27 by RELIABILITY-21.T8."
             },
             {
               "id": "RELIABILITY-21.9",
@@ -20162,10 +20165,17 @@
             {
               "id": "RELIABILITY-21.11",
               "text": "A fresh stack builds every Content snapshot head after seed without OCC exhaustion or a stuck unbuilt head, stays under the backend write-rate limit, and area-browser resolves its campaign route and gates again.",
+              "status": "DONE",
+              "proof": ["apps/apis/convex/contentSnapshots/build.test.ts"],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. Closed 2026-10-27 by RELIABILITY-21.T11."
+            },
+            {
+              "id": "RELIABILITY-21.12",
+              "text": "campaign-collaboration-browser passes without reruns: the \"Shared with party\" option appears after the direct-sent step within the journey timeout.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it."
+              "origin": []
             }
           ],
           "tasks": [
@@ -20266,7 +20276,7 @@
             },
             {
               "id": "RELIABILITY-21.T8",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.8"],
               "wsjf": {
                 "bv": 5,
@@ -20274,9 +20284,10 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m506.",
               "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again.",
-              "activeWorkbook": "docs/architecture/live-sessions.md"
+              "mergedAt": "2026-10-27T23:09:10Z",
+              "proof": "Tests 40594843003, Live 40594842963 and Browser journeys 40594842935 green on 774b433cb (account-deletion-browser passes without its known-bug label); reviewed (the harness counts a main-frame navigation as revoking that page's sockets; the second subject page must still be revoked by the server); merged in m506 (run 40599993817). Proof: apps/web/tests/live-backend/accountDeletion.ts (account-deletion-browser)"
             },
             {
               "id": "RELIABILITY-21.T9",
@@ -20308,7 +20319,7 @@
             },
             {
               "id": "RELIABILITY-21.T11",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.11", "RELIABILITY-21.4"],
               "wsjf": {
                 "bv": 5,
@@ -20316,9 +20327,23 @@
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green. Merged in m507.",
               "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS. Also clear the social-browser, hide-browser and scene-live-browser labels.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T23:32:30Z",
+              "proof": "Tests 40600067813, Live 40600067946 and Browser journeys 40600067791 green on 14246681f (area, social, hide and scene-live pass without known-bug labels); reviewed (an overtaken waiting build reschedules itself; a failed failBuild schedules the first retry); merged in m507 (run 40602710254). A narrower awaitCompilation window remains and self-heals through the backoff with no lease leak. Proofs: apps/apis/convex/contentSnapshots/build.test.ts, area-browser, social-browser, hide-browser, scene-live-browser"
+            },
+            {
+              "id": "RELIABILITY-21.T12",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.12"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "text": "Find why campaign-collaboration-browser intermittently times out (30 s) waiting for the \"Shared with party\" option after the direct-sent step, and fix the cause in the product or the harness; the assertion and timeout stay.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2). Intermittent since m500: spells-4-t2lb2d Browser journeys 40595948111, 40593017249, 40589375558; vtt-ui-1-t1 40584640884; reliability-21-t11 40594866820 attempt 1. Passes on rerun."
             }
           ]
         }
