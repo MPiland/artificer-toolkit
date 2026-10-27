@@ -349,7 +349,6 @@ export function CampaignVttStage({
     if (trackedDecision.outcome !== decisionOutcome && decisionOutcome === 'ANSWER')
       setShownDecision(null)
   }
-  const drawerDecision = pendingOccurrence ?? settledDecision
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
     : actionChoices.data
@@ -665,6 +664,8 @@ export function CampaignVttStage({
       renderedScene
     ]
   )
+  // A destination this viewer picks on the board is answered there, not in the decision drawer.
+  const drawerDecision = (destinationPick ? null : pendingOccurrence) ?? settledDecision
   const tokenArtUrls = useVttTokenArtUrls({
     actorIdByTokenId,
     campaignId: campaign.id,
