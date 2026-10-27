@@ -136,7 +136,8 @@ jobs:
           PROOF: ${{ matrix.proof }}
           TASK: ${{ matrix.knownBug }}
           STATUS: ${{ job.status }}
-        run: echo "$PROOF KNOWN-BUG $TASK: $STATUS (not gating)." >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "$PROOF KNOWN-BUG $TASK: $STATUS (not gating)." >> "$GITHUB_STEP_SUMMARY"
       - name: Evidence holds no generated secret
         if: always()
         run: |
