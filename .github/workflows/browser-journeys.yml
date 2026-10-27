@@ -6,30 +6,71 @@
 # generates its env and the ignored local env files, so scripts/runLocalBrowserProof.mjs (Worker, web
 # app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
 # runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
-# RELIABILITY-20.T1 runs the player-browser proof; T2 owns triggers and merge-slice gating, T3 the
-# other *-browser proofs.
+# Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks the CI_PROOFS
+# when the slice's changes since the phase branch reach a journey through the Tests workflow's import
+# graph, or change the stack; otherwise the run passes with no proof. A dispatch runs one named proof
+# (any scripts/runLocalConvexProof.ps1 proof) or, unnamed, every CI proof. merge-slice requires every
+# run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
 #   git push origin HEAD:ci/<slice>
+#   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof=<name>]
 name: Browser journeys
 
 on:
   push:
     branches: ['ci/**']
-    paths:
-      - '.github/workflows/browser-journeys.yml'
-      - 'scripts/throwawayConvexStack.mjs'
   workflow_dispatch:
+    inputs:
+      proof:
+        description: One proof from scripts/runLocalConvexProof.ps1 (empty runs every CI proof)
+        default: ''
 
 permissions:
   contents: read
 
+# A named dispatch has its own group, so trying one proof never cancels the push run merge-slice reads.
 concurrency:
-  group: browser-journeys-${{ github.ref }}
+  group: browser-journeys-${{ github.ref }}-${{ inputs.proof }}
   cancel-in-progress: true
 
+env:
+  # Slices branch from, and merge into, the phase branch; the selection diffs against it.
+  PHASE_BRANCH: codex/phase-08-2-convex-cutover
+  # The proofs a reaching push runs. RELIABILITY-20.T3 adds the other *-browser proofs.
+  CI_PROOFS: player-browser
+
 jobs:
-  player-browser:
-    name: player-browser on a throwaway stack
+  select:
+    name: Select browser journeys
     if: startsWith(github.ref, 'refs/heads/ci/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      proofs: ${{ steps.select.outputs.proofs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The selector diffs against the merge base with the phase branch; commits and trees only.
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+      # The selector imports only Node built-ins and repository scripts, so it needs no install.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Select the proofs this change reaches
+        id: select
+        env:
+          PROOF: ${{ inputs.proof }}
+        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --proofs "$CI_PROOFS" --event "$GITHUB_EVENT_NAME" --proof "$PROOF"
+
+  journey:
+    name: ${{ matrix.proof }} on a throwaway stack
+    needs: select
+    if: needs.select.outputs.proofs != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        proof: ${{ fromJSON(needs.select.outputs.proofs) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -79,8 +120,10 @@ jobs:
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
       - name: Deploy and seed
         run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
-      - name: Run player-browser
-        run: node scripts/runLocalBrowserProof.mjs --name=ci-player-browser --proof=player-browser
+      - name: Run ${{ matrix.proof }}
+        env:
+          PROOF: ${{ matrix.proof }}
+        run: node scripts/runLocalBrowserProof.mjs --name="ci-$PROOF" --proof="$PROOF"
       - name: Evidence holds no generated secret
         if: always()
         run: |
@@ -98,7 +141,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: player-browser-evidence
+          name: ${{ matrix.proof }}-evidence
           path: browser-journey-logs/
           retention-days: 7
           if-no-files-found: ignore
