@@ -6905,10 +6905,16 @@
             },
             {
               "text": "A creature that does not know of a concealed zone gets no path warning and no Move carefully offer; entering it triggers it. The GM's path preview shows which creatures have not noticed it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/zoneConcealmentReads.test.ts",
+                "apps/session-worker/test/nativeRoomPlacedZone.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMove.model.test.ts",
+                "CampaignVttStage.carefulMove.test.tsx",
+                "vttSceneRenderer.model.test.ts"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Move carefully is Q2 (SPELLS-17).",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Move carefully is Q2 (SPELLS-17). Closed 2026-10-27 by MOVE-3.T5.",
               "id": "MOVE-3.6"
             },
             {
@@ -7025,7 +7031,7 @@
             },
             {
               "id": "MOVE-3.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.6"],
               "wsjf": {
                 "bv": 8,
@@ -7035,8 +7041,9 @@
                 "after": ["MOVE-3.T2"]
               },
               "text": "Unaware creature gets no path warning and no Move carefully offer; entering triggers; GM path preview lists who has not noticed.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m491.",
+              "mergedAt": "2026-10-27T04:41:41Z",
+              "proof": "Tests 40445297093, Live 40445297056 and Browser journeys 40445297063 (attempt 2, snapshot timeout flake) green on 235c2e00c; reviewed; merged in m491. Proofs: apps/apis/convex/encounters/zoneConcealmentReads.test.ts, apps/session-worker/test/nativeRoomPlacedZone.test.ts, apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMove.model.test.ts, CampaignVttStage.carefulMove.test.tsx, vttSceneRenderer.model.test.ts"
             },
             {
               "id": "MOVE-3.T6",
@@ -8345,7 +8352,7 @@
             {
               "id": "ATTACK-5.T4",
               "text": "Horned Devil Tail: fold the stanch (an action, DC 12 Wisdom (Medicine)) into its GM ruling and drop the FOLLOW_UP_CHECK. Roper Tendril: delete CLOSED_RULE CREATURE_ROPER_TENDRIL and add a GM ruling beside the hold, as Marilith Tail does. Each gets a room proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -8370,8 +8377,9 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2. Merged in m492.",
+              "mergedAt": "2026-10-27T05:09:11Z",
+              "proof": "Tests 40451256225 and Browser journeys 40451256201 green on a480086df, Live 40449350234 green on a0d80a23e; batch ci/merge-m492 Tests 40453705240 and Live 40453707396 green; reviewed (allowlist lookup now not.toHaveProperty, effect count 550 to 549 for the removed Roper closed rule, both intended); merged in m492. Proofs: apps/session-worker/test/nativeRoomHitRiders.test.ts, packages/rules-runtime/src/__tests__/srdCreatureAttackSweep.test.ts"
             },
             {
               "id": "ATTACK-5.T4w",
@@ -10039,7 +10047,8 @@
               },
               "text": "Integrate and settings gate.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md",
+              "merging": true
             }
           ]
         },
