@@ -121,6 +121,9 @@ function toSpatialInstance(
     turnTriggers: effect.placement.turnTriggers,
     movementKinds: effect.placement.movementKinds,
     bypassAtHalfSpeed: isVisibleHalfSpeedField(effect),
+    ...(effect.spatialState.concealment && {
+      knownByActorIds: effect.spatialState.concealment.knownByActorIds
+    }),
     movementCostMultiplier: effect.placement.movementCostMultiplier,
     unaffectedActorIds: effect.placement.unaffectedActorIds,
     maxApplicationsPerTurn: effect.placement.maxApplicationsPerTurn,

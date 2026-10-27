@@ -74,6 +74,7 @@ import {
   shouldReloadVttMap,
   visibleGridLinePositions,
   wholeMapPolygon,
+  type UnnoticedZone,
   type VttAreaSize,
   type VttIlluminationArea,
   type VttScenePresentationOverlay,
@@ -162,12 +163,13 @@ export interface VttSceneRendererUpdate {
   /**
    * For an Encounter's Scene: the actor each bound token moves for, the zones that raise what
    * moving costs and the actors whose drag doubles it, so a dragged route shows the movement the
-   * room will charge.
+   * room will charge, and the GM's concealed zones with who has not noticed each (MOVE-3.6).
    */
   movementCost?: {
     actorIdByTokenId: ReadonlyMap<string, string>
     zones: EncounterSessionStateDto['movementCostZones']
     dragDoublingActorIds: ReadonlySet<string>
+    unnoticedZones: readonly UnnoticedZone[]
   } | null
   overlays?: readonly VttScenePresentationOverlay[]
   /** The GM's token-view preview: draws what a Player controlling this Token sees. */
@@ -1622,12 +1624,7 @@ export async function createVttSceneRenderer(
     const pricing = current?.movementCost
     const actorId = pricing?.actorIdByTokenId.get(tokenId)
     return pricing && actorId
-      ? {
-          actorId,
-          tokenId,
-          zones: pricing.zones,
-          dragDoublesCost: pricing.dragDoublingActorIds.has(actorId)
-        }
+      ? { ...pricing, actorId, tokenId, dragDoublesCost: pricing.dragDoublingActorIds.has(actorId) }
       : null
   }
 
