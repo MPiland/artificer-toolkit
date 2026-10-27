@@ -19,6 +19,7 @@ import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
 import { stabilizeDtoSchema } from './stabilize.js'
 import { killDtoSchema } from './kill.js'
+import { hitPointsToZeroDtoSchema } from './hitPointsToZero.js'
 import { reviveDtoSchema } from './revive.js'
 import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { restoreResourceDtoSchema } from './restoreResource.js'
@@ -93,6 +94,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            hitPointsToZeroDtoSchema,
             reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
@@ -126,6 +128,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            hitPointsToZeroDtoSchema,
             reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,

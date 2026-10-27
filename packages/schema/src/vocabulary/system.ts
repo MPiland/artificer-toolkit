@@ -172,7 +172,9 @@ export const systemAuthoredDtoSchema = lazySchema(() =>
       passives: z.array(systemPassiveDefinitionDtoSchema),
       initiativePolicy: z.optional(systemInitiativePolicyDtoSchema),
       defaults: z.optional(systemDefaultsDtoSchema),
-      cover: z.optional(systemCoverRulesDtoSchema)
+      cover: z.optional(systemCoverRulesDtoSchema),
+      /** The passive that notices a concealed zone (MOVE-3.5); without it no zone is noticed. */
+      zoneSpotPassiveDefinitionId: z.optional(postgresUuidSchema)
     })
     .check(
       z.superRefine((document, context) => {
@@ -262,6 +264,15 @@ export const systemAuthoredDtoSchema = lazySchema(() =>
             })
           }
         }
+        if (
+          document.zoneSpotPassiveDefinitionId &&
+          !document.passives.some(({ id }) => id === document.zoneSpotPassiveDefinitionId)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['zoneSpotPassiveDefinitionId'],
+            message: 'The zone spot passive must be a passive in the same System document.'
+          })
       })
     )
 )

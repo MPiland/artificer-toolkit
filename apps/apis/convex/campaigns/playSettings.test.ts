@@ -792,7 +792,9 @@ describe('native Campaign play settings', () => {
         .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
         .unique()
       if (!system) throw new Error('Missing System.')
-      const document = jsonValueSchema.parse({ ...srdSystemRecord, skills: [], passives: [] })
+      // Without passives the System names no zone spot passive either.
+      const { zoneSpotPassiveDefinitionId, ...vocabulary } = srdSystemRecord
+      const document = jsonValueSchema.parse({ ...vocabulary, skills: [], passives: [] })
       await ctx.db.patch(system._id, { document, checksum: checksumRuleDocument(document) })
     })
     await expect(owner.caller.mutation(save, input(saved))).rejects.toThrow(

@@ -935,8 +935,9 @@ describe('a won climb settles the cling its definition authors (MOVE-4.T2a)', ()
   it('creates the authored cling on the blocker once, owned and sourced by the climb, and replays without a second', async () => {
     const { value, response } = await climb([19, 0])
     expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    // The won climb enters the blocker's space (MOVE-4.T2b2).
     expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
-      x: 250,
+      x: 350,
       y: 50
     })
     const effects = await blockerEffects(value)

@@ -257,6 +257,7 @@ export type CompiledEffectOutcome =
   | import('#authored').ReviveAuthored
   | import('#authored').StabilizeAuthored
   | import('#authored').KillAuthored
+  | import('#authored').HitPointsToZeroAuthored
   | ArmorClassFloorAuthored
   | RestoreResourceAuthored
   | TelepathicLinkAuthored
@@ -375,6 +376,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
     case EFFECT_KIND.KILL:
+    case EFFECT_KIND.HIT_POINTS_TO_ZERO:
     case EFFECT_KIND.REVIVE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:

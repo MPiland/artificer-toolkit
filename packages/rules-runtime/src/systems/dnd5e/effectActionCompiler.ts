@@ -2005,7 +2005,7 @@ function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOut
 }
 /**
  * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
- * decision 1). A kind with no entry is not a direct outcome.
+ * decision 1). A kind with no entry compiles to its registry target-only outcome, if it has one.
  */
 const DND5E_DIRECT_OUTCOMES: {
   [Kind in Dnd5eAuthoredOutcome['effectKind']]?: (
@@ -2027,10 +2027,6 @@ const DND5E_DIRECT_OUTCOMES: {
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   },
   KILL: () => ({ kind: 'KILL' }),
-  STABILIZE: targetOnlyDirectOutcome,
-  REVIVE: targetOnlyDirectOutcome,
-  MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
-  MOVEMENT_RULE: targetOnlyDirectOutcome,
   TELEPORT: (outcome, input) => {
     if (dnd5eTargetOnlyOutcome(outcome)) return targetOnlyDirectOutcome(outcome, input)
     // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
@@ -2087,7 +2083,7 @@ function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind'
   input: DirectOutcomeInput
 ): Dnd5eDirectOutcome {
   const specialize = DND5E_DIRECT_OUTCOMES[kind]
-  return specialize ? specialize(outcome, input) : unsupportedDirectOutcome()
+  return specialize ? specialize(outcome, input) : targetOnlyDirectOutcome(outcome, input)
 }
 
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles

@@ -30,6 +30,7 @@ export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_KILL_PROPOSAL_OPERATION_KEY = 'dnd5e.kill-proposal'
 export const DND5E_REVIVE_PROPOSAL_OPERATION_KEY = 'dnd5e.revive-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
+export const DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY = 'dnd5e.hit-points-to-zero-proposal'
 export const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
 export const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
@@ -204,6 +205,7 @@ export type Outcome =
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
   | { kind: 'KILL' }
+  | { kind: 'HIT_POINTS_TO_ZERO' }
   | { kind: 'REVIVE'; hitPoints: ReviveHitPoints }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }

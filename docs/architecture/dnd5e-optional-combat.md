@@ -94,10 +94,15 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
-**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement is target, MOVE-4.T2b2).** The CLIMB
+**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement current, MOVE-4.T2b2).** The CLIMB
 definition authors `effect`, the `ACTOR_RELATIONSHIP` active effect a won climb gives the climbed
 creature (sourced by the climber; `SOURCE_FOLLOWS_TARGET` plus a `SOURCE_ATTACK_ROLL_INFLUENCE`
-whose null `actionEffectIds` means every attack). The policy capability's `passageAppliedEffects`
+whose empty `actionEffectIds` means every attack). The climb seals `successMovement`
+`ENTER_BLOCKER_SPACE`: a won contest's receipt audits `enteredPosition`, the contact pulled until the
+climber's footprint lies inside the blocker's (`enteredBlockerPosition`, from the footprint the
+response verified against `blockerCurrentnessChecksum`), and the move ends there with one token write.
+The walked path, its cost and its fog end at the contact; `terminalMovementPathEnd` lets both the
+publication segment check and the stored geometry check accept that one step in. The policy capability's `passageAppliedEffects`
 re-derives its plan from the pinned definition; `evaluateEncounterMovementPassageResponse` builds the
 record on a SUCCESS contest and the PASSAGE settlement step carries it as `createdEffects`.
 `persistMovementSettlements` refuses an effect whose owner, origin or checksum does not match the
@@ -147,7 +152,8 @@ applies a rule's outcomes at will.
 
 A failed save raises a rule action (ATTACK-16.T1c2b, current). Massive Damage's optional
 `failedSaveEffectId` names one of its `raisedEffects` (the document refuses any other id); absent, a
-failed save changes nothing, as the SRD seed does. After every committed command,
+failed save changes nothing. The SRD seed authors System Shock this way (ATTACK-16.T1d): a `1d10`
+RANGE table whose 1 is `HIT_POINTS_TO_ZERO`, 2-3 that outcome then `STABILIZE`, 4-5 Stunned, 6-7 a grant of`nno reactions and disadvantage on attack rolls and ability checks, and 8-10 a grant of no reactions; each`nlasting row holds until the end of the holder's next turn. `HIT_POINTS_TO_ZERO` is a generic target-only`noutcome, a sibling of `KILL` with the same receipt and undo path: it sets current and temporary hit points`nto 0 without dealing damage (no D96 overflow, no damage triggers), so a Creature is defeated and a`nCharacter starts dying through the ordinary 0-hit-point transition. The rule's former fixed outcome bands`nand their executor-less primitives are gone. After every committed command,
 `raiseRoomRuleEffects` (`roomEncounterRuleTriggers.ts`) reads the rule receipts in the current trigger
 window (persistence guide, SYSTEM admission), and for each pinned `SAVE_FAILURE` whose holder still
 stands and whose action has not run, raises the named Effect on the holder as a self-targeted `ACTOR`

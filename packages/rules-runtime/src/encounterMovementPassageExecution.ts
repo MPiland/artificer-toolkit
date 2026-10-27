@@ -122,9 +122,33 @@ export function passesThrough(
     selection.successMovement === 'PASS_THROUGH'
   )
 }
+type Footprint = { width: number; height: number }
+export type PassageFootprints = {
+  mover: Footprint
+  blocker: Footprint & { position: { x: number; y: number } }
+}
+
+/**
+ * Where a mover stepping in from the contact point comes to rest inside the blocker's space: the
+ * contact pulled just far enough that the mover's whole footprint lies within the blocker's.
+ */
+export function enteredBlockerPosition(
+  contact: { x: number; y: number },
+  footprints: PassageFootprints
+) {
+  const { mover, blocker } = footprints
+  const clamp = (value: number, center: number, slack: number) =>
+    Math.min(Math.max(value, center - slack), center + slack)
+  return {
+    x: clamp(contact.x, blocker.position.x, Math.max((blocker.width - mover.width) / 2, 0)),
+    y: clamp(contact.y, blocker.position.y, Math.max((blocker.height - mover.height) / 2, 0))
+  }
+}
+
 function receipt(input: {
   execution: CompletedContestExecution
   pending: PassagePending
+  footprints: PassageFootprints
 }): PassageContestReceipt {
   const economy = input.pending.actionEconomy
   const movement = input.pending.origin.movementContinuation
@@ -197,6 +221,10 @@ function receipt(input: {
             },
             terminalPosition: terminalPassageStop.contact
           }
+        : {}),
+      ...(input.execution.outcome === 'SUCCESS' &&
+      selection.successMovement === 'ENTER_BLOCKER_SPACE'
+        ? { enteredPosition: enteredBlockerPosition(movement.contact, input.footprints) }
         : {})
     }
   }
@@ -214,6 +242,8 @@ export async function evaluateEncounterMovementPassageContest<
     resolution: EncounterResponseAnswer
     responseCommand: ResolutionCommand
     targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>
+    /** The mover's and the verified-current blocker's footprints a won contest may place against. */
+    footprints: PassageFootprints
     retained?: {
       snapshot?: ServerKernelRuleExecutionPendingSnapshotDto
       receipt?: PassageContestReceipt
@@ -304,7 +334,7 @@ export async function evaluateEncounterMovementPassageContest<
         snapshot: nextSnapshot
       }
     }
-    const completedReceipt = receipt({ execution, pending })
+    const completedReceipt = receipt({ execution, pending, footprints: input.footprints })
     if (input.retained?.snapshot)
       throw new Error('Retained movement passage pending evidence is stale.')
     if (input.retained?.receipt && !same(completedReceipt, input.retained.receipt))
@@ -435,7 +465,7 @@ export async function evaluateEncounterMovementPassageContest<
       throw new Error('Retained movement passage pending evidence is stale.')
     return { kind: 'PENDING' as const, movement, pending: nextPending, snapshot: nextSnapshot }
   }
-  const completedReceipt = receipt({ execution, pending })
+  const completedReceipt = receipt({ execution, pending, footprints: input.footprints })
   if (input.retained?.snapshot)
     throw new Error('Retained movement passage pending evidence is stale.')
   if (input.retained?.receipt && !same(completedReceipt, input.retained.receipt))

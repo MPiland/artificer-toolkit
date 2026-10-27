@@ -521,6 +521,16 @@ export interface CharacterKillOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized drop to 0 hit points and 0 temporary hit points; not damage, so death saves are unchanged. */
+export interface CharacterHitPointsToZeroOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'HIT_POINTS_TO_ZERO'
+  targetActorId: string
+}
+
 /** A System-authorized revive: a dead target returns to life with 1 hit point or its maximum; any other target is unchanged. */
 export interface CharacterReviveOutcomeApplication {
   sourceNodeId: string
@@ -619,6 +629,7 @@ export type CharacterRuleActionApplication =
   | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterKillOutcomeApplication
+  | CharacterHitPointsToZeroOutcomeApplication
   | CharacterReviveOutcomeApplication
   | CharacterKillNegatedOutcomeApplication
   | CharacterDepartOutcomeApplication

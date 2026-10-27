@@ -47,6 +47,7 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'SET_CONCEALMENT_OBSERVERS',
         'PLACE_ZONE',
         'SET_ZONE_DCS',
+        'DISMISS_ZONE_SIGHTING',
         'MORALE_SAVE',
         'CONFIRM_MORALE',
         'RESOLVE_CONSEQUENCE_ROLL_OFFER',
