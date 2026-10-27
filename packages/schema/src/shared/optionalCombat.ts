@@ -189,7 +189,7 @@ function uniqueFacingArcs<T>(arcOf: (entry: T) => FacingArc) {
  * Clockwise offsets from a token's facing. The arcs tile the full circle without overlap, so every
  * direction belongs to exactly one arc; a direction on a shared edge belongs to the arc nearer the front.
  */
-const facingArcTableDtoSchema = lazySchema(() =>
+export const facingArcTableDtoSchema = lazySchema(() =>
   z
     .array(
       z

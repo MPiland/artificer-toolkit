@@ -5,6 +5,7 @@ import {
   classifySquareGridFacingArc,
   deriveSquareGridForcedMovementDestinations,
   enumerateSquareGridFootprint,
+  facingArcSectors,
   findSquareGridFlankingPairs,
   SQUARE_GRID_COMPASS_RAYS,
   traceSquareGridForcedMovementRay
@@ -101,6 +102,21 @@ describe('optional combat square-grid geometry', () => {
     expect(
       findSquareGridFlankingPairs({ allied: east, attacker: twoCellsAway, grid, target })
     ).toEqual([])
+  })
+
+  it('draws each arc where the classifier puts a direction into it', () => {
+    const target = { ...token({ x: 15, y: 15 }, 20, 20), rotationDegrees: 90 }
+    for (const sector of facingArcSectors({ arcs: QUARTER_ARCS, rotationDegrees: 90 })) {
+      const middle = (((sector.fromBearing + sector.toBearing) / 2) * Math.PI) / 180
+      expect(
+        classifySquareGridFacingArc({
+          arcs: QUARTER_ARCS,
+          subject: { x: 15 + Math.sin(middle) * 50, y: 15 - Math.cos(middle) * 50 },
+          target
+        })
+      ).toBe(sector.arc)
+    }
+    expect(facingArcSectors({ arcs: QUARTER_ARCS, rotationDegrees: Number.NaN })).toEqual([])
   })
 
   it('normalizes rotations and applies stable arc-boundary precedence', () => {

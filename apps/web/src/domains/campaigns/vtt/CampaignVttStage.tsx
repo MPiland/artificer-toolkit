@@ -688,6 +688,7 @@ export function CampaignVttStage({
     lootActorIds: liveLoot.lootActorIds,
     pending: pendingOccurrence ?? null,
     scene: renderedScene,
+    selectedTokenId,
     targetEntries
   })
   const rendererAreaAim = useMemo(

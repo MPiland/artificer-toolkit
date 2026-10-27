@@ -51,7 +51,7 @@ import {
 import { validated } from '../../../test/validatedFixture'
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
+import { facingArcSectors, projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
   buildTabletopPresentations,
@@ -72,6 +72,8 @@ import {
   latestStageRenderer
 } from './vttSceneRenderer.assertions'
 import {
+  facingArcRadius,
+  facingArcWedge,
   gmDarknessCapAlpha,
   minimumFocusedTokenScreenSize,
   selectionOutlineColor
@@ -495,6 +497,51 @@ export const SelectingATokenOutlinesIt: Story = {
       await within(sceneControls).findByRole('menuitem', { name: `Focus ${ember.label}` })
     )
     await waitFor(() => expect(selectedIds()).toEqual([ember.id]))
+  }
+}
+
+// VTT_UI-1.3: the selected token draws its Facing arcs, and they follow it when it turns.
+export const SelectingATokenShowsItsFacingArcs: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, facingFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const stage = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const renderer = await latestStageRenderer()
+    const warden = facingFixtures.liveScene.tokens[1]!
+    const drawnArcs = () => drawnToken(renderer.getDiagnostics(), warden.id).facingArcs
+    const expectArcsAt = async (rotationDegrees: number) =>
+      expect(drawnArcs()).toEqual(
+        facingArcSectors({ arcs: facingArcs, rotationDegrees }).map((sector) => ({
+          arc: sector.arc,
+          polygon: facingArcWedge(sector, facingArcRadius(warden))
+        }))
+      )
+
+    await expect(drawnArcs()).toEqual([])
+    renderer.focusPoint(warden.position)
+    await pressStage(stage, 'centre')
+    await waitFor(() => expect(drawnArcs()).toHaveLength(4))
+    await expectArcsAt(warden.rotationDegrees)
+
+    syncStoryScene({
+      ...facingFixtures.liveScene,
+      tokens: facingFixtures.liveScene.tokens.map((token) =>
+        token.id === warden.id ? { ...token, rotationDegrees: 90 } : token
+      ),
+      version: facingFixtures.liveScene.version + 1
+    })
+    await waitFor(() =>
+      expect(drawnToken(renderer.getDiagnostics(), warden.id).rotationDegrees).toBe(90)
+    )
+    await expectArcsAt(90)
+
+    await pressStage(stage, 'corner')
+    await waitFor(() => expect(drawnArcs()).toEqual([]))
   }
 }
 
@@ -1046,6 +1093,23 @@ const presentedTokensFixtures: TabletopFixtures = {
       actor.id === wardenId ? { ...actor, conditions: wardenConditions } : actor
     ),
     currentActorId: wardenId
+  }
+}
+
+// VTT_UI-1.3 journey data: Facing is on and Ember has the turn, so the Warden shows arcs only when selected.
+const facingArcs = [
+  { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+  { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+  { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+  { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+] as const
+const facingFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    currentActorId: tabletopGmEncounter.actors[0]!.id,
+    facingArcs: [...facingArcs],
+    facingStepDegrees: 90
   }
 }
 

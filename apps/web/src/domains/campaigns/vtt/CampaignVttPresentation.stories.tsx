@@ -90,6 +90,12 @@ const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
 const presentationEncounter = {
   ...tabletopGmEncounter,
   actors: [emberActor, wardenActor],
+  facingArcs: [
+    { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+    { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+    { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+    { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+  ],
   facingStepDegrees: 45
 }
 function reactionPending(reactor: {
@@ -410,6 +416,31 @@ export const TokenArtIsPresented: Story = {
     await expect(diagnostics.facingIndicatorCount).toBe(
       presentationList.filter((presentation) => presentation.facing).length
     )
+  }
+}
+
+// VTT_UI-1.3: the current-turn token draws front, side and rear arcs around its facing.
+export const FacingArcsSurroundTheCurrentTurnToken: Story = {
+  play: async ({ canvasElement }) => {
+    const { diagnostics } = await renderedScene(canvasElement)
+    const ember = drawnToken(diagnostics, emberToken!.id)
+    await expect(ember.facingArcs.map(({ arc }) => arc)).toEqual([
+      'FRONT',
+      'RIGHT_SIDE',
+      'REAR',
+      'LEFT_SIDE'
+    ])
+    // Ember faces east (90 degrees): the front arc's middle vertex lies due east of the token.
+    const front = ember.facingArcs[0]!.polygon
+    const middle = front[Math.floor(front.length / 2)]!
+    await expect(middle.x).toBeGreaterThan(emberToken!.width / 2)
+    await expect(middle.y).toBeCloseTo(0, 5)
+    // The rear arc reaches the opposite side.
+    const rear = ember.facingArcs[2]!.polygon
+    await expect(rear[Math.floor(rear.length / 2)]!.x).toBeLessThan(-emberToken!.width / 2)
+    // Neither the Warden nor the Scout is selected or has the turn.
+    await expect(drawnToken(diagnostics, wardenToken!.id).facingArcs).toEqual([])
+    await expect(drawnToken(diagnostics, scoutToken!.id).facingArcs).toEqual([])
   }
 }
 

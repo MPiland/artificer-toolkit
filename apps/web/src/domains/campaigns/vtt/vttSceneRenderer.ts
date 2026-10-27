@@ -43,6 +43,9 @@ import {
   darknessZoneStyle,
   dashedPolygonSegments,
   dimOverlayAlpha,
+  facingArcColours,
+  facingArcRadius,
+  facingArcWedge,
   ellipseArcPoints,
   describeSceneLighting,
   gmDarknessCapAlpha,
@@ -239,6 +242,8 @@ export interface VttSceneRenderer {
       bodyFillColor: number | null
       /** Whether the current-turn crosshair is drawn, the shape cue that tells it from a reaction halo. */
       crosshairDrawn: boolean
+      /** The drawn facing arcs, by arc name, with the sampled outline of each wedge. */
+      facingArcs: { arc: string; polygon: ScenePoint[] }[]
       facingRotationDegrees: number | null
       footprint: { height: number; width: number }
       /** Whether the ring that marks the token as pickable while targeting is drawn. */
@@ -308,6 +313,7 @@ const selectionOutlineOffset = 16
 const tokenBodyLabel = 'token-body'
 const tokenCrosshairLabel = 'token-crosshair'
 const tokenFacingLabel = 'token-facing'
+const tokenFacingArcLabelPrefix = 'token-facing-arc:'
 const tokenFillLabel = 'token-fill'
 const tokenHaloLabelPrefix = 'token-halo:'
 const tokenOuterRingLabel = 'token-outer-ring'
@@ -1716,6 +1722,16 @@ export async function createVttSceneRenderer(
       halo.label = `${tokenHaloLabelPrefix}${presentation.halo.label}`
       visual.addChild(halo)
     }
+    // The facing arcs sit under the token, so only the part past its footprint shows.
+    for (const sector of presentation?.facingArcs ?? []) {
+      const color = facingArcColours[sector.arc]
+      const wedge = new pixi.Graphics()
+        .poly(facingArcWedge(sector, facingArcRadius(token)).flatMap(({ x, y }) => [x, y]))
+        .fill({ alpha: 0.22, color })
+        .stroke({ alpha: 0.8, color, width: 2 })
+      wedge.label = `${tokenFacingArcLabelPrefix}${sector.arc}`
+      visual.addChild(wedge)
+    }
     // The plate spans the footprint; the fill, art and inner ring sit inside it, under the outer ring.
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
@@ -2637,6 +2653,12 @@ export async function createVttSceneRenderer(
             bodyFillColor:
               drawnStyles(visual.getChildByLabel(tokenFillLabel), 'fill')[0]?.color ?? null,
             crosshairDrawn: visual.getChildByLabel(tokenCrosshairLabel) !== null,
+            facingArcs: visual.children
+              .filter((child) => child.label?.startsWith(tokenFacingArcLabelPrefix))
+              .map((child) => ({
+                arc: child.label.slice(tokenFacingArcLabelPrefix.length),
+                polygon: drawnStyles(child, 'fill')[0]?.paths[0] ?? []
+              })),
             facingRotationDegrees: facing ? (facing.rotation * 180) / Math.PI : null,
             footprint: { height: body?.height ?? 0, width: body?.width ?? 0 },
             halo:

@@ -202,6 +202,13 @@ The choice is sent as the move's `facingDegrees`. A selected creature the member
 "Change facing (reaction)", which sends `CHANGE_FACING`. The room checks the rule, its step and the
 reaction.
 
+**Facing arcs on the token (current, VTT_UI-1.T1).** Both Encounter projections also carry the
+rule's `facingArcs` (null when the rule is off). The selected token and the current-turn token draw
+those arcs around their `rotationDegrees`. `buildVttTokenPresentations` turns them into Scene
+bearings with the shared `facingArcSectors`, which sits beside `classifySquareGridFacingArc` so a
+drawn arc is the one the classifier puts a direction into. `apps/web` only samples each bearing range
+into a wedge polygon to draw it.
+
 The D&D policy may be reused by other systems only through the shared typed primitives. Another
 System can supply different contest, sense, damage, action-economy, or consequence definitions
 without changing the runtime coordinator. Homebrew follows the same UUID-backed authored source,
