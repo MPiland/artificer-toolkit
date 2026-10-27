@@ -252,7 +252,7 @@ export function buildImportGraph(root, tracked) {
       if (FS_MODULES.has(specifier) && isTestPath(importer)) {
         // A test or test helper that reads source files itself (an architecture or boundary scan, the
         // generated route tree) can depend on any of them, so every source change selects its tests.
-        predicates.push({ importer, matches: (path) => SOURCE_ROOT.test(path) })
+        predicates.push({ importer, readsSource: true, matches: (path) => SOURCE_ROOT.test(path) })
         continue
       }
       const dependency = resolveSpecifier(specifier, importer)
