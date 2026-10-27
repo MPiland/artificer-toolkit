@@ -391,7 +391,10 @@ export async function verifyEncounterHeatMetal({
       // 1. The Character casts Heat Metal; the Ogre's save succeeds (a 20), so it keeps the Longsword.
       const cast = await controls.castHeatMetal()
       assert.equal(cast.command.actorId, hero.id)
-      assert.deepEqual(cast.command.target, { kind: 'ACTOR', actorId: ogre.id })
+      const castTarget = cast.command.target
+      if (castTarget?.kind !== 'ACTOR') throw new Error('The cast must target the Ogre.')
+      assert.equal(castTarget.actorId, ogre.id)
+      assert.ok(castTarget.boundItemInstanceId, 'The cast binds the chosen Longsword.')
       const full = (await ogreHitPoints()) ?? 0
       const settled = await settle(cast.result, 20)
       assert.equal(settled.occurrence?.status, 'COMPLETE')
@@ -426,7 +429,9 @@ export async function verifyEncounterHeatMetal({
       await controls.assertRepeatRow(row)
       const repeat = await controls.useRepeat(row)
       assert.equal(repeat.command.actionId, offer.actionId)
-      assert.deepEqual(repeat.command.target, { kind: 'ACTOR', actorId: ogre.id })
+      const repeatTarget = repeat.command.target
+      if (repeatTarget?.kind !== 'ACTOR') throw new Error('The repeat must target the Ogre.')
+      assert.equal(repeatTarget.actorId, ogre.id)
       // The Ogre now fails its save (a 1): it drops the Longsword, which ends the effect.
       const repeated = await settle(repeat.result, 1)
       assert.equal(repeated.occurrence?.status, 'COMPLETE')
