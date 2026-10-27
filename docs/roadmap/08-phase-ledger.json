@@ -9909,10 +9909,11 @@
             },
             {
               "text": "Campaign settings offer Massive Damage only once it resolves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/campaigns/playSettings.test.ts"],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "ATTACK-16.2"
+              "id": "ATTACK-16.2",
+              "note": "Closed 2026-10-27 by ATTACK-16.T2."
             }
           ],
           "wsjf": {
@@ -10036,7 +10037,7 @@
             },
             {
               "id": "ATTACK-16.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-16.2"],
               "wsjf": {
                 "bv": 2,
@@ -10046,9 +10047,9 @@
                 "after": ["ATTACK-16.T1d"]
               },
               "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/40455922548"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m493.",
+              "mergedAt": "2026-10-27T05:42:54Z",
+              "proof": "Tests 40450598683 and Browser journeys 40450598698 (attempt 3; attempts 1-2 snapshot build timeout, RELIABILITY-20.T4) green on 8e8eca2c8; batch ci/merge-m493 Tests 40456913494 and Live 40456916021 green; reviewed (Injuries settings-gate test parametrized over INJURIES and MASSIVE_DAMAGE, assertions kept); merged in m493. Proof: apps/apis/convex/campaigns/playSettings.test.ts › offers and saves MASSIVE_DAMAGE only while its System policy resolves it (ATTACK-16.2)"
             }
           ]
         },
