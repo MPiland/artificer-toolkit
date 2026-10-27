@@ -287230,6 +287230,7 @@ export declare const api: {
             short?: string | null;
           }>;
           userId: string;
+          zoneSpotPassiveDefinitionId?: string;
         } | null
       >;
       list: FunctionReference<

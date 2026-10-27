@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
 import { persistMovementSettlements } from '@artificer-toolkit/encounter-persistence/movementSettlementPersistence'
 import { applyConcealmentPrune } from '@artificer-toolkit/encounter-persistence/concealmentPrune'
+import { recordZoneSightings } from '@artificer-toolkit/encounter-persistence/zoneSightings'
 import {
   postMovementDecisionSkipped,
   recordRuleOccurrenceVoid
@@ -388,6 +389,12 @@ export async function executeRoomSceneGeometry(input: {
       commandId: scene.commandId,
       entries: concealmentPrunes
     })
+  // Characters the move put in sight of a concealed zone they notice prompt the GM (MOVE-3.5).
+  await recordZoneSightings(ctx, {
+    encounterId: admission.state.id,
+    sceneId: scene.sceneId,
+    sightings: prepared.zoneSightings
+  })
   let encounter = resolution ? await readMovementResponseResult(ctx, resolution.command) : null
   if (plan.voidCommand) {
     await postMovementDecisionSkipped(ctx, {

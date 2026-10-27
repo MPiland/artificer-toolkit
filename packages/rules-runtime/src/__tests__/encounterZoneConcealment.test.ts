@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { withZoneDcs, zoneConcealedFrom } from '../encounterZoneConcealment.js'
+import {
+  withZoneDcs,
+  withZoneSightings,
+  withZoneSightingStatus,
+  zoneConcealedFrom,
+  zoneSightingCandidates,
+  zoneSightPoint
+} from '../encounterZoneConcealment.js'
 
 const PLACER = '00000000-0000-4000-8000-000000000001'
 const OTHER = '00000000-0000-4000-8000-000000000002'
@@ -63,5 +70,54 @@ describe('zone concealment (MOVE-3.3)', () => {
     expect(withZoneDcs(known, { spotDc: null, disarmDc: null, placerActorId: PLACER })).toEqual(
       plain
     )
+  })
+})
+
+describe('zone sightings (MOVE-3.5)', () => {
+  const concealed = withZoneDcs(plain, { spotDc, disarmDc: null, placerActorId: PLACER })
+
+  it('notices only Characters that neither know of the zone nor were already sighted', () => {
+    expect(zoneSightingCandidates(plain, [PLACER, OTHER])).toEqual([])
+    expect(zoneSightingCandidates(concealed, [PLACER, OTHER, SIGHTED])).toEqual([OTHER, SIGHTED])
+
+    const sighted = withZoneSightings(concealed, [SIGHTED, PLACER, OTHER, SIGHTED])
+    expect(sighted.concealment).toEqual({
+      spotDc,
+      knownByActorIds: [PLACER],
+      sightings: [
+        { actorId: OTHER, status: 'PROMPTED' },
+        { actorId: SIGHTED, status: 'PROMPTED' }
+      ]
+    })
+    expect(zoneSightingCandidates(sighted, [PLACER, OTHER, SIGHTED])).toEqual([])
+    expect(withZoneSightings(sighted, [OTHER, SIGHTED])).toBe(sighted)
+    expect(withZoneSightings(plain, [OTHER])).toBe(plain)
+  })
+
+  it('dismisses and re-prompts a sighting, and finds none for an unsighted Character', () => {
+    const sighted = withZoneSightings(concealed, [OTHER])
+    const dismissed = withZoneSightingStatus(sighted, OTHER, 'DISMISSED')
+    expect(dismissed?.concealment?.sightings).toEqual([{ actorId: OTHER, status: 'DISMISSED' }])
+    expect(dismissed && zoneSightingCandidates(dismissed, [OTHER])).toEqual([])
+    expect(dismissed && withZoneSightingStatus(dismissed, OTHER, 'PROMPTED')).toEqual(sighted)
+    expect(withZoneSightingStatus(sighted, SIGHTED, 'DISMISSED')).toBeNull()
+  })
+
+  it('looks at a circle or ring center and a polygon point mean', () => {
+    expect(zoneSightPoint({ kind: 'CIRCLE', center: { x: 3, y: 4 }, radius: 10 })).toEqual({
+      x: 3,
+      y: 4
+    })
+    expect(
+      zoneSightPoint({
+        kind: 'POLYGON',
+        points: [
+          { x: 0, y: 0 },
+          { x: 30, y: 0 },
+          { x: 30, y: 30 },
+          { x: 0, y: 30 }
+        ]
+      })
+    ).toEqual({ x: 15, y: 15 })
   })
 })
