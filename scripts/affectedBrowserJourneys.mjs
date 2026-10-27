@@ -99,6 +99,8 @@ export const KNOWN_BUG_PROOFS = {
   'vtt-browser': 'RELIABILITY-21.T9',
   'area-browser': 'RELIABILITY-21.T11',
   'social-browser': 'RELIABILITY-21.T11',
+  'hide-browser': 'RELIABILITY-21.T11',
+  'scene-live-browser': 'RELIABILITY-21.T11',
   'campaign-collaboration-browser': 'RELIABILITY-21.T10'
 }
 
