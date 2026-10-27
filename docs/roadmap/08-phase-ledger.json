@@ -19932,10 +19932,10 @@
             {
               "id": "RELIABILITY-20.3",
               "text": "Every existing *-browser proof in scripts/runLocalConvexProof.ps1 passes in CI, or has a registered bug task.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-20.T3 (m494); see each task's proof."],
               "origin": [],
-              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d). Closed 2026-10-27 by RELIABILITY-20.T3."
             },
             {
               "id": "RELIABILITY-20.4",
@@ -19988,7 +19988,7 @@
             },
             {
               "id": "RELIABILITY-20.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-20.3"],
               "wsjf": {
                 "bv": 5,
@@ -19998,7 +19998,9 @@
                 "after": ["RELIABILITY-20.T1"]
               },
               "text": "Run every *-browser proof from runLocalConvexProof.ps1 in the CI job; fix environment gaps, and register a bug task for any proof that fails on product code.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T06:03:51Z",
+              "proof": "Tests 40453279524 and Browser journeys 40453279519 (attempt 2) green on 55110036d; T3a (snapshots wait step) green on d501cccf1 (Tests 40451763451, Live 40451763529, Browser 40451763440); hand-merged as batch ci/merge-m494: Tests 40458900434, Live 40458900438, Browser journeys 40458900410 (attempt 2; attempt 1 scene-live, area and campaign-collaboration flakes, diagnosed: sign-in 429 now RELIABILITY-21.T10); reviewed; merged in m494. Proofs: scripts/affectedBrowserJourneys.test.mjs (known-bug entries must name an open registered task and a CI proof), Browser journeys run 40458900410 (12 gating proofs green, 11 KNOWN-BUG jobs non-gating)",
+              "note": " Merged in m494."
             },
             {
               "id": "RELIABILITY-20.T4",
@@ -20100,6 +20102,14 @@
               "proof": [],
               "origin": [],
               "note": "Proof: vtt."
+            },
+            {
+              "id": "RELIABILITY-21.10",
+              "text": "Sign-in rate limiting keys on the real client IP on the deployed and CI stacks: two clients on different IPs get separate buckets, and Better Auth never falls back to the shared per-path bucket.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit."
             }
           ],
           "tasks": [
@@ -20219,6 +20229,19 @@
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
               "text": "Cold-start durable VTT latency is 363 ms against the 250 ms budget, and only the first sample is over (warm samples are 53-91 ms). Find the cold cost and cut it. The assertion stays. vtt-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T10",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.10"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit.",
+              "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared."
             }
           ]
         }
