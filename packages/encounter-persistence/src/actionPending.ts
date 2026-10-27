@@ -1,7 +1,11 @@
 import {
   escapeRelationshipInputDtoSchema,
-  resolveEncounterActionInputDtoSchema
+  resolveEncounterActionInputDtoSchema,
+  type EscapeRelationshipInputDto,
+  type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingApplication'
+import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -20,11 +24,25 @@ import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
 
+/**
+ * A paused single-target action: its sealed snapshot and context, the root command, and the
+ * continuation the resume replays. Named so the readers built on it stay within declaration emit.
+ */
+export type NativeActionPending = {
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto
+  context: Extract<ServerRuleExecutionPendingApplicationContextDto, { kind: 'ENCOUNTER_ACTION' }>
+  command: EscapeRelationshipInputDto | ResolveEncounterActionInputDto
+  continuation: Omit<
+    ServerKernelRuleExecutionPendingSnapshotDto,
+    'snapshotKind' | 'applicationContext' | 'optionalCombatSnapshotChecksum' | 'phaseReceipts'
+  >
+}
+
 /** Reads the sealed action root without exposing executable facts to recipients. */
 export async function readNativeActionPending(
   ctx: EncounterReadContext,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
-) {
+): Promise<NativeActionPending> {
   const { _id, _creationTime, ...stored } = occurrence
   encounterStoredRuleOccurrenceSchema.parse(stored)
   const snapshot =
@@ -92,8 +110,6 @@ export async function canControlEvidenceRoller(
   const actor = await readRunActor(ctx, readRunState(input.run), input.rollerActorId)
   return (await readEncounterActorControl(ctx, { ...input, actor })) !== null
 }
-
-type NativeActionPending = Awaited<ReturnType<typeof readNativeActionPending>>
 
 type PendingCounter = { reaction: { reactorActorId: string } }
 
