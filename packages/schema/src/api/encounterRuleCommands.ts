@@ -644,6 +644,24 @@ export const dismissZoneSightingInputDtoSchema = lazySchema(() =>
   })
 )
 /**
+ * GM-only (MOVE-3.7): shows a concealed zone to chosen Characters, from a Search roll at the table or
+ * a prompted sighting. They then see the zone and no longer trigger it unaware.
+ */
+export const revealZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('REVEAL_ZONE'),
+    spatialEffectId: postgresUuidSchema,
+    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
+/** GM-only (MOVE-3.7): disarms a zone fixed to the Scene, which removes it. */
+export const disarmZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('DISARM_ZONE'),
+    spatialEffectId: postgresUuidSchema
+  })
+)
+/**
  * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
  * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
  * GM enters the d20 faces or the server rolls them under the save's frozen roll mode.
@@ -706,6 +724,8 @@ export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObser
 export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
 export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
 export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInputDtoSchema>
+export type RevealZoneInputDto = z.infer<typeof revealZoneInputDtoSchema>
+export type DisarmZoneInputDto = z.infer<typeof disarmZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>
