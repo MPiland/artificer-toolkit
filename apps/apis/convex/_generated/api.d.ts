@@ -292323,6 +292323,7 @@ export declare const api: {
                 }
               | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
             spotDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+            unawareActorIds: Array<string>;
           }>;
           turnMovement: Array<{
             actorId: string;

@@ -1066,7 +1066,7 @@ a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an 
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
 save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
-and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Concealed and unnoticed zones are below (MOVE-3.3 to 3.6).
 
 A result that tiers on the target's hit points (`HIT_POINT_TIERS` path rows, T2i4a) compiles to
 `compilation.hitPointTierPlans`: one active-effect plan per tier, each carrying `hitPointTier: { atMost }`, with
@@ -1141,7 +1141,16 @@ triggers. `readEncounterSessionState` redacts per member once, for Convex and th
 and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`
 (`zoneConcealedFrom`), so `halfSpeedFields`, `movementCostZones` and the new `placedZones` (the outlines the map draws)
 leave it out. Only the GM reads the DCs in `placedZones`. The movement path still triggers a concealed zone for every
-mover; an unaware mover's careful-crossing rules are MOVE-3.6.
+mover.
+
+**Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
+`toSpatialInstances` carries `knownByActorIds` onto the spatial instance, and `crossesSpatialFieldCarefully`
+(`shared/vtt/spatial.ts`) lets a careful mover skip the entry save and pay double only in a field it knows of: both
+`collectSpatialMovementCandidates` and `preparedMovementCost` read it, so an unaware mover's `carefully` neither bypasses
+nor doubles the cost, and entering triggers the zone. Each `placedZones` row carries `unawareActorIds`: every Run actor
+not in `knownByActorIds` for the GM, only the player's own controlled actors for a player, and `[]` for a zone in plain
+sight. The tabletop offers "Move carefully" only for fields the mover has noticed, and the GM's dragged route appends
+"<zone> not noticed by <labels>" for each concealed zone it enters (`formatSceneRoute`).
 
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes

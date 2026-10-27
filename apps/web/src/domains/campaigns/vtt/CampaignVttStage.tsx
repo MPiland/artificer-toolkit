@@ -115,7 +115,7 @@ import {
   type VttTargetingRequest
 } from './vttTargeting.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
-import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
+import { halfSpeedFieldsEntered, unnoticedZonesOf } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
 import { CampaignVttFacingChoice } from './CampaignVttFacingChoice'
 import { CampaignVttSceneObjectMenu } from './CampaignVttSceneObjectMenu'
@@ -184,7 +184,7 @@ export function CampaignVttStage({
   const [carefulChoice, setCarefulChoice] = useState<{
     tokenId: string
     path: ScenePoint[]
-    fields: HalfSpeedField[]
+    fields: ReturnType<typeof halfSpeedFieldsEntered>
   } | null>(null)
   // A walked Encounter path waiting for its mover to choose the facing it ends in (ATTACK-12).
   const [facingChoice, setFacingChoice] = useState<{
@@ -792,7 +792,9 @@ export function CampaignVttStage({
             ? {
                 actorIdByTokenId,
                 zones: encounterSessionState.movementCostZones,
-                dragDoublingActorIds
+                dragDoublingActorIds,
+                unnoticedZones:
+                  effectiveRole === 'OWNER' ? unnoticedZonesOf(encounterSessionState) : []
               }
             : null,
         overlays,
@@ -849,6 +851,12 @@ export function CampaignVttStage({
       return commit.delta.result
     }
   })
+  /** The Encounter's scene binding is loading, failed, being made, or belongs to another scene. */
+  const bindingUnsettled =
+    bindEncounter.isPending ||
+    sceneBindingPending ||
+    Boolean(sceneBindingFailure) ||
+    Boolean(currentSceneBinding && !activeEncounterSceneBinding)
   const dispatchSceneCommand = useCallback(
     (command: SceneCommandInputDto) => {
       sceneCommand.mutate(command)
@@ -1195,10 +1203,7 @@ export function CampaignVttStage({
     if (!current || path.length < 2) return
     if (
       activeEncounter &&
-      (sceneBindingPending ||
-        sceneBindingFailure ||
-        bindEncounter.isPending ||
-        (currentSceneBinding && !activeEncounterSceneBinding) ||
+      (bindingUnsettled ||
         (currentSceneBinding && (actorTokenBindings.isPending || actorTokenBindings.error)))
     )
       return
@@ -1206,15 +1211,17 @@ export function CampaignVttStage({
       activeEncounterSceneBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
     const teleporting = mechanicsEncounter !== null && teleportsOnDrop(tokenId)
     const mover = current.tokens.find((token) => token.id === tokenId)
+    const moverActorId = actorIdByTokenId.get(tokenId)
     const fields =
-      mechanicsEncounter && mover && !teleporting && carefully === undefined
+      mechanicsEncounter && encounterSessionState && mover && moverActorId && !teleporting
         ? halfSpeedFieldsEntered({
-            fields: encounterSessionState?.halfSpeedFields ?? [],
+            session: encounterSessionState,
+            moverActorId,
             path,
             token: mover
           })
         : []
-    if (fields.length) {
+    if (fields.length && carefully === undefined) {
       setCarefulChoice({ tokenId, path, fields })
       return
     }
@@ -1477,13 +1484,7 @@ export function CampaignVttStage({
           ) : null}
           {campaign.role === 'OWNER' && activeEncounter && !activeEncounterSceneBinding ? (
             <Button
-              disabled={
-                !live.commandReady ||
-                bindEncounter.isPending ||
-                sceneBindingPending ||
-                Boolean(sceneBindingFailure) ||
-                Boolean(currentSceneBinding && !activeEncounterSceneBinding)
-              }
+              disabled={!live.commandReady || bindingUnsettled}
               size='xs'
               variant='light'
               onClick={() =>

@@ -708,7 +708,9 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
      * The visible zones fixed to the Run's Scene, whose outlines the member's map draws. A zone
      * concealed from the member is not listed: the GM sees every zone, a player only those one of
      * their Characters knows of (MOVE-3.3). The spot and disarm DCs reach only the GM; a player reads
-     * null.
+     * null. `unawareActorIds` are the Run's actors that have not noticed a concealed zone, so they get
+     * no "Move carefully" offer and the GM's route lists them (MOVE-3.6); a player reads only their
+     * own, and every list is empty for a zone in plain sight.
      */
     placedZones: z
       .array(
@@ -719,7 +721,8 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           ),
           shape: spatialGeometryDtoSchema,
           spotDc: z.nullable(zoneDcDtoSchema),
-          disarmDc: z.nullable(zoneDcDtoSchema)
+          disarmDc: z.nullable(zoneDcDtoSchema),
+          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),

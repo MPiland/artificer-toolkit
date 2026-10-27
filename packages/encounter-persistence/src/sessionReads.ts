@@ -88,7 +88,11 @@ export async function readEncounterSessionState(
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   const encounter = await presentEncounterRun(ctx, row, campaign, membership)
-  const spatialRows = await readMemberSpatialRows(ctx, { row, campaign, membership })
+  const { rows: spatialRows, controlledActorIds } = await readMemberSpatialRows(ctx, {
+    row,
+    campaign,
+    membership
+  })
   return {
     encounter,
     pending,
@@ -115,7 +119,14 @@ export async function readEncounterSessionState(
               label: placement.label ?? null,
               shape: placement.geometry.shape,
               spotDc: (membership.role === 'OWNER' && spatialState.concealment?.spotDc) || null,
-              disarmDc: (membership.role === 'OWNER' && spatialState.disarmDc) || null
+              disarmDc: (membership.role === 'OWNER' && spatialState.disarmDc) || null,
+              unawareActorIds: encounter.actors.flatMap(({ id }) =>
+                spatialState.concealment &&
+                (controlledActorIds?.has(id) ?? true) &&
+                !spatialState.concealment.knownByActorIds.includes(id)
+                  ? [id]
+                  : []
+              )
             }
           ]
         : []
@@ -133,8 +144,9 @@ export async function readEncounterSessionState(
 
 /**
  * The bound Scene's placed zones the member may read: a zone concealed from the member is left
- * out (MOVE-3.3), so every zone read this session state makes redacts alike. The member's
- * controlled actors are read only when a zone is concealed.
+ * out (MOVE-3.3), so every zone read this session state makes redacts alike. A player's controlled
+ * actors are read only when a zone is concealed (an empty set otherwise); the GM's are null, for
+ * the GM reads every actor.
  */
 async function readMemberSpatialRows(
   ctx: EncounterReadTransaction,
@@ -142,15 +154,19 @@ async function readMemberSpatialRows(
 ) {
   const { row, membership } = input
   const rows = await readSceneSpatialRows(ctx, row.id)
-  if (membership.role === 'OWNER' || !rows.some((zone) => zone.spatialState.concealment))
-    return rows
+  if (membership.role === 'OWNER') return { rows, controlledActorIds: null }
+  if (!rows.some((zone) => zone.spatialState.concealment))
+    return { rows, controlledActorIds: new Set<string>() }
   const controlledActorIds = await readEncounterControlledActorIds(ctx, {
     ...input,
     actors: await readRunActors(ctx, readRunState(row))
   })
-  return rows.filter(
-    (zone) => !zoneConcealedFrom(zone.spatialState, { kind: 'PLAYER', controlledActorIds })
-  )
+  return {
+    rows: rows.filter(
+      (zone) => !zoneConcealedFrom(zone.spatialState, { kind: 'PLAYER', controlledActorIds })
+    ),
+    controlledActorIds
+  }
 }
 
 /** The decision kinds a paused START can wait on before the Run is ACTIVE. */
