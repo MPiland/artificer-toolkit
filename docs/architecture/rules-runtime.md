@@ -2827,7 +2827,10 @@ A `SOURCE_FOLLOWS_TARGET` relationship rides the same drag the other way (MOVE-4
 moves voluntarily, `encounterMovementDrag` carries the relationship's source (a creature clinging to it) along the same
 displacement, with the same path checks and one undo, but a follower never doubles the cost. The room also lets a mover
 cross and end inside the space of each creature it follows (derived from the live relationship; nothing is stored).
-Forced movement carries no follower.
+Forced movement carries no follower. A won passage contest whose rule seals `successMovement: 'ENTER_BLOCKER_SPACE'`
+(the SRD climb, MOVE-4.T2b2) ends the move inside the blocker's space: the receipt audits `enteredPosition`, the
+response's terminal result is that position one Scene version on, and `terminalMovementPathEnd` binds it to the audited
+contact where the walked path (cost, fog, the stored geometry check) ends.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's

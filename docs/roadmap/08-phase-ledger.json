@@ -7059,7 +7059,13 @@
             {
               "text": "A climber that wins moves into the target's space and clings to it: it moves with the target and has advantage on attacks against it.",
               "status": "TODO",
-              "proof": [],
+              "proof": [
+                "nativeRoomClimbCling.test.ts",
+                "nativeRoomClingFollow.test.ts",
+                "encounterMovementPassage.test.ts",
+                "encounterRelationshipAttackInfluence.test.ts",
+                "spatial-movement-rule-contracts.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
               "id": "MOVE-4.2"
             },

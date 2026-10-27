@@ -190,7 +190,8 @@ export const optionalCombatPassageContinuationDtoSchema = lazySchema(() =>
 
 /**
  * A movement passage contest's sealed choice. `successMovement` is what the rule's policy has a won
- * contest do to the movement: pass through the blocker and continue, or stop at the contact point.
+ * contest do to the movement: pass through the blocker and continue, or end the move inside the
+ * blocker's space, stepping in from the contact point (a climb onto a larger creature).
  */
 function movementPassageSelectionDtoSchema<
   const TKind extends 'OVERRUN' | 'TUMBLE' | 'CLIMB_ONTO_LARGER_CREATURE'
@@ -201,7 +202,7 @@ function movementPassageSelectionDtoSchema<
     initiatorCheckDefinitionId: uuidSchema,
     initiatorCheckLabel: identifierSchema,
     defenderCheckDefinitionId: uuidSchema,
-    successMovement: z.enum(['PASS_THROUGH', 'STOP_AT_CONTACT'])
+    successMovement: z.enum(['PASS_THROUGH', 'ENTER_BLOCKER_SPACE'])
   })
 }
 

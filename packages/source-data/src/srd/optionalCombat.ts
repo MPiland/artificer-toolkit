@@ -174,7 +174,7 @@ function climbClingEffect() {
                   id: childId('advantage'),
                   order: 2,
                   kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
-                  actionEffectIds: null,
+                  actionEffectIds: [],
                   influence: 'ADVANTAGE'
                 }
               ]

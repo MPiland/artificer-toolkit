@@ -117,6 +117,8 @@ export async function evaluateEncounterMovementPassageResponse<
     }) !== movement.blockerCurrentnessChecksum
   )
     throw new Error('Movement passage blocker changed before resolution.')
+  const mover = input.sceneTokens.find((token) => token.id === movement.root.tokenId)
+  if (!mover) throw new Error('Movement passage mover is unavailable.')
   const characterActors = input.actors.filter((actor) => actor.kind === 'CHARACTER')
   if (new Set(characterActors.map((actor) => actor.sourceId)).size !== characterActors.length)
     throw new Error('Encounter Character target is stale.')
@@ -153,6 +155,10 @@ export async function evaluateEncounterMovementPassageResponse<
     resolution,
     responseCommand,
     targets,
+    footprints: {
+      mover: { width: mover.width, height: mover.height },
+      blocker: { position: blocker.position, width: blocker.width, height: blocker.height }
+    },
     ...(retained ? { retained } : {})
   })
   const resolutionCommands = evaluated.movement.root.resolutionCommands
@@ -248,7 +254,10 @@ export async function evaluateEncounterMovementPassageResponse<
       })
     )
   }
-  if (evaluated.kind === 'DECLINED' || !passesThrough(evaluated.pending, evaluated.execution))
+  if (evaluated.kind === 'DECLINED' || !passesThrough(evaluated.pending, evaluated.execution)) {
+    // A won contest that enters the blocker's space ends the move there: one more token write.
+    const entered =
+      evaluated.kind === 'COMPLETE' ? evaluated.receipt.audit.enteredPosition : undefined
     return {
       outcome: {
         kind: 'TERMINAL' as const,
@@ -258,11 +267,11 @@ export async function evaluateEncounterMovementPassageResponse<
           encounterId: state.id,
           encounterVersion: state.version + 1,
           sceneId: root.sceneId,
-          sceneVersion: root.currentSceneVersion,
+          sceneVersion: root.currentSceneVersion + (entered ? 1 : 0),
           tokenId: root.tokenId,
           movementKind: root.movementKind,
           reactionExecutions: remainder.completedReactionExecutions,
-          terminalPosition: root.currentPosition,
+          terminalPosition: entered ?? root.currentPosition,
           remainder
         }),
         selectionChecksum: remainder.spatialSelectionChecksum,
@@ -273,6 +282,7 @@ export async function evaluateEncounterMovementPassageResponse<
       settlements,
       resolutionCommands
     }
+  }
   const remainingActorIds = state.actorIds.filter((id) => !targets.has(id))
   if (remainingActorIds.length > 0) {
     const remainingTargets = await callbacks.loadTargets(remainingActorIds)
