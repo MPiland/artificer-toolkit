@@ -4,11 +4,13 @@ import {
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { encounterActiveEffectPlan } from '../encounterActionEffects.js'
@@ -434,5 +436,9 @@ describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
       ['APPLY_GRANT'],
       ['APPLY_GRANT']
     ])
+    // The roll decides whether a row runs, so its STABILIZE gates nobody on dying.
+    const { outcomes } = normalizeCharacterActionMechanicFacts(compileEffect(raisedEffects[0]!))
+    expect(outcomes.filter(({ kind }) => kind === 'EFFECT')).not.toHaveLength(0)
+    expect(outcomes.every((fact) => fact.kind !== 'EFFECT' || fact.onRollTableRow)).toBe(true)
   })
 })
