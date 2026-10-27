@@ -20108,10 +20108,10 @@
             {
               "id": "RELIABILITY-21.5",
               "text": "The publication journeys pass with a single prosemirror-model installed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T5 (m502); see each task's proof."],
               "origin": [],
-              "note": "Proof: publication, publication-feat, publication-equipment."
+              "note": "Proof: publication, publication-feat, publication-equipment. Closed 2026-10-27 by RELIABILITY-21.T5."
             },
             {
               "id": "RELIABILITY-21.6",
@@ -20218,7 +20218,7 @@
             },
             {
               "id": "RELIABILITY-21.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.5"],
               "wsjf": {
                 "bv": 5,
@@ -20226,9 +20226,10 @@
                 "rr": 8,
                 "size": 1
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m502.",
               "text": "Remove the duplicate prosemirror-model (1.25.4 and 1.25.12 since f3337cdfb). First prove that the duplicate causes the failure, then dedupe it with a guard test against duplicate prosemirror-model. publication, publication-feat and publication-equipment gate again.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T20:07:48Z",
+              "proof": "Tests 40554192206, Live 40554192208 and Browser journeys green on bdb8dba16 (publication, publication-feat, publication-equipment pass without known-bug labels); reviewed (root resolution pins one prosemirror-model); merged in m502 (run 40574971923). Proofs: scripts/dependencyDuplicates.test.mjs, publication-browser, publication-feat-browser, publication-equipment-browser"
             },
             {
               "id": "RELIABILITY-21.T6",
