@@ -20115,6 +20115,14 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit."
+            },
+            {
+              "id": "RELIABILITY-21.11",
+              "text": "A fresh stack builds every Content snapshot head after seed without OCC exhaustion or a stuck unbuilt head, stays under the backend write-rate limit, and area-browser resolves its campaign route and gates again.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it."
             }
           ],
           "tasks": [
@@ -20250,6 +20258,19 @@
               "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit.",
               "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared.",
               "activeWorkbook": "docs/architecture/ci-validation.md"
+            },
+            {
+              "id": "RELIABILITY-21.T11",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.11"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it.",
+              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS."
             }
           ]
         }
