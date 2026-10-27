@@ -21,12 +21,12 @@ export async function convexEnvironmentValue(
   let stdout: string
   try {
     ;({ stdout } = await promisify(execFile)(
-      'pwsh.exe',
+      'pwsh',
       [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        'yarn.ps1 workspace @artificer-toolkit/apis exec convex env get $env:CONVEX_ENV_NAME --url $env:CONVEX_SELF_HOSTED_URL --admin-key $env:CONVEX_SELF_HOSTED_ADMIN_KEY'
+        'yarn workspace @artificer-toolkit/apis exec convex env get $env:CONVEX_ENV_NAME --url $env:CONVEX_SELF_HOSTED_URL --admin-key $env:CONVEX_SELF_HOSTED_ADMIN_KEY'
       ],
       {
         cwd: repoRoot,

@@ -341,7 +341,7 @@ describe('content snapshot builds', () => {
             internal.contentSnapshots.heads.readScopeKind,
             {
               ...ref,
-              kind: 'RACE',
+              kind: 'RACE' as const,
               paginationOpts: { numItems: 2, cursor }
             }
           )
