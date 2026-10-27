@@ -971,4 +971,62 @@ describe('CampaignTabletopEncounterDrawer', () => {
       actorId: actor.id
     })
   })
+
+  it('lets the GM reveal a sighted zone to a Character and disarm it, showing the disarm DC', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const [actor] = tabletopGmEncounter.actors
+    const zoneId = '00000000-0000-4000-8000-0000000000e1'
+    renderWithAppProviders(
+      <CampaignTabletopEncounterDrawer
+        actorIdByTokenId={new Map()}
+        connected
+        currentActorMine
+        encounter={tabletopGmEncounter}
+        holds={[]}
+        memberships={createTabletopCampaign('OWNER').memberships}
+        pending={false}
+        role='OWNER'
+        scene={tabletopLiveScene}
+        session={{
+          pendingZoneSightings: [{ spatialEffectId: zoneId, actorId: actor.id }],
+          placedZones: [
+            {
+              id: zoneId,
+              label: 'Pit trap',
+              shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 },
+              spotDc: { value: 15, source: 'FLAT' },
+              disarmDc: { value: 12, source: 'FLAT' },
+              unawareActorIds: [actor.id]
+            }
+          ]
+        }}
+        onCommand={onCommand}
+        onEndCharacterConcentration={() => undefined}
+        onRelease={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+    await user.click(screen.getByRole('button', { name: `Reveal Pit trap to ${actor.label}` }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      type: 'REVEAL_ZONE',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: zoneId,
+      actorIds: [actor.id]
+    })
+
+    const zones = screen.getByRole('group', { name: 'Placed zones' })
+    expect(within(zones).getByText(/Pit trap · disarm DC 12/)).toBeVisible()
+    await user.click(within(zones).getByRole('button', { name: 'Disarm Pit trap' }))
+    expect(onCommand).toHaveBeenLastCalledWith({
+      type: 'DISARM_ZONE',
+      commandId: expect.any(String),
+      encounterId: tabletopGmEncounter.id,
+      expectedVersion: tabletopGmEncounter.version,
+      spatialEffectId: zoneId
+    })
+  })
 })

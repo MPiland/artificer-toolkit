@@ -679,6 +679,19 @@ describe('seeded SRD Creature hit riders in the room', () => {
     )
   })
 
+  it('deals the Wereboar’s Tusks damage beside the curse ruling ahead of its Charge save (ATTACK-5.T4w)', async () => {
+    // 2d6 + 3 slashing with both dice rolling 1; with no charge measured, the Charge save is not owed.
+    const room = await hitRiderRoom({
+      creature: 'Wereboar',
+      feature: 'Tusks (Boar or Hybrid Form Only)',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0]
+    })
+    const batch = await settle(room, null)
+    expect(batch.nestedD20).toBeNull()
+    expect(batch.damage).toEqual([[5, damageTypeId('SLASHING')]])
+  })
+
   it('grapples and restrains a Creature with one hit of the Giant Toad’s Bite, held by one relationship effect', async () => {
     const toad = seededSrdCreature('Giant Toad')
     const room = await actionRoom({

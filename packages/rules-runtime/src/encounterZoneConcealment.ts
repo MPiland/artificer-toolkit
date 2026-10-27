@@ -45,6 +45,30 @@ export function withZoneDcs(
 }
 
 /**
+ * A concealed zone's state once the GM shows it to these Characters (MOVE-3.7): they join the
+ * Characters that know of it and their sightings settle. Null when the zone is in plain sight or all of them already know.
+ */
+export function withZoneRevealedTo(
+  state: SpatialRuleEffectStateDto,
+  actorIds: readonly string[]
+): SpatialRuleEffectStateDto | null {
+  const { concealment } = state
+  if (!concealment) return null
+  const knownByActorIds = [...new Set([...concealment.knownByActorIds, ...actorIds])].sort(
+    (left, right) => Number(left > right) - Number(left < right)
+  )
+  if (knownByActorIds.length === concealment.knownByActorIds.length) return null
+  return {
+    ...state,
+    concealment: {
+      ...concealment,
+      knownByActorIds,
+      sightings: concealment.sightings.filter(({ actorId }) => !knownByActorIds.includes(actorId))
+    }
+  }
+}
+
+/**
  * The Scene point a Character must see to notice a zone (MOVE-3.5): a circle's or ring's center,
  * or the mean of a polygon's points.
  */

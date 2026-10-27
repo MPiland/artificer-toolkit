@@ -1,23 +1,28 @@
 import { Button, Group, Stack, Text } from '@mantine/core'
-import type { DismissZoneSightingInputDto } from '@artificer-toolkit/schema/api/encounters'
+import type {
+  DismissZoneSightingInputDto,
+  RevealZoneInputDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 
 /**
  * The Characters that may have noticed a concealed zone (MOVE-3.5): a quiet row per sighting the
- * GM can dismiss. Only the GM's session state carries sightings.
+ * GM can reveal to that Character or dismiss. Only the GM's session state carries sightings.
  */
 export function CampaignTabletopZoneSightings({
   actors,
   disabled,
   sightings,
   zones,
-  onDismiss
+  onDismiss,
+  onReveal
 }: {
   actors: readonly { id: string; label: string }[]
   disabled: boolean
   sightings: EncounterSessionStateDto['pendingZoneSightings']
   zones: EncounterSessionStateDto['placedZones']
   onDismiss: (sighting: Pick<DismissZoneSightingInputDto, 'spatialEffectId' | 'actorId'>) => void
+  onReveal: (reveal: Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'>) => void
 }) {
   if (sightings.length === 0) return null
   return (
@@ -35,6 +40,14 @@ export function CampaignTabletopZoneSightings({
             <Text size='xs'>
               {actor} may have noticed {zone}
             </Text>
+            <Button
+              aria-label={`Reveal ${zone} to ${actor}`}
+              disabled={disabled}
+              size='compact-xs'
+              onClick={() => onReveal({ spatialEffectId, actorIds: [actorId] })}
+            >
+              Reveal
+            </Button>
             <Button
               aria-label={`Dismiss ${actor}'s sighting of ${zone}`}
               disabled={disabled}
