@@ -574,6 +574,37 @@ describe('content snapshot builds', () => {
     }
   }, 30_000)
 
+  it('reschedules a waiting build that a later mark overtook without writing the head', async () => {
+    const { t, server, srdSource, head, settle, rootIds } = await setup()
+    try {
+      const subjects = [elf, highElf].map((race) =>
+        importedSubject({ subjectKind: 'RACE', ...race, document: race })
+      )
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects
+      })
+      const marked = await head(srdSource)
+      // A seed marks the head between a build's reads; a head write from the build would race them.
+      const building = t.action(internal.contentSnapshots.actions.build, srdSource)
+      const dwarfSubject = importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [dwarfSubject]
+      })
+      await building
+      expect(await head(srdSource)).toEqual({ ...marked, revision: marked!.revision + 1 })
+
+      await syncImportedDerived(t, subjects)
+      await settle()
+      const built = await head(srdSource)
+      expect(built).toMatchObject({ builtRevision: built?.revision })
+      expect(await rootIds(srdSource, built, 'RACE')).toEqual([dwarf.id, elf.id, highElf.id].sort())
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
   it('rebuilds only the official source that a platform import changes', async () => {
     const { t, server, userSource, srdSource, publish, settle, head } = await setup()
     try {

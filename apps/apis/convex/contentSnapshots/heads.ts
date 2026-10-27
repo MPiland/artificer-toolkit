@@ -51,6 +51,8 @@ const CLEANUP_BATCH_SIZE = 100
 const CLEANUP_CLAIM_TIMEOUT_MS = 60 * 60_000
 const DELETING_KEY_RETRY_MS = 60_000
 const MAX_AUTOMATIC_RETRIES = 5
+/** A failed build retries after this, doubling per consecutive failure. */
+export const CONTENT_SNAPSHOT_FIRST_RETRY_MS = 60_000
 // A readScopeKind page stops at 15 roots or once its serialized sources reach 256 KiB. In
 // convex-test a root costs about 7-22 ms, so the full SRD's largest page took 282 ms, against
 // 1,236 ms for the 100-root pages that ran past the 1 s query limit on CI's self-hosted runtime.
@@ -455,7 +457,11 @@ export const failBuild = internalMutation({
       return null
     }
     await ctx.db.patch(head._id, { failedBuilds, buildScheduledAt: Date.now() })
-    await scheduleContentSnapshotBuild(ctx.scheduler, ref, 60_000 * 2 ** (failedBuilds - 1))
+    await scheduleContentSnapshotBuild(
+      ctx.scheduler,
+      ref,
+      CONTENT_SNAPSHOT_FIRST_RETRY_MS * 2 ** (failedBuilds - 1)
+    )
     return null
   }
 })

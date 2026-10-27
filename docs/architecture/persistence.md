@@ -678,9 +678,12 @@ identities, numeric versions and stored parent metadata, and original storage ch
   sources reach 256 KiB, well under the 1 s query limit (a write between pages bumps `revision` and triggers another
   build), builds the `index`, `list` and `documents` parts and uploads gzipped objects only for keys without a row. Unchanged kinds keep their keys. A root whose current compilation is
   missing or stale (the seed compiles Classes and subraces after every root exists) makes the build wait, not
-  fail: `awaitCompilation` releases the lease, so the compilation's own mark schedules the next build, or
-  reschedules at once when a mark landed during the build. Only other errors take `failBuild`'s backoff
-  (1, 2, 4, 8 and 16 minutes).
+  fail. When a mark landed during the build, the action reschedules itself (2 seconds) without writing the
+  head: marks keep the head hot while content is written (a seed marks it several times a second), and a head
+  write from the build would lose every OCC retry to them and strand the lease. Otherwise `awaitCompilation`
+  releases the lease (or reschedules if a mark beat it), so the compilation's own mark schedules the next build.
+  Only other errors take `failBuild`'s backoff (1, 2, 4, 8 and 16 minutes); when `failBuild` itself cannot
+  commit, the action schedules the first backoff, so a held lease always ends in a scheduled build.
 - **`commitBuild`** is a compare-and-set that writes only when `revisionBuiltFrom > builtRevision`, inserts or
   revives referenced rows and supersedes the previous head's other keys. A referenced key that is being deleted
   or has vanished returns `RETRY` and reschedules after a minute. A deleted source or Campaign deletes its head
