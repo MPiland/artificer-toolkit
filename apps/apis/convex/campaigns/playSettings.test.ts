@@ -803,54 +803,60 @@ describe('native Campaign play settings', () => {
     expect(await stored(t)).toEqual(before)
   })
 
-  it('offers and saves Injuries only while its System policy resolves it (ATTACK-15.3)', async () => {
-    const { t, owner, campaign, settings } = await setup()
-    const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'INJURIES'
-    )
-    if (!injuries) throw new Error('Missing Injuries fixture.')
-    const unresolvedDocument = {
-      ...injuries.document,
-      id: crypto.randomUUID(),
-      module: {
-        ...injuries.document.module,
-        contractVersion: injuries.document.module.contractVersion + 1
+  it.each([
+    { kind: 'INJURIES', ac: 'ATTACK-15.3' },
+    { kind: 'MASSIVE_DAMAGE', ac: 'ATTACK-16.2' }
+  ] as const)(
+    'offers and saves $kind only while its System policy resolves it ($ac)',
+    async ({ kind }) => {
+      const { t, owner, campaign, settings } = await setup()
+      const rule = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+        (definition) => definition.document.kind === kind
+      )
+      if (!rule) throw new Error(`Missing ${kind} fixture.`)
+      const unresolvedDocument = {
+        ...rule.document,
+        id: crypto.randomUUID(),
+        module: {
+          ...rule.document.module,
+          contractVersion: rule.document.module.contractVersion + 1
+        }
       }
-    }
-    const unresolved = {
-      ...injuries,
-      id: unresolvedDocument.id,
-      label: 'Injuries, unsupported contract',
-      document: unresolvedDocument,
-      checksum: checksumRuleDocument(unresolvedDocument)
-    }
-    await t.mutation(internal.content.import.importDefinitions, {
-      contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [injuries, unresolved]
-    })
-    const offered = await owner.caller.query(options, { campaignId: campaign.id })
-    expect(offered.optionalCombatRules).toContainEqual({
-      definitionId: injuries.id,
-      label: injuries.label,
-      kind: 'INJURIES'
-    })
-    expect(offered.optionalCombatRules.map(({ definitionId }) => definitionId)).not.toContain(
-      unresolved.id
-    )
-    const saved = await owner.caller.mutation(save, {
-      ...input(settings),
-      optionalCombatRuleDefinitionIds: [injuries.id]
-    })
-    expect(saved.optionalCombatRuleDefinitionIds).toEqual([injuries.id])
-    const before = await stored(t)
-    await expect(
-      owner.caller.mutation(save, {
-        ...input(saved),
-        optionalCombatRuleDefinitionIds: [unresolved.id]
+      const unresolved = {
+        ...rule,
+        id: unresolvedDocument.id,
+        label: `${rule.label}, unsupported contract`,
+        document: unresolvedDocument,
+        checksum: checksumRuleDocument(unresolvedDocument)
+      }
+      await t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions: [rule, unresolved]
       })
-    ).rejects.toThrow('not available for Encounter execution')
-    expect(await stored(t)).toEqual(before)
-  })
+      const offered = await owner.caller.query(options, { campaignId: campaign.id })
+      expect(offered.optionalCombatRules).toContainEqual({
+        definitionId: rule.id,
+        label: rule.label,
+        kind
+      })
+      expect(offered.optionalCombatRules.map(({ definitionId }) => definitionId)).not.toContain(
+        unresolved.id
+      )
+      const saved = await owner.caller.mutation(save, {
+        ...input(settings),
+        optionalCombatRuleDefinitionIds: [rule.id]
+      })
+      expect(saved.optionalCombatRuleDefinitionIds).toEqual([rule.id])
+      const before = await stored(t)
+      await expect(
+        owner.caller.mutation(save, {
+          ...input(saved),
+          optionalCombatRuleDefinitionIds: [unresolved.id]
+        })
+      ).rejects.toThrow('not available for Encounter execution')
+      expect(await stored(t)).toEqual(before)
+    }
+  )
 
   it('fails closed for missing native settings instead of manufacturing a second lifecycle', async () => {
     const { t, owner, campaign, settings } = await setup()

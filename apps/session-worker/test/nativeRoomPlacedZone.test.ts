@@ -413,6 +413,55 @@ describe('a hidden field flagged for half-speed passage (SPELLS-17)', () => {
   })
 })
 
+describe('a concealed caltrop field (MOVE-3.6)', () => {
+  /** The GM conceals the spread field: only its spreader knows of it. */
+  async function concealField(room: Room) {
+    const [zone] = await readZones(room)
+    const set = await room.send({
+      type: 'SET_ZONE_DCS',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      spatialEffectId: zone!.id,
+      spotDc: { value: 14, source: 'FLAT' },
+      disarmDc: null
+    })
+    expect(set.type, JSON.stringify(set)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('triggers on a creature that has not noticed it, though it says it moves carefully, at the plain cost', async () => {
+    const plain = await caltropsRoom(0)
+    await spreadCaltrops(plain)
+    await concealField(plain)
+    await plain.advanceTurn()
+    await walkerMoves(plain, WALK_INTO)
+    const plainFeet = await walkerFeetMoved(plain)
+
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await concealField(room)
+    await room.advanceTurn()
+    const hitPointsBefore = await walkerHitPoints(room)
+    const walk = await walkerMoves(room, WALK_INTO, true)
+
+    expect(walk.executions).toHaveLength(1)
+    expect(await walkerHitPoints(room)).toBe((hitPointsBefore ?? 0) - 1)
+    expect(await walkerFeetMoved(room)).toBe(plainFeet)
+  })
+
+  it('is still crossed carefully by the creature that knows of it', async () => {
+    const room = await caltropsRoom(0)
+    await spreadCaltrops(room)
+    await concealField(room)
+
+    // The spreader, still on its turn, steps into its own field with care: a save would fail.
+    const walk = await walkerMoves(room, [{ x: 150, y: 150 }, FIELD_POINT], true, 0)
+
+    expect(walk.terminalPosition).toEqual(FIELD_POINT)
+    expect(walk.executions).toEqual([])
+  })
+})
+
 describe('the Caltrops journey (SPELLS-17.1)', () => {
   it('spreads, is taken back, spreads again, snares a walker, is healed and is crossed with care', async () => {
     const room = await caltropsRoom(0)

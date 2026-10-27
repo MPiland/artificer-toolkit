@@ -8,6 +8,7 @@ import {
   DND5E_FLANKING_OPERATION_KEY,
   DND5E_INJURIES_OPERATION_KEY,
   DND5E_MARK_OPERATION_KEY,
+  DND5E_MASSIVE_DAMAGE_OPERATION_KEY,
   DND5E_MORALE_OPERATION_KEY,
   DND5E_OVERRUN_OPERATION_KEY,
   DND5E_SHOVE_ASIDE_OPERATION_KEY,
@@ -41,7 +42,8 @@ const INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES = {
   MORALE: { key: DND5E_MORALE_OPERATION_KEY, contractVersion: 1 },
   INJURIES: { key: DND5E_INJURIES_OPERATION_KEY, contractVersion: 1 },
   FACING: { key: DND5E_FACING_OPERATION_KEY, contractVersion: 1 },
-  MARK: { key: DND5E_MARK_OPERATION_KEY, contractVersion: 1 }
+  MARK: { key: DND5E_MARK_OPERATION_KEY, contractVersion: 1 },
+  MASSIVE_DAMAGE: { key: DND5E_MASSIVE_DAMAGE_OPERATION_KEY, contractVersion: 1 }
 } as const
 export function isIntegratedOptionalCombatRule(
   document: Dnd5eOptionalCombatReusableDefinitionDocumentDto

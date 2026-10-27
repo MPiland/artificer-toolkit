@@ -16,9 +16,6 @@ export type SrdCreatureAttackUnsupportedReason = 'FOLLOW_UP_SAVE' | 'OUTCOME_KIN
 export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   Record<string, SrdCreatureAttackUnsupportedReason>
 > = {
-  // OUTCOME_KIND
-  '00000000-0002-00d0-0070-00a700000000': 'OUTCOME_KIND', // Horned Devil: Tail
-  '00000000-0002-01f9-0070-00ef00000000': 'OUTCOME_KIND', // Roper: Tendril
   // Wereboar: Tusks (Boar or Hybrid Form Only): its curse ruling (T6b2) sits ahead of the merged
   // Charge save (T5n2); `immediateFollowUpSaveEntries` admits only DAMAGE before an immediate save,
   // so the missing piece is a ruling entry ahead of it (ATTACK-5.T4).
