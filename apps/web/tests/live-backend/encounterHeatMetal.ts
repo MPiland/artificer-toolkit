@@ -159,6 +159,11 @@ export async function verifyEncounterHeatMetalBrowser(
     expect(forbiddenLegacyRequests).toEqual([])
   } catch (error) {
     failure = error instanceof Error ? error.message : 'Heat Metal browser proof failed.'
+    const warnings = await player
+      ?.locator('li')
+      .allInnerTexts()
+      .catch(() => [])
+    if (warnings?.length) failure += ' Visible list items: ' + warnings.join(' | ')
     await Promise.allSettled([
       player?.screenshot({
         caret: 'initial',
