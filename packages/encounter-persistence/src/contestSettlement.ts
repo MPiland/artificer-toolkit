@@ -10,6 +10,7 @@ import {
   planEncounterDisarmSuccess
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import { findEncounterHolderContestEscape } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { encounterActorRelationship } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { relationshipConditionApplications } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
@@ -170,7 +171,8 @@ async function settleContestHold(
 
 /**
  * A contested escape spends the escaper's action; a win ends the target's holding effect on the
- * escaper and the conditions only it held. It checks the effect is still the target's hold.
+ * escaper and the conditions only it held. It checks the effect is still the target's hold, and
+ * that the commit moves the holder exactly as that hold's escape authors: none on a loss.
  */
 async function settleContestEscape(
   ctx: EncounterCharacterWriteTransaction,
@@ -187,9 +189,22 @@ async function settleContestEscape(
     : input.actor
   let actors = input.actors.map((entry) => (entry.id === actor.id ? actor : entry))
   let stateTransition: ContestApplicationOutputsInput['stateTransition'] = { kind: 'NONE' }
-  if (contestSourceWins(input.rolls)) {
-    const held = await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))
-    const origin = held.find((effect) => effect.id === activeEffectId)?.definition.origin
+  const sourceWins = contestSourceWins(input.rolls)
+  const held = sourceWins
+    ? (await createActiveRuleEffectStore(ctx).list(turnEffectOwner(actor, state.id))).find(
+        (effect) => effect.id === activeEffectId
+      )
+    : undefined
+  // The holder's move is re-derived from the hold; only the square its pusher picked comes from the commit.
+  const holderMovement = held ? findEncounterHolderContestEscape(held)?.holderMovement : null
+  if (
+    checksumCanonicalJson(
+      input.forcedMovements.map((movement) => ({ ...movement, position: null }))
+    ) !== checksumCanonicalJson(holderMovement ? [holderMovement] : [])
+  )
+    throw new Error('Contested escape movement does not match its hold.')
+  if (sourceWins) {
+    const origin = held?.definition.origin
     if (origin?.kind !== 'ENCOUNTER' || origin.sourceActorId !== target.id)
       throw new Error('Contested escape effect does not match its holder.')
     const ended = await endEncounterEscapedEffect(ctx, {

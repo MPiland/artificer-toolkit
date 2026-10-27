@@ -6,11 +6,13 @@
 # generates its env and the ignored local env files, so scripts/runLocalBrowserProof.mjs (Worker, web
 # app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
 # runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
-# Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks the CI_PROOFS
-# when the slice's changes since the phase branch reach a journey through the Tests workflow's import
-# graph, or change the stack; otherwise the run passes with no proof. A dispatch runs one named proof
-# (any scripts/runLocalConvexProof.ps1 proof) or, unnamed, every CI proof. merge-slice requires every
-# run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
+# Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks the CI proofs
+# (every *-browser proof of scripts/runLocalConvexProof.ps1, the one proof list) when the slice's changes
+# since the phase branch reach a journey through the Tests workflow's import graph, or change the stack;
+# otherwise the run passes with no proof. A dispatch runs one named proof (any runLocalConvexProof.ps1
+# proof) or, unnamed, every CI proof. A KNOWN_BUG_PROOFS proof runs without gating until its fix task
+# removes it. merge-slice requires every run on a tip green
+# (docs/architecture/ci-validation.md#browser-journeys).
 #   git push origin HEAD:ci/<slice>
 #   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof=<name>]
 name: Browser journeys
@@ -35,8 +37,6 @@ concurrency:
 env:
   # Slices branch from, and merge into, the phase branch; the selection diffs against it.
   PHASE_BRANCH: codex/phase-08-2-convex-cutover
-  # The proofs a reaching push runs. RELIABILITY-20.T3 adds the other *-browser proofs.
-  CI_PROOFS: player-browser
 
 jobs:
   select:
@@ -61,16 +61,19 @@ jobs:
         id: select
         env:
           PROOF: ${{ inputs.proof }}
-        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --proofs "$CI_PROOFS" --event "$GITHUB_EVENT_NAME" --proof "$PROOF"
+        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --event "$GITHUB_EVENT_NAME" --proof "$PROOF"
 
+  # Each proof runs on its own stack: serially they take over three hours, and a fresh stack keeps
+  # proofs from sharing state. A known-bug proof's failure leaves the run green.
   journey:
-    name: ${{ matrix.proof }} on a throwaway stack
+    name: ${{ matrix.proof }} on a throwaway stack${{ matrix.knownBug && format(' (KNOWN-BUG {0})', matrix.knownBug) || '' }}
     needs: select
     if: needs.select.outputs.proofs != '[]'
+    continue-on-error: ${{ matrix.knownBug != '' }}
     strategy:
       fail-fast: false
       matrix:
-        proof: ${{ fromJSON(needs.select.outputs.proofs) }}
+        include: ${{ fromJSON(needs.select.outputs.proofs) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -118,12 +121,23 @@ jobs:
       # Seeding builds Content snapshots into the R2 substitute; runLocalBrowserProof reuses it.
       - name: Start the local Convex fixtures
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
-      - name: Deploy and seed
-        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
+      # Locally the native proofs run between the seed and the browser proofs, so the Content snapshot
+      # builds are done; a fresh stack waits for them before the browser opens.
+      - name: Deploy, seed and build Content snapshots
+        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed,snapshots --log-dir=browser-journey-logs/live-backend
       - name: Run ${{ matrix.proof }}
         env:
           PROOF: ${{ matrix.proof }}
-        run: node scripts/runLocalBrowserProof.mjs --name="ci-$PROOF" --proof="$PROOF"
+        # account-deletion-browser requires its evidence name to start with the proof name.
+        run: node scripts/runLocalBrowserProof.mjs --name="$PROOF-ci" --proof="$PROOF"
+      - name: Label the known-bug result
+        if: always() && matrix.knownBug != ''
+        env:
+          PROOF: ${{ matrix.proof }}
+          TASK: ${{ matrix.knownBug }}
+          STATUS: ${{ job.status }}
+        run: |
+          echo "$PROOF KNOWN-BUG $TASK: $STATUS (not gating)." >> "$GITHUB_STEP_SUMMARY"
       - name: Evidence holds no generated secret
         if: always()
         run: |

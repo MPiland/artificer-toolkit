@@ -3,6 +3,7 @@ import { execFile } from 'node:child_process'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
+import { proofPwsh, proofYarn } from './developmentShell'
 
 export async function verifyCharacterBrowser(
   input: {
@@ -25,12 +26,12 @@ export async function verifyCharacterBrowser(
   let passed = false
   try {
     const result = await promisify(execFile)(
-      'pwsh.exe',
+      proofPwsh,
       [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        `yarn.ps1 workspace @artificer-toolkit/web test:e2e:app tests/e2e/app/${input.journey === 'builder' ? 'characterBuilder.spec.ts' : input.journey === 'sheet' ? 'characterSheet.spec.ts' : 'characterSheetSpells.spec.ts'} --workers=1 --output=$env:CONVEX_E2E_OUTPUT; exit $LASTEXITCODE`
+        `${proofYarn} workspace @artificer-toolkit/web test:e2e:app tests/e2e/app/${input.journey === 'builder' ? 'characterBuilder.spec.ts' : input.journey === 'sheet' ? 'characterSheet.spec.ts' : 'characterSheetSpells.spec.ts'} --workers=1 --output=$env:CONVEX_E2E_OUTPUT; exit $LASTEXITCODE`
       ],
       {
         cwd: fileURLToPath(new URL('../../..', import.meta.url)),

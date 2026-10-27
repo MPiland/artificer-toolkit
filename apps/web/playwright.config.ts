@@ -8,7 +8,8 @@ const appWebServer = {
   name: 'app',
   command: `yarn exec vite dev --host ${appUrl.hostname} --port ${appPort}`,
   url: new URL('/zod-csp-bootstrap.js', appBaseURL).toString(),
-  reuseExistingServer: !process.env.CI,
+  // APP_E2E_BASE_URL names a web app a proof harness already started (developmentCharacterBrowser.ts).
+  reuseExistingServer: !process.env.CI || Boolean(process.env.APP_E2E_BASE_URL),
   timeout: 120_000,
   cwd: '.'
 }
