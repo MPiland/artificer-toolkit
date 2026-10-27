@@ -63,6 +63,17 @@ jobs:
           exit 1
       - name: Provision the throwaway env
         run: node scripts/throwawayConvexStack.mjs --secrets-file="$RUNNER_TEMP/throwaway-secrets"
+      # Function errors and console output are not in the container log, and the backend keeps only a
+      # short history, so `convex logs` streams for the rest of the job.
+      - name: Stream Convex function logs
+        run: |
+          key=$(docker exec phase82-convex-local-linux ./generate_admin_key.sh | tail -n 1)
+          echo "::add-mask::$key"
+          echo "::add-mask::${key##*|}"
+          mkdir -p browser-journey-logs
+          nohup yarn workspace @artificer-toolkit/apis exec convex logs \
+            --url http://127.0.0.1:3210 --admin-key "$key" \
+            > browser-journey-logs/convex-function.log 2>&1 &
       # Seeding builds Content snapshots into the R2 substitute; runLocalBrowserProof reuses it.
       - name: Start the local Convex fixtures
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
@@ -76,14 +87,6 @@ jobs:
           [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
           mkdir -p browser-journey-logs
           docker logs phase82-convex-local-linux > browser-journey-logs/convex-backend.log 2>&1 || true
-          # Function errors and console output are not in the container log; `convex logs` streams,
-          # so it is stopped once it has printed the retained history.
-          key=$(docker exec phase82-convex-local-linux ./generate_admin_key.sh | tail -n 1)
-          echo "::add-mask::$key"
-          echo "::add-mask::${key##*|}"
-          timeout 30 yarn workspace @artificer-toolkit/apis exec convex logs --history 2000 \
-            --url http://127.0.0.1:3210 --admin-key "$key" \
-            > browser-journey-logs/convex-function.log 2>&1 || true
           for path in local-validation/browser-proof local-validation/local-convex-proofs; do
             [ -d "$path" ] && cp -R "$path" browser-journey-logs/
           done
