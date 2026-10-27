@@ -142,7 +142,7 @@ export async function verifyEncounterHeatMetalBrowser(
             .getByRole('button', { name: `Repeat ${row.label} on ${row.holderLabel}` })
             .click()
         )
-        await expect(page.getByText('Action paused for a required decision.')).toBeVisible()
+        await expect(page.getByText('Repeated.', { exact: true })).toBeVisible()
         return step
       },
       assertNoRepeatRow: async () => {
