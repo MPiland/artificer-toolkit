@@ -1,5 +1,6 @@
 import type { GenericCtx } from '@convex-dev/better-auth'
 import {
+  authClientIpSchema,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   authInvitationRedeemInputSchema,
@@ -295,46 +296,52 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
           )
         }
       },
-      {
-        id: 'server-client-ip',
-        onRequest: async (request) => {
-          if (!('runAction' in ctx)) throw new Error('Auth HTTP requires an action context.')
-          let proxyContext
-          try {
-            proxyContext = await verifyAuthProxyContext(request, process.env.CONVEX_SITE_URL ?? '')
-          } catch (error) {
-            // The failed check (jose error name and message) is logged, never the token or secret.
-            console.error(
-              'Auth proxy context rejected:',
-              error instanceof Error ? `${error.name}: ${error.message}` : 'unknown failure'
-            )
-            return {
-              response: new Response('Invalid authentication request.', {
-                status: 400
-              })
-            }
-          }
-          const ip = proxyContext?.ip ?? (await ctx.meta.getRequestMetadata()).ip
-          if (!ip)
-            return {
-              response: new Response('Authentication unavailable.', {
-                status: 503
-              })
-            }
-          const headers = new Headers(request.headers)
-          // Only platform metadata or the authenticated SSR proxy may supply limiter identity.
-          headers.set('x-artificer-client-ip', ip)
-          return { request: new Request(request, { headers }) }
-        }
-      },
 
       ...adapterOptions.plugins
     ]
   } satisfies BetterAuthOptions
 }
 
+// Better Auth's router applies its rate limit before any plugin `onRequest` hook, so the limiter
+// identity must be on the request before the handler runs. Only platform metadata or the signed SSR
+// proxy context may supply it; a caller's own `x-artificer-client-ip` is always overwritten.
+async function withClientIp(ctx: GenericCtx<DataModel>, request: Request) {
+  if (!('runAction' in ctx)) throw new Error('Auth HTTP requires an action context.')
+  let proxyContext
+  try {
+    proxyContext = await verifyAuthProxyContext(request, process.env.CONVEX_SITE_URL ?? '')
+  } catch (error) {
+    // The failed check (jose error name and message) is logged, never the token or secret.
+    console.error(
+      'Auth proxy context rejected:',
+      error instanceof Error ? `${error.name}: ${error.message}` : 'unknown failure'
+    )
+    return new Response('Invalid authentication request.', { status: 400 })
+  }
+  const ip = authClientIpSchema.safeParse(
+    proxyContext?.ip ?? (await ctx.meta.getRequestMetadata()).ip
+  )
+  if (!ip.success) {
+    // Better Auth would otherwise put every such caller in one shared per-path bucket.
+    console.error(
+      'Auth request refused: no valid client IP, so rate limiting cannot key on the client.'
+    )
+    return new Response('Authentication unavailable.', { status: 503 })
+  }
+  const headers = new Headers(request.headers)
+  headers.set('x-artificer-client-ip', ip.data)
+  return new Request(request, { headers })
+}
+
 export function createAuth(ctx: GenericCtx<DataModel>) {
   requiredEnvironmentVariable('SITE_URL')
   requiredEnvironmentVariable('BETTER_AUTH_SECRET')
-  return betterAuth(createAuthOptions(ctx))
+  const auth = betterAuth(createAuthOptions(ctx))
+  return {
+    ...auth,
+    handler: async (request: Request) => {
+      const identified = await withClientIp(ctx, request)
+      return identified instanceof Response ? identified : auth.handler(identified)
+    }
+  }
 }
