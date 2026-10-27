@@ -30,6 +30,9 @@ const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
 const facing = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'FACING'
 )!
+const hittingCover = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+  (definition) => definition.document.kind === 'HITTING_COVER'
+)!
 const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
 )!
@@ -52,7 +55,7 @@ async function setup() {
   })
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: [disarm, climb]
+    definitions: [disarm, hittingCover]
   })
   return { ...base, campaign }
 }
@@ -107,9 +110,21 @@ describe('native Campaign settings options', () => {
       label: morale.label,
       kind: 'MORALE'
     })
-    expect(result.optionalCombatRules.map(({ kind }) => kind)).not.toContain(
-      'CLIMB_ONTO_LARGER_CREATURE'
-    )
+    expect(result.optionalCombatRules.map(({ kind }) => kind)).not.toContain('HITTING_COVER')
+  })
+
+  it('offers Climb onto a larger creature once its System policy resolves it (MOVE-4.4)', async () => {
+    const { t, owner, campaign } = await setup()
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [climb]
+    })
+    const result = await owner.caller.query(options, { campaignId: campaign.id })
+    expect(result.optionalCombatRules).toContainEqual({
+      definitionId: climb.id,
+      label: climb.label,
+      kind: 'CLIMB_ONTO_LARGER_CREATURE'
+    })
   })
 
   it('offers Facing once its System policy resolves it (ATTACK-12.3)', async () => {
@@ -255,11 +270,11 @@ describe('native Campaign settings options', () => {
         .collect()
       for (let index = seeded.length; index < 500; index++) {
         const id = crypto.randomUUID()
-        const document = { ...climb.document, id }
+        const document = { ...hittingCover.document, id }
         await ctx.db.insert('reusableDefinitions', {
-          label: climb.label,
-          definitionFamilyKey: climb.definitionFamilyKey,
-          description: climb.description,
+          label: hittingCover.label,
+          definitionFamilyKey: hittingCover.definitionFamilyKey,
+          description: hittingCover.description,
           id,
           documentJson: encodeDefinitionDocument(document),
           checksum: checksumRuleDocument(document),
@@ -277,11 +292,11 @@ describe('native Campaign settings options', () => {
     ).toHaveLength(1)
     await t.run((ctx) => {
       const id = crypto.randomUUID()
-      const document = { ...climb.document, id }
+      const document = { ...hittingCover.document, id }
       return ctx.db.insert('reusableDefinitions', {
-        label: climb.label,
-        definitionFamilyKey: climb.definitionFamilyKey,
-        description: climb.description,
+        label: hittingCover.label,
+        definitionFamilyKey: hittingCover.definitionFamilyKey,
+        description: hittingCover.description,
         id,
         documentJson: encodeDefinitionDocument(document),
         checksum: checksumRuleDocument(document),
