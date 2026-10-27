@@ -453,11 +453,18 @@ function watchExpectedSession(
     authenticatedSockets: 0,
     revoked: false
   }
+  const openSockets = new Set<() => void>()
+  // Chromium reports no close for sockets that a document navigation tears down.
+  page.on('request', (request) => {
+    if (!request.isNavigationRequest() || request.frame() !== page.mainFrame()) return
+    for (const revokeSocket of [...openSockets]) revokeSocket()
+  })
   page.on('websocket', (socket) => {
     let socketAuthenticated = false
     const revokeSocket = () => {
       if (!socketAuthenticated) return
       socketAuthenticated = false
+      openSockets.delete(revokeSocket)
       session.activeAuthenticatedSockets -= 1
       if (session.activeAuthenticatedSockets === 0) {
         session.authenticated = false
@@ -506,6 +513,7 @@ function watchExpectedSession(
           session.activeAuthenticatedSockets += 1
           session.authenticatedSockets += 1
           socketAuthenticated = true
+          openSockets.add(revokeSocket)
         }
       }
     })
