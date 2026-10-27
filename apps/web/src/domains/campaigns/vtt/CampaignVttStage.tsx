@@ -1539,6 +1539,7 @@ export function CampaignVttStage({
                     }
                   : null
               }
+              session={encounterSessionState}
               onCommand={(command) => encounterCommand.mutate(command)}
               onEndCharacterConcentration={setEndingConcentrationOf}
               onRelease={(command) => encounterCommand.mutateAsync(command)}

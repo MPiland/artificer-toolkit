@@ -316,6 +316,17 @@ const PARITY: Record<CommandType, Entry> = {
       disarmDc: null
     })
   },
+  DISMISS_ZONE_SIGHTING: {
+    access: 'TABLE',
+    rule: table('MOVE-3.5: the GM dismisses a Character sighting of a concealed zone'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'DISMISS_ZONE_SIGHTING',
+      spatialEffectId: SOME_ID,
+      actorId: probe.actorId
+    })
+  },
   MORALE_SAVE: {
     access: 'TABLE',
     rule: table(

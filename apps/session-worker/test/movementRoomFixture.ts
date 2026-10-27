@@ -18,7 +18,10 @@ import {
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
+  AutomationModeDto,
+  ZoneNoticingModeDto
+} from '@artificer-toolkit/schema/api/campaignSettings'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { Dnd5eOptionalCombatRuleKindDto } from '@artificer-toolkit/schema/shared/optionalCombat'
@@ -186,6 +189,8 @@ export interface MovementRoomConfig {
   automationMode?: AutomationModeDto
   /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
   trackAmmunition?: boolean
+  /** The Campaign's zone noticing option, frozen on the Run (MOVE-3.5). */
+  zoneNoticing?: ZoneNoticingModeDto
   automaticCover?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   /** The Run's sides; the SRD fixture's single side when omitted. */
@@ -323,6 +328,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
+      zoneNoticing: config.zoneNoticing,
       automaticCover: config.automaticCover,
       optionalCombatKinds: config.optionalCombatKinds,
       sides: config.sides
