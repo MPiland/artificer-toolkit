@@ -5,14 +5,16 @@
 //   node scripts/liveBackendValidation.mjs [--container=<name>] [--fresh]
 //     [--steps=manifest,codegen,deploy,seed,replace,reseed,audit] [--log-dir=<dir>]
 // --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
-// needs. It is refused for the local container, which keeps its own.
-import { spawn } from 'node:child_process'
+// needs. It is refused for the local container, which keeps its own. The opt-in `snapshots` step
+// waits until every Content snapshot the seed marked is built, for browser proofs on a fresh stack.
+import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createWriteStream } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 import { finished } from 'node:stream/promises'
+import { setTimeout as delay } from 'node:timers/promises'
 import {
   assertConvexInstance,
   convexCliArguments,
@@ -41,7 +43,8 @@ for (const argument of process.argv.slice(2)) {
   else throw new Error(`Unknown or malformed argument: ${argument}`)
 }
 for (const name of options.steps) {
-  if (!defaultSteps.includes(name)) throw new Error(`Unknown step: "${name}".`)
+  if (!defaultSteps.includes(name) && name !== 'snapshots')
+    throw new Error(`Unknown step: "${name}".`)
 }
 if (options.fresh && options.container === localConvex.container) {
   throw new Error(
@@ -86,7 +89,41 @@ const allSteps = {
     ]
   ],
   reseed: [convex('run', 'content/seed:seed')],
-  audit: [convex('run', 'content/seed:audit')]
+  audit: [convex('run', 'content/seed:audit')],
+  snapshots: awaitSnapshotBuilds
+}
+
+// Builds run in the background after the seed marks each head; a head is built once its
+// builtRevision reaches its revision (apps/apis/convex/contentSnapshots/heads.ts).
+async function awaitSnapshotBuilds(log) {
+  const [executable, args] = yarnSpawn(
+    convex('data', 'contentSnapshotHeads', '--format', 'jsonl', '--limit', '1000')
+  )
+  const deadline = Date.now() + 15 * 60_000
+  while (Date.now() < deadline) {
+    const result = spawnSync(executable, args, {
+      cwd: root,
+      encoding: 'utf8',
+      env: convexCliEnvironment(),
+      shell: false
+    })
+    if (result.status !== 0) {
+      log?.write(redact(result.stderr ?? ''))
+      return result.status ?? 1
+    }
+    const heads = result.stdout
+      .split('\n')
+      .filter((line) => line.trim())
+      .map((line) => JSON.parse(line))
+    const unbuilt = heads.filter((head) => head.revision > head.builtRevision)
+    const line = `${heads.length} snapshot heads, ${unbuilt.length} unbuilt\n`
+    process.stdout.write(line)
+    log?.write(line)
+    if (heads.length > 0 && unbuilt.length === 0) return 0
+    await delay(5000)
+  }
+  log?.write('Content snapshot builds did not finish in 15 minutes.\n')
+  return 1
 }
 const stepNames = options.fresh ? ['env', ...options.steps] : options.steps
 
@@ -119,10 +156,12 @@ async function runCommand(yarnArguments, log) {
 async function runStep(name) {
   const log = options.logDir ? createWriteStream(join(options.logDir, `${name}.log`)) : undefined
   let status = 0
-  for (const command of allSteps[name]) {
-    status = await runCommand(command, log)
-    if (status !== 0) break
-  }
+  if (typeof allSteps[name] === 'function') status = await allSteps[name](log)
+  else
+    for (const command of allSteps[name]) {
+      status = await runCommand(command, log)
+      if (status !== 0) break
+    }
   if (log) {
     log.end()
     await finished(log)
