@@ -121,6 +121,17 @@ the relationship, and `settleContestEscape` refuses any forced movement that dif
 re-derives from the held effect (none on a loss); only the picked square comes from the commit. With
 no free square the climber stays in place (deferred edge case).
 
+**Climb dislodge authoring (current, MOVE-4.T3b).** The `holderForcedMovement` form field is the
+`FORCED_MOVEMENT_NODE_MAP` (`packages/shared/.../maps/forcedMovement.ts`), a group object on the
+ESCAPE_CHECK module map. `registerForcedMovementOutcomeFields` is the one home for the direction,
+distance, action economy and collision fields: the forced-movement outcome in `maps/path.ts` and the
+standalone map both register it, so the two cannot drift. `escapeCheckForcedMovementAuthoringParity`
+proves the SRD cling, landing included, passes through the effect node map as authored.
+
+Climb onto a larger creature (MOVE-4, current) is offered in Campaign settings once its System policy
+resolves it (T4): `CLIMB_ONTO_LARGER_CREATURE` is in the integrated module table
+(`optionalCombatSourceAccess.ts`), so the cling, its follow and its dislodge run end to end.
+
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
 anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy
