@@ -10048,7 +10048,7 @@
               "text": "Integrate and settings gate.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
               "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md",
-              "merging": true
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/40455922548"
             }
           ]
         },
