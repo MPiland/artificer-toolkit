@@ -32117,11 +32117,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -61527,11 +61523,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -90946,11 +90938,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -120356,11 +120344,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -149801,11 +149785,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -179211,11 +179191,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -208592,11 +208568,7 @@ export declare const api: {
                       kind: "OVERRUN";
                       targetCheckDefinitionId: string;
                     }
-                  | {
-                      defenderCheckDefinitionIds: Array<string>;
-                      initiatorCheckDefinitionId: string;
-                      kind: "SHOVE_ASIDE";
-                    }
+                  | { kind: "SHOVE_ASIDE" }
                   | {
                       initiatorCheckDefinitionId: string;
                       kind: "TUMBLE";
@@ -237731,11 +237703,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -267141,11 +267109,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
