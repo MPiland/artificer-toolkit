@@ -97,6 +97,11 @@ export const ALLOWED = {
     count: 1,
     reason: 'one Map-backed generic store implements the per-table overload intersection'
   },
+  'packages/shared/src/domains/effects/maps/forcedMovement.ts': {
+    count: 4,
+    reason:
+      'the standalone forced-movement map registers the outcome map fields through the outcome builder API'
+  },
   'packages/shared/src/domains/effects/maps/path.ts': {
     count: 8,
     reason: 'the outcome map is reused as a typed child map and builder API of other documents'
