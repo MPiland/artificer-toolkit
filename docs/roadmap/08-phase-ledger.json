@@ -6695,10 +6695,18 @@
             },
             {
               "text": "Shove Aside policy is authored and typed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterCastChoiceOptionalRuleGate.test.ts",
+                "apps/session-worker/test/nativeRoomOptionalRuleGatedOption.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterBasicActionContestInfluence.test.ts",
+                "packages/rules-runtime/src/__tests__/checkActionCompile.test.ts",
+                "contestOutcomeAuthoringParity.test.ts",
+                "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts"
+              ],
               "origin": ["P81-SHOVE-ASIDE-SOURCE"],
-              "id": "MOVE-2.3"
+              "id": "MOVE-2.3",
+              "note": "Closed 2026-10-27 by MOVE-2.T1, MOVE-2.T2a, MOVE-2.T2b, MOVE-2.T3b."
             },
             {
               "text": "Shove Aside chooses a legal destination and commits it.",
@@ -6796,7 +6804,7 @@
             },
             {
               "id": "MOVE-2.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.3", "MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
@@ -6806,8 +6814,9 @@
                 "after": ["MOVE-2.T3a"]
               },
               "text": "SRD Shove gains \"Shove 5 feet aside\" (FORCED_MOVEMENT ASIDE EXACT 5 ft, requiresOptionalRule Shove Aside, initiator DISADVANTAGE). Room test: rule on/off listing, contest, destination pick of legal in-reach squares, commit. Delete deriveSquareGridShoveAsideDestinations, the SHOVE_ASIDE selection/DESTINATION role/POSITION field, the pending SHOVE_ASIDE variant, contributor reason and coverage entries; keep the module registration and integrated entry as the toggle with params cut to { kind }.",
-              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3. Merged in m486.",
+              "mergedAt": "2026-10-27T02:29:18Z",
+              "proof": "Tests 40431630321 and Live 40431630326 green on d85d65ed8; reviewed (api.d.ts -36, bespoke Shove Aside path deleted); merged in m486 batch run (stored contest pending SHOVE_ASIDE variant removed). Proof: apps/session-worker/test/nativeRoomShoveAsideOption.test.ts"
             },
             {
               "id": "MOVE-2.T4",
@@ -7119,7 +7128,7 @@
             },
             {
               "id": "MOVE-4.T2b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7128,9 +7137,10 @@
                 "size": 5,
                 "after": ["MOVE-4.T2a"]
               },
-              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope.",
+              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope. Merged in m483.",
               "text": "SOURCE_FOLLOWS_TARGET runtime: encounterMovementDrag carries followers on voluntary target moves (not doubling cost); passage blocking exempts the blocker the mover clings to, derived from the active relationship (nothing stored); room journey of a clinging climber following its target.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "mergedAt": "2026-10-27T01:18:06Z",
+              "proof": "Tests 40428824025 and Live 40428823989 green on 5e83d6f12; reviewed (api.d.ts +0, no stored shape); merged in m483. Proofs: packages/rules-runtime/src/__tests__/encounterMovementDrag.test.ts, apps/session-worker/test/nativeRoomClingFollow.test.ts"
             },
             {
               "id": "MOVE-4.T2b2",
@@ -7144,7 +7154,8 @@
                 "after": ["MOVE-4.T2b1"]
               },
               "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope.",
-              "text": "Passage successMovement ENTER_BLOCKER_SPACE with an optional receipt enteredPosition bound to the blocker currentness, accepted by the scene geometry check; SOURCE_ATTACK_ROLL_INFLUENCE actionEffectIds drops null (empty list = every attack, data migrated); full MOVE-4.2 journey."
+              "text": "Passage successMovement ENTER_BLOCKER_SPACE with an optional receipt enteredPosition bound to the blocker currentness, accepted by the scene geometry check; SOURCE_ATTACK_ROLL_INFLUENCE actionEffectIds drops null (empty list = every attack, data migrated); full MOVE-4.2 journey.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "MOVE-4.T3",
@@ -8351,10 +8362,18 @@
             },
             {
               "text": "Modular equipment mechanics derive from one shared path for Creatures and Characters.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts",
+                "creatureEquipmentVariantPin.test.ts",
+                "apps/apis/convex/encounters/equipmentCommands.test.ts",
+                "apps/apis/convex/content/creaturePublication.test.ts",
+                "packages/rules-runtime/src/__tests__/creatureWeaponBonuses.test.ts",
+                "apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts"
+              ],
               "origin": ["P81-CREATURE-GEAR-DERIVATION"],
-              "id": "ATTACK-6.3"
+              "id": "ATTACK-6.3",
+              "note": "Closed 2026-10-27 by ATTACK-6.T4a, ATTACK-6.T4b."
             },
             {
               "text": "The GM can replace an active Creature actor's loadout.",
@@ -8452,7 +8471,7 @@
             },
             {
               "id": "ATTACK-6.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-6.3"],
               "wsjf": {
                 "bv": 5,
@@ -8462,8 +8481,9 @@
                 "after": ["ATTACK-6.T4a"]
               },
               "text": "The bound weapon ATTACK_ROLL and DAMAGE modifiers feed the Creature attack mechanic (discovery, staleness, damage binding). Proofs: +1 weapon parity and a room journey test.",
-              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13. Merged in m482.",
+              "mergedAt": "2026-10-27T00:57:20Z",
+              "proof": "Tests 40427376188 and Live 40427380186 green on ec0f2df87; reviewed (api.d.ts +0); merged in m482 batch run. Proofs: packages/rules-runtime/src/__tests__/creatureWeaponBonuses.test.ts, apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts"
             }
           ]
         },
@@ -9909,7 +9929,7 @@
             },
             {
               "id": "ATTACK-16.T1c2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
@@ -9919,8 +9939,9 @@
                 "after": ["ATTACK-16.T1c2a"]
               },
               "text": "On a failed massive-damage save, a self-targeted SYSTEM root (new systemTrigger arm and command builder) runs the rule-owned system-shock ROLL_TABLE; admission re-derives the failed save from the parent receipt and lifts the RULE-root refusal for that arm only; room hook after RESOLVE_RULE_OCCURRENCE; split nativeEncounterRules.ts so the live planner gets the rules state; positive room journey for a Creature and a Character.",
-              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5. Merged in m484.",
+              "mergedAt": "2026-10-27T01:47:06Z",
+              "proof": "Tests 40429890418 green on 68d11a840, Live 40427507208 green on 5f0a17a4a (delta Worker and size budget only); reviewed (api.d.ts +9; D161 version window for the RULE arm accepted); merged in m484. Regression: nativeRoomRuleTrigger.test.ts failed before the Worker rules-state fix. Proofs: packages/rules-runtime/src/__tests__/encounterRuleAction.test.ts, apps/session-worker/test/nativeRoomRuleActionRefusal.test.ts, apps/session-worker/test/nativeRoomRuleTrigger.test.ts"
             },
             {
               "id": "ATTACK-16.T1d",
@@ -9930,11 +9951,12 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 2,
+                "size": 5,
                 "after": ["ATTACK-16.T1c2b"]
               },
-              "text": "Migrate the system-shock bands to the authored ROLL_TABLE on the optional-combat definition; delete the 5 executor-less primitives and outcome kinds with their data and fixtures; reseed dev data.",
-              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+              "text": "Generic HIT_POINTS_TO_ZERO outcome (a KILL sibling: no damage, no overflow; reuses the 0-HP defeat and dying transition; replay and undo), then migrate the system-shock bands to the authored ROLL_TABLE on the optional-combat definition (rows 2-3 add STABILIZE); delete the 5 executor-less primitives and outcome kinds with their data and fixtures; reseed dev data.",
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Re-sized 2 to 5 on 2026-10-27 (user yes, D187 growth): nothing could set hit points to 0 without damage.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "ATTACK-16.T2",
@@ -19801,7 +19823,7 @@
         {
           "id": "RELIABILITY-20",
           "title": "Browser journeys run in CI on a throwaway stack",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [".github/workflows/live-backend.yml"],
           "journeyStatus": "none",
           "origin": [],
@@ -19815,10 +19837,10 @@
             {
               "id": "RELIABILITY-20.1",
               "text": "A CI job starts a throwaway self-hosted Convex (the local image digest) and the Session Worker (local wrangler dev) with generated throwaway configuration, uses no repository secrets and never reaches Cloudflare or Convex Cloud, runs a named browser proof and uploads its evidence.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/contentSnapshots/build.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d). Closed 2026-10-27 by RELIABILITY-20.T1."
             },
             {
               "id": "RELIABILITY-20.2",
@@ -19848,7 +19870,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-20.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-20.1"],
               "wsjf": {
                 "bv": 5,
@@ -19857,7 +19879,9 @@
                 "size": 5
               },
               "text": "Add a CI job (live-backend.yml or a sibling) that starts the throwaway Convex plus the Session Worker under local wrangler dev with generated application and worker configuration (no secrets, no cloud), deploys and seeds, and runs the player-browser proof green with evidence uploaded. Reuse liveBackendValidation.mjs and the existing proof driver; port only what the PowerShell runner does that Linux needs.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "mergedAt": "2026-10-27T02:06:34Z",
+              "proof": "Tests 40427779447, Live 40427779475 and Browser journeys 40427780040 (player-browser) green on 084a782d9; merged by hand (workflow change) as m485 after ci/merge-m485 Tests 40436533144 and Live 40436532907 green. Root cause: snapshot builds now wait for a pending compilation and rebuild on its mark. Proofs: apps/apis/convex/contentSnapshots/build.test.ts, .github/workflows/browser-journeys.yml run",
+              "note": " Merged in m485."
             },
             {
               "id": "RELIABILITY-20.T2",
