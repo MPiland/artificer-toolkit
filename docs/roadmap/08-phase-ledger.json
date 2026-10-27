@@ -7122,10 +7122,16 @@
             },
             {
               "text": "The target can try to dislodge the climber with the authored contest, and a dislodged climber lands in a legal adjacent space.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomClimbDislodge.test.ts",
+                "packages/encounter-persistence/src/__tests__/contestEscapeMovement.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
+                "escapeCheckForcedMovementAuthoringParity.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "MOVE-4.3"
+              "id": "MOVE-4.3",
+              "note": "Closed 2026-10-27 by MOVE-4.T3a, MOVE-4.T3b."
             },
             {
               "text": "Campaign settings offer the rule only once it resolves.",
@@ -7224,7 +7230,7 @@
             },
             {
               "id": "MOVE-4.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.3"],
               "wsjf": {
                 "bv": 2,
@@ -7234,8 +7240,9 @@
                 "after": ["MOVE-4.T3a"]
               },
               "text": "Extract the forced-movement fields from maps/path.ts into a shared node map, add the escape check holderForcedMovement form field, with an authoring parity proof and docs.",
-              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3. Merged in m501.",
+              "mergedAt": "2026-10-27T19:42:06Z",
+              "proof": "Tests 40565969882, Live 40565969752/40566021151 and Browser journeys 40565969965 green on de722a04c; reviewed (helper typed on the forced-movement builder API, one cond cast); merged in m501. Proofs: escapeCheckForcedMovementAuthoringParity.test.ts"
             },
             {
               "id": "MOVE-4.T4",
@@ -11696,7 +11703,8 @@
                 "after": ["SPELLS-4.T2lb2c", "RELIABILITY-20.T1"]
               },
               "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
-              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1."
+              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -20259,7 +20267,8 @@
                 "size": 2
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again."
+              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again.",
+              "activeWorkbook": "docs/architecture/live-sessions.md"
             },
             {
               "id": "RELIABILITY-21.T9",
@@ -20378,7 +20387,8 @@
                 "after": ["ATTACK-12.T1"]
               },
               "text": "Facing arcs on the token: draw the front/side/rear arcs of the selected or current-turn token from the Scene token's facing using the shared optionalCombatGeometry classifier (apps/web only draws; no arc math in web), gated on the Facing rule being on and facing present in the session state ATTACK-12 adds. Proof: model test building presentations through buildVttTokenPresentations, renderer-diagnostics story sampling arc polygons, and a window journey story (select a token with Facing on, see arcs, rotate, arcs follow). Browser test is warranted because the AC is what the user sees.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "VTT_UI-1.T2",
@@ -20585,7 +20595,8 @@
                 "size": 1
               },
               "text": "Close-out: AC 3.2 lists complete proof (lighting stories sampling resolveSceneIlluminationAt, GM see-all, token-view preview) and its note says only 'awaiting lane 1 acceptance of the review fixes'; verify the stories still pass and mark DONE, register CampaignTabletopWindow.stories.tsx as the PBI journey test (verified to drive the real flow, as VTT_UI-1 does). Ledger-only unless the verification fails.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/live-sessions.md"
             }
           ]
         },
