@@ -58,12 +58,12 @@ const RANGE = ['TARGET_RANGE_UNCHECKED' as const]
  * publishes it and a Dagger (with the Club every room publishes) into the room's R2 content: the
  * sources a replacement reads. With `autoRoll` the GM's rolls are made for them, so the Ogre's
  * attack with its held weapon resolves in one command; `rolls` follow its hit's d20 as raw dice.
- * `extraEquipment` is published beside them.
+ * `publishedEquipment` is published beside them, carried by no one.
  */
 async function equipmentRoom(
   creatureName = 'Ogre',
   autoRoll?: 'GAME_MASTER',
-  extraEquipment: readonly EquipmentAuthored[] = [],
+  publishedEquipment: readonly EquipmentAuthored[] = [],
   rolls: readonly number[] = []
 ) {
   const creature = seededSrdCreature(creatureName)
@@ -77,10 +77,9 @@ async function equipmentRoom(
   const acting = await actionRoom({
     actors: [ogre, characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
     ownerFeatureId: attackFeatureId,
-    characterEquipment: [
-      ...(creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace]),
-      ...extraEquipment
-    ],
+    characterEquipment:
+      creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace],
+    publishedEquipment,
     ...(autoRoll && { autoRoll, rolls: [HIT_FACE, ...rolls] })
   })
   const room = acting.room
