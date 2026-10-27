@@ -252,6 +252,18 @@ describe('CampaignVttStage picking where a forced movement leaves its target (D1
     expect(await screen.findByText('Pick where Vault Warden lands.')).toBeVisible()
   })
 
+  it('answers the pick on the board alone, leaving the decision drawer to those who wait on it', async () => {
+    renderStage('PLAYER', pendingPush(emberActor.id, wardenActor.id))
+    const picker = await screen.findByRole('button', { name: 'Leave Vault Warden where it is' })
+    await waitFor(() => expect(picker).toHaveFocus())
+    expect(screen.queryByRole('button', { name: 'Open pending decision' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the decision in the drawer for a player who waits on another creature’s pick', async () => {
+    renderStage('PLAYER', pendingPush(wardenActor.id, emberActor.id))
+    expect(await screen.findByRole('button', { name: 'Open pending decision' })).toBeVisible()
+  })
+
   it('offers no pick to a player who does not act for the source', async () => {
     renderStage('PLAYER', pendingPush(wardenActor.id, emberActor.id))
     await waitFor(() => expect(mocks.update).toHaveBeenCalled())
