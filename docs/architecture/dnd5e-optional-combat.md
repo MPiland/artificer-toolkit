@@ -128,6 +128,10 @@ distance, action economy and collision fields: the forced-movement outcome in `m
 standalone map both register it, so the two cannot drift. `escapeCheckForcedMovementAuthoringParity`
 proves the SRD cling, landing included, passes through the effect node map as authored.
 
+Climb onto a larger creature (MOVE-4, current) is offered in Campaign settings once its System policy
+resolves it (T4): `CLIMB_ONTO_LARGER_CREATURE` is in the integrated module table
+(`optionalCombatSourceAccess.ts`), so the cling, its follow and its dislodge run end to end.
+
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
 anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy

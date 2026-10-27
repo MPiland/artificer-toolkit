@@ -8,7 +8,10 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import type { z } from 'zod'
 import type { characterStoredRecordSchema } from '@artificer-toolkit/schema/projections/characterPersistence'
-import { assembleCharacterStructure } from '@artificer-toolkit/schema/projections/characterOperationalState'
+import {
+  assembleCharacterStructure,
+  readCharacterBuildFields
+} from '@artificer-toolkit/schema/projections/characterOperationalState'
 import type { CharacterCollectionTable } from '@artificer-toolkit/schema/projections/characterOperationalRecords'
 
 export { characterDocumentSchema, readCharacterPlay, readCharacterRecord, type CharacterDocument }
@@ -53,6 +56,26 @@ export async function readCharacterPlayRow(ctx: QueryCtx, characterId: string) {
     .unique()
   if (!play) throw new Error('Stored Character play state is unavailable.')
   return play
+}
+
+/**
+ * A Character head's play record and checksum-verified build fields, without hydrating any owned
+ * collection: focused reads check the Character's integrity at a cost that does not grow with it.
+ */
+export async function readVerifiedCharacterBuild(ctx: QueryCtx, head: Doc<'characters'>) {
+  const [play, build] = await Promise.all([
+    readCharacterPlayRow(ctx, head.id),
+    ctx.db
+      .query('characterBuildStates')
+      .withIndex('by_characterId', (q) => q.eq('characterId', head.id))
+      .unique()
+  ])
+  if (play.userId !== head.userId || play.characterId !== head.id)
+    throw new Error('Stored Character identity mismatch.')
+  readCharacterPlay(play)
+  if (!build) throw new Error('Stored Character build state is unavailable.')
+  const { _id, _creationTime, ...buildFields } = build
+  return { play, fields: readCharacterBuildFields(head.id, buildFields) }
 }
 
 /** Joins the Character row's play record. */
