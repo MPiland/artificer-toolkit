@@ -43,17 +43,7 @@ import {
   SRD_SYSTEM_ID
 } from './vocabulary.js'
 
-const optionalOutcome = <
-  TKind extends
-    | 'REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN'
-    | 'DROP_TO_ZERO'
-    | 'STABLE_AT_ZERO'
-    | 'STUNNED_UNTIL_END_OF_NEXT_TURN'
-    | 'IMPAIRED_UNTIL_END_OF_NEXT_TURN'
-    | 'CONTINUE'
-    | 'FLEE'
-    | 'SURRENDER'
->(
+const optionalOutcome = <TKind extends 'CONTINUE' | 'FLEE' | 'SURRENDER'>(
   id: string,
   kind: TKind,
   operations: readonly unknown[]
@@ -480,6 +470,165 @@ const injuriesDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.
   mutuallyExclusiveGroup: null
 })
 
+/**
+ * System shock, the action a failed massive-damage save raises on its holder: a d10 on the System
+ * Shock table. Each lasting row holds until the end of the holder's next turn.
+ */
+function systemShockEffect() {
+  const childId = (kind: string, index = 0) =>
+    uuidv5(
+      `${DND5E_MASSIVE_DAMAGE_DEFINITION_ID}:${kind}:${index}`,
+      DND5E_MASSIVE_DAMAGE_DEFINITION_ID
+    )
+  const untilEndOfNextTurn = (row: number) => ({
+    duration: { id: childId('duration', row), durationKind: 'ROUND', amount: 1 },
+    lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } }
+  })
+  const noReactions = (row: number) => ({
+    id: childId('no-reactions', row),
+    grantKind: 'MODIFIER_GRANT',
+    valueDomainCode: 'REACTION_COUNT',
+    domain: {},
+    modifierKind: 'SET_VALUE',
+    payload: { amount: 0 },
+    scope: 'GLOBAL',
+    selectionKind: 'GRANTED',
+    order: 0
+  })
+  const disadvantage = { modifierKind: 'ROLL_INFLUENCE', payload: { influence: 'DISADVANTAGE' } }
+  const domains = Object.values(ATTACK_DOMAIN_CODE)
+  return {
+    id: childId('effect'),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: 'ACTIVATED',
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: childId('range'), rangeKind: 'SELF' },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: childId('path'),
+        order: 1,
+        pathCode: 'ON_USE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'ROLL_TABLE',
+        rollTableKind: 'RANGE',
+        dieConfig: '1d10',
+        rows: [
+          {
+            id: childId('row', 1),
+            order: 1,
+            rollRange: [1, 1],
+            resolutionKind: 'RESULT',
+            resultBlock: {
+              id: childId('result', 1),
+              resultKind: 'SINGLE',
+              outcomes: [{ id: childId('to-zero', 1), effectKind: 'HIT_POINTS_TO_ZERO' }]
+            }
+          },
+          {
+            id: childId('row', 2),
+            order: 2,
+            rollRange: [2, 3],
+            resolutionKind: 'RESULT',
+            resultBlock: {
+              id: childId('result', 2),
+              resultKind: 'SEQUENCE',
+              outcomes: [
+                { id: childId('to-zero', 2), effectKind: 'HIT_POINTS_TO_ZERO' },
+                { id: childId('stable', 2), effectKind: 'STABILIZE', requiresZeroHitPoints: true }
+              ]
+            }
+          },
+          {
+            id: childId('row', 3),
+            order: 3,
+            rollRange: [4, 5],
+            resolutionKind: 'RESULT',
+            resultBlock: {
+              id: childId('result', 3),
+              resultKind: 'SINGLE',
+              ...untilEndOfNextTurn(3),
+              outcomes: [
+                {
+                  id: childId('stunned', 3),
+                  effectKind: 'CONDITION',
+                  conditionId: conditionId('STUNNED')
+                }
+              ]
+            }
+          },
+          {
+            id: childId('row', 4),
+            order: 4,
+            rollRange: [6, 7],
+            resolutionKind: 'RESULT',
+            resultBlock: {
+              id: childId('result', 4),
+              resultKind: 'SINGLE',
+              ...untilEndOfNextTurn(4),
+              outcomes: [
+                {
+                  id: childId('impaired', 4),
+                  effectKind: 'APPLY_GRANT',
+                  grants: {
+                    modifiers: [
+                      noReactions(4),
+                      ...domains.map((attackDomain, order) => ({
+                        id: childId('attack-disadvantage', order),
+                        grantKind: 'MODIFIER_GRANT',
+                        valueDomainCode: 'ATTACK_ROLL',
+                        domain: { attackDomain },
+                        ...disadvantage,
+                        scope: 'GLOBAL',
+                        selectionKind: 'GRANTED',
+                        order: order + 1
+                      })),
+                      {
+                        id: childId('check-disadvantage', 4),
+                        grantKind: 'MODIFIER_GRANT',
+                        valueDomainCode: 'ABILITY_CHECK',
+                        domain: {},
+                        ...disadvantage,
+                        scope: 'GLOBAL',
+                        selectionKind: 'GRANTED',
+                        order: domains.length + 1
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          },
+          {
+            id: childId('row', 5),
+            order: 5,
+            rollRange: [8, 10],
+            resolutionKind: 'RESULT',
+            resultBlock: {
+              id: childId('result', 5),
+              resultKind: 'SINGLE',
+              ...untilEndOfNextTurn(5),
+              outcomes: [
+                {
+                  id: childId('no-reactions-grant', 5),
+                  effectKind: 'APPLY_GRANT',
+                  grants: { modifiers: [noReactions(5)] }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+
+const systemShock = systemShockEffect()
+
 const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse({
   schemaVersion: 1,
   kind: 'MASSIVE_DAMAGE',
@@ -491,100 +640,9 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
     threshold: { numerator: 1, denominator: 2 },
     savingThrowAbilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
     savingThrowDifficultyClass: 15,
-    bands: [
-      {
-        minimum: 1,
-        maximum: 1,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000141', 'DROP_TO_ZERO', [
-          {
-            id: '00000000-0000-4000-8000-000000000241',
-            primitive: 'SET_HIT_POINTS',
-            target: 'SUBJECT',
-            value: 0,
-            duration: null
-          }
-        ])
-      },
-      {
-        minimum: 2,
-        maximum: 3,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000142', 'STABLE_AT_ZERO', [
-          {
-            id: '00000000-0000-4000-8000-000000000242',
-            primitive: 'SET_HIT_POINTS',
-            target: 'SUBJECT',
-            value: 0,
-            duration: null
-          },
-          {
-            id: '00000000-0000-4000-8000-000000000243',
-            primitive: 'SET_STABLE',
-            target: 'SUBJECT',
-            duration: null
-          }
-        ])
-      },
-      {
-        minimum: 4,
-        maximum: 5,
-        outcome: optionalOutcome(
-          '00000000-0000-4000-8000-000000000143',
-          'STUNNED_UNTIL_END_OF_NEXT_TURN',
-          [
-            {
-              id: '00000000-0000-4000-8000-000000000244',
-              primitive: 'APPLY_CONDITION',
-              target: 'SUBJECT',
-              conditionDefinitionId: conditionId('STUNNED'),
-              duration: 'UNTIL_END_OF_NEXT_TURN'
-            }
-          ]
-        )
-      },
-      {
-        minimum: 6,
-        maximum: 7,
-        outcome: optionalOutcome(
-          '00000000-0000-4000-8000-000000000144',
-          'IMPAIRED_UNTIL_END_OF_NEXT_TURN',
-          [
-            {
-              id: '00000000-0000-4000-8000-000000000245',
-              primitive: 'SET_REACTION_AVAILABILITY',
-              target: 'SUBJECT',
-              available: false,
-              duration: 'UNTIL_END_OF_NEXT_TURN'
-            },
-            {
-              id: '00000000-0000-4000-8000-000000000246',
-              primitive: 'APPLY_ROLL_MODE',
-              target: 'SUBJECT',
-              rollMode: 'DISADVANTAGE',
-              rollContexts: ['ATTACK_ROLL', 'ABILITY_CHECK'],
-              duration: 'UNTIL_END_OF_NEXT_TURN'
-            }
-          ]
-        )
-      },
-      {
-        minimum: 8,
-        maximum: 10,
-        outcome: optionalOutcome(
-          '00000000-0000-4000-8000-000000000145',
-          'REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN',
-          [
-            {
-              id: '00000000-0000-4000-8000-000000000247',
-              primitive: 'SET_REACTION_AVAILABILITY',
-              target: 'SUBJECT',
-              available: false,
-              duration: 'UNTIL_END_OF_NEXT_TURN'
-            }
-          ]
-        )
-      }
-    ]
+    failedSaveEffectId: systemShock.id
   },
+  raisedEffects: [systemShock],
   mutuallyExclusiveGroup: null
 })
 

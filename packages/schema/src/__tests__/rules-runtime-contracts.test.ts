@@ -2296,6 +2296,57 @@ describe('rules runtime contracts', () => {
     ).toThrow()
   })
 
+  it('replays a drop to 0 hit points as current and temporary hit points at 0, dying not dead (ATTACK-16.T1d)', () => {
+    const before = {
+      currentHitPoints: 6,
+      temporaryHitPoints: 2,
+      maximumHitPoints: 10,
+      scalarValues: {},
+      conditionIds: [],
+      deathSaves: NO_DEATH_SAVES
+    }
+    const dropped = { ...before, currentHitPoints: 0, temporaryHitPoints: 0 }
+    const envelope = (after: typeof before, beforeCurrentHitPoints: number) => ({
+      kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      sourceApplications: [],
+      actionEconomyTransition: null,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      sourceCharacterId: turnBatchIds.character,
+      targetActorId: turnBatchIds.actor,
+      sourceCharacterStreamVersion: null,
+      targetCharacterStreamVersion: 1,
+      resourceConsumption: null,
+      activeEffectTransitions: [],
+      d20: null,
+      targetTransition: { checksum: 'a'.repeat(64), before, after },
+      applications: [
+        {
+          ordinal: 0,
+          kind: 'HIT_POINTS_TO_ZERO' as const,
+          beforeCurrentHitPoints,
+          afterCurrentHitPoints: 0 as const,
+          beforeTemporaryHitPoints: 2,
+          afterTemporaryHitPoints: 0 as const,
+          sourceNodeId: 'effect-node',
+          sourceOperationKey: 'effect.apply',
+          authoredPath: null,
+          resolvedPath: null
+        }
+      ]
+    })
+    const parse = (value: ReturnType<typeof envelope>) =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(value)
+    expect(() => parse(envelope(dropped, 6))).not.toThrow()
+    // The receipt must start from the target's real hit points.
+    expect(() => parse(envelope(dropped, 5))).toThrow()
+    // Dropping to 0 is not a kill: the saves stay as they were.
+    expect(() =>
+      parse(envelope({ ...dropped, deathSaves: { successes: 0, failures: 3, stable: false } }, 6))
+    ).toThrow()
+  })
+
   // SPELLS-4.T2s2: a hit on a Character's form changes the form's hit points, not the Sheet's (D130).
   it('takes a Character form hit without a Sheet version and keeps every other change versioned', () => {
     const before = {

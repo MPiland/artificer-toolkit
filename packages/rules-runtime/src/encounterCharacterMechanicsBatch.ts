@@ -379,6 +379,26 @@ export function foldCharacterMechanicsApplications<
       if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
       continue
     }
+    // Not damage: no interception, no instant death and no death save failure. At 0 a Creature is
+    // defeated and a Character is dying, as when damage reaches 0.
+    if (application.kind === 'HIT_POINTS_TO_ZERO') {
+      receipt.push({
+        ordinal,
+        kind: 'HIT_POINTS_TO_ZERO',
+        beforeCurrentHitPoints: current,
+        afterCurrentHitPoints: 0,
+        beforeTemporaryHitPoints: temporary,
+        afterTemporaryHitPoints: 0,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
+      current = 0
+      temporary = 0
+      temporarySource = null
+      continue
+    }
     if (application.kind === 'REVIVE') {
       // Only a dead target returns to life; any other target changes nothing.
       const applied = isTargetDead({ currentHitPoints: current, deathSaves })

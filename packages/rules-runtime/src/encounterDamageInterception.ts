@@ -434,6 +434,12 @@ export function applyDamageInterceptions(input: {
         ...(interceptionCharge && { interceptionCharge })
       }
     }
+    // Dropping to 0 is no damage, so no interception answers it.
+    if (application.kind === 'HIT_POINTS_TO_ZERO') {
+      current = 0
+      pool = { amount: 0, sourceEffectId: null }
+      return application
+    }
     if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
       pool = temporaryHitPointsAfterRelease(pool, application.sourceActiveEffectId)
       return application

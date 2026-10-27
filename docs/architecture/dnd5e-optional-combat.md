@@ -147,7 +147,8 @@ applies a rule's outcomes at will.
 
 A failed save raises a rule action (ATTACK-16.T1c2b, current). Massive Damage's optional
 `failedSaveEffectId` names one of its `raisedEffects` (the document refuses any other id); absent, a
-failed save changes nothing, as the SRD seed does. After every committed command,
+failed save changes nothing. The SRD seed authors System Shock this way (ATTACK-16.T1d): a `1d10`
+RANGE table whose 1 is `HIT_POINTS_TO_ZERO`, 2-3 that outcome then `STABILIZE`, 4-5 Stunned, 6-7 a grant of`nno reactions and disadvantage on attack rolls and ability checks, and 8-10 a grant of no reactions; each`nlasting row holds until the end of the holder's next turn. `HIT_POINTS_TO_ZERO` is a generic target-only`noutcome, a sibling of `KILL` with the same receipt and undo path: it sets current and temporary hit points`nto 0 without dealing damage (no D96 overflow, no damage triggers), so a Creature is defeated and a`nCharacter starts dying through the ordinary 0-hit-point transition. The rule's former fixed outcome bands`nand their executor-less primitives are gone. After every committed command,
 `raiseRoomRuleEffects` (`roomEncounterRuleTriggers.ts`) reads the rule receipts in the current trigger
 window (persistence guide, SYSTEM admission), and for each pinned `SAVE_FAILURE` whose holder still
 stands and whose action has not run, raises the named Effect on the holder as a self-targeted `ACTOR`

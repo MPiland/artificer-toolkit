@@ -17,6 +17,7 @@ export const EFFECT_KIND = {
   ACTION_ECONOMY_RULE: 'ACTION_ECONOMY_RULE',
   STABILIZE: 'STABILIZE',
   KILL: 'KILL',
+  HIT_POINTS_TO_ZERO: 'HIT_POINTS_TO_ZERO',
   REVIVE: 'REVIVE',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   RESTORE_RESOURCE: 'RESTORE_RESOURCE',
@@ -118,6 +119,11 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.KILL,
     label: 'Kill',
     description: 'The target dies at once.'
+  },
+  [EFFECT_KIND.HIT_POINTS_TO_ZERO]: {
+    code: EFFECT_KIND.HIT_POINTS_TO_ZERO,
+    label: 'Drop to 0 Hit Points',
+    description: 'The target drops to 0 hit points without taking damage.'
   },
   [EFFECT_KIND.REVIVE]: {
     code: EFFECT_KIND.REVIVE,

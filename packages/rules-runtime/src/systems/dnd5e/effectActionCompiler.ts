@@ -2028,6 +2028,7 @@ const DND5E_DIRECT_OUTCOMES: {
   },
   KILL: () => ({ kind: 'KILL' }),
   STABILIZE: targetOnlyDirectOutcome,
+  HIT_POINTS_TO_ZERO: targetOnlyDirectOutcome,
   REVIVE: targetOnlyDirectOutcome,
   MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
   MOVEMENT_RULE: targetOnlyDirectOutcome,

@@ -92,17 +92,15 @@ const shockEffect = {
 function systemShock(raises: boolean) {
   return (
     document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
-  ): Dnd5eOptionalCombatReusableDefinitionDocumentDto =>
-    document.parameters.kind !== 'MASSIVE_DAMAGE'
-      ? document
-      : {
-          ...document,
-          raisedEffects: [shockEffect],
-          parameters: {
-            ...document.parameters,
-            ...(raises && { failedSaveEffectId: SHOCK_EFFECT_ID })
-          }
-        }
+  ): Dnd5eOptionalCombatReusableDefinitionDocumentDto => {
+    if (document.parameters.kind !== 'MASSIVE_DAMAGE') return document
+    const { failedSaveEffectId: _seeded, ...parameters } = document.parameters
+    return {
+      ...document,
+      raisedEffects: [shockEffect],
+      parameters: { ...parameters, ...(raises && { failedSaveEffectId: SHOCK_EFFECT_ID }) }
+    }
+  }
 }
 
 /**
@@ -114,6 +112,8 @@ function shockRoom(input: {
   saveFace: number
   tableFace: number
   raises?: boolean
+  /** The SRD seed's own System Shock table instead of the homebrew d6. */
+  seeded?: boolean
 }) {
   const attacker = biteWolf('ATTACK', { damage: 7 })
   return actionRoom({
@@ -130,7 +130,7 @@ function shockRoom(input: {
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     optionalCombatKinds: ['MASSIVE_DAMAGE'],
-    optionalCombatHomebrew: systemShock(input.raises ?? true)
+    ...(!input.seeded && { optionalCombatHomebrew: systemShock(input.raises ?? true) })
   })
 }
 
@@ -146,15 +146,21 @@ async function creatureConditions(room: ShockRoom) {
   )
 }
 
-/** A Character holds its conditions in its play state. */
-function characterConditions(room: ShockRoom) {
+/** A Character holds its hit points and conditions in its play state. */
+function characterPlay(room: ShockRoom) {
   return runInDurableObject(room.room.base.stub, (_instance, context) => {
     const row = new RoomEncounterStore(context.storage)
       .documents('characterPlayStates')
       .find((candidate) => candidate.characterId === CHARACTER_ID)
     if (!row) throw new Error('Missing room Character play state.')
-    return (readCharacterPlay(row).conditions ?? []).map(({ conditionTypeId }) => conditionTypeId)
+    return readCharacterPlay(row)
   })
+}
+
+async function characterConditions(room: ShockRoom) {
+  return ((await characterPlay(room)).conditions ?? []).map(
+    ({ conditionTypeId }) => conditionTypeId
+  )
 }
 
 async function bite(room: ShockRoom, targetActorId: string) {
@@ -214,5 +220,67 @@ describe('a rule’s failed save raises its action on the holder (ATTACK-16.T1c2
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), HOLDER_ID)).toBe(13)
     expect(await creatureConditions(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * ATTACK-16.T1d: the SRD seed authors System Shock as the massive-damage rule's raised d10 table. On
+ * a 1 the holder drops to 0 hit points (a Creature is defeated, a Character starts dying), on a 2-3
+ * it also stabilizes, and on a 4-5 it is stunned.
+ */
+describe('the seeded System Shock table (ATTACK-16.T1d)', () => {
+  const STUNNED = conditionId('STUNNED')
+  const seeded = (holder: 'CREATURE' | 'CHARACTER', tableFace: number) =>
+    shockRoom({ holder, saveFace: 2, tableFace, seeded: true })
+
+  async function creatureVitals(room: ShockRoom) {
+    const holder = vitalsOf(await readRoomHistory(room.room.base.stub)).find(
+      ({ id }) => id === HOLDER_ID
+    )
+    if (!holder) throw new Error('The holder is missing.')
+    return holder
+  }
+
+  it('drops a Creature holder to 0 hit points, defeated, on a 1', async () => {
+    const room = await seeded('CREATURE', 1)
+    await bite(room, HOLDER_ID)
+    expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), HOLDER_ID)).toBe(0)
+    expect(await creatureVitals(room)).toMatchObject({ defeated: true })
+  }, 120000)
+
+  it.each([
+    [1, false],
+    [3, true]
+  ])(
+    'drops a Character holder to 0 hit points on a %i, stable: %s',
+    async (tableFace, stable) => {
+      const room = await seeded('CHARACTER', tableFace)
+      await bite(room, CHARACTER_ACTOR_ID)
+      const { hitpoints } = await characterPlay(room)
+      expect(hitpoints.current).toBe(0)
+      expect(hitpoints.deathSaves).toMatchObject({ successes: 0, failures: 0, stable })
+    },
+    120000
+  )
+
+  it('stuns a Creature holder on a 4', async () => {
+    const room = await seeded('CREATURE', 4)
+    await bite(room, HOLDER_ID)
+    expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), HOLDER_ID)).toBe(6)
+    expect(await creatureConditions(room)).toEqual([STUNNED])
+  }, 120000)
+
+  it('undoes the drop to 0 with the Bite that raised it', async () => {
+    const room = await seeded('CREATURE', 1)
+    await bite(room, HOLDER_ID)
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), HOLDER_ID)).toBe(13)
+    expect(await creatureVitals(room)).toMatchObject({ defeated: false })
   }, 120000)
 })

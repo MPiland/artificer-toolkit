@@ -14,6 +14,7 @@ import type { ActionEconomyRuleAuthored } from './actionEconomyRule.js'
 import type { ReviveAuthored } from './revive.js'
 import type { StabilizeAuthored } from './stabilize.js'
 import type { KillAuthored } from './kill.js'
+import type { HitPointsToZeroAuthored } from './hitPointsToZero.js'
 import type { TeleportAuthored } from './teleport.js'
 import type { ArmorClassFloorAuthored } from './armorClassFloor.js'
 import type { RestoreResourceAuthored } from './restoreResource.js'
@@ -53,6 +54,7 @@ export type OutcomeAuthored =
   | ReviveAuthored
   | StabilizeAuthored
   | KillAuthored
+  | HitPointsToZeroAuthored
   | ArmorClassFloorAuthored
   | RestoreResourceAuthored
   | TelepathicLinkAuthored
