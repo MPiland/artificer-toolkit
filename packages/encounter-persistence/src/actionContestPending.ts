@@ -59,11 +59,13 @@ export async function readNativeContestPending(
     snapshot.graph.source.definitionId === contest.contestGraph.definitionId &&
     snapshot.graph.source.checksum === contest.contestGraph.checksum
   // A won basic action contest's outcome waits on its initiator's dice (D173), or its settled
-  // forced movement on the initiator's destination pick (D157), both checks rolled.
+  // forced movement on the initiator's destination pick (D157), both checks rolled. A won escape
+  // has no outcome dice; only its holder's landing waits on a pick (MOVE-4.3).
   if (context.contestPhase === 'OUTCOME' || context.contestPhase === 'DESTINATION') {
     if (
       onContestGraph ||
-      origin?.kind !== 'BASIC_ACTION' ||
+      (origin?.kind !== 'BASIC_ACTION' &&
+        (origin?.kind !== 'ESCAPE' || context.contestPhase !== 'DESTINATION')) ||
       contest.rollEvidence.initiator === null ||
       contest.rollEvidence.defender === null ||
       (context.contestPhase === 'DESTINATION') !== (context.pause?.kind === 'FORCED_MOVEMENT')
