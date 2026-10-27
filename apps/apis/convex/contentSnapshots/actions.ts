@@ -15,12 +15,9 @@ import {
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
+import { CONTENT_SNAPSHOT_PAGE_MAX_ROOTS } from './heads'
 import { vContentSnapshotScopeRef } from './marking'
 import { createContentSnapshotStorage } from './storage'
-
-// About 60 ms of warm Node for the SRD's largest kind (CREATURE), leaving headroom for the
-// self-hosted runtime's slower per-call execution against the 1 s query limit.
-const CONTENT_SNAPSHOT_READ_PAGE_SIZE = 100
 
 /**
  * Rebuilds every kind of one scope from its current publications and commits the head with a
@@ -54,7 +51,7 @@ export const build = internalAction({
             {
               ...ref,
               kind,
-              paginationOpts: { numItems: CONTENT_SNAPSHOT_READ_PAGE_SIZE, cursor }
+              paginationOpts: { numItems: CONTENT_SNAPSHOT_PAGE_MAX_ROOTS, cursor }
             }
           )
           if ('pendingCompilation' in page) {

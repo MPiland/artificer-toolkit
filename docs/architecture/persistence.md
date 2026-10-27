@@ -677,9 +677,9 @@ identities, numeric versions and stored parent metadata, and original storage ch
   `authoredRoots` (the root's source and every Campaign sharing it), `authoredVersions`,
   `authoredVersionCompilations` (a recompile writes only this row), `campaignContentShares`, import completion (`importJobs`), and, for existing heads only, `contentSources`, `campaigns` (System, owner,
   catalogue) and `campaignMemberships` (status, role).
-- **Build.** The Node action reads `revision`, then each kind in pages of 100 roots (a write between pages bumps
-  `revision` and triggers another build), builds the `index`, `list` and `documents` parts and uploads gzipped
-  objects only for keys without a row. Unchanged kinds keep their keys. A root whose current compilation is
+- **Build.** The Node action reads `revision`, then each kind in pages that end at 15 roots or once their serialized
+  sources reach 256 KiB, well under the 1 s query limit (a write between pages bumps `revision` and triggers another
+  build), builds the `index`, `list` and `documents` parts and uploads gzipped objects only for keys without a row. Unchanged kinds keep their keys. A root whose current compilation is
   missing or stale (the seed compiles Classes and subraces after every root exists) makes the build wait, not
   fail: `awaitCompilation` releases the lease, so the compilation's own mark schedules the next build, or
   reschedules at once when a mark landed during the build. Only other errors take `failBuild`'s backoff
