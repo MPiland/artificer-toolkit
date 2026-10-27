@@ -193,9 +193,13 @@ function buildRoots(
 
 /**
  * One SRD root as the Convex importer stores it and the snapshot build reads it back: the JSON
- * round trip, canonical checksum and name-based version identity are the production ones.
+ * round trip, canonical checksum and name-based version identity are the production ones. An
+ * Equipment variant compiles against its parents among the published Equipment, as publication does.
  */
-function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapshotListSource {
+function listSource(
+  root: ReturnType<typeof buildRoots>[number],
+  parentOf: (equipmentId: string) => EquipmentAuthored | undefined
+): ContentSnapshotListSource {
   const { subjectKind, document: authored } = root
   const document = JSON.parse(JSON.stringify(authored))
   const publication = parsePublicationDocument(subjectKind, document)
@@ -219,10 +223,12 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
     },
     version: 1
   }
+  const effective =
+    root.subjectKind === 'EQUIPMENT' ? resolveEquipmentAuthored(root.document, parentOf) : undefined
   const identity = {
     publicId: publication.document.id,
     publicationVersion,
-    compilation: compilePublicationDocument(publication)
+    compilation: compilePublicationDocument(publication, effective)
   }
   if (publication.subjectKind === 'SPELL') {
     const school = srdSystemRecord.magicSchools.find(
@@ -232,12 +238,7 @@ function listSource(root: ReturnType<typeof buildRoots>[number]): ContentSnapsho
     return { ...publication, ...identity, magicSchoolLabel: school.label }
   }
   if (publication.subjectKind !== 'EQUIPMENT') return { ...publication, ...identity }
-  if (root.subjectKind !== 'EQUIPMENT') throw new Error('The root is not Equipment.')
-  const { builder } = equipmentOptionFacts(
-    publication.document,
-    checksum,
-    resolveEquipmentAuthored(root.document, () => undefined)
-  )
+  const { builder } = equipmentOptionFacts(publication.document, checksum, effective)
   if (!builder) throw new Error('The Equipment option facts have no Builder projection.')
   return {
     subjectKind: 'EQUIPMENT',
@@ -271,6 +272,20 @@ export function buildSrdSourceKinds(
     ...(spells || subclassSpells(characterSubclass).length > 0 ? ['SPELL' as const] : []),
     ...(creatures ? ['CREATURE' as const] : [])
   ] as const
+  const roots = buildRoots(
+    characterClass,
+    secondWind,
+    classFeatures,
+    equipment,
+    spells,
+    creatures,
+    characterSubclass
+  )
+  const publishedEquipment = roots.flatMap((root) =>
+    root.subjectKind === 'EQUIPMENT' ? [root.document] : []
+  )
+  const parentOf = (equipmentId: string) =>
+    publishedEquipment.find((document) => document.id === equipmentId)
   return kinds.map((kind) => {
     const header = {
       format: 3 as const,
@@ -280,15 +295,7 @@ export function buildSrdSourceKinds(
     }
     const built = buildContentSnapshotKind(
       header,
-      buildRoots(
-        characterClass,
-        secondWind,
-        classFeatures,
-        equipment,
-        spells,
-        creatures,
-        characterSubclass
-      )
+      roots
         .filter((root) => root.subjectKind === kind)
         .map((root) =>
           darkvision && root.subjectKind === 'RACE'
@@ -298,7 +305,7 @@ export function buildSrdSourceKinds(
               }
             : root
         )
-        .map(listSource)
+        .map((root) => listSource(root, parentOf))
     )
     return { kind, header, built }
   })

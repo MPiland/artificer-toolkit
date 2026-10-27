@@ -94,6 +94,7 @@ export async function characterRoomInputs({
   darkvision = false,
   classFeatures = [],
   equipment = [],
+  publishedEquipment = [],
   play,
   spellcasting,
   creatures
@@ -106,6 +107,8 @@ export async function characterRoomInputs({
   classFeatures?: readonly ClassFeature[]
   /** Further SRD Equipment the Character carries (equipped) and the source publishes. */
   equipment?: readonly EquipmentAuthored[]
+  /** Further SRD Equipment the source publishes that the Character does not carry. */
+  publishedEquipment?: readonly EquipmentAuthored[]
   /** The play state the Character starts with, where it differs from the capture. */
   play?: CharacterPlayOverrides
   /** Makes the Class a spellcaster: the spells it publishes, learns and prepares. */
@@ -124,7 +127,7 @@ export async function characterRoomInputs({
         head: await publishSrdSource(
           darkvision,
           classFeatures,
-          equipment,
+          [...equipment, ...publishedEquipment],
           spellcasting?.spells,
           creatures,
           play?.characterClass,

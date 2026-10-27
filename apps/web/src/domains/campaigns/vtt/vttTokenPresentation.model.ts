@@ -34,6 +34,7 @@ type NonGrantStatusKind = Exclude<StatusKind, 'EFFECT'>
 const statusCategories: Record<NonGrantStatusKind, VttStatusCategory> = {
   CONCENTRATION: 'CONCENTRATION',
   CONDITION: 'HARMFUL',
+  COVER: 'OTHER',
   HEALTH: 'OTHER',
   INJURY: 'HARMFUL',
   LOOT: 'OTHER',
@@ -54,6 +55,8 @@ export function buildVttTokenPresentations(input: {
   boundTokenControl: ReadonlyMap<string, boolean>
   /** The System's condition types that name the actors' conditions; undefined while it loads. */
   conditionTypes?: SystemAuthoredDto['conditionTypes']
+  /** The System's cover tiers that name the GM's cover overrides; undefined while it loads. */
+  coverTiers?: NonNullable<SystemAuthoredDto['cover']>['tiers']
   currentUserId: string
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
@@ -112,6 +115,9 @@ export function buildVttTokenPresentations(input: {
     else if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push(statusFromValues(`health:${healthBand}`, 'HEALTH', titleCase(healthBand)))
     }
+    // Everyone sees the GM's cover override, as they see what the target hides behind.
+    const coverStatus = tokenCoverStatus(token.coverTierOverride, input.coverTiers)
+    if (coverStatus) statuses.push(coverStatus)
     if (actorId && input.lootActorIds?.has(actorId))
       statuses.push(statusFromValues('loot', 'LOOT', 'Has loot'))
     const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
@@ -195,6 +201,16 @@ function actorConditionStatuses(
   })
 }
 
+function tokenCoverStatus(
+  override: CampaignSceneStateDto['tokens'][number]['coverTierOverride'],
+  coverTiers: NonNullable<SystemAuthoredDto['cover']>['tiers'] | undefined
+): VttTokenPresentation['statuses'][number] | null {
+  if (!override || !coverTiers) return null
+  if (override.tierCode === null) return statusFromValues('cover', 'COVER', 'No cover')
+  const tier = coverTiers.find(({ code }) => code === override.tierCode)
+  return tier ? statusFromValues('cover', 'COVER', tier.label) : null
+}
+
 function statusFromValues(
   id: string,
   kind: NonGrantStatusKind,
@@ -213,9 +229,10 @@ function compareStatuses(
     INJURY: 2,
     MORALE: 3,
     CONDITION: 4,
-    EFFECT: 5,
-    LOOT: 6,
-    HEALTH: 7
+    COVER: 5,
+    EFFECT: 6,
+    LOOT: 7,
+    HEALTH: 8
   } as const
   return priority[left.kind] - priority[right.kind] || left.label.localeCompare(right.label)
 }

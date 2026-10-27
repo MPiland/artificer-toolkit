@@ -1,8 +1,14 @@
 import { Button, Menu } from '@mantine/core'
 import { Check, SlidersHorizontal } from 'lucide-react'
 import { Fragment, useState, type RefObject } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { convexQuery } from '@convex-dev/react-query'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
-import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type {
+  CampaignSceneStateDto,
+  SceneCommandInputDto
+} from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import {
   canMoveSceneToken,
@@ -15,29 +21,30 @@ import { formatSceneMeasurement } from './vttSceneRenderer.model'
 
 /**
  * The Scene's objects as a keyboard menu: focus, preview, nudge and measure from tokens, remove
- * measurements, work doors and, for the GM, reset or reveal fog.
+ * measurements, work doors and, for the GM, set the selected token's cover and reset or reveal fog.
  */
 export function CampaignVttSceneObjectMenu({
   boundTokenControl,
+  campaign: { gameSystemId, memberships, role },
   currentUserId,
-  memberships,
   onDoorState,
   onFogLayer,
   onMeasurement,
   onInspectToken,
   onMeasurementRemove,
   onPreviewToken,
+  onSceneCommand,
   onSelectToken,
   onTokenMove,
   previewTokenId,
   renderer,
-  role,
   scene,
   selectedTokenId
 }: {
   boundTokenControl: ReadonlyMap<string, boolean>
+  /** The System's cover tiers the GM picks from; undefined while they load or when it has none. */
+  campaign: Pick<CampaignDetailDto, 'gameSystemId' | 'memberships' | 'role'>
   currentUserId: string
-  memberships: CampaignDetailDto['memberships']
   onDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN') => void
   onFogLayer: (ownerUserId: string | null, explored: boolean) => void
   onMeasurement: (path: ScenePoint[]) => void
@@ -45,18 +52,26 @@ export function CampaignVttSceneObjectMenu({
   onMeasurementRemove: (measurementId: string) => void
   onPreviewToken: (tokenId: string | null) => void
   onSelectToken: (tokenId: string | null) => void
+  onSceneCommand: (command: SceneCommandInputDto) => void
   onTokenMove: (tokenId: string, position: ScenePoint) => void
   previewTokenId: string | null
   selectedTokenId: string | null
   renderer: RefObject<VttSceneRenderer | null>
-  role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto
 }) {
   const [measurementOriginId, setMeasurementOriginId] = useState<string | null>(null)
   const [measurementAnnouncement, setMeasurementAnnouncement] = useState('')
   const doors = scene.barriers.filter((barrier) => barrier.kind === 'DOOR')
+  const coverTiers = useQuery({
+    ...convexQuery(convexApi.content.systems.get, { id: gameSystemId }),
+    select: (system) => system?.cover?.tiers
+  }).data
   const fogOwners = memberships.filter((membership) => membership.role === 'PLAYER')
   const measurementOrigin = scene.tokens.find((token) => token.id === measurementOriginId)
+  const coverToken =
+    role === 'OWNER' && coverTiers
+      ? scene.tokens.find((token) => token.id === selectedTokenId)
+      : undefined
 
   function moveToken(
     token: (typeof scene.tokens)[number],
@@ -174,6 +189,44 @@ export function CampaignVttSceneObjectMenu({
                 <Menu.Item color='dimmed' onClick={() => setMeasurementOriginId(null)}>
                   Cancel measurement
                 </Menu.Item>
+              </>
+            ) : null}
+            {coverToken ? (
+              <>
+                <Menu.Divider />
+                <Menu.Label>Cover for {coverToken.label}</Menu.Label>
+                {[
+                  { label: 'Automatic', override: undefined },
+                  { label: 'No cover', override: { tierCode: null } },
+                  ...(coverTiers ?? []).map(({ code, label }) => ({
+                    label,
+                    override: { tierCode: code }
+                  }))
+                ].map(({ label, override }) => {
+                  const current = coverToken.coverTierOverride
+                  const chosen = override
+                    ? current?.tierCode === override.tierCode
+                    : current === undefined
+                  return (
+                    <Menu.Item
+                      key={override ? `tier:${override.tierCode}` : 'automatic'}
+                      rightSection={chosen ? <Check aria-hidden size={14} /> : null}
+                      onClick={() => {
+                        if (chosen) return
+                        const { coverTierOverride: _prior, ...token } = coverToken
+                        onSceneCommand({
+                          commandId: crypto.randomUUID(),
+                          expectedSceneVersion: scene.version,
+                          sceneId: scene.id,
+                          token: override ? { ...token, coverTierOverride: override } : token,
+                          type: 'UPSERT_SCENE_TOKEN'
+                        })
+                      }}
+                    >
+                      {label}
+                    </Menu.Item>
+                  )
+                })}
               </>
             ) : null}
             <Menu.Divider />

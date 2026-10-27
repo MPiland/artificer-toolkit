@@ -17,6 +17,7 @@ import { projectNativeConcentrationPending } from '@artificer-toolkit/encounter-
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readEncounterTimelinePage } from '@artificer-toolkit/encounter-persistence/timelinePages'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { liveSessionCheckpointRetainedRollSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 
@@ -66,6 +67,17 @@ export function readActorHitPoints(history: RoomHistory, actorId: string) {
   if (actor.kind === 'CHARACTER')
     throw new Error('A Character holds its hit points on the Character.')
   return actor.currentHitPoints
+}
+
+/** The current hit points a Character holds in the room's stored play state. */
+export function readCharacterHitPoints(stub: RoomStub, characterId: string) {
+  return runInDurableObject(stub, (_instance, state) => {
+    const row = new RoomEncounterStore(state.storage)
+      .documents('characterPlayStates')
+      .find((play) => play.characterId === characterId)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).hitpoints.current
+  })
 }
 
 /** The damage-type record a Creature actor holds in the room's stored Run (empty when absent). */

@@ -114,6 +114,30 @@ describe('VTT token presentation model', () => {
     expect(result.fillColor).toBe(deterministicTokenColour(actor.id))
   })
 
+  it('shows everyone the GM’s cover tier by its System label (SPELLS-14.T3)', () => {
+    const coverTiers = srdSystemRecord.cover!.tiers
+    const half = coverTiers.find(({ code }) => code === 'HALF')!
+    const cover = (tierCode: string | null, currentUserId: string) => {
+      const scene = sceneForActor()
+      const token = { ...scene.tokens[0]!, coverTierOverride: { tierCode } }
+      return buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map(),
+        coverTiers,
+        currentUserId,
+        encounter: tabletopPlayerEncounter,
+        pending: null,
+        scene: { ...scene, tokens: [token, ...scene.tokens.slice(1)] }
+      })[token.id]!.statuses.filter((status) => status.kind === 'COVER')
+    }
+    const player = tabletopLiveScene.tokens[0]!.controlledByUserIds[0]!
+
+    expect(cover('HALF', player)).toEqual([expect.objectContaining({ label: half.label })])
+    expect(cover('HALF', 'gm-user')).toEqual([expect.objectContaining({ label: half.label })])
+    expect(cover(null, player)).toEqual([expect.objectContaining({ label: 'No cover' })])
+    expect(cover('MISSING', player)).toEqual([])
+  })
+
   it('marks a defeated creature for the GM and players alike, in place of its health band', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!
