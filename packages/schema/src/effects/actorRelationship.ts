@@ -37,7 +37,8 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
     z.object({
       ...moduleBase(),
       kind: z.literal('SOURCE_ATTACK_ROLL_INFLUENCE'),
-      actionEffectIds: uuidList,
+      /** The attack action effects it influences; null influences every attack against the target. */
+      actionEffectIds: z.nullable(uuidList),
       influence: systemCoreCodeSchema
     }),
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_FOLLOWS_TARGET') }),

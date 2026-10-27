@@ -9878,6 +9878,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
       options: FunctionReference<
@@ -9941,6 +9942,7 @@ export declare const api: {
           >;
           tableConduct: string | null;
           trackAmmunition?: boolean;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         },
         {
           absentCharacterPolicy: string | null;
@@ -9969,6 +9971,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
     };
@@ -22489,6 +22492,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -51899,6 +51903,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -81318,6 +81323,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -110728,6 +110734,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -140173,6 +140180,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -169583,6 +169591,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -198995,6 +199004,7 @@ export declare const api: {
                     }
                   | {
                       economies: Array<"ACTION" | "BONUS_ACTION">;
+                      effect: any;
                       initiatorCheckDefinitionIds: Array<string>;
                       kind: "CLIMB_ONTO_LARGER_CREATURE";
                       minimumTargetSizeSteps: number;
@@ -228103,6 +228113,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -257513,6 +257524,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -291817,6 +291829,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -292323,6 +292336,10 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          pendingZoneSightings: Array<{
+            actorId: string;
+            spatialEffectId: string;
+          }>;
           placedZones: Array<{
             disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
             id: string;
@@ -293090,6 +293107,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -294185,6 +294203,7 @@ export declare const api: {
             trackAmmunition?: boolean;
             updatedAt: string;
             version: number;
+            zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
           }
         | {
             actors: Array<{
@@ -294592,6 +294611,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -295343,6 +295363,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
       deletePrepared: FunctionReference<

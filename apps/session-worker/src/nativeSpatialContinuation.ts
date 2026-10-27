@@ -64,6 +64,7 @@ export type NativeLiveMovementSettlement =
         actor: EncounterRunActorState
         consumption: EncounterActionEconomyConsumption
         consumedGrants: ActiveRuleEffectRecord[]
+        createdEffects: ActiveRuleEffectRecord[]
       }
     }
 
@@ -229,7 +230,8 @@ export function nativeMovementSettlementInputs(input: {
         kind: 'PASSAGE',
         actorId: settlement.plan.actor.id,
         consumption: settlement.plan.consumption,
-        consumedGrants: settlement.plan.consumedGrants
+        consumedGrants: settlement.plan.consumedGrants,
+        createdEffects: settlement.plan.createdEffects
       })
     return liveSessionMovementSettlementSchema.parse({
       kind: 'SPATIAL',

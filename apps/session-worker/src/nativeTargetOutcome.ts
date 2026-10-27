@@ -1,3 +1,4 @@
+import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
 import type {
   ServerRuleExecutionContinuationDto,
   ServerRuleExecutionResultDto
@@ -15,6 +16,7 @@ import type {
 } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { interpretForcedMovements } from './nativeEncounterActionInputs.js'
 
@@ -80,7 +82,8 @@ export function planHolderMechanics(
  * (D173): the sealed ON_CHECK_SUCCESS graph run on the prepared facts, its dice rolled by the roller
  * in the action roll window, every application in one mechanics batch here and in Convex, and its
  * forced movements landed on the Scene in the commit (D157). A roller who rolls their own dice
- * leaves the outcome PENDING on its paused continuation.
+ * leaves the outcome PENDING on its paused continuation. The settled outcome's `completion` is what a
+ * destination pick holds, and `held` restores it without running the outcome graph again.
  */
 export async function planNativeTargetOutcome(
   input: NativeTargetOutcomeSource & {
@@ -95,6 +98,8 @@ export async function planNativeTargetOutcome(
       continuation: ServerRuleExecutionContinuationDto
       answer: EncounterEvidenceAnswer
     } | null
+    /** The settled outcome a forced-movement destination pick held, once its source picks. */
+    held?: EncounterForcedMovementOfferDto['completion']
     random(maximum: number): number
   }
 ) {
@@ -113,6 +118,13 @@ export async function planNativeTargetOutcome(
   if (outcome.kind !== 'OUTCOME') throw new Error('The won outcome is unavailable.')
   const { published } = outcome.outcome
   const { facts } = adapter.bindFacts({ ...binding, published })
+  const factsChecksum = checksumRuleDocument(facts)
+  const { held } = input
+  if (
+    held &&
+    (held.published.checksum !== published.checksum || held.initialFactsChecksum !== factsChecksum)
+  )
+    throw new Error('The held outcome no longer matches its action.')
   const answer = (
     continuation: ServerRuleExecutionContinuationDto,
     resolution: EncounterEvidenceAnswer
@@ -138,12 +150,14 @@ export async function planNativeTargetOutcome(
       published,
       facts
     })
-  let execution = input.answered
-    ? await answer(input.answered.continuation, input.answered.answer)
-    : await runtime.executeResolved({
-        command: { definitionId: published.id, occurrenceId, facts },
-        published
-      })
+  let execution = held
+    ? held.execution
+    : input.answered
+      ? await answer(input.answered.continuation, input.answered.answer)
+      : await runtime.executeResolved({
+          command: { definitionId: published.id, occurrenceId, facts },
+          published
+        })
   while (execution.status === 'PAUSED') {
     if (!input.autoRoll) return { kind: 'PENDING' as const, continuation: execution.continuation }
     execution = await answer(execution.continuation, {
@@ -175,6 +189,16 @@ export async function planNativeTargetOutcome(
     kind: 'SETTLED' as const,
     actor: mechanics?.updatedActor ?? prepared.target,
     forcedMovements,
+    // The outcome graph is the one graph a pick holds: no test or d20 settles inside it.
+    completion: {
+      execution,
+      published,
+      initialPublished: published,
+      initialFactsChecksum: factsChecksum,
+      phaseReceipts: null,
+      d20: null,
+      nestedD20: null
+    },
     stateTransition: {
       kind: 'TARGET_OUTCOME' as const,
       mechanics: mechanics && {

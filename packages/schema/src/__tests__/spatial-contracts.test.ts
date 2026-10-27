@@ -262,6 +262,16 @@ describe('spatial contracts', () => {
     expect(
       current(fixed, { concealment: { spotDc, knownByActorIds: [ids.source, ids.actor] } })
     ).toBe(false)
+    const sighting = (actorId: string, status = 'PROMPTED') => ({ actorId, status })
+    const sighted = (sightings: object[]) => ({
+      concealment: { spotDc, knownByActorIds: [ids.actor], sightings }
+    })
+    expect(current(fixed, sighted([sighting(ids.source), sighting(ids.moving, 'DISMISSED')]))).toBe(
+      true
+    )
+    expect(current(fixed, sighted([sighting(ids.actor)]))).toBe(false)
+    expect(current(fixed, sighted([sighting(ids.moving), sighting(ids.source)]))).toBe(false)
+    expect(current(fixed, sighted([sighting(ids.source, 'SEEN')]))).toBe(false)
     expect(current(fixed, { disarmDc: { value: 0, source: 'FLAT' } })).toBe(false)
     expect(current(fixed, { disarmDc: { value: 12, source: 'SKILL' } })).toBe(false)
     expect(

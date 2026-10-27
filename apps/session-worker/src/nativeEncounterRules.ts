@@ -101,10 +101,6 @@ import {
 } from './nativeEndEffects.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
-import {
-  holdForForcedMovementDestination,
-  settleForcedMovementDestination
-} from '@artificer-toolkit/rules-runtime/encounterForcedMovementChoice'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import {
@@ -155,6 +151,7 @@ import {
 } from './nativeEncounterAreaRules.js'
 import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
 import { type ForcedMovementPick } from './nativeAreaPreparation.js'
+import { planForcedMovementDestination } from './nativeForcedMovementDestination.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
   checkActionSource,
@@ -795,7 +792,11 @@ export async function planNativeLiveEncounterAction(
           },
           priorContext: null,
           actors,
-          settlement: { kind: 'ACTION', prepared },
+          settlement: {
+            kind: 'ACTION',
+            prepared,
+            forcedMovementPick: executionOptions.forcedMovementPick
+          },
           actorRules: prepared.actorRules,
           activeEffectsByActorId,
           preparation: prepareEncounterBasicActionContest({
@@ -1319,52 +1320,38 @@ export async function planNativeLiveEncounterAction(
     published: execution.published,
     targetActorId: prepared.target.id
   })
-  // A movement with two or more legal squares waits for its source to pick one (D157).
   if (interpretedMovements.some(({ collision }) => collision))
     throw new Error('A forced-movement collision is resolved only in an area action.')
-  const { owed: owedPick } = await executionOptions.forcedMovementPick({
+  // A movement with two or more legal squares waits for its source to pick one (D157).
+  const destination = await planForcedMovementDestination({
+    runtime: executionOptions.runtime,
+    occurrenceId,
     encounterId: state.id,
     sourceActorId: prepared.actor.id,
-    movements: interpretedMovements
+    outcomePhase: execution.outcomePhase,
+    settled: {
+      pick: executionOptions.forcedMovementPick,
+      movements: interpretedMovements,
+      completion: {
+        execution: execution.execution,
+        published: execution.published,
+        initialPublished: execution.initialPublished,
+        initialFactsChecksum: execution.initialFactsChecksum,
+        phaseReceipts: execution.phaseReceipts ?? null,
+        d20: execution.d20,
+        nestedD20: execution.nestedD20
+      }
+    },
+    answer: forcedMovementAnswer
   })
-  if (owedPick && !forcedMovementAnswer)
+  if (destination.kind === 'HELD')
     return {
       ...preflight(),
       kind: 'PENDING' as const,
-      execution: await holdForForcedMovementDestination({
-        runtime: executionOptions.runtime,
-        occurrenceId,
-        completion: {
-          execution: execution.execution,
-          published: execution.published,
-          initialPublished: execution.initialPublished,
-          initialFactsChecksum: execution.initialFactsChecksum,
-          phaseReceipts: execution.phaseReceipts ?? null,
-          d20: execution.d20,
-          nestedD20: execution.nestedD20
-        },
-        outcomePhase: execution.outcomePhase,
-        targetActorId: owedPick.targetActorId,
-        positions: owedPick.positions
-      }),
+      execution: destination.held,
       failedCounters
     }
-  if (forcedMovementAnswer && !owedPick)
-    throw new Error('The forced-movement destination is no longer owed.')
-  const chosenPosition =
-    forcedMovementAnswer && owedPick
-      ? await settleForcedMovementDestination({
-          runtime: executionOptions.runtime,
-          continuation: forcedMovementAnswer.continuation,
-          offer: forcedMovementAnswer.offer,
-          position: forcedMovementAnswer.position
-        })
-      : null
-  const forcedMovements = interpretedMovements.map((movement) =>
-    movement.targetActorId === owedPick?.targetActorId
-      ? { ...movement, position: chosenPosition }
-      : movement
-  )
+  const forcedMovements = destination.movements
   // The temporary hit points the cast gives belong to the lasting effect that owns them (D156).
   const recurringEffectId = crypto.randomUUID()
   const castApplications = preparedEffects.recurringEffect
