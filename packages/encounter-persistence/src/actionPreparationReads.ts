@@ -319,7 +319,7 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     /** Which observers see the subject, for a melee attack's Flanking facts on its Scene. */
     observersSeeing?: Parameters<typeof loadEncounterFlankingFacts>[0]['observersSeeing']
   }
-) {
+): ReturnType<typeof prepareEncounterActionMechanics<TFacts>> {
   const { state, actor, target } = input
   const movementTargets =
     input.movementTargets ??
