@@ -1,6 +1,6 @@
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ScenePoint, SpatialTokenFootprint } from '@artificer-toolkit/shared/vtt'
-import { pathEntersZone } from './vttSceneRenderer.model'
+import { pathEntersZone, type UnnoticedZone } from './vttSceneRenderer.model'
 
 export type HalfSpeedField = EncounterSessionStateDto['halfSpeedFields'][number]
 
@@ -10,24 +10,38 @@ export type HalfSpeedField = EncounterSessionStateDto['halfSpeedFields'][number]
  * entering triggers the zone (MOVE-3.6).
  */
 export function halfSpeedFieldsEntered({
-  fields,
-  placedZones,
+  session,
   moverActorId,
   path,
   token
 }: {
-  fields: readonly HalfSpeedField[]
-  placedZones: EncounterSessionStateDto['placedZones']
+  session: Pick<EncounterSessionStateDto, 'halfSpeedFields' | 'placedZones'>
   moverActorId: string
   path: readonly ScenePoint[]
   token: SpatialTokenFootprint
 }): HalfSpeedField[] {
   const unnoticedIds = new Set(
-    placedZones.flatMap(({ id, unawareActorIds }) =>
+    session.placedZones.flatMap(({ id, unawareActorIds }) =>
       unawareActorIds.includes(moverActorId) ? [id] : []
     )
   )
-  return fields.filter(
+  return session.halfSpeedFields.filter(
     ({ id, shape }) => !unnoticedIds.has(id) && pathEntersZone(shape, path, token)
   )
+}
+
+/** The GM's concealed zones, each with the labels of the Run's actors that have not noticed it. */
+export function unnoticedZonesOf({
+  placedZones,
+  encounter
+}: Pick<EncounterSessionStateDto, 'placedZones' | 'encounter'>): UnnoticedZone[] {
+  return placedZones
+    .filter(({ unawareActorIds }) => unawareActorIds.length)
+    .map(({ label, shape, unawareActorIds }) => ({
+      label,
+      shape,
+      by: (encounter?.actors ?? []).flatMap((actor) =>
+        unawareActorIds.includes(actor.id) ? [actor.label] : []
+      )
+    }))
 }

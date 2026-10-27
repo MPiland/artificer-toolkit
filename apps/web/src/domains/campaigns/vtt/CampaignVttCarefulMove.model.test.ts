@@ -19,7 +19,6 @@ const near = field('00000000-0000-4000-8000-000000000001', 200)
 const far = field('00000000-0000-4000-8000-000000000002', 1000)
 const token = { position: { x: 0, y: 0 }, width: 100, height: 100 }
 const moverActorId = '00000000-0000-4000-8000-0000000000a1'
-const noZones = { placedZones: [], moverActorId }
 const placedZone = (
   { id, label, shape }: HalfSpeedField,
   unawareActorIds: string[]
@@ -38,17 +37,21 @@ describe('halfSpeedFieldsEntered', () => {
       { x: 0, y: 0 },
       { x: 1400, y: 0 }
     ]
-    expect(halfSpeedFieldsEntered({ fields: [near, far], ...noZones, path, token })).toEqual([
-      near,
-      far
-    ])
+    expect(
+      halfSpeedFieldsEntered({
+        session: { halfSpeedFields: [near, far], placedZones: [] },
+        moverActorId,
+        path,
+        token
+      })
+    ).toEqual([near, far])
   })
 
   it('lists none when the path stops short of, or runs beside, every field', () => {
     expect(
       halfSpeedFieldsEntered({
-        fields: [near, far],
-        ...noZones,
+        session: { halfSpeedFields: [near, far], placedZones: [] },
+        moverActorId,
         path: [
           { x: 0, y: 0 },
           { x: -300, y: 0 },
@@ -62,8 +65,8 @@ describe('halfSpeedFieldsEntered', () => {
   it('lists a field a later leg of the path enters', () => {
     expect(
       halfSpeedFieldsEntered({
-        fields: [near],
-        ...noZones,
+        session: { halfSpeedFields: [near], placedZones: [] },
+        moverActorId,
         path: [
           { x: 0, y: 0 },
           { x: 0, y: 500 },
@@ -83,8 +86,10 @@ describe('halfSpeedFieldsEntered', () => {
     const otherActorId = '00000000-0000-4000-8000-0000000000a2'
     expect(
       halfSpeedFieldsEntered({
-        fields: [near, far],
-        placedZones: [placedZone(near, [moverActorId]), placedZone(far, [otherActorId])],
+        session: {
+          halfSpeedFields: [near, far],
+          placedZones: [placedZone(near, [moverActorId]), placedZone(far, [otherActorId])]
+        },
         moverActorId,
         path,
         token

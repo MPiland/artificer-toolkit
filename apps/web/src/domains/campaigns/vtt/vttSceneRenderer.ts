@@ -1624,13 +1624,7 @@ export async function createVttSceneRenderer(
     const pricing = current?.movementCost
     const actorId = pricing?.actorIdByTokenId.get(tokenId)
     return pricing && actorId
-      ? {
-          actorId,
-          tokenId,
-          zones: pricing.zones,
-          dragDoublesCost: pricing.dragDoublingActorIds.has(actorId),
-          unnoticedZones: pricing.unnoticedZones
-        }
+      ? { ...pricing, actorId, tokenId, dragDoublesCost: pricing.dragDoublingActorIds.has(actorId) }
       : null
   }
 
