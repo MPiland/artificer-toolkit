@@ -6852,10 +6852,15 @@
           "acs": [
             {
               "text": "Auras and traps execute against moving tokens, with their previews and privacy.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomZoneConcealment.test.ts",
+                "nativeRoomPlayerParity.test.ts",
+                "encounterZoneConcealment.test.ts",
+                "CampaignTabletopEncounterDrawer.test.tsx"
+              ],
               "origin": ["G2-SPATIAL-PERCEPTION"],
-              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07. 2026-10-14: auras are SPELLS-20; traps are made concrete by MOVE-3.2 to MOVE-3.6.",
+              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07. 2026-10-14: auras are SPELLS-20; traps are made concrete by MOVE-3.2 to MOVE-3.6. Closed 2026-10-27 by MOVE-3.T6.",
               "id": "MOVE-3.1"
             },
             {
@@ -6926,10 +6931,15 @@
             },
             {
               "text": "The GM can reveal a concealed zone to chosen Characters (after a Search roll or from the passive prompt) and can disarm a zone, which removes it; GM undo restores either. The disarm DC is shown only to the GM.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomZoneConcealment.test.ts",
+                "nativeRoomPlayerParity.test.ts",
+                "encounterZoneConcealment.test.ts",
+                "CampaignTabletopEncounterDrawer.test.tsx"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The player rolls the disarm check from their sheet. A botched disarm is the GM's call; on-demand triggering is a future enhancement.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The player rolls the disarm check from their sheet. A botched disarm is the GM's call; on-demand triggering is a future enhancement. Closed 2026-10-27 by MOVE-3.T6.",
               "id": "MOVE-3.7"
             }
           ],
@@ -7054,7 +7064,7 @@
             },
             {
               "id": "MOVE-3.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.7", "MOVE-3.1"],
               "wsjf": {
                 "bv": 8,
@@ -7064,8 +7074,9 @@
                 "after": ["MOVE-3.T4b", "MOVE-3.T5"]
               },
               "text": "GM reveal to chosen Characters and disarm (removes zone), with undo restoring either; disarm DC GM-only. Closes the umbrella 3.1 with the others.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m500.",
+              "mergedAt": "2026-10-27T19:16:20Z",
+              "proof": "Tests 40554116806, Live 40554116936 and Browser journeys 40554116791 green on 1ebfbdf71; reviewed; merged in m500 (batch run 40567381163). Proofs: nativeRoomZoneConcealment.test.ts, nativeRoomPlayerParity.test.ts, encounterZoneConcealment.test.ts, CampaignTabletopEncounterDrawer.test.tsx"
             }
           ]
         },
@@ -20129,10 +20140,10 @@
             {
               "id": "RELIABILITY-21.10",
               "text": "Sign-in rate limiting keys on the real client IP on the deployed and CI stacks: two clients on different IPs get separate buckets, and Better Auth never falls back to the shared per-path bucket.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/authClientIp.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit. Closed 2026-10-27 by RELIABILITY-21.T10."
             },
             {
               "id": "RELIABILITY-21.11",
@@ -20265,7 +20276,7 @@
             },
             {
               "id": "RELIABILITY-21.T10",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.10"],
               "wsjf": {
                 "bv": 5,
@@ -20273,22 +20284,24 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit. Merged in m500.",
               "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T19:16:20Z",
+              "proof": "Tests 40554127074, Live 40554127026 and Browser journeys 40554126820 green on 3e19eede1 (campaign-collaboration-browser passes, known-bug label removed); reviewed; merged in m500 (batch run 40567381163). Proofs: apps/apis/convex/authClientIp.test.ts, campaign-collaboration-browser journey"
             },
             {
               "id": "RELIABILITY-21.T11",
               "status": "TODO",
-              "closes": ["RELIABILITY-21.11"],
+              "closes": ["RELIABILITY-21.11", "RELIABILITY-21.4"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it.",
-              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green.",
+              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS. Also clear the social-browser, hide-browser and scene-live-browser labels.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             }
           ]
         }
