@@ -372,7 +372,8 @@ describe('movement through a hostile creature', () => {
         command: {
           type: 'UNDO_LAST_SCENE_MOVE',
           commandId,
-          expectedSceneVersion: room.scene.version + 1,
+          // The paused move and the won climb's entry into the blocker's space each publish.
+          expectedSceneVersion: room.scene.version + 2,
           sceneId: room.scene.id
         }
       })

@@ -4,7 +4,10 @@ import {
 } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import { sceneStoredGeometryCommandSchema } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { sliceMovementPath } from '@artificer-toolkit/rules-runtime/encounterMovementPath'
+import {
+  sliceMovementPath,
+  terminalMovementPathEnd
+} from '@artificer-toolkit/rules-runtime/encounterMovementPath'
 import {
   resolveRuleOccurrenceInputDtoSchema,
   type ResolveRuleOccurrenceInputDto
@@ -178,10 +181,11 @@ function assertPreparationIdentity(save: SceneStoredGeometrySave, value: SceneSp
         terminalDistance
       )
       const end = segment.at(-1)!
+      const pathEnd = terminalMovementPathEnd(value.outcome)
       if (
         terminalDistance > length + 1e-8 ||
-        Math.abs(end.x - result.terminalPosition.x) > 1e-8 ||
-        Math.abs(end.y - result.terminalPosition.y) > 1e-8
+        Math.abs(end.x - pathEnd.x) > 1e-8 ||
+        Math.abs(end.y - pathEnd.y) > 1e-8
       )
         throw new Error('Spatial terminal path distance is inconsistent.')
     }

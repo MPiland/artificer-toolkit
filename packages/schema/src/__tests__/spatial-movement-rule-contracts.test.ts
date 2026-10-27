@@ -1141,6 +1141,36 @@ describe('spatial movement rule contracts', () => {
     ).toBe(false)
   })
 
+  it('records an entered blocker position only for a won contest that ends the move', () => {
+    const command = passageTerminalCommand()
+    const {
+      terminalPassageStop: _terminalPassageStop,
+      terminalPosition: _terminalPosition,
+      ...audit
+    } = command.passageContest.audit
+    const entered = (passageContest: object) =>
+      movementRuleResolutionCommandDtoSchema.safeParse({
+        ...command,
+        passageContest: { ...command.passageContest, ...passageContest }
+      }).success
+    expect(entered({ audit: { ...audit, enteredPosition: { x: 3, y: 0 } } })).toBe(true)
+    expect(
+      entered({ audit: { ...command.passageContest.audit, enteredPosition: { x: 3, y: 0 } } })
+    ).toBe(false)
+    expect(
+      entered({
+        outcome: 'TIE_OR_FAILURE',
+        defender: {
+          ...command.passageContest.defender,
+          rawFaces: [20],
+          selectedNatural: 20,
+          total: 20
+        },
+        audit: { ...audit, enteredPosition: { x: 3, y: 0 } }
+      })
+    ).toBe(false)
+  })
+
   it('retains a sealed, canonical pending path/contact context only while paused', () => {
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.parse(pendingContext())

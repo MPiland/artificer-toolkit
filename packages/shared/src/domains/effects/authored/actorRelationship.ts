@@ -18,8 +18,8 @@ export type ActorRelationshipModuleAuthored =
       id: string
       order: number
       kind: 'SOURCE_ATTACK_ROLL_INFLUENCE'
-      /** The attack action effects it influences; null influences every attack against the target. */
-      actionEffectIds: string[] | null
+      /** The attack action effects it influences; an empty list influences every attack against the target. */
+      actionEffectIds: string[]
       /** A code from the System's roll-influence vocabulary. */
       influence: string
     }
