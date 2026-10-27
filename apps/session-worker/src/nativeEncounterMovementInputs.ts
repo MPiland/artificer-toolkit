@@ -23,6 +23,7 @@ import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-ru
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
 import { encounterMovementDrag } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { encounterFollowRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import {
   encounterActorMovementProvokesNoOpportunityAttacks,
@@ -413,6 +414,17 @@ export async function readNativeLiveMovementInputs(input: {
   if (planned?.kind === 'REFUSED') rejectDomain('MOVEMENT_BLOCKED', 'Release the grapple first.')
   const drag = planned?.tokens.length ? planned : null
   const draggedTokenIds = new Set(drag?.tokens.map(({ tokenId }) => tokenId))
+  // The mover moves within the space of each creature it follows, so none of them blocks its way.
+  const followedActorIds = new Set(
+    encounterFollowRelationships(activeEffectsByActorId)
+      .filter(({ sourceActorId }) => sourceActorId === moverActorId)
+      .map(({ actorId }) => actorId)
+  )
+  const followedTokenIds = new Set(
+    [...actorIdByTokenId]
+      .filter(([, actorId]) => followedActorIds.has(actorId))
+      .map(([tokenId]) => tokenId)
+  )
   const facts =
     state.automationMode === 'MANUAL'
       ? null
@@ -507,6 +519,7 @@ export async function readNativeLiveMovementInputs(input: {
     perceptionScene,
     spatialEffects,
     drag,
+    followedTokenIds,
     facts,
     resolvePerception,
     reactions,

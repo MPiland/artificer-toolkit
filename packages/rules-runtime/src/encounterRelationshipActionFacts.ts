@@ -59,6 +59,18 @@ export function encounterHeldActorIds(
   )
 }
 
+/**
+ * The relationships whose source follows the creature holding them (`SOURCE_FOLLOWS_TARGET`): the
+ * source moves with that creature and within its space.
+ */
+export function encounterFollowRelationships(
+  activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
+) {
+  return encounterRelationships(activeEffectsByActorId).filter(({ contribution }) =>
+    contribution.modules.some(({ kind }) => kind === 'SOURCE_FOLLOWS_TARGET')
+  )
+}
+
 /** The creatures the source holds by hand, each filling one of its hands (`SOURCE_OCCUPIES_HAND`, D152). */
 export function encounterSourceHandHoldRelationships(
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId,

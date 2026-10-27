@@ -273,8 +273,11 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     systemTrigger: z.optional(
       z.strictObject({
         parentCommandId: uuidSchema,
-        /** Absent for the default, reaching 0 hit points. */
-        trigger: z.optional(z.literal('START_OF_TURN'))
+        /**
+         * Absent for the default, reaching 0 hit points. RULE: an optional combat rule's own action,
+         * raised by the rule's failed save the parent receipt records.
+         */
+        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE']))
       })
     ),
     acceptedWieldConflict: z._default(

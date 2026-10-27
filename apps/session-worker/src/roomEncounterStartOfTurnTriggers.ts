@@ -2,7 +2,7 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { readEncounterSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { readTurnStartedBy } from '@artificer-toolkit/encounter-persistence/turnMovement'
-import { systemTriggerStartOfTurnCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
+import { systemTriggerSelfCommand } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -57,12 +57,13 @@ export async function raiseRoomStartOfTurnEffects(input: {
       .first()
     if (!run || waiting) continue
     await input.execute(
-      systemTriggerStartOfTurnCommand({
+      systemTriggerSelfCommand({
         encounterId,
         expectedVersion: run.version,
         parentCommandId: input.parentCommandId,
         holderActorId: holder.id,
-        actionId: capability.actionId
+        actionId: capability.actionId,
+        trigger: 'START_OF_TURN'
       })
     )
     committed = true

@@ -6806,7 +6806,8 @@
                 "after": ["MOVE-2.T3a"]
               },
               "text": "SRD Shove gains \"Shove 5 feet aside\" (FORCED_MOVEMENT ASIDE EXACT 5 ft, requiresOptionalRule Shove Aside, initiator DISADVANTAGE). Room test: rule on/off listing, contest, destination pick of legal in-reach squares, commit. Delete deriveSquareGridShoveAsideDestinations, the SHOVE_ASIDE selection/DESTINATION role/POSITION field, the pending SHOVE_ASIDE variant, contributor reason and coverage entries; keep the module registration and integrated entry as the toggle with params cut to { kind }.",
-              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3."
+              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "MOVE-2.T4",
@@ -6975,7 +6976,7 @@
             },
             {
               "id": "MOVE-3.T4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.5"],
               "wsjf": {
                 "bv": 8,
@@ -6985,8 +6986,9 @@
                 "after": ["MOVE-3.T2"]
               },
               "text": "Noticing Campaign setting (GM prompt default, Search only); zone concealment gains a GM-only sightings record (actor, PROMPTED or DISMISSED) beside knownByActorIds, stripped for non-GM viewers like the DCs; GM projection lists pending sightings.",
-              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5. Merged in m480.",
+              "mergedAt": "2026-10-27T00:03:30Z",
+              "proof": "Tests 40421484054 and Live 40421483981 green on 57de5995d (phase tip c30eaa9a2 merged in, automaticCover and zoneNoticing both kept); reviewed; merged in m480 (stored shape: concealment.sightings, zoneNoticing setting). Proofs: packages/schema/src/__tests__/spatial-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterZoneConcealment.test.ts, apps/apis/convex/encounters/zoneConcealmentReads.test.ts, apps/apis/convex/campaigns/playSettings.test.ts"
             },
             {
               "id": "MOVE-3.T4b",
@@ -7000,7 +7002,8 @@
                 "after": ["MOVE-3.T4a"]
               },
               "text": "Worker evaluates sight and Character passive Perception against concealed zones after committed moves, zone place or DC set and token bind, records first sightings through a Convex mutation (idempotent on replay), and the GM sees a quiet prompt row with Dismiss; Search only skips evaluation.",
-              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5."
+              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "MOVE-3.T5",
@@ -7014,7 +7017,8 @@
                 "after": ["MOVE-3.T2"]
               },
               "text": "Unaware creature gets no path warning and no Move carefully offer; entering triggers; GM path preview lists who has not noticed.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "MOVE-3.T6",
@@ -7114,7 +7118,7 @@
               "proof": "Tests 40388792244 and Live 40388797873 green on 44498697b; reviewed (api.d.ts +86k sent back; cling effect now an opaque leaf per D194, +9 lines); merged in m478. Proofs: apps/session-worker/test/nativeMovementPlanning.test.ts, apps/apis/convex/encounters/movementPassage.test.ts, movementPassageEffectGuard.test.ts, packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, encounterRelationshipAttackInfluence.test.ts, optionalCombatCheckDefinitions.test.ts"
             },
             {
-              "id": "MOVE-4.T2b",
+              "id": "MOVE-4.T2b1",
               "status": "TODO",
               "closes": ["MOVE-4.2"],
               "wsjf": {
@@ -7124,8 +7128,23 @@
                 "size": 5,
                 "after": ["MOVE-4.T2a"]
               },
-              "note": "Split 2026-10-26 at seam audit (local_59ee20b7): only the hold effect existed; the cling effect, receipt, follow runtime and placement are new. Size 5 re-scored to 8+5.",
-              "text": "Generic SOURCE_FOLLOWS_TARGET runtime (the source token moves with the target, as stirge and cloaker author it), climber placed in the target space under a Scene overlap exemption, the authoring form handling a null actionEffectIds (all attacks), and the MOVE-4.2 journey test."
+              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope.",
+              "text": "SOURCE_FOLLOWS_TARGET runtime: encounterMovementDrag carries followers on voluntary target moves (not doubling cost); passage blocking exempts the blocker the mover clings to, derived from the active relationship (nothing stored); room journey of a clinging climber following its target.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+            },
+            {
+              "id": "MOVE-4.T2b2",
+              "status": "TODO",
+              "closes": ["MOVE-4.2"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5,
+                "after": ["MOVE-4.T2b1"]
+              },
+              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope.",
+              "text": "Passage successMovement ENTER_BLOCKER_SPACE with an optional receipt enteredPosition bound to the blocker currentness, accepted by the scene geometry check; SOURCE_ATTACK_ROLL_INFLUENCE actionEffectIds drops null (empty list = every attack, data migrated); full MOVE-4.2 journey."
             },
             {
               "id": "MOVE-4.T3",
@@ -7136,7 +7155,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 5,
-                "after": ["MOVE-4.T2b"]
+                "after": ["MOVE-4.T2b2"]
               },
               "text": "Dislodge contest and landing in a legal adjacent square (reuse forced-movement destinations).",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
@@ -8443,7 +8462,8 @@
                 "after": ["ATTACK-6.T4a"]
               },
               "text": "The bound weapon ATTACK_ROLL and DAMAGE modifiers feed the Creature attack mechanic (discovery, staleness, damage binding). Proofs: +1 weapon parity and a room journey test.",
-              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13."
+              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             }
           ]
         },
@@ -9899,7 +9919,8 @@
                 "after": ["ATTACK-16.T1c2a"]
               },
               "text": "On a failed massive-damage save, a self-targeted SYSTEM root (new systemTrigger arm and command builder) runs the rule-owned system-shock ROLL_TABLE; admission re-derives the failed save from the parent receipt and lifts the RULE-root refusal for that arm only; room hook after RESOLVE_RULE_OCCURRENCE; split nativeEncounterRules.ts so the live planner gets the rules state; positive room journey for a Creature and a Character.",
-              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5."
+              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "ATTACK-16.T1d",
@@ -13198,23 +13219,30 @@
           "acs": [
             {
               "text": "With the Campaign's automatic-cover setting on, the app works out half, three-quarters or total cover from the Scene's walls and creatures for attacks and area saves, shows it as a labelled bonus (+2 or +5; total cover blocks), and the GM can change the tier.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "proof": [
                 "packages/shared/src/__tests__/squareGridCover.test.ts",
                 "apps/session-worker/test/nativeRoomCover.test.ts",
                 "apps/session-worker/test/nativeRoomCoverApplication.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterCover.test.ts"
+                "packages/rules-runtime/src/__tests__/encounterCover.test.ts",
+                "packages/shared/src/__tests__/scene-geometry-reducer.test.ts",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
               ],
               "origin": [],
-              "note": "Split from SPELLS-7 on 2026-10-10. User ruling 2026-10-10: automatic, with the GM able to change it, and the automation is a setting. The setting's default is an open question. Depends on SPELLS-7 for saves; findSquareGridCreatureCoverIntervenors is test-only today, so extend it or delete it. Closed 2026-10-26 by SPELLS-14.T1, SPELLS-14.T2. The GM tier change closes with SPELLS-14.T3.",
+              "note": "Split from SPELLS-7 on 2026-10-10. User ruling 2026-10-10: automatic, with the GM able to change it, and the automation is a setting. The setting's default is an open question. Depends on SPELLS-7 for saves; findSquareGridCreatureCoverIntervenors is test-only today, so extend it or delete it. Closed 2026-10-26 by SPELLS-14.T1, SPELLS-14.T2. The GM tier change closes with SPELLS-14.T3. Closed 2026-10-27 by SPELLS-14.T1, SPELLS-14.T2, SPELLS-14.T3.",
               "id": "SPELLS-14.1"
             },
             {
               "text": "With the automatic-cover setting off, the GM sets a target's cover tier when it matters, and it applies the same bonus.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomCoverApplication.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCover.test.ts",
+                "packages/shared/src/__tests__/scene-geometry-reducer.test.ts",
+                "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
+              ],
               "origin": [],
-              "note": "Registered with SPELLS-14.1.",
+              "note": "Registered with SPELLS-14.1. Closed 2026-10-27 by SPELLS-14.T3.",
               "id": "SPELLS-14.2"
             }
           ],
@@ -13258,7 +13286,7 @@
             },
             {
               "id": "SPELLS-14.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-14.1", "SPELLS-14.2"],
               "wsjf": {
                 "bv": 8,
@@ -13268,7 +13296,9 @@
                 "after": ["SPELLS-14.T2"]
               },
               "text": "Setting off: GM sets tier; GM override when on.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m481.",
+              "mergedAt": "2026-10-27T00:52:21Z",
+              "proof": "Tests 40426791072 and Live 40426791307 green on b55a1a5ce (contains phase tip); reviewed (api.d.ts +6); merged in m481 (stored shape: SceneToken coverTierOverride). Proofs: apps/session-worker/test/nativeRoomCoverApplication.test.ts, packages/rules-runtime/src/__tests__/encounterCover.test.ts, packages/shared/src/__tests__/scene-geometry-reducer.test.ts, apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
             }
           ]
         },
@@ -19826,7 +19856,8 @@
                 "rr": 8,
                 "size": 5
               },
-              "text": "Add a CI job (live-backend.yml or a sibling) that starts the throwaway Convex plus the Session Worker under local wrangler dev with generated application and worker configuration (no secrets, no cloud), deploys and seeds, and runs the player-browser proof green with evidence uploaded. Reuse liveBackendValidation.mjs and the existing proof driver; port only what the PowerShell runner does that Linux needs."
+              "text": "Add a CI job (live-backend.yml or a sibling) that starts the throwaway Convex plus the Session Worker under local wrangler dev with generated application and worker configuration (no secrets, no cloud), deploys and seeds, and runs the player-browser proof green with evidence uploaded. Reuse liveBackendValidation.mjs and the existing proof driver; port only what the PowerShell runner does that Linux needs.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "RELIABILITY-20.T2",

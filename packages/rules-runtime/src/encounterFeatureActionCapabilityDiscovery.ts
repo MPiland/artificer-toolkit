@@ -1,4 +1,5 @@
 import { featureDtoSchema, type FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
 import type { EncounterProjectionActorInput } from '@artificer-toolkit/schema/projections/encounterProjectionInput'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import { compileEffect, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
@@ -13,12 +14,14 @@ import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spell
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import { standingEffectReturnsOn } from './standingEffects.js'
+import { snapshotAbilityScores } from './encounterActorState.js'
 import {
   attackProfileCapabilityRegistry,
   encounterFeatureActionCapabilityRegistry
 } from './platformEncounterPolicy.js'
 import {
   type EncounterCreatureEquipmentSource,
+  snapshotCreatureEquipmentItems,
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from './encounterCreatureEquipmentSources.js'
@@ -51,10 +54,14 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
     sourceVersionId: string
     sourceChecksum: string
   } | null
-  /** The Feature/option's one authored ATTACK roll for an attack-triggered action, else null. */
+  /**
+   * The Feature/option's one authored ATTACK roll for an attack-triggered action, else null. Its
+   * bonus and the damage bonus add what the loadout applies to the bound weapon (ATTACK-6.3).
+   */
   attackMechanic: {
     rollDefinitionId: string
     attackBonus: number
+    damageBonus: number
     rollMode: string
     definitionChecksum: string
   } | null
@@ -137,12 +144,15 @@ type EncounterFeatureEffect = NonNullable<FeatureDto['effects']>[number]
 
 function featureAttackMechanic(
   profile: AttackProfileCapabilityAdapter,
+  actor: EncounterProjectionActorInput,
   entry: FeatureEffectEntry,
-  compiledEffect: CompiledEffectGroup
+  compiledEffect: CompiledEffectGroup,
+  equipmentBinding: EncounterFeatureActionCapabilityDescriptor['equipmentBinding']
 ): EncounterFeatureActionCapabilityDescriptor['attackMechanic'] {
   const invocation = compiledEffect.invocation
-  if (invocation.kind !== 'ACTION' || profile.attackKind(invocation.triggerCode) === null)
-    return null
+  const attackKind =
+    invocation.kind === 'ACTION' ? profile.attackKind(invocation.triggerCode) : null
+  if (attackKind === null) return null
   const source = entry.actionFeature ?? entry.featureOption ?? entry.ownerFeature
   const definitions = (source.rollDefinitions ?? []).filter(
     (definition) => definition.kind === 'ATTACK'
@@ -161,12 +171,49 @@ function featureAttackMechanic(
   ) {
     throw new Error('Encounter feature attack roll must be one d20 plus a fixed modifier.')
   }
+  const weaponBonuses = equipmentBinding
+    ? boundWeaponBonuses(profile, actor, entry, compiledEffect, {
+        attackKind,
+        loadoutEntryId: equipmentBinding.loadoutEntryId
+      })
+    : { attack: 0, damage: 0 }
   return {
     rollDefinitionId: definition.id,
-    attackBonus: definition.expression.modifier,
+    attackBonus: definition.expression.modifier + weaponBonuses.attack,
+    damageBonus: weaponBonuses.damage,
     rollMode: definition.rollMode,
     definitionChecksum: checksumRuleDocument(definition)
   }
+}
+
+/**
+ * What the Creature's folded loadout adds to an attack made with its bound weapon, as for a
+ * Character attacking with that item (ATTACK-6.3), held in the grip the Feature authors.
+ */
+function boundWeaponBonuses(
+  profile: AttackProfileCapabilityAdapter,
+  actor: EncounterProjectionActorInput,
+  entry: FeatureEffectEntry,
+  compiledEffect: CompiledEffectGroup,
+  weapon: { attackKind: AttackKind; loadoutEntryId: string }
+): { attack: number; damage: number } {
+  const abilityScores = snapshotAbilityScores(actor)
+  if (!abilityScores) throw new Error('Encounter feature attack needs Creature ability scores.')
+  return profile.creatureWeaponBonuses({
+    abilityScores,
+    equipment: snapshotCreatureEquipmentItems(actor).map(({ entry: loadoutEntry, source }) => ({
+      id: loadoutEntry.id,
+      useState: loadoutEntry.useState,
+      compiled: source.compiled
+    })),
+    loadoutEntryId: weapon.loadoutEntryId,
+    attackKind: weapon.attackKind,
+    grip: entry.effect.grip ?? null,
+    activation:
+      'activation' in compiledEffect.invocation
+        ? (compiledEffect.invocation.activation?.code ?? null)
+        : null
+  })
 }
 
 /** What a System adapter binds to its pinned vocabulary for one compiled Effect. */
@@ -472,15 +519,13 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   ) {
     throw new Error('Encounter feature action capability resource binding is stale.')
   }
-  if (
-    JSON.stringify(capability.equipmentBinding ?? null) !==
-    JSON.stringify(entryEquipmentBinding(actor, entry, compiledEffect))
-  ) {
+  const equipmentBinding = entryEquipmentBinding(actor, entry, compiledEffect)
+  if (JSON.stringify(capability.equipmentBinding ?? null) !== JSON.stringify(equipmentBinding)) {
     throw new Error('Encounter feature action Equipment binding is stale.')
   }
   if (
     JSON.stringify(capability.attackMechanic) !==
-    JSON.stringify(featureAttackMechanic(profile, entry, compiledEffect))
+    JSON.stringify(featureAttackMechanic(profile, actor, entry, compiledEffect, equipmentBinding))
   ) {
     throw new Error('Encounter feature action attack roll is stale.')
   }
@@ -752,7 +797,13 @@ export function discoverUncompiledEncounterFeatureActions(input: {
           compiledEffectChecksum: checksumRuleDocument(compiledEffect),
           featureResourceUse: featureResourceUse(entry, compiledEffect),
           equipmentBinding,
-          attackMechanic: featureAttackMechanic(profile, entry, compiledEffect),
+          attackMechanic: featureAttackMechanic(
+            profile,
+            input.actor,
+            entry,
+            compiledEffect,
+            equipmentBinding
+          ),
           ...provenance
         })
       } catch (error) {
@@ -834,7 +885,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
 /** The action mechanic of an authored Effect action: a Creature Feature's or an authored basic action's. */
 export function featureActionMechanic(
   capability: EffectActionCapabilityDescriptor & {
-    attackMechanic?: { attackBonus: number; rollMode: string } | null
+    attackMechanic?: { attackBonus: number; damageBonus?: number; rollMode: string } | null
     /** The dice a damage outcome resolves to, by outcome id, when a cast froze it (D166). */
     damageExpressions?: Readonly<Record<string, string>>
   }
@@ -853,6 +904,10 @@ export function featureActionMechanic(
           dc: savingThrow.baseDc
         }
       : null
+  const firstDamageOutcome = capability.mechanicFacts.outcomes.find(
+    (outcome) => outcome.kind === 'DAMAGE'
+  )
+  const weaponDamageBonus = capability.attackMechanic?.damageBonus ?? 0
   return {
     effectId: capability.effectId,
     ...(capability.spellCastLevel === undefined
@@ -869,7 +924,11 @@ export function featureActionMechanic(
         outcome.kind === 'DAMAGE' && outcome.outcomeId !== undefined
           ? capability.damageExpressions?.[outcome.outcomeId]
           : undefined
-      return diceExpression === undefined ? outcome : { ...outcome, diceExpression }
+      if (diceExpression !== undefined) return { ...outcome, diceExpression }
+      // The bound weapon's damage bonus joins the attack's first damage, as a Character's does.
+      return outcome === firstDamageOutcome && weaponDamageBonus !== 0
+        ? { ...outcome, damageBonus: weaponDamageBonus }
+        : outcome
     })
   }
 }

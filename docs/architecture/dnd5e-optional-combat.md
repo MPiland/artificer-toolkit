@@ -94,7 +94,7 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
-**Climb cling (current, MOVE-4.T2a; follow and placement are target, MOVE-4.T2b).** The CLIMB
+**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement is target, MOVE-4.T2b2).** The CLIMB
 definition authors `effect`, the `ACTOR_RELATIONSHIP` active effect a won climb gives the climbed
 creature (sourced by the climber; `SOURCE_FOLLOWS_TARGET` plus a `SOURCE_ATTACK_ROLL_INFLUENCE`
 whose null `actionEffectIds` means every attack). The policy capability's `passageAppliedEffects`
@@ -142,9 +142,18 @@ before the Character and Creature branches, so it serves both. Each raised Effec
 activated self action, the shape the action compiler reads, and holds at most one lasting effect
 (one timed condition or one grant), as any action does. The activation is replaced by `FREE`, so it
 spends no action economy; the label is the definition's. Admission refuses every root that names a
-rule action unless it is a resume (`SOURCE_REQUIREMENTS_NOT_MET`), so no member applies a rule's
-outcomes at will. The rule-raised SYSTEM trigger and its admission proof land with the first rule
-that raises one (ATTACK-16.T1c2, Massive Damage).
+rule action unless it is a resume or a rule-raised root (`SOURCE_REQUIREMENTS_NOT_MET`), so no member
+applies a rule's outcomes at will.
+
+A failed save raises a rule action (ATTACK-16.T1c2b, current). Massive Damage's optional
+`failedSaveEffectId` names one of its `raisedEffects` (the document refuses any other id); absent, a
+failed save changes nothing, as the SRD seed does. After every committed command,
+`raiseRoomRuleEffects` (`roomEncounterRuleTriggers.ts`) reads the rule receipts in the current trigger
+window (persistence guide, SYSTEM admission), and for each pinned `SAVE_FAILURE` whose holder still
+stands and whose action has not run, raises the named Effect on the holder as a self-targeted `ACTOR`
+root (`systemTrigger.trigger: RULE`, parent = the save's receipt). An authored system shock rolls its
+table through the test-less direct phase (T1c2a). The kernel names no rule: the trigger reads only the
+pinned rule's failed-save action.
 
 Morale (ENCOUNTER-6, current) is offered in Campaign settings once its System policy resolves it.
 The GM projection derives each creature's offers from Run state as a pure read: at or below half

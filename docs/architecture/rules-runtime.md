@@ -709,7 +709,9 @@ same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a ga
 (`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
 `ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
 turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
-so it is never a free heal. Sunlight and running water are deferred edge cases.
+so it is never a free heal. Sunlight and running water are deferred edge cases. The same self `ACTOR` root
+carries a rule's failed-save action (`systemTrigger.trigger: RULE`, ATTACK-16.T1c2b; see the optional combat
+guide), raised by `raiseRoomRuleEffects` after the start-of-turn effects.
 
 **Damage taken since the turn began (current, SPELLS-33.T4i1b1).** A creature or custom actor carries an optional
 `damageTypesSinceTurnStart: {damageTypeId, commandId}[]`. `withDamageTypesTaken`
@@ -1855,8 +1857,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
   creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space.
 - **Cover applied (SPELLS-14.T2).** The Campaign setting `automaticCover` (default on, an automation setting beside
-  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover (the GM's tier is T3). When on,
-  `prepareEncounterActionMechanics` asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
+  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover. `prepareEncounterActionMechanics`
+  always asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
   `resolveSquareGridCover`). The Worker reads the live Scene for it (`nativeLiveCover.ts`: attack and cast preparation, the area
   action's per-target preparation, an opportunity attack's reactor→mover lines); the encounter-persistence preview host has no
   barrier reader, so it computes no cover and its previews show the uncovered d20. A tier that blocks targeting is a hard
@@ -1868,6 +1870,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `foldedBonuses` names where the difference came from; the roll record carries the list and the card shows "Half cover +2" (a save)
   or "Half cover: target's defense +2" (an attack). Nothing in code names a cover tier or number. Paths whose host has no Scene
   context (the counterspell cast pause, area collision revalidation) apply no cover.
+- **Cover override (SPELLS-14.T3).** The GM sets a target's tier on its Scene token, `coverTierOverride: { tierCode }` (absent =
+  automatic, `null` = no cover, otherwise a System tier `code`), through the GM-only `UPSERT_SCENE_TOKEN`. `resolveEncounterCover`
+  takes the override first and computes a tier only when `automatic` is set; an unknown code gives no cover. The override is
+  direction-agnostic, so it applies to every attacker and area origin. `applySceneGeometryDelta` drops it on `TOKEN_MOVED` and
+  `TOKEN_MOVE_UNDONE` (cover is positional), and an opportunity attack ignores the mover's override. The tabletop shows it to
+  everyone as a COVER token status.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
@@ -2817,6 +2825,11 @@ translated to its own place, merged in `compareSpatialMovementCandidates` order.
 (same dice, pending prompts, Concentration checks, receipts under the move's command and projection), so a dragged creature's
 0 hit points or STOP interruption stops the whole drag at that contact, and the Scene undo refuses the move because it recorded
 receipts. The list is recomputed from the live holds on every segment and resume, so no snapshot field carries it.
+A `SOURCE_FOLLOWS_TARGET` relationship rides the same drag the other way (MOVE-4.T2b1): when the creature holding it
+moves voluntarily, `encounterMovementDrag` carries the relationship's source (a creature clinging to it) along the same
+displacement, with the same path checks and one undo, but a follower never doubles the cost. The room also lets a mover
+cross and end inside the space of each creature it follows (derived from the live relationship; nothing is stored).
+Forced movement carries no follower.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's

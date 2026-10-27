@@ -18,6 +18,11 @@ const HELD = { actorId: testUuid(0xd702), tokenId: testUuid(0xd712) }
 const HELD_TWO = { actorId: testUuid(0xd704), tokenId: testUuid(0xd714) }
 const OTHER = { actorId: testUuid(0xd703), tokenId: testUuid(0xd713) }
 const dragged: RelationshipModule = { id: testUuid(0xd720), order: 0, kind: 'TARGET_DRAGGED' }
+const follows: RelationshipModule = {
+  id: testUuid(0xd722),
+  order: 0,
+  kind: 'SOURCE_FOLLOWS_TARGET'
+}
 const occupiesHand: RelationshipModule = {
   id: testUuid(0xd721),
   order: 0,
@@ -202,5 +207,44 @@ describe('a grappler drags the creatures it holds (ATTACK-7.T7, D105)', () => {
     expect(planned('LARGE', 'TINY', 'SMALL')).toMatchObject({ doublesCost: false })
     // The order of the holds does not matter.
     expect(planned('LARGE', 'MEDIUM', 'TINY')).toMatchObject({ doublesCost: true })
+  })
+})
+
+describe('a creature that follows the mover moves with it (MOVE-4.T2b1)', () => {
+  it('carries the source of a SOURCE_FOLLOWS_TARGET relationship on the mover, at no extra cost', () => {
+    // The relationship sits on the mover; the creature beside it applied it and follows it.
+    expect(drag({ activeEffectsByActorId: holds(HELD.actorId, [follows], MOVER) })).toEqual({
+      kind: 'DRAG',
+      tokens: [{ tokenId: HELD.tokenId, actorId: HELD.actorId }],
+      doublesCost: false
+    })
+    // A creature following another creature, or one the mover's own relationship binds, stays put.
+    for (const activeEffectsByActorId of [
+      holds(HELD.actorId, [follows], OTHER),
+      holds(MOVER.actorId, [follows])
+    ])
+      expect(drag({ activeEffectsByActorId })).toEqual({
+        kind: 'DRAG',
+        tokens: [],
+        doublesCost: false
+      })
+  })
+
+  it('refuses a move whose follower would be carried through a wall', () => {
+    const wall = {
+      id: testUuid(0xd751),
+      kind: 'WALL' as const,
+      a: { x: 200, y: 0 },
+      b: { x: 200, y: 100 },
+      blocksLight: true,
+      blocksMovement: true
+    }
+    expect(
+      drag({
+        scene: { ...scene, barriers: [wall] },
+        activeEffectsByActorId: holds(HELD.actorId, [follows], MOVER),
+        path: walk(350)
+      }).kind
+    ).toBe('REFUSED')
   })
 })

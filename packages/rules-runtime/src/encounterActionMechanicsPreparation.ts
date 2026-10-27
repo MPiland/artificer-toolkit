@@ -401,8 +401,8 @@ export async function prepareEncounterActionMechanics<
   }) => Promise<EncounterFlankingFacts | null>
   /**
    * The target's cover against this action's origin (the attacker, or an area's point), for the
-   * System's cover rules. Called only while the Campaign's automatic cover is on; null when the
-   * action has no Scene or the System judges none.
+   * System's cover rules: the GM's tier on the target token, else the computed one while the Run's
+   * automatic cover is on. Null when the action has no Scene or no tier applies.
    */
   loadCover?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
@@ -777,10 +777,7 @@ export async function prepareEncounterActionMechanics<
           capabilityDefinitionId: flankingCapabilityId
         })
       : null
-  const cover =
-    state.automaticCover && input.loadCover
-      ? await input.loadCover({ sourceFacts, targetFacts })
-      : null
+  const cover = input.loadCover ? await input.loadCover({ sourceFacts, targetFacts }) : null
   if (cover?.tier?.blocksTargeting)
     throw new EncounterValidationError(`The target has ${cover.tier.label.toLowerCase()}.`)
   // An attack on a decoy rolls against the decoy's own armor class, which cover does not move.
