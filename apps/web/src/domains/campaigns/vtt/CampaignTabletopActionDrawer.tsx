@@ -1504,6 +1504,9 @@ export function CampaignTabletopActionDrawer({
               sceneContext={(offer, newHolderActorId) =>
                 sceneContextBetween(offer.holderActorId, newHolderActorId)
               }
+              repeatSceneContext={(offer) =>
+                sceneContextBetween(offer.originActorId ?? currentActor.id, offer.holderActorId)
+              }
               targetActorId={offerTargetActorId}
               onChooseOffer={setChosenOfferKey}
               onMove={onMoveHeldEffect}

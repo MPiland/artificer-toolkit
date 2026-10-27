@@ -36,6 +36,10 @@ type EffectOffersProps = {
     offer: MoveEffectOfferChoice,
     targetActorId: string
   ) => MoveHeldEffectInputDto['sceneContext']
+  /** The Scene read that measures a repeat from its origin creature to the holder, or null. */
+  repeatSceneContext: (
+    offer: RepeatEffectOfferChoice
+  ) => ResolveEncounterActionInputDto['sceneContext']
   onChooseOffer: (key: string | null) => void
   onTargetPick: (actorId: string | null) => void
   onPickOnMap: () => void
@@ -66,6 +70,7 @@ function EffectOfferList({
   chosenOfferKey,
   targetActorId,
   sceneContext,
+  repeatSceneContext,
   onChooseOffer,
   onTargetPick,
   onPickOnMap,
@@ -117,7 +122,7 @@ function EffectOfferList({
           actionId: offer.actionId,
           target: { kind: 'ACTOR', actorId: offer.holderActorId },
           acceptedWieldConflict: null,
-          sceneContext: null,
+          sceneContext: repeatSceneContext(offer),
           acknowledgedWarnings
         }),
       { done: () => 'Repeated.', failed: 'The repeat could not be made.' }
