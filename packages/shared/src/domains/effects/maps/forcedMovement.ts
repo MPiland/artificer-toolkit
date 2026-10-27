@@ -6,10 +6,19 @@ import {
   FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS,
   LENGTH_UNIT_OPTIONS
 } from '#core'
-import { buildNodeMap } from '#utils'
+import { buildNodeMap, type BuildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import { FORCED_MOVEMENT_COLLISION_NODE_MAP } from './forcedMovementCollision.js'
-import type { OutcomeNodeMapApi } from './path.js'
+
+type ForcedMovementNode = AllUnionFields<ForcedMovementAuthored>
+type ForcedMovementNodeMapApi = Parameters<BuildNodeMap<ForcedMovementNode>['define']>[1] extends (
+  api: infer TApi
+) => void
+  ? TApi
+  : never
+
+/** The condition builder a forced-movement field set is shown by. */
+export type ForcedMovementCond = ForcedMovementNodeMapApi['cond']
 
 /**
  * The one home for what a forced movement asks of an author: its direction, distance, action
@@ -18,10 +27,10 @@ import type { OutcomeNodeMapApi } from './path.js'
  * under {@link FORCED_MOVEMENT_NODE_MAP}.
  */
 export function registerForcedMovementOutcomeFields(
-  map: OutcomeNodeMapApi['map'],
-  nodes: OutcomeNodeMapApi['nodes'],
-  cond: OutcomeNodeMapApi['cond'],
-  logic: OutcomeNodeMapApi['logic']
+  map: ForcedMovementNodeMapApi['map'],
+  nodes: ForcedMovementNodeMapApi['nodes'],
+  cond: ForcedMovementNodeMapApi['cond'],
+  logic: ForcedMovementNodeMapApi['logic']
 ) {
   const { number, selectSingle, groupObject } = nodes
   const { and, or } = logic
@@ -82,7 +91,7 @@ export function registerForcedMovementOutcomeFields(
     )
 }
 
-const forcedMovement = buildNodeMap<AllUnionFields<ForcedMovementAuthored>>()
+const forcedMovement = buildNodeMap<ForcedMovementNode>()
 
 /** A forced movement authored on its own, not as an outcome: always a FORCED_MOVEMENT effect. */
 export const FORCED_MOVEMENT_NODE_MAP = forcedMovement.define(
@@ -102,11 +111,6 @@ export const FORCED_MOVEMENT_NODE_MAP = forcedMovement.define(
         { requiredIf: true }
       )
     )
-    registerForcedMovementOutcomeFields(
-      map as unknown as OutcomeNodeMapApi['map'],
-      nodes as unknown as OutcomeNodeMapApi['nodes'],
-      cond as unknown as OutcomeNodeMapApi['cond'],
-      logic as unknown as OutcomeNodeMapApi['logic']
-    )
+    registerForcedMovementOutcomeFields(map, nodes, cond, logic)
   }
 )

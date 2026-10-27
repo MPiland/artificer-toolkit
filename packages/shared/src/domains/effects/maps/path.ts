@@ -111,7 +111,7 @@ import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
-import { registerForcedMovementOutcomeFields } from './forcedMovement.js'
+import { registerForcedMovementOutcomeFields, type ForcedMovementCond } from './forcedMovement.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -1682,7 +1682,8 @@ function registerOutcomeFields(
       )
     )
   registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
-  registerForcedMovementOutcomeFields(map, nodes, cond, logic)
+  // FieldHandle is contravariant in the node type, so the outcome `cond` cannot pass as the forced-movement one.
+  registerForcedMovementOutcomeFields(map, nodes, cond as unknown as ForcedMovementCond, logic)
   map
     .set(
       'shape',
