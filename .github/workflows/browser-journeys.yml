@@ -104,7 +104,8 @@ jobs:
       - name: Deploy and seed
         run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
       - name: Run ${{ matrix.proof }}
-        run: node scripts/runLocalBrowserProof.mjs --name=ci-${{ matrix.proof }} --proof=${{ matrix.proof }}
+        # account-deletion-browser requires its evidence name to start with the proof name.
+        run: node scripts/runLocalBrowserProof.mjs --name=${{ matrix.proof }}-ci --proof=${{ matrix.proof }}
       - name: Evidence holds no generated secret
         if: always()
         run: |

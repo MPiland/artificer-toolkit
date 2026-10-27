@@ -34,8 +34,7 @@ const localSessionWorker = {
     'LIVE_SESSION_TICKET_SECRET',
     'LIVE_SESSION_WORKER_SECRET',
     'CONTENT_SNAPSHOT_TOKEN_SECRET'
-  ],
-  selfManagedStage: `r08-browser-${selfManagedBrowserProof}`
+  ]
 }
 // The browser proofs open the web app here; the VTT browser proof starts its own on the same port.
 const localWebApp = { port: 3000 }
@@ -1415,7 +1414,7 @@ async function main() {
         throw error
       }
     }
-    if (batch.some(({ name }) => name === localSessionWorker.selfManagedStage)) {
+    if (batch.some(({ name }) => name === `r08-browser-${selfManagedBrowserProof}`)) {
       await stopLocalServices()
     } else {
       for (const service of localServices) {
