@@ -21,7 +21,7 @@ if (!rules) throw new Error('The SRD System authors no cover rules.')
 const tier = (code: string): EncounterCoverFacts['tier'] => {
   const found = rules.tiers.find((candidate) => candidate.code === code)
   if (!found) throw new Error(`The SRD System has no ${code} cover tier.`)
-  return found
+  return { label: found.label, bonus: found.bonus, blocksTargeting: found.blocksTargeting }
 }
 const facts = (code: string): EncounterCoverFacts => ({
   tier: tier(code),
