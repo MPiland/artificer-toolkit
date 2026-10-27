@@ -105,7 +105,8 @@ export function lockedRelationshipActionFacts(input: {
       }
       if (
         module.kind === 'SOURCE_ATTACK_ROLL_INFLUENCE' &&
-        module.actionEffectIds.includes(input.actionEffectId) &&
+        (module.actionEffectIds === null ||
+          module.actionEffectIds.includes(input.actionEffectId)) &&
         relationshipTargetActorId === input.targetActorId
       ) {
         contributors.push({

@@ -108,7 +108,11 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       /** The one-check grants (Help) both rollers' contest checks used up; the commit deletes them. */
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
-        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** What the rule behind a won contest gives the contested creature (the cling a climb leaves). */
+      createdEffects: z
+        .array(activeRuleEffectRecordSchema)
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
     })
   ])
 )

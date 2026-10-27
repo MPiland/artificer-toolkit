@@ -400,7 +400,9 @@ records a win's outcome as one `TARGET_OUTCOME` (D173): `mechanics` (the target'
 `upTo`), at least one of the two. The contest-only `CONDITIONS_APPLIED` and `FORCED_MOVEMENT` kinds are removed, and a
 stored receipt of either fails its schema parse. A win's dice that its initiator does not auto-roll pause the contest on
 an `ACTION_OUTCOME_EVIDENCE` pending summary for the initiator, answered with `ENTER_DICE`, `ENTER_INTEGER` or
-`SYSTEM_ROLL`. The room's contest commit (`LiveSessionEncounterContestCommitInput`) carries the planned
+`SYSTEM_ROLL`. A win whose push owes a destination pick (D157) stores `contestPhase: 'DESTINATION'` with the
+`FORCED_MOVEMENT` pause (the offer, holding the settled outcome) and projects the existing
+`FORCED_MOVEMENT_DESTINATION` decision, answered with `FORCED_MOVEMENT` by the source's controllers or the GM. The room's contest commit (`LiveSessionEncounterContestCommitInput`) carries the planned
 `forcedMovements`; the commit lands the push on the Scene through the same `applyRoomForcedMovements` path as an
 action's push. A fixed-DC check action whose success runs an outcome (D173), made by a basic action or a Creature feature,
 commits through the basic action commit input, which names its `source` (`BASIC_ACTION` or `CREATURE_FEATURE`) and a

@@ -1,6 +1,6 @@
 import { FACING_ARCS, type FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
 
-import { z, lazySchema } from '../zod.js'
+import { z, convexOpaqueSchema, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
@@ -365,6 +365,11 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       initiatorCheckDefinitionIds: boundedCheckDefinitionChoicesSchema,
       targetCheckDefinitionId: serverUuidIdentityDtoSchema,
       minimumTargetSizeSteps: z.number().check(z.int()).check(z.gte(1)).check(z.lte(5)),
+      /**
+       * The effect a won climb gives the target, sourced by the climber (the cling). A named
+       * opaque leaf (D194): a second inlined Effect tree grew the generated API types by 28%.
+       */
+      effect: convexOpaqueSchema(effectDtoSchema),
       economies: z
         .array(z.enum(['ACTION', 'BONUS_ACTION']))
         .check(z.minLength(1))

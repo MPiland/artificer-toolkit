@@ -18,6 +18,7 @@ import {
   passesThrough
 } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
+import { preparePassageAppliedEffects } from './encounterPassageAppliedEffects.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
@@ -33,6 +34,8 @@ type PassageSettlement = {
     consumption: EncounterActionEconomyConsumption
     /** The one-check grants (Help) both rollers' contest checks used up. */
     consumedGrants: ActiveRuleEffectRecord[]
+    /** What the rule behind a won contest gives the contested creature (the cling a climb leaves). */
+    createdEffects: ActiveRuleEffectRecord[]
   }
 }
 
@@ -209,9 +212,30 @@ export async function evaluateEncounterMovementPassageResponse<
     const economy = evaluated.pending.actionEconomy
     if (!source || !economy) throw new Error('Movement passage allowance is unavailable.')
     const consumption = { ...economy, afterUsed: economy.beforeUsed + 1 }
+    const blockerTarget = targets.get(movement.blockerActorId)
+    let createdEffects: ActiveRuleEffectRecord[] = []
+    if (evaluated.execution.outcome === 'SUCCESS' && blockerTarget) {
+      // Every holder's relationships count against what the mover may hold at once.
+      targets = new Map([
+        ...(await callbacks.loadTargets(state.actorIds.filter((id) => !targets.has(id)))),
+        ...targets
+      ])
+      createdEffects = preparePassageAppliedEffects({
+        state,
+        definitionId: evaluated.pending.origin.pin.definitionId,
+        occurrenceId: input.occurrenceId,
+        commandId: responseCommand.commandId,
+        occurredAt,
+        source,
+        target: blockerTarget,
+        activeEffectsByActorId: new Map(
+          [...targets].map(([actorId, target]) => [actorId, target.activeEffects])
+        )
+      })
+    }
     settlements.push({
       kind: 'PASSAGE',
-      plan: { actor: source.actor, consumption, consumedGrants }
+      plan: { actor: source.actor, consumption, consumedGrants, createdEffects }
     })
     withTargetActor(
       encounterRunActorStateSchema.parse({

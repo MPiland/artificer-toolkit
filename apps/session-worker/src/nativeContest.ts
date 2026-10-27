@@ -66,6 +66,8 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import type { ForcedMovementPick } from './nativeAreaPreparation.js'
+import { planForcedMovementDestination } from './nativeForcedMovementDestination.js'
 import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -102,10 +104,11 @@ type ContestPendingContext = Extract<
 > & { contest: ContestPreparation['contest'] }
 /**
  * What a won contest changes: an action's outcome (the Disarmed item or the hold) from its prepared
- * mechanics, or a contested escape that ends the held source's `activeEffectId`.
+ * mechanics, its forced movements landing where `forcedMovementPick` reads (D157), or a contested
+ * escape that ends the held source's `activeEffectId`.
  */
 type ContestSettlement =
-  | { kind: 'ACTION'; prepared: PreparedContest }
+  | { kind: 'ACTION'; prepared: PreparedContest; forcedMovementPick: ForcedMovementPick }
   | { kind: 'ESCAPE'; holderEffects: readonly ActiveRuleEffectRecord[]; activeEffectId: string }
 type ContestRolls = Extract<
   Awaited<ReturnType<typeof executeEncounterOptionalContestAction>>,
@@ -226,6 +229,7 @@ export async function planNativeLiveContest(
     runtime: RulesRuntimeService
     random(maximum: number): number
     captures: LiveCaptureReads
+    forcedMovementPick: ForcedMovementPick
   }
 ) {
   const request = { kind: 'CONTEST' as const, command }
@@ -376,7 +380,11 @@ export async function planNativeLiveContest(
     actors,
     actor,
     target,
-    settlement: { kind: 'ACTION', prepared },
+    settlement: {
+      kind: 'ACTION',
+      prepared,
+      forcedMovementPick: executionOptions.forcedMovementPick
+    },
     actorRules: prepared.actorRules,
     sceneContext,
     activeEffectsByActorId,
@@ -541,8 +549,18 @@ export async function planNativeLiveContestRolls(input: {
           return { continuation, answer }
         })()
       : null
+  // A won outcome's forced movement waits on its source's destination pick (D157).
+  const destinationAnswered =
+    answered && priorContext?.contestPhase === 'DESTINATION'
+      ? (() => {
+          const { continuation, answer } = answered
+          if (answer.kind !== 'FORCED_MOVEMENT' || priorContext.pause?.kind !== 'FORCED_MOVEMENT')
+            throw new EncounterValidationError('A contest destination answers with its square.')
+          return { continuation, offer: priorContext.pause.payload, position: answer.position }
+        })()
+      : null
   const resumed =
-    answered && pending && priorContext && !outcomeAnswered
+    answered && pending && priorContext && !outcomeAnswered && !destinationAnswered
       ? (() => {
           const participant: 'INITIATOR' | 'DEFENDER' =
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
@@ -580,7 +598,7 @@ export async function planNativeLiveContestRolls(input: {
           }
         })()
       : null
-  if (response && !resumed && !outcomeAnswered)
+  if (response && !resumed && !outcomeAnswered && !destinationAnswered)
     throw new Error('The contest answer is unavailable.')
   const {
     checkDefinitionId: defenderCheckDefinitionId,
@@ -626,7 +644,10 @@ export async function planNativeLiveContestRolls(input: {
   // The contest waits on the roller's answer to `continuation`'s request, its rolls so far sealed.
   const pendingContest = (
     continuation: ServerRuleExecutionContinuationDto,
-    rolled: Pick<ContestPendingContext, 'rollerActorId' | 'contestPhase' | 'd20Belief' | 'heldD20'>
+    rolled: Pick<
+      ContestPendingContext,
+      'rollerActorId' | 'contestPhase' | 'd20Belief' | 'heldD20' | 'pause'
+    >
   ) => ({
     kind: 'PENDING' as const,
     input: liveSessionEncounterContestPendingInputSchema.parse({
@@ -685,8 +706,8 @@ export async function planNativeLiveContestRolls(input: {
       resumed.resolution.requestId,
       (resumed.participant === 'INITIATOR' ? execution.initiator : execution.defender).rawFaces
     )
-  // An answer to a won contest's outcome dice finds both checks already recorded.
-  else if (!outcomeAnswered)
+  // An answer to a won contest's outcome dice or destination finds both checks already recorded.
+  else if (!outcomeAnswered && !destinationAnswered)
     for (const [participant, roll] of [
       ['INITIATOR', execution.initiator],
       ['DEFENDER', execution.defender]
@@ -739,6 +760,7 @@ export async function planNativeLiveContestRolls(input: {
           runtime: input.runtime,
           autoRoll: ready.autoRollByActorId[contest.initiator.actorId] === true,
           answered: outcomeAnswered,
+          ...(destinationAnswered ? { held: destinationAnswered.offer.completion } : {}),
           random: input.random
         })
       : null
@@ -747,6 +769,30 @@ export async function planNativeLiveContestRolls(input: {
     return pendingContest(outcome.continuation, {
       contestPhase: 'OUTCOME',
       rollerActorId: contest.initiator.actorId
+    })
+  const settledOutcome = outcome?.kind === 'SETTLED' ? outcome : null
+  // A movement with two or more legal squares waits for its source to pick one (D157).
+  const destination = await planForcedMovementDestination({
+    runtime: input.runtime,
+    occurrenceId,
+    encounterId: state.id,
+    sourceActorId: actor.id,
+    outcomePhase: null,
+    settled:
+      settledOutcome && settlement.kind === 'ACTION'
+        ? {
+            pick: settlement.forcedMovementPick,
+            movements: settledOutcome.forcedMovements,
+            completion: settledOutcome.completion
+          }
+        : null,
+    answer: destinationAnswered
+  })
+  if (destination.kind === 'HELD')
+    return pendingContest(destination.held.continuation, {
+      contestPhase: 'DESTINATION',
+      rollerActorId: contest.initiator.actorId,
+      pause: destination.held.pause
     })
   const settledTarget =
     success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
@@ -833,7 +879,7 @@ export async function planNativeLiveContestRolls(input: {
         }).ended
       ],
       createdEffect: hold?.record ?? null,
-      forcedMovements: outcome?.forcedMovements ?? [],
+      forcedMovements: destination.movements,
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,

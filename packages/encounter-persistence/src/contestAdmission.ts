@@ -281,13 +281,16 @@ export async function readContestAdmission(
     response && occurrence
       ? await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
       : null
-  // A won contest's outcome dice may also be entered as a total; its d20 phases still refuse one (D173).
+  // A won contest's outcome dice may also be entered as a total; its d20 phases still refuse one
+  // (D173). Its destination phase takes only the square its source picks (D157).
   if (
     response &&
-    response.resolution.kind !== 'ENTER_DICE' &&
-    response.resolution.kind !== 'ENTER_INTEGER' &&
-    response.resolution.kind !== 'SYSTEM_ROLL' &&
-    response.resolution.kind !== 'CONTEST_CHECK'
+    (prior?.participant === 'DESTINATION'
+      ? response.resolution.kind !== 'FORCED_MOVEMENT'
+      : response.resolution.kind !== 'ENTER_DICE' &&
+        response.resolution.kind !== 'ENTER_INTEGER' &&
+        response.resolution.kind !== 'SYSTEM_ROLL' &&
+        response.resolution.kind !== 'CONTEST_CHECK')
   )
     throw new Error('A contest participant answers with its roll evidence.')
   return {

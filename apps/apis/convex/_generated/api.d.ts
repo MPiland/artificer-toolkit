@@ -22492,6 +22492,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -51901,6 +51902,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -81319,6 +81321,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -110728,6 +110731,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -140172,6 +140176,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -169581,6 +169586,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -198992,6 +198998,7 @@ export declare const api: {
                     }
                   | {
                       economies: Array<"ACTION" | "BONUS_ACTION">;
+                      effect: any;
                       initiatorCheckDefinitionIds: Array<string>;
                       kind: "CLIMB_ONTO_LARGER_CREATURE";
                       minimumTargetSizeSteps: number;
@@ -228099,6 +228106,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -257508,6 +257516,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
