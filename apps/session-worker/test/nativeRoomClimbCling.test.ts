@@ -81,21 +81,23 @@ describe('a won climb onto a larger creature (MOVE-4.2), in the room', () => {
       }
     })
     const { receipts } = await readRoomHistory(room.room.base.stub)
-    expect(
-      receipts.filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE').at(-1)
-    ).toMatchObject({
-      result: { terminalPosition: MOUNT_START },
-      metadata: {
-        resolutionCommands: [
-          {
-            passageContest: {
-              actionKind: 'CLIMB_ONTO_LARGER_CREATURE',
-              outcome: 'SUCCESS',
-              audit: { contact: { x: 250, y: 150 }, enteredPosition: MOUNT_START }
-            }
+    const resolution = receipts
+      .filter((entry) => entry.commandType === 'RESOLVE_RULE_OCCURRENCE')
+      .at(-1)
+    if (!resolution) throw new Error('The climb left no resolution receipt.')
+    expect(JSON.parse(resolution.resultJson)).toMatchObject({
+      terminalPosition: MOUNT_START
+    })
+    expect(JSON.parse(resolution.commandMetadataJson)).toMatchObject({
+      resolutionCommands: [
+        {
+          passageContest: {
+            actionKind: 'CLIMB_ONTO_LARGER_CREATURE',
+            outcome: 'SUCCESS',
+            audit: { contact: { x: 250, y: 150 }, enteredPosition: MOUNT_START }
           }
-        ]
-      }
+        }
+      ]
     })
 
     // On its turn the mount walks on and carries the clinging climber with it.
