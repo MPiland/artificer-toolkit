@@ -149,7 +149,8 @@ describe('Better Auth superadmin boundary', () => {
 
   it('disables every admin HTTP endpoint, including impersonation and arbitrary user updates', async () => {
     const { t } = await fixture()
-    await t.run(async (ctx) => {
+    // Auth HTTP runs in an action that knows the caller's IP, as the registered route does.
+    await t.withRequestMetadata({ ip: '127.0.0.1' }).action(async function handle(ctx) {
       const options = createAuthOptions(ctx)
       const plugin = options.plugins.find((entry) => entry.id === 'admin')
       if (!plugin || !('endpoints' in plugin)) throw new Error('Admin plugin is missing')

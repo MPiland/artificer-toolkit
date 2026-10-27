@@ -68,6 +68,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveBranch'
   | 'followUpSaveFailureMarginRider'
   | 'followUpSaveFailureMarginRiderLifecycle'
+  | 'forcedMovement'
   | 'forcedMovementCollision'
   | 'followUpSaveRepeatAttemptGate'
   | 'followUpSaveRepeatPerception'
@@ -250,6 +251,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveBranch: ['followUpSaveBranch'],
   followUpSaveFailureMarginRider: ['followUpSaveFailureMarginRider'],
   followUpSaveFailureMarginRiderLifecycle: ['followUpSaveFailureMarginRiderLifecycle'],
+  forcedMovement: ['forcedMovement'],
   forcedMovementCollision: ['forcedMovementCollision'],
   followUpSaveRepeatAttemptGate: ['followUpSaveRepeatAttemptGate'],
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],

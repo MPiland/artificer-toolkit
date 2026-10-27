@@ -690,6 +690,8 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'REVERT_LAST_ACTION') return 'Undone by the GM'
   if (commandType === 'SET_CONCEALMENT_OBSERVERS') return 'Concealment corrected by the GM'
   if (commandType === 'PLACE_ZONE') return 'Zone placed by the GM'
+  if (commandType === 'REVEAL_ZONE') return 'Zone revealed by the GM'
+  if (commandType === 'DISARM_ZONE') return 'Zone disarmed by the GM'
   if (commandType === 'DISMISS_ZONE_SIGHTING') return 'Sighting dismissed by the GM'
   if (commandType === 'MORALE_SAVE') return 'Morale checked'
   if (commandType === 'CONFIRM_MORALE') return 'Morale outcome confirmed'

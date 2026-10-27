@@ -1143,6 +1143,13 @@ and a player reads a concealed zone only when one of the actors they control is 
 leave it out. Only the GM reads the DCs in `placedZones`. The movement path still triggers a concealed zone for every
 mover.
 
+**Reveal and disarm (MOVE-3.7, current).** `REVEAL_ZONE` (GM-only, `actorIds`) adds the chosen Characters to
+`knownByActorIds` (`withZoneRevealedTo`), so they read the zone like its placer, and their sightings settle (removed). It shares `SET_ZONE_DCS`'s receipt (`before`/`after`) and its undo
+(`revertZoneDcs`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
+the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
+(`revertZoneDisarm`). The four zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
+
 **Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
 `toSpatialInstances` carries `knownByActorIds` onto the spatial instance, and `crossesSpatialFieldCarefully`
 (`shared/vtt/spatial.ts`) lets a careful mover skip the entry save and pay double only in a field it knows of: both
@@ -2546,9 +2553,11 @@ adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeCont
 attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
 `conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one
-measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
-(`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
-reason, and may only shrink. Versatile grips author one effect per grip.
+measure, `measureSceneTokenFootprintDistance`. The primary entries before an immediate save are the hit's
+damage and any GM rulings beside it (Wereboar Tusks' curse ahead of its Charge save, ATTACK-5.T4w); a
+ruling rolls no dice and sizes no hit point maximum reduction. The SRD attack sweep
+(`__tests__/srdCreatureAttackSweep.test.ts`) prepares, executes and plans every SRD Creature attack with no
+exceptions (ATTACK-5.T4w retired its allowlist). Versatile grips author one effect per grip.
 
 Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
 (`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where

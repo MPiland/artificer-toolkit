@@ -327,6 +327,27 @@ const PARITY: Record<CommandType, Entry> = {
       actorId: probe.actorId
     })
   },
+  REVEAL_ZONE: {
+    access: 'TABLE',
+    rule: table('MOVE-3.7: the GM shows a concealed zone to chosen Characters'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'REVEAL_ZONE',
+      spatialEffectId: SOME_ID,
+      actorIds: [probe.actorId]
+    })
+  },
+  DISARM_ZONE: {
+    access: 'TABLE',
+    rule: table('MOVE-3.7: the GM disarms a zone, which removes it'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'DISARM_ZONE',
+      spatialEffectId: SOME_ID
+    })
+  },
   MORALE_SAVE: {
     access: 'TABLE',
     rule: table(

@@ -86,6 +86,7 @@ import type {
   FollowUpSaveRepeatPerceptionAuthored,
   FollowUpSaveRepeatRollInfluenceAuthored,
   FollowUpSaveRepeatTriggerAuthored,
+  ForcedMovementAuthored,
   ForcedMovementCollisionAuthored,
   GrantProgression,
   GrantProgressionLevel,
@@ -651,6 +652,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         order,
         bonusKind: 'PROFICIENCY_BONUS'
       } satisfies Extract<DamageBonusAuthored, { bonusKind: 'PROFICIENCY_BONUS' }>
+    case 'forcedMovement':
+      return {
+        id: crypto.randomUUID(),
+        effectKind: 'FORCED_MOVEMENT',
+        direction: 'ANY',
+        actionEconomy: 'NONE',
+        distanceMode: 'UP_TO_SPEED'
+      } satisfies ForcedMovementAuthored
     case 'forcedMovementCollision':
       return {
         id: crypto.randomUUID(),

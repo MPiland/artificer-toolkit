@@ -6710,10 +6710,16 @@
             },
             {
               "text": "Shove Aside chooses a legal destination and commits it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomContestDestinationPick.test.ts",
+                "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "CampaignVttStage.forcedMovement.test.tsx"
+              ],
               "origin": ["P81-SHOVE-ASIDE-DESTINATION"],
-              "id": "MOVE-2.4"
+              "id": "MOVE-2.4",
+              "note": "Closed 2026-10-27 by MOVE-2.T3a, MOVE-2.T3b, MOVE-2.T4."
             },
             {
               "text": "Tumble policy is authored and typed.",
@@ -6820,7 +6826,7 @@
             },
             {
               "id": "MOVE-2.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
@@ -6830,8 +6836,9 @@
                 "after": ["MOVE-2.T3b"]
               },
               "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome. Merged in m498.",
+              "mergedAt": "2026-10-27T18:48:25Z",
+              "proof": "Tests 40554074813 and Browser journeys 40554074872 green on 8d9b1e16a (contains m497), Live 40529312303 green on 1a6e4b3f8 (delta phase-only, no apps/apis or package change); reviewed; merged in m498. Proofs: shove-aside-browser journey (apps/apis/tests/developmentEncounterShoveAside.ts, apps/web/tests/live-backend/encounterShoveAside.ts), apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, CampaignVttStage.forcedMovement.test.tsx"
             }
           ]
         },
@@ -6845,10 +6852,15 @@
           "acs": [
             {
               "text": "Auras and traps execute against moving tokens, with their previews and privacy.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomZoneConcealment.test.ts",
+                "nativeRoomPlayerParity.test.ts",
+                "encounterZoneConcealment.test.ts",
+                "CampaignTabletopEncounterDrawer.test.tsx"
+              ],
               "origin": ["G2-SPATIAL-PERCEPTION"],
-              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07. 2026-10-14: auras are SPELLS-20; traps are made concrete by MOVE-3.2 to MOVE-3.6.",
+              "note": "Original PARTIAL: auras and traps execution is not in 8.2 criteria; movement and geometry facts are covered by V03/V07. 2026-10-14: auras are SPELLS-20; traps are made concrete by MOVE-3.2 to MOVE-3.6. Closed 2026-10-27 by MOVE-3.T6.",
               "id": "MOVE-3.1"
             },
             {
@@ -6919,10 +6931,15 @@
             },
             {
               "text": "The GM can reveal a concealed zone to chosen Characters (after a Search roll or from the passive prompt) and can disarm a zone, which removes it; GM undo restores either. The disarm DC is shown only to the GM.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomZoneConcealment.test.ts",
+                "nativeRoomPlayerParity.test.ts",
+                "encounterZoneConcealment.test.ts",
+                "CampaignTabletopEncounterDrawer.test.tsx"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The player rolls the disarm check from their sheet. A botched disarm is the GM's call; on-demand triggering is a future enhancement.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The player rolls the disarm check from their sheet. A botched disarm is the GM's call; on-demand triggering is a future enhancement. Closed 2026-10-27 by MOVE-3.T6.",
               "id": "MOVE-3.7"
             }
           ],
@@ -7047,7 +7064,7 @@
             },
             {
               "id": "MOVE-3.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.7", "MOVE-3.1"],
               "wsjf": {
                 "bv": 8,
@@ -7057,8 +7074,9 @@
                 "after": ["MOVE-3.T4b", "MOVE-3.T5"]
               },
               "text": "GM reveal to chosen Characters and disarm (removes zone), with undo restoring either; disarm DC GM-only. Closes the umbrella 3.1 with the others.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m500.",
+              "mergedAt": "2026-10-27T19:16:20Z",
+              "proof": "Tests 40554116806, Live 40554116936 and Browser journeys 40554116791 green on 1ebfbdf71; reviewed; merged in m500 (batch run 40567381163). Proofs: nativeRoomZoneConcealment.test.ts, nativeRoomPlayerParity.test.ts, encounterZoneConcealment.test.ts, CampaignTabletopEncounterDrawer.test.tsx"
             }
           ]
         },
@@ -7104,10 +7122,16 @@
             },
             {
               "text": "The target can try to dislodge the climber with the authored contest, and a dislodged climber lands in a legal adjacent space.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomClimbDislodge.test.ts",
+                "packages/encounter-persistence/src/__tests__/contestEscapeMovement.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
+                "escapeCheckForcedMovementAuthoringParity.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "MOVE-4.3"
+              "id": "MOVE-4.3",
+              "note": "Closed 2026-10-27 by MOVE-4.T3a, MOVE-4.T3b."
             },
             {
               "text": "Campaign settings offer the rule only once it resolves.",
@@ -7206,7 +7230,7 @@
             },
             {
               "id": "MOVE-4.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.3"],
               "wsjf": {
                 "bv": 2,
@@ -7216,8 +7240,9 @@
                 "after": ["MOVE-4.T3a"]
               },
               "text": "Extract the forced-movement fields from maps/path.ts into a shared node map, add the escape check holderForcedMovement form field, with an authoring parity proof and docs.",
-              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3. Merged in m501.",
+              "mergedAt": "2026-10-27T19:42:06Z",
+              "proof": "Tests 40565969882, Live 40565969752/40566021151 and Browser journeys 40565969965 green on de722a04c; reviewed (helper typed on the forced-movement builder API, one cond cast); merged in m501. Proofs: escapeCheckForcedMovementAuthoringParity.test.ts"
             },
             {
               "id": "MOVE-4.T4",
@@ -8098,10 +8123,14 @@
           "acs": [
             {
               "text": "Every SRD monster attack runs: the allowlisted unsupported attacks are implemented, with rare riders (swallow, engulf, curse, disease, lycanthropy, healing-block wounds) resolving as a GM ruling beside the attack's damage (D187a), and the allowlist is empty.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "srdCreatureHitRiders.test.ts",
+                "nativeRoomHitRiders.test.ts",
+                "srdCreatureAttackSweep.test.ts"
+              ],
               "origin": ["G2-SRD-MANIFEST"],
-              "note": "Carry-over (closed-beta gate); also RUL-9 slices 2 and 9.",
+              "note": "Carry-over (closed-beta gate); also RUL-9 slices 2 and 9. Closed 2026-10-27 by ATTACK-5.T4w.",
               "id": "ATTACK-5.1"
             },
             {
@@ -8249,10 +8278,16 @@
             },
             {
               "text": "Remaining monster riders (attach, drain, pull, follow-up saves) run, ordered by marquee monsters; swallow, engulf, curse and disease show as a GM ruling beside the attack (D187a).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts",
+                "packages/rules-runtime/src/__tests__/srdCreatureAttackSweep.test.ts",
+                "srdCreatureHitRiders.test.ts",
+                "nativeRoomHitRiders.test.ts",
+                "srdCreatureAttackSweep.test.ts"
+              ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions. Creature and item auras with turn-start text (Ghast and Hezrou Stench, Dretch fetid cloud, Kraken ink, Mouther, Helm of Brilliance) were not covered by the 2026-10-17 zone audit; audit them here.",
+              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions. Creature and item auras with turn-start text (Ghast and Hezrou Stench, Dretch fetid cloud, Kraken ink, Mouther, Helm of Brilliance) were not covered by the 2026-10-17 zone audit; audit them here. Closed 2026-10-27 by ATTACK-5.T4a, ATTACK-5.T4b, ATTACK-5.T4c, ATTACK-5.T4, ATTACK-5.T4w.",
               "id": "ATTACK-5.15"
             }
           ],
@@ -8385,7 +8420,7 @@
             },
             {
               "id": "ATTACK-5.T4w",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-5.1", "ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -8394,9 +8429,10 @@
                 "size": 2,
                 "after": ["ATTACK-5.T4"]
               },
-              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2. Merged in m499.",
               "text": "immediateFollowUpSaveEntries admits a MANUAL_ADJUDICATION entry ahead of an immediate save (generic), with the dice and critical-hit readers and a regression test. Wereboar Tusks leaves the allowlist with a room proof, and the allowlist test asserts an empty list.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "mergedAt": "2026-10-27T18:52:49Z",
+              "proof": "Tests 40554072918, Live 40554072973 and Browser journeys 40554073333 green on d3dbfe066; reviewed; merged in m499 (batch run 40563862819). Proofs: srdCreatureHitRiders.test.ts, nativeRoomHitRiders.test.ts, srdCreatureAttackSweep.test.ts (allowlist emptied)"
             }
           ]
         },
@@ -11667,7 +11703,8 @@
                 "after": ["SPELLS-4.T2lb2c", "RELIABILITY-20.T1"]
               },
               "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
-              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1."
+              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -20111,10 +20148,10 @@
             {
               "id": "RELIABILITY-21.10",
               "text": "Sign-in rate limiting keys on the real client IP on the deployed and CI stacks: two clients on different IPs get separate buckets, and Better Auth never falls back to the shared per-path bucket.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/authClientIp.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit. Closed 2026-10-27 by RELIABILITY-21.T10."
             },
             {
               "id": "RELIABILITY-21.11",
@@ -20230,7 +20267,8 @@
                 "size": 2
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again."
+              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again.",
+              "activeWorkbook": "docs/architecture/live-sessions.md"
             },
             {
               "id": "RELIABILITY-21.T9",
@@ -20247,7 +20285,7 @@
             },
             {
               "id": "RELIABILITY-21.T10",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.10"],
               "wsjf": {
                 "bv": 5,
@@ -20255,22 +20293,24 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit. Merged in m500.",
               "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T19:16:20Z",
+              "proof": "Tests 40554127074, Live 40554127026 and Browser journeys 40554126820 green on 3e19eede1 (campaign-collaboration-browser passes, known-bug label removed); reviewed; merged in m500 (batch run 40567381163). Proofs: apps/apis/convex/authClientIp.test.ts, campaign-collaboration-browser journey"
             },
             {
               "id": "RELIABILITY-21.T11",
               "status": "TODO",
-              "closes": ["RELIABILITY-21.11"],
+              "closes": ["RELIABILITY-21.11", "RELIABILITY-21.4"],
               "wsjf": {
                 "bv": 5,
                 "tc": 8,
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it.",
-              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green.",
+              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS. Also clear the social-browser, hide-browser and scene-live-browser labels.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             }
           ]
         }
@@ -20347,7 +20387,8 @@
                 "after": ["ATTACK-12.T1"]
               },
               "text": "Facing arcs on the token: draw the front/side/rear arcs of the selected or current-turn token from the Scene token's facing using the shared optionalCombatGeometry classifier (apps/web only draws; no arc math in web), gated on the Facing rule being on and facing present in the session state ATTACK-12 adds. Proof: model test building presentations through buildVttTokenPresentations, renderer-diagnostics story sampling arc polygons, and a window journey story (select a token with Facing on, see arcs, rotate, arcs follow). Browser test is warranted because the AC is what the user sees.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "VTT_UI-1.T2",
@@ -20554,7 +20595,8 @@
                 "size": 1
               },
               "text": "Close-out: AC 3.2 lists complete proof (lighting stories sampling resolveSceneIlluminationAt, GM see-all, token-view preview) and its note says only 'awaiting lane 1 acceptance of the review fixes'; verify the stories still pass and mark DONE, register CampaignTabletopWindow.stories.tsx as the PBI journey test (verified to drive the real flow, as VTT_UI-1 does). Ledger-only unless the verification fails.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/live-sessions.md"
             }
           ]
         },

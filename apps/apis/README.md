@@ -554,7 +554,10 @@ Convex `ctx.meta.getRequestMetadata()`. The same-origin web `/api/auth` proxy, i
 `AUTH_PROXY_SECRET` (at least 64 random characters) must match in the web Worker and Convex; never
 use a `VITE_` prefix or reuse an account credential. Invalid signed context is rejected. A missing
 `CF-Connecting-IP` fails closed in every build mode; local `workerd` sets it from the connecting
-socket.
+socket. `createAuth`'s handler sets `x-artificer-client-ip` from the signed context or platform
+metadata before Better Auth runs, because Better Auth applies its rate limit before plugin
+`onRequest` hooks; a caller's own value is always overwritten. A request with no valid client IP
+is refused with 503 and logged, so Better Auth never falls back to one shared per-path bucket.
 
 The optional server-only Convex `JWKS` variable enables the integration's static-key mode in both
 `auth.config.ts` and the Better Auth Convex plugin. Convex then verifies JWTs from embedded public

@@ -51,13 +51,9 @@ import {
   FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS,
   FOLLOW_UP_SAVE_TIMING_OPTIONS,
   FOLLOW_UP_CHECK_ACTOR_OPTIONS,
-  FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS,
-  FORCED_MOVEMENT_DIRECTION_OPTIONS,
-  FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS,
   MANIFEST_KIND,
   MANIFEST_KIND_OPTIONS,
   MANUAL_ADJUDICATION_REASON_OPTIONS,
-  LENGTH_UNIT_OPTIONS,
   MOVEMENT_RULE_KIND_OPTIONS,
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
@@ -115,7 +111,7 @@ import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
-import { FORCED_MOVEMENT_COLLISION_NODE_MAP } from './forcedMovementCollision.js'
+import { registerForcedMovementOutcomeFields, type ForcedMovementCond } from './forcedMovement.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -1601,69 +1597,6 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'direction',
-      selectSingle(['direction'], 'Direction', inlineOptions(FORCED_MOVEMENT_DIRECTION_OPTIONS), {
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
-      })
-    )
-    .set(
-      'distanceMode',
-      selectSingle(
-        ['distanceMode'],
-        'Distance Mode',
-        inlineOptions(FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS),
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
-        }
-      )
-    )
-    .set(
-      'movementAmount',
-      number(['amount'], 'Distance Amount', {
-        requiredIf: true,
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
-          or([local.field(['distanceMode']).eq('EXACT'), local.field(['distanceMode']).eq('UP_TO')])
-        ])
-      })
-    )
-    .set(
-      'movementUnit',
-      selectSingle(['unit'], 'Distance Unit', inlineOptions(LENGTH_UNIT_OPTIONS), {
-        requiredIf: true,
-        showIf: or([
-          and([
-            local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
-            or([
-              local.field(['distanceMode']).eq('EXACT'),
-              local.field(['distanceMode']).eq('UP_TO')
-            ])
-          ])
-        ])
-      })
-    )
-    .set(
-      'actionEconomy',
-      selectSingle(
-        ['actionEconomy'],
-        'Action Economy',
-        inlineOptions(FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS),
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
-        }
-      )
-    )
-    .set(
-      'collision',
-      groupObject(['collision'], 'Collision', () => FORCED_MOVEMENT_COLLISION_NODE_MAP, {
-        presentation: 'inline',
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
-      })
-    )
-    .set(
       'targetKind',
       selectSingle(['targetKind'], 'Target', inlineOptions(TELEPORT_TARGET_KIND_OPTIONS), {
         requiredIf: true,
@@ -1749,6 +1682,8 @@ function registerOutcomeFields(
       )
     )
   registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
+  // FieldHandle is contravariant in the node type, so the outcome `cond` cannot pass as the forced-movement one.
+  registerForcedMovementOutcomeFields(map, nodes, cond as unknown as ForcedMovementCond, logic)
   map
     .set(
       'shape',
