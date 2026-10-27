@@ -942,7 +942,8 @@ describe('CampaignTabletopEncounterDrawer', () => {
               label: 'Pit trap',
               shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 5 },
               spotDc: { value: 15, source: 'FLAT' },
-              disarmDc: null
+              disarmDc: null,
+              unawareActorIds: [actor.id]
             }
           ]
         }}

@@ -226,6 +226,7 @@ describe('SRD Creature attack sweep', () => {
     const hitKindsByLabel = {
       'Chain Devil: Chain': ['DAMAGE', 'ACTOR_RELATIONSHIP'],
       'Marilith: Tail': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
+      'Roper: Tendril': ['ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
       'Stirge: Blood Drain': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION']
     }
     for (const [label, expected] of Object.entries(hitKindsByLabel)) {
@@ -243,19 +244,12 @@ describe('SRD Creature attack sweep', () => {
   })
 
   it('sweeps the lingering poison and wound attacks as a save with a GM ruling on failure (D187a)', () => {
-    // The Horned Devil's stanch check (FOLLOW_UP_CHECK) has no executor under a save path yet, so its
-    // Tail stays on the allowlist while the Couatl Bite runs.
+    // The Horned Devil's stanch check is part of its infernal wound ruling (ATTACK-5.T4).
     const failures = {
-      'Couatl: Bite': {
-        kinds: ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'],
-        allowlisted: undefined
-      },
-      'Horned Devil: Tail': {
-        kinds: ['FOLLOW_UP_CHECK', 'MANUAL_ADJUDICATION'],
-        allowlisted: 'OUTCOME_KIND'
-      }
+      'Couatl: Bite': ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'],
+      'Horned Devil: Tail': ['MANUAL_ADJUDICATION']
     }
-    for (const [label, { kinds, allowlisted }] of Object.entries(failures)) {
+    for (const [label, kinds] of Object.entries(failures)) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
       const [unit] = units
@@ -270,7 +264,7 @@ describe('SRD Creature attack sweep', () => {
         save?.onFailure.kind === 'OUTCOMES' &&
           save.onFailure.outcomes.map(({ effectKind }) => effectKind)
       ).toEqual(kinds)
-      expect(SRD_CREATURE_ATTACK_UNSUPPORTED[unit.effectId]).toBe(allowlisted)
+      expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
     }
   })
 
@@ -382,7 +376,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(550)
+    expect(effectIds.size).toBe(549)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)

@@ -6905,10 +6905,16 @@
             },
             {
               "text": "A creature that does not know of a concealed zone gets no path warning and no Move carefully offer; entering it triggers it. The GM's path preview shows which creatures have not noticed it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/zoneConcealmentReads.test.ts",
+                "apps/session-worker/test/nativeRoomPlacedZone.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMove.model.test.ts",
+                "CampaignVttStage.carefulMove.test.tsx",
+                "vttSceneRenderer.model.test.ts"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Move carefully is Q2 (SPELLS-17).",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Move carefully is Q2 (SPELLS-17). Closed 2026-10-27 by MOVE-3.T5.",
               "id": "MOVE-3.6"
             },
             {
@@ -7025,7 +7031,7 @@
             },
             {
               "id": "MOVE-3.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.6"],
               "wsjf": {
                 "bv": 8,
@@ -7035,8 +7041,9 @@
                 "after": ["MOVE-3.T2"]
               },
               "text": "Unaware creature gets no path warning and no Move carefully offer; entering triggers; GM path preview lists who has not noticed.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m491.",
+              "mergedAt": "2026-10-27T04:41:41Z",
+              "proof": "Tests 40445297093, Live 40445297056 and Browser journeys 40445297063 (attempt 2, snapshot timeout flake) green on 235c2e00c; reviewed; merged in m491. Proofs: apps/apis/convex/encounters/zoneConcealmentReads.test.ts, apps/session-worker/test/nativeRoomPlacedZone.test.ts, apps/web/src/domains/campaigns/vtt/CampaignVttCarefulMove.model.test.ts, CampaignVttStage.carefulMove.test.tsx, vttSceneRenderer.model.test.ts"
             },
             {
               "id": "MOVE-3.T6",
@@ -8345,7 +8352,7 @@
             {
               "id": "ATTACK-5.T4",
               "text": "Horned Devil Tail: fold the stanch (an action, DC 12 Wisdom (Medicine)) into its GM ruling and drop the FOLLOW_UP_CHECK. Roper Tendril: delete CLOSED_RULE CREATURE_ROPER_TENDRIL and add a GM ruling beside the hold, as Marilith Tail does. Each gets a room proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -8370,8 +8377,9 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2. Merged in m492.",
+              "mergedAt": "2026-10-27T05:09:11Z",
+              "proof": "Tests 40451256225 and Browser journeys 40451256201 green on a480086df, Live 40449350234 green on a0d80a23e; batch ci/merge-m492 Tests 40453705240 and Live 40453707396 green; reviewed (allowlist lookup now not.toHaveProperty, effect count 550 to 549 for the removed Roper closed rule, both intended); merged in m492. Proofs: apps/session-worker/test/nativeRoomHitRiders.test.ts, packages/rules-runtime/src/__tests__/srdCreatureAttackSweep.test.ts"
             },
             {
               "id": "ATTACK-5.T4w",
@@ -10039,7 +10047,8 @@
               },
               "text": "Integrate and settings gate.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/40455922548"
             }
           ]
         },
@@ -19934,6 +19943,14 @@
               "proof": ["Closed by RELIABILITY-20.T2 (m490); see each task's proof."],
               "origin": [],
               "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d). Closed 2026-10-27 by RELIABILITY-20.T2."
+            },
+            {
+              "id": "RELIABILITY-20.5",
+              "text": "Every Content snapshot build page stays within a fixed root and byte budget, well under the 1 s query limit, so a large scope builds without timing out and the Session room opens.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit."
             }
           ],
           "tasks": [
@@ -19981,6 +19998,226 @@
               },
               "text": "Run every *-browser proof from runLocalConvexProof.ps1 in the CI job; fix environment gaps, and register a bug task for any proof that fails on product code.",
               "activeWorkbook": "docs/architecture/ci-validation.md"
+            },
+            {
+              "id": "RELIABILITY-20.T4",
+              "status": "TODO",
+              "closes": ["RELIABILITY-20.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit.",
+              "text": "Bound readScopeKind per-page work by roots and serialized bytes instead of a fixed 100 roots, and keep the failBuild retry. Regression convex-test: a source scope of over 100 heavy roots (spells) builds across pages, and each page stays within the bound. It is red at today's page size."
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-21",
+          "title": "Browser journey product bugs pass in CI",
+          "status": "TODO",
+          "journeyTests": [".github/workflows/browser-journeys.yml"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 8,
+            "size": 20
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-21.1",
+              "text": "authoring/nodeRuntime:resolve stays under the 1 s query limit, and the publication-class journey loads the authoring tools.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: publication-class."
+            },
+            {
+              "id": "RELIABILITY-21.2",
+              "text": "campaigns/partyInventory:equipmentOptions stays under the 1 s query limit, and the campaign-custody journey passes.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: campaign-custody."
+            },
+            {
+              "id": "RELIABILITY-21.3",
+              "text": "characters/sheetSlices:get stays under the 1 s query limit, and the builder and character-sheet journeys settle and pass.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: builder, character-sheet."
+            },
+            {
+              "id": "RELIABILITY-21.4",
+              "text": "encounters/activeReads:active stays under the 1 s query limit on a CI runner.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: (flaky proofs)."
+            },
+            {
+              "id": "RELIABILITY-21.5",
+              "text": "The publication journeys pass with a single prosemirror-model installed.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: publication, publication-feat, publication-equipment."
+            },
+            {
+              "id": "RELIABILITY-21.6",
+              "text": "The effects journey passes: the driver does not fail after a Worker eager-reload 409.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: effects."
+            },
+            {
+              "id": "RELIABILITY-21.7",
+              "text": "The disarm journey passes without RulesRevisionChangedError during preparation or a membership reload 409.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: disarm."
+            },
+            {
+              "id": "RELIABILITY-21.8",
+              "text": "Account deletion closes the deleted subject's live sockets, so revocation reports no user.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: account-deletion."
+            },
+            {
+              "id": "RELIABILITY-21.9",
+              "text": "The first (cold) durable VTT sample meets the 250 ms p95 budget, and the budget assertion is unchanged.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Proof: vtt."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-21.T1",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Bound authoring/nodeRuntime:resolve read and compute work (it takes over 1 s on CI, so the page shows \"Could not load authoring tools\"), with a read-budget regression test. publication-class gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T2",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Bound campaigns/partyInventory:equipmentOptions (equipmentOptions.ts:19-66) read work, with a read-budget regression test. campaign-custody gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T3",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Bound characters/sheetSlices:get read and compute work, with a read-budget regression test. builder-browser and character-sheet-browser gate again."
+            },
+            {
+              "id": "RELIABILITY-21.T4",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Bound encounters/activeReads:active read work, with a read-budget regression test. This reduces the flaky player, hide, campaign-collaboration and area runs."
+            },
+            {
+              "id": "RELIABILITY-21.T5",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 1
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Remove the duplicate prosemirror-model (1.25.4 and 1.25.12 since f3337cdfb). First prove that the duplicate causes the failure, then dedupe it with a guard test against duplicate prosemirror-model. publication, publication-feat and publication-equipment gate again."
+            },
+            {
+              "id": "RELIABILITY-21.T6",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.6"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Diagnose developmentEncounterEffects.ts:377 failing after a Worker eager-reload 409. The fix is product or driver depending on the root cause, with a regression test. effects-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T7",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Diagnose RulesRevisionChangedError (\"revision changed during preparation\") followed by a membership reload 409 in the disarm journey, with a regression test. disarm-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T8",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.8"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T9",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.9"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "text": "Cold-start durable VTT latency is 363 ms against the 250 ms budget, and only the first sample is over (warm samples are 53-91 ms). Find the cold cost and cut it. The assertion stays. vtt-browser gates again."
             }
           ]
         }
