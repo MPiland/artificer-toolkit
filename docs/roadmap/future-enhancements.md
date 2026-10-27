@@ -100,6 +100,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Dislodged climber with no free square (MOVE-4.T3a):** a dislodge that wins when no free square lies 5 feet from the target leaves the climber where it was. Its space then overlaps a target it no longer clings to. This is rare and the GM can move the token by hand. The fix is to fall back to the nearest free square.
+
 - **Cover on paths without a Scene (SPELLS-14.T2):** automatic cover is read only where the Worker has the Scene, for attacks, spells, areas and opportunity attacks. Three paths apply no cover: a spell attack resumed after a Counterspell pause, an area's collision revalidation, and other reactions. All three are rare. The GM can adjust by hand. The fix is to pass the Scene's cover reader into those resume paths.
 - **Area attacks do not mark under Marking (ATTACK-13.T3):** an area action with an attack roll (rare in melee) gives no mark, because its targets settle in one command and each would replace the attacker's mark against the effects held before the command, leaving several marks from one attacker. The GM marks by hand. The fix is to apply area marks after the command's grants settle, keeping only the last target's.
 - **Massive damage from forced-movement damage (ATTACK-16.T1c1):** damage a creature takes during forced movement (falling, a hazard on the path) goes through the movement damage chain, which holds only Concentration saves, so it never owes a massive-damage save. Attack, area, cleave and turn damage all do. A single movement hit of half a creature's maximum hit points is rare, and the GM can apply System Shock by hand.

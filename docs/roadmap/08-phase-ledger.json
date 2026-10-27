@@ -7181,7 +7181,7 @@
               "proof": "Tests 40439836407 and Live 40439836353 green on edc3d2d0d; reviewed; merged in m488 batch 40443120104 (stored shape: ENTER_BLOCKER_SPACE replaces STOP_AT_CONTACT, receipt enteredPosition, actionEffectIds non-null). Proofs: apps/session-worker/test/nativeRoomClimbCling.test.ts, packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/schema/src/__tests__/spatial-movement-rule-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterRelationshipAttackInfluence.test.ts"
             },
             {
-              "id": "MOVE-4.T3",
+              "id": "MOVE-4.T3a",
               "status": "TODO",
               "closes": ["MOVE-4.3"],
               "wsjf": {
@@ -7191,8 +7191,23 @@
                 "size": 5,
                 "after": ["MOVE-4.T2b2"]
               },
-              "text": "Dislodge contest and landing in a legal adjacent square (reuse forced-movement destinations).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "text": "ESCAPE_CHECK gains optional holderForcedMovement (the existing forced-movement shape). Escape settlement threads it through the D157 DESTINATION pause. The persistence fence re-derives the expected movement from the held effect and refuses a mismatched commit. SRD cling authors ANY exactly 5 ft. Room journey nativeRoomClimbDislodge.test.ts: a win lands the climber next to the target and ends the cling, a loss keeps it.",
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+            },
+            {
+              "id": "MOVE-4.T3b",
+              "status": "TODO",
+              "closes": ["MOVE-4.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["MOVE-4.T3a"]
+              },
+              "text": "Extract the forced-movement fields from maps/path.ts into a shared node map, add the escape check holderForcedMovement form field, with an authoring parity proof and docs.",
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
               "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
@@ -7204,7 +7219,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 2,
-                "after": ["MOVE-4.T3"]
+                "after": ["MOVE-4.T3b"]
               },
               "text": "Register in the integrated table, offer in Campaign settings, journey test.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
