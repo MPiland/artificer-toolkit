@@ -135,7 +135,9 @@ export async function readEncounterSessionState(
       membership.role === 'OWNER'
         ? spatialRows.flatMap(({ id, spatialState }) =>
             (spatialState.concealment?.sightings ?? []).flatMap(({ actorId, status }) =>
-              status === 'PROMPTED' ? [{ spatialEffectId: id, actorId }] : []
+              status === 'PROMPTED' && !spatialState.concealment?.knownByActorIds.includes(actorId)
+                ? [{ spatialEffectId: id, actorId }]
+                : []
             )
           )
         : []

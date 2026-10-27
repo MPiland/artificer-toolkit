@@ -9,12 +9,14 @@ import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import { revertUnavailable } from './targetMechanicsInverse.js'
 
 /**
- * Undoes the GM's spot and disarm DCs while the zone is as that command left it but for sightings
- * (MOVE-3.5). Sightings recorded since stay while the zone stays concealed.
+ * Undoes the GM's spot and disarm DCs, or a reveal (MOVE-3.7), while the zone is as that command
+ * left it but for sightings (MOVE-3.5). Sightings recorded since stay while the zone stays concealed.
  */
 export async function revertZoneDcs(
   ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'SET_ZONE_DCS' }> }
+  input: RevertScope & {
+    root: Extract<StoredCommand, { commandType: 'SET_ZONE_DCS' | 'REVEAL_ZONE' }>
+  }
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
   const { spatialEffectId, before, after } = root.receipt
@@ -37,6 +39,39 @@ export async function revertZoneDcs(
       ? { ...before, concealment: { ...before.concealment, sightings } }
       : before
   })
+  const actors = await readRunActors(ctx, state)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/** Undoes a disarm (MOVE-3.7): the zone returns to the Scene whole, as the GM left it. */
+export async function revertZoneDisarm(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'DISARM_ZONE' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { spatialEffectId, zone } = root.receipt
+  const row = await ctx.db
+    .query('encounterSpatialRuleEffects')
+    .withIndex('by_publicId', (q) => q.eq('id', spatialEffectId))
+    .unique()
+  const binding = await ctx.db
+    .query('encounterSceneBindings')
+    .withIndex('by_encounterId', (q) => q.eq('encounterId', state.id))
+    .unique()
+  const store =
+    binding &&
+    !row &&
+    (await createSpatialRuleEffectStore(ctx).scope({
+      encounterId: state.id,
+      sceneId: binding.sceneId
+    }))
+  if (!store) revertUnavailable('The Scene changed since the zone was disarmed; adjust manually.')
+  await store.create({ id: spatialEffectId, maintainedEffectStateId: null, ...zone })
   const actors = await readRunActors(ctx, state)
   return commitRevert(ctx, {
     ...input,

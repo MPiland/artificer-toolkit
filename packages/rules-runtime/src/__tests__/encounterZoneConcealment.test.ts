@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   withZoneDcs,
+  withZoneRevealedTo,
   withZoneSightings,
   withZoneSightingStatus,
   zoneConcealedFrom,
@@ -119,5 +120,26 @@ describe('zone sightings (MOVE-3.5)', () => {
         ]
       })
     ).toEqual({ x: 15, y: 15 })
+  })
+})
+
+describe('revealing a zone to Characters (MOVE-3.7)', () => {
+  it('adds the chosen Characters to those that know of it, sorted and without repeats', () => {
+    const concealed = withZoneDcs(plain, { spotDc, disarmDc, placerActorId: PLACER })
+
+    const revealed = withZoneRevealedTo(concealed, [SIGHTED, OTHER, SIGHTED])
+
+    expect(revealed?.concealment?.knownByActorIds).toEqual([PLACER, OTHER, SIGHTED])
+    expect(revealed?.disarmDc).toEqual(disarmDc)
+    expect(
+      zoneConcealedFrom(revealed!, { kind: 'PLAYER', controlledActorIds: new Set([SIGHTED]) })
+    ).toBe(false)
+  })
+
+  it('changes nothing for a zone in plain sight or Characters that already know of it', () => {
+    const concealed = withZoneDcs(plain, { spotDc, disarmDc: null, placerActorId: PLACER })
+
+    expect(withZoneRevealedTo(plain, [OTHER])).toBeNull()
+    expect(withZoneRevealedTo(concealed, [PLACER])).toBeNull()
   })
 })
