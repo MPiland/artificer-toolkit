@@ -497,6 +497,44 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     )
   })
 
+  it('sends the option chosen for a basic action that offers several, the first preselected', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    const shove = validatedChoice({
+      ...actions[0]!,
+      id: 'shove-action',
+      label: 'Shove',
+      rulesText: 'You shove a creature.',
+      target: {
+        kind: 'ACTOR',
+        self: 'REFUSED',
+        choiceOptions: [
+          { id: 'prone', label: 'Knock prone' },
+          { id: 'aside', label: 'Shove 5 feet aside' }
+        ]
+      }
+    })
+    renderDrawer(onResolve, { choices: [], authoredBasicActions: [shove] })
+
+    const option = await screen.findByRole('combobox', { name: 'Option of shove' })
+    expect(option).toHaveValue('Knock prone')
+    await user.click(screen.getByRole('combobox', { name: 'Target of shove' }))
+    await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
+    await user.click(option)
+    await user.click(await screen.findByRole('option', { name: 'Shove 5 feet aside' }))
+    await user.click(screen.getByRole('button', { name: 'Use Shove' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'shove-action',
+        target: {
+          kind: 'ACTOR',
+          actorId: '99999999-9999-4999-8999-999999999902',
+          choiceOptionId: 'aside'
+        }
+      })
+    )
+  })
+
   it('leaves the acting creature out of the Target list when the action refuses itself', async () => {
     const user = userEvent.setup()
     const [staff] = actions

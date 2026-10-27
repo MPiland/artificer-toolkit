@@ -24,8 +24,9 @@ function heldWeaponStow(
  * The System's basic actions (Q11), listed apart from the actor's own features. Each row names the
  * action; its rules text is one hover or focus away. A `SELF` action resolves on the actor; an
  * `ACTOR` action asks for a creature first, listing the actor unless its targeting refuses it
- * (Help, First Aid). An action that needs a free hand the actor can free by stowing a held weapon
- * asks to stow it first.
+ * (Help, First Aid), and then for one of its options when it offers several (Shove), the first
+ * preselected as in the action drawer (D148). An action that needs a free hand the actor can free
+ * by stowing a held weapon asks to stow it first.
  */
 export function CampaignTabletopBasicActions({
   authoredActions,
@@ -47,6 +48,7 @@ export function CampaignTabletopBasicActions({
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [targetByAction, setTargetByAction] = useState<Record<string, string>>({})
+  const [optionByAction, setOptionByAction] = useState<Record<string, string>>({})
   const [stowingId, setStowingId] = useState<string | null>(null)
   const { submittingId, confirming, feedback, error, run, cancelConfirmation } =
     useWarnedCommand(actorId)
@@ -55,13 +57,20 @@ export function CampaignTabletopBasicActions({
   if (trackedActorId !== actorId) {
     setTrackedActorId(actorId)
     setTargetByAction({})
+    setOptionByAction({})
     setStowingId(null)
   }
+
+  const choiceOptionsOf = ({ target }: EncounterActionChoiceDto) =>
+    target.kind === 'ACTOR' ? target.choiceOptions : undefined
+  const chosenOptionId = (choice: EncounterActionChoiceDto) =>
+    optionByAction[choice.id] ?? choiceOptionsOf(choice)?.[0]?.id
 
   function resolve(
     choice: EncounterActionChoiceDto,
     acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
   ) {
+    const choiceOptionId = chosenOptionId(choice)
     return run(
       choice.id,
       () =>
@@ -72,7 +81,11 @@ export function CampaignTabletopBasicActions({
           expectedVersion: encounterVersion,
           actorId,
           actionId: choice.id,
-          target: { kind: 'ACTOR', actorId: targetByAction[choice.id] ?? actorId },
+          target: {
+            kind: 'ACTOR',
+            actorId: targetByAction[choice.id] ?? actorId,
+            ...(choiceOptionId && { choiceOptionId })
+          },
           sceneContext: null,
           acceptedWieldConflict: heldWeaponStow(choice),
           acknowledgedWarnings,
@@ -93,6 +106,7 @@ export function CampaignTabletopBasicActions({
         {authoredActions.map((choice) => {
           const { target } = choice
           const needsTarget = target.kind === 'ACTOR'
+          const choiceOptions = choiceOptionsOf(choice)
           const options = creatures.filter(
             (entry) =>
               !(target.kind === 'ACTOR' && target.self === 'REFUSED' && entry.id === actorId)
@@ -135,6 +149,24 @@ export function CampaignTabletopBasicActions({
                           : { ...current, [choice.id]: value }
                       )
                     }
+                  />
+                ) : null}
+                {choiceOptions ? (
+                  <Select
+                    allowDeselect={false}
+                    aria-label={`Option of ${choice.label.toLowerCase()}`}
+                    comboboxProps={{ withinPortal: false }}
+                    data={choiceOptions.map((option) => ({
+                      label: option.label,
+                      value: option.id
+                    }))}
+                    disabled={disabled}
+                    size='xs'
+                    value={chosenOptionId(choice) ?? null}
+                    onChange={(value) => {
+                      if (value !== null)
+                        setOptionByAction((current) => ({ ...current, [choice.id]: value }))
+                    }}
                   />
                 ) : null}
               </Stack>
