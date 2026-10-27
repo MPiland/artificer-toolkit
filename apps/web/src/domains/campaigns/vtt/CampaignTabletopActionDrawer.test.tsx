@@ -497,6 +497,58 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     )
   })
 
+  it('sends the option chosen for a basic action that offers several, the first preselected, measured on the Scene', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn().mockResolvedValue(resolved)
+    const shove = validatedChoice({
+      ...actions[0]!,
+      id: 'shove-action',
+      label: 'Shove',
+      rulesText: 'You shove a creature.',
+      target: {
+        kind: 'ACTOR',
+        self: 'REFUSED',
+        choiceOptions: [
+          { id: '99999999-9999-4999-8999-999999999911', label: 'Knock prone' },
+          { id: '99999999-9999-4999-8999-999999999912', label: 'Shove 5 feet aside' }
+        ]
+      }
+    })
+    const [sourceToken, targetToken] = tabletopLiveScene.tokens
+    renderDrawer(onResolve, {
+      choices: [],
+      authoredBasicActions: [shove],
+      actorIdByTokenId: new Map([
+        [sourceToken!.id, tabletopGmEncounter.currentActorId!],
+        [targetToken!.id, '99999999-9999-4999-8999-999999999902']
+      ])
+    })
+
+    const option = await screen.findByRole('combobox', { name: 'Option of shove' })
+    expect(option).toHaveValue('Knock prone')
+    await user.click(screen.getByRole('combobox', { name: 'Target of shove' }))
+    await user.click(await screen.findByRole('option', { name: 'Vault Warden' }))
+    await user.click(option)
+    await user.click(await screen.findByRole('option', { name: 'Shove 5 feet aside' }))
+    await user.click(screen.getByRole('button', { name: 'Use Shove' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actionId: 'shove-action',
+        target: {
+          kind: 'ACTOR',
+          actorId: '99999999-9999-4999-8999-999999999902',
+          choiceOptionId: '99999999-9999-4999-8999-999999999912'
+        },
+        sceneContext: {
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          sourceTokenId: sourceToken!.id,
+          targetTokenId: targetToken!.id
+        }
+      })
+    )
+  })
+
   it('leaves the acting creature out of the Target list when the action refuses itself', async () => {
     const user = userEvent.setup()
     const [staff] = actions

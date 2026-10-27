@@ -6710,10 +6710,16 @@
             },
             {
               "text": "Shove Aside chooses a legal destination and commits it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomContestDestinationPick.test.ts",
+                "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "CampaignVttStage.forcedMovement.test.tsx"
+              ],
               "origin": ["P81-SHOVE-ASIDE-DESTINATION"],
-              "id": "MOVE-2.4"
+              "id": "MOVE-2.4",
+              "note": "Closed 2026-10-27 by MOVE-2.T3a, MOVE-2.T3b, MOVE-2.T4."
             },
             {
               "text": "Tumble policy is authored and typed.",
@@ -6820,7 +6826,7 @@
             },
             {
               "id": "MOVE-2.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
@@ -6830,8 +6836,9 @@
                 "after": ["MOVE-2.T3b"]
               },
               "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome. Merged in m498.",
+              "mergedAt": "2026-10-27T18:48:25Z",
+              "proof": "Tests 40554074813 and Browser journeys 40554074872 green on 8d9b1e16a (contains m497), Live 40529312303 green on 1a6e4b3f8 (delta phase-only, no apps/apis or package change); reviewed; merged in m498. Proofs: shove-aside-browser journey (apps/apis/tests/developmentEncounterShoveAside.ts, apps/web/tests/live-backend/encounterShoveAside.ts), apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, CampaignVttStage.forcedMovement.test.tsx"
             }
           ]
         },
@@ -8098,10 +8105,14 @@
           "acs": [
             {
               "text": "Every SRD monster attack runs: the allowlisted unsupported attacks are implemented, with rare riders (swallow, engulf, curse, disease, lycanthropy, healing-block wounds) resolving as a GM ruling beside the attack's damage (D187a), and the allowlist is empty.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "srdCreatureHitRiders.test.ts",
+                "nativeRoomHitRiders.test.ts",
+                "srdCreatureAttackSweep.test.ts"
+              ],
               "origin": ["G2-SRD-MANIFEST"],
-              "note": "Carry-over (closed-beta gate); also RUL-9 slices 2 and 9.",
+              "note": "Carry-over (closed-beta gate); also RUL-9 slices 2 and 9. Closed 2026-10-27 by ATTACK-5.T4w.",
               "id": "ATTACK-5.1"
             },
             {
@@ -8249,10 +8260,16 @@
             },
             {
               "text": "Remaining monster riders (attach, drain, pull, follow-up saves) run, ordered by marquee monsters; swallow, engulf, curse and disease show as a GM ruling beside the attack (D187a).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomHitRiders.test.ts",
+                "packages/rules-runtime/src/__tests__/srdCreatureAttackSweep.test.ts",
+                "srdCreatureHitRiders.test.ts",
+                "nativeRoomHitRiders.test.ts",
+                "srdCreatureAttackSweep.test.ts"
+              ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions. Creature and item auras with turn-start text (Ghast and Hezrou Stench, Dretch fetid cloud, Kraken ink, Mouther, Helm of Brilliance) were not covered by the 2026-10-17 zone audit; audit them here.",
+              "note": "rul-9-rules-audit.md slice 9; depends on conditions, grapple and area actions. Creature and item auras with turn-start text (Ghast and Hezrou Stench, Dretch fetid cloud, Kraken ink, Mouther, Helm of Brilliance) were not covered by the 2026-10-17 zone audit; audit them here. Closed 2026-10-27 by ATTACK-5.T4a, ATTACK-5.T4b, ATTACK-5.T4c, ATTACK-5.T4, ATTACK-5.T4w.",
               "id": "ATTACK-5.15"
             }
           ],
@@ -8385,7 +8402,7 @@
             },
             {
               "id": "ATTACK-5.T4w",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-5.1", "ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
@@ -8394,9 +8411,10 @@
                 "size": 2,
                 "after": ["ATTACK-5.T4"]
               },
-              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2. Merged in m499.",
               "text": "immediateFollowUpSaveEntries admits a MANUAL_ADJUDICATION entry ahead of an immediate save (generic), with the dice and critical-hit readers and a regression test. Wereboar Tusks leaves the allowlist with a room proof, and the allowlist test asserts an empty list.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "mergedAt": "2026-10-27T18:52:49Z",
+              "proof": "Tests 40554072918, Live 40554072973 and Browser journeys 40554073333 green on d3dbfe066; reviewed; merged in m499 (batch run 40563862819). Proofs: srdCreatureHitRiders.test.ts, nativeRoomHitRiders.test.ts, srdCreatureAttackSweep.test.ts (allowlist emptied)"
             }
           ]
         },

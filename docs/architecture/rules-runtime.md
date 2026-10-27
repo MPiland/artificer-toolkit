@@ -2546,9 +2546,11 @@ adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeCont
 attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
 `conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one
-measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
-(`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
-reason, and may only shrink. Versatile grips author one effect per grip.
+measure, `measureSceneTokenFootprintDistance`. The primary entries before an immediate save are the hit's
+damage and any GM rulings beside it (Wereboar Tusks' curse ahead of its Charge save, ATTACK-5.T4w); a
+ruling rolls no dice and sizes no hit point maximum reduction. The SRD attack sweep
+(`__tests__/srdCreatureAttackSweep.test.ts`) prepares, executes and plans every SRD Creature attack with no
+exceptions (ATTACK-5.T4w retired its allowlist). Versatile grips author one effect per grip.
 
 Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
 (`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where
