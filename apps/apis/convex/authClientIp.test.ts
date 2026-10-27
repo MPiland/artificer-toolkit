@@ -23,22 +23,22 @@ function backend() {
     client: { platformIp: string | null; proxiedIp?: string },
     headers: Record<string, string> = {}
   ) => {
-    const proxyContext = client.proxiedIp
-      ? {
-          [AUTH_PROXY_CONTEXT_HEADER]: await signAuthProxyContext(
-            { method: 'POST', path, ip: client.proxiedIp },
-            process.env.CONVEX_SITE_URL!
-          )
-        }
-      : {}
+    const requestHeaders = new Headers({
+      origin: process.env.SITE_URL!,
+      'content-type': 'application/json',
+      ...headers
+    })
+    if (client.proxiedIp)
+      requestHeaders.set(
+        AUTH_PROXY_CONTEXT_HEADER,
+        await signAuthProxyContext(
+          { method: 'POST', path, ip: client.proxiedIp },
+          process.env.CONVEX_SITE_URL!
+        )
+      )
     const response = await t.withRequestMetadata({ ip: client.platformIp }).fetch(path, {
       method: 'POST',
-      headers: {
-        origin: process.env.SITE_URL!,
-        'content-type': 'application/json',
-        ...proxyContext,
-        ...headers
-      },
+      headers: requestHeaders,
       body: JSON.stringify({
         email: 'absent@example.invalid',
         password: 'Client-ip-proof-password-718!'
@@ -48,7 +48,10 @@ function backend() {
   }
 }
 
-async function exhaustSignIn(signIn: ReturnType<typeof backend>, client: Parameters<typeof signIn>[0]) {
+async function exhaustSignIn(
+  signIn: ReturnType<typeof backend>,
+  client: Parameters<typeof signIn>[0]
+) {
   const statuses: number[] = []
   for (let attempt = 0; attempt <= SIGN_IN_LIMIT; attempt++) statuses.push(await signIn(client))
   expect(statuses).toEqual([401, 401, 401, 429])
