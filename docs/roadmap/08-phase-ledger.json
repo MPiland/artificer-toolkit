@@ -7057,7 +7057,8 @@
                 "after": ["MOVE-3.T4b", "MOVE-3.T5"]
               },
               "text": "GM reveal to chosen Characters and disarm (removes zone), with undo restoring either; disarm DC GM-only. Closes the umbrella 3.1 with the others.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             }
           ]
         },
@@ -8394,7 +8395,8 @@
                 "after": ["ATTACK-5.T4"]
               },
               "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
-              "text": "immediateFollowUpSaveEntries admits a MANUAL_ADJUDICATION entry ahead of an immediate save (generic), with the dice and critical-hit readers and a regression test. Wereboar Tusks leaves the allowlist with a room proof, and the allowlist test asserts an empty list."
+              "text": "immediateFollowUpSaveEntries admits a MANUAL_ADJUDICATION entry ahead of an immediate save (generic), with the dice and critical-hit readers and a regression test. Wereboar Tusks leaves the allowlist with a room proof, and the allowlist test asserts an empty list.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             }
           ]
         },
@@ -19949,10 +19951,10 @@
             {
               "id": "RELIABILITY-20.5",
               "text": "Every Content snapshot build page stays within a fixed root and byte budget, well under the 1 s query limit, so a large scope builds without timing out and the Session room opens.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["apps/apis/convex/contentSnapshots/build.test.ts"],
               "origin": [],
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit. Closed 2026-10-27 by RELIABILITY-20.T4."
             }
           ],
           "tasks": [
@@ -20005,7 +20007,7 @@
             },
             {
               "id": "RELIABILITY-20.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-20.5"],
               "wsjf": {
                 "bv": 5,
@@ -20013,15 +20015,17 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit.",
-              "text": "Bound readScopeKind per-page work by roots and serialized bytes instead of a fixed 100 roots, and keep the failBuild retry. Regression convex-test: a source scope of over 100 heavy roots (spells) builds across pages, and each page stays within the bound. It is red at today's page size."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2): found by browser journeys (MOVE-3.T5 run 40445297063, ATTACK-16.T2 run 40450598698). contentSnapshots/heads:readScopeKind (heads.ts:94) reads 100 roots a page (actions.ts:23) and goes over the 1 s query limit. The action rethrows (actions.ts:52) and failBuild backs off 1-16 min, so the head stays stale and the room refuses to open. Production has the same limit. Merged in m496.",
+              "text": "Bound readScopeKind per-page work by roots and serialized bytes instead of a fixed 100 roots, and keep the failBuild retry. Regression convex-test: a source scope of over 100 heavy roots (spells) builds across pages, and each page stays within the bound. It is red at today's page size.",
+              "mergedAt": "2026-10-27T12:46:01Z",
+              "proof": "Tests 40462666431, Live 40462666451 and Browser journeys 40462666441 green on 0d0328ed3; red proof RED (SPELL page 120 roots > 15); batch ci/merge-m496 Tests 40506408782 and Live 40506412380 green; reviewed; merged in m496. Proof: apps/apis/convex/contentSnapshots/build.test.ts"
             }
           ]
         },
         {
           "id": "RELIABILITY-21",
           "title": "Browser journey product bugs pass in CI",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [".github/workflows/browser-journeys.yml"],
           "journeyStatus": "none",
           "origin": [],
@@ -20111,6 +20115,14 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit."
+            },
+            {
+              "id": "RELIABILITY-21.11",
+              "text": "A fresh stack builds every Content snapshot head after seed without OCC exhaustion or a stuck unbuilt head, stays under the backend write-rate limit, and area-browser resolves its campaign route and gates again.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it."
             }
           ],
           "tasks": [
@@ -20164,7 +20176,8 @@
                 "size": 2
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Bound encounters/activeReads:active read work, with a read-budget regression test. This reduces the flaky player, hide, campaign-collaboration and area runs."
+              "text": "Bound encounters/activeReads:active read work, with a read-budget regression test. This reduces the flaky player, hide, campaign-collaboration and area runs.",
+              "activeWorkbook": "docs/architecture/persistence.md"
             },
             {
               "id": "RELIABILITY-21.T5",
@@ -20177,7 +20190,8 @@
                 "size": 1
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Remove the duplicate prosemirror-model (1.25.4 and 1.25.12 since f3337cdfb). First prove that the duplicate causes the failure, then dedupe it with a guard test against duplicate prosemirror-model. publication, publication-feat and publication-equipment gate again."
+              "text": "Remove the duplicate prosemirror-model (1.25.4 and 1.25.12 since f3337cdfb). First prove that the duplicate causes the failure, then dedupe it with a guard test against duplicate prosemirror-model. publication, publication-feat and publication-equipment gate again.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T6",
@@ -20242,7 +20256,21 @@
                 "size": 2
               },
               "note": "Registered 2026-10-27 (user yes, D187 growth +2): m494 Browser journeys attempt 1, campaign-collaboration-browser got 429 on /api/auth/sign-in/email; Better Auth logged that it could not determine a client IP and fell back to one shared per-path bucket. In production without a forwarded client-IP header every user would share one sign-in limit.",
-              "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared."
+              "text": "Configure Better Auth advanced.ipAddress (the forwarded client-IP header the deployed edge sets) and make the CI and local stacks send it; test that two IPs get separate sign-in buckets and that a missing header is reported, not silently shared.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
+            },
+            {
+              "id": "RELIABILITY-21.T11",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.11"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 3
+              },
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it.",
+              "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS."
             }
           ]
         }
