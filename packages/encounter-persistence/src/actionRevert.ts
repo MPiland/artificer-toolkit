@@ -60,7 +60,7 @@ import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
-import { revertZoneDcs, revertZoneSightingDismissal } from './zoneRevert.js'
+import { revertZoneDcs, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
@@ -265,9 +265,13 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertPlaceZone(ctx, { ...scope, root })
   }
-  if (root?.commandType === 'SET_ZONE_DCS') {
+  if (root?.commandType === 'SET_ZONE_DCS' || root?.commandType === 'REVEAL_ZONE') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertZoneDcs(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'DISARM_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneDisarm(ctx, { ...scope, root })
   }
   if (root?.commandType === 'DISMISS_ZONE_SIGHTING') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')

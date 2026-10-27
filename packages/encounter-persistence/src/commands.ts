@@ -55,6 +55,7 @@ import { reinforceEncounterActors } from './actorReinforcementCommand.js'
 import { setConcealmentObservers } from './concealmentObserverCommand.js'
 import { placeEnvironmentalZone } from './environmentalZoneCommand.js'
 import { setZoneDcs } from './zoneDcsCommand.js'
+import { disarmZone, revealZone } from './zoneReveal.js'
 import { dismissZoneSighting } from './zoneSightings.js'
 import { restEncounterCreatures } from './creatureRestCommand.js'
 import { recordMoraleCommand } from './moraleCommands.js'
@@ -127,6 +128,8 @@ export async function recordEncounterCommand(
   if (command.type === 'PLACE_ZONE') return placeEnvironmentalZone(ctx, command, userId)
   if (command.type === 'SET_ZONE_DCS') return setZoneDcs(ctx, command, userId)
   if (command.type === 'DISMISS_ZONE_SIGHTING') return dismissZoneSighting(ctx, command, userId)
+  if (command.type === 'REVEAL_ZONE') return revealZone(ctx, command, userId)
+  if (command.type === 'DISARM_ZONE') return disarmZone(ctx, command, userId)
   if (command.type === 'CREATURE_REST') return restEncounterCreatures(ctx, command, userId)
   if (command.type === 'MORALE_SAVE' || command.type === 'CONFIRM_MORALE')
     return recordMoraleCommand(ctx, command, userId, nextInt)

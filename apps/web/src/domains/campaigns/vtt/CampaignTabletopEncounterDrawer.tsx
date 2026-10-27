@@ -19,7 +19,9 @@ import type {
   EncounterCommandResultDto,
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto,
-  ReleaseRelationshipInputDto
+  DisarmZoneInputDto,
+  ReleaseRelationshipInputDto,
+  RevealZoneInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type {
   CampaignSceneStateDto,
@@ -30,6 +32,7 @@ import { CampaignTabletopConcealmentObservers } from './CampaignTabletopConcealm
 import { CampaignTabletopConsequenceRolls } from './CampaignTabletopConsequenceRolls'
 import { CampaignTabletopMorale } from './CampaignTabletopMorale'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
+import { CampaignTabletopZoneControls } from './CampaignTabletopZoneControls'
 import { CampaignTabletopZoneSightings } from './CampaignTabletopZoneSightings'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
@@ -114,6 +117,8 @@ export function CampaignTabletopEncounterDrawer({
       | { type: 'ADVANCE_TURN' }
       | { type: 'PREVIOUS_TURN' }
       | { actorId: string | null; type: 'SET_CURRENT_ACTOR' }
+      | (Pick<RevealZoneInputDto, 'spatialEffectId' | 'actorIds'> & { type: 'REVEAL_ZONE' })
+      | (Pick<DisarmZoneInputDto, 'spatialEffectId'> & { type: 'DISARM_ZONE' })
   ): void {
     onCommand({
       ...input,
@@ -423,6 +428,14 @@ export function CampaignTabletopEncounterDrawer({
                     type: 'DISMISS_ZONE_SIGHTING'
                   })
                 }
+                onReveal={(reveal) => command({ ...reveal, type: 'REVEAL_ZONE' })}
+              />
+              <CampaignTabletopZoneControls
+                actors={encounter.actors}
+                disabled={controlsDisabled}
+                zones={session?.placedZones ?? []}
+                onDisarm={(disarm) => command({ ...disarm, type: 'DISARM_ZONE' })}
+                onReveal={(reveal) => command({ ...reveal, type: 'REVEAL_ZONE' })}
               />
               <Select
                 data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}

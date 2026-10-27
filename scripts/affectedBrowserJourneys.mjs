@@ -90,9 +90,6 @@ export const KNOWN_BUG_PROOFS = {
   'builder-browser': 'RELIABILITY-21.T3',
   'character-sheet-browser': 'RELIABILITY-21.T3',
   'character-sheet-spells-browser': 'RELIABILITY-21.T3',
-  'publication-browser': 'RELIABILITY-21.T5',
-  'publication-feat-browser': 'RELIABILITY-21.T5',
-  'publication-equipment-browser': 'RELIABILITY-21.T5',
   'effects-browser': 'RELIABILITY-21.T6',
   'disarm-browser': 'RELIABILITY-21.T7',
   'account-deletion-browser': 'RELIABILITY-21.T8',
@@ -100,8 +97,7 @@ export const KNOWN_BUG_PROOFS = {
   'area-browser': 'RELIABILITY-21.T11',
   'social-browser': 'RELIABILITY-21.T11',
   'hide-browser': 'RELIABILITY-21.T11',
-  'scene-live-browser': 'RELIABILITY-21.T11',
-  'campaign-collaboration-browser': 'RELIABILITY-21.T10'
+  'scene-live-browser': 'RELIABILITY-21.T11'
 }
 
 /** Every task in the phase ledger, wherever its feature or PBI nests it. */
