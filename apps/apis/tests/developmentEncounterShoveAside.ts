@@ -196,6 +196,20 @@ export async function verifyEncounterShoveAside({
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const { bindScene, bindToken } = await import('./developmentEncounterLifecycle')
   const name = 'Shove aside browser scene'
+  const sceneToken = ({ label, position, tokenId }: (typeof tokens)[number]) => ({
+    id: tokenId,
+    assetId: null,
+    controlledByUserIds: [],
+    height: 100,
+    hidden: false,
+    label,
+    locked: false,
+    position,
+    rotationDegrees: 0,
+    senses: [],
+    vision: null,
+    width: 100
+  })
   const preparedScene = await createEncounterLifecycleScene({
     owner,
     campaignId,
@@ -211,20 +225,7 @@ export async function verifyEncounterShoveAside({
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: tokens.map(({ label, position, tokenId }) => ({
-        id: tokenId,
-        assetId: null,
-        controlledByUserIds: [],
-        height: 100,
-        hidden: false,
-        label,
-        locked: false,
-        position,
-        rotationDegrees: 0,
-        senses: [],
-        vision: null,
-        width: 100
-      }))
+      tokens: [sceneToken(tokens[0]!), sceneToken(tokens[1]!)]
     }
   })
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })

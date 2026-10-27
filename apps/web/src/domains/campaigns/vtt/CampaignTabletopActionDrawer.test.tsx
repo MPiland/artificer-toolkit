@@ -509,8 +509,8 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         kind: 'ACTOR',
         self: 'REFUSED',
         choiceOptions: [
-          { id: 'prone', label: 'Knock prone' },
-          { id: 'aside', label: 'Shove 5 feet aside' }
+          { id: '99999999-9999-4999-8999-999999999911', label: 'Knock prone' },
+          { id: '99999999-9999-4999-8999-999999999912', label: 'Shove 5 feet aside' }
         ]
       }
     })
@@ -529,7 +529,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         target: {
           kind: 'ACTOR',
           actorId: '99999999-9999-4999-8999-999999999902',
-          choiceOptionId: 'aside'
+          choiceOptionId: '99999999-9999-4999-8999-999999999912'
         }
       })
     )

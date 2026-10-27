@@ -755,7 +755,6 @@ const browserProofModes = [
   'disarm-browser',
   'effects-browser',
   'area-browser',
-  'shove-aside-browser',
   'hide-browser',
   'player-browser',
   'account-deletion-browser',
