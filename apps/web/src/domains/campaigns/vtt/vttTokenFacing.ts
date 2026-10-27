@@ -1,5 +1,5 @@
 import type * as Pixi from 'pixi.js'
-import type { Container, Graphics } from 'pixi.js'
+import type { Container } from 'pixi.js'
 import type { FacingArcSector, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { facingArcColours, facingArcRadius, facingArcWedge } from './vttSceneRenderer.model'
 
@@ -31,20 +31,21 @@ export function createFacingIndicator(pixi: typeof Pixi, token: TokenSize): Cont
 }
 
 /** One wedge per Facing arc, which sits under the token so only the part past its footprint shows. */
-export function createFacingArcWedges(
+export function addFacingArcWedges(
   pixi: typeof Pixi,
+  visual: Container,
   token: TokenSize,
   sectors: readonly FacingArcSector[]
-): Graphics[] {
-  return sectors.map((sector) => {
+): void {
+  for (const sector of sectors) {
     const color = facingArcColours[sector.arc]
     const wedge = new pixi.Graphics()
       .poly(facingArcWedge(sector, facingArcRadius(token)).flatMap(({ x, y }) => [x, y]))
       .fill({ alpha: 0.22, color })
       .stroke({ alpha: 0.8, color, width: 2 })
     wedge.label = `${facingArcLabelPrefix}${sector.arc}`
-    return wedge
-  })
+    visual.addChild(wedge)
+  }
 }
 
 /** The wedges drawn on a token's visual, by arc name, with each one's sampled outline. */

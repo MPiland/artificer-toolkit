@@ -84,7 +84,7 @@ import {
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
 import {
-  createFacingArcWedges,
+  addFacingArcWedges,
   createFacingIndicator,
   facingArcDiagnostics,
   tokenFacingLabel
@@ -1723,7 +1723,7 @@ export async function createVttSceneRenderer(
       halo.label = `${tokenHaloLabelPrefix}${presentation.halo.label}`
       visual.addChild(halo)
     }
-    visual.addChild(...createFacingArcWedges(pixi, token, presentation?.facingArcs ?? []))
+    addFacingArcWedges(pixi, visual, token, presentation?.facingArcs ?? [])
     // The plate spans the footprint; the fill, art and inner ring sit inside it, under the outer ring.
     const body = new pixi.Graphics()
       .ellipse(0, 0, token.width / 2, token.height / 2)
