@@ -6,8 +6,8 @@
 # generates its env and the ignored local env files, so scripts/runLocalBrowserProof.mjs (Worker, web
 # app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
 # runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
-# RELIABILITY-20.T1 runs the player-browser proof; T2 owns triggers and merge-slice gating, T3 the
-# other *-browser proofs.
+# Every *-browser proof in the runner's -Proof ValidateSet (the one proof list) runs in its own job on
+# its own stack: serially they take over an hour, and a fresh stack keeps proofs from sharing state.
 #   git push origin HEAD:ci/<slice>
 name: Browser journeys
 
@@ -27,11 +27,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  player-browser:
-    name: player-browser on a throwaway stack
+  proofs:
+    name: List the browser proofs
     if: startsWith(github.ref, 'refs/heads/ci/')
     runs-on: ubuntu-latest
+    outputs:
+      proofs: ${{ steps.list.outputs.proofs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - id: list
+        shell: pwsh
+        run: |
+          $set = (Get-Command ./scripts/runLocalConvexProof.ps1).Parameters['Proof'].Attributes |
+            Where-Object { $_ -is [System.Management.Automation.ValidateSetAttribute] }
+          $proofs = @($set.ValidValues | Where-Object { $_ -like '*-browser' })
+          if ($proofs.Count -eq 0) { throw 'No *-browser proof in runLocalConvexProof.ps1.' }
+          "proofs=$(ConvertTo-Json -Compress $proofs)" >> $env:GITHUB_OUTPUT
+
+  browser-journey:
+    name: ${{ matrix.proof }} on a throwaway stack
+    needs: proofs
+    runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        proof: ${{ fromJSON(needs.proofs.outputs.proofs) }}
     env:
       NODE_OPTIONS: --max-old-space-size=8192
       # The local Worker's telemetry is the only Cloudflare endpoint wrangler dev would call.
@@ -79,8 +103,8 @@ jobs:
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
       - name: Deploy and seed
         run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
-      - name: Run player-browser
-        run: node scripts/runLocalBrowserProof.mjs --name=ci-player-browser --proof=player-browser
+      - name: Run ${{ matrix.proof }}
+        run: node scripts/runLocalBrowserProof.mjs --name=ci-${{ matrix.proof }} --proof=${{ matrix.proof }}
       - name: Evidence holds no generated secret
         if: always()
         run: |
@@ -98,7 +122,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: player-browser-evidence
+          name: ${{ matrix.proof }}-evidence
           path: browser-journey-logs/
           retention-days: 7
           if-no-files-found: ignore

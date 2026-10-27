@@ -25,6 +25,7 @@ const root = resolve(import.meta.dirname, '..')
 // The documented local Session Worker (apps/session-worker README). Proofs that send Encounter
 // commands or open the tabletop need it. The VTT browser proof starts its own Worker on this port
 // (apps/web/playwright.local-vtt.config.ts), so the lifecycle stops its Worker before that stage.
+export const selfManagedBrowserProof = 'vtt-browser'
 const localSessionWorker = {
   allowedOrigins: 'http://localhost:3000,http://127.0.0.1:3000',
   host: '127.0.0.1',
@@ -34,7 +35,7 @@ const localSessionWorker = {
     'LIVE_SESSION_WORKER_SECRET',
     'CONTENT_SNAPSHOT_TOKEN_SECRET'
   ],
-  selfManagedStage: 'r08-browser-vtt-browser'
+  selfManagedStage: `r08-browser-${selfManagedBrowserProof}`
 }
 // The browser proofs open the web app here; the VTT browser proof starts its own on the same port.
 const localWebApp = { port: 3000 }
