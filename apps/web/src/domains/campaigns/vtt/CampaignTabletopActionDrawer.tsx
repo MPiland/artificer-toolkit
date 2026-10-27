@@ -561,6 +561,14 @@ export function CampaignTabletopActionDrawer({
     actorId
       ? (sceneTokens.find((token) => actorIdByTokenId.get(token.id) === actorId)?.id ?? null)
       : null
+  // The Scene measure between two actors' tokens, when both stand on the bound Scene.
+  const sceneContextBetween = (sourceActorId: string, targetActorId: string) => {
+    const sourceTokenId = tokenIdOfActor(sourceActorId)
+    const targetTokenId = tokenIdOfActor(targetActorId)
+    return scene && sourceTokenId && targetTokenId
+      ? { sceneId: scene.id, expectedSceneVersion: scene.version, sourceTokenId, targetTokenId }
+      : null
+  }
   const offerHolderTokenId = tokenIdOfActor(chosenOffer?.holderActorId ?? null)
   const offerTargetTokenId = tokenIdOfActor(offerTargetActorId)
   const sceneContext = useMemo(
@@ -1457,6 +1465,7 @@ export function CampaignTabletopActionDrawer({
               disabled={selectionControlsDisabled}
               encounterId={encounter.id}
               encounterVersion={encounter.version}
+              sceneContext={(targetActorId) => sceneContextBetween(currentActor.id, targetActorId)}
               onResolve={onResolve}
             />
           ) : null}
@@ -1492,18 +1501,9 @@ export function CampaignTabletopActionDrawer({
                 encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
               }
               offers={effectOffers}
-              sceneContext={(offer, newHolderActorId) => {
-                const sourceTokenId = tokenIdOfActor(offer.holderActorId)
-                const targetTokenId = tokenIdOfActor(newHolderActorId)
-                return scene && sourceTokenId && targetTokenId
-                  ? {
-                      sceneId: scene.id,
-                      expectedSceneVersion: scene.version,
-                      sourceTokenId,
-                      targetTokenId
-                    }
-                  : null
-              }}
+              sceneContext={(offer, newHolderActorId) =>
+                sceneContextBetween(offer.holderActorId, newHolderActorId)
+              }
               targetActorId={offerTargetActorId}
               onChooseOffer={setChosenOfferKey}
               onMove={onMoveHeldEffect}

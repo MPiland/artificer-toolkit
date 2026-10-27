@@ -35,6 +35,7 @@ export function CampaignTabletopBasicActions({
   encounterId,
   encounterVersion,
   disabled,
+  sceneContext,
   onResolve
 }: {
   /** The authored basic actions, each resolved through `RESOLVE_ACTION`. */
@@ -45,6 +46,8 @@ export function CampaignTabletopBasicActions({
   encounterId: string
   encounterVersion: number
   disabled: boolean
+  /** The Scene measure from the actor to a target, so its range is checked; null off the Scene. */
+  sceneContext: (targetActorId: string) => ResolveEncounterActionInputDto['sceneContext']
   onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
 }) {
   const [targetByAction, setTargetByAction] = useState<Record<string, string>>({})
@@ -71,6 +74,7 @@ export function CampaignTabletopBasicActions({
     acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
   ) {
     const choiceOptionId = chosenOptionId(choice)
+    const targetActorId = targetByAction[choice.id] ?? actorId
     return run(
       choice.id,
       () =>
@@ -83,10 +87,10 @@ export function CampaignTabletopBasicActions({
           actionId: choice.id,
           target: {
             kind: 'ACTOR',
-            actorId: targetByAction[choice.id] ?? actorId,
+            actorId: targetActorId,
             ...(choiceOptionId && { choiceOptionId })
           },
-          sceneContext: null,
+          sceneContext: sceneContext(targetActorId),
           acceptedWieldConflict: heldWeaponStow(choice),
           acknowledgedWarnings,
           optionalCombatIntent: null

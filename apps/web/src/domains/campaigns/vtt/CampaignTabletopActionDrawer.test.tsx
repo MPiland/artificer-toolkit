@@ -497,7 +497,7 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
     )
   })
 
-  it('sends the option chosen for a basic action that offers several, the first preselected', async () => {
+  it('sends the option chosen for a basic action that offers several, the first preselected, measured on the Scene', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn().mockResolvedValue(resolved)
     const shove = validatedChoice({
@@ -514,7 +514,15 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
         ]
       }
     })
-    renderDrawer(onResolve, { choices: [], authoredBasicActions: [shove] })
+    const [sourceToken, targetToken] = tabletopLiveScene.tokens
+    renderDrawer(onResolve, {
+      choices: [],
+      authoredBasicActions: [shove],
+      actorIdByTokenId: new Map([
+        [sourceToken!.id, tabletopGmEncounter.currentActorId!],
+        [targetToken!.id, '99999999-9999-4999-8999-999999999902']
+      ])
+    })
 
     const option = await screen.findByRole('combobox', { name: 'Option of shove' })
     expect(option).toHaveValue('Knock prone')
@@ -530,6 +538,12 @@ describe('CampaignTabletopActionDrawer basic actions', () => {
           kind: 'ACTOR',
           actorId: '99999999-9999-4999-8999-999999999902',
           choiceOptionId: '99999999-9999-4999-8999-999999999912'
+        },
+        sceneContext: {
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          sourceTokenId: sourceToken!.id,
+          targetTokenId: targetToken!.id
         }
       })
     )

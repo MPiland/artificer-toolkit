@@ -174,6 +174,21 @@ export async function verifyEncounterShoveAside({
   }
   const shover = creatureActor(shoverId)
   const target = creatureActor(targetId)
+  // The two wolves start on one side; the shoved one joins the party so the Shove is hostile.
+  run = encounterGmProjectionDtoSchema.parse(
+    (
+      await owner.mutation(executeEncounterCommand, {
+        command: {
+          type: 'UPDATE_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: run.version,
+          actorId: target.id,
+          disposition: 'FRIENDLY'
+        }
+      })
+    ).projection
+  )
   if (run.currentActorId !== shover.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
