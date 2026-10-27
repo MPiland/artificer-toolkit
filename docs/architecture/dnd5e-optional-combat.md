@@ -94,7 +94,7 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
-**Climb cling (current, MOVE-4.T2a; follow and placement are target, MOVE-4.T2b).** The CLIMB
+**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement is target, MOVE-4.T2b2).** The CLIMB
 definition authors `effect`, the `ACTOR_RELATIONSHIP` active effect a won climb gives the climbed
 creature (sourced by the climber; `SOURCE_FOLLOWS_TARGET` plus a `SOURCE_ATTACK_ROLL_INFLUENCE`
 whose null `actionEffectIds` means every attack). The policy capability's `passageAppliedEffects`

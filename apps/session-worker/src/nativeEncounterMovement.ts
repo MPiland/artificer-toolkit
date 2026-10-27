@@ -464,11 +464,14 @@ export async function prepareNativeLiveMovement(
     >(step, {
       discoverPassage: async () => {
         try {
-          // A creature the mover drags moves with it, so it never blocks the mover's way (D105).
+          // A creature the mover drags moves with it, so it never blocks the mover's way (D105),
+          // nor does one the mover follows.
           return discoverEncounterMovementPassage({
             ...step,
             sceneTokens: step.sceneTokens.filter(
-              ({ id }) => !captured.drag?.tokens.some(({ tokenId }) => tokenId === id)
+              ({ id }) =>
+                !captured.drag?.tokens.some(({ tokenId }) => tokenId === id) &&
+                !captured.followedTokenIds.has(id)
             ),
             actors: captured.actors,
             passage: encounterMovementPassageFacts(

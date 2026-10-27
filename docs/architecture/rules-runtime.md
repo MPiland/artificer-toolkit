@@ -2817,6 +2817,11 @@ translated to its own place, merged in `compareSpatialMovementCandidates` order.
 (same dice, pending prompts, Concentration checks, receipts under the move's command and projection), so a dragged creature's
 0 hit points or STOP interruption stops the whole drag at that contact, and the Scene undo refuses the move because it recorded
 receipts. The list is recomputed from the live holds on every segment and resume, so no snapshot field carries it.
+A `SOURCE_FOLLOWS_TARGET` relationship rides the same drag the other way (MOVE-4.T2b1): when the creature holding it
+moves voluntarily, `encounterMovementDrag` carries the relationship's source (a creature clinging to it) along the same
+displacement, with the same path checks and one undo, but a follower never doubles the cost. The room also lets a mover
+cross and end inside the space of each creature it follows (derived from the live relationship; nothing is stored).
+Forced movement carries no follower.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
