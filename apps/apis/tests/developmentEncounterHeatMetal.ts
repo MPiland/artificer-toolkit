@@ -344,7 +344,13 @@ export async function verifyEncounterHeatMetal({
     for (let answers = 0; current.occurrence?.status === 'PENDING'; answers++) {
       assert.ok(answers < 10, 'The Heat Metal dice did not settle.')
       const { occurrence } = current
-      const pending = occurrence.pending
+      // The player's receipt hides a decision the GM answers, such as the Ogre's save.
+      await checkpoint()
+      const pending =
+        occurrence.pending ??
+        (await owner.query(api.encounters.pendingReads.pendingRuleOccurrence, {
+          encounterId: run.id
+        }))
       let resolution: Resolution
       if (pending?.kind === 'D20_EVIDENCE') {
         resolution = {
@@ -365,10 +371,10 @@ export async function verifyEncounterHeatMetal({
         type: 'RESOLVE_RULE_OCCURRENCE',
         encounterId: run.id,
         commandId: crypto.randomUUID(),
-        expectedVersion: current.projection.version,
+        expectedVersion: pending.encounterVersion,
         correlationId: null,
-        occurrenceId: occurrence.occurrenceId,
-        expectedOccurrenceVersion: occurrence.occurrenceVersion,
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
         resolution
       })
     }
