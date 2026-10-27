@@ -6764,7 +6764,7 @@
             },
             {
               "id": "MOVE-2.T2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.3"],
               "wsjf": {
                 "bv": 2,
@@ -6774,12 +6774,14 @@
                 "after": ["MOVE-2.T1"]
               },
               "text": "Generic option initiator check influence (ADVANTAGE/DISADVANTAGE): compiled onto the option, carried by prepare, merged into the contest initiator rollMode with normal cancellation (D148 shared test holds). Rules-runtime tests; authoring parity proof.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome. Merged in m476.",
+              "mergedAt": "2026-10-26T19:56:27Z",
+              "proof": "Tests 40383447536 and Live 40383447064 green on 710fb0a25 (conflicts with m472 resolved); reviewed; merged in m475. Proofs: packages/rules-runtime/src/__tests__/encounterBasicActionContestInfluence.test.ts, packages/rules-runtime/src/__tests__/checkActionCompile.test.ts, contestOutcomeAuthoringParity.test.ts"
             },
             {
-              "id": "MOVE-2.T3",
-              "status": "TODO",
-              "closes": ["MOVE-2.3", "MOVE-2.4"],
+              "id": "MOVE-2.T3a",
+              "status": "DONE",
+              "closes": ["MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
@@ -6787,8 +6789,24 @@
                 "size": 5,
                 "after": ["MOVE-2.T2a", "MOVE-2.T2b"]
               },
-              "text": "SRD Shove gains a third authored option \"Shove 5 feet aside\": FORCED_MOVEMENT ASIDE EXACT 5 ft, gated on the Shove Aside optional rule, initiator DISADVANTAGE. Room test: rule on/off listing, contest, D157 FORCED_MOVEMENT_DESTINATION offers only legal in-reach squares 5 ft away, commit. Delete deriveSquareGridShoveAsideDestinations, the SHOVE_ASIDE selection/DESTINATION role/POSITION field, the pending SHOVE_ASIDE variant, SHOVE_ASIDE policy params, module registration, contributor reason and coverage entries once proven unused; the optional rule document stays as the toggle.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
+              "text": "Generic contest DESTINATION phase: a won contest whose outcome forces movement with several legal squares pauses holding the sealed choice and settled outcome, projects the existing FORCED_MOVEMENT_DESTINATION and resumes on the FORCED_MOVEMENT answer (D157 amendment). Proof with a homebrew contest option using ASIDE. Stored contest pending shape changes.",
+              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3. Merged in m479.",
+              "mergedAt": "2026-10-26T21:15:33Z",
+              "proof": "Tests 40396972990 green on 2df451c30, Live 40393556038 green on 818b7f774 (delta Worker, budget, docs); red proof RED 2/2; reviewed; merged in m479 (stored contest pending shape: contestPhase DESTINATION). Proof: apps/session-worker/test/nativeRoomContestDestinationPick.test.ts"
+            },
+            {
+              "id": "MOVE-2.T3b",
+              "status": "TODO",
+              "closes": ["MOVE-2.3", "MOVE-2.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["MOVE-2.T3a"]
+              },
+              "text": "SRD Shove gains \"Shove 5 feet aside\" (FORCED_MOVEMENT ASIDE EXACT 5 ft, requiresOptionalRule Shove Aside, initiator DISADVANTAGE). Room test: rule on/off listing, contest, destination pick of legal in-reach squares, commit. Delete deriveSquareGridShoveAsideDestinations, the SHOVE_ASIDE selection/DESTINATION role/POSITION field, the pending SHOVE_ASIDE variant, contributor reason and coverage entries; keep the module registration and integrated entry as the toggle with params cut to { kind }.",
+              "note": "Split 2026-10-26 at seam audit (local_4010c01c): a contest has no D157 destination pause, so an ASIDE outcome with several legal squares fails at commit. Size 5 re-scored to 5+3."
             },
             {
               "id": "MOVE-2.T4",
@@ -6799,7 +6817,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 2,
-                "after": ["MOVE-2.T3"]
+                "after": ["MOVE-2.T3b"]
               },
               "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
               "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
@@ -6849,10 +6867,14 @@
             },
             {
               "text": "A ZONE manifest can author camouflage: an optional concealment whose spot DC uses an existing DC method (for example the source's spell save DC), available in the zone node map; placing such a zone sets its spot DC automatically. Proved with an author-built camouflaged spell zone through the real form.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/rules-runtime/src/__tests__/encounterZoneCamouflage.test.ts",
+                "apps/session-worker/test/nativeRoomZoneConcealment.test.ts",
+                "packages/authoring/src/nodeRuntime/environmentalZoneAuthoringParity.test.ts"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). SRD Spike Growth adopts it when SPELLS-4.2 converts it to core options.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). SRD Spike Growth adopts it when SPELLS-4.2 converts it to core options. Closed 2026-10-26 by MOVE-3.T3.",
               "id": "MOVE-3.4"
             },
             {
@@ -6937,7 +6959,7 @@
             },
             {
               "id": "MOVE-3.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.4"],
               "wsjf": {
                 "bv": 8,
@@ -6947,10 +6969,27 @@
                 "after": ["MOVE-3.T2"]
               },
               "text": "ZONE manifest camouflage with a DC-method spot DC in the zone node map; placement sets it automatically; real-form authoring test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m478.",
+              "mergedAt": "2026-10-26T20:45:38Z",
+              "proof": "Tests 40385661261 and Live 40385661228 green on 76480dc38; reviewed; merged in m477. Proofs: packages/rules-runtime/src/__tests__/encounterZoneCamouflage.test.ts, apps/session-worker/test/nativeRoomZoneConcealment.test.ts, packages/authoring/src/nodeRuntime/environmentalZoneAuthoringParity.test.ts"
             },
             {
-              "id": "MOVE-3.T4",
+              "id": "MOVE-3.T4a",
+              "status": "TODO",
+              "closes": ["MOVE-3.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": ["MOVE-3.T2"]
+              },
+              "text": "Noticing Campaign setting (GM prompt default, Search only); zone concealment gains a GM-only sightings record (actor, PROMPTED or DISMISSED) beside knownByActorIds, stripped for non-GM viewers like the DCs; GM projection lists pending sightings.",
+              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+            },
+            {
+              "id": "MOVE-3.T4b",
               "status": "TODO",
               "closes": ["MOVE-3.5"],
               "wsjf": {
@@ -6958,10 +6997,10 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["MOVE-3.T2"]
+                "after": ["MOVE-3.T4a"]
               },
-              "text": "Campaign setting for noticing (GM prompt default, Search only); GM-only quiet prompt when passive Perception meets spot DC for a first sighting.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Worker evaluates sight and Character passive Perception against concealed zones after committed moves, zone place or DC set and token bind, records first sightings through a Convex mutation (idempotent on replay), and the GM sees a quiet prompt row with Dismiss; Search only skips evaluation.",
+              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5."
             },
             {
               "id": "MOVE-3.T5",
@@ -6986,7 +7025,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["MOVE-3.T4", "MOVE-3.T5"]
+                "after": ["MOVE-3.T4b", "MOVE-3.T5"]
               },
               "text": "GM reveal to chosen Characters and disarm (removes zone), with undo restoring either; disarm DC GM-only. Closes the umbrella 3.1 with the others.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
@@ -7060,7 +7099,7 @@
             },
             {
               "id": "MOVE-4.T2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7070,8 +7109,9 @@
                 "after": ["MOVE-4.T1"]
               },
               "text": "Cling effect authored on the CLIMB params and SRD doc; the passage receipt carries the planned effect, settlement creates it and undo removes it; the climber has advantage on all attacks against the target (SOURCE_ATTACK_ROLL_INFLUENCE with no action filter).",
-              "note": "Split 2026-10-26 at seam audit (local_59ee20b7): only the hold effect existed; the cling effect, receipt, follow runtime and placement are new. Size 5 re-scored to 8+5.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 at seam audit (local_59ee20b7): only the hold effect existed; the cling effect, receipt, follow runtime and placement are new. Size 5 re-scored to 8+5. Merged in m479.",
+              "mergedAt": "2026-10-26T21:15:33Z",
+              "proof": "Tests 40388792244 and Live 40388797873 green on 44498697b; reviewed (api.d.ts +86k sent back; cling effect now an opaque leaf per D194, +9 lines); merged in m478. Proofs: apps/session-worker/test/nativeMovementPlanning.test.ts, apps/apis/convex/encounters/movementPassage.test.ts, movementPassageEffectGuard.test.ts, packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, encounterRelationshipAttackInfluence.test.ts, optionalCombatCheckDefinitions.test.ts"
             },
             {
               "id": "MOVE-4.T2b",
@@ -8377,7 +8417,7 @@
             },
             {
               "id": "ATTACK-6.T4a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-6.3"],
               "wsjf": {
                 "bv": 5,
@@ -8387,8 +8427,9 @@
                 "after": ["ATTACK-6.T2"]
               },
               "text": "One shared equipment fold: Creatures fold their loadout through the Character grant fold and use the extracted Character AC block; the Creature-only while-equipped AC path in armorClass.ts is deleted and the D107 AUTHORING-17 addendum amended. Proofs: magic armor AC and refusing-restriction parity.",
-              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13.",
-              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
+              "note": "Split 2026-10-26 at seam audit (local_024e1c15): size 13 re-scored to 8+13. Merged in m477.",
+              "mergedAt": "2026-10-26T20:24:35Z",
+              "proof": "Tests 40385266630 and Live 40385266716 green on a445c92bf; reviewed (unrestricted shield modifiers now fold for Creatures, D152 amendment); merged in m476. Proofs: packages/rules-runtime/src/__tests__/creatureArmorClass.test.ts, creatureEquipmentVariantPin.test.ts, apps/apis/convex/encounters/equipmentCommands.test.ts, apps/apis/convex/content/creaturePublication.test.ts"
             },
             {
               "id": "ATTACK-6.T4b",
@@ -9554,10 +9595,15 @@
             },
             {
               "text": "Campaign settings offer Marking only once it resolves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/playSettingsOptions.test.ts",
+                "apps/session-worker/test/nativeRoomLegendary.test.ts",
+                "apps/session-worker/test/nativeRoomMarking.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "ATTACK-13.3"
+              "id": "ATTACK-13.3",
+              "note": "Closed 2026-10-26 by ATTACK-13.T3."
             }
           ],
           "wsjf": {
@@ -9600,7 +9646,7 @@
             },
             {
               "id": "ATTACK-13.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-13.3"],
               "wsjf": {
                 "bv": 2,
@@ -9610,69 +9656,9 @@
                 "after": ["ATTACK-13.T2"]
               },
               "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
-            }
-          ]
-        },
-        {
-          "id": "ATTACK-14",
-          "title": "Hitting cover",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": ["G2-OPTIONAL-COMBAT"],
-          "acs": [
-            {
-              "text": "With Hitting Cover enabled, a ranged attack that misses only because of cover hits the cover; when a creature provides the cover and the roll would hit it, the attack hits that creature, and the roll evidence says so.",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["G2-OPTIONAL-COMBAT"],
-              "note": "2014 DMG variant, approved for Phase 8. The removed resolver is in 437b2dd15 (optionalActionPolicy.ts).",
-              "id": "ATTACK-14.1"
-            },
-            {
-              "text": "Campaign settings offer Hitting Cover only once it resolves.",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "ATTACK-14.2"
-            }
-          ],
-          "wsjf": {
-            "bv": 2,
-            "tc": 1,
-            "rr": 1,
-            "size": 5
-          },
-          "tasks": [
-            {
-              "id": "ATTACK-14.T1",
-              "status": "TODO",
-              "closes": ["ATTACK-14.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 5,
-                "after": ["SPELLS-14.T1"]
-              },
-              "text": "Resolver: ranged miss only from cover hits the cover; creature-provided cover redirects the hit; evidence says so.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            },
-            {
-              "id": "ATTACK-14.T2",
-              "status": "TODO",
-              "closes": ["ATTACK-14.2"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 1,
-                "after": ["ATTACK-14.T1"]
-              },
-              "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m472.",
+              "mergedAt": "2026-10-26T18:31:52Z",
+              "proof": "Tests 40366683500 and Live 40366683560 green on d18b4b71f; reviewed; merged in m472 (m470 run failed on a GitHub HTTP 500). Proofs: packages/schema/src/__tests__/playSettingsOptions.test.ts, apps/session-worker/test/nativeRoomLegendary.test.ts, apps/session-worker/test/nativeRoomMarking.test.ts"
             }
           ]
         },
@@ -9887,7 +9873,7 @@
             },
             {
               "id": "ATTACK-16.T1c2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
@@ -9897,8 +9883,9 @@
                 "after": ["ATTACK-16.T1c1"]
               },
               "text": "Generic direct-phase roll table: a self action with no test resolves its ON_USE path through one ROLL_TABLE rolled in its DIRECT graph (amends T1a, which allowed tables only on a save result path). Kernel proof with an authored non-System fixture.",
-              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5.",
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
+              "note": "Split 2026-10-26 (ruling A, local_c13a97d5): T1a rolls a ROLL_TABLE only on a save result path, and T1c1 already rolls the Con save on the chain, so the table needs a direct-phase home. Size 5 re-scored to 5+5. Merged in m475.",
+              "mergedAt": "2026-10-26T19:28:22Z",
+              "proof": "Tests 40379671933 green on b49d7e0ef, Live 40376758588 green on e451d50f1 (b49d7e0ef changed only a Worker test); reviewed; merged in m474. Proofs: packages/rules-runtime/src/__tests__/rollTable.test.ts, apps/session-worker/test/nativeRoomRollTable.test.ts"
             },
             {
               "id": "ATTACK-16.T1c2b",
@@ -13211,10 +13198,15 @@
           "acs": [
             {
               "text": "With the Campaign's automatic-cover setting on, the app works out half, three-quarters or total cover from the Scene's walls and creatures for attacks and area saves, shows it as a labelled bonus (+2 or +5; total cover blocks), and the GM can change the tier.",
-              "status": "TODO",
-              "proof": [],
+              "status": "IN_PROGRESS",
+              "proof": [
+                "packages/shared/src/__tests__/squareGridCover.test.ts",
+                "apps/session-worker/test/nativeRoomCover.test.ts",
+                "apps/session-worker/test/nativeRoomCoverApplication.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterCover.test.ts"
+              ],
               "origin": [],
-              "note": "Split from SPELLS-7 on 2026-10-10. User ruling 2026-10-10: automatic, with the GM able to change it, and the automation is a setting. The setting's default is an open question. Depends on SPELLS-7 for saves; findSquareGridCreatureCoverIntervenors is test-only today, so extend it or delete it.",
+              "note": "Split from SPELLS-7 on 2026-10-10. User ruling 2026-10-10: automatic, with the GM able to change it, and the automation is a setting. The setting's default is an open question. Depends on SPELLS-7 for saves; findSquareGridCreatureCoverIntervenors is test-only today, so extend it or delete it. Closed 2026-10-26 by SPELLS-14.T1, SPELLS-14.T2. The GM tier change closes with SPELLS-14.T3.",
               "id": "SPELLS-14.1"
             },
             {
@@ -13250,7 +13242,7 @@
             },
             {
               "id": "SPELLS-14.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-14.1"],
               "wsjf": {
                 "bv": 8,
@@ -13260,13 +13252,14 @@
                 "after": ["SPELLS-14.T1"]
               },
               "text": "Apply labeled bonus to attacks and area saves; total cover blocks.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m478.",
+              "mergedAt": "2026-10-26T20:45:38Z",
+              "proof": "Tests 40385635361 green on b80aded83, Live 40384015944 green on ef775bf4d (delta one Worker file); reviewed; merged in m477. Proofs: apps/session-worker/test/nativeRoomCoverApplication.test.ts, packages/rules-runtime/src/__tests__/encounterCover.test.ts"
             },
             {
               "id": "SPELLS-14.T3",
               "status": "TODO",
-              "closes": ["SPELLS-14.2"],
+              "closes": ["SPELLS-14.1", "SPELLS-14.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -19716,6 +19709,14 @@
               "origin": [],
               "text": "When two merged slices both shrink a file listed in scripts/fileSizeBudget.json and the merged file ends up below both caps, merge-slice lowers that entry to the merged size and continues; a merged file above its resolved cap still refuses. The ADR 0039 shrink-only ratchet is unchanged.",
               "note": "Registered 2026-10-25 (user yes): the SPELLS-31.T5b + T4k2d1 batch (run 40262719408) was refused because effectActionCompiler.ts shrank to 4172 under the 4182 cap. Closed 2026-10-24 by RELIABILITY-19.T2."
+            },
+            {
+              "id": "RELIABILITY-19.3",
+              "text": "merge-slice retries a GitHub 5xx or timeout while it lists, views or waits on runs, and fails only when the error persists past a bounded retry window; a 4xx or a red run still fails at once.",
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-19.T3 (m477); see each task's proof."],
+              "origin": [],
+              "note": "Registered 2026-10-26 (user yes, D187 growth +1): m470 (HTTP 500) and m472 (HTTP 504, GitHub incident 18:48-18:57 UTC) failed after their batch runs went green, because one 5xx from gh run view ended the wait. Closed 2026-10-26 by RELIABILITY-19.T3."
             }
           ],
           "tasks": [
@@ -19749,6 +19750,21 @@
               "mergedAt": "2026-10-26T14:35:56Z",
               "proof": "Tests 40270554072 green on c3cfa0e26 (Live path-filtered); red proof scripts/mergeSlice.test.mjs RED 1/46; reviewed (DRY fix requested and done); merged in m461",
               "note": " Merged in m461."
+            },
+            {
+              "id": "RELIABILITY-19.T3",
+              "status": "DONE",
+              "closes": ["RELIABILITY-19.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "note": "Registered 2026-10-26 (user yes, D187 growth +1): m470 (HTTP 500) and m472 (HTTP 504, GitHub incident 18:48-18:57 UTC) failed after their batch runs went green, because one 5xx from gh run view ended the wait. Merged in m477.",
+              "text": "Retry transient gh failures (5xx, timeouts) in scripts/mergeSlice.mjs with a bounded backoff; unit test with a fake gh that returns a 504 then success, and one that keeps failing.",
+              "mergedAt": "2026-10-26T20:24:35Z",
+              "proof": "Tests 40386769370 green on 9fb277c7b (scripts only; Live path-filtered); reviewed (5dd regex sent back and fixed); merged in m476. Proof: scripts/mergeSlice.test.mjs (real m470 500 and m472 504 stderr retried then merged; persistent 500 stops at READ_TRIES; 404 fails at once)"
             }
           ]
         },

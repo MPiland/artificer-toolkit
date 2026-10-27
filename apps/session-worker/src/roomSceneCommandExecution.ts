@@ -283,13 +283,29 @@ export async function executeSceneCommand(
                 sceneId: command.sceneId.toLowerCase(),
                 undoneCommandId
               }),
-            settledEncounterMechanics: async (moveCommandId) =>
-              (await host.store.store
+            settledEncounterMechanics: async (moveCommandId) => {
+              const { store } = host.store
+              const moveReceipt = await store
                 .query('encounterRuleReceipts')
                 .withIndex('by_campaignId_commandId', (q) =>
                   q.eq('campaignId', value.campaignId).eq('commandId', moveCommandId)
                 )
-                .first()) !== null
+                .first()
+              if (moveReceipt !== null) return true
+              // A move that raised a decision settles under its answer's command, so the receipt is the occurrence's.
+              const occurrence = await store
+                .query('encounterRuleOccurrences')
+                .withIndex('by_campaignId_rootCommandId', (q) =>
+                  q.eq('campaignId', value.campaignId).eq('rootCommandId', moveCommandId)
+                )
+                .first()
+              if (!occurrence) return false
+              const answered = await store
+                .query('encounterRuleReceipts')
+                .withIndex('by_occurrenceId', (q) => q.eq('occurrenceId', occurrence.id))
+                .first()
+              return answered !== null
+            }
           })
       )
     } catch (error) {

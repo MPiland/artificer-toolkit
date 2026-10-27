@@ -15,6 +15,7 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { D20FoldedBonusDto } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import {
   rollModeKeptFace,
   type RollModeKeep
@@ -92,13 +93,23 @@ export function deriveEncounterActionD20Policy(input: {
     modifier: input.bound.d20Audit.modifier,
     dc: input.bound.d20Audit.defenseOrDc,
     ...savingThrowAbility(input.bound.d20Audit),
-    ...policyAddedDice(input.bound.d20Audit.addedDice)
+    ...policyAuditDice(input.bound.d20Audit)
   })
 }
 
-/** A policy names its added dice only when the test rolls some (D156). */
-export function policyAddedDice(addedDice: readonly D20AddedDieDto[]) {
-  return addedDice.length > 0 ? { addedDice: [...addedDice] } : {}
+/** A policy names its added dice (D156) and folded bonuses (cover) only when the test has some. */
+export function policyAuditDice(audit: {
+  addedDice: readonly D20AddedDieDto[]
+  foldedBonuses?: readonly D20FoldedBonusDto[]
+}) {
+  return {
+    ...(audit.addedDice.length > 0 ? { addedDice: [...audit.addedDice] } : {}),
+    ...policyFoldedBonuses(audit.foldedBonuses)
+  }
+}
+
+function policyFoldedBonuses(foldedBonuses: readonly D20FoldedBonusDto[] | undefined) {
+  return foldedBonuses && foldedBonuses.length > 0 ? { foldedBonuses: [...foldedBonuses] } : {}
 }
 
 export function nestedOutcomeD20Policy(input: {
@@ -136,7 +147,7 @@ export function nestedOutcomeD20Policy(input: {
     modifier: audit.modifier,
     dc: audit.defenseOrDc,
     ...savingThrowAbility(audit),
-    ...policyAddedDice(audit.addedDice)
+    ...policyAuditDice(audit)
   })
 }
 
@@ -179,7 +190,8 @@ export function buildEncounterActionD20Evidence(input: {
     resultPath,
     ...savingThrowAbility(input.policy),
     ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {}),
-    ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
+    ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {}),
+    ...policyFoldedBonuses(input.policy.foldedBonuses)
   })
 }
 

@@ -203,7 +203,8 @@ describe('persistMovementSettlements spatial zone currentness', () => {
           persistConcentrationEnd: unreachable,
           persistAreaDeparture: unreachable,
           persistMoveEnd: unreachable,
-          endHolderGrants: unreachable
+          endHolderGrants: unreachable,
+          applyMechanics: unreachable
         }
       )
     ).rejects.toThrow('Movement spatial effect changed.')

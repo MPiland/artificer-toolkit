@@ -4,6 +4,7 @@ import { withZoneDcs, zoneConcealedFrom } from '../encounterZoneConcealment.js'
 
 const PLACER = '00000000-0000-4000-8000-000000000001'
 const OTHER = '00000000-0000-4000-8000-000000000002'
+const SIGHTED = '00000000-0000-4000-8000-000000000003'
 const spotDc = { value: 14, source: 'PLACER_ROLL' as const }
 const disarmDc = { value: 12, source: 'FLAT' as const }
 const plain = { schemaVersion: 1 as const, revealed: true }
@@ -32,15 +33,19 @@ describe('zone concealment (MOVE-3.3)', () => {
     const concealed = withZoneDcs(plain, { spotDc, disarmDc, placerActorId: PLACER })
     expect(concealed).toEqual({
       ...plain,
-      concealment: { spotDc, knownByActorIds: [PLACER] },
+      concealment: { spotDc, knownByActorIds: [PLACER], sightings: [] },
       disarmDc
     })
     expect(withZoneDcs(plain, { spotDc, disarmDc: null, placerActorId: null })).toEqual({
       ...plain,
-      concealment: { spotDc, knownByActorIds: [] }
+      concealment: { spotDc, knownByActorIds: [], sightings: [] }
     })
 
-    const known = { ...concealed, concealment: { spotDc, knownByActorIds: [PLACER, OTHER] } }
+    const sightings = [{ actorId: SIGHTED, status: 'PROMPTED' as const }]
+    const known = {
+      ...concealed,
+      concealment: { spotDc, knownByActorIds: [PLACER, OTHER], sightings }
+    }
     expect(
       withZoneDcs(known, {
         spotDc: { value: 18, source: 'FLAT' },
@@ -49,7 +54,11 @@ describe('zone concealment (MOVE-3.3)', () => {
       })
     ).toEqual({
       ...plain,
-      concealment: { spotDc: { value: 18, source: 'FLAT' }, knownByActorIds: [PLACER, OTHER] }
+      concealment: {
+        spotDc: { value: 18, source: 'FLAT' },
+        knownByActorIds: [PLACER, OTHER],
+        sightings
+      }
     })
     expect(withZoneDcs(known, { spotDc: null, disarmDc: null, placerActorId: PLACER })).toEqual(
       plain

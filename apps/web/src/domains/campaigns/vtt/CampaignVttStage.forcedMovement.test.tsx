@@ -139,6 +139,7 @@ function renderStage(
       halfSpeedFields: [],
       movementCostZones: [],
       placedZones: [],
+      pendingZoneSightings: [],
       auras: []
     },
     preparedPending: [],

@@ -353,7 +353,23 @@ export const spatialRuleEffectStateDtoSchema = lazySchema(() =>
       z.strictObject({
         spotDc: zoneDcDtoSchema,
         /** The Characters that know of the zone: its placer, sorted. */
-        knownByActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        knownByActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        /**
+         * Characters not in `knownByActorIds` whose passive Perception met the spot DC at a first
+         * sighting, sorted by actor (MOVE-3.5): PROMPTED waits on the GM, DISMISSED is settled.
+         * GM-only; never reaches a player.
+         */
+        sightings: z._default(
+          z
+            .array(
+              z.strictObject({
+                actorId: uuidSchema,
+                status: z.enum(['PROMPTED', 'DISMISSED'])
+              })
+            )
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          []
+        )
       })
     ),
     /** Shown only to the GM. */
@@ -397,6 +413,19 @@ export const spatialRuleEffectCurrentStateDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['spatialState', 'concealment', 'knownByActorIds'],
             message: 'The Characters that know of a zone must be unique and sorted.'
+          })
+        if (
+          concealment?.sightings.some(
+            ({ actorId }, index) =>
+              concealment.knownByActorIds.includes(actorId) ||
+              (index > 0 && concealment.sightings[index - 1]!.actorId >= actorId)
+          )
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['spatialState', 'concealment', 'sightings'],
+            message:
+              'Sightings must be unique, sorted and exclude the Characters that know of the zone.'
           })
       })
     )

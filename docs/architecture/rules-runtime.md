@@ -1133,6 +1133,7 @@ may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's
 (`SET_ZONE_DCS`, GM-only, receipt `{ spatialEffectId, before, afterVersion }`; GM undo restores `before` while the zone
 is still at `afterVersion`). `withZoneDcs` (`encounterZoneConcealment.ts`) makes the placer, the zone's
 `origin.sourceActorId`, know of a newly concealed zone; a GM-placed zone has no placer, so only the GM knows of it.
+A ZONE manifest can author `camouflage: { spotDc }` (MOVE-3.4), a `HeldEscapeDcAuthored` (`FIXED`, or `SOURCE_SAVE_DC` for the cast's save DC pinned at placement). `placedZoneRecord` passes it to `withZoneDcs` as a `FLAT` spot DC, so the zone is concealed from everyone but its placer on placement; a GM-typed `spotDc` overrides it, and an environmental (GM) zone refuses `SOURCE_SAVE_DC` because it has no source.
 Concealment is separate from the placement's `visibility`/`revealed` pair, which hides a zone from everyone until it
 triggers. `readEncounterSessionState` redacts per member once, for Convex and the room alike: the GM reads every zone,
 and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`
@@ -1852,8 +1853,21 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   lists ascending tiers with their blocked-line threshold, bonus and whether they block targeting, plus the highest tier creatures
   give on their own. Walls give the tier their lines reach; creatures add lines only up to that cap. The SRD authors half (1 line,
   +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
-  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space. Applying the bonus to
-  attacks and area saves is SPELLS-14.T2.
+  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space.
+- **Cover applied (SPELLS-14.T2).** The Campaign setting `automaticCover` (default on, an automation setting beside
+  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover (the GM's tier is T3). When on,
+  `prepareEncounterActionMechanics` asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
+  `resolveSquareGridCover`). The Worker reads the live Scene for it (`nativeLiveCover.ts`: attack and cast preparation, the area
+  action's per-target preparation, an opportunity attack's reactor→mover lines); the encounter-persistence preview host has no
+  barrier reader, so it computes no cover and its previews show the uncovered d20. A tier that blocks targeting is a hard
+  `EncounterValidationError` in prepare for a single target, and an area leaves that creature out of the caught set
+  (`nativeEncounterAreaRules.ts`, lines from the area's origin point). Any other tier folds into the d20 as generic, labelled
+  `foldedBonuses` (`packages/schema/src/shared/d20FoldedBonuses.ts`): an attack's `defenseOrDc` operand, or the saver's `modifier`
+  for the abilities the System's `cover.saveAbilityDefinitionIds` names (the SRD names Dexterity). The compiler adds the folded
+  amounts to the attack/save facts and the `d20Audit`, so the evidence's `modifier` and `defenseOrDc` hold what the roll used and
+  `foldedBonuses` names where the difference came from; the roll record carries the list and the card shows "Half cover +2" (a save)
+  or "Half cover: target's defense +2" (an attack). Nothing in code names a cover tier or number. Paths whose host has no Scene
+  context (the counterspell cast pause, area collision revalidation) apply no cover.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
@@ -1863,7 +1877,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
   free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
   attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
-  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  outcome (`planForcedMovementDestination` in `nativeForcedMovementDestination.ts`, shared with a won contest, over
+  `holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
@@ -2860,7 +2875,10 @@ Every application goes through `planEncounterMechanicsBatch` and settles one gen
 (`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
 `CONTESTED_ACTION` output. The shared settler `settleTargetOutcome` (`targetOutcomeSettlement.ts`) re-applies the
 receipt applications in Convex and refuses a checksum mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
-contest outcome whose push owes a destination pick fails closed.
+won outcome whose push owes a destination pick (D157) pauses the contest as `contestPhase: 'DESTINATION'`: the sealed
+choice from `holdForForcedMovementDestination` holds the settled outcome completion, so the resume restores it
+(`planNativeTargetOutcome` `held`, fenced by its facts and published checksums) instead of re-rolling, and settles the
+answered square with `settleForcedMovementDestination` before the commit.
 
 **Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
 check-settled kind (CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with

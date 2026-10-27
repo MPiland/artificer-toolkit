@@ -127,6 +127,65 @@ const facingDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
   mutuallyExclusiveGroup: null
 })
 
+/**
+ * The cling a won climb gives the climbed creature, sourced by the climber: the climber follows the
+ * target and its attacks against the target have advantage. One cling per climber; it holds until
+ * the climber is released.
+ */
+function climbClingEffect() {
+  const childId = (kind: string) =>
+    uuidv5(
+      `${DND5E_CLIMB_ONTO_LARGER_CREATURE_DEFINITION_ID}:${kind}`,
+      DND5E_CLIMB_ONTO_LARGER_CREATURE_DEFINITION_ID
+    )
+  return {
+    id: childId('effect'),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: 'ACTIVATED',
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: childId('range'), rangeKind: 'TOUCH' },
+      targeting: {
+        selectionKind: 'SINGLE_TARGET',
+        dispositionKind: 'ANY',
+        self: 'REFUSED'
+      }
+    },
+    paths: [
+      {
+        id: childId('path'),
+        order: 1,
+        pathCode: 'ON_USE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: childId('result'),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: childId('outcome'),
+              effectKind: 'ACTOR_RELATIONSHIP',
+              heldAtOnce: 1,
+              modules: [
+                { id: childId('follows'), order: 1, kind: 'SOURCE_FOLLOWS_TARGET' },
+                {
+                  id: childId('advantage'),
+                  order: 2,
+                  kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
+                  actionEffectIds: null,
+                  influence: 'ADVANTAGE'
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 const climbOntoLargerCreatureDocument =
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse({
     schemaVersion: 1,
@@ -142,6 +201,7 @@ const climbOntoLargerCreatureDocument =
       initiatorCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID],
       targetCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
       minimumTargetSizeSteps: 1,
+      effect: climbClingEffect(),
       economies: ['ACTION']
     },
     mutuallyExclusiveGroup: null

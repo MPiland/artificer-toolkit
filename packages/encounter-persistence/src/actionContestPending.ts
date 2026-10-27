@@ -44,19 +44,21 @@ export async function readNativeContestPending(
   const onContestGraph =
     snapshot.graph.source.definitionId === contest.contestGraph.definitionId &&
     snapshot.graph.source.checksum === contest.contestGraph.checksum
-  // A won basic action contest's outcome waits on its initiator's dice, both checks rolled (D173).
-  if (context.contestPhase === 'OUTCOME') {
+  // A won basic action contest's outcome waits on its initiator's dice (D173), or its settled
+  // forced movement on the initiator's destination pick (D157), both checks rolled.
+  if (context.contestPhase === 'OUTCOME' || context.contestPhase === 'DESTINATION') {
     if (
       onContestGraph ||
       origin?.kind !== 'BASIC_ACTION' ||
       contest.rollEvidence.initiator === null ||
-      contest.rollEvidence.defender === null
+      contest.rollEvidence.defender === null ||
+      (context.contestPhase === 'DESTINATION') !== (context.pause?.kind === 'FORCED_MOVEMENT')
     )
       throw new Error('Stored action contest outcome evidence is invalid.')
     return {
       ...pending,
       contest,
-      participant: 'OUTCOME' as const,
+      participant: context.contestPhase,
       policy: null,
       rollerActorId: contest.initiator.actorId
     }

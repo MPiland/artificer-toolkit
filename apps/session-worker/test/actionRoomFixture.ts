@@ -435,6 +435,7 @@ export interface ActionRoomConfig extends Pick<
   MovementRoomConfig,
   | 'automationMode'
   | 'trackAmmunition'
+  | 'automaticCover'
   | 'autoRoll'
   | 'playerControlledActorIds'
   | 'otherPlayerControlledActorIds'

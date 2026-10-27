@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Cover on paths without a Scene (SPELLS-14.T2):** automatic cover is read only where the Worker has the Scene, for attacks, spells, areas and opportunity attacks. Three paths apply no cover: a spell attack resumed after a Counterspell pause, an area's collision revalidation, and other reactions. All three are rare. The GM can adjust by hand. The fix is to pass the Scene's cover reader into those resume paths.
 - **Area attacks do not mark under Marking (ATTACK-13.T3):** an area action with an attack roll (rare in melee) gives no mark, because its targets settle in one command and each would replace the attacker's mark against the effects held before the command, leaving several marks from one attacker. The GM marks by hand. The fix is to apply area marks after the command's grants settle, keeping only the last target's.
 - **Massive damage from forced-movement damage (ATTACK-16.T1c1):** damage a creature takes during forced movement (falling, a hazard on the path) goes through the movement damage chain, which holds only Concentration saves, so it never owes a massive-damage save. Attack, area, cleave and turn damage all do. A single movement hit of half a creature's maximum hit points is rare, and the GM can apply System Shock by hand.
 - **Incoming damage reduction on a multi-type hit (SPELLS-31.T5b):** an INCOMING_DAMAGE REDUCE (Deflect Missiles) reduces only the attack's primary damage, before halving and resistance; a reduction larger than the primary damage does not spill over to the attack's other damage types. A ranged weapon attack with a second damage type is rare (a flame tongue thrown weapon, a creature's poisoned arrow). The GM takes the rest off the other type. The fix is to spread the remaining reduction over the other damage proposals in order.
@@ -426,6 +427,10 @@ Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. 
 ### Standing effects that never return or arm on obtain (SPELLS-31.2, 2026-10-25)
 
 SPELLS-31.2's standing effects come back only after a long rest or short rest, and a rest is what first turns them on, which fits Tranquility. Two cases need an arming step when the feature is gained, which crosses the Builder/Sheet seam (about size 2): a "never returns" cadence, and a standing effect expected before the first rest. More end conditions ("fails a save", "is hit") join the existing End On list when a feature needs them.
+
+### Hitting cover (ATTACK-14, deferred 2026-10-26)
+
+The 2014 DMG variant where a ranged attack that misses only because of cover hits the cover instead, and a creature providing the cover takes the hit when the roll exceeds its AC. The user deferred it until after launch to see whether players want it. If they do, the user expects the mechanic to centre on registering a creature as cover from the attacker's line of sight to the target, rather than only retargeting a hit. The ATTACK-14.T1 seam audit found that the cover result drops which creature or wall provided the cover (`encounterCover.ts`). It also found that nothing can replay a d20 against a second target, apply its damage in the same action and undo it, so a full redirect is about Cleaving-sized. The HITTING_COVER optional rule document stays hidden from Campaign settings until a resolver exists.
 
 ### Surprise (D156)
 
