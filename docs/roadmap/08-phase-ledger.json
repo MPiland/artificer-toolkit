@@ -7189,7 +7189,7 @@
             },
             {
               "id": "MOVE-4.T3a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.3"],
               "wsjf": {
                 "bv": 2,
@@ -7199,8 +7199,9 @@
                 "after": ["MOVE-4.T2b2"]
               },
               "text": "ESCAPE_CHECK gains optional holderForcedMovement (the existing forced-movement shape). Escape settlement threads it through the D157 DESTINATION pause. The persistence fence re-derives the expected movement from the held effect and refuses a mismatched commit. SRD cling authors ANY exactly 5 ft. Room journey nativeRoomClimbDislodge.test.ts: a win lands the climber next to the target and ends the cling, a loss keeps it.",
-              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3. Merged in m495.",
+              "mergedAt": "2026-10-27T12:17:28Z",
+              "proof": "Tests 40457366439, Live 40457366535 and Browser journeys 40457366680 green on 9448b9cbe; batch ci/merge-m495 Tests 40502642428 and Live 40502645490 green; reviewed (commit re-derives the holder movement from the held effect, negative cases for changed, dropped and lost-escape movement); merged in m495 (stored effect shape: holderForcedMovement). Proofs: apps/session-worker/test/nativeRoomClimbDislodge.test.ts, packages/encounter-persistence/src/__tests__/contestEscapeMovement.test.ts, packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts"
             },
             {
               "id": "MOVE-4.T3b",
