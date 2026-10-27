@@ -29,11 +29,6 @@ export function optionalCombatCheckDefinitionIds(
         ...document.parameters.initiatorCheckDefinitionIds,
         document.parameters.targetCheckDefinitionId
       ]
-    case 'SHOVE_ASIDE':
-      return [
-        document.parameters.initiatorCheckDefinitionId,
-        ...document.parameters.defenderCheckDefinitionIds
-      ]
     default:
       return []
   }

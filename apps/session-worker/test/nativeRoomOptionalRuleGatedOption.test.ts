@@ -145,7 +145,12 @@ describe('An option gated on an optional combat rule, in the room (MOVE-2.T2a)',
 
   it('offers the option and runs its pick while the Encounter uses the rule', async () => {
     const room = await tripRoom(true)
-    expect(await offeredLabels(room)).toEqual(['Knock prone', 'Push 5 feet away', 'Trip'])
+    expect(await offeredLabels(room)).toEqual([
+      'Knock prone',
+      'Push 5 feet away',
+      'Shove 5 feet aside',
+      'Trip'
+    ])
 
     const { answer } = await pick(room, testUuid(0xb34))
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')

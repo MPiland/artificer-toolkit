@@ -923,25 +923,25 @@ describe('encounter contracts', () => {
 
   it('accepts only closed optional combat action intent selections', () => {
     const fieldId = 'a'.repeat(64)
-    const positionFieldId = 'b'.repeat(64)
+    const secondFieldId = 'b'.repeat(64)
     const definitionId = '00000000-0000-4000-8000-0000000000AB'
     const entityId = '00000000-0000-4000-8000-0000000000CD'
+    const secondEntityId = '00000000-0000-4000-8000-0000000000EF'
     const intent = optionalCombatActionIntentDtoSchema.parse({
       optionId: 'c'.repeat(64),
       definitionId,
       selectionContract: 'd'.repeat(64),
       selections: [
         { fieldId, value: { kind: 'ENTITY', entityId } },
-        {
-          fieldId: positionFieldId,
-          value: { kind: 'POSITION', position: { x: 12, y: -5 } }
-        }
+        { fieldId: secondFieldId, value: { kind: 'ENTITY', entityId: secondEntityId } }
       ]
     })
 
     expect(intent.definitionId).toBe(definitionId.toLowerCase())
     expect(intent.selections[0]).toMatchObject({ value: { entityId: entityId.toLowerCase() } })
-    expect(intent.selections[1]).toMatchObject({ value: { position: { x: 12, y: -5 } } })
+    expect(intent.selections[1]).toMatchObject({
+      value: { entityId: secondEntityId.toLowerCase() }
+    })
 
     expect(() =>
       optionalCombatActionIntentDtoSchema.parse({
@@ -973,7 +973,7 @@ describe('encounter contracts', () => {
         selections: [
           {
             fieldId,
-            value: { kind: 'POSITION', position: { x: Number.POSITIVE_INFINITY, y: 0 } }
+            value: { kind: 'POSITION', position: { x: 0, y: 0 } }
           }
         ]
       })

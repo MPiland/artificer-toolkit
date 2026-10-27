@@ -215,20 +215,6 @@ const optionalCombatPassageSelectionDtoSchema = lazySchema(() =>
       heldItemId: uuidSchema,
       defenderCheckDefinitionId: uuidSchema,
       heldItemStateChecksum: checksumSchema
-    }),
-    z.strictObject({
-      kind: z.literal('SHOVE_ASIDE'),
-      defenderCheckDefinitionId: uuidSchema,
-      destination: z.strictObject({ x: z.number(), y: z.number() }),
-      displacement: z.strictObject({
-        amount: z.literal(5),
-        unit: z.literal('FEET'),
-        sceneUnits: z.number().check(z.positive())
-      }),
-      sceneId: uuidSchema,
-      sceneVersion: nonNegativeIntegerSchema,
-      targetTokenId: uuidSchema,
-      stateChecksum: checksumSchema
     })
   ])
 )
@@ -238,13 +224,7 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('OPTIONAL_COMBAT'),
-      actionKind: z.enum([
-        'DISARM',
-        'SHOVE_ASIDE',
-        'OVERRUN',
-        'TUMBLE',
-        'CLIMB_ONTO_LARGER_CREATURE'
-      ]),
+      actionKind: z.enum(['DISARM', 'OVERRUN', 'TUMBLE', 'CLIMB_ONTO_LARGER_CREATURE']),
       pin: z.strictObject({
         snapshotChecksum: checksumSchema,
         definitionId: uuidSchema,

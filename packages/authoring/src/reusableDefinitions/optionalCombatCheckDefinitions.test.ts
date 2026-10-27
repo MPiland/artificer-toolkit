@@ -30,7 +30,7 @@ function validate(document: Dnd5eOptionalCombatReusableDefinitionDocumentDto) {
 }
 
 describe('the SRD movement contests, as authored optional-combat definitions (MOVE-2)', () => {
-  it('pins the contest checks the rules name: Overrun and Tumble one each side, Shove Aside a defender choice', () => {
+  it('pins the contest checks the rules name: Overrun and Tumble one each side, Shove Aside none (its toggle offers the Shove’s own contest)', () => {
     expect(optionalCombatCheckDefinitionIds(srdDocument('OVERRUN'))).toEqual([
       SRD_ATHLETICS_SKILL_ID,
       SRD_ATHLETICS_SKILL_ID
@@ -39,11 +39,7 @@ describe('the SRD movement contests, as authored optional-combat definitions (MO
       SRD_ACROBATICS_SKILL_ID,
       SRD_ACROBATICS_SKILL_ID
     ])
-    expect(optionalCombatCheckDefinitionIds(srdDocument('SHOVE_ASIDE'))).toEqual([
-      SRD_ATHLETICS_SKILL_ID,
-      SRD_ATHLETICS_SKILL_ID,
-      SRD_ACROBATICS_SKILL_ID
-    ])
+    expect(optionalCombatCheckDefinitionIds(srdDocument('SHOVE_ASIDE'))).toEqual([])
   })
 
   it.each(['OVERRUN', 'SHOVE_ASIDE', 'TUMBLE'] as const)(
@@ -69,7 +65,7 @@ describe('the SRD movement contests, as authored optional-combat definitions (MO
     expect(() => validate(document)).toThrow(OptionalCombatCheckDefinitionError)
     expect(() =>
       validateOptionalCombatCheckDefinitions({
-        document: srdDocument('SHOVE_ASIDE'),
+        document: srdDocument('TUMBLE'),
         systemVocabulary: { ...srdSystemRecord, id: '00000000-0000-4000-8000-00000000fffe' }
       })
     ).toThrow('Optional combat check definitions must use the same Game System vocabulary.')
@@ -139,7 +135,7 @@ describe('the SRD movement contests, as authored optional-combat definitions (MO
     expect(
       dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
         ...shoveAside,
-        parameters: { ...shoveAside.parameters, defenderCheckDefinitionIds: [] }
+        parameters: { ...shoveAside.parameters, initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID }
       }).success
     ).toBe(false)
   })

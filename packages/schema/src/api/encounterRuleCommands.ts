@@ -56,22 +56,10 @@ export const commandBaseDtoSchema = lazySchema(() =>
   })
 )
 
-const optionalCombatActionIntentSelectionValueDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ENTITY'),
-      entityId: postgresUuidSchema
-    }),
-    z.strictObject({
-      kind: z.literal('POSITION'),
-      position: spatialPointDtoSchema
-    })
-  ])
-)
 const optionalCombatActionIntentSelectionDtoSchema = lazySchema(() =>
   z.strictObject({
     fieldId: checksumSchema,
-    value: optionalCombatActionIntentSelectionValueDtoSchema
+    value: z.strictObject({ kind: z.literal('ENTITY'), entityId: postgresUuidSchema })
   })
 )
 
