@@ -797,7 +797,19 @@ export function CampaignVttStage({
             ? {
                 actorIdByTokenId,
                 zones: encounterSessionState.movementCostZones,
-                dragDoublingActorIds
+                dragDoublingActorIds,
+                unnoticedZones:
+                  effectiveRole === 'OWNER'
+                    ? encounterSessionState.placedZones
+                        .filter(({ unawareActorIds }) => unawareActorIds.length)
+                        .map(({ label, shape, unawareActorIds }) => ({
+                          label,
+                          shape,
+                          by: (activeEncounter?.actors ?? []).flatMap((actor) =>
+                            unawareActorIds.includes(actor.id) ? [actor.label] : []
+                          )
+                        }))
+                    : []
               }
             : null,
         overlays,
@@ -1211,10 +1223,13 @@ export function CampaignVttStage({
       activeEncounterSceneBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
     const teleporting = mechanicsEncounter !== null && teleportsOnDrop(tokenId)
     const mover = current.tokens.find((token) => token.id === tokenId)
+    const moverActorId = actorIdByTokenId.get(tokenId)
     const fields =
-      mechanicsEncounter && mover && !teleporting && carefully === undefined
+      mechanicsEncounter && mover && moverActorId && !teleporting && carefully === undefined
         ? halfSpeedFieldsEntered({
             fields: encounterSessionState?.halfSpeedFields ?? [],
+            placedZones: encounterSessionState?.placedZones ?? [],
+            moverActorId,
             path,
             token: mover
           })

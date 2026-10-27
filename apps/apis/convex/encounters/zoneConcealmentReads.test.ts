@@ -77,7 +77,12 @@ function definition(encounterId: string): ActiveRuleEffectDefinitionDto {
   }
 }
 
-it('reads a concealed zone only for the GM and the players whose Characters know of it (MOVE-3.3)', async () => {
+/**
+ * A bound Scene with three half-speed, double-cost zones: one the `known` actor knows of, one only
+ * the `unknown` actor knows of, and one in plain sight with a disarm DC. The player controls the
+ * `known` actor, and the `unknown` one too when `controlsBoth`.
+ */
+async function seedZones(controlsBoth: boolean) {
   const base = await createEncounterSceneFixture()
   const [known, unknown] = base.run.actors
   if (!known || !unknown) throw new Error('The fixture Run has two actors.')
@@ -107,7 +112,9 @@ it('reads a concealed zone only for the GM and the players whose Characters know
   await base.t.run(async (ctx) => {
     await activateFixtureRun(ctx, base.run.id)
     await updateFixtureRunActors(ctx, base.run.id, (actor) =>
-      actor.id === known.id ? { ...actor, controllerUserIds: [base.owner.userId] } : actor
+      controlsBoth || actor.id === known.id
+        ? { ...actor, controllerUserIds: [base.owner.userId] }
+        : actor
     )
     await ctx.db.insert('encounterSceneBindings', {
       encounterId: base.run.id,
@@ -143,22 +150,33 @@ it('reads a concealed zone only for the GM and the players whose Characters know
         spatialState
       })
   })
-  const input = { campaignId: base.campaign.id }
-  const zone = (index: number, dcs: { spotDc: unknown; disarmDc: unknown }) => ({
-    id: effectId(20 + index),
-    label: `Zone ${index}`,
-    shape: square,
-    ...dcs
-  })
+  return { base, known, unknown, input: { campaignId: base.campaign.id } }
+}
+
+const zone = (
+  index: number,
+  dcs: { spotDc: unknown; disarmDc: unknown },
+  unawareActorIds: string[] = []
+) => ({
+  id: effectId(20 + index),
+  label: `Zone ${index}`,
+  shape: square,
+  ...dcs,
+  unawareActorIds
+})
+
+it('reads a concealed zone only for the GM and the players whose Characters know of it (MOVE-3.3)', async () => {
+  const { base, known, unknown, input } = await seedZones(false)
   const zoneIds = (state: EncounterSessionStateDto) => ({
     halfSpeedFields: state.halfSpeedFields.map(({ id }) => id),
     movementCostZones: state.movementCostZones.map(({ id }) => id)
   })
 
   const gm = await base.other.caller.query(activeState, input)
+  // The GM's list names who has not noticed each concealed zone (MOVE-3.6).
   expect(gm.placedZones).toEqual([
-    zone(0, { spotDc, disarmDc: null }),
-    zone(1, { spotDc, disarmDc: null }),
+    zone(0, { spotDc, disarmDc: null }, [unknown.id]),
+    zone(1, { spotDc, disarmDc: null }, [known.id]),
     zone(2, { spotDc: null, disarmDc })
   ])
   // Only the GM reads a pending sighting; a dismissed one is settled and is not listed.
@@ -177,4 +195,15 @@ it('reads a concealed zone only for the GM and the players whose Characters know
     movementCostZones: [effectId(20), effectId(22)]
   })
   expect(JSON.stringify(player)).not.toContain(effectId(21))
+}, 60000)
+
+it('names to a player only their own Characters that have not noticed a zone (MOVE-3.6)', async () => {
+  const { base, known, unknown, input } = await seedZones(true)
+  const noDcs = { spotDc: null, disarmDc: null }
+  const player = await base.owner.caller.query(activeState, input)
+  expect(player.placedZones).toEqual([
+    zone(0, noDcs, [unknown.id]),
+    zone(1, noDcs, [known.id]),
+    zone(2, noDcs)
+  ])
 }, 60000)

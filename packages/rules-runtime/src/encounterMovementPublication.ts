@@ -1,5 +1,6 @@
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
 import {
+  crossesSpatialFieldCarefully,
   measureScenePathMovementCost,
   zoneMovementSegmentMultiplier,
   type SceneBarrier,
@@ -162,7 +163,7 @@ export function preparedMovementCost(input: {
     actorId: string
     tokens: readonly SpatialSceneToken[]
     effects: readonly SpatialEffectInstance[]
-    /** A careful mover pays double inside a visible field that allows passage at half speed. */
+    /** A careful mover pays double inside a visible field it knows of that allows passage at half speed. */
     carefully: boolean
     /** A grappler dragging a creature not two sizes smaller pays double (D105). */
     dragDoublesCost?: boolean
@@ -208,7 +209,7 @@ export function preparedMovementCost(input: {
           ...effect,
           multiplier: Math.max(
             effect.movementCostMultiplier ?? 1,
-            mover.carefully && effect.bypassAtHalfSpeed ? 2 : 1
+            mover.carefully && crossesSpatialFieldCarefully(effect, mover.actorId) ? 2 : 1
           )
         })),
         ...creatureZones

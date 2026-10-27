@@ -2,6 +2,7 @@ import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/medi
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { SpatialGeometryDto } from '@artificer-toolkit/schema/shared/spatial'
 import {
   canMoveBetween,
   directedAreaOutline,
@@ -18,6 +19,7 @@ import {
   sceneRangeBand,
   sceneRangeOutline,
   sceneLightLevels,
+  spatialSegmentShareInside,
   type SceneGrid,
   type SceneIlluminationLevel,
   type SceneIlluminationRenderClass,
@@ -520,10 +522,28 @@ export function formatSceneMeasurement(grid: SceneGrid, path: readonly ScenePoin
   return formatSceneDistance(grid, measureScenePathDistance(grid, path))
 }
 
+/** A concealed zone the GM's route names, with the labels of the creatures that have not noticed it. */
+export type UnnoticedZone = { label: string | null; shape: SpatialGeometryDto; by: string[] }
+
+/** Whether a token's footprint passes through a zone anywhere on its path. */
+export function pathEntersZone(
+  shape: SpatialGeometryDto,
+  path: readonly ScenePoint[],
+  token: SpatialTokenFootprint
+): boolean {
+  return path
+    .slice(1)
+    .some(
+      (to, index) =>
+        spatialSegmentShareInside({ geometries: [shape], token, from: path[index]!, to }) > 0
+    )
+}
+
 /**
  * A dragged token's route: its distance and, for an Encounter mover whose terrain, a zone that
  * slows it or a creature it drags makes the walk dearer, the movement it costs, priced as the room
- * charges it (D105, D154, D156).
+ * charges it (D105, D154, D156). The GM's route then names, for each concealed zone it enters,
+ * the creatures that have not noticed it (MOVE-3.6).
  */
 export function formatSceneRoute(
   scene: CampaignSceneStateDto,
@@ -534,6 +554,8 @@ export function formatSceneRoute(
     zones: EncounterSessionStateDto['movementCostZones']
     /** The mover drags a creature not two sizes smaller (D105). */
     dragDoublesCost: boolean
+    /** The GM's concealed zones; a player's route names none. */
+    unnoticedZones?: readonly UnnoticedZone[]
   } | null
 ): string {
   const distance = measureScenePathDistance(scene.grid, path)
@@ -550,9 +572,18 @@ export function formatSceneRoute(
         dragDoublesCost: mover.dragDoublesCost
       })
     )
-  return cost && cost > distance
-    ? `${formatSceneDistance(scene.grid, distance)} · costs ${formatSceneDistance(scene.grid, cost)}`
-    : formatSceneDistance(scene.grid, distance)
+  const token = mover && scene.tokens.find(({ id }) => id === mover.tokenId)
+  const unnoticed =
+    mover && token
+      ? (mover.unnoticedZones ?? [])
+          .filter(({ shape }) => pathEntersZone(shape, path, token))
+          .map(({ label, by }) => ` · ${label ?? 'Hidden zone'} not noticed by ${by.join(', ')}`)
+      : []
+  return (
+    (cost && cost > distance
+      ? `${formatSceneDistance(scene.grid, distance)} · costs ${formatSceneDistance(scene.grid, cost)}`
+      : formatSceneDistance(scene.grid, distance)) + unnoticed.join('')
+  )
 }
 
 /** A distance in the Scene's grid units, with the unit's short name. */
