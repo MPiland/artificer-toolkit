@@ -10,7 +10,7 @@ const TARGET = '00000000-0000-4000-8000-0000000000a2'
 const SCOPED_ACTION = '00000000-0000-4000-8000-0000000000b1'
 const OTHER_ACTION = '00000000-0000-4000-8000-0000000000b2'
 
-function influenceEffect(actionEffectIds: string[] | null) {
+function influenceEffect(actionEffectIds: string[]) {
   const definition = escapeGrappleEffectDefinition({
     encounterId: ENCOUNTER,
     grapplerId: SOURCE,
@@ -39,7 +39,7 @@ function influenceEffect(actionEffectIds: string[] | null) {
   return { id: 'effect-1', definition: scoped }
 }
 
-function contributorsFor(actionEffectIds: string[] | null, actionEffectId: string) {
+function contributorsFor(actionEffectIds: string[], actionEffectId: string) {
   return lockedRelationshipActionFacts({
     actionEffectId,
     sourceActorId: SOURCE,
@@ -49,9 +49,9 @@ function contributorsFor(actionEffectIds: string[] | null, actionEffectId: strin
 }
 
 describe('a relationship that influences the source attack rolls', () => {
-  it('gives advantage on every attack when its scope is null', () => {
+  it('gives advantage on every attack when its scope is empty', () => {
     for (const actionEffectId of [SCOPED_ACTION, OTHER_ACTION])
-      expect(contributorsFor(null, actionEffectId)).toMatchObject([{ influence: 'ADVANTAGE' }])
+      expect(contributorsFor([], actionEffectId)).toMatchObject([{ influence: 'ADVANTAGE' }])
   })
 
   it('stays limited to the listed attacks when it names them', () => {

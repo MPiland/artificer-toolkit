@@ -12,6 +12,7 @@ import {
 import { useDisclosure, useWindowEvent } from '@mantine/hooks'
 import { ListOrdered } from 'lucide-react'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterHeldRelationshipDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandInputDto,
@@ -29,6 +30,7 @@ import { CampaignTabletopConcealmentObservers } from './CampaignTabletopConcealm
 import { CampaignTabletopConsequenceRolls } from './CampaignTabletopConsequenceRolls'
 import { CampaignTabletopMorale } from './CampaignTabletopMorale'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
+import { CampaignTabletopZoneSightings } from './CampaignTabletopZoneSightings'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
 import * as styles from './CampaignTabletopEncounterDrawer.css'
@@ -57,6 +59,7 @@ export function CampaignTabletopEncounterDrawer({
   pending,
   role,
   scene,
+  session,
   targeting = null,
   onCommand,
   onEndCharacterConcentration,
@@ -73,6 +76,8 @@ export function CampaignTabletopEncounterDrawer({
   pending: boolean
   role: 'OWNER' | 'PLAYER'
   scene: CampaignSceneStateDto | null
+  /** The GM's prompted sightings of concealed zones (MOVE-3.5) and the zones that name them. */
+  session: Pick<EncounterSessionStateDto, 'pendingZoneSightings' | 'placedZones'> | undefined
   /**
    * While the caster picks a target, this list is the target list (ATTACK-17.2): nearest first,
    * open beside the map, and each listed creature is a button that picks it.
@@ -404,6 +409,21 @@ export function CampaignTabletopEncounterDrawer({
 
           {role === 'OWNER' ? (
             <div className={styles.controls}>
+              <CampaignTabletopZoneSightings
+                actors={encounter.actors}
+                disabled={controlsDisabled}
+                sightings={session?.pendingZoneSightings ?? []}
+                zones={session?.placedZones ?? []}
+                onDismiss={(sighting) =>
+                  onCommand({
+                    ...sighting,
+                    commandId: crypto.randomUUID(),
+                    encounterId: encounter.id,
+                    expectedVersion: encounter.version,
+                    type: 'DISMISS_ZONE_SIGHTING'
+                  })
+                }
+              />
               <Select
                 data={encounter.actors.map((actor) => ({ label: actor.label, value: actor.id }))}
                 disabled={controlsDisabled}

@@ -55,6 +55,7 @@ import {
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY,
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
@@ -294,6 +295,10 @@ export const dnd5eHitPointGatedHealProposalOperation = gatedProposalOperation(
 export const dnd5eDepartProposalOperation = targetOnlyProposalOperation(
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   'depart'
+)
+export const dnd5eHitPointsToZeroProposalOperation = targetOnlyProposalOperation(
+  DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY,
+  'hit points to zero'
 )
 export const dnd5eModifierGrantProposalOperation = targetOnlyProposalOperation(
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
@@ -1120,6 +1125,7 @@ export const dnd5ePathGatedTargetProposalOperations = [
   dnd5eKillProposalOperation,
   dnd5eReviveProposalOperation,
   dnd5eDepartProposalOperation,
+  dnd5eHitPointsToZeroProposalOperation,
   dnd5eManualAdjudicationProposalOperation,
   dnd5eAddSpeedToMovementProposalOperation,
   dnd5eTeleportAllowanceProposalOperation,
@@ -1395,6 +1401,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_KILL_PROPOSAL_OPERATION_KEY,
     DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+    DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
     DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,

@@ -25,6 +25,7 @@ type VocabularyKey = Exclude<
   | 'rulesetVersion'
   | 'schemaVersion'
   | 'userId'
+  | 'zoneSpotPassiveDefinitionId'
 >
 
 const MAX_COLLECTION_ITEMS = 5

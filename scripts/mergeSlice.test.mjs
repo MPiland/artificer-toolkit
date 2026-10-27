@@ -95,6 +95,61 @@ describe('runsVerdict', () => {
     expect(runsVerdict(runs)).toEqual({ state: 'pending', detail: 'Tests' })
   })
 
+  describe('Browser journeys gate only where they ran (RELIABILITY-20.2)', () => {
+    const green = [
+      runAt('Tests', '2026-10-27T10:00:00Z', 'completed', 'success', 1),
+      runAt('Live backend', '2026-10-27T10:00:00Z', 'completed', 'success', 2)
+    ]
+
+    it('is green without a browser run', () => {
+      expect(runsVerdict(green)).toEqual({ state: 'green', detail: 'Tests 1, Live backend 2' })
+    })
+
+    it('counts a green browser run', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'success', 3)
+      ]
+      expect(runsVerdict(runs)).toEqual({
+        state: 'green',
+        detail: 'Tests 1, Live backend 2, Browser journeys 3'
+      })
+    })
+
+    it('is red when any browser run failed, even under a newer green dispatch', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'failure', 3),
+        runAt('Browser journeys', '2026-10-27T11:00:00Z', 'completed', 'success', 4)
+      ]
+      expect(runsVerdict(runs)).toEqual({ state: 'red', detail: 'Browser journeys 3 failure' })
+    })
+
+    it('waits for a browser run in progress', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'in_progress', '', 3)
+      ]
+      expect(runsVerdict(runs)).toEqual({ state: 'pending', detail: 'Browser journeys' })
+    })
+
+    it('ignores a cancelled duplicate beside a green browser run, but not a lone cancelled one', () => {
+      const cancelled = runAt(
+        'Browser journeys',
+        '2026-10-27T11:00:00Z',
+        'completed',
+        'cancelled',
+        4
+      )
+      const passed = runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'success', 3)
+      expect(runsVerdict([...green, passed, cancelled]).state).toBe('green')
+      expect(runsVerdict([...green, cancelled])).toEqual({
+        state: 'red',
+        detail: 'Browser journeys 4 cancelled'
+      })
+    })
+  })
+
   it('ignores other workflows', () => {
     const runs = [
       runAt('Deploy web', '2026-10-18T12:00:00Z', 'completed', 'failure'),
@@ -315,6 +370,50 @@ describe('mergeSlice waiting on dispatched runs', () => {
     expect(
       calls.filter((call) => call.startsWith('workflow run') && call.includes('ci/slice-a'))
     ).toEqual([])
+  })
+
+  describe('Browser journeys on the slice tip (RELIABILITY-20.2)', () => {
+    const run = (workflowName, databaseId, conclusion) => ({
+      workflowName,
+      databaseId,
+      status: 'completed',
+      conclusion,
+      createdAt: '2026-10-27T10:00:00Z'
+    })
+    const testsAndLive = [run('Tests', 1, 'success'), run('Live backend', 2, 'success')]
+    const merge = async (commitRuns) => {
+      const { work, tip, origin } = repo()
+      const before = sh(origin, 'rev-parse', PHASE)
+      const { tools, calls } = platform(work, { emptyCommitListings: 0, commitRuns })
+      const outcome = await mergeSlice(input(tip), tools).catch((error) => error)
+      return { outcome, calls, tip, phase: sh(origin, 'rev-parse', PHASE), before, origin }
+    }
+
+    it('refuses a tip whose browser run is red, pushing nothing', async () => {
+      const { outcome, phase, before } = await merge([
+        ...testsAndLive,
+        run('Browser journeys', 3, 'failure')
+      ])
+      expect(outcome).toBeInstanceOf(MergeRefused)
+      expect(outcome.message).toMatch(/Not green.*Browser journeys 3 failure/)
+      expect(phase).toBe(before)
+    })
+
+    it('merges a tip whose browser run is green', async () => {
+      const { outcome, origin, tip } = await merge([
+        ...testsAndLive,
+        run('Browser journeys', 3, 'success')
+      ])
+      expect(outcome).toBeUndefined()
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+    })
+
+    it('merges a tip with no browser run without dispatching one', async () => {
+      const { outcome, origin, tip, calls } = await merge(testsAndLive)
+      expect(outcome).toBeUndefined()
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+      expect(calls.filter((call) => call.includes('browser-journeys.yml'))).toEqual([])
+    })
   })
 
   it('finds a dispatched run by branch listing when gh prints no run URL', async () => {

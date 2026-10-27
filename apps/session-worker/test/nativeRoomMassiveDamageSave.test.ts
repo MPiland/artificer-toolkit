@@ -89,8 +89,22 @@ async function biteAndSave(face: number) {
   return { room, after: await readRoomHistory(room.room.base.stub) }
 }
 
+/** The failed save raises the SRD System Shock on the holder: the holder enters `face` on its d10. */
+async function enterShock(room: Awaited<ReturnType<typeof bitingRoom>>, face: number) {
+  const dice = await room.pendingDecision()
+  if (dice.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+    throw new Error(`Expected the System Shock die, got ${dice.pending.kind}.`)
+  expect(dice.pending).toMatchObject({ rollerActorId: HOLDER_ID, request: { min: 1, max: 10 } })
+  const answer = await room.resolve(dice, {
+    kind: 'ENTER_INTEGER',
+    requestId: dice.pending.request.requestId,
+    value: face
+  })
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+}
+
 describe('room massive-damage save', () => {
-  it('records a failed save and changes nothing else', async () => {
+  it('records a failed save and rolls System Shock on the holder', async () => {
     const { room, after } = await biteAndSave(2)
     expect(massiveDamageSaves(after)).toMatchObject([
       {
@@ -100,6 +114,8 @@ describe('room massive-damage save', () => {
       }
     ])
     expect(readActorHitPoints(after, HOLDER_ID)).toBe(5)
+    await enterShock(room, 1)
+    expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), HOLDER_ID)).toBe(0)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
@@ -109,8 +125,9 @@ describe('room massive-damage save', () => {
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
-  it('undoes the Bite with its recorded save', async () => {
+  it('undoes the Bite with its recorded save and System Shock', async () => {
     const { room } = await biteAndSave(2)
+    await enterShock(room, 1)
     const undone = await room.send({
       type: 'REVERT_LAST_ACTION',
       encounterId: room.room.encounterId,

@@ -22,9 +22,6 @@ const positiveVersionSchema = lazySchema(() =>
 const optionalCombatGroupKeyDtoSchema = lazySchema(() =>
   z.string().check(z.regex(/^[a-z][a-z0-9.-]{0,79}$/))
 )
-const boundedD20Schema = lazySchema(() =>
-  z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))
-)
 const boundedPositiveIntegerSchema = lazySchema(() =>
   z.number().check(z.int()).check(z.positive()).check(z.lte(1_000_000))
 )
@@ -98,44 +95,6 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
   z.discriminatedUnion('primitive', [
     z.strictObject({
       id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('SET_HIT_POINTS'),
-      target: z.literal('SUBJECT'),
-      value: z.number().check(z.int()).check(z.lte(0)),
-      duration: z.null()
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('SET_STABLE'),
-      target: z.literal('SUBJECT'),
-      duration: z.null()
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('APPLY_CONDITION'),
-      target: z.literal('SUBJECT'),
-      conditionDefinitionId: serverUuidIdentityDtoSchema,
-      duration: dnd5eOptionalCombatOperationDurationDtoSchema
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('SET_REACTION_AVAILABILITY'),
-      target: z.literal('SUBJECT'),
-      available: z.literal(false),
-      duration: z.literal('UNTIL_END_OF_NEXT_TURN')
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
-      primitive: z.literal('APPLY_ROLL_MODE'),
-      target: z.literal('SUBJECT'),
-      rollMode: z.literal('DISADVANTAGE'),
-      rollContexts: z
-        .array(z.enum(['ATTACK_ROLL', 'ABILITY_CHECK', 'SAVING_THROW']))
-        .check(z.minLength(1))
-        .check(z.maxLength(3)),
-      duration: dnd5eOptionalCombatOperationDurationDtoSchema
-    }),
-    z.strictObject({
-      id: serverUuidIdentityDtoSchema,
       primitive: z.literal('APPLY_RESTRICTION'),
       target: z.literal('SUBJECT'),
       restrictionDefinitionId: serverUuidIdentityDtoSchema,
@@ -170,72 +129,12 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
 const dnd5eOptionalCombatOutcomeDescriptorDtoSchema = lazySchema(() =>
   z.strictObject({
     id: serverUuidIdentityDtoSchema,
-    kind: z.enum([
-      'REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN',
-      'DROP_TO_ZERO',
-      'STABLE_AT_ZERO',
-      'STUNNED_UNTIL_END_OF_NEXT_TURN',
-      'IMPAIRED_UNTIL_END_OF_NEXT_TURN',
-      'CONTINUE',
-      'FLEE',
-      'SURRENDER'
-    ]),
+    kind: z.enum(['CONTINUE', 'FLEE', 'SURRENDER']),
     operations: z
       .array(dnd5eOptionalCombatOperationDtoSchema)
       .check(z.minLength(1))
       .check(z.maxLength(8))
   })
-)
-
-const dnd5eOptionalCombatBandDtoSchema = lazySchema(() =>
-  z
-    .strictObject({
-      minimum: boundedD20Schema,
-      maximum: boundedD20Schema,
-      outcome: dnd5eOptionalCombatOutcomeDescriptorDtoSchema
-    })
-    .check(
-      z.superRefine((band, context) => {
-        if (band.minimum > band.maximum) {
-          context.addIssue({
-            code: 'custom',
-            path: ['maximum'],
-            message: 'Optional combat outcome band maximum must not precede its minimum.'
-          })
-        }
-      })
-    )
-)
-
-const dnd5eOptionalCombatBandsDtoSchema = lazySchema(() =>
-  z
-    .array(dnd5eOptionalCombatBandDtoSchema)
-    .check(z.minLength(1))
-    .check(z.maxLength(20))
-    .check(
-      z.superRefine((bands, context) => {
-        let previousMaximum = 0
-        const outcomeIds = new Set<string>()
-        for (const [index, band] of bands.entries()) {
-          if (band.minimum <= previousMaximum) {
-            context.addIssue({
-              code: 'custom',
-              path: [index, 'minimum'],
-              message: 'Optional combat outcome bands must be ordered and non-overlapping.'
-            })
-          }
-          if (outcomeIds.has(band.outcome.id)) {
-            context.addIssue({
-              code: 'custom',
-              path: [index, 'outcome', 'id'],
-              message: 'Optional combat outcome identities must be unique.'
-            })
-          }
-          outcomeIds.add(band.outcome.id)
-          previousMaximum = band.maximum
-        }
-      })
-    )
 )
 
 /**
@@ -426,8 +325,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       }),
       savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
       savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
-      bands: dnd5eOptionalCombatBandsDtoSchema,
-      /** The raised Effect a failed save runs on the holder; absent until the seed authors one. */
+      /** The raised Effect a failed save runs on the holder (the SRD's System Shock table); absent, a failed save changes nothing. */
       failedSaveEffectId: z.optional(serverUuidIdentityDtoSchema)
     }),
     z.strictObject({

@@ -394,7 +394,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           initiatorCheckDefinitionId: option.initiatorCheckDefinitionId
         })
         return result.kind === 'PROPOSED'
-          ? { proposal: result.proposal, successMovement: 'STOP_AT_CONTACT' as const }
+          ? { proposal: result.proposal, successMovement: 'ENTER_BLOCKER_SPACE' as const }
           : null
       }
     }

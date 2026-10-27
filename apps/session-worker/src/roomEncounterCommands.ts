@@ -40,6 +40,7 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { settleDamageMirrors } from './roomDamageMirror.js'
+import { recordRoomZoneSightings } from './roomZoneSightings.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
 import {
   actorIdsOutOfPlayByEffect,
@@ -436,6 +437,28 @@ export async function executeRoomEncounterCommand(input: {
       encounterId: currentRun.id,
       occurredAt: new Date().toISOString()
     }))
+  // Commands that can put a concealed zone in a Character's sight without a move (MOVE-3.5). The
+  // sightings are GM bookkeeping that leaves the Run and its projection unchanged.
+  if (
+    command.type === 'START' ||
+    command.type === 'PLACE_ZONE' ||
+    command.type === 'SET_ZONE_DCS' ||
+    command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+    command.type === 'RESOLVE_ACTION' ||
+    command.type === 'RESOLVE_RULE_OCCURRENCE'
+  )
+    await recordRoomZoneSightings({
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      campaignId,
+      epoch,
+      userId,
+      observed,
+      encounterId: currentRun.id,
+      random: input.random
+    })
   const changedRun =
     mirroredDamage ||
     mirroredRaisedDamage ||

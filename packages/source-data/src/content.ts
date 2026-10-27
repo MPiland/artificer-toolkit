@@ -129,6 +129,7 @@ export interface SystemSeedRecord {
   initiativePolicy?: { defaultDefinitionId: string }
   defaults?: { damageTypeId: string; conditionTypeId: string; movementTypeId: string }
   cover?: SystemAuthoredDto['cover']
+  zoneSpotPassiveDefinitionId?: string
 }
 
 /**

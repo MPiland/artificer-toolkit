@@ -61,7 +61,6 @@ export const DND5E_CLEAVING_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-/** Not registered yet: the settings gate turns Massive Damage on (ATTACK-16.T2). */
 export const DND5E_MASSIVE_DAMAGE_POLICY_MODULE = {
   key: DND5E_MASSIVE_DAMAGE_OPERATION_KEY,
   contractVersion: 1
@@ -90,6 +89,7 @@ export const dnd5ePolicyModuleRegistration = {
     DND5E_TUMBLE_POLICY_MODULE,
     DND5E_CLIMB_ONTO_LARGER_CREATURE_POLICY_MODULE,
     DND5E_CLEAVING_POLICY_MODULE,
+    DND5E_MASSIVE_DAMAGE_POLICY_MODULE,
     DND5E_MORALE_POLICY_MODULE,
     DND5E_INJURIES_POLICY_MODULE
   ]

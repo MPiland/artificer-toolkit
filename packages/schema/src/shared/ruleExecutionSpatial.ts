@@ -221,7 +221,12 @@ export const movementPassageContestReceiptDtoSchema = lazySchema(() =>
             blockerCurrentnessChecksum: checksumSchema
           })
         ),
-        terminalPosition: z.optional(spatialPointDtoSchema)
+        terminalPosition: z.optional(spatialPointDtoSchema),
+        /**
+         * Where a won contest whose rule enters the blocker's space places the mover: inside the
+         * blocker's footprint the response verified against `blockerCurrentnessChecksum`.
+         */
+        enteredPosition: z.optional(spatialPointDtoSchema)
       })
     })
     .check(
@@ -275,6 +280,16 @@ export const movementPassageContestReceiptDtoSchema = lazySchema(() =>
             path: ['audit', 'terminalPassageStop'],
             message:
               'A terminal passage stop must follow a successful path-bound contact and match the terminal position.'
+          })
+        }
+        if (
+          value.audit.enteredPosition !== undefined &&
+          (value.outcome !== 'SUCCESS' || terminalPassageStop !== undefined)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['audit', 'enteredPosition'],
+            message: "Only a won contest that ends the move may enter the blocker's space."
           })
         }
       })

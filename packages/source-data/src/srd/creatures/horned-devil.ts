@@ -209,25 +209,12 @@ export const hornedDevil: CreatureAuthored = {
                       resultKind: 'SEQUENCE',
                       outcomes: [
                         {
-                          id: S.actionId(167, 222),
-                          effectKind: S.EFFECT_KIND.FOLLOW_UP_CHECK,
-                          label: 'stanch the wound',
-                          activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-                          ability: S.ABILITY_CODE.WISDOM,
-                          fixedDc: 12,
-                          skillId: S.skillId('MEDICINE'),
-                          actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH'],
-                          repeatable: true,
-                          onSuccess: { kind: 'END' },
-                          onFailure: { kind: 'CONTINUE' }
-                        },
-                        {
                           id: S.actionId(167, 223),
                           effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
                           label: 'Infernal wound',
                           reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
                           instructions:
-                            'Undead and constructs are unaffected. Otherwise the target loses 10 (3d6) hit points at the start of each of its turns, and each time the devil hits it again with its tail the loss increases by 10 (3d6). The wound closes when it is stanched or the target receives magical healing; the GM applies the loss until then.'
+                            'Undead and constructs are unaffected. Otherwise the target loses 10 (3d6) hit points at the start of each of its turns, and each time the devil hits it again with its tail the loss increases by 10 (3d6). Any creature can take an action to stanch the wound with a successful DC 12 Wisdom (Medicine) check, and the wound also closes if the target receives magical healing; the GM applies the loss until then.'
                         }
                       ]
                     }

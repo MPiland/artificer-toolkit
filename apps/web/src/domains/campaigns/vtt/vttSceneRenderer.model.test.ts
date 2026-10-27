@@ -765,6 +765,34 @@ describe('VTT scene renderer model', () => {
       expect(formatSceneRoute(scene, path, null)).toBe('20 ft')
     })
 
+    it('names, on the GM’s route, who has not noticed each concealed zone it enters (MOVE-3.6)', () => {
+      const unnoticed = (shape: typeof zone.geometry.shape, label: string | null) => ({
+        label,
+        shape,
+        by: ['Wolf', 'Ember']
+      })
+      const elsewhere = {
+        kind: 'CIRCLE' as const,
+        center: { x: 2000, y: 2000 },
+        radius: 50
+      }
+      const gmRoute = (unnoticedZones: ReturnType<typeof unnoticed>[]) =>
+        formatSceneRoute(scene, path, {
+          actorId: 'wolf',
+          tokenId: mover.id,
+          zones: [],
+          dragDoublesCost: false,
+          unnoticedZones
+        })
+      expect(gmRoute([unnoticed(zone.geometry.shape, 'Pit')])).toBe(
+        '20 ft · Pit not noticed by Wolf, Ember'
+      )
+      expect(gmRoute([unnoticed(zone.geometry.shape, null)])).toBe(
+        '20 ft · Hidden zone not noticed by Wolf, Ember'
+      )
+      expect(gmRoute([unnoticed(elsewhere, 'Pit')])).toBe('20 ft')
+    })
+
     it('doubles the cost of a drag, on top of difficult terrain (D105)', () => {
       const dragging = { actorId: 'wolf', tokenId: mover.id, zones: [], dragDoublesCost: true }
       expect(formatSceneRoute(scene, path, dragging)).toBe('20 ft · costs 40 ft')

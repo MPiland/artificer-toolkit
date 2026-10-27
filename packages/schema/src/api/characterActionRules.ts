@@ -232,6 +232,8 @@ const actionEffectFactSchema = lazySchema(() =>
     kind: z.literal('EFFECT'),
     pathCode: identitySchema,
     effectKind: identitySchema,
+    /** Set on a roll table row's outcome: the roll decides whether it runs, so it gates no target. */
+    onRollTableRow: z.optional(z.literal(true)),
     /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
     ruleKind: z.optional(identitySchema),
     /** What an END_EFFECTS outcome ends: held effects any selector matches (D174, D182). */

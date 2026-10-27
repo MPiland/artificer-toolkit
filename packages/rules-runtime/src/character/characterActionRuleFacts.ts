@@ -423,6 +423,7 @@ export function normalizeCharacterActionMechanicFacts(
       kind: 'EFFECT',
       pathCode: entry.pathCode,
       effectKind: outcome.effectKind,
+      ...(entry.resolutionKind === 'ROLL_TABLE' && { onRollTableRow: true as const }),
       ...(outcome.effectKind === 'MOVEMENT_RULE' ? { ruleKind: outcome.ruleKind } : {}),
       ...(outcome.effectKind === 'END_EFFECTS'
         ? {
