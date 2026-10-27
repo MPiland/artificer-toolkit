@@ -28,8 +28,17 @@ export async function revertZoneDcs(
     })
   if (!store || !current || withoutSightings(current.spatialState) !== withoutSightings(after))
     revertUnavailable('The zone changed since its DCs were set; adjust manually.')
-  const sightings = (current.spatialState.concealment?.sightings ?? []).filter(
+  // Sightings recorded since stay; a reveal's settled sightings come back from `before`.
+  const kept = (current.spatialState.concealment?.sightings ?? []).filter(
     ({ actorId }) => !before.concealment?.knownByActorIds.includes(actorId)
+  )
+  const sightings = [
+    ...kept,
+    ...(before.concealment?.sightings ?? []).filter(
+      ({ actorId }) => !kept.some((sighting) => sighting.actorId === actorId)
+    )
+  ].sort(
+    (left, right) => Number(left.actorId > right.actorId) - Number(left.actorId < right.actorId)
   )
   await store.updateCurrentStateCas({
     id: current.id,

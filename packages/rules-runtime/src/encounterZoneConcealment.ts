@@ -46,7 +46,7 @@ export function withZoneDcs(
 
 /**
  * A concealed zone's state once the GM shows it to these Characters (MOVE-3.7): they join the
- * Characters that know of it. Null when the zone is in plain sight or all of them already know.
+ * Characters that know of it and their sightings settle. Null when the zone is in plain sight or all of them already know.
  */
 export function withZoneRevealedTo(
   state: SpatialRuleEffectStateDto,
@@ -58,7 +58,14 @@ export function withZoneRevealedTo(
     (left, right) => Number(left > right) - Number(left < right)
   )
   if (knownByActorIds.length === concealment.knownByActorIds.length) return null
-  return { ...state, concealment: { ...concealment, knownByActorIds } }
+  return {
+    ...state,
+    concealment: {
+      ...concealment,
+      knownByActorIds,
+      sightings: concealment.sightings.filter(({ actorId }) => !knownByActorIds.includes(actorId))
+    }
+  }
 }
 
 /**
