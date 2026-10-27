@@ -225,11 +225,9 @@ export function CampaignVttStage({
   // The room's session while it holds the Run; Convex's stored session otherwise.
   const room = live.encounterSession
   const roomVersion = room?.version ?? null
+  const storedReadArgs = room ? 'skip' : { campaignId: campaign.id }
   const storedSessionState = useQuery({
-    ...convexQuery(
-      convexApi.encounters.activeReads.active,
-      room ? 'skip' : { campaignId: campaign.id }
-    ),
+    ...convexQuery(convexApi.encounters.activeReads.active, storedReadArgs),
     select: encounterSessionStateDtoSchema.parse
   })
   const encounterSessionState = room ? room.state : storedSessionState.data
@@ -397,10 +395,7 @@ export function CampaignVttStage({
     [convex, live.readEncounter, roomVersion]
   )
   const storedPendingPrepared = useQuery({
-    ...convexQuery(
-      convexApi.encounters.projectionReads.pendingPrepared,
-      room ? 'skip' : { campaignId: campaign.id }
-    ),
+    ...convexQuery(convexApi.encounters.projectionReads.pendingPrepared, storedReadArgs),
     select: encounterPreparedPendingListDtoSchema.parse
   })
   const preparedPendingEncounters = room ? room.preparedPending : (storedPendingPrepared.data ?? [])

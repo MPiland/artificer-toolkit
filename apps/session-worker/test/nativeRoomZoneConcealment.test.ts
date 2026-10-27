@@ -310,7 +310,15 @@ describe('noticing a concealed zone (MOVE-3.5)', () => {
     const noticerToken = room.room.scene.tokens.findIndex(
       (token) => token.id === `f${NOTICER_ACTOR_ID.slice(1)}`
     )
-    await walkerMoves(room, [{ x: 650, y: 350 }], false, noticerToken)
+    await walkerMoves(
+      room,
+      [
+        { x: 650, y: 150 },
+        { x: 650, y: 350 }
+      ],
+      false,
+      noticerToken
+    )
 
     expect(await sightingsShownTo(room.room.base)).toEqual([
       { spatialEffectId: zoneId, actorId: SPREADER_ACTOR_ID },
