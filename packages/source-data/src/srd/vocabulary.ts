@@ -1463,5 +1463,7 @@ export const srdSystemRecord: SystemSeedRecord = {
     ],
     creatureMaxTierCode: 'HALF',
     saveAbilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY]
-  }
+  },
+  // A hidden trap or hazard is noticed against passive Wisdom (Perception) (DMG).
+  zoneSpotPassiveDefinitionId: SRD_PASSIVE_PERCEPTION_ID
 }

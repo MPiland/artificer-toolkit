@@ -83,6 +83,7 @@ describe('A cast pick option gated on an optional combat rule (MOVE-2.T2a)', () 
     ).toEqual([
       { label: 'Knock prone', requiresOptionalRule: undefined },
       { label: 'Push 5 feet away', requiresOptionalRule: undefined },
+      { label: 'Shove 5 feet aside', requiresOptionalRule: SHOVE_ASIDE },
       { label: 'Trip', requiresOptionalRule: SHOVE_ASIDE }
     ])
   })
@@ -100,6 +101,7 @@ describe('A cast pick option gated on an optional combat rule (MOVE-2.T2a)', () 
     expect(labels(offeredCastChoiceOptions(options, [SHOVE_ASIDE]))).toEqual([
       'Knock prone',
       'Push 5 feet away',
+      'Shove 5 feet aside',
       'Trip'
     ])
   })
@@ -137,6 +139,7 @@ describe('A cast pick option gated on an optional combat rule (MOVE-2.T2a)', () 
     ).toEqual([
       { label: 'Knock prone', requiresOptionalRule: undefined },
       { label: 'Push 5 feet away', requiresOptionalRule: undefined },
+      { label: 'Shove 5 feet aside', requiresOptionalRule: SHOVE_ASIDE },
       { label: 'Trip', requiresOptionalRule: SHOVE_ASIDE }
     ])
   })

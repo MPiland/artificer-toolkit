@@ -60,18 +60,6 @@ interface SquareGridFootprintFacingArcs {
   readonly targetToSource: FacingArc | null
 }
 
-interface SquareGridTokenFootprint {
-  readonly footprint: SquareGridFootprint
-  readonly tokenId: string
-}
-
-interface SquareGridShoveAsideDestination {
-  readonly direction: SquareGridContactSector
-  readonly position: ScenePoint
-  readonly remainsAdjacentToAttacker: true
-  readonly targetFootprint: SquareGridFootprint
-}
-
 function isFinitePoint(point: ScenePoint): boolean {
   return Number.isFinite(point.x) && Number.isFinite(point.y)
 }
@@ -286,22 +274,6 @@ function footprintsOverlap(left: SquareGridFootprint, right: SquareGridFootprint
   )
 }
 
-/** Returns whether two exact occupied square-grid footprints touch by a side or corner. */
-function areSquareGridFootprintsAdjacent(input: {
-  readonly grid: SceneGrid
-  readonly left: SquareGridFootprint
-  readonly right: SquareGridFootprint
-}): boolean {
-  const grid = input.grid
-  if (!validSquareGrid(grid)) return false
-  return (
-    validSquareGridFootprint(grid, input.left) &&
-    validSquareGridFootprint(grid, input.right) &&
-    !footprintsOverlap(input.left, input.right) &&
-    input.right.cells.some((cell) => cellIsAdjacentToFootprint(grid, input.left, cell))
-  )
-}
-
 function footprintIsWithinMap(
   footprint: SquareGridFootprint,
   map: Pick<CampaignSceneState['map'], 'height' | 'width'>
@@ -316,106 +288,6 @@ function footprintIsWithinMap(
     footprint.bounds.right <= map.width + EPSILON &&
     footprint.bounds.bottom <= map.height + EPSILON
   )
-}
-
-const SHOVE_ASIDE_DIRECTIONS: readonly {
-  readonly direction: SquareGridContactSector
-  readonly column: number
-  readonly row: number
-}[] = [
-  { direction: 'NORTH', column: 0, row: -1 },
-  { direction: 'NORTH_EAST', column: 1, row: -1 },
-  { direction: 'EAST', column: 1, row: 0 },
-  { direction: 'SOUTH_EAST', column: 1, row: 1 },
-  { direction: 'SOUTH', column: 0, row: 1 },
-  { direction: 'SOUTH_WEST', column: -1, row: 1 },
-  { direction: 'WEST', column: -1, row: 0 },
-  { direction: 'NORTH_WEST', column: -1, row: -1 }
-]
-
-/**
- * Derives exact square-grid displacement positions without interpreting any game-system rule.
- * `occupants` excludes the attacker and target; malformed occupancy fails the entire query closed.
- */
-export function deriveSquareGridShoveAsideDestinations(input: {
-  readonly attacker: SquareGridTokenFootprint
-  /** Exact, already-converted displacement in this Scene's measurement domain. */
-  readonly displacement: number
-  readonly occupants: readonly SquareGridTokenFootprint[]
-  readonly state: Pick<CampaignSceneState, 'barriers' | 'doorStates' | 'grid' | 'map'>
-  readonly target: SquareGridTokenFootprint
-}): readonly SquareGridShoveAsideDestination[] {
-  const grid = input.state.grid
-  if (
-    !validSquareGrid(grid) ||
-    !validSquareGridFootprint(grid, input.attacker.footprint) ||
-    !validSquareGridFootprint(grid, input.target.footprint) ||
-    !Number.isFinite(input.displacement) ||
-    input.displacement <= 0 ||
-    !areSquareGridFootprintsAdjacent({
-      grid,
-      left: input.attacker.footprint,
-      right: input.target.footprint
-    }) ||
-    input.attacker.tokenId === input.target.tokenId ||
-    input.occupants.length > MAX_SQUARE_GRID_INTERACTION_EVIDENCE
-  ) {
-    return []
-  }
-  const occupiedIds = new Set<string>([input.attacker.tokenId, input.target.tokenId])
-  for (const occupant of input.occupants) {
-    if (
-      occupant.tokenId.length === 0 ||
-      occupiedIds.has(occupant.tokenId) ||
-      !validSquareGridFootprint(grid, occupant.footprint)
-    ) {
-      return []
-    }
-    occupiedIds.add(occupant.tokenId)
-  }
-  const targetWidth = input.target.footprint.bounds.right - input.target.footprint.bounds.left
-  const targetHeight = input.target.footprint.bounds.bottom - input.target.footprint.bounds.top
-  const blockers = [input.attacker, ...input.occupants]
-  return SHOVE_ASIDE_DIRECTIONS.flatMap(({ direction, column, row }) => {
-    const position = {
-      x: input.target.footprint.center.x + column * grid.cellSize,
-      y: input.target.footprint.center.y + row * grid.cellSize
-    }
-    if (
-      Math.abs(
-        measureSceneDistance(grid, input.target.footprint.center, position) - input.displacement
-      ) > EPSILON
-    ) {
-      return []
-    }
-    const targetFootprint = enumerateSquareGridFootprint(grid, {
-      position,
-      width: targetWidth,
-      height: targetHeight
-    })
-    if (
-      targetFootprint === null ||
-      !footprintIsWithinMap(targetFootprint, input.state.map) ||
-      !canTokenFootprintMoveBetween(input.state, input.target.footprint.center, position, {
-        width: targetWidth,
-        height: targetHeight
-      }) ||
-      blockers.some((occupant) => footprintsOverlap(targetFootprint, occupant.footprint)) ||
-      !targetFootprint.cells.some((cell) =>
-        cellIsAdjacentToFootprint(grid, input.attacker.footprint, cell)
-      )
-    ) {
-      return []
-    }
-    return [
-      {
-        direction,
-        position,
-        remainsAdjacentToAttacker: true,
-        targetFootprint
-      }
-    ]
-  })
 }
 
 /** The eight compass steps a `RANDOM` forced-movement direction is drawn from on a square grid. */

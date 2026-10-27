@@ -226,8 +226,12 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
     })
   }
 
-  it('offers knocking the target prone or pushing it 5 feet away', () => {
-    expect(options().map(({ label }) => label)).toEqual(['Knock prone', 'Push 5 feet away'])
+  it('offers knocking the target prone, pushing it 5 feet away, or the optional 5 feet aside', () => {
+    expect(options().map(({ label }) => label)).toEqual([
+      'Knock prone',
+      'Push 5 feet away',
+      'Shove 5 feet aside'
+    ])
   })
 
   it('tests each pick by the two-roller contest, with an outcome only on the win', () => {
@@ -272,7 +276,8 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
     )
     expect(influences).toEqual([
       ['Knock prone', []],
-      ['Push 5 feet away', ['DISADVANTAGE']]
+      ['Push 5 feet away', ['DISADVANTAGE']],
+      ['Shove 5 feet aside', ['DISADVANTAGE']]
     ])
   })
 

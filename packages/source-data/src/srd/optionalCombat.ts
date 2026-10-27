@@ -164,7 +164,7 @@ function climbClingEffect() {
                   id: childId('advantage'),
                   order: 2,
                   kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
-                  actionEffectIds: null,
+                  actionEffectIds: [],
                   influence: 'ADVANTAGE'
                 }
               ]
@@ -316,11 +316,7 @@ const shoveAsideDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchem
   id: DND5E_SHOVE_ASIDE_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_SHOVE_ASIDE_OPERATION_KEY, contractVersion: 1 },
-  parameters: {
-    kind: 'SHOVE_ASIDE',
-    initiatorCheckDefinitionId: SRD_ATHLETICS_SKILL_ID,
-    defenderCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID]
-  },
+  parameters: { kind: 'SHOVE_ASIDE' },
   mutuallyExclusiveGroup: null
 })
 

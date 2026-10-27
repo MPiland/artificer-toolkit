@@ -238,31 +238,30 @@
         "module": { "key": "scene.movement.shove-aside", "contractVersion": 1 },
         "parameterKind": "SHOVE_ASIDE"
       },
-      "owner": "movement-policy",
+      "owner": "basic-action-option",
       "requiredFacts": [
-        "actor-size",
-        "target-size",
-        "direction",
+        "encounter-optional-rule-selection",
+        "forced-movement",
         "occupied-footprints",
-        "forced-movement"
+        "reach"
       ],
       "persistenceImpact": [
         "campaign-optional-rule-selection",
-        "movement-receipt",
+        "encounter-settings-snapshot",
+        "contest-destination-pending",
         "token-position-if-successful"
       ],
-      "status": "FOUNDATION",
+      "status": "INTEGRATED",
       "evidence": [
         "packages/schema/src/shared/optionalCombat.ts",
-        "packages/db/src/source-data/srd/optionalCombat.ts",
-        "packages/db/src/__tests__/srd-optional-combat-definition-source.test.ts",
-        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.ts",
-        "packages/functions/src/services/rules/systems/dnd5e/optionalMovementPolicy.test.ts"
+        "packages/source-data/src/srd/optionalCombat.ts",
+        "packages/source-data/src/srd/basicActions.ts",
+        "packages/rules-runtime/src/encounterCastChoice.ts",
+        "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts"
       ],
       "requiredProof": [
-        "closed UUID-backed source registration",
-        "focused direction/space/outcome cases",
-        "database movement/replay/rollback schedule"
+        "a toggle: the SRD Shove's aside option is offered only while the Encounter uses the rule (D157 amendment, MOVE-2.T3b)",
+        "room contest at disadvantage, destination pick of legal in-reach squares and commit"
       ]
     },
     {

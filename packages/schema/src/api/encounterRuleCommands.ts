@@ -56,22 +56,10 @@ export const commandBaseDtoSchema = lazySchema(() =>
   })
 )
 
-const optionalCombatActionIntentSelectionValueDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ENTITY'),
-      entityId: postgresUuidSchema
-    }),
-    z.strictObject({
-      kind: z.literal('POSITION'),
-      position: spatialPointDtoSchema
-    })
-  ])
-)
 const optionalCombatActionIntentSelectionDtoSchema = lazySchema(() =>
   z.strictObject({
     fieldId: checksumSchema,
-    value: optionalCombatActionIntentSelectionValueDtoSchema
+    value: z.strictObject({ kind: z.literal('ENTITY'), entityId: postgresUuidSchema })
   })
 )
 
@@ -647,6 +635,14 @@ export const setZoneDcsInputDtoSchema = lazySchema(() =>
     disarmDc: z.nullable(zoneDcDtoSchema)
   })
 )
+/** GM-only (MOVE-3.5): settles a Character's prompted sighting of a concealed zone without revealing it. */
+export const dismissZoneSightingInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('DISMISS_ZONE_SIGHTING'),
+    spatialEffectId: postgresUuidSchema,
+    actorId: uuidSchema
+  })
+)
 /**
  * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
  * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
@@ -709,6 +705,7 @@ export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSc
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
 export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
 export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
+export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>

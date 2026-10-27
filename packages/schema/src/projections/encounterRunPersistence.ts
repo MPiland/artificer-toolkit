@@ -601,14 +601,19 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('SET_ZONE_DCS'),
       /**
-       * The zone's state before the GM set its DCs (MOVE-3.3) and its version after, so the GM's
-       * undo restores it while nothing has touched the zone since.
+       * The zone's state before and after the GM set its DCs (MOVE-3.3), so the GM's undo restores
+       * it while nothing but sightings has changed the zone since (MOVE-3.5).
        */
       receipt: z.strictObject({
         spatialEffectId: postgresUuidSchema,
         before: spatialRuleEffectStateDtoSchema,
-        afterVersion: z.number().check(z.int()).check(z.positive())
+        after: spatialRuleEffectStateDtoSchema
       })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('DISMISS_ZONE_SIGHTING'),
+      /** The sighting the GM dismissed (MOVE-3.5), which the GM's undo prompts again. */
+      receipt: z.strictObject({ spatialEffectId: postgresUuidSchema, actorId: postgresUuidSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),

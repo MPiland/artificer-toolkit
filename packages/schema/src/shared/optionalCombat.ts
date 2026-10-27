@@ -294,11 +294,8 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
       targetCheckDefinitionId: serverUuidIdentityDtoSchema
     }),
-    z.strictObject({
-      kind: z.literal('SHOVE_ASIDE'),
-      initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
-      defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema
-    }),
+    /** A toggle: the SRD Shove's aside option is offered while an Encounter uses it (MOVE-2.T3b). */
+    z.strictObject({ kind: z.literal('SHOVE_ASIDE') }),
     z.strictObject({
       kind: z.literal('TUMBLE'),
       initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,

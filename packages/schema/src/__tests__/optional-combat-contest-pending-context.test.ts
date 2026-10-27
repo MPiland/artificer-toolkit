@@ -130,27 +130,18 @@ describe('optional-combat contest pending context contract', () => {
     }
   })
 
-  it('round-trips the sealed Shove Aside destination and rejects mixed action selections', () => {
+  it('rejects a Shove Aside contest, whose destination is now the contest’s own pick (MOVE-2.T3b)', () => {
     const disarm = context()
     const shoveAside = {
       ...disarm,
-      actionId: ids.optionalDefinition,
-      source: {
-        kind: 'OPTIONAL_COMBAT_DEFINITION' as const,
-        definitionId: ids.optionalDefinition,
-        definitionVersion: 1,
-        definitionChecksum: checksum('b'),
-        moduleKey: 'd20.action.shove-aside',
-        moduleContractVersion: 1
-      },
       origin: {
         ...disarm.origin,
-        actionKind: 'SHOVE_ASIDE' as const,
+        actionKind: 'SHOVE_ASIDE',
         selection: {
-          kind: 'SHOVE_ASIDE' as const,
+          kind: 'SHOVE_ASIDE',
           defenderCheckDefinitionId: ids.check,
           destination: { x: 15, y: 20 },
-          displacement: { amount: 5 as const, unit: 'FEET' as const, sceneUnits: 5 },
+          displacement: { amount: 5, unit: 'FEET', sceneUnits: 5 },
           sceneId: ids.scene,
           sceneVersion: 4,
           targetTokenId: ids.targetToken,
@@ -158,10 +149,9 @@ describe('optional-combat contest pending context contract', () => {
         }
       }
     }
-
-    expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(shoveAside)).toEqual(
-      shoveAside
-    )
+    expect(
+      serverRuleExecutionPendingApplicationContextDtoSchema.safeParse(shoveAside).success
+    ).toBe(false)
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.safeParse({
         ...shoveAside,

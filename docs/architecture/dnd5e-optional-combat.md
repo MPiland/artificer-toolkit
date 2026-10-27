@@ -41,7 +41,7 @@ auditable even when Manual makes them inactive.
 | Disarm                     | A qualifying attack replaces damage with a contest using the exact UUID-backed defender check definitions pinned by System data; size, handedness, and advantage/disadvantage facts are evaluated; success creates a dropped-item disposition. | Item grip, unusual anatomy, and unsupported item state are manual.                                    |
 | Mark                       | A qualifying melee attack creates a bounded marker and permits the next eligible opportunity attack under the pinned resource/turn limit.                                                                                                      | Mark targets or timing unavailable in structured facts are manual.                                    |
 | Overrun                    | A movement attempt resolves the exact UUID-backed contest definitions pinned by System data and the size modifier, then permits one bounded passage when successful.                                                                           | Legal passage space and unusual body/terrain facts are manual.                                        |
-| Shove aside                | A qualifying shove contest resolves the target's legal 5-foot displacement.                                                                                                                                                                    | Space selection with no authoritative legal destination is manual.                                    |
+| Shove aside                | A toggle: while the Encounter uses it, the SRD Shove offers an authored 5-feet-aside option at disadvantage; a win pauses for the shover's pick of a legal in-reach square (D157).                                                             | None; with one legal square or none the pick is skipped.                                              |
 | Tumble                     | A movement attempt resolves the exact UUID-backed contest definitions pinned by System data and permits one bounded passage.                                                                                                                   | Unsupported movement/space conditions are manual.                                                     |
 | Hitting cover              | For ranged attacks, creature-provided cover is evaluated against the original attack total and cover creature defense; only the typed creature-cover case is automatic.                                                                        | Barriers, terrain, objects, and multiple unmodeled cover providers are manual.                        |
 | Cleaving                   | A qualifying melee hit that reduces an eligible target to zero carries remaining damage to a chosen in-reach target through a bounded chain.                                                                                                   | Rider interactions, mixed damage, and target selection without structured facts are manual.           |
@@ -94,10 +94,15 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
-**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement is target, MOVE-4.T2b2).** The CLIMB
+**Climb cling (current, MOVE-4.T2a; follow current, MOVE-4.T2b1, see rules-runtime Drag; placement current, MOVE-4.T2b2).** The CLIMB
 definition authors `effect`, the `ACTOR_RELATIONSHIP` active effect a won climb gives the climbed
 creature (sourced by the climber; `SOURCE_FOLLOWS_TARGET` plus a `SOURCE_ATTACK_ROLL_INFLUENCE`
-whose null `actionEffectIds` means every attack). The policy capability's `passageAppliedEffects`
+whose empty `actionEffectIds` means every attack). The climb seals `successMovement`
+`ENTER_BLOCKER_SPACE`: a won contest's receipt audits `enteredPosition`, the contact pulled until the
+climber's footprint lies inside the blocker's (`enteredBlockerPosition`, from the footprint the
+response verified against `blockerCurrentnessChecksum`), and the move ends there with one token write.
+The walked path, its cost and its fog end at the contact; `terminalMovementPathEnd` lets both the
+publication segment check and the stored geometry check accept that one step in. The policy capability's `passageAppliedEffects`
 re-derives its plan from the pinned definition; `evaluateEncounterMovementPassageResponse` builds the
 record on a SUCCESS contest and the PASSAGE settlement step carries it as `createdEffects`.
 `persistMovementSettlements` refuses an effect whose owner, origin or checksum does not match the

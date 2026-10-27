@@ -363,6 +363,7 @@ export function srdEncounterState(input: {
   turnSequence?: number
   automationMode?: AutomationModeDto
   trackAmmunition?: boolean
+  zoneNoticing?: EncounterRunState['zoneNoticing']
   automaticCover?: boolean
   initiativePolicy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
@@ -384,7 +385,7 @@ export function srdEncounterState(input: {
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
     trackAmmunition: input.trackAmmunition ?? false,
-    zoneNoticing: 'GM_PROMPT',
+    zoneNoticing: input.zoneNoticing ?? 'GM_PROMPT',
     automaticCover: input.automaticCover ?? true,
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,

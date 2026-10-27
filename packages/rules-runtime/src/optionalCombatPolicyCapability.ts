@@ -50,7 +50,7 @@ export type OptionalCombatEconomy = 'ACTION' | 'BONUS_ACTION'
 export interface OptionalMovementContributor {
   readonly influence: string
   readonly id: string
-  readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
+  readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SIZE_RELATION'
 }
 
 export interface MovementPassageProposal {

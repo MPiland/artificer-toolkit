@@ -1,6 +1,10 @@
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { describe, expect, it } from 'vitest'
-import { SRD_ABILITY_DEFINITION_IDS, srdSystemRecord } from './vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_PASSIVE_PERCEPTION_ID,
+  srdSystemRecord
+} from './vocabulary.js'
 
 const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
 const byCode = <T extends { code: string }>(entries: readonly T[], code: string) =>
@@ -109,5 +113,14 @@ describe('SRD System record facts', () => {
         ]
       }).success
     ).toBe(false)
+  })
+
+  it('notices concealed zones with passive Perception and rejects a passive outside the System', () => {
+    expect(system.zoneSpotPassiveDefinitionId).toBe(SRD_PASSIVE_PERCEPTION_ID)
+    const parsed = systemAuthoredDtoSchema.safeParse({
+      ...srdSystemRecord,
+      zoneSpotPassiveDefinitionId: '00000000-0000-0000-0000-00000000dead'
+    })
+    expect(parsed.error?.issues.map(({ path }) => path)).toEqual([['zoneSpotPassiveDefinitionId']])
   })
 })
