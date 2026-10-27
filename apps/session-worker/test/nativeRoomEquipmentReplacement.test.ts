@@ -27,7 +27,7 @@ import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
-  readActorHitPoints,
+  readCharacterHitPoints,
   readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
@@ -462,7 +462,7 @@ describe('a replaced magic weapon’s bonuses in the Ogre’s attack (ATTACK-6.3
       const replaced = await room.replace({ equipmentId: replacement.id })
       expect(replaced.type, JSON.stringify(replaced)).toBe('COMMAND_COMMITTED')
     }
-    const before = readActorHitPoints(await readRoomHistory(room.room.base.stub), FIGHTER_ACTOR_ID)
+    const before = await readCharacterHitPoints(room.room.base.stub, FIGHTER_ID)
     const commandId = crypto.randomUUID()
     const attacked = await room.attack(await room.runVersion(), commandId)
     expect(attacked.type, JSON.stringify(attacked)).toBe('COMMAND_COMMITTED')
@@ -476,7 +476,7 @@ describe('a replaced magic weapon’s bonuses in the Ogre’s attack (ATTACK-6.3
     const outputs = execution.applicationOutputs as { d20?: { modifier: number } | null }
     return {
       modifier: outputs.d20?.modifier,
-      lost: before - readActorHitPoints(history, FIGHTER_ACTOR_ID)
+      lost: before - (await readCharacterHitPoints(room.room.base.stub, FIGHTER_ID))
     }
   }
 
