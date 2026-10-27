@@ -101,8 +101,10 @@ jobs:
       # Seeding builds Content snapshots into the R2 substitute; runLocalBrowserProof reuses it.
       - name: Start the local Convex fixtures
         run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
-      - name: Deploy and seed
-        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
+      # Locally the native proofs run between the seed and the browser proofs, so the Content snapshot
+      # builds are done; a fresh stack waits for them before the browser opens.
+      - name: Deploy, seed and build Content snapshots
+        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed,snapshots --log-dir=browser-journey-logs/live-backend
       - name: Run ${{ matrix.proof }}
         # account-deletion-browser requires its evidence name to start with the proof name.
         run: node scripts/runLocalBrowserProof.mjs --name=${{ matrix.proof }}-ci --proof=${{ matrix.proof }}
