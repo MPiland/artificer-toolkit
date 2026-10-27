@@ -6710,10 +6710,16 @@
             },
             {
               "text": "Shove Aside chooses a legal destination and commits it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomContestDestinationPick.test.ts",
+                "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx",
+                "CampaignVttStage.forcedMovement.test.tsx"
+              ],
               "origin": ["P81-SHOVE-ASIDE-DESTINATION"],
-              "id": "MOVE-2.4"
+              "id": "MOVE-2.4",
+              "note": "Closed 2026-10-27 by MOVE-2.T3a, MOVE-2.T3b, MOVE-2.T4."
             },
             {
               "text": "Tumble policy is authored and typed.",
@@ -6820,7 +6826,7 @@
             },
             {
               "id": "MOVE-2.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
@@ -6830,8 +6836,9 @@
                 "after": ["MOVE-2.T3b"]
               },
               "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome. Merged in m498.",
+              "mergedAt": "2026-10-27T18:48:25Z",
+              "proof": "Tests 40554074813 and Browser journeys 40554074872 green on 8d9b1e16a (contains m497), Live 40529312303 green on 1a6e4b3f8 (delta phase-only, no apps/apis or package change); reviewed; merged in m498. Proofs: shove-aside-browser journey (apps/apis/tests/developmentEncounterShoveAside.ts, apps/web/tests/live-backend/encounterShoveAside.ts), apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, CampaignVttStage.forcedMovement.test.tsx"
             }
           ]
         },
