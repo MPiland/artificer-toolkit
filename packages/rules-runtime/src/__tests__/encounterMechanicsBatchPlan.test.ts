@@ -454,6 +454,37 @@ describe('Creature mechanics batch plan', () => {
     ])
   })
 
+  it('drops a Run creature to 0 hit points, defeated, without dealing damage (ATTACK-16.T1d)', () => {
+    const actor = creature({ current: 7, temporary: 3, max: 11 })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([
+        {
+          ...origin,
+          sourceOperationKey: 'dnd5e.hit-points-to-zero-proposal',
+          kind: 'HIT_POINTS_TO_ZERO',
+          targetActorId: ACTOR_ID
+        }
+      ]),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({
+      currentHitPoints: 0,
+      tempHitPoints: 0,
+      defeated: true
+    })
+    expect(plan.receiptApplications).toEqual([
+      expect.objectContaining({
+        ordinal: 0,
+        kind: 'HIT_POINTS_TO_ZERO',
+        beforeCurrentHitPoints: 7,
+        afterCurrentHitPoints: 0,
+        beforeTemporaryHitPoints: 3,
+        afterTemporaryHitPoints: 0
+      })
+    ])
+  })
+
   it('marks the actor departed and leaves its hit points, conditions and place in the Run alone (D128)', () => {
     const actor = creature({ current: 11, temporary: 0, max: 11, conditions: [POISONED] })
     const plan = planEncounterMechanicsBatch({
@@ -1847,6 +1878,57 @@ describe('0 hit points (D63)', () => {
               afterCurrentHitPoints: 0,
               afterTemporaryHitPoints: 0
             })
+          ])
+        })
+      })
+
+      describe('dropping to 0 hit points (ATTACK-16.T1d)', () => {
+        const toZero: CharacterRuleActionApplication = {
+          ...origin,
+          sourceOperationKey: 'dnd5e.hit-points-to-zero-proposal',
+          kind: 'HIT_POINTS_TO_ZERO',
+          targetActorId: ACTOR_ID
+        }
+        const stabilize: CharacterRuleActionApplication = {
+          ...origin,
+          sourceOperationKey: 'dnd5e.stabilize-proposal',
+          kind: 'STABILIZE',
+          targetActorId: ACTOR_ID
+        }
+
+        it('leaves a healthy Character dying and unconscious at 0 hit points', () => {
+          const plan = run(toZero, 9)
+          expect(savesOf(plan)).toEqual(NO_DEATH_SAVES)
+          expect(plan.characterUpdate?.character.state).toMatchObject({
+            hitpoints: { current: 0, temp: 0 },
+            conditions: [{ conditionTypeId: UNCONSCIOUS }]
+          })
+          expect(plan.targetTransition.after).toMatchObject({
+            currentHitPoints: 0,
+            temporaryHitPoints: 0
+          })
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({
+              kind: 'HIT_POINTS_TO_ZERO',
+              beforeCurrentHitPoints: 9,
+              afterCurrentHitPoints: 0,
+              afterTemporaryHitPoints: 0
+            })
+          ])
+        })
+
+        it('leaves it stable when a stabilize follows in the same result', () => {
+          const plan = planEncounterMechanicsBatch({
+            batch: characterBatch([toZero, stabilize]),
+            actor,
+            userId: USER_ID,
+            characterFacts: facts(9, [], NO_DEATH_SAVES)
+          })
+          expect(savesOf(plan)).toMatchObject({ stable: true })
+          expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 0 })
+          expect(plan.receiptApplications).toEqual([
+            expect.objectContaining({ kind: 'HIT_POINTS_TO_ZERO' }),
+            expect.objectContaining({ kind: 'STABILIZE', applied: true })
           ])
         })
       })

@@ -740,7 +740,7 @@ export async function planNativeLiveEncounterAction(
     targetPreconditions: {
       declared: prepared.adapter.outcomeTargetPreconditions({
         effectKinds: mechanicFacts.outcomes.flatMap((o) =>
-          o.kind === 'EFFECT' ? [o.effectKind] : []
+          o.kind === 'EFFECT' && !o.onRollTableRow ? [o.effectKind] : []
         )
       }),
       target: targetMovement

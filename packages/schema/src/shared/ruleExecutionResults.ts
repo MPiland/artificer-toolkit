@@ -484,6 +484,7 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
               if (
                 application.kind === 'STABILIZE' ||
                 application.kind === 'KILL' ||
+                application.kind === 'HIT_POINTS_TO_ZERO' ||
                 application.kind === 'KILL_NEGATED' ||
                 application.kind === 'DEPART'
               )

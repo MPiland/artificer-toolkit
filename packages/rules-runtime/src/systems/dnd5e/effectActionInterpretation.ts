@@ -34,6 +34,7 @@ import {
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -532,7 +533,7 @@ export function testApplications(
       )
         continue
       input =
-        application.kind === 'KILL'
+        application.kind === 'KILL' || application.kind === 'HIT_POINTS_TO_ZERO'
           ? { ...input, currentHitPoints: 0, temporaryHitPoints: 0 }
           : {
               ...input,
@@ -712,7 +713,9 @@ export function interpretDirectProposal(
       ? 'STABILIZE'
       : trace.operation.key === DND5E_DEPART_PROPOSAL_OPERATION_KEY
         ? 'DEPART'
-        : null
+        : trace.operation.key === DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY
+          ? 'HIT_POINTS_TO_ZERO'
+          : null
   if (storedKind) {
     if (trace.outputs.targetActorId !== input.targetActorId)
       throw new Dnd5eEffectActionCompilerError(
@@ -1253,7 +1256,7 @@ export function interpretDirect(
         continue
       const startingHitPoints = input.startingHitPoints ?? input.currentHitPoints
       input =
-        application.kind === 'KILL'
+        application.kind === 'KILL' || application.kind === 'HIT_POINTS_TO_ZERO'
           ? { ...input, startingHitPoints, currentHitPoints: 0, temporaryHitPoints: 0 }
           : {
               ...input,

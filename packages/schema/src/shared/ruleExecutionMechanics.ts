@@ -250,6 +250,16 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
+      /** The target drops to 0 hit points without damage; death saves are unchanged, so a Character is dying. */
+      kind: z.literal('HIT_POINTS_TO_ZERO'),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: z.literal(0),
+      beforeTemporaryHitPoints: integerSchema.check(z.gte(0)),
+      afterTemporaryHitPoints: z.literal(0),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
       kind: z.literal('REVIVE'),
       /** The hit points the revive restores to a dead target. */
       hitPoints: z.discriminatedUnion('kind', [

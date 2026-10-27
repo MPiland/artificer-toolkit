@@ -1,5 +1,6 @@
-# Waits for every workflow run on one commit (Tests, and Live backend when the push triggered it) and
-# exits on the first failure, so a slice never waits on one run while another has already failed.
+# Waits for every workflow run on one commit (Tests, Browser journeys, and Live backend when the push
+# triggered it) and exits on the first failure, so a slice never waits on one run while another has
+# already failed.
 # One `gh run list` call per poll, every 120 seconds, to stay inside the shared API rate limit.
 #   pwsh -NoProfile -File scripts/watchCi.ps1 [-Ref HEAD]
 # Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
@@ -16,7 +17,7 @@ $testsSeenAt = $null
 while ($true) {
   # Only the validation workflows: a Merge slice run dispatched from this commit is not its CI.
   $runs = gh run list --commit $sha --limit 20 --json databaseId,workflowName,status,conclusion,createdAt | ConvertFrom-Json |
-    Where-Object workflowName -in 'Tests', 'Live backend'
+    Where-Object workflowName -in 'Tests', 'Live backend', 'Browser journeys'
   # A superseded run (a re-dispatch or re-push of the same commit) does not count; the newest one per workflow does.
   $latest = $runs | Group-Object workflowName | ForEach-Object { $_.Group | Sort-Object createdAt -Descending | Select-Object -First 1 }
   if ($latest | Where-Object workflowName -eq 'Tests') { $testsSeenAt ??= Get-Date }
@@ -78,8 +79,9 @@ while ($true) {
   $cancelled = $latest | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'cancelled' }
   if ($cancelled) { $cancelled | ForEach-Object { "CANCELLED $($_.workflowName) $($_.databaseId)" }; exit 2 }
 
-  # Live backend is path-filtered; when it has not appeared 3 minutes after Tests, this push did not trigger it.
-  $settled = $testsSeenAt -and (($latest.Count -ge 2) -or ((Get-Date) - $testsSeenAt).TotalMinutes -ge 3)
+  # Live backend is path-filtered, and an auto-fix dispatch starts no Browser journeys run; a workflow that
+  # has not appeared 3 minutes after Tests was not triggered for this commit.
+  $settled = $testsSeenAt -and (($latest.Count -ge 3) -or ((Get-Date) - $testsSeenAt).TotalMinutes -ge 3)
   if ($settled -and -not ($latest | Where-Object status -ne 'completed')) {
     $latest | ForEach-Object { "GREEN $($_.workflowName) $($_.databaseId)" }
     exit 0

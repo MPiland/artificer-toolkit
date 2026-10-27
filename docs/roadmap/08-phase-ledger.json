@@ -6830,7 +6830,8 @@
                 "after": ["MOVE-2.T3b"]
               },
               "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             }
           ]
         },
@@ -6889,10 +6890,17 @@
             },
             {
               "text": "A campaign setting chooses how concealed zones are noticed: GM prompt (default) or Search only. With GM prompt, when a Character that does not know of a concealed zone first has it in sight and its passive Perception meets the spot DC, only the GM gets a quiet prompt to reveal it to that Character; players see nothing either way. There is no Search button: a player rolls from their sheet and the GM decides.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "packages/schema/src/__tests__/spatial-contracts.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterZoneConcealment.test.ts",
+                "apps/apis/convex/encounters/zoneConcealmentReads.test.ts",
+                "apps/apis/convex/campaigns/playSettings.test.ts",
+                "apps/session-worker/test/nativeRoomZoneConcealment.test.ts",
+                "apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Rejected: automatic reveal and player-facing passive roll requests, because either tells the table that something is there.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Rejected: automatic reveal and player-facing passive roll requests, because either tells the table that something is there. Closed 2026-10-27 by MOVE-3.T4a, MOVE-3.T4b.",
               "id": "MOVE-3.5"
             },
             {
@@ -7001,7 +7009,7 @@
             },
             {
               "id": "MOVE-3.T4b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.5"],
               "wsjf": {
                 "bv": 8,
@@ -7011,8 +7019,9 @@
                 "after": ["MOVE-3.T4a"]
               },
               "text": "Worker evaluates sight and Character passive Perception against concealed zones after committed moves, zone place or DC set and token bind, records first sightings through a Convex mutation (idempotent on replay), and the GM sees a quiet prompt row with Dismiss; Search only skips evaluation.",
-              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-26 at seam audit (local_6f089d06): sight runs only in the Worker, the noticing record needs a home T5 and T6 share. Size 5 re-scored to 3+5. Merged in m488.",
+              "mergedAt": "2026-10-27T03:16:04Z",
+              "proof": "Tests 40438791759 and Live 40438791742 green on 500598b72; reviewed (cap offset via storedReadArgs, no cap raise); merged in m488 batch 40443120104 (stored shape: zone sightings record). Proofs: apps/session-worker/test/nativeRoomZoneConcealment.test.ts, packages/rules-runtime/src/__tests__/encounterZoneConcealment.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopEncounterDrawer.test.tsx"
             },
             {
               "id": "MOVE-3.T5",
@@ -7067,10 +7076,23 @@
             },
             {
               "text": "A climber that wins moves into the target's space and clings to it: it moves with the target and has advantage on attacks against it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeMovementPlanning.test.ts",
+                "apps/apis/convex/encounters/movementPassage.test.ts",
+                "movementPassageEffectGuard.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts",
+                "encounterRelationshipAttackInfluence.test.ts",
+                "optionalCombatCheckDefinitions.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMovementDrag.test.ts",
+                "apps/session-worker/test/nativeRoomClingFollow.test.ts",
+                "apps/session-worker/test/nativeRoomClimbCling.test.ts",
+                "packages/schema/src/__tests__/spatial-movement-rule-contracts.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterRelationshipAttackInfluence.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "MOVE-4.2"
+              "id": "MOVE-4.2",
+              "note": "Closed 2026-10-27 by MOVE-4.T2a, MOVE-4.T2b1, MOVE-4.T2b2."
             },
             {
               "text": "The target can try to dislodge the climber with the authored contest, and a dislodged climber lands in a legal adjacent space.",
@@ -7144,7 +7166,7 @@
             },
             {
               "id": "MOVE-4.T2b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.2"],
               "wsjf": {
                 "bv": 2,
@@ -7153,12 +7175,13 @@
                 "size": 5,
                 "after": ["MOVE-4.T2b1"]
               },
-              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope.",
+              "note": "Split 2026-10-27 at seam audit (local_0ee643f2): follow runtime, placement into the blocker space and the form null are three seams. Size 5 re-scored to 5+5. Voluntary moves only; following under forced movement is out of scope. Merged in m488.",
               "text": "Passage successMovement ENTER_BLOCKER_SPACE with an optional receipt enteredPosition bound to the blocker currentness, accepted by the scene geometry check; SOURCE_ATTACK_ROLL_INFLUENCE actionEffectIds drops null (empty list = every attack, data migrated); full MOVE-4.2 journey.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "mergedAt": "2026-10-27T03:16:04Z",
+              "proof": "Tests 40439836407 and Live 40439836353 green on edc3d2d0d; reviewed; merged in m488 batch 40443120104 (stored shape: ENTER_BLOCKER_SPACE replaces STOP_AT_CONTACT, receipt enteredPosition, actionEffectIds non-null). Proofs: apps/session-worker/test/nativeRoomClimbCling.test.ts, packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/schema/src/__tests__/spatial-movement-rule-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterRelationshipAttackInfluence.test.ts"
             },
             {
-              "id": "MOVE-4.T3",
+              "id": "MOVE-4.T3a",
               "status": "TODO",
               "closes": ["MOVE-4.3"],
               "wsjf": {
@@ -7168,8 +7191,24 @@
                 "size": 5,
                 "after": ["MOVE-4.T2b2"]
               },
-              "text": "Dislodge contest and landing in a legal adjacent square (reuse forced-movement destinations).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "ESCAPE_CHECK gains optional holderForcedMovement (the existing forced-movement shape). Escape settlement threads it through the D157 DESTINATION pause. The persistence fence re-derives the expected movement from the held effect and refuses a mismatched commit. SRD cling authors ANY exactly 5 ft. Room journey nativeRoomClimbDislodge.test.ts: a win lands the climber next to the target and ends the cling, a loss keeps it.",
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+            },
+            {
+              "id": "MOVE-4.T3b",
+              "status": "TODO",
+              "closes": ["MOVE-4.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["MOVE-4.T3a"]
+              },
+              "text": "Extract the forced-movement fields from maps/path.ts into a shared node map, add the escape check holderForcedMovement form field, with an authoring parity proof and docs.",
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             },
             {
               "id": "MOVE-4.T4",
@@ -7180,7 +7219,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 2,
-                "after": ["MOVE-4.T3"]
+                "after": ["MOVE-4.T3b"]
               },
               "text": "Register in the integrated table, offer in Campaign settings, journey test.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
@@ -8305,14 +8344,14 @@
             },
             {
               "id": "ATTACK-5.T4",
-              "text": "Close-out: the unsupported-attack allowlist is empty. The SPELLS-33 tasks that build swallow (T6a1), held-creature relationships (T6a2, T6a3), lycanthropy (T6b2), disease and curse riders (T6b3), Vampire Charm (T6e2) and equipment degradation (T6i, T6i2) each remove the allowlist entries they make run, with a room proof for the attack; this task checks the list is empty and covers anything left (Rakshasa Claw curse, Vampire and Vampire Spawn Bite if not covered).",
+              "text": "Horned Devil Tail: fold the stanch (an action, DC 12 Wisdom (Medicine)) into its GM ruling and drop the FOLLOW_UP_CHECK. Roper Tendril: delete CLOSED_RULE CREATURE_ROPER_TENDRIL and add a GM ruling beside the hold, as Marilith Tail does. Each gets a room proof.",
               "status": "TODO",
-              "closes": ["ATTACK-5.1", "ATTACK-5.15"],
+              "closes": ["ATTACK-5.15"],
               "wsjf": {
                 "bv": 5,
                 "tc": 1,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": [
                   "ATTACK-5.T4a",
                   "ATTACK-5.T4b",
@@ -8331,7 +8370,22 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i. Left by SPELLS-33.T6b2 (orchestrator ruling 2026-10-25): Wereboar Tusks stays on the allowlist as FOLLOW_UP_SAVE because its Charge needs a ruling before the immediate save, and immediateFollowUpSaveEntries accepts only DAMAGE ahead of an immediate save; covering it means widening that shape generically."
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+            },
+            {
+              "id": "ATTACK-5.T4w",
+              "status": "TODO",
+              "closes": ["ATTACK-5.1", "ATTACK-5.15"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 1,
+                "rr": 3,
+                "size": 2,
+                "after": ["ATTACK-5.T4"]
+              },
+              "note": "Split 2026-10-27 at seam audit (local_8a91952f): 3 allowlist entries left. Horned Devil stanch folds into its GM ruling, and Roper Tendril takes Option A (GM ruling, hold-scoped grant parked in future-enhancements). Wereboar Tusks needs a generic compiler widening. Size 2 re-scored to 1+2.",
+              "text": "immediateFollowUpSaveEntries admits a MANUAL_ADJUDICATION entry ahead of an immediate save (generic), with the dice and critical-hit readers and a regression test. Wereboar Tusks leaves the allowlist with a room proof, and the allowlist test asserts an empty list."
             }
           ]
         },
@@ -9826,10 +9880,23 @@
           "acs": [
             {
               "text": "With Massive Damage enabled, a creature that takes damage from one source of at least half its hit point maximum makes the authored Constitution save, and a failure applies the rolled system-shock result.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "encounterMassiveDamage.test.ts",
+                "nativeRoomMassiveDamageSave.test.ts",
+                "CampaignTabletopDecisionDrawer.model.test.ts",
+                "packages/rules-runtime/src/__tests__/rollTable.test.ts",
+                "apps/session-worker/test/nativeRoomRollTable.test.ts",
+                "nativeRoomRuleTrigger.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterRuleAction.test.ts",
+                "apps/session-worker/test/nativeRoomRuleActionRefusal.test.ts",
+                "apps/session-worker/test/nativeRoomRuleTrigger.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts",
+                "packages/schema/src/__tests__/rules-runtime-contracts.test.ts",
+                "apps/session-worker/test/nativeRoomMassiveDamageSave.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "note": "2014 DMG variant, approved for Phase 8. Not the SRD instant-death rule, which D96 already applies. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts).",
+              "note": "2014 DMG variant, approved for Phase 8. Not the SRD instant-death rule, which D96 already applies. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Closed 2026-10-27 by ATTACK-16.T1a, ATTACK-16.T1a2, ATTACK-16.T1b, ATTACK-16.T1c1, ATTACK-16.T1c2a, ATTACK-16.T1c2b, ATTACK-16.T1d.",
               "id": "ATTACK-16.1"
             },
             {
@@ -9945,7 +10012,7 @@
             },
             {
               "id": "ATTACK-16.T1d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
@@ -9955,8 +10022,9 @@
                 "after": ["ATTACK-16.T1c2b"]
               },
               "text": "Generic HIT_POINTS_TO_ZERO outcome (a KILL sibling: no damage, no overflow; reuses the 0-HP defeat and dying transition; replay and undo), then migrate the system-shock bands to the authored ROLL_TABLE on the optional-combat definition (rows 2-3 add STABILIZE); delete the 5 executor-less primitives and outcome kinds with their data and fixtures; reseed dev data.",
-              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Re-sized 2 to 5 on 2026-10-27 (user yes, D187 growth): nothing could set hit points to 0 without damage.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Re-sized 2 to 5 on 2026-10-27 (user yes, D187 growth): nothing could set hit points to 0 without damage. Merged in m489.",
+              "mergedAt": "2026-10-27T03:41:45Z",
+              "proof": "Tests 40443256790 and Live 40443256766 green on ee5d0dbd8; reviewed (row-outcome target gate skip via onRollTableRow; compiler fallback to target-only outcome, cap 4168 to 4164); merged in m489 (stored shape: MASSIVE_DAMAGE raisedEffects/failedSaveEffectId, receipt HIT_POINTS_TO_ZERO). Proofs: packages/rules-runtime/src/__tests__/encounterMechanicsBatchPlan.test.ts, packages/schema/src/__tests__/rules-runtime-contracts.test.ts, packages/rules-runtime/src/__tests__/encounterRuleAction.test.ts, apps/session-worker/test/nativeRoomRuleTrigger.test.ts, apps/session-worker/test/nativeRoomMassiveDamageSave.test.ts"
             },
             {
               "id": "ATTACK-16.T2",
@@ -9970,7 +10038,8 @@
                 "after": ["ATTACK-16.T1d"]
               },
               "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
             }
           ]
         },
@@ -19845,10 +19914,10 @@
             {
               "id": "RELIABILITY-20.2",
               "text": "The job runs on ci/** pushes that change a browser journey or code it reaches, and on manual dispatch by proof name; merge-slice requires it green on the tip whenever it ran.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-20.T2 (m490); see each task's proof."],
               "origin": [],
-              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d). Closed 2026-10-27 by RELIABILITY-20.T2."
             },
             {
               "id": "RELIABILITY-20.3",
@@ -19861,10 +19930,10 @@
             {
               "id": "RELIABILITY-20.4",
               "text": "docs/architecture/ci-validation.md and AGENTS.md state that browser journeys gate in CI and that the local runner remains only for the user's review data.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-20.T2 (m490); see each task's proof."],
               "origin": [],
-              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d). Closed 2026-10-27 by RELIABILITY-20.T2."
             }
           ],
           "tasks": [
@@ -19885,7 +19954,7 @@
             },
             {
               "id": "RELIABILITY-20.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-20.2", "RELIABILITY-20.4"],
               "wsjf": {
                 "bv": 5,
@@ -19894,7 +19963,10 @@
                 "size": 3,
                 "after": ["RELIABILITY-20.T1"]
               },
-              "text": "Trigger the browser job on ci/** pushes whose changes reach a browser journey, add workflow_dispatch by proof name, make merge-slice require it green whenever it ran, and update ci-validation.md and AGENTS.md."
+              "text": "Trigger the browser job on ci/** pushes whose changes reach a browser journey, add workflow_dispatch by proof name, make merge-slice require it green whenever it ran, and update ci-validation.md and AGENTS.md.",
+              "mergedAt": "2026-10-27T04:03:31Z",
+              "proof": "Tests 40443713688 green on bb34ca9ab (red proof: mergeSlice.test.mjs RED, affectedBrowserJourneys.test.mjs RED-IMPORT), Browser journeys 40443713590 and dispatch 40445670496 green; reviewed; hand-merged in m490 (workflow change) after ci/merge-m490 green. Proofs: scripts/mergeSlice.test.mjs, scripts/affectedBrowserJourneys.test.mjs",
+              "note": " Merged in m490."
             },
             {
               "id": "RELIABILITY-20.T3",
@@ -19907,7 +19979,8 @@
                 "size": 5,
                 "after": ["RELIABILITY-20.T1"]
               },
-              "text": "Run every *-browser proof from runLocalConvexProof.ps1 in the CI job; fix environment gaps, and register a bug task for any proof that fails on product code."
+              "text": "Run every *-browser proof from runLocalConvexProof.ps1 in the CI job; fix environment gaps, and register a bug task for any proof that fails on product code.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             }
           ]
         }

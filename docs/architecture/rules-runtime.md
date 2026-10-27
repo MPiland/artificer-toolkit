@@ -220,7 +220,7 @@ adjudication) and True Resurrection (maximum) are authored from it. Eligibility 
 description-only. `stepDown` and the poison and disease clauses are SPELLS-4.T2g2.
 
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
-`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport) and `REVIVE`, alongside the
+`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport), `REVIVE` and`nHIT_POINTS_TO_ZERO`, alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
 the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
 `executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through
