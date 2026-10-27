@@ -2,10 +2,13 @@ import { z, lazySchema } from '../zod.js'
 import { applicationFeatureFlagsDtoSchema } from './applicationConfig.js'
 import { authIdentityDtoSchema } from './authIdentity.js'
 
+// The address auth rate limiting keys on: platform metadata or the signed web proxy context.
+export const authClientIpSchema = lazySchema(() => z.union([z.ipv4(), z.ipv6()]))
+
 // Server-to-server rate-limit context only; this is never an account credential.
 export const authProxyContextDtoSchema = lazySchema(() =>
   z.strictObject({
-    ip: z.union([z.ipv4(), z.ipv6()]),
+    ip: authClientIpSchema,
     method: z.enum(['GET', 'POST']),
     path: z
       .string()

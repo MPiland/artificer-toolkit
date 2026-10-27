@@ -96,8 +96,7 @@ export const KNOWN_BUG_PROOFS = {
   'effects-browser': 'RELIABILITY-21.T6',
   'disarm-browser': 'RELIABILITY-21.T7',
   'account-deletion-browser': 'RELIABILITY-21.T8',
-  'vtt-browser': 'RELIABILITY-21.T9',
-  'campaign-collaboration-browser': 'RELIABILITY-21.T10'
+  'vtt-browser': 'RELIABILITY-21.T9'
 }
 
 /** Every task in the phase ledger, wherever its feature or PBI nests it. */

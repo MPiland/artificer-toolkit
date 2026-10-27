@@ -377,3 +377,96 @@ describe('noticing a concealed zone (MOVE-3.5)', () => {
     })
   })
 })
+
+/**
+ * MOVE-3.7: the GM shows a concealed zone to chosen Characters or disarms it, and undoes either.
+ * The disarm DC reaches only the GM, even from a player who has been shown the zone.
+ */
+describe('revealing and disarming a concealed zone (MOVE-3.7)', () => {
+  async function placeWithDisarmDc() {
+    const room = await noticingRoom()
+    const zoneId = await placePit(room, LOW_SPOT_DC)
+    const set = await room.send({
+      type: 'SET_ZONE_DCS',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      spatialEffectId: zoneId,
+      spotDc: LOW_SPOT_DC,
+      disarmDc: DISARM_DC
+    })
+    expect(set.type, JSON.stringify(set)).toBe('COMMAND_COMMITTED')
+    return { room, zoneId }
+  }
+
+  it('shows the zone to the chosen Characters without its disarm DC, and undo hides it again', async () => {
+    const { room, zoneId } = await placeWithDisarmDc()
+    const noticer = await connectPlayer(room.room.base, 'OTHER_PLAYER')
+    expect((await zonesShownTo(noticer)).placedZones).toEqual([])
+
+    const revealed = await room.send({
+      type: 'REVEAL_ZONE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      spatialEffectId: zoneId,
+      actorIds: [NOTICER_ACTOR_ID]
+    })
+    expect(revealed.type, JSON.stringify(revealed)).toBe('COMMAND_COMMITTED')
+
+    expect((await zonesShownTo(noticer)).placedZones).toEqual([
+      expect.objectContaining({ id: zoneId, spotDc: null, disarmDc: null, unawareActorIds: [] })
+    ])
+    expect((await zonesShownTo(room.room.base)).placedZones).toEqual([
+      expect.objectContaining({ id: zoneId, spotDc: LOW_SPOT_DC, disarmDc: DISARM_DC })
+    ])
+    // The shown Character's prompt leaves; the other sighting stays.
+    expect(await sightingsShownTo(room.room.base)).toEqual([
+      { spatialEffectId: zoneId, actorId: SPREADER_ACTOR_ID }
+    ])
+    expect(
+      await room.send({
+        type: 'REVEAL_ZONE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version(),
+        spatialEffectId: zoneId,
+        actorIds: [NOTICER_ACTOR_ID]
+      })
+    ).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+
+    await revertLastAction(room)
+
+    expect((await zonesShownTo(noticer)).placedZones).toEqual([])
+    expect(await sightingsShownTo(room.room.base)).toEqual([
+      { spatialEffectId: zoneId, actorId: SPREADER_ACTOR_ID },
+      { spatialEffectId: zoneId, actorId: NOTICER_ACTOR_ID }
+    ])
+  })
+
+  it('removes a disarmed zone for everyone, and undo puts it back with its DCs', async () => {
+    const { room, zoneId } = await placeWithDisarmDc()
+    const disarm = async () =>
+      room.send({
+        type: 'DISARM_ZONE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version(),
+        spatialEffectId: zoneId
+      })
+    const disarmed = await disarm()
+    expect(disarmed.type, JSON.stringify(disarmed)).toBe('COMMAND_COMMITTED')
+    expect(await readZones(room)).toEqual([])
+    expect((await zonesShownTo(room.room.base)).placedZones).toEqual([])
+    expect(await disarm()).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+
+    await revertLastAction(room)
+
+    expect((await zonesShownTo(room.room.base)).placedZones).toEqual([
+      expect.objectContaining({ id: zoneId, spotDc: LOW_SPOT_DC, disarmDc: DISARM_DC })
+    ])
+    expect(
+      (await zonesShownTo(await connectPlayer(room.room.base, 'OTHER_PLAYER'))).placedZones
+    ).toEqual([])
+  })
+})
