@@ -11,6 +11,7 @@ import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { api } from '../convex/_generated/api.js'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
+import { readAuthoritativeSceneToken } from './developmentEncounterCutover'
 
 export type EncounterShoveAsideBrowserFixture = {
   /** The presented Scene: its map size, in map pixels, for turning a square into a screen point. */
@@ -276,23 +277,12 @@ export async function verifyEncounterShoveAside({
       ).projection
     )
   await checkpoint()
-  // The live Scene Convex holds after the last checkpoint.
+  // The token positions the Scene publishes to its recipients after the last checkpoint.
   const tokenPositions = async () => {
-    const sceneId = preparedScene.liveSceneId
-    const header = await owner.query(api.scenes.liveReads.header, { sceneId })
-    const page = await owner.query(api.scenes.liveReads.entities, {
-      sceneId,
-      definitionSaveId: header.definitionSaveId,
-      expectedVersion: header.version,
-      collection: 'tokens',
-      paginationOpts: { cursor: null, numItems: 8 }
-    })
-    assert.equal(page.isDone, true)
-    const at = (tokenId: string) =>
-      page.page.flatMap(({ value }) =>
-        value.collection === 'tokens' && value.entity.id === tokenId ? [value.entity.position] : []
-      )[0]
-    return { shover: at(tokens[0]!.tokenId), target: at(tokens[1]!.tokenId) }
+    const at = async (tokenId: string) =>
+      (await readAuthoritativeSceneToken(owner, { sceneId: preparedScene.liveSceneId, tokenId }))
+        .token.position
+    return { shover: await at(tokens[0]!.tokenId), target: await at(tokens[1]!.tokenId) }
   }
   assert.deepEqual(await tokenPositions(), { shover: shoverAt, target: targetAt })
 
