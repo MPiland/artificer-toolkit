@@ -24,6 +24,7 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plus-1.js'
 import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import {
@@ -359,6 +360,54 @@ describe('content snapshot builds', () => {
       await server.close()
     }
   }, 30_000)
+
+  it('bounds every page of a large Spell scope by roots and bytes, and still builds the scope', async () => {
+    // RELIABILITY-20.5's page bounds, well under the 1 s query limit on CI's self-hosted runtime.
+    const PAGE_MAX_ROOTS = 25
+    const PAGE_BYTE_BUDGET = 64 * 1024
+    const { t, server, srdSource, settle, head, rootIds } = await setup()
+    try {
+      // More heavy roots than the 100-root pages that timed out against that limit.
+      const spells = srdBaselineContent.subjects.spells.slice(0, 120)
+      // An import takes at most 10 subjects.
+      for (let start = 0; start < spells.length; start += 10)
+        await importSeededSubjects(t, {
+          contentSourceId: SRD_CONTENT_SOURCE.id,
+          subjects: spells
+            .slice(start, start + 10)
+            .map((spell) => importedSubject({ subjectKind: 'SPELL', ...spell, document: spell }))
+        })
+      await settle()
+      const paged: string[] = []
+      let cursor: string | null = null
+      for (let isDone = false; !isDone;) {
+        // A caller asking for every root at once still gets a bounded page.
+        const page:
+          | { sources: string[]; continueCursor: string; isDone: boolean }
+          | { pendingCompilation: true } = await t.query(
+          internal.contentSnapshots.heads.readScopeKind,
+          { ...srdSource, kind: 'SPELL' as const, paginationOpts: { numItems: 1000, cursor } }
+        )
+        if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
+        const bytes = page.sources.map((json) => new TextEncoder().encode(json).byteLength)
+        expect(page.sources.length).toBeLessThanOrEqual(PAGE_MAX_ROOTS)
+        // The page ends at the first root that reaches the budget.
+        expect(bytes.slice(0, -1).reduce((sum, size) => sum + size, 0)).toBeLessThan(
+          PAGE_BYTE_BUDGET
+        )
+        for (const json of page.sources)
+          paged.push((JSON.parse(json) as { document: { id: string } }).document.id)
+        cursor = page.continueCursor
+        isDone = page.isDone
+      }
+      expect(paged.sort()).toEqual(spells.map(({ id }) => id).sort())
+      const built = await head(srdSource)
+      expect(built?.builtRevision).toBe(built?.revision)
+      expect((await rootIds(srdSource, built, 'SPELL')).sort()).toEqual(paged)
+    } finally {
+      await server.close()
+    }
+  }, 60_000)
 
   it('rejects a stale compare-and-set and records its uploads as superseded', async () => {
     const { t, server, userSource, publish, settle, head, objects } = await setup()
