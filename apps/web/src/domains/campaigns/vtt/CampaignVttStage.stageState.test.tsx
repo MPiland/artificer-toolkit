@@ -4,6 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MOVEMENT_DECISION_SKIPPED_MESSAGE } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { offeredRollModes } from '../../../test/offeredRollModes'
 import { validated } from '../../../test/validatedFixture'
 import {
   createTabletopCampaign,
@@ -114,7 +115,7 @@ const [emberActor, wardenActor] = tabletopGmEncounter.actors as [
 function heldRoom(
   encounter: object | null,
   extra: {
-    pending?: ReturnType<typeof pendingPush> | null
+    pending?: ReturnType<typeof pendingRoll> | null
     settlement?: HeldEncounterSession['settlement']
     version?: number
   } = {}
@@ -140,23 +141,24 @@ function heldRoom(
   }
 }
 
-function pendingPush() {
+// A roll the decision drawer answers; a board-picked destination stays out of the drawer (D157).
+function pendingRoll() {
   return validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-    kind: 'FORCED_MOVEMENT_DESTINATION',
+    kind: 'D20_EVIDENCE',
     occurrenceId: '12121212-1212-4121-8121-121212121212',
     occurrenceVersion: 2,
     encounterVersion: tabletopGmEncounter.version,
-    sourceActorId: emberActor.id,
-    targetActorId: wardenActor.id,
-    requestId: 'crusher-push',
-    positions: [
-      tabletopLiveScene.tokens[1]!.position,
-      {
-        x: tabletopLiveScene.tokens[1]!.position.x - 70,
-        y: tabletopLiveScene.tokens[1]!.position.y
-      }
-    ],
-    allowedResponses: ['FORCED_MOVEMENT']
+    rollerActorId: emberActor.id,
+    request: {
+      requestId: 'attack-roll',
+      min: 1,
+      max: 20,
+      rollMode: 'NORMAL',
+      keep: 'FIRST',
+      rollModes: offeredRollModes,
+      derivedRollModeReasons: []
+    },
+    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
   })
 }
 
@@ -289,7 +291,7 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
       await waitFor(() => expect(mocks.handlers).not.toBeNull())
       expect(screen.queryByRole('button', { name: openDecision })).not.toBeInTheDocument()
 
-      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingPush(), version: 2 })
+      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingRoll(), version: 2 })
       rerender(stage('PLAYER'))
       expect(await screen.findByRole('button', { name: openDecision })).toBeVisible()
 
@@ -310,7 +312,7 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
     })
 
     it('keeps a decision that was already pending when the Stage mounted', async () => {
-      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingPush() })
+      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingRoll() })
       const { rerender } = renderWithAppProviders(stage('PLAYER'))
       expect(await screen.findByRole('button', { name: openDecision })).toBeVisible()
 
@@ -321,7 +323,7 @@ describe('CampaignVttStage state that follows the room (RELIABILITY-9.3)', () =>
     })
 
     it('is not kept for the GM, whose drawer ends with the decision', async () => {
-      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingPush() })
+      mocks.room = heldRoom(tabletopGmEncounter, { pending: pendingRoll() })
       const { rerender } = renderWithAppProviders(stage('OWNER'))
       expect(await screen.findByRole('button', { name: openDecision })).toBeVisible()
 
