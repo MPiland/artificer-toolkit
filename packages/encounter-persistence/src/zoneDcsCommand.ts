@@ -18,7 +18,7 @@ import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntr
 /**
  * The GM sets or clears a placed zone's spot DC and disarm DC (MOVE-3.3). A spot DC conceals the
  * zone from every player whose Characters do not know of it; its placer knows of it. The receipt
- * keeps the zone's state before, so the GM's undo restores it.
+ * keeps the zone's state before and after, so the GM's undo restores it past later sightings.
  */
 export async function setZoneDcs(
   ctx: EncounterWriteTransaction,
@@ -113,7 +113,7 @@ export async function setZoneDcs(
       encounterId: run.id,
       commandId: input.commandId,
       commandType: 'SET_ZONE_DCS',
-      receipt: { spatialEffectId: zone.id, before, afterVersion: updated.version },
+      receipt: { spatialEffectId: zone.id, before, after: updated.spatialState },
       commandFingerprint: fingerprint,
       actorUserId: userId,
       version,

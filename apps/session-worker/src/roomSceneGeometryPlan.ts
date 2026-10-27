@@ -48,6 +48,7 @@ import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { prepareNativeLiveMovement } from './nativeEncounterMovement.js'
 import { planConcealmentPrune } from './nativeConcealmentPrune.js'
+import { planZoneSightings } from './roomZoneSightings.js'
 import type { LiveEncounterActor } from './nativeRoomEncounterCommand.js'
 
 /**
@@ -78,6 +79,7 @@ type PreparedStagedSceneCommit = {
       kind: 'MOVEMENT'
       commit: Omit<LiveSessionMovementCommitInput, 'expectedScene'>
       concealmentPrunes: Awaited<ReturnType<typeof planConcealmentPrune>>
+      zoneSightings: Awaited<ReturnType<typeof planZoneSightings>>
     }
   | {
       kind: 'GEOMETRY'
@@ -334,6 +336,7 @@ export async function prepareStagedSceneCommit(input: {
       fogLayers: layers,
       ...(command.type === 'VOID_RULE_OCCURRENCE' ? { voidCommand: command } : {})
     },
-    concealmentPrunes: await planConcealmentPrune(movement.planned, nextScene)
+    concealmentPrunes: await planConcealmentPrune(movement.planned, nextScene),
+    zoneSightings: await planZoneSightings({ ...movement.planned, scene: nextScene })
   }
 }
