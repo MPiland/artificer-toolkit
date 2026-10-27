@@ -1,3 +1,4 @@
+import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { escapeCheckApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { encounterEscapeCheckPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
@@ -167,10 +168,46 @@ export function findEncounterHolderContestEscape(
           activation: module.activation,
           checks: module.checks,
           contestChecks: module.dc.checks,
-          holderActorId
+          holderActorId,
+          holderMovement: escapeHolderMovement(module, holderActorId)
         }
   }
   return null
+}
+
+/**
+ * The move a won contested escape gives the hold's source, pushed by the escaper (a dislodged
+ * climber), still without the square its pusher may pick (D157); null when the module authors none.
+ * Only a costless positive whole exact or up-to distance in feet that strikes nothing, in a direction that needs no
+ * action reach or rolled ray, can be settled; any other fails closed.
+ */
+function escapeHolderMovement(
+  module: EscapeModule,
+  holderActorId: string
+): LiveSessionForcedMovement | null {
+  const movement = module.holderForcedMovement
+  if (!movement) return null
+  if (
+    movement.distanceMode === 'UP_TO_SPEED' ||
+    movement.unit !== 'FEET' ||
+    !Number.isSafeInteger(movement.amount) ||
+    movement.amount <= 0 ||
+    movement.actionEconomy !== 'NONE' ||
+    movement.collision ||
+    movement.direction === 'ASIDE' ||
+    movement.direction === 'RANDOM'
+  )
+    throw new EncounterValidationError('This escape moves its holder in a way it cannot settle.')
+  return {
+    targetActorId: holderActorId,
+    direction: movement.direction,
+    feet: movement.amount,
+    upTo: movement.distanceMode === 'UP_TO',
+    sourceReachFeet: null,
+    position: null,
+    ray: null,
+    collision: null
+  }
 }
 
 /**

@@ -210,12 +210,13 @@ export async function persistEncounterContestCommit(
     (occurrence && execution.occurrenceId !== occurrence.id) ||
     // A Disarm seals its optional combat pin; a basic action contest is the action itself, and a
     // contested escape names the held effect and the escaper's check (D152). Only a won basic
-    // action contest creates its hold effect.
+    // action contest creates its hold effect; an escape's holder move is checked against its hold.
     (root.type === 'ESCAPE'
       ? contest.origin.kind !== 'ESCAPE' ||
         contest.origin.activeEffectId !== root.activeEffectId ||
         contest.origin.initiatorCheckDefinitionId !== root.checkDefinitionId ||
-        settlesWin
+        input.createdEffect !== null ||
+        outputs.stateTransition.kind === 'TARGET_OUTCOME'
       : (contest.origin.kind === 'OPTIONAL_COMBAT'
           ? contest.origin.actionKind !== 'DISARM' ||
             contest.origin.pin.definitionId !== root.optionalCombatIntent?.definitionId ||

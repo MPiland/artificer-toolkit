@@ -28,6 +28,7 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { planNativeLiveEscapeContest } from './nativeContest.js'
+import type { ForcedMovementPick } from './nativeAreaPreparation.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -52,6 +53,8 @@ export async function planNativeLiveEscape(
     captures: LiveCaptureReads
     /** The Run's bound Scene, which a rescuer's reach to the held creature is measured on. */
     readReachScene(state: EncounterRunState): Promise<EncounterReachScene | null>
+    /** Reads where a won contested escape's holder may land (D157). */
+    forcedMovementPick: ForcedMovementPick
   }
 ) {
   const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
@@ -101,6 +104,7 @@ export async function planNativeLiveEscape(
       capture,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
+      forcedMovementPick: executionOptions.forcedMovementPick,
       revisions: reads.revisions
     })
     return { kind: 'CONTEST' as const, contest }

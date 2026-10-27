@@ -108,6 +108,19 @@ record on a SUCCESS contest and the PASSAGE settlement step carries it as `creat
 `persistMovementSettlements` refuses an effect whose owner, origin or checksum does not match the
 planned blocker and occurrence, then creates it. A Character-owned blocker also takes a forced Character\nstream version advance (phase `MOVEMENT_PASSAGE_EFFECT`, the same `applyMechanics` path Grapple's hold\nuses), published as a `PASSAGE` `MovementCommandTransition`. Scene undo refuses the move whose\ndecision was answered (`settledEncounterMechanics` also checks the receipts of the occurrence the\nmove rooted), so a settled cling cannot outlive the token's position. Nothing in the engine names\nclimbing.
 
+**Climb dislodge (current, MOVE-4.T3a).** The cling also authors an `ESCAPE_CHECK` module: the climbed
+creature spends an action on its Athletics against the climber's Athletics or Acrobatics, the D152
+contested escape (`planNativeLiveEscapeContest`). The module's optional `holderForcedMovement` (the
+authored forced-movement shape; the schema refuses it on an escape that is not a TARGET contest) is
+the move a won escape gives the hold's source, pushed by the escaper: the SRD cling authors `ANY`,
+exactly 5 feet, so the dislodged climber lands on a free square beside the creature.
+`findEncounterHolderContestEscape` settles it (exact or up-to whole feet, no cost, no collision;
+`ASIDE` and `RANDOM` fail closed). The room plans it through the contest's D157 `DESTINATION` phase
+with the contest graph as the held completion; one legal square lands without a pick. The commit ends
+the relationship, and `settleContestEscape` refuses any forced movement that differs from the one it
+re-derives from the held effect (none on a loss); only the picked square comes from the commit. With
+no free square the climber stays in place (deferred edge case).
+
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
 anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy

@@ -19,6 +19,7 @@ import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
   encounterEscapeEndedConditionIds,
+  findEncounterHolderContestEscape,
   findEncounterHolderEscape,
   prepareEncounterEscapeCheck
 } from '../encounterEscapeCheck.js'
@@ -507,5 +508,92 @@ describe('Escape check', () => {
       snapshotKind: 'KERNEL_EVIDENCE',
       applicationContext: { kind: 'ENCOUNTER_ESCAPE_CHECK', actorId: holder.id }
     })
+  })
+})
+
+describe('the holder a won contested escape moves (MOVE-4.3)', () => {
+  const contest = { kind: 'CONTEST', checks: { skillIds: [ATHLETICS], abilityDefinitionIds: [] } }
+  const landing = {
+    id: testUuid(23),
+    effectKind: 'FORCED_MOVEMENT',
+    direction: 'ANY',
+    actionEconomy: 'NONE',
+    distanceMode: 'EXACT',
+    amount: 5,
+    unit: 'FEET'
+  }
+  /** A cling on `escaper` sourced by the holder, whose contested escape moves the holder by `movement`. */
+  const clung = (movement?: Record<string, unknown>) =>
+    findEncounterHolderContestEscape(
+      activeEffect({
+        id: EFFECT_ID,
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: other.id },
+        createdOrdinal: 1,
+        sourceActorId: holder.id,
+        stateContributions: [
+          {
+            kind: 'ACTOR_RELATIONSHIP',
+            relationshipOutcomeId: OUTCOME_ID,
+            sealedReachFeet: 5,
+            modules: [
+              escapeModule({
+                dc: contest,
+                ...(movement ? { holderForcedMovement: movement } : {})
+              })
+            ],
+            conditionIds: [],
+            capabilitySuppressions: []
+          }
+        ]
+      })
+    )
+
+  it('moves no one when the escape authors no movement', () => {
+    expect(clung()).toMatchObject({ holderActorId: holder.id, holderMovement: null })
+  })
+
+  it('moves the holder an exact or up-to distance in any direction, its square still unpicked', () => {
+    expect(clung(landing)?.holderMovement).toEqual({
+      targetActorId: holder.id,
+      direction: 'ANY',
+      feet: 5,
+      upTo: false,
+      sourceReachFeet: null,
+      position: null,
+      ray: null,
+      collision: null
+    })
+    expect(clung({ ...landing, distanceMode: 'UP_TO', amount: 10 })?.holderMovement).toMatchObject({
+      direction: 'ANY',
+      feet: 10,
+      upTo: true
+    })
+    expect(clung({ ...landing, direction: 'AWAY_FROM_SOURCE' })?.holderMovement).toMatchObject({
+      direction: 'AWAY_FROM_SOURCE'
+    })
+  })
+
+  it('fails closed on a movement the escape cannot settle', () => {
+    const { amount: _amount, unit: _unit, ...bySpeed } = landing
+    for (const movement of [
+      { ...bySpeed, distanceMode: 'UP_TO_SPEED' },
+      { ...landing, unit: 'YARDS' },
+      { ...landing, amount: 0 },
+      { ...landing, amount: 2.5 },
+      { ...landing, actionEconomy: 'REACTION' },
+      { ...landing, direction: 'ASIDE' },
+      { ...landing, direction: 'RANDOM' },
+      {
+        ...landing,
+        collision: {
+          id: testUuid(24),
+          damageTypeId: testUuid(25),
+          diceConfig: '1d6',
+          savingThrow: { abilityDefinitionId: STRENGTH, dcMethod: 'FIXED_DC', baseDc: 10 },
+          conditionId: testUuid(26)
+        }
+      }
+    ])
+      expect(() => clung(movement), JSON.stringify(movement)).toThrow('cannot settle')
   })
 })
