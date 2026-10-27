@@ -85,6 +85,7 @@ type AuthoringDefaultKind =
   | 'manifestCreatureFormFilter'
   | 'creatureFormFilterScaledCap'
   | 'creatureFormFilterScalingBreakpoint'
+  | 'manifestCamouflage'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestOccupantSaveBonus'
@@ -109,6 +110,7 @@ type AuthoringDefaultKind =
   | 'outcomeBreakpointValue'
   | 'outcomeBonus'
   | 'pathChoiceOption'
+  | 'pathChoiceOptionRequiredRule'
   | 'pathChosenItem'
   | 'pathLifecycle'
   | 'pathLifecycleEffectOffer'
@@ -265,6 +267,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   creatureFormFilterScaledCap: ['creatureFormFilterScaledCap'],
   creatureFormFilterScalingBreakpoint: ['creatureFormFilterScalingBreakpoint'],
+  manifestCamouflage: ['manifestCamouflage'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
@@ -289,6 +292,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   outcomeBreakpointValue: ['outcomeBreakpointValue'],
   outcomeBonus: ['outcomeBonus'],
   pathChoiceOption: ['choiceOption', 'nonManifestChoiceOption'],
+  pathChoiceOptionRequiredRule: ['choiceOptionRequiredRule'],
   pathChosenItem: ['pathChosenItem'],
   pathLifecycle: ['pathLifecycle'],
   pathLifecycleEffectOffer: ['pathLifecycleEffectOffer'],

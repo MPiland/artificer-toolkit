@@ -12,7 +12,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { Crosshair, Eye, EyeOff, Gamepad2, Undo2 } from 'lucide-react'
+import { Crosshair, Gamepad2, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -65,14 +65,16 @@ import {
   isFogTool,
   playTools,
   readActiveTurn,
-  resolveMainCharacterId,
-  type CampaignVttToolDefinition
+  resolveMainCharacterId
 } from './CampaignVttStage.model'
 import { CampaignLiveLootPanel } from '../loot/CampaignLiveLootPanel'
 import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
 import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
+import type { ZonePointPick } from './campaignTabletopZoneTool.model'
+import { CampaignVttGmViewControls } from './CampaignVttGmViewControls'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -81,6 +83,7 @@ import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import { CampaignVttSceneEnvironmentControls } from './CampaignVttSceneEnvironmentControls'
+import { VttToolButton } from './VttToolButton'
 import { VttZoomControl } from './VttZoomControl'
 import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
@@ -112,7 +115,7 @@ import {
   type VttTargetingRequest
 } from './vttTargeting.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
-import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
+import { halfSpeedFieldsEntered, unnoticedZonesOf } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
 import { CampaignVttFacingChoice } from './CampaignVttFacingChoice'
 import { CampaignVttSceneObjectMenu } from './CampaignVttSceneObjectMenu'
@@ -136,6 +139,9 @@ export function CampaignVttStage({
   const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
   const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
+  // The zone the GM zone tool aims on the map, with where its picked center goes.
+  const [zoneAim, setZoneAim] = useState<ZonePointPick | null>(null)
+  const zoneAimRef = useRef(zoneAim)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   // The action the caster is picking a target for on the map or in the turn-order list (ATTACK-17.1).
   const [targetingRequest, setTargetingRequest] = useState<VttTargetingRequest | null>(null)
@@ -178,7 +184,7 @@ export function CampaignVttStage({
   const [carefulChoice, setCarefulChoice] = useState<{
     tokenId: string
     path: ScenePoint[]
-    fields: HalfSpeedField[]
+    fields: ReturnType<typeof halfSpeedFieldsEntered>
   } | null>(null)
   // A walked Encounter path waiting for its mover to choose the facing it ends in (ATTACK-12).
   const [facingChoice, setFacingChoice] = useState<{
@@ -219,11 +225,9 @@ export function CampaignVttStage({
   // The room's session while it holds the Run; Convex's stored session otherwise.
   const room = live.encounterSession
   const roomVersion = room?.version ?? null
+  const storedReadArgs = room ? 'skip' : { campaignId: campaign.id }
   const storedSessionState = useQuery({
-    ...convexQuery(
-      convexApi.encounters.activeReads.active,
-      room ? 'skip' : { campaignId: campaign.id }
-    ),
+    ...convexQuery(convexApi.encounters.activeReads.active, storedReadArgs),
     select: encounterSessionStateDtoSchema.parse
   })
   const encounterSessionState = room ? room.state : storedSessionState.data
@@ -345,7 +349,6 @@ export function CampaignVttStage({
     if (trackedDecision.outcome !== decisionOutcome && decisionOutcome === 'ANSWER')
       setShownDecision(null)
   }
-  const drawerDecision = pendingOccurrence ?? settledDecision
   const loadedActionChoices = roomActionChoices.routed
     ? roomActionChoices.value
     : actionChoices.data
@@ -391,10 +394,7 @@ export function CampaignVttStage({
     [convex, live.readEncounter, roomVersion]
   )
   const storedPendingPrepared = useQuery({
-    ...convexQuery(
-      convexApi.encounters.projectionReads.pendingPrepared,
-      room ? 'skip' : { campaignId: campaign.id }
-    ),
+    ...convexQuery(convexApi.encounters.projectionReads.pendingPrepared, storedReadArgs),
     select: encounterPreparedPendingListDtoSchema.parse
   })
   const preparedPendingEncounters = room ? room.preparedPending : (storedPendingPrepared.data ?? [])
@@ -664,6 +664,8 @@ export function CampaignVttStage({
       renderedScene
     ]
   )
+  // A destination this viewer picks on the board is answered there, not in the decision drawer.
+  const drawerDecision = (destinationPick ? null : pendingOccurrence) ?? settledDecision
   const tokenArtUrls = useVttTokenArtUrls({
     actorIdByTokenId,
     campaignId: campaign.id,
@@ -692,8 +694,10 @@ export function CampaignVttStage({
     () =>
       aimingArea && areaSize
         ? { casterTokenId: actionPreview?.sourceTokenId ?? null, size: areaSize }
-        : null,
-    [actionPreview?.sourceTokenId, aimingArea, areaSize]
+        : zoneAim
+          ? { casterTokenId: null, size: zoneAim.size }
+          : null,
+    [actionPreview?.sourceTokenId, aimingArea, areaSize, zoneAim]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(() => {
@@ -789,7 +793,9 @@ export function CampaignVttStage({
             ? {
                 actorIdByTokenId,
                 zones: encounterSessionState.movementCostZones,
-                dragDoublingActorIds
+                dragDoublingActorIds,
+                unnoticedZones:
+                  effectiveRole === 'OWNER' ? unnoticedZonesOf(encounterSessionState) : []
               }
             : null,
         overlays,
@@ -846,6 +852,12 @@ export function CampaignVttStage({
       return commit.delta.result
     }
   })
+  /** The Encounter's scene binding is loading, failed, being made, or belongs to another scene. */
+  const bindingUnsettled =
+    bindEncounter.isPending ||
+    sceneBindingPending ||
+    Boolean(sceneBindingFailure) ||
+    Boolean(currentSceneBinding && !activeEncounterSceneBinding)
   const dispatchSceneCommand = useCallback(
     (command: SceneCommandInputDto) => {
       sceneCommand.mutate(command)
@@ -915,6 +927,7 @@ export function CampaignVttStage({
     pickTargetTokenRef.current = pickTargetToken
     pickDestinationRef.current = destinationPick ? pickDestination : null
     commitTokenMoveRef.current = commitTokenMove
+    zoneAimRef.current = zoneAim
   })
 
   useEffect(() => {
@@ -923,10 +936,19 @@ export function CampaignVttStage({
     let disposed = false
     void createVttSceneRenderer(host, campaign.gameSystemId, {
       onAreaAimCancel: () => {
+        if (zoneAimRef.current) {
+          setZoneAim(null)
+          return
+        }
         setAimingArea(false)
         setActionsOpened(true)
       },
       onAreaPoint: (point) => {
+        if (zoneAimRef.current) {
+          zoneAimRef.current.onPicked(point)
+          setZoneAim(null)
+          return
+        }
         setAreaAim({ origin: point, toward: null })
         setAimingArea(false)
         setActionsOpened(true)
@@ -1182,10 +1204,7 @@ export function CampaignVttStage({
     if (!current || path.length < 2) return
     if (
       activeEncounter &&
-      (sceneBindingPending ||
-        sceneBindingFailure ||
-        bindEncounter.isPending ||
-        (currentSceneBinding && !activeEncounterSceneBinding) ||
+      (bindingUnsettled ||
         (currentSceneBinding && (actorTokenBindings.isPending || actorTokenBindings.error)))
     )
       return
@@ -1193,15 +1212,17 @@ export function CampaignVttStage({
       activeEncounterSceneBinding && actorIdByTokenId.has(tokenId) ? activeEncounter : null
     const teleporting = mechanicsEncounter !== null && teleportsOnDrop(tokenId)
     const mover = current.tokens.find((token) => token.id === tokenId)
+    const moverActorId = actorIdByTokenId.get(tokenId)
     const fields =
-      mechanicsEncounter && mover && !teleporting && carefully === undefined
+      mechanicsEncounter && encounterSessionState && mover && moverActorId && !teleporting
         ? halfSpeedFieldsEntered({
-            fields: encounterSessionState?.halfSpeedFields ?? [],
+            session: encounterSessionState,
+            moverActorId,
             path,
             token: mover
           })
         : []
-    if (fields.length) {
+    if (fields.length && carefully === undefined) {
       setCarefulChoice({ tokenId, path, fields })
       return
     }
@@ -1403,24 +1424,16 @@ export function CampaignVttStage({
           ) : null}
           {campaign.role === 'OWNER' ? (
             <>
-              <Select
-                aria-label='GM vision preview'
-                data={[
-                  { label: 'Full GM view', value: 'GM' },
-                  ...campaign.memberships
-                    .filter((membership) => membership.role === 'PLAYER')
-                    .map((membership) => ({
-                      label: `Preview ${membership.username}`,
-                      value: membership.userId
-                    }))
-                ]}
-                size='xs'
-                value={gmPreviewUserId ?? 'GM'}
-                onChange={(value) => {
-                  setGmPreviewUserId(value && value !== 'GM' ? value : null)
+              <CampaignVttGmViewControls
+                memberships={campaign.memberships}
+                previewUserId={gmPreviewUserId}
+                sharePreviews={sharePreviews}
+                onPreviewUserChange={(userId) => {
+                  setGmPreviewUserId(userId)
                   setMode('PLAY')
                   setTool('SELECT')
                 }}
+                onSharePreviewsChange={setSharePreviews}
               />
               <CampaignVttSceneEnvironmentControls
                 disabled={live.status !== 'CONNECTED'}
@@ -1431,22 +1444,7 @@ export function CampaignVttStage({
                   if (isFogTool(tool)) setTool('SELECT')
                 }}
               />
-              <Tooltip
-                label={
-                  sharePreviews
-                    ? 'Players see your previews and pings'
-                    : 'Previews and pings are private'
-                }
-              >
-                <ActionIcon
-                  aria-label='Show my previews to players'
-                  aria-pressed={sharePreviews}
-                  variant={sharePreviews ? 'filled' : 'default'}
-                  onClick={() => setSharePreviews((current) => !current)}
-                >
-                  {sharePreviews ? <Eye aria-hidden size={18} /> : <EyeOff aria-hidden size={18} />}
-                </ActionIcon>
-              </Tooltip>
+
               <Tooltip label='Undo last token move'>
                 <ActionIcon
                   aria-label='Undo last token move'
@@ -1473,15 +1471,21 @@ export function CampaignVttStage({
               />
             </>
           ) : null}
+          {campaign.role === 'OWNER' && activeEncounter && encounterScene ? (
+            <CampaignTabletopZoneTool
+              connected={live.status === 'CONNECTED'}
+              encounterId={activeEncounter.id}
+              encounterVersion={activeEncounter.version}
+              gameSystemId={campaign.gameSystemId}
+              grid={encounterScene.grid}
+              picking={zoneAim !== null}
+              onPickPoint={setZoneAim}
+              onSend={(command) => encounterCommand.mutateAsync(command)}
+            />
+          ) : null}
           {campaign.role === 'OWNER' && activeEncounter && !activeEncounterSceneBinding ? (
             <Button
-              disabled={
-                !live.commandReady ||
-                bindEncounter.isPending ||
-                sceneBindingPending ||
-                Boolean(sceneBindingFailure) ||
-                Boolean(currentSceneBinding && !activeEncounterSceneBinding)
-              }
+              disabled={!live.commandReady || bindingUnsettled}
               size='xs'
               variant='light'
               onClick={() =>
@@ -1532,6 +1536,7 @@ export function CampaignVttStage({
                     }
                   : null
               }
+              session={encounterSessionState}
               onCommand={(command) => encounterCommand.mutate(command)}
               onEndCharacterConcentration={setEndingConcentrationOf}
               onRelease={(command) => encounterCommand.mutateAsync(command)}
@@ -1651,10 +1656,9 @@ export function CampaignVttStage({
           ) : null}
           <CampaignVttSceneObjectMenu
             boundTokenControl={boundTokenControl}
+            campaign={campaign}
             currentUserId={currentUserId}
-            memberships={campaign.memberships}
             previewTokenId={previewTokenId}
-            role={campaign.role}
             scene={scene}
             selectedTokenId={selectedSceneTokenId}
             renderer={renderer}
@@ -1665,6 +1669,7 @@ export function CampaignVttStage({
             onInspectToken={setInspectedTokenId}
             onSelectToken={setSelectedTokenId}
             onPreviewToken={setChosenPreviewTokenId}
+            onSceneCommand={dispatchSceneCommand}
             onTokenMove={(tokenId, position) => {
               const token = scene.tokens.find((candidate) => candidate.id === tokenId)
               if (token) commitTokenMove(tokenId, [token.position, position])
@@ -1874,31 +1879,5 @@ function VttEmpty({ body, title }: { body?: string; title: string }) {
         ) : null}
       </div>
     </section>
-  )
-}
-
-function VttToolButton({
-  definition,
-  onSelect,
-  selected
-}: {
-  definition: CampaignVttToolDefinition
-  onSelect: (tool: CampaignVttTool) => void
-  selected: boolean
-}) {
-  const Icon = definition.icon
-  return (
-    <Tooltip label={definition.label} position='right'>
-      <ActionIcon
-        aria-label={definition.label}
-        aria-pressed={selected}
-        color={selected ? 'brand' : undefined}
-        size='lg'
-        variant={selected ? 'filled' : 'subtle'}
-        onClick={() => onSelect(definition.value)}
-      >
-        <Icon aria-hidden size={19} />
-      </ActionIcon>
-    </Tooltip>
   )
 }

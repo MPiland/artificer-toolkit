@@ -41,6 +41,13 @@ export function escapeGrappleEffectDefinition(input: {
   occupiesHand?: boolean
   /** The hold stands whatever its source does or wherever it stands (a net). */
   sourceIndependent?: boolean
+  /** The source follows the target, moving with it (a creature clinging to it). */
+  follows?: boolean
+  /** Where a won contested escape moves the source (a dislodged climber). */
+  holderForcedMovement?: Extract<
+    RelationshipContribution['modules'][number],
+    { kind: 'ESCAPE_CHECK' }
+  >['holderForcedMovement']
 }): ActiveRuleEffectDefinitionDto {
   const definitionId = fixtureId(0)
   const entryId = fixtureId(1)
@@ -103,7 +110,10 @@ export function escapeGrappleEffectDefinition(input: {
             dc: input.contestChecks
               ? { kind: 'CONTEST', checks: input.contestChecks }
               : { kind: 'FIXED', value: input.dc ?? 13 },
-            actorKinds: input.actorKinds ?? ['TARGET']
+            actorKinds: input.actorKinds ?? ['TARGET'],
+            ...(input.holderForcedMovement
+              ? { holderForcedMovement: input.holderForcedMovement }
+              : {})
           },
           ...(input.dragged
             ? [{ id: DRAG_GRAPPLE_MODULE_ID, order: 1, kind: 'TARGET_DRAGGED' as const }]
@@ -113,6 +123,9 @@ export function escapeGrappleEffectDefinition(input: {
             : []),
           ...(input.sourceIndependent
             ? [{ id: fixtureId(8), order: 3, kind: 'SOURCE_INDEPENDENT_HOLD' as const }]
+            : []),
+          ...(input.follows
+            ? [{ id: fixtureId(9), order: 4, kind: 'SOURCE_FOLLOWS_TARGET' as const }]
             : [])
         ],
         conditionIds: [...input.conditionIds],

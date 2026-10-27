@@ -37,7 +37,6 @@ import {
   characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concealmentCheckApplicationOutputDtoSchema,
-  damageSaveCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
@@ -46,6 +45,7 @@ import {
   escapeCheckApplicationOutputDtoSchema,
   sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
+import { damageSaveCheckApplicationOutputDtoSchema } from './ruleExecutionDamageSaveOutputs.js'
 import { checkActionApplicationOutputDtoSchema } from './ruleExecutionCheckAction.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
@@ -254,7 +254,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             }
             continue
           }
-          if (application.kind === 'KILL') {
+          if (application.kind === 'KILL' || application.kind === 'HIT_POINTS_TO_ZERO') {
             if (
               application.beforeCurrentHitPoints !== current ||
               application.beforeTemporaryHitPoints !== temporary
@@ -262,12 +262,13 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
               context.addIssue({
                 code: 'custom',
                 path: ['applications', index],
-                message: 'Kill receipt hit-point chain is invalid.'
+                message: `${application.kind} receipt hit-point chain is invalid.`
               })
             current = 0
             temporary = 0
             temporarySource = null
-            if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+            if (application.kind === 'KILL' && deathSaves !== null)
+              deathSaves = deathSavesAfterDeath()
             continue
           }
           if (application.kind === 'KILL_NEGATED' || application.kind === 'DEPART') continue

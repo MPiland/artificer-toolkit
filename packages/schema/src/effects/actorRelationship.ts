@@ -3,6 +3,7 @@ import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, escapeDcDtoSchema } from './check.js'
 import { damageDtoSchema } from './damage.js'
+import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { conditionDtoSchema } from './condition.js'
 import {
   authoredIdentifierSchema,
@@ -37,7 +38,8 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
     z.object({
       ...moduleBase(),
       kind: z.literal('SOURCE_ATTACK_ROLL_INFLUENCE'),
-      actionEffectIds: uuidList,
+      /** The attack action effects it influences; an empty list influences every attack against the target. */
+      actionEffectIds: authoredNestedCollectionSchema(postgresUuidSchema),
       influence: systemCoreCodeSchema
     }),
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_FOLLOWS_TARGET') }),
@@ -68,7 +70,12 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       dc: escapeDcDtoSchema,
       actorKinds: authoredNestedCollectionSchema(z.enum(['TARGET', 'CREATURE_WITHIN_REACH'])).check(
         z.minLength(1)
-      )
+      ),
+      /**
+       * Where a won contested escape moves the hold's source, pushed by the escaper: a dislodged
+       * climber lands beside the creature it clung to. Absent, the source stays where it is.
+       */
+      holderForcedMovement: z.optional(forcedMovementDtoSchema)
     }),
     z.object({
       ...moduleBase(),
@@ -141,6 +148,16 @@ export const actorRelationshipDtoSchema = lazySchema(() =>
               code: 'custom',
               path: ['modules', index],
               message: 'Relationship modules must be ordered by order then identity.'
+            })
+          if (
+            module.kind === 'ESCAPE_CHECK' &&
+            module.holderForcedMovement &&
+            (module.dc.kind !== 'CONTEST' || !module.actorKinds.includes('TARGET'))
+          )
+            ctx.addIssue({
+              code: 'custom',
+              path: ['modules', index, 'holderForcedMovement'],
+              message: 'Only an escape the held creature contests moves the hold source.'
             })
         }
       })

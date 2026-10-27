@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 
-import { automationModeDtoSchema } from './campaignSettings.js'
+import { automationModeDtoSchema, zoneNoticingModeDtoSchema } from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
 import {
   creatureQualifiedDamageDefenseDtoSchema,
@@ -50,6 +50,7 @@ import {
   spatialGeometryDtoSchema,
   spatialPersistedGeometryDtoSchema,
   spatialPositiveDistanceDtoSchema,
+  zoneDcDtoSchema,
   zoneMovementCostMultiplierSchema
 } from '../shared/spatial.js'
 import {
@@ -308,6 +309,10 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     automationMode: automationModeDtoSchema,
     /** Frozen from the Campaign at Run start: ammunition attacks draw pieces from the chosen stack. */
     trackAmmunition: z._default(z.boolean(), false),
+    /** Frozen from the Campaign at Run start: how concealed zones are noticed (MOVE-3.5). */
+    zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
+    /** Frozen from the Campaign at Run start: cover is worked out from the Scene for attacks and area saves. */
+    automaticCover: z._default(z.boolean(), true),
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
     healthDisplayDefault: healthDisplayLevelDtoSchema,
     initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),
@@ -651,7 +656,7 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
     /**
      * The visible fields in the Run's Scene that a voluntary mover may cross carefully: double the
      * movement cost for no entry save. A dragged path that enters one offers that choice. A hidden
-     * field is never listed.
+     * field is never listed, nor one concealed from the member (MOVE-3.3).
      */
     halfSpeedFields: z
       .array(
@@ -684,7 +689,8 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
      * The visible, active zones that raise what moving through them costs (D154, D156), so the map
      * can price a dragged path as the room will. A token-anchored zone is carried only when the
      * member's projection lists its source, and `unaffectedActorIds` names only listed actors.
-     * Shown, never enforced: the room charges the movement.
+     * Shown, never enforced: the room charges the movement. A zone concealed from the member is not
+     * carried (MOVE-3.3).
      */
     movementCostZones: z
       .array(
@@ -697,7 +703,37 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
         })
       )
-      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The visible zones fixed to the Run's Scene, whose outlines the member's map draws. A zone
+     * concealed from the member is not listed: the GM sees every zone, a player only those one of
+     * their Characters knows of (MOVE-3.3). The spot and disarm DCs reach only the GM; a player reads
+     * null. `unawareActorIds` are the Run's actors that have not noticed a concealed zone, so they get
+     * no "Move carefully" offer and the GM's route lists them (MOVE-3.6); a player reads only their
+     * own, and every list is empty for a zone in plain sight.
+     */
+    placedZones: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          label: z.nullable(
+            z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+          ),
+          shape: spatialGeometryDtoSchema,
+          spotDc: z.nullable(zoneDcDtoSchema),
+          disarmDc: z.nullable(zoneDcDtoSchema),
+          unawareActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The concealed zones a Character has been sighted near whose passive Perception met the spot
+     * DC and that the GM has not yet revealed or dismissed (MOVE-3.5). Only the GM reads it; a
+     * player's list is always empty.
+     */
+    pendingZoneSightings: z
+      .array(z.strictObject({ spatialEffectId: postgresUuidSchema, actorId: uuidSchema }))
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE * MAX_ENCOUNTER_ACTORS))
   })
 )
 export type EncounterSessionStateDto = z.infer<typeof encounterSessionStateDtoSchema>

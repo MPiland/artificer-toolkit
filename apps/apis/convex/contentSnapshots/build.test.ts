@@ -24,12 +24,14 @@ import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { clubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/club-plus-1.js'
 import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { elf, highElf } from '@artificer-toolkit/source-data/srd/races/elf.js'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { fixture } from '../../tests/fixtures/characters'
 import {
   compileAsPublished,
   importedSubject,
-  importSeededSubjects
+  importSeededSubjects,
+  syncImportedDerived
 } from '../../tests/fixtures/publication'
 import { startLocalR2 } from '../../tests/localR2'
 import { api, internal } from '../_generated/api'
@@ -39,7 +41,7 @@ import { insertAuthoredVersion } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocument'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { withSceneVisionTracking } from '../lib/mutations'
-import type { ContentSnapshotScopeRef } from './marking'
+import { CONTENT_SNAPSHOT_BUILD_DELAY_MS, type ContentSnapshotScopeRef } from './marking'
 
 const unshare = makeFunctionReference<
   'mutation',
@@ -334,12 +336,17 @@ describe('content snapshot builds', () => {
         let pages = 0
         let cursor: string | null = null
         for (let isDone = false; !isDone; pages++) {
-          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
-            await t.query(internal.contentSnapshots.heads.readScopeKind, {
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await t.query(
+            internal.contentSnapshots.heads.readScopeKind,
+            {
               ...ref,
-              kind: 'RACE',
+              kind: 'RACE' as const,
               paginationOpts: { numItems: 2, cursor }
-            })
+            }
+          )
+          if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
           for (const json of page.sources)
             paged.push((JSON.parse(json) as { document: { id: string } }).document.id)
           cursor = page.continueCursor
@@ -353,6 +360,68 @@ describe('content snapshot builds', () => {
       await server.close()
     }
   }, 30_000)
+
+  it('bounds every page of a large source scope by roots and bytes, and still builds the scope', async () => {
+    // RELIABILITY-20.5's page bounds, well under the 1 s query limit on CI's self-hosted runtime.
+    const PAGE_MAX_ROOTS = 15
+    const PAGE_BYTE_BUDGET = 256 * 1024
+    const { t, server, srdSource, settle, head, rootIds } = await setup()
+    try {
+      const { spells, classes } = srdBaselineContent.subjects
+      // More Spells than the 100-root pages that timed out against that limit, and Classes, whose
+      // roots are large enough to end a page on bytes.
+      const scope = {
+        SPELL: spells
+          .slice(0, 120)
+          .map((spell) => importedSubject({ subjectKind: 'SPELL', ...spell, document: spell })),
+        CLASS: classes.map((item) =>
+          importedSubject({ subjectKind: 'CLASS', ...item, document: item })
+        )
+      }
+      for (const subjects of Object.values(scope))
+        // An import takes at most 10 subjects.
+        for (let start = 0; start < subjects.length; start += 10)
+          await importSeededSubjects(t, {
+            contentSourceId: SRD_CONTENT_SOURCE.id,
+            subjects: subjects.slice(start, start + 10)
+          })
+      await settle()
+      const built = await head(srdSource)
+      expect(built?.builtRevision).toBe(built?.revision)
+      for (const [kind, subjects] of Object.entries(scope) as [
+        keyof typeof scope,
+        (typeof scope)[keyof typeof scope]
+      ][]) {
+        const paged: string[] = []
+        let cursor: string | null = null
+        for (let isDone = false; !isDone;) {
+          // A caller asking for every root at once still gets a bounded page.
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await t.query(
+            internal.contentSnapshots.heads.readScopeKind,
+            { ...srdSource, kind, paginationOpts: { numItems: 1000, cursor } }
+          )
+          if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
+          const bytes = page.sources.map((json) => new TextEncoder().encode(json).byteLength)
+          expect(page.sources.length, kind).toBeLessThanOrEqual(PAGE_MAX_ROOTS)
+          // The page ends at the first root that reaches the budget.
+          expect(
+            bytes.slice(0, -1).reduce((sum, size) => sum + size, 0),
+            kind
+          ).toBeLessThan(PAGE_BYTE_BUDGET)
+          for (const json of page.sources)
+            paged.push((JSON.parse(json) as { document: { id: string } }).document.id)
+          cursor = page.continueCursor
+          isDone = page.isDone
+        }
+        expect(paged.sort(), kind).toEqual(subjects.map(({ id }) => id).sort())
+        expect((await rootIds(srdSource, built, kind)).sort(), kind).toEqual(paged)
+      }
+    } finally {
+      await server.close()
+    }
+  }, 120_000)
 
   it('rejects a stale compare-and-set and records its uploads as superseded', async () => {
     const { t, server, userSource, publish, settle, head, objects } = await setup()
@@ -472,6 +541,34 @@ describe('content snapshot builds', () => {
             )
           )
         ).toBe(true)
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('builds as soon as a pending compilation lands, without waiting out the failure backoff', async () => {
+    const { t, server, srdSource, head, rootIds } = await setup()
+    try {
+      const subjects = [elf, highElf].map((race) =>
+        importedSubject({ subjectKind: 'RACE', ...race, document: race })
+      )
+      // As in the seed, the subrace compiles only after every root exists, so this build waits.
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects
+      })
+      vi.advanceTimersByTime(CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+      await t.finishInProgressScheduledFunctions()
+      const waiting = await head(srdSource)
+      expect(waiting?.builtRevision).not.toBe(waiting?.revision)
+
+      await syncImportedDerived(t, subjects)
+      vi.advanceTimersByTime(CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+      await t.finishInProgressScheduledFunctions()
+      const built = await head(srdSource)
+      expect(built).toMatchObject({ builtRevision: built?.revision })
+      expect(built?.failedBuilds).toBeUndefined()
+      expect(await rootIds(srdSource, built, 'RACE')).toEqual([elf.id, highElf.id].sort())
     } finally {
       await server.close()
     }

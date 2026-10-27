@@ -120,10 +120,17 @@ async function setup() {
     const ids: string[] = []
     let cursor: string | null = null
     for (let isDone = false; !isDone;) {
-      const page: { sources: string[]; continueCursor: string; isDone: boolean } = await t.query(
+      const page:
+        | { sources: string[]; continueCursor: string; isDone: boolean }
+        | { pendingCompilation: true } = await t.query(
         internal.contentSnapshots.heads.readScopeKind,
-        { ...ref, kind, paginationOpts: { numItems: 100, cursor } }
+        {
+          ...ref,
+          kind,
+          paginationOpts: { numItems: 100, cursor }
+        }
       )
+      if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
       for (const json of page.sources)
         ids.push((JSON.parse(json) as { document: { id: string } }).document.id)
       cursor = page.continueCursor

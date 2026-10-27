@@ -12,7 +12,7 @@ param(
     'publication-equipment-browser', 'campaign-lifecycle', 'campaign-custody-browser',
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',
     'scene-live-browser', 'vtt-map-retention', 'movement', 'passage', 'disarm-browser', 'effects-browser',
-    'area-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
+    'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
     'character-sheet-spells-browser', 'vtt-browser', 'v15-workload'
   )][string]$Proof
 )
@@ -55,6 +55,7 @@ $driverArguments = [string[]]@(switch ($Proof) {
   'disarm-browser' { '--encounter-disarm-browser' }
   'effects-browser' { '--encounter-effects-browser' }
   'area-browser' { '--encounter-area-browser' }
+  'shove-aside-browser' { '--encounter-shove-aside-browser' }
   'hide-browser' { '--encounter-hide-browser' }
   'player-browser' { '--encounter-player-browser' }
   'heat-metal-browser' { '--encounter-heat-metal-browser' }

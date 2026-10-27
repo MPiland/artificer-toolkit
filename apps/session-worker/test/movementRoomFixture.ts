@@ -18,10 +18,16 @@ import {
   encounterRunStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
+  AutomationModeDto,
+  ZoneNoticingModeDto
+} from '@artificer-toolkit/schema/api/campaignSettings'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import type { Dnd5eOptionalCombatRuleKindDto } from '@artificer-toolkit/schema/shared/optionalCombat'
+import type {
+  Dnd5eOptionalCombatReusableDefinitionDocumentDto,
+  Dnd5eOptionalCombatRuleKindDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -186,7 +192,14 @@ export interface MovementRoomConfig {
   automationMode?: AutomationModeDto
   /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
   trackAmmunition?: boolean
+  /** The Campaign's zone noticing option, frozen on the Run (MOVE-3.5). */
+  zoneNoticing?: ZoneNoticingModeDto
+  automaticCover?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  /** Rewrites the selected seeded rule documents, as a GM's homebrew copy would. */
+  optionalCombatHomebrew?: (
+    document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
+  ) => Dnd5eOptionalCombatReusableDefinitionDocumentDto
   /** The Run's sides; the SRD fixture's single side when omitted. */
   sides?: readonly { id: string; label: string }[]
   /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
@@ -233,6 +246,8 @@ export interface MovementRoomConfig {
   characterClassFeatures?: readonly ClassFeature[]
   /** Further SRD Equipment the mover Character carries, equipped (see healersKit). */
   characterEquipment?: readonly EquipmentAuthored[]
+  /** Further SRD Equipment the source publishes that no Character carries (see a variant's parent). */
+  publishedEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides
   /** The mover Character's Class casts these spells, preparing the listed ones. */
@@ -322,7 +337,10 @@ export async function movementRoom(config: MovementRoomConfig) {
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
+      zoneNoticing: config.zoneNoticing,
+      automaticCover: config.automaticCover,
       optionalCombatKinds: config.optionalCombatKinds,
+      optionalCombatHomebrew: config.optionalCombatHomebrew,
       sides: config.sides
     }),
     id: encounterId,
@@ -410,6 +428,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
+        publishedEquipment: config.publishedEquipment,
         play: config.characterPlay,
         spellcasting: config.characterSpellcasting,
         creatures: config.formCreatures

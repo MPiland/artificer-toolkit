@@ -2,16 +2,30 @@ import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRule
 import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
-import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
+import {
+  projectNativeActionPending,
+  readNativeActionPending,
+  type NativeActionPending
+} from './actionPending.js'
 import { withEncounterRollModeReasons } from './rollModeReasons.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
+
+type PendingContest = NonNullable<NativeActionPending['context']['contest']>
+
+/** A paused contest and the participant whose evidence it awaits (null policy past its d20s). */
+export type NativeContestPending = NativeActionPending & {
+  contest: PendingContest
+  participant: 'INITIATOR' | 'DEFENDER' | 'OUTCOME' | 'DESTINATION'
+  policy: PendingContest['initiator'] | ReturnType<typeof contestDefenderPolicy> | null
+  rollerActorId: string
+}
 
 /** Identifies the sealed participant, independently of the user who started the action. */
 export async function readNativeContestPending(
   ctx: EncounterReadContext,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
-) {
+): Promise<NativeContestPending> {
   const pending = await readNativeActionPending(ctx, occurrence)
   const { snapshot, context, command } = pending
   const contest = context.contest
@@ -44,19 +58,23 @@ export async function readNativeContestPending(
   const onContestGraph =
     snapshot.graph.source.definitionId === contest.contestGraph.definitionId &&
     snapshot.graph.source.checksum === contest.contestGraph.checksum
-  // A won basic action contest's outcome waits on its initiator's dice, both checks rolled (D173).
-  if (context.contestPhase === 'OUTCOME') {
+  // A won basic action contest's outcome waits on its initiator's dice (D173), or its settled
+  // forced movement on the initiator's destination pick (D157), both checks rolled. A won escape
+  // has no outcome dice; only its holder's landing waits on a pick (MOVE-4.3).
+  if (context.contestPhase === 'OUTCOME' || context.contestPhase === 'DESTINATION') {
     if (
       onContestGraph ||
-      origin?.kind !== 'BASIC_ACTION' ||
+      (origin?.kind !== 'BASIC_ACTION' &&
+        (origin?.kind !== 'ESCAPE' || context.contestPhase !== 'DESTINATION')) ||
       contest.rollEvidence.initiator === null ||
-      contest.rollEvidence.defender === null
+      contest.rollEvidence.defender === null ||
+      (context.contestPhase === 'DESTINATION') !== (context.pause?.kind === 'FORCED_MOVEMENT')
     )
       throw new Error('Stored action contest outcome evidence is invalid.')
     return {
       ...pending,
       contest,
-      participant: 'OUTCOME' as const,
+      participant: context.contestPhase,
       policy: null,
       rollerActorId: contest.initiator.actorId
     }

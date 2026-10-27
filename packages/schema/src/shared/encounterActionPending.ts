@@ -60,8 +60,11 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
       twoPhase: z.nullable(directActionTwoPhaseDtoSchema),
       /** Disarm keeps the original action owner while each contest participant responds. */
       contest: z.optional(z.lazy(() => serverContestCheckPendingContextDtoSchema)),
-      /** Whether a contest's request is one of its two checks or a won outcome's dice (D173). */
-      contestPhase: z.optional(z.enum(['CHECKS', 'OUTCOME'])),
+      /**
+       * Whether a contest's request is one of its two checks, a won outcome's dice (D173), or the
+       * destination its settled outcome's forced movement owes its source (D157).
+       */
+      contestPhase: z.optional(z.enum(['CHECKS', 'OUTCOME', 'DESTINATION'])),
       /** The mode the roller's own facts imply, shown at the roll prompt (ATTACK-10.1). */
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
@@ -86,13 +89,22 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
+        const { pause } = value
         if (!value.contest !== !value.contestPhase)
           context.addIssue({
             code: 'custom',
             path: ['contestPhase'],
             message: 'Only a pending contest names its phase.'
           })
-        const { pause } = value
+        if (
+          (value.contestPhase === 'DESTINATION') !==
+          (!!value.contest && pause?.kind === 'FORCED_MOVEMENT')
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['contestPhase'],
+            message: "A contest's destination phase holds its forced-movement pick."
+          })
         if (pause) {
           const issue = (message: string) =>
             context.addIssue({ code: 'custom', path: ['pause'], message })
@@ -185,7 +197,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 issue('An on-hit offer belongs to a TEST held for the attacker.')
               break
             case 'FORCED_MOVEMENT':
-              if (holdsActionD20 || test)
+              // A won contest's settled outcome holds its pick with both checks already rolled.
+              if (
+                (value.contestPhase === 'DESTINATION'
+                  ? value.d20Policy !== null || !!value.heldD20
+                  : holdsActionD20) ||
+                test
+              )
                 issue(
                   'A forced-movement destination belongs to a settled action held for its source.'
                 )

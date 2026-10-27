@@ -736,6 +736,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                       ? reviveTraceMatches(trace.outputs, application.hitPoints)
                       : application.kind === 'STABILIZE' ||
                           application.kind === 'KILL' ||
+                          application.kind === 'HIT_POINTS_TO_ZERO' ||
                           application.kind === 'KILL_NEGATED' ||
                           application.kind === 'DEPART'
                         ? true

@@ -12,6 +12,7 @@ import {
   encounterStoredRuleOccurrenceSchema,
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import type { DamageSaveSource } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { type ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { rejectDomain } from './domainRejections.js'
@@ -41,7 +42,7 @@ type RuleOccurrenceVoidFacts =
         'ENCOUNTER_MOVEMENT_REACTION' | 'ENCOUNTER_DAMAGE_SAVE_CHECK'
       >
     }
-  | { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'; source?: 'CONCENTRATION' | 'EFFECT_REPEAT_SAVE' }
+  | { kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK'; source?: DamageSaveSource }
   | { kind: 'ENCOUNTER_MOVEMENT_REACTION'; phase: Pick<MovementReactionContext['phase'], 'kind'> }
 
 /** What a GM void does to one pending decision (ADR 0034 decision 2). */
@@ -49,6 +50,12 @@ type RuleOccurrenceVoid =
   | { kind: 'CANCEL' }
   | { kind: 'DECLINE'; resolution: Resolution }
   | { kind: 'REFUSE'; message: string }
+
+const DAMAGE_SAVE_SUBJECTS: Record<DamageSaveSource, string> = {
+  CONCENTRATION: 'A Concentration save',
+  EFFECT_REPEAT_SAVE: 'A repeat save',
+  MASSIVE_DAMAGE: 'A massive-damage save'
+}
 
 const answerRequired = (subject: string): RuleOccurrenceVoid => ({
   kind: 'REFUSE',
@@ -78,9 +85,7 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
         ? { kind: 'DECLINE', resolution: { kind: 'DECLINE' } }
         : answerRequired('Dice during a move')
     case 'ENCOUNTER_DAMAGE_SAVE_CHECK':
-      return answerRequired(
-        context.source === 'EFFECT_REPEAT_SAVE' ? 'A repeat save' : 'A Concentration save'
-      )
+      return answerRequired(DAMAGE_SAVE_SUBJECTS[context.source ?? 'CONCENTRATION'])
     case 'ENCOUNTER_CONCEALMENT_CHECK':
       return answerRequired('A concealment check')
     case 'ENCOUNTER_ESCAPE_CHECK':

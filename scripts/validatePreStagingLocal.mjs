@@ -25,6 +25,7 @@ const root = resolve(import.meta.dirname, '..')
 // The documented local Session Worker (apps/session-worker README). Proofs that send Encounter
 // commands or open the tabletop need it. The VTT browser proof starts its own Worker on this port
 // (apps/web/playwright.local-vtt.config.ts), so the lifecycle stops its Worker before that stage.
+export const selfManagedBrowserProof = 'vtt-browser'
 const localSessionWorker = {
   allowedOrigins: 'http://localhost:3000,http://127.0.0.1:3000',
   host: '127.0.0.1',
@@ -33,14 +34,13 @@ const localSessionWorker = {
     'LIVE_SESSION_TICKET_SECRET',
     'LIVE_SESSION_WORKER_SECRET',
     'CONTENT_SNAPSHOT_TOKEN_SECRET'
-  ],
-  selfManagedStage: 'r08-browser-vtt-browser'
+  ]
 }
 // The browser proofs open the web app here; the VTT browser proof starts its own on the same port.
 const localWebApp = { port: 3000 }
 // Application secrets loaded from the local environment files; the Worker child does not receive them.
 const loadedEnvironmentNames = new Set()
-const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
+export const localEnvironmentDefault = 'local-validation/local-convex/local.application.env'
 const localProofDirectory = 'local-validation/local-convex-proofs'
 const localResetDirectory = 'local-validation/convex-reset'
 const remoteOnlyEnvironmentNames = new Set([
@@ -552,7 +552,7 @@ export async function startLocalWebApp(artifactDirectory) {
 export async function ensureLocalConvexFixtures(artifactDirectory) {
   const logPath = resolve(artifactDirectory, 'local-convex-fixtures.log')
   await run(
-    'pwsh.exe',
+    'pwsh',
     [
       '-NoProfile',
       '-NonInteractive',
@@ -767,7 +767,7 @@ function localProofStage(proof, kind) {
       ? `account-deletion-browser${releaseProofAttempt}`
       : `r08-${releaseProofAttempt}-${kind}-${proof}`
   return {
-    ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh.exe', [
+    ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh', [
       '-NoProfile',
       '-NonInteractive',
       '-File',
@@ -809,7 +809,7 @@ const stages = [
     'generate:srd:manifest'
   ]),
   // Prelaunch schema changes can reject old fixtures before codegen finishes its push.
-  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh.exe', [
+  stage('convex-reset', 'Back up and reset disposable local Convex fixture tables', 'pwsh', [
     '-NoProfile',
     '-NonInteractive',
     '-File',
@@ -1410,7 +1410,7 @@ async function main() {
         throw error
       }
     }
-    if (batch.some(({ name }) => name === localSessionWorker.selfManagedStage)) {
+    if (batch.some(({ name }) => name === `r08-browser-${selfManagedBrowserProof}`)) {
       await stopLocalServices()
     } else {
       for (const service of localServices) {

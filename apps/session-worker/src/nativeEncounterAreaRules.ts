@@ -94,6 +94,7 @@ import {
   revalidateStruckTarget
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
+import { readNativeLiveCover } from './nativeLiveCover.js'
 
 /**
  * Plans a point-area action up to its pending saves. Whom the area catches is decided here, from the
@@ -128,12 +129,32 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   })
   for (const { actor } of inAreaActors)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))
+  // A creature with total cover from the area's origin is caught but left out, as an immune one is.
+  const totalCoverActorIds = new Set<string>()
+  for (const { actor } of inAreaActors) {
+    if (actor.id === caster.id) continue
+    const cover = await readNativeLiveCover({
+      state,
+      system: input.system,
+      sourceActorId: caster.id,
+      targetActorId: actor.id,
+      originPoint: area.origin,
+      sceneContext: {
+        sceneId: scene.sceneId,
+        sceneVersion: scene.sceneVersion,
+        grid: scene.grid
+      },
+      capture
+    })
+    if (cover?.tier?.blocksTargeting) totalCoverActorIds.add(actor.id)
+  }
   const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
     const creatureTypeId = snapshotCreatureTypeId(actor)
-    return encounterSourceImmunityLabel({
-      source: base.source,
-      holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
-    }) !== null ||
+    return totalCoverActorIds.has(actor.id) ||
+      encounterSourceImmunityLabel({
+        source: base.source,
+        holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []
+      }) !== null ||
       encounterSpellSchoolImmunity({
         source: base.source,
         sourceFacts: casterFacts,

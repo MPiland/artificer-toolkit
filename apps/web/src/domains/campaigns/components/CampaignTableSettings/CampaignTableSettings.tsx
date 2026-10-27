@@ -152,12 +152,32 @@ function CampaignTableSettingsForm({
           }}
           value={draft.automationMode}
         />
+        <Select
+          data={[
+            { value: 'GM_PROMPT', label: 'GM prompt' },
+            { value: 'SEARCH_ONLY', label: 'Search only' }
+          ]}
+          description='GM prompt quietly tells only the GM when a Character who does not know of a concealed zone could spot it. Search only waits for a player to search and the GM to decide.'
+          disabled={!editable}
+          label='Noticing concealed zones'
+          onChange={(value) => {
+            if (value === 'GM_PROMPT' || value === 'SEARCH_ONLY') set('zoneNoticing', value)
+          }}
+          value={draft.zoneNoticing}
+        />
         <Checkbox
           checked={draft.trackAmmunition}
           description='Each ammunition attack draws a piece from the chosen stack and is refused when none is left. Off, the chosen ammunition still applies its bonuses and nothing is counted.'
           disabled={!editable}
           label='Track ammunition'
           onChange={(event) => set('trackAmmunition', event.currentTarget.checked)}
+        />
+        <Checkbox
+          checked={draft.automaticCover}
+          description='Attacks and area saves gain half or three-quarters cover from walls and creatures on the Scene, and total cover blocks the target. Off, no cover is applied automatically.'
+          disabled={!editable}
+          label='Automatic cover'
+          onChange={(event) => set('automaticCover', event.currentTarget.checked)}
         />
         <Select
           clearable

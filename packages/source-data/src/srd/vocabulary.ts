@@ -1447,5 +1447,23 @@ export const srdSystemRecord: SystemSeedRecord = {
     damageTypeId: srdIdByCode(SRD_DAMAGE_TYPES, 'FIRE'),
     conditionTypeId: srdIdByCode(SRD_CONDITION_TYPES, 'POISONED'),
     movementTypeId: srdIdByCode(SRD_SPEEDS, 'WALK')
-  }
+  },
+  // The DMG's square-grid corner method; another creature gives at most half cover (PHB).
+  cover: {
+    tiers: [
+      { code: 'HALF', label: 'Half cover', minBlockedLines: 1, bonus: 2, blocksTargeting: false },
+      {
+        code: 'THREE_QUARTERS',
+        label: 'Three-quarters cover',
+        minBlockedLines: 3,
+        bonus: 5,
+        blocksTargeting: false
+      },
+      { code: 'TOTAL', label: 'Total cover', minBlockedLines: 4, bonus: 0, blocksTargeting: true }
+    ],
+    creatureMaxTierCode: 'HALF',
+    saveAbilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY]
+  },
+  // A hidden trap or hazard is noticed against passive Wisdom (Perception) (DMG).
+  zoneSpotPassiveDefinitionId: SRD_PASSIVE_PERCEPTION_ID
 }

@@ -19,6 +19,7 @@ import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
 import { stabilizeDtoSchema } from './stabilize.js'
 import { killDtoSchema } from './kill.js'
+import { hitPointsToZeroDtoSchema } from './hitPointsToZero.js'
 import { reviveDtoSchema } from './revive.js'
 import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { restoreResourceDtoSchema } from './restoreResource.js'
@@ -38,6 +39,7 @@ import { releaseChosenItemDtoSchema } from './releaseChosenItem.js'
 import { endEffectsDtoSchema } from './endEffects.js'
 import { degradeEquipmentDtoSchema } from './degradeEquipment.js'
 import { targetingDtoSchema } from './targeting.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
 import { activeEffectUsesSchema } from '../shared/activeRuleEffectLifecycle.js'
@@ -92,6 +94,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            hitPointsToZeroDtoSchema,
             reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
@@ -125,6 +128,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            hitPointsToZeroDtoSchema,
             reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
@@ -240,6 +244,9 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
     order: z.number().check(z.int()),
     groupType: z.optional(z.literal(pathGroupTypeSchema._zod.def.entries.CHOICE)),
     ...choiceOptionMetadataDtoSchema.shape,
+    initiatorCheckInfluence: z.optional(systemCoreCodeSchema),
+    /** See `PathChoiceOptionAuthored.requiresOptionalRule`. */
+    requiresOptionalRule: z.optional(z.strictObject({ definitionId: postgresUuidSchema })),
     resultBlock: resultBlockDtoSchema
   })
 

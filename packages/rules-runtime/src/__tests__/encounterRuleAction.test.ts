@@ -4,11 +4,13 @@ import {
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { encounterActiveEffectPlan } from '../encounterActionEffects.js'
@@ -16,6 +18,7 @@ import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPrep
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
+import { encounterMassiveDamageRule } from '../encounterMassiveDamage.js'
 import { encounterRuleActionId, parseEncounterRuleActionId } from '../encounterRuleAction.js'
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
 import {
@@ -151,11 +154,15 @@ function homebrewRuleSnapshot() {
   const seed = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (entry) => entry.document.kind === 'MASSIVE_DAMAGE'
   )
-  if (!seed) throw new Error('The SRD Massive Damage rule is missing.')
+  if (seed?.document.parameters.kind !== 'MASSIVE_DAMAGE')
+    throw new Error('The SRD Massive Damage rule is missing.')
+  // The copy raises its Effects only through its own action: no failed save names one.
+  const { failedSaveEffectId: _seeded, ...parameters } = seed.document.parameters
   const document = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse({
     ...seed.document,
     id: RULE_ID,
-    raisedEffects: [shockEffect, exposedEffect, stabilizeEffect]
+    raisedEffects: [shockEffect, exposedEffect, stabilizeEffect],
+    parameters
   })
   const snapshot = encounterOptionalCombatSnapshotDtoSchema.parse({
     schemaVersion: 1,
@@ -351,5 +358,87 @@ describe('a rule-owned action source (ATTACK-16.T1b)', () => {
     await expect(
       prepareRuleAction({ actor: ogre, characterFacts: null, effectId: testUuid(0x16bf) })
     ).rejects.toThrow('The selected rule action is stale.')
+  })
+})
+
+describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
+  const seed = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+    (entry) => entry.document.kind === 'MASSIVE_DAMAGE'
+  )!
+  const authored = (failedSaveEffectId: string) =>
+    dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+      ...seed.document,
+      raisedEffects: [shockEffect],
+      parameters: { ...seed.document.parameters, failedSaveEffectId }
+    })
+
+  it('names one of the rule’s raised Effects, which the pinned rule reads', () => {
+    const parsed = authored(SHOCK_EFFECT_ID)
+    expect(parsed.success).toBe(true)
+    expect(authored(STABILIZE_EFFECT_ID).error?.issues).toMatchObject([
+      {
+        path: ['parameters', 'failedSaveEffectId'],
+        message: 'A failed save must raise one of the rule’s raised effects.'
+      }
+    ])
+    const document = parsed.data!
+    const state = srdEncounterState({ actors: [], currentActorId: null })
+    const snapshot = encounterOptionalCombatSnapshotDtoSchema.parse({
+      schemaVersion: 1,
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: [
+        {
+          definitionId: seed.id,
+          contentSourceId: SRD_CONTENT_SOURCE.id,
+          definitionVersion: 1,
+          definitionChecksum: checksumRuleDocument(document),
+          contractVersion: 1,
+          label: seed.label,
+          document
+        }
+      ]
+    })
+    const policy = (optionalCombatSnapshot: typeof snapshot) => ({
+      ...state,
+      optionalCombatSnapshot,
+      optionalCombatSnapshotChecksum: checksumRuleDocument(optionalCombatSnapshot)
+    })
+    expect(encounterMassiveDamageRule(policy(snapshot))?.failedSaveEffectId).toBe(SHOCK_EFFECT_ID)
+    expect(
+      encounterMassiveDamageRule(policy(homebrewRuleSnapshot().snapshot))?.failedSaveEffectId
+    ).toBeNull()
+  })
+
+  it('raises the SRD seed’s System Shock d10 table on a failed save (ATTACK-16.T1d)', () => {
+    const { parameters, raisedEffects = [] } = seed.document
+    if (parameters.kind !== 'MASSIVE_DAMAGE') throw new Error('Expected the Massive Damage rule.')
+    expect(raisedEffects.map(({ id }) => id)).toEqual([parameters.failedSaveEffectId])
+    const [path] = raisedEffects[0]!.paths
+    if (path?.selectionKind !== 'ROLL_TABLE') throw new Error('Expected a roll table.')
+    expect(path).toMatchObject({ rollTableKind: 'RANGE', dieConfig: '1d10' })
+    expect(path.rows.map(({ rollRange }) => rollRange)).toEqual([
+      [1, 1],
+      [2, 3],
+      [4, 5],
+      [6, 7],
+      [8, 10]
+    ])
+    expect(
+      path.rows.map((row) =>
+        row.resolutionKind === 'RESULT'
+          ? row.resultBlock.outcomes.map(({ effectKind }) => effectKind)
+          : row.resolutionKind
+      )
+    ).toEqual([
+      ['HIT_POINTS_TO_ZERO'],
+      ['HIT_POINTS_TO_ZERO', 'STABILIZE'],
+      ['CONDITION'],
+      ['APPLY_GRANT'],
+      ['APPLY_GRANT']
+    ])
+    // The roll decides whether a row runs, so its STABILIZE gates nobody on dying.
+    const { outcomes } = normalizeCharacterActionMechanicFacts(compileEffect(raisedEffects[0]!))
+    expect(outcomes.filter(({ kind }) => kind === 'EFFECT')).not.toHaveLength(0)
+    expect(outcomes.every((fact) => fact.kind !== 'EFFECT' || fact.onRollTableRow)).toBe(true)
   })
 })

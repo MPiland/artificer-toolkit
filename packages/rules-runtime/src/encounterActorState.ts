@@ -66,6 +66,25 @@ export function snapshotAbilityScore(
   return typeof scores?.[abilityCode] === 'number' ? scores[abilityCode] : null
 }
 
+/** A Creature's finite ability scores from its snapshot, or null when it has none. */
+export function snapshotAbilityScores(actor: {
+  kind: string
+  snapshot: unknown
+}): Record<string, number> | null {
+  if (actor.kind !== 'CREATURE') return null
+  const snapshot = isRecord(actor.snapshot) ? actor.snapshot : null
+  const payload = isRecord(snapshot?.payload) ? snapshot.payload : null
+  const scores = payload?.abilityScores
+  return isRecord(scores)
+    ? Object.fromEntries(
+        Object.entries(scores).filter(
+          (entry): entry is [string, number] =>
+            typeof entry[1] === 'number' && Number.isFinite(entry[1])
+        )
+      )
+    : null
+}
+
 export function snapshotFeatureDefinitions(
   actor: Pick<ActorRead, 'kind' | 'snapshot'>
 ): FeatureDto[] {

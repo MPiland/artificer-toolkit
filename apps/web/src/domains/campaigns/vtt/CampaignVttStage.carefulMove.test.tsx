@@ -14,7 +14,8 @@ import type { HalfSpeedField } from './CampaignVttCarefulMove.model'
 const mocks = vi.hoisted(() => ({
   onTokenCommit: null as ((tokenId: string, path: ScenePoint[]) => void) | null,
   readEncounter: vi.fn(),
-  sendCommand: vi.fn()
+  sendCommand: vi.fn(),
+  update: vi.fn()
 }))
 
 vi.mock('@convex-dev/react-query', async (importOriginal) => ({
@@ -60,7 +61,7 @@ vi.mock('./vttSceneRenderer', async (importOriginal) => ({
       focusToken: vi.fn(),
       previewDoorState: vi.fn(),
       retryMap: vi.fn(),
-      update: vi.fn(),
+      update: mocks.update,
       zoomIn: vi.fn(),
       zoomOut: vi.fn()
     })
@@ -95,7 +96,9 @@ const room: HeldEncounterSession = {
     turnMovement: [],
     halfSpeedFields: [caltrops],
     auras: [],
-    movementCostZones: []
+    movementCostZones: [],
+    placedZones: [],
+    pendingZoneSightings: []
   },
   preparedPending: [],
   actorSides: null,
@@ -138,26 +141,30 @@ async function dragEmberTo(x: number) {
   act(() => mocks.onTokenCommit!(ember.id, [ember.position, { x, y: ember.position.y }]))
 }
 
+/** Renders the GM's stage over the held room, whose placed zones are `placedZones`. */
+function renderStage(placedZones: HeldEncounterSession['state']['placedZones'] = []) {
+  vi.clearAllMocks()
+  room.state.placedZones = placedZones
+  mocks.onTokenCommit = null
+  mocks.sendCommand.mockResolvedValue(undefined)
+  mocks.readEncounter.mockImplementation(({ kind }: { kind: string }) =>
+    Promise.resolve({
+      version: room.version,
+      result:
+        kind === 'SCENE_BINDING'
+          ? { kind, result: { ...binding, encounterVersion: tabletopGmEncounter.version } }
+          : kind === 'HELD_RELATIONSHIPS'
+            ? { kind, result: [] }
+            : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
+    })
+  )
+  renderWithAppProviders(
+    <CampaignVttStage campaign={campaign} currentUserId={tabletopCurrentUserId} />
+  )
+}
+
 describe('CampaignVttStage careful crossing (SPELLS-17.4)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mocks.onTokenCommit = null
-    mocks.sendCommand.mockResolvedValue(undefined)
-    mocks.readEncounter.mockImplementation(({ kind }: { kind: string }) =>
-      Promise.resolve({
-        version: room.version,
-        result:
-          kind === 'SCENE_BINDING'
-            ? { kind, result: { ...binding, encounterVersion: tabletopGmEncounter.version } }
-            : kind === 'HELD_RELATIONSHIPS'
-              ? { kind, result: [] }
-              : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
-      })
-    )
-    renderWithAppProviders(
-      <CampaignVttStage campaign={campaign} currentUserId={tabletopCurrentUserId} />
-    )
-  })
+  beforeEach(() => renderStage())
 
   it('holds a drag across the half-speed field until the mover chooses, then commits it carefully', async () => {
     await dragEmberTo(500)
@@ -211,5 +218,39 @@ describe('CampaignVttStage careful crossing (SPELLS-17.4)', () => {
       })
     })
     expect(mocks.sendCommand.mock.calls[0]![0].command).not.toHaveProperty('carefully')
+  })
+})
+
+describe('CampaignVttStage over a concealed field Ember has not noticed (MOVE-3.6)', () => {
+  beforeEach(() =>
+    renderStage([{ ...caltrops, spotDc: null, disarmDc: null, unawareActorIds: [emberActor.id] }])
+  )
+
+  it('offers no careful crossing and commits the drag at once, so entering triggers the field', async () => {
+    await dragEmberTo(500)
+
+    expect(screen.queryByRole('button', { name: 'Move carefully' })).not.toBeInTheDocument()
+    expect(mocks.sendCommand).toHaveBeenCalledExactlyOnceWith({
+      scope: 'SCENE',
+      command: expect.objectContaining({
+        type: 'MOVE_SCENE_TOKEN',
+        path: [ember.position, { x: 500, y: ember.position.y }]
+      })
+    })
+    expect(mocks.sendCommand.mock.calls[0]![0].command).not.toHaveProperty('carefully')
+  })
+
+  it('hands the GM’s route preview the field with who has not noticed it', async () => {
+    await waitFor(() =>
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          movementCost: expect.objectContaining({
+            unnoticedZones: [
+              { label: caltrops.label, shape: caltrops.shape, by: [emberActor.label] }
+            ]
+          })
+        })
+      )
+    )
   })
 })

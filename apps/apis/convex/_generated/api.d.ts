@@ -3167,6 +3167,11 @@ export declare const api: {
               | { kind: "DOUBLE" }
               | { kind: "MULTIPLY"; value: number };
           };
+          foldedBonuses?: Array<{
+            amount: number;
+            label: string;
+            operand: "defenseOrDc" | "modifier";
+          }>;
           id: string;
           normalizedExpression: string;
           ruleCheck?:
@@ -7165,6 +7170,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -7264,6 +7274,11 @@ export declare const api: {
                   | { kind: "DOUBLE" }
                   | { kind: "MULTIPLY"; value: number };
               };
+              foldedBonuses?: Array<{
+                amount: number;
+                label: string;
+                operand: "defenseOrDc" | "modifier";
+              }>;
               id: string;
               normalizedExpression: string;
               ruleCheck?:
@@ -7368,6 +7383,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -7460,6 +7480,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -9829,6 +9854,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -9852,6 +9878,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
       options: FunctionReference<
@@ -9892,6 +9919,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -9914,10 +9942,12 @@ export declare const api: {
           >;
           tableConduct: string | null;
           trackAmmunition?: boolean;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         },
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -9941,6 +9971,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
     };
@@ -10264,6 +10295,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -10366,6 +10402,11 @@ export declare const api: {
               | { kind: "DOUBLE" }
               | { kind: "MULTIPLY"; value: number };
           };
+          foldedBonuses?: Array<{
+            amount: number;
+            label: string;
+            operand: "defenseOrDc" | "modifier";
+          }>;
           gmCampaignRoll: {
             campaignId: string;
             creature: { actorId: string; encounterId: string } | null;
@@ -10461,6 +10502,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -22446,6 +22492,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -32070,11 +32117,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -32111,106 +32154,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -32219,61 +32163,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -32314,61 +32205,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -51855,6 +51693,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -61479,11 +61318,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -61520,106 +61355,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -61628,61 +61364,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -61723,61 +61406,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -81273,6 +80903,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -90897,11 +90528,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -90938,106 +90565,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -91046,61 +90574,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -91141,61 +90616,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -110682,6 +110104,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -120306,11 +119729,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -120347,106 +119766,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -120455,61 +119775,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -120550,61 +119817,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -140126,6 +139340,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -149750,11 +148965,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -149791,106 +149002,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -149899,61 +149011,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -149994,61 +149053,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -169535,6 +168541,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -179159,11 +178166,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -179200,106 +178203,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -179308,61 +178212,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -179403,61 +178254,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -198946,6 +197744,7 @@ export declare const api: {
                     }
                   | {
                       economies: Array<"ACTION" | "BONUS_ACTION">;
+                      effect: any;
                       initiatorCheckDefinitionIds: Array<string>;
                       kind: "CLIMB_ONTO_LARGER_CREATURE";
                       minimumTargetSizeSteps: number;
@@ -208539,11 +207338,7 @@ export declare const api: {
                       kind: "OVERRUN";
                       targetCheckDefinitionId: string;
                     }
-                  | {
-                      defenderCheckDefinitionIds: Array<string>;
-                      initiatorCheckDefinitionId: string;
-                      kind: "SHOVE_ASIDE";
-                    }
+                  | { kind: "SHOVE_ASIDE" }
                   | {
                       initiatorCheckDefinitionId: string;
                       kind: "TUMBLE";
@@ -208580,105 +207375,7 @@ export declare const api: {
                       >;
                     }
                   | {
-                      bands: Array<{
-                        maximum: number;
-                        minimum: number;
-                        outcome: {
-                          id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
-                          operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_RESTRICTION";
-                                restrictionDefinitionId: string;
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                modifierDefinitionId: string;
-                                primitive: "APPLY_MODIFIER";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                cadence: "DAILY" | "REST";
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                effectDefinitionId: string;
-                                id: string;
-                                primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                disposition: "CONTINUE" | "FLEE" | "SURRENDER";
-                                duration: null;
-                                id: string;
-                                primitive: "SET_MORALE_DISPOSITION";
-                                target: "SUBJECT" | "GROUP";
-                              }
-                          >;
-                        };
-                      }>;
+                      failedSaveEffectId?: string;
                       kind: "MASSIVE_DAMAGE";
                       savingThrowAbilityDefinitionId: string;
                       savingThrowDifficultyClass: number;
@@ -208687,59 +207384,8 @@ export declare const api: {
                   | {
                       groupOutcomes: Array<{
                         id: string;
-                        kind:
-                          | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                          | "DROP_TO_ZERO"
-                          | "STABLE_AT_ZERO"
-                          | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                          | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                          | "CONTINUE"
-                          | "FLEE"
-                          | "SURRENDER";
+                        kind: "CONTINUE" | "FLEE" | "SURRENDER";
                         operations: Array<
-                          | {
-                              duration: null;
-                              id: string;
-                              primitive: "SET_HIT_POINTS";
-                              target: "SUBJECT";
-                              value: number;
-                            }
-                          | {
-                              duration: null;
-                              id: string;
-                              primitive: "SET_STABLE";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              conditionDefinitionId: string;
-                              duration:
-                                | "PERMANENT"
-                                | "UNTIL_END_OF_NEXT_TURN"
-                                | "UNTIL_CLEARED";
-                              id: string;
-                              primitive: "APPLY_CONDITION";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              available: false;
-                              duration: "UNTIL_END_OF_NEXT_TURN";
-                              id: string;
-                              primitive: "SET_REACTION_AVAILABILITY";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              duration:
-                                | "PERMANENT"
-                                | "UNTIL_END_OF_NEXT_TURN"
-                                | "UNTIL_CLEARED";
-                              id: string;
-                              primitive: "APPLY_ROLL_MODE";
-                              rollContexts: Array<
-                                "ATTACK_ROLL" | "ABILITY_CHECK" | "SAVING_THROW"
-                              >;
-                              rollMode: "DISADVANTAGE";
-                              target: "SUBJECT";
-                            }
                           | {
                               duration:
                                 | "PERMANENT"
@@ -208780,59 +207426,8 @@ export declare const api: {
                       }>;
                       individualOutcomes: Array<{
                         id: string;
-                        kind:
-                          | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                          | "DROP_TO_ZERO"
-                          | "STABLE_AT_ZERO"
-                          | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                          | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                          | "CONTINUE"
-                          | "FLEE"
-                          | "SURRENDER";
+                        kind: "CONTINUE" | "FLEE" | "SURRENDER";
                         operations: Array<
-                          | {
-                              duration: null;
-                              id: string;
-                              primitive: "SET_HIT_POINTS";
-                              target: "SUBJECT";
-                              value: number;
-                            }
-                          | {
-                              duration: null;
-                              id: string;
-                              primitive: "SET_STABLE";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              conditionDefinitionId: string;
-                              duration:
-                                | "PERMANENT"
-                                | "UNTIL_END_OF_NEXT_TURN"
-                                | "UNTIL_CLEARED";
-                              id: string;
-                              primitive: "APPLY_CONDITION";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              available: false;
-                              duration: "UNTIL_END_OF_NEXT_TURN";
-                              id: string;
-                              primitive: "SET_REACTION_AVAILABILITY";
-                              target: "SUBJECT";
-                            }
-                          | {
-                              duration:
-                                | "PERMANENT"
-                                | "UNTIL_END_OF_NEXT_TURN"
-                                | "UNTIL_CLEARED";
-                              id: string;
-                              primitive: "APPLY_ROLL_MODE";
-                              rollContexts: Array<
-                                "ATTACK_ROLL" | "ABILITY_CHECK" | "SAVING_THROW"
-                              >;
-                              rollMode: "DISADVANTAGE";
-                              target: "SUBJECT";
-                            }
                           | {
                               duration:
                                 | "PERMANENT"
@@ -228053,6 +226648,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -237677,11 +236273,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -237718,106 +236310,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -237826,61 +236319,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -237921,61 +236361,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -257462,6 +255849,7 @@ export declare const api: {
                       }
                     | {
                         economies: Array<"ACTION" | "BONUS_ACTION">;
+                        effect: any;
                         initiatorCheckDefinitionIds: Array<string>;
                         kind: "CLIMB_ONTO_LARGER_CREATURE";
                         minimumTargetSizeSteps: number;
@@ -267086,11 +265474,7 @@ export declare const api: {
                         kind: "OVERRUN";
                         targetCheckDefinitionId: string;
                       }
-                    | {
-                        defenderCheckDefinitionIds: Array<string>;
-                        initiatorCheckDefinitionId: string;
-                        kind: "SHOVE_ASIDE";
-                      }
+                    | { kind: "SHOVE_ASIDE" }
                     | {
                         initiatorCheckDefinitionId: string;
                         kind: "TUMBLE";
@@ -267127,106 +265511,7 @@ export declare const api: {
                         >;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                        }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -267235,61 +265520,8 @@ export declare const api: {
                     | {
                         groupOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -267330,61 +265562,8 @@ export declare const api: {
                         }>;
                         individualOutcomes: Array<{
                           id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
+                          kind: "CONTINUE" | "FLEE" | "SURRENDER";
                           operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
                             | {
                                 duration:
                                   | "PERMANENT"
@@ -287083,6 +285262,17 @@ export declare const api: {
             short?: string | null;
             unseen?: boolean;
           }>;
+          cover?: {
+            creatureMaxTierCode: string | null;
+            saveAbilityDefinitionIds: Array<string>;
+            tiers: Array<{
+              blocksTargeting: boolean;
+              bonus: number;
+              code: string;
+              label: string;
+              minBlockedLines: number;
+            }>;
+          };
           creatureTypes: Array<{
             code: string;
             description?: string | null;
@@ -287191,6 +285381,7 @@ export declare const api: {
             short?: string | null;
           }>;
           userId: string;
+          zoneSpotPassiveDefinitionId?: string;
         } | null
       >;
       list: FunctionReference<
@@ -291689,6 +289880,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -291753,6 +289945,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -291931,6 +290124,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -292099,6 +290298,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -292247,6 +290452,30 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          pendingZoneSightings: Array<{
+            actorId: string;
+            spatialEffectId: string;
+          }>;
+          placedZones: Array<{
+            disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+            id: string;
+            label: string | null;
+            shape:
+              | {
+                  center: { x: number; y: number };
+                  kind: "CIRCLE";
+                  radius: number;
+                }
+              | {
+                  center: { x: number; y: number };
+                  innerRadius: number;
+                  kind: "RING";
+                  outerRadius: number;
+                }
+              | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+            spotDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+            unawareActorIds: Array<string>;
+          }>;
           turnMovement: Array<{
             actorId: string;
             allowances: Array<{
@@ -292359,6 +290588,12 @@ export declare const api: {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
                         kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
                         sourceLabel: string | null;
                       }
                     | {
@@ -292535,6 +290770,12 @@ export declare const api: {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
                         kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
                         sourceLabel: string | null;
                       }
                     | {
@@ -292918,6 +291159,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -292982,6 +291224,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -293106,6 +291349,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -293351,6 +291599,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -293441,6 +291694,12 @@ export declare const api: {
                   damage: { amount: number; typeLabel: string | null };
                   dc: number;
                   kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
                   sourceLabel: string | null;
                 }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -293604,6 +291863,12 @@ export declare const api: {
                   damage: { amount: number; typeLabel: string | null };
                   dc: number;
                   kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
                   sourceLabel: string | null;
                 }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -293991,6 +292256,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
+            automaticCover?: boolean;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
@@ -294054,6 +292320,7 @@ export declare const api: {
             trackAmmunition?: boolean;
             updatedAt: string;
             version: number;
+            zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
           }
         | {
             actors: Array<{
@@ -294396,6 +292663,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -294460,6 +292728,7 @@ export declare const api: {
                 trackAmmunition?: boolean;
                 updatedAt: string;
                 version: number;
+                zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
               }
             | {
                 actors: Array<{
@@ -294595,6 +292864,12 @@ export declare const api: {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
                       kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
                       sourceLabel: string | null;
                     }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -294763,6 +293038,12 @@ export declare const api: {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
                       kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
                       sourceLabel: string | null;
                     }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -295135,6 +293416,7 @@ export declare const api: {
             systemId: string | null;
             tempHitPoints: number;
           }>;
+          automaticCover?: boolean;
           automationMode: "ASSISTED" | "MANUAL";
           blueprintChecksum: string;
           blueprintId: string;
@@ -295198,6 +293480,7 @@ export declare const api: {
           trackAmmunition?: boolean;
           updatedAt: string;
           version: number;
+          zoneNoticing?: "GM_PROMPT" | "SEARCH_ONLY";
         }
       >;
       deletePrepared: FunctionReference<
@@ -296494,6 +294777,11 @@ export declare const api: {
             | { kind: "DOUBLE" }
             | { kind: "MULTIPLY"; value: number };
         };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
         id: string;
         normalizedExpression: string;
         ruleCheck?:
@@ -296602,6 +294890,11 @@ export declare const api: {
             | { kind: "DOUBLE" }
             | { kind: "MULTIPLY"; value: number };
         };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
         gmCampaignRoll: {
           campaignId: string;
           creature: { actorId: string; encounterId: string } | null;
@@ -296772,6 +295065,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297071,6 +295365,7 @@ export declare const api: {
                   assetId: string | null;
                   characterId?: string;
                   controlledByUserIds: Array<string>;
+                  coverTierOverride?: { tierCode: string | null };
                   height: number;
                   hidden: boolean;
                   id: string;
@@ -297412,6 +295707,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297712,6 +296008,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297947,6 +296244,7 @@ export declare const api: {
               assetId: string | null;
               characterId?: string;
               controlledByUserIds: Array<string>;
+              coverTierOverride?: { tierCode: string | null };
               height: number;
               hidden: boolean;
               id: string;
@@ -302720,6 +301018,16 @@ export declare const internal: {
       >;
     };
     heads: {
+      awaitCompilation: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          revisionBuiltFrom: number;
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeId: string;
+        },
+        null
+      >;
       claimSupersededObjects: FunctionReference<
         "mutation",
         "internal",
@@ -302860,7 +301168,8 @@ export declare const internal: {
           scope: "SOURCE" | "CAMPAIGN";
           scopeId: string;
         },
-        { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { pendingCompilation: true }
       >;
     };
     manifest: {
@@ -306627,6 +304936,7 @@ export declare const internal: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;

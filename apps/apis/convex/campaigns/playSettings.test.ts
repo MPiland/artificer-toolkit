@@ -244,6 +244,7 @@ describe('native Campaign play settings', () => {
       })
     expect(await read()).toMatchObject({
       automationMode: settings.automationMode,
+      zoneNoticing: 'GM_PROMPT',
       initiativePolicySnapshot: null,
       initiativePolicySnapshotChecksum: null,
       optionalCombatSnapshot: { definitions: [] }
@@ -260,6 +261,8 @@ describe('native Campaign play settings', () => {
       ...input(settings),
       automationMode: 'MANUAL',
       trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false,
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -268,6 +271,8 @@ describe('native Campaign play settings', () => {
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
       trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false,
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -307,10 +312,22 @@ describe('native Campaign play settings', () => {
     await owner.caller.mutation(save, {
       ...input(saved),
       automationMode: 'ASSISTED',
-      trackAmmunition: false
+      trackAmmunition: false,
+      zoneNoticing: 'GM_PROMPT',
+      automaticCover: true
     })
-    expect(await read()).toMatchObject({ automationMode: 'ASSISTED', trackAmmunition: false })
-    expect(frozen).toMatchObject({ automationMode: 'MANUAL', trackAmmunition: true })
+    expect(await read()).toMatchObject({
+      automationMode: 'ASSISTED',
+      trackAmmunition: false,
+      zoneNoticing: 'GM_PROMPT',
+      automaticCover: true
+    })
+    expect(frozen).toMatchObject({
+      automationMode: 'MANUAL',
+      trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false
+    })
     await t.run(async (ctx) => {
       const graph = await ctx.db
         .query('reusableDefinitions')
@@ -746,13 +763,13 @@ describe('native Campaign play settings', () => {
     const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
-    const mark = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'MARK'
+    const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
     )
-    if (!disarm || !mark) throw new Error('Missing optional combat fixtures.')
+    if (!disarm || !climb) throw new Error('Missing optional combat fixtures.')
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [disarm, mark]
+      definitions: [disarm, climb]
     })
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
@@ -761,7 +778,7 @@ describe('native Campaign play settings', () => {
     expect(saved.optionalCombatRuleDefinitionIds).toEqual([disarm.id])
     const before = await stored(t)
     await expect(
-      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [mark.id] })
+      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [climb.id] })
     ).rejects.toThrow('not available for Encounter execution')
     await expect(
       owner.caller.mutation(save, {
@@ -775,7 +792,9 @@ describe('native Campaign play settings', () => {
         .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
         .unique()
       if (!system) throw new Error('Missing System.')
-      const document = jsonValueSchema.parse({ ...srdSystemRecord, skills: [], passives: [] })
+      // Without passives the System names no zone spot passive either.
+      const { zoneSpotPassiveDefinitionId, ...vocabulary } = srdSystemRecord
+      const document = jsonValueSchema.parse({ ...vocabulary, skills: [], passives: [] })
       await ctx.db.patch(system._id, { document, checksum: checksumRuleDocument(document) })
     })
     await expect(owner.caller.mutation(save, input(saved))).rejects.toThrow(
@@ -783,6 +802,61 @@ describe('native Campaign play settings', () => {
     )
     expect(await stored(t)).toEqual(before)
   })
+
+  it.each([
+    { kind: 'INJURIES', ac: 'ATTACK-15.3' },
+    { kind: 'MASSIVE_DAMAGE', ac: 'ATTACK-16.2' }
+  ] as const)(
+    'offers and saves $kind only while its System policy resolves it ($ac)',
+    async ({ kind }) => {
+      const { t, owner, campaign, settings } = await setup()
+      const rule = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+        (definition) => definition.document.kind === kind
+      )
+      if (!rule) throw new Error(`Missing ${kind} fixture.`)
+      const unresolvedDocument = {
+        ...rule.document,
+        id: crypto.randomUUID(),
+        module: {
+          ...rule.document.module,
+          contractVersion: rule.document.module.contractVersion + 1
+        }
+      }
+      const unresolved = {
+        ...rule,
+        id: unresolvedDocument.id,
+        label: `${rule.label}, unsupported contract`,
+        document: unresolvedDocument,
+        checksum: checksumRuleDocument(unresolvedDocument)
+      }
+      await t.mutation(internal.content.import.importDefinitions, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        definitions: [rule, unresolved]
+      })
+      const offered = await owner.caller.query(options, { campaignId: campaign.id })
+      expect(offered.optionalCombatRules).toContainEqual({
+        definitionId: rule.id,
+        label: rule.label,
+        kind
+      })
+      expect(offered.optionalCombatRules.map(({ definitionId }) => definitionId)).not.toContain(
+        unresolved.id
+      )
+      const saved = await owner.caller.mutation(save, {
+        ...input(settings),
+        optionalCombatRuleDefinitionIds: [rule.id]
+      })
+      expect(saved.optionalCombatRuleDefinitionIds).toEqual([rule.id])
+      const before = await stored(t)
+      await expect(
+        owner.caller.mutation(save, {
+          ...input(saved),
+          optionalCombatRuleDefinitionIds: [unresolved.id]
+        })
+      ).rejects.toThrow('not available for Encounter execution')
+      expect(await stored(t)).toEqual(before)
+    }
+  )
 
   it('fails closed for missing native settings instead of manufacturing a second lifecycle', async () => {
     const { t, owner, campaign, settings } = await setup()

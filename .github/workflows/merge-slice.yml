@@ -4,7 +4,8 @@
 #   gh workflow run merge-slice.yml --ref codex/phase-08-2-convex-cutover \
 #     -f branch=ci/<slice> -f sha=<tip> -f title='Merge <PBI>.<task>: <summary>'
 # Several slices merge as one batch: pass -f slices='ci/<a>@<tip> ci/<b>@<tip>' instead of branch and sha.
-# It refuses, pushing nothing, when the tip moved, Tests or Live is not green on that SHA, or the merge
+# It refuses, pushing nothing, when the tip moved, Tests, Live or a Browser journeys run there is not
+# green on that SHA, or the merge
 # conflicts; a batch that goes red leaves only its ci/merge-m<N> branch. Plain pushes only, never main.
 name: Merge slice
 

@@ -15,12 +15,9 @@ import {
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
+import { CONTENT_SNAPSHOT_PAGE_MAX_ROOTS } from './heads'
 import { vContentSnapshotScopeRef } from './marking'
 import { createContentSnapshotStorage } from './storage'
-
-// About 60 ms of warm Node for the SRD's largest kind (CREATURE), leaving headroom for the
-// self-hosted runtime's slower per-call execution against the 1 s query limit.
-const CONTENT_SNAPSHOT_READ_PAGE_SIZE = 100
 
 /**
  * Rebuilds every kind of one scope from its current publications and commits the head with a
@@ -47,12 +44,23 @@ export const build = internalAction({
         const sources: ContentSnapshotListSource[] = []
         let cursor: string | null = null
         for (let isDone = false; !isDone;) {
-          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
-            await ctx.runQuery(internal.contentSnapshots.heads.readScopeKind, {
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await ctx.runQuery(
+            internal.contentSnapshots.heads.readScopeKind,
+            {
               ...ref,
               kind,
-              paginationOpts: { numItems: CONTENT_SNAPSHOT_READ_PAGE_SIZE, cursor }
+              paginationOpts: { numItems: CONTENT_SNAPSHOT_PAGE_MAX_ROOTS, cursor }
+            }
+          )
+          if ('pendingCompilation' in page) {
+            await ctx.runMutation(internal.contentSnapshots.heads.awaitCompilation, {
+              ...ref,
+              revisionBuiltFrom: start.revision
             })
+            return null
+          }
           // Parsed from the query's own serialization; the part build validates every root.
           for (const json of page.sources)
             sources.push(JSON.parse(json) as ContentSnapshotListSource)

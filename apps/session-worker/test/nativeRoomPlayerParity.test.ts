@@ -304,6 +304,50 @@ const PARITY: Record<CommandType, Entry> = {
       point: { x: 0, y: 0 }
     })
   },
+  SET_ZONE_DCS: {
+    access: 'TABLE',
+    rule: table('MOVE-3.3: the GM sets the spot and disarm DCs that conceal a placed zone'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'SET_ZONE_DCS',
+      spatialEffectId: SOME_ID,
+      spotDc: { value: 15, source: 'FLAT' },
+      disarmDc: null
+    })
+  },
+  DISMISS_ZONE_SIGHTING: {
+    access: 'TABLE',
+    rule: table('MOVE-3.5: the GM dismisses a Character sighting of a concealed zone'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'DISMISS_ZONE_SIGHTING',
+      spatialEffectId: SOME_ID,
+      actorId: probe.actorId
+    })
+  },
+  REVEAL_ZONE: {
+    access: 'TABLE',
+    rule: table('MOVE-3.7: the GM shows a concealed zone to chosen Characters'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'REVEAL_ZONE',
+      spatialEffectId: SOME_ID,
+      actorIds: [probe.actorId]
+    })
+  },
+  DISARM_ZONE: {
+    access: 'TABLE',
+    rule: table('MOVE-3.7: the GM disarms a zone, which removes it'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'DISARM_ZONE',
+      spatialEffectId: SOME_ID
+    })
+  },
   MORALE_SAVE: {
     access: 'TABLE',
     rule: table(

@@ -97,6 +97,7 @@ import type {
   ManifestCreatureFormAuthored,
   ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
+  ManifestCamouflageAuthored,
   ManifestLightAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
@@ -584,6 +585,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         bright: createMeasurement('FEET'),
         dimAdditional: createMeasurement('FEET')
       } satisfies ManifestLightAuthored
+    case 'manifestCamouflage':
+      return { spotDc: { kind: 'SOURCE_SAVE_DC' } } satisfies ManifestCamouflageAuthored
     case 'manifestOccupantSaveBonus':
       return {
         id: crypto.randomUUID(),
@@ -706,6 +709,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         description: '',
         resultBlock: createEmptyResultBlock()
       } satisfies Partial<PathChoiceOptionAuthored>
+    case 'pathChoiceOptionRequiredRule':
+      return { definitionId: '' } satisfies PathChoiceOptionAuthored['requiresOptionalRule']
     case 'resultBlock':
       return createEmptyResultBlock()
     case 'numericExpr':

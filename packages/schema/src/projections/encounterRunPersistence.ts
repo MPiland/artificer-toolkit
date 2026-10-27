@@ -1,6 +1,10 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { spatialPointDtoSchema } from '../shared/spatialFacts.js'
+import {
+  spatialRuleEffectCurrentStateDtoSchema,
+  spatialRuleEffectStateDtoSchema
+} from '../shared/spatial.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
@@ -596,6 +600,31 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.literal('PLACE_ZONE'),
       /** The Scene zone the GM placed (MOVE-3.2), which the GM's undo removes. */
       receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.enum(['SET_ZONE_DCS', 'REVEAL_ZONE']),
+      /**
+       * The zone's state before and after the GM set its DCs (MOVE-3.3) or revealed it (MOVE-3.7), so
+       * the GM's undo restores it while nothing but sightings has changed the zone since (MOVE-3.5).
+       */
+      receipt: z.strictObject({
+        spatialEffectId: postgresUuidSchema,
+        before: spatialRuleEffectStateDtoSchema,
+        after: spatialRuleEffectStateDtoSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('DISARM_ZONE'),
+      /** The zone the GM disarmed (MOVE-3.7) as it stood, which the GM's undo puts back. */
+      receipt: z.strictObject({
+        spatialEffectId: postgresUuidSchema,
+        zone: spatialRuleEffectCurrentStateDtoSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('DISMISS_ZONE_SIGHTING'),
+      /** The sighting the GM dismissed (MOVE-3.5), which the GM's undo prompts again. */
+      receipt: z.strictObject({ spatialEffectId: postgresUuidSchema, actorId: postgresUuidSchema })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),

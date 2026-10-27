@@ -1,4 +1,7 @@
-import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type {
+  CharacterGrantFoldInput,
+  CharacterGrantFoldSource
+} from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import type {
   CompiledFeatGrant,
@@ -35,6 +38,9 @@ type GrantBearingDefinition = {
   spells?: readonly CompiledSpellGrant[]
 }
 
+/** The build facts a grant source reads: its System and the grant choices made for it. */
+type GrantSelectionFacts = Pick<CharacterBuildSnapshot, 'systemId' | 'chosenGrantSelections'>
+
 type ScalingTargetKey = 'senseIds' | 'featIds' | 'spellIds'
 
 function selectedIds<K extends ScalingTargetKey>(
@@ -45,7 +51,7 @@ function selectedIds<K extends ScalingTargetKey>(
 }
 
 function chosenTargets(
-  snapshot: CharacterBuildSnapshot,
+  snapshot: GrantSelectionFacts,
   grantId: string,
   owner: CharacterProvenance,
   progressionLevel?: number
@@ -69,7 +75,7 @@ function chosenTargets(
 
 function proficiencyTargets(
   grant: CompiledProficiencyGrant,
-  snapshot: CharacterBuildSnapshot,
+  snapshot: GrantSelectionFacts,
   owner: CharacterProvenance
 ): string[] {
   if (grant.selectionKind === 'CHOSEN') return chosenTargets(snapshot, grant.id, owner)
@@ -90,7 +96,7 @@ function proficiencyTargets(
 
 export function buildCharacterGrantFoldProficiencyFacts(
   grants: readonly CompiledProficiencyGrant[] | undefined,
-  snapshot: CharacterBuildSnapshot,
+  snapshot: GrantSelectionFacts,
   owner: CharacterProvenance,
   normalizeTarget?: (kind: string, targetId: string) => string
 ): CharacterGrantFoldSource['proficiencies'] {
@@ -115,7 +121,7 @@ export function buildCharacterGrantFoldProficiencyFacts(
 function scalingTargets<K extends ScalingTargetKey>(
   grant: CompiledScalingGrant<GrantKind, CompiledGrantTarget<Record<K, string[]>>>,
   idKey: K,
-  snapshot: CharacterBuildSnapshot,
+  snapshot: GrantSelectionFacts,
   owner: CharacterProvenance
 ): { targetIds: string[]; levels: Array<{ level: number; targetIds: string[] }> } {
   if (grant.scalingKind === SCALING.NONE) {
@@ -143,7 +149,7 @@ function scalingTargets<K extends ScalingTargetKey>(
 }
 
 function mechanicSource(
-  snapshot: CharacterBuildSnapshot,
+  snapshot: GrantSelectionFacts,
   owner: CharacterProvenance,
   definitionId: string,
   sourceInstanceId?: string
@@ -199,7 +205,7 @@ export function buildCharacterGrantFoldSourceFacts(params: {
   definitionId: string
   sourceId?: string
   sourceInstanceId?: string
-  snapshot: CharacterBuildSnapshot
+  snapshot: GrantSelectionFacts
   proficiencies?: readonly CompiledProficiencyGrant[]
   sourceState?: { carried: boolean; equipped: boolean; attuned: boolean }
   equipmentSource?: CharacterGrantFoldSource['mechanicSource']
@@ -250,6 +256,88 @@ export function compiledEquipmentParentIds(
   item: CharacterBuildSnapshot['equipmentItems'][number]['compiledItem']
 ): string[] {
   return item.category === 'VARIANT' ? [item.parentEquipmentId] : [...item.parentEquipmentIds]
+}
+
+/**
+ * The grant fold facts of a holder's Equipment, for Characters and Creatures alike (ATTACK-6.3):
+ * each item is one `EQUIPMENT_INSTANCE` source whose restrictions, attunement and modifiers the
+ * fold decides with its equipped and attuned state.
+ */
+export function buildGrantFoldEquipmentFacts(params: {
+  items: readonly {
+    instanceId: string
+    equipmentId: string
+    compiledItem: CharacterBuildSnapshot['equipmentItems'][number]['compiledItem']
+    equipped: boolean
+    attuned: boolean
+  }[]
+  snapshot: GrantSelectionFacts
+  normalizeProficiencyTarget?: (kind: string, targetId: string) => string
+}): {
+  equipment: CharacterGrantFoldInput['base']['equipment']
+  equipmentItems: CharacterGrantFoldInput['equipmentItems']
+} {
+  const { snapshot, normalizeProficiencyTarget } = params
+  return {
+    equipment: params.items.map((item) => ({
+      equipmentId: item.equipmentId,
+      parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
+      category: item.compiledItem.category ?? null,
+      properties: [...(item.compiledItem.properties ?? [])],
+      equipped: item.equipped,
+      attuned: item.attuned
+    })),
+    equipmentItems: params.items.map((item) => {
+      const source = {
+        kind: 'EQUIPMENT_INSTANCE' as const,
+        equipmentId: item.equipmentId,
+        itemInstanceId: item.instanceId
+      }
+      const sourceState = { carried: true, equipped: item.equipped, attuned: item.attuned }
+      const rootSource = buildCharacterGrantFoldSourceFacts({
+        definition: item.compiledItem,
+        owner: { kind: 'FEATURE', featureId: item.compiledItem.id },
+        definitionId: item.compiledItem.id,
+        snapshot,
+        normalizeProficiencyTarget,
+        sourceState,
+        equipmentSource: source
+      })
+      return {
+        instanceId: item.instanceId,
+        equipmentId: item.equipmentId,
+        requiresAttunement: Boolean(item.compiledItem.requiresAttunement),
+        equipped: item.equipped,
+        attuned: item.attuned,
+        restrictions: normalizeCharacterGrantRestrictions(
+          item.compiledItem.restrictions,
+          normalizeProficiencyTarget
+        ),
+        rootSourceId: rootSource.sourceId,
+        rootModifiers: rootSource.modifiers,
+        chargeId: item.compiledItem.charges?.id ?? null,
+        features: (item.compiledItem.features ?? []).map((feature) => ({
+          source: buildCharacterGrantFoldSourceFacts({
+            definition: feature,
+            owner: { kind: 'FEATURE', featureId: feature.id },
+            definitionId: feature.id,
+            sourceId: `${rootSource.sourceId}:FEATURE:${encodeURIComponent(feature.id)}`,
+            snapshot,
+            normalizeProficiencyTarget,
+            sourceState,
+            equipmentSource: source
+          }),
+          sourceChargeUse: feature.charges
+            ? {
+                featureId: feature.id,
+                limitKind: feature.charges.limitKind,
+                cost: 'cost' in feature.charges ? feature.charges.cost : 0
+              }
+            : null
+        }))
+      }
+    })
+  }
 }
 
 export function getCharacterGrantFoldSelectedOptionIds(

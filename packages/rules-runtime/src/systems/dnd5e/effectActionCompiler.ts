@@ -111,6 +111,7 @@ import {
 } from './identity.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { foldD20Operands } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   attackCriticalRulesDtoSchema,
@@ -249,6 +250,7 @@ import {
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
   admitRollTablePaths,
+  directRollTableGraph,
   rollTableOutcomeTemplate,
   rollTablePath,
   rollTableRowActions
@@ -286,8 +288,9 @@ function templateIdentity(template: Dnd5eEffectActionTemplate) {
  * Resolves the bounded Creature-only `XdY + ability modifier` source form
  * from immutable stat-block facts.  This happens while facts are bound under
  * the Encounter lock; the authored outcome still owns every die, bonus, and
- * bound.  Character callers continue to supply their already-resolved
- * expressions through their policy output.
+ * bound, plus the `damageBonus` its bound loadout weapon adds (ATTACK-6.3).
+ * Character callers continue to supply their already-resolved expressions
+ * through their policy output.
  */
 export function resolveCreatureDamageExpression(input: {
   outcome: Record<string, unknown>
@@ -307,16 +310,15 @@ export function resolveCreatureDamageExpression(input: {
     if (!input.sourceHitPoints) return null
     if (2 * input.sourceHitPoints.current <= input.sourceHitPoints.maximum) dice = halfHitPointsDice
   }
-  const bonuses = input.outcome.bonuses
-  if (!Array.isArray(bonuses) || bonuses.length === 0) return dice
-  const statBlock = input.sourceDerivedFacts.statBlock
-  const abilityScores =
-    statBlock && typeof statBlock === 'object' && !Array.isArray(statBlock)
-      ? (statBlock as { abilityScores?: unknown }).abilityScores
-      : null
-  if (!abilityScores || typeof abilityScores !== 'object' || Array.isArray(abilityScores))
-    return null
-  let modifier = 0
+  const weaponDamageBonus = input.outcome.damageBonus ?? 0
+  const bonuses = input.outcome.bonuses ?? []
+  if (typeof weaponDamageBonus !== 'number' || !Array.isArray(bonuses)) return null
+  const abilityScores = (input.sourceDerivedFacts.statBlock as { abilityScores?: unknown } | null)
+    ?.abilityScores
+  const scoresRead =
+    abilityScores && typeof abilityScores === 'object' && !Array.isArray(abilityScores)
+  if (bonuses.length > 0 && !scoresRead) return null
+  let modifier = weaponDamageBonus
   for (const bonus of bonuses) {
     if (!bonus || typeof bonus !== 'object' || Array.isArray(bonus)) return null
     const row = bonus as Record<string, unknown>
@@ -690,7 +692,7 @@ function compileDirectResultSequence(
   )
 }
 
-function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
+export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   | (Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> & {
       frozenGraph: ServerPublishedRuleDefinitionDto
     })
@@ -2003,7 +2005,7 @@ function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOut
 }
 /**
  * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
- * decision 1). A kind with no entry is not a direct outcome.
+ * decision 1). A kind with no entry compiles to its registry target-only outcome, if it has one.
  */
 const DND5E_DIRECT_OUTCOMES: {
   [Kind in Dnd5eAuthoredOutcome['effectKind']]?: (
@@ -2025,10 +2027,6 @@ const DND5E_DIRECT_OUTCOMES: {
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   },
   KILL: () => ({ kind: 'KILL' }),
-  STABILIZE: targetOnlyDirectOutcome,
-  REVIVE: targetOnlyDirectOutcome,
-  MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
-  MOVEMENT_RULE: targetOnlyDirectOutcome,
   TELEPORT: (outcome, input) => {
     if (dnd5eTargetOnlyOutcome(outcome)) return targetOnlyDirectOutcome(outcome, input)
     // The caster moves its own token inside the Scene: the commit records a one-shot allowance the
@@ -2085,7 +2083,7 @@ function specializedDirectOutcome<Kind extends Dnd5eAuthoredOutcome['effectKind'
   input: DirectOutcomeInput
 ): Dnd5eDirectOutcome {
   const specialize = DND5E_DIRECT_OUTCOMES[kind]
-  return specialize ? specialize(outcome, input) : unsupportedDirectOutcome()
+  return specialize ? specialize(outcome, input) : targetOnlyDirectOutcome(outcome, input)
 }
 
 // A contest whose win holds the target under the action's relationship (Grapple, D152) compiles
@@ -2807,17 +2805,16 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const owed = (entry: CompiledEffectGroup['entries'][number]) =>
       entryOwed(entry, input.action.compiledEffect.id, input.facts)
     // A rider merged into the hit (D164 Charge) deals its damage and calls its save only when owed.
-    const owedPrimaryEntries = immediate.primaryDamageEntries.filter(owed)
+    const owedPrimaryEntries = immediate.primaryEntries.filter(owed)
     const saveOwed = owed(immediate.saveEntry)
     if (owedPrimaryEntries.length === 0 && !saveOwed) return null
     const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
-      if (!('outcome' in primaryDamageEntry))
-        unsupported('D&D immediate follow-up save primary damage is unavailable.')
       const primaryDamage = specializedTestOutcome(primaryDamageEntry)
       const nodePrefix =
         owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
-      // A fixed amount ("1 piercing damage") has no dice to double on a critical hit.
-      if (primaryDamage.kind === 'DAMAGE')
+      // A fixed amount ("1 piercing damage") has no dice to double on a critical hit, and a GM
+      // ruling beside the damage (a lycanthrope's curse) proposes its instructions without any.
+      if (primaryDamage.kind === 'DAMAGE' || primaryDamage.kind === 'MANUAL_ADJUDICATION')
         return fixedOutcomeGraphDefinition({
           action: input.action,
           entry: primaryDamageEntry,
@@ -3243,6 +3240,8 @@ function compileEffectActionGraph(
       published: compileTestDefinition(action, plan, recurringPlan)
     })
   }
+  const table = directRollTableGraph(action, timedActiveEffectPlan)
+  if (table) return bindMovementInterruptionOutput({ action, published: table })
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
   refuseUnboundGate(gates ?? {}, outcome.kind)
@@ -3262,10 +3261,7 @@ function compileEffectActionGraph(
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
-    return bindMovementInterruptionOutput({
-      action,
-      published: publishedGraph(definition)
-    })
+    return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
   }
   if (outcome.kind === 'DICE_DAMAGE') {
     const entry = action.compiledEffect.entries[0]
@@ -3279,10 +3275,7 @@ function compileEffectActionGraph(
     )
       unsupported('D&D direct dice damage must retain one exact unrecurring authored outcome.')
     const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
-    return bindMovementInterruptionOutput({
-      action,
-      published: publishedGraph(definition)
-    })
+    return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
   }
   if (outcome.kind === 'CONTEST_RELATIONSHIP')
     return bindMovementInterruptionOutput({
@@ -3683,6 +3676,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     maximumHitPoints,
     targetScalarValues,
     targetConditionIds,
+    foldedBonuses,
     conditionOutcomeRules,
     conditionImmunityIds,
     targetDamageTypesTaken
@@ -3997,6 +3991,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const attackKind = attackKindSchema.safeParse(action.attackKind)
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
       const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
+      const folded = foldD20Operands(foldedBonuses, action.attackBonus, armorClass, addedDice)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
         ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
           sourceId,
@@ -4032,8 +4027,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
             : {}),
-          [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
-          [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
+          [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
+          [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
             : {}),
@@ -4055,9 +4050,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors: allContributors,
           contributorChecksum,
-          modifier: action.attackBonus,
-          defenseOrDc: armorClass,
-          addedDice
+          ...folded
         }
       }
     }
@@ -4100,12 +4093,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         targetDerivedFacts.savingThrowAddedDice,
         save.abilityDefinitionId
       )
+      const folded = foldD20Operands(foldedBonuses, modifier, save.dc, addedDice)
       return {
         facts: {
           ...baseFacts,
           ...dnd5eAddedDiceFacts(addedDice),
-          [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier,
-          [DND5E_SAVE_DC_FACT_KEY]: save.dc,
+          [DND5E_SAVE_MODIFIER_FACT_KEY]: folded.modifier,
+          [DND5E_SAVE_DC_FACT_KEY]: folded.defenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
             conditionOutcomeRules,
@@ -4118,9 +4112,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors,
           contributorChecksum,
-          modifier,
-          defenseOrDc: save.dc,
-          addedDice,
+          ...folded,
           savingThrowAbilityDefinitionId: save.abilityDefinitionId
         }
       }

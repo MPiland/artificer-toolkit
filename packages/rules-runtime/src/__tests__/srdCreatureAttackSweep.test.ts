@@ -29,10 +29,6 @@ import {
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
 import { outcomeDice } from './encounterCreatureAction.js'
-import {
-  SRD_CREATURE_ATTACK_UNSUPPORTED,
-  type SrdCreatureAttackUnsupportedReason
-} from './srdCreatureAttackSweepAllowlist.js'
 
 const ACTOR_ID = testUuid(0xa1)
 const TARGET_ID = testUuid(0xa2)
@@ -149,14 +145,8 @@ function attackUnits(creature: CreatureAuthored): AttackUnit[] {
   )
 }
 
-function unsupportedReason(
-  stage: 'DISCOVERY' | 'PREPARE' | 'EXECUTE' | 'PLAN',
-  error: unknown
-): SrdCreatureAttackUnsupportedReason | `UNEXPECTED ${string}` {
-  const message = error instanceof Error ? error.message : String(error)
-  if (/unsupported bounded shape/.test(message)) return 'FOLLOW_UP_SAVE'
-  if (/outcome is not supported/.test(message)) return 'OUTCOME_KIND'
-  return `UNEXPECTED ${stage}: ${message}`
+function failureReason(stage: 'DISCOVERY' | 'PREPARE' | 'EXECUTE' | 'PLAN', error: unknown) {
+  return `${stage}: ${error instanceof Error ? error.message : String(error)}`
 }
 
 describe('SRD Creature attack sweep', () => {
@@ -195,20 +185,18 @@ describe('SRD Creature attack sweep', () => {
           : []
       )
       expect(hitKinds).toEqual([...Array(parts).fill('DAMAGE'), 'MANUAL_ADJUDICATION'])
-      expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
     }
   })
 
   it('sweeps the lycanthrope bites as automated damage beside a GM-ruled curse (D187a)', () => {
-    // The Wereboar's Tusks author the same shape, but its merged Charge save keeps it listed.
-    const allowlisted = {
-      'Werebear: Bite (Bear or Hybrid Form Only)': undefined,
-      'Wereboar: Tusks (Boar or Hybrid Form Only)': 'FOLLOW_UP_SAVE',
-      'Wererat: Bite (Rat or Hybrid Form Only)': undefined,
-      'Weretiger: Bite (Tiger or Hybrid Form Only)': undefined,
-      'Werewolf: Bite (Wolf or Hybrid Form Only)': undefined
-    }
-    for (const [label, reason] of Object.entries(allowlisted)) {
+    // The Wereboar's merged Charge save follows its curse ruling (ATTACK-5.T4w).
+    for (const label of [
+      'Werebear: Bite (Bear or Hybrid Form Only)',
+      'Wereboar: Tusks (Boar or Hybrid Form Only)',
+      'Wererat: Bite (Rat or Hybrid Form Only)',
+      'Weretiger: Bite (Tiger or Hybrid Form Only)',
+      'Werewolf: Bite (Wolf or Hybrid Form Only)'
+    ]) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
       const [unit] = units
@@ -218,7 +206,6 @@ describe('SRD Creature attack sweep', () => {
           : []
       )
       expect(hitKinds).toEqual(['DAMAGE', 'MANUAL_ADJUDICATION'])
-      expect(SRD_CREATURE_ATTACK_UNSUPPORTED[unit.effectId]).toBe(reason)
     }
   })
 
@@ -226,6 +213,7 @@ describe('SRD Creature attack sweep', () => {
     const hitKindsByLabel = {
       'Chain Devil: Chain': ['DAMAGE', 'ACTOR_RELATIONSHIP'],
       'Marilith: Tail': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
+      'Roper: Tendril': ['ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
       'Stirge: Blood Drain': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION']
     }
     for (const [label, expected] of Object.entries(hitKindsByLabel)) {
@@ -238,24 +226,16 @@ describe('SRD Creature attack sweep', () => {
           : []
       )
       expect(hitKinds).toEqual(expected)
-      expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
     }
   })
 
   it('sweeps the lingering poison and wound attacks as a save with a GM ruling on failure (D187a)', () => {
-    // The Horned Devil's stanch check (FOLLOW_UP_CHECK) has no executor under a save path yet, so its
-    // Tail stays on the allowlist while the Couatl Bite runs.
+    // The Horned Devil's stanch check is part of its infernal wound ruling (ATTACK-5.T4).
     const failures = {
-      'Couatl: Bite': {
-        kinds: ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'],
-        allowlisted: undefined
-      },
-      'Horned Devil: Tail': {
-        kinds: ['FOLLOW_UP_CHECK', 'MANUAL_ADJUDICATION'],
-        allowlisted: 'OUTCOME_KIND'
-      }
+      'Couatl: Bite': ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'],
+      'Horned Devil: Tail': ['MANUAL_ADJUDICATION']
     }
-    for (const [label, { kinds, allowlisted }] of Object.entries(failures)) {
+    for (const [label, kinds] of Object.entries(failures)) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
       const [unit] = units
@@ -270,11 +250,10 @@ describe('SRD Creature attack sweep', () => {
         save?.onFailure.kind === 'OUTCOMES' &&
           save.onFailure.outcomes.map(({ effectKind }) => effectKind)
       ).toEqual(kinds)
-      expect(SRD_CREATURE_ATTACK_UNSUPPORTED[unit.effectId]).toBe(allowlisted)
     }
   })
 
-  it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist, and doubles its dice on a critical hit', async () => {
+  it('prepares, executes and plans every SRD Creature attack, and doubles its dice on a critical hit', async () => {
     const runtime = createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')
     if (!ogre) throw new Error('The SRD Ogre is missing.')
@@ -318,8 +297,8 @@ describe('SRD Creature attack sweep', () => {
             entry.actionId.endsWith(`:EFFECT:${unit.effectId}`)
           )
           failures[unit.effectId] = unavailable
-            ? unsupportedReason('DISCOVERY', new Error(unavailable.reason))
-            : `UNEXPECTED DISCOVERY: ${unit.label} is not an action.`
+            ? failureReason('DISCOVERY', new Error(unavailable.reason))
+            : `DISCOVERY: ${unit.label} is not an action.`
           continue
         }
         let stage: 'PREPARE' | 'EXECUTE' | 'PLAN' = 'PREPARE'
@@ -377,13 +356,13 @@ describe('SRD Creature attack sweep', () => {
           criticalDice[unit.effectId] = outcomeDice(critical).hit.sort()
           expectedCriticalDice[unit.effectId] = printedCriticalDice(unit)
         } catch (error) {
-          failures[unit.effectId] = unsupportedReason(stage, error)
+          failures[unit.effectId] = failureReason(stage, error)
         }
       }
     }
 
-    expect(effectIds.size).toBe(550)
-    expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
+    expect(effectIds.size).toBe(549)
+    expect(failures).toEqual({})
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)
   }, 600_000)

@@ -7,17 +7,21 @@ import type {
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 
-import type { ArmorClassCapabilityAdapter } from '../../armorClassCapability.js'
+import type {
+  ArmorClassCapabilityAdapter,
+  ArmorClassResult,
+  CreatureArmorClassEquipment
+} from '../../armorClassCapability.js'
 import { abilityModifier } from './abilityModifier.js'
 import {
   combineDnd5eArmorClass,
   requireDnd5eArmorClass,
-  resolveDnd5eCreatureArmorClass,
   resolveDnd5eEquipmentArmorClass,
   selectDnd5eHeldShield
 } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
+import { evaluateDnd5eCreatureEquipment } from './creatureFeatureGrantFold.js'
 import { hitPointGain } from './hitPointRules.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 import {
@@ -85,12 +89,7 @@ export function resolveDnd5eShieldArmorClass(
 
 export const dnd5eArmorClassCapabilityAdapter: ArmorClassCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
-  creatureArmorClass: ({ abilityScores, naturalArmorBonus, equipment }) => {
-    const dexterityScore = abilityScores.DEXTERITY
-    return dexterityScore === undefined
-      ? null
-      : resolveDnd5eCreatureArmorClass({ dexterityScore, naturalArmorBonus, equipment })
-  },
+  creatureArmorClass: resolveDnd5eCreatureArmorClass,
   countedShield: ({ equipment, activeEquipmentInstanceIds, armorClass }) => {
     const addsOf = (shield: ActiveShield) => resolveDnd5eShieldArmorClass(shield, armorClass)
     const shield = resolveDnd5eActiveShield(equipment, activeEquipmentInstanceIds, addsOf)
@@ -98,16 +97,68 @@ export const dnd5eArmorClassCapabilityAdapter: ArmorClassCapabilityAdapter = {
   }
 }
 
-export function evaluateDnd5eCharacterVitals(
-  input: CharacterRulePolicyInput,
-  grantFold: CharacterGrantFoldOutput,
-  modifierGroups: CharacterResolvedModifierGroup[],
-  abilities: CharacterRulePolicyOutput['derivedStats']['abilities']
-): Pick<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'> &
-  Pick<CharacterRulePolicyOutput, 'hitPointProgression'> {
-  const modifierAt = (index: number | null | undefined) =>
-    index == null ? 0 : (abilities[index]?.modifier.effective ?? 0)
-  const equipment = input.armorClassFacts?.equipment ?? []
+/**
+ * A Creature's armor class from its effective loadout (D107, ATTACK-6.3): its Equipment is folded
+ * and its armor class computed exactly as a Character's, then its natural armor bonus adds. An
+ * armor or shield without an authored armor class yields a failure the caller decides on; a
+ * Creature without a Dexterity score has none.
+ */
+export function resolveDnd5eCreatureArmorClass(input: {
+  abilityScores: Readonly<Record<string, number>>
+  naturalArmorBonus: number
+  equipment: readonly CreatureArmorClassEquipment[]
+}): ArmorClassResult | null {
+  const dexterityScore = input.abilityScores.DEXTERITY
+  if (dexterityScore === undefined) return null
+  const equipment: ArmorClassEquipment = input.equipment.flatMap((entry) =>
+    entry.useState !== 'CARRIED' &&
+    (entry.compiled.category === 'ARMOR' || entry.compiled.category === 'SHIELD')
+      ? [
+          {
+            itemInstanceId: entry.id,
+            source: {
+              kind: 'EQUIPMENT_INSTANCE' as const,
+              equipmentId: entry.compiled.id,
+              itemInstanceId: entry.id
+            },
+            category: entry.compiled.category,
+            equippedSlot: entry.useState,
+            armorClass: entry.compiled.armorClass ?? null
+          }
+        ]
+      : []
+  )
+  const missing = equipment
+    .map((item) => resolveDnd5eEquipmentArmorClass(item.source.equipmentId, item.armorClass))
+    .find((result) => !result.ok)
+  if (missing) return missing
+  const { grantFold, modifierGroups } = evaluateDnd5eCreatureEquipment({
+    abilityScores: input.abilityScores,
+    equipment: input.equipment
+  })
+  return {
+    ok: true,
+    armorClass:
+      resolveDnd5eArmorClass({
+        equipment,
+        dexterityModifier: abilityModifier(dexterityScore),
+        grantFold,
+        modifierGroups
+      }).effective + input.naturalArmorBonus
+  }
+}
+
+/**
+ * The one D&D armor class evaluation of a holder's folded Equipment, for Characters and Creatures
+ * alike (ATTACK-6.3): the worn armor and the active shield, with their own modifiers applied.
+ */
+function resolveDnd5eArmorClass(input: {
+  equipment: ArmorClassEquipment
+  dexterityModifier: number
+  grantFold: CharacterGrantFoldOutput
+  modifierGroups: readonly CharacterResolvedModifierGroup[]
+}): CharacterRulePolicyOutput['derivedStats']['armorClass'] {
+  const { equipment, grantFold, modifierGroups } = input
   const armor = equipment
     .filter(
       (item) =>
@@ -178,7 +229,7 @@ export function evaluateDnd5eCharacterVitals(
               )
               .map((entry) => entry.contribution.value)
           },
-    dexterityModifier: modifierAt(input.armorClassFacts?.dexterityAbilityIndex),
+    dexterityModifier: input.dexterityModifier,
     setValues: applicable
       .filter((entry) => entry.modifierKind === 'SET_VALUE')
       .map((entry) => entry.contribution.value),
@@ -187,12 +238,29 @@ export function evaluateDnd5eCharacterVitals(
       .filter((contribution) => contribution.state === 'APPLIED')
       .map((contribution) => contribution.value)
   })
-  const armorClass: CharacterRulePolicyOutput['derivedStats']['armorClass'] = {
+  return {
     base: combined.base,
     effective: combined.effective,
     contributions: additive,
     override: null
   }
+}
+
+export function evaluateDnd5eCharacterVitals(
+  input: CharacterRulePolicyInput,
+  grantFold: CharacterGrantFoldOutput,
+  modifierGroups: CharacterResolvedModifierGroup[],
+  abilities: CharacterRulePolicyOutput['derivedStats']['abilities']
+): Pick<CharacterRulePolicyOutput['derivedStats'], 'armorClass' | 'maxHitPoints'> &
+  Pick<CharacterRulePolicyOutput, 'hitPointProgression'> {
+  const modifierAt = (index: number | null | undefined) =>
+    index == null ? 0 : (abilities[index]?.modifier.effective ?? 0)
+  const armorClass = resolveDnd5eArmorClass({
+    equipment: input.armorClassFacts?.equipment ?? [],
+    dexterityModifier: modifierAt(input.armorClassFacts?.dexterityAbilityIndex),
+    grantFold,
+    modifierGroups
+  })
   const facts = input.hitPointFacts
   const hitPointProgression = (facts?.progression?.rows ?? []).map((row) => {
     const value =

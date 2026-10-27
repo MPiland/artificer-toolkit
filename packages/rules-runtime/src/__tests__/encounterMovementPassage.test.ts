@@ -24,6 +24,9 @@ import type { EncounterActionEconomyConsumption } from '../encounterActionEconom
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
+import { enteredBlockerPosition } from '../encounterMovementPassageExecution.js'
+import { terminalMovementPathEnd } from '../encounterMovementPath.js'
+import { preparePassageAppliedEffects } from '../encounterPassageAppliedEffects.js'
 import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
@@ -764,7 +767,7 @@ describe('climbing onto a suitably larger creature, as an authored passage conte
     [SRD_ATHLETICS_SKILL_ID, 'Strength (Athletics)'],
     [SRD_ACROBATICS_SKILL_ID, 'Dexterity (Acrobatics)']
   ])(
-    'seals the chosen %s check against the target Acrobatics, stopping at contact on a win',
+    "seals the chosen %s check against the target Acrobatics, entering the target's space on a win",
     async (initiatorCheckDefinitionId, initiatorCheckLabel) => {
       const input = passageInput(runState('ASSISTED', [climbOnto]), [source, blocker('LARGE')])
       const choice = await availableEncounterMovementPassageChoice(reads(), input)
@@ -788,12 +791,60 @@ describe('climbing onto a suitably larger creature, as an authored passage conte
           initiatorCheckDefinitionId,
           initiatorCheckLabel,
           defenderCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
-          successMovement: 'STOP_AT_CONTACT'
+          successMovement: 'ENTER_BLOCKER_SPACE'
         }
       })
       expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
     }
   )
+})
+
+describe('the cling a won climb gives its target, authored on the climb definition (MOVE-4.T2a)', () => {
+  const movementTarget = (actor: EncounterRunActorState) =>
+    buildMovementTarget({
+      actor,
+      activeEffects: [],
+      gameSystemId: SRD_SYSTEM_ID,
+      campaignId: ids.campaign,
+      characterFacts: null
+    })
+  const clingFor = (definitionId: string, state = runState('ASSISTED', [climbOnto])) =>
+    preparePassageAppliedEffects({
+      state,
+      definitionId,
+      occurrenceId: ids.command,
+      commandId: ids.command,
+      occurredAt: timestamp,
+      source: movementTarget(source),
+      target: movementTarget(creature({ id: ids.first, disposition: 'HOSTILE', size: 'LARGE' })),
+      activeEffectsByActorId: new Map()
+    })
+
+  it('plans the authored hold on the climbed creature, sourced by the climber, with advantage on every attack', () => {
+    const [cling, ...rest] = clingFor(climbOnto.id)
+    expect(rest).toEqual([])
+    expect(cling).toMatchObject({
+      owner: { kind: 'ENCOUNTER_ACTOR', targetActorId: ids.first },
+      definition: {
+        origin: {
+          kind: 'ENCOUNTER',
+          sourceActorId: ids.source,
+          sourceOccurrenceId: ids.command
+        }
+      }
+    })
+    expect(JSON.stringify(cling)).toContain('SOURCE_ATTACK_ROLL_INFLUENCE')
+    expect(JSON.stringify(cling)).toContain('SOURCE_FOLLOWS_TARGET')
+  })
+
+  it('derives the same record for the same occurrence, so a replay settles once', () => {
+    expect(clingFor(climbOnto.id)).toEqual(clingFor(climbOnto.id))
+  })
+
+  it('gives nothing for another passage definition or while the climb rule is disabled', () => {
+    expect(clingFor(overrun.id)).toEqual([])
+    expect(clingFor(climbOnto.id, runState('ASSISTED', [overrun]))).toEqual([])
+  })
 })
 
 /** Seals the mover's `ruleKind` contest, paid with its Action, against the first blocker. */
@@ -893,5 +944,61 @@ describe("passage contests under the contestants' conditions (D94)", () => {
     expect(prepared.defender.checks).toMatchObject([
       { rollMode: 'DISADVANTAGE', contributors: [poisonedBy(ids.first)] }
     ])
+  })
+})
+
+describe('a won contest that enters the blocker space (MOVE-4.T2b2)', () => {
+  const large = { width: 200, height: 200, position: { x: 350, y: 150 } }
+
+  it('places the climber at the contact pulled until its footprint lies inside the blocker', () => {
+    expect(
+      enteredBlockerPosition(
+        { x: 200, y: 150 },
+        { mover: { width: 100, height: 100 }, blocker: large }
+      )
+    ).toEqual({ x: 300, y: 150 })
+    expect(
+      enteredBlockerPosition(
+        { x: 250, y: 60 },
+        { mover: { width: 50, height: 50 }, blocker: large }
+      )
+    ).toEqual({ x: 275, y: 75 })
+  })
+
+  it('centres a mover no smaller than the blocker on it', () => {
+    expect(
+      enteredBlockerPosition(
+        { x: 200, y: 150 },
+        { mover: { width: 200, height: 200 }, blocker: large }
+      )
+    ).toEqual({ x: 350, y: 150 })
+  })
+
+  it('lets the scene geometry check end the walked path at the contact one step out', () => {
+    const passage = (enteredPosition?: ScenePoint) => ({
+      commandId: ids.command,
+      passageContest: {
+        audit: { contact: { x: 200, y: 150 }, ...(enteredPosition ? { enteredPosition } : {}) }
+      }
+    })
+    const terminal = { x: 300, y: 150 }
+    expect(
+      terminalMovementPathEnd({
+        result: { terminalPosition: terminal },
+        resolutionCommands: [passage(terminal)]
+      })
+    ).toEqual({ x: 200, y: 150 })
+    expect(
+      terminalMovementPathEnd({
+        result: { terminalPosition: terminal },
+        resolutionCommands: [passage()]
+      })
+    ).toEqual(terminal)
+    expect(() =>
+      terminalMovementPathEnd({
+        result: { terminalPosition: terminal },
+        resolutionCommands: [passage({ x: 310, y: 150 })]
+      })
+    ).toThrow('Movement does not end at its entered passage position.')
   })
 })

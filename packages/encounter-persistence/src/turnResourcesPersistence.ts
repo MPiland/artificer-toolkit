@@ -296,19 +296,34 @@ export async function persistEncounterTurnResources(
       )
     )
       throw new Error('Live Session Legendary Action damage release is stale.')
-    // A timed grant the target's damage triggers made replaces the one it already held.
+    // A timed grant the target's damage triggers or the owner's mark made replaces the one it
+    // already held; a `PER_SOURCE` one (a mark) also ends the owner's earlier one on any other holder.
     const grantIds = new Set(
-      application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH'
-        ? application.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
-        : []
+      application.grantEffectTransitions.map(({ activeEffectId }) => activeEffectId)
     )
-    const replaced = effectsReplacedByGrants(
-      targetHeld,
-      createdEffects.filter(({ id }) => grantIds.has(id)).map(({ definition }) => definition)
-    )
+    const grants = createdEffects
+      .filter(({ id }) => grantIds.has(id))
+      .map(({ definition }) => definition)
+    const exclusive = grants.filter(({ exclusivity }) => exclusivity === 'PER_SOURCE')
+    const replacedElsewhere = exclusive.length
+      ? await Promise.all(
+          state.actorIds
+            .filter((actorId) => actorId !== targetActorId)
+            .map(async (actorId) =>
+              effectsReplacedByGrants(
+                await createActiveRuleEffectStore(ctx).list(
+                  turnEffectOwner(await readActor(actorId), state.id)
+                ),
+                exclusive
+              )
+            )
+        )
+      : []
+    const replaced = effectsReplacedByGrants(targetHeld, grants)
     await deleteGrants(ctx, [
       ...damageEnded.endedEffects,
-      ...replaced.filter(({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id))
+      ...replaced.filter(({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id)),
+      ...replacedElsewhere.flat()
     ])
     const feature = snapshotFeatureDefinitions(owner).find(
       (entry) => entry.id === option.ownerFeatureId

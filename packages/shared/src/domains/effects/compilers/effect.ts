@@ -119,6 +119,8 @@ export type CompiledEffect = {
    * only when its rider is among the ones the player chose, paying this cost.
    */
   optionalRider?: { riderId: string; cost: OptionalOnHitAuthored }
+  /** Set on a CHOICE option's entries: the option is offered only while this optional rule is on. */
+  requiresOptionalRule?: { definitionId: string }
   outcome: CompiledEffectOutcome
 } & (
   | {
@@ -126,6 +128,8 @@ export type CompiledEffect = {
       groupKind: keyof typeof PATH_GROUP_TYPE
       /** A CHOICE option's own result kind, which the entry keeps once the option is picked (D148). */
       optionGroupKind?: typeof PATH_GROUP_TYPE.SINGLE | typeof PATH_GROUP_TYPE.SEQUENTIAL
+      /** A CHOICE option's System roll influence on the initiator's contest check when it is picked. */
+      initiatorCheckInfluence?: string
     }
   | ({
       resolutionKind: typeof PATH_RESOLUTION_KIND.ROLL_TABLE
@@ -253,6 +257,7 @@ export type CompiledEffectOutcome =
   | import('#authored').ReviveAuthored
   | import('#authored').StabilizeAuthored
   | import('#authored').KillAuthored
+  | import('#authored').HitPointsToZeroAuthored
   | ArmorClassFloorAuthored
   | RestoreResourceAuthored
   | TelepathicLinkAuthored
@@ -371,6 +376,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
     case EFFECT_KIND.KILL:
+    case EFFECT_KIND.HIT_POINTS_TO_ZERO:
     case EFFECT_KIND.REVIVE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:
@@ -485,6 +491,8 @@ function compileResultBlock(
     label?: string
     description?: string
     hitPointTier?: { atMost: number }
+    initiatorCheckInfluence?: string
+    requiresOptionalRule?: { definitionId: string }
   },
   rollTableMeta?: {
     rollTableKind: PathRollTableKind
@@ -540,6 +548,7 @@ function compileResultBlock(
           ? { suppressedByDamageTypeIds: resultBlock.suppressedByDamageTypeIds }
           : {}),
         ...(meta?.hitPointTier ? { hitPointTier: meta.hitPointTier } : {}),
+        ...(meta?.requiresOptionalRule ? { requiresOptionalRule: meta.requiresOptionalRule } : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
@@ -577,7 +586,10 @@ function compileResultBlock(
         ...(path.selectionKind === 'CHOICE'
           ? {
               groupKind: PATH_GROUP_TYPE.CHOICE,
-              optionGroupKind: groupKindFromResultKind(resultBlock.resultKind)
+              optionGroupKind: groupKindFromResultKind(resultBlock.resultKind),
+              ...(meta?.initiatorCheckInfluence !== undefined
+                ? { initiatorCheckInfluence: meta.initiatorCheckInfluence }
+                : {})
             }
           : { groupKind: groupKindFromResultKind(resultBlock.resultKind) })
       })
@@ -611,7 +623,13 @@ export function compileEffectResult<
               entryId: option.id,
               entryOrderBase: option.order * 1000,
               ...(option.label !== undefined ? { label: option.label } : {}),
-              ...(option.description !== undefined ? { description: option.description } : {})
+              ...(option.description !== undefined ? { description: option.description } : {}),
+              ...(option.initiatorCheckInfluence !== undefined
+                ? { initiatorCheckInfluence: option.initiatorCheckInfluence }
+                : {}),
+              ...(option.requiresOptionalRule
+                ? { requiresOptionalRule: option.requiresOptionalRule }
+                : {})
             })
           )
         }

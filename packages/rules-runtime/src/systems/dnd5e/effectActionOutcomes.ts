@@ -22,6 +22,7 @@ import {
   DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
@@ -171,6 +172,11 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       },
       payloadOutputs: ['hitPointsKind', 'hitPointsAmount']
     },
+    // Not damage: the target drops to 0 and the 0-hit-point transition defeats or downs it.
+    HIT_POINTS_TO_ZERO: targetOnly(DND5E_HIT_POINTS_TO_ZERO_PROPOSAL_OPERATION_KEY, {
+      pathGated: true,
+      changesTargetState: true
+    }),
     DEPART: targetOnly(DND5E_DEPART_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
       changesTargetState: true
@@ -283,13 +289,20 @@ function reviveHitPointsOf(
  * An outcome that needs nothing from its action beyond its target, so it is proposed alike with no
  * test and on a test's result path. Null for any other outcome.
  */
-export function dnd5eTargetOnlyOutcome(
-  outcome: Dnd5eAuthoredOutcome
-): Extract<
+export function dnd5eTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome): Extract<
   Outcome,
-  { kind: 'STABILIZE' | 'REVIVE' | 'DEPART' | 'MANUAL_ADJUDICATION' | 'ADD_SPEED_TO_MOVEMENT' }
+  {
+    kind:
+      | 'STABILIZE'
+      | 'HIT_POINTS_TO_ZERO'
+      | 'REVIVE'
+      | 'DEPART'
+      | 'MANUAL_ADJUDICATION'
+      | 'ADD_SPEED_TO_MOVEMENT'
+  }
 > | null {
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  if (outcome.effectKind === 'HIT_POINTS_TO_ZERO') return { kind: 'HIT_POINTS_TO_ZERO' }
   if (outcome.effectKind === 'REVIVE')
     return { kind: 'REVIVE', hitPoints: reviveHitPointsOf(outcome) }
   // The target leaves the Scene for a place the table does not model; the commit marks it as

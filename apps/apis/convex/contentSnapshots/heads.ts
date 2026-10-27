@@ -1,4 +1,5 @@
-import { paginationOptsValidator, type PaginationOptions } from 'convex/server'
+import { paginationOptsValidator } from 'convex/server'
+import { stream } from 'convex-helpers/server/stream'
 import { v } from 'convex/values'
 import { zodToConvex } from 'convex-helpers/server/zod4'
 import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
@@ -16,6 +17,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
+import schema from '../schema'
 import {
   hasCampaignContentParents,
   readCampaignSharedActiveRoot,
@@ -49,6 +51,11 @@ const CLEANUP_BATCH_SIZE = 100
 const CLEANUP_CLAIM_TIMEOUT_MS = 60 * 60_000
 const DELETING_KEY_RETRY_MS = 60_000
 const MAX_AUTOMATIC_RETRIES = 5
+// A readScopeKind page stops at 15 roots or once its serialized sources reach 256 KiB. In
+// convex-test a root costs about 7-22 ms, so the full SRD's largest page took 282 ms, against
+// 1,236 ms for the 100-root pages that ran past the 1 s query limit on CI's self-hosted runtime.
+export const CONTENT_SNAPSHOT_PAGE_MAX_ROOTS = 15
+const CONTENT_SNAPSHOT_PAGE_BYTE_BUDGET = 256 * 1024
 
 /**
  * The revision a build starts from, or null when nothing is unbuilt. Content read afterwards is at
@@ -89,7 +96,8 @@ export const readBuildStart = internalQuery({
 /**
  * One page of one kind of a scope's readable current publications, by the Builder's source rules,
  * as JSON list sources (the publication plus its public id and, for a Spell, its School label). A
- * missing scope has no roots. Pages bound each query's reads and time.
+ * missing scope has no roots. A page reads at most `numItems` and the page root budget, and stops
+ * once its sources reach the byte budget, so each query's reads and time stay bounded.
  */
 export const readScopeKind = internalQuery({
   args: {
@@ -97,19 +105,31 @@ export const readScopeKind = internalQuery({
     kind: zodToConvex(contentSnapshotKindSchema),
     paginationOpts: paginationOptsValidator
   },
-  returns: v.object({
-    sources: v.array(v.string()),
-    continueCursor: v.string(),
-    isDone: v.boolean()
-  }),
+  returns: v.union(
+    v.object({
+      sources: v.array(v.string()),
+      continueCursor: v.string(),
+      isDone: v.boolean()
+    }),
+    v.object({ pendingCompilation: v.literal(true) })
+  ),
   handler: async (ctx, { scope, scopeId, kind, paginationOpts }) => {
-    const { page, continueCursor, isDone } =
+    const readRoots =
       scope === 'SOURCE'
-        ? await readSourcePublications(ctx, scopeId, kind, paginationOpts)
-        : await readCampaignPublications(ctx, scopeId, kind, paginationOpts)
+        ? await sourcePublicationReader(ctx, scopeId, kind)
+        : await campaignPublicationReader(ctx, scopeId, kind)
+    if (!readRoots) return { sources: [], continueCursor: '', isDone: true }
+    const roots = await readRoots(
+      paginationOpts.cursor,
+      Math.min(paginationOpts.numItems, CONTENT_SNAPSHOT_PAGE_MAX_ROOTS)
+    )
     const sources: string[] = []
     const schoolLabels = new Map<string, ReadonlyMap<string, string>>()
-    for (const { root, publication, version } of page) {
+    let bytes = 0
+    for (const [index, load] of roots.page.entries()) {
+      const loaded = await load()
+      if (!loaded) continue
+      const { root, publication, version } = loaded
       // Fails closed on a root whose catalogue metadata was never written.
       const { publicId } = authoredCatalogueMetadataSchema.parse(root.catalogue)
       let magicSchoolLabel: string | undefined
@@ -145,12 +165,13 @@ export const readScopeKind = internalQuery({
               ? { storedParentId: root.parentEquipmentId }
               : {})
       }
-      // Fails closed: a snapshot never carries a root its readers would have to recompile.
+      // A snapshot never carries a root its readers would have to recompile; the build waits for
+      // the compilation instead (`awaitCompilation`).
       const compilation = await readAuthoredVersionCompilation(ctx, {
         versionId: root.currentVersionPublicId
       })
       if (!compilation || compilation.authoredChecksum !== root.checksum)
-        throw new Error('Content snapshot source compilation is missing or stale.')
+        return { pendingCompilation: true as const }
       const source: ContentSnapshotListSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
@@ -168,9 +189,16 @@ export const readScopeKind = internalQuery({
               compilation,
               ...(magicSchoolLabel ? { magicSchoolLabel } : {})
             }
-      sources.push(JSON.stringify(source))
+      const json = JSON.stringify(source)
+      sources.push(json)
+      bytes += new TextEncoder().encode(json).byteLength
+      if (bytes >= CONTENT_SNAPSHOT_PAGE_BYTE_BUDGET && index < roots.page.length - 1) {
+        // The page ends after this root: the same read cut to the roots taken gives its cursor.
+        const { continueCursor } = await readRoots(paginationOpts.cursor, index + 1)
+        return { sources, continueCursor, isDone: false }
+      }
     }
-    return { sources, continueCursor, isDone }
+    return { sources, continueCursor: roots.continueCursor, isDone: roots.isDone }
   }
 })
 
@@ -179,77 +207,80 @@ type ScopePublication = {
   publication: ReturnType<typeof parsePublicationDocument>
   version: number
 }
-const emptyPage = { page: [], continueCursor: '', isDone: true }
 
-/** The roots `readCharacterSourceRoots` reads for this source, one page at a time. */
-async function readSourcePublications(
-  ctx: QueryCtx,
-  sourceId: string,
-  kind: ContentSnapshotKind,
-  paginationOpts: PaginationOptions
-) {
+/**
+ * Reads pages of the roots `readCharacterSourceRoots` reads for this source, each root's publication
+ * loaded on demand, or null for a missing source.
+ */
+async function sourcePublicationReader(ctx: QueryCtx, sourceId: string, kind: ContentSnapshotKind) {
   const source = await ctx.db
     .query('contentSources')
     .withIndex('by_publicId', (q) => q.eq('id', sourceId))
     .unique()
-  if (!source) return emptyPage
-  const roots = await contentStream(ctx.db)
-    .query('authoredRoots')
-    .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
-      q
-        .eq('contentSourceId', source.id)
-        .eq('subjectKind', kind)
-        .eq('ownerUserId', source.kind === 'USER' ? source.ownerUserId : undefined)
-    )
-    .filterWith((root) => isImportRowVisible(ctx, root.importJobId))
-    .paginate(paginationOpts)
-  const page: ScopePublication[] = []
-  for (const root of roots.page) {
-    if (root.systemId !== source.gameSystemId)
-      throw new Error('Stored content source System mismatch.')
-    if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) continue
-    const version = await readAuthoredVersion(ctx, root)
-    const publication = parsePublicationDocument(
-      kind,
-      await readPublishedDocument(ctx, root, version)
-    )
-    page.push({ root, publication, version: version.version })
+  if (!source) return null
+  return async (cursor: string | null, numItems: number) => {
+    const roots = await contentStream(ctx.db)
+      .query('authoredRoots')
+      .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
+        q
+          .eq('contentSourceId', source.id)
+          .eq('subjectKind', kind)
+          .eq('ownerUserId', source.kind === 'USER' ? source.ownerUserId : undefined)
+      )
+      .filterWith((root) => isImportRowVisible(ctx, root.importJobId))
+      .paginate({ numItems, cursor })
+    const page = roots.page.map((root) => async (): Promise<ScopePublication | null> => {
+      if (root.systemId !== source.gameSystemId)
+        throw new Error('Stored content source System mismatch.')
+      if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) return null
+      const version = await readAuthoredVersion(ctx, root)
+      const publication = parsePublicationDocument(
+        kind,
+        await readPublishedDocument(ctx, root, version)
+      )
+      return { root, publication, version: version.version }
+    })
+    return { ...roots, page }
   }
-  return { ...roots, page }
 }
 
-async function readCampaignPublications(
+/**
+ * Reads pages of a Campaign's shared roots of one kind, each root's publication loaded on demand, or
+ * null for a missing Campaign.
+ */
+async function campaignPublicationReader(
   ctx: QueryCtx,
   campaignId: string,
-  kind: ContentSnapshotKind,
-  paginationOpts: PaginationOptions
+  kind: ContentSnapshotKind
 ) {
   const campaign = await ctx.db
     .query('campaigns')
     .withIndex('by_publicId', (q) => q.eq('id', campaignId))
     .unique()
-  if (!campaign) return emptyPage
-  const shares = await ctx.db
-    .query('campaignContentShares')
-    .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
-      q.eq('campaignId', campaign.id).eq('subjectKind', kind)
-    )
-    .paginate(paginationOpts)
-  const page: ScopePublication[] = []
-  for (const share of shares.page) {
-    const root = await readCampaignSharedActiveRoot(ctx, campaign, kind, share.subjectId)
-    // A child whose parent share is gone is excluded; the Builder's parent rule still applies.
-    if (!root || !(await hasCampaignContentParents(ctx, campaign, root))) continue
-    await requireCampaignContentParents(ctx, campaign, root)
-    const version = await readAuthoredVersion(ctx, root)
-    const document = await readPublishedDocument(ctx, root, version)
-    page.push({
-      root,
-      publication: parsePublicationDocument(kind, document),
-      version: version.version
+  if (!campaign) return null
+  return async (cursor: string | null, numItems: number) => {
+    // A stream, unlike `ctx.db` pagination, may page twice in one query.
+    const shares = await stream(ctx.db, schema)
+      .query('campaignContentShares')
+      .withIndex('by_campaignId_subjectKind_subjectId', (q) =>
+        q.eq('campaignId', campaign.id).eq('subjectKind', kind)
+      )
+      .paginate({ numItems, cursor })
+    const page = shares.page.map((share) => async (): Promise<ScopePublication | null> => {
+      const root = await readCampaignSharedActiveRoot(ctx, campaign, kind, share.subjectId)
+      // A child whose parent share is gone is excluded; the Builder's parent rule still applies.
+      if (!root || !(await hasCampaignContentParents(ctx, campaign, root))) return null
+      await requireCampaignContentParents(ctx, campaign, root)
+      const version = await readAuthoredVersion(ctx, root)
+      const document = await readPublishedDocument(ctx, root, version)
+      return {
+        root,
+        publication: parsePublicationDocument(kind, document),
+        version: version.version
+      }
     })
+    return { ...shares, page }
   }
-  return { ...shares, page }
 }
 
 /**
@@ -389,6 +420,25 @@ export const commitBuild = internalMutation({
     if (dirty)
       await scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
     return 'COMMITTED'
+  }
+})
+
+/**
+ * A build that found a root without its current compilation is waiting on that compilation, not
+ * failing: writing it marks the scope (`lib/mutations.ts`). A mark during this build already bumped
+ * `revision`, so it rebuilds now; otherwise the lease is released for that mark to schedule.
+ */
+export const awaitCompilation = internalMutation({
+  args: { ...vContentSnapshotScopeRef, revisionBuiltFrom: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { revisionBuiltFrom, ...ref }) => {
+    const head = await readContentSnapshotHead(ctx.db, ref)
+    if (!head) return null
+    const marked = head.revision > revisionBuiltFrom
+    await ctx.db.patch(head._id, { buildScheduledAt: marked ? Date.now() : undefined })
+    if (marked)
+      await scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+    return null
   }
 })
 

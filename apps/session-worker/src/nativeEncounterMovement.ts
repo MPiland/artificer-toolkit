@@ -11,6 +11,7 @@ import {
   resolveEncounterBelievedAttackPerception,
   resolveEncounterObserversSeeing
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
+import { resolveEncounterCover } from '@artificer-toolkit/rules-runtime/encounterCover'
 import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import {
@@ -53,6 +54,7 @@ import {
   MovementBlockedError,
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
+import { refuseBlockedCover } from './nativeLiveCover.js'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { admitsEncounterFacing } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
@@ -172,16 +174,18 @@ export async function prepareNativeLiveMovement(
     }
   ) {
     // The reaction attack is made from where the mover is in contact with the reactor.
-    const contactTokens = scene.tokens.flatMap((token) => {
+    const contactTokens = scene.tokens.flatMap(({ coverTierOverride, ...token }) => {
       const actorId = captured.actorIdByTokenId.get(token.id)
+      const moving = token.id === captured.token.id
+      // The mover has left the place the GM's cover override was set for.
       return actorId
         ? [
             {
               ...token,
+              ...(!moving && coverTierOverride && { coverTierOverride }),
               actorId,
               tokenId: token.id,
-              position:
-                token.id === captured.token.id ? reaction.option.candidate.contact : token.position
+              position: moving ? reaction.option.candidate.contact : token.position
             }
           ]
         : []
@@ -289,6 +293,27 @@ export async function prepareNativeLiveMovement(
                     })
                   }
                 }),
+              // The reactor's cover against the mover is judged with the mover at the contact point.
+              loadCover: async ({ sourceFacts, targetFacts }) => {
+                const reactorToken = contactTokens.find(
+                  ({ actorId }) => actorId === sourceFacts.actor.id
+                )
+                const movingToken = contactTokens.find(
+                  ({ actorId }) => actorId === targetFacts.actor.id
+                )
+                if (!reactorToken || !movingToken)
+                  throw new Error('Movement reaction perception facts are stale.')
+                return refuseBlockedCover(
+                  resolveEncounterCover({
+                    system,
+                    scene: { ...captured.perceptionScene, tokens: contactTokens },
+                    origin: { kind: 'TOKEN', token: reactorToken },
+                    targetTokenId: movingToken.id,
+                    automatic: state.automaticCover
+                  }),
+                  true
+                )
+              },
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
               loadTargetHasNotTakenTurn: ({ targetFacts }) =>
                 readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
@@ -442,11 +467,14 @@ export async function prepareNativeLiveMovement(
     >(step, {
       discoverPassage: async () => {
         try {
-          // A creature the mover drags moves with it, so it never blocks the mover's way (D105).
+          // A creature the mover drags moves with it, so it never blocks the mover's way (D105),
+          // nor does one the mover follows.
           return discoverEncounterMovementPassage({
             ...step,
             sceneTokens: step.sceneTokens.filter(
-              ({ id }) => !captured.drag?.tokens.some(({ tokenId }) => tokenId === id)
+              ({ id }) =>
+                !captured.drag?.tokens.some(({ tokenId }) => tokenId === id) &&
+                !captured.followedTokenIds.has(id)
             ),
             actors: captured.actors,
             passage: encounterMovementPassageFacts(

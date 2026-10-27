@@ -109,6 +109,11 @@ export interface SpatialEffectInstance {
   readonly movementKinds: readonly SpatialMovementKind[]
   /** A voluntary mover moving carefully crosses the field at double cost and makes no entry save. */
   readonly bypassAtHalfSpeed?: boolean
+  /**
+   * A concealed effect: only these actors know of it, so only they may cross it carefully; it
+   * catches every other mover as usual (MOVE-3.6). Absent for an effect in plain sight.
+   */
+  readonly knownByActorIds?: readonly string[]
   /** What moving through the effect costs a creature it catches, as a multiplier (D154); absent for 1. */
   readonly movementCostMultiplier?: number
   /** Creatures the effect never catches (designated by the caster at cast). */
@@ -475,6 +480,29 @@ interface AuthoredPointAreaLength {
 export type AuthoredPointArea =
   | { readonly kind: 'RADIUS'; readonly radius: AuthoredPointAreaLength }
   | { readonly kind: 'CUBE'; readonly edgeLength: AuthoredPointAreaLength }
+
+/**
+ * A sphere, cylinder or circle as its radius and a cube as its edge; null for any other shape. The
+ * Worker, the action compiler and the GM zone tool all size a point area through it.
+ */
+export function pointAreaOfShape<TLength extends AuthoredPointAreaLength>(
+  shape:
+    | { readonly shapeKind: 'CUBE'; readonly edgeLength: TLength }
+    | { readonly shapeKind: 'SPHERE' | 'CYLINDER' | 'CIRCLE'; readonly radius: TLength }
+    | { readonly shapeKind: 'LINE' | 'CONE' | 'WALL' | 'DOME' }
+):
+  | { readonly kind: 'RADIUS'; readonly radius: TLength }
+  | { readonly kind: 'CUBE'; readonly edgeLength: TLength }
+  | null {
+  if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
+  if (
+    shape.shapeKind === 'SPHERE' ||
+    shape.shapeKind === 'CYLINDER' ||
+    shape.shapeKind === 'CIRCLE'
+  )
+    return { kind: 'RADIUS', radius: shape.radius }
+  return null
+}
 
 /** An authored length in Scene coordinates. Null for a length that is scaled or empty. */
 export function authoredLengthInSceneCoordinates(
@@ -1511,6 +1539,20 @@ export function compareSpatialMovementCandidates(
 }
 
 /**
+ * Whether a careful mover crosses this field at double cost and makes no entry save: it allows
+ * passage at half speed and, when concealed, the mover knows of it.
+ */
+export function crossesSpatialFieldCarefully(
+  effect: Pick<SpatialEffectInstance, 'bypassAtHalfSpeed' | 'knownByActorIds'>,
+  moverActorId: string
+): boolean {
+  return (
+    effect.bypassAtHalfSpeed === true &&
+    (effect.knownByActorIds === undefined || effect.knownByActorIds.includes(moverActorId))
+  )
+}
+
+/**
  * Collect deterministic full-footprint contact facts: how the mover meets each effect (enters,
  * leaves or passes through). It does not decide which contacts an effect acts on (the rules
  * runtime's event table does), execute an effect, or mutate scene state.
@@ -1545,7 +1587,12 @@ export function collectSpatialMovementCandidates(input: {
   for (const effect of input.effects) {
     if (!validSpatialEffect(effect, tokenIds) || !effect.movementKinds.includes(input.movementKind))
       continue
-    if (input.carefully && effect.bypassAtHalfSpeed && input.movementKind === 'VOLUNTARY') continue
+    if (
+      input.carefully &&
+      input.movementKind === 'VOLUNTARY' &&
+      crossesSpatialFieldCarefully(effect, input.actorIdByTokenId.get(movingToken.id)!)
+    )
+      continue
     const sourceMoved =
       effect.anchorKind === 'TOKEN' && effect.sourceTokenId === input.movingTokenId
     const targets = sourceMoved

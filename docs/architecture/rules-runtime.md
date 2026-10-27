@@ -220,7 +220,7 @@ adjudication) and True Resurrection (maximum) are authored from it. Eligibility 
 description-only. `stepDown` and the poison and disease clauses are SPELLS-4.T2g2.
 
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
-`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport) and `REVIVE`, alongside the
+`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport), `REVIVE` and`nHIT_POINTS_TO_ZERO`, alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
 the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
 `executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through
@@ -709,7 +709,9 @@ same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a ga
 (`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
 `ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
 turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
-so it is never a free heal. Sunlight and running water are deferred edge cases.
+so it is never a free heal. Sunlight and running water are deferred edge cases. The same self `ACTOR` root
+carries a rule's failed-save action (`systemTrigger.trigger: RULE`, ATTACK-16.T1c2b; see the optional combat
+guide), raised by `raiseRoomRuleEffects` after the start-of-turn effects.
 
 **Damage taken since the turn began (current, SPELLS-33.T4i1b1).** A creature or custom actor carries an optional
 `damageTypesSinceTurnStart: {damageTypeId, commandId}[]`. `withDamageTypesTaken`
@@ -993,6 +995,11 @@ manual. The top-level plans hold the first option. The choice DTO lists the opti
 `ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
 kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
 modifiers) passes `readsSharedTest` and reads the top-level option.
+An option may author `initiatorCheckInfluence`, a System roll-influence code (MOVE-2.T2b). It does not make a
+separate test: the compiler copies it onto the option's entries. `prepareEncounterBasicActionContest` reads it from the
+picked effect and merges it into the initiator's check as one `AUTHORED` contributor (`<optionId>:pick`) through
+`mergedRollContributors`, so the System cancels it against the actor's other roll-mode contributors. An influence on an
+action whose check is not a contest is refused by `compileCastChoicePlans`.
 Creature feature actions compile the same way: discovery calls `compileCastChoicePlans` for any compiled effect with
 `castChoiceOptions` (Vampire Spawn Claws and the Vampire's Unarmed Strike are damage-or-grapple picks, SPELLS-33 T3a6),
 and a failing option makes only that action unavailable (D54). A flow that cannot prompt (opportunity attacks, reactions,
@@ -1059,7 +1066,7 @@ a GM `UPDATE_ACTOR` edit that raises a creature's hit points. A batch run by an 
 records to the root's `consumedGrants` receipt, so GM undo restores them with the same id and version; the Sheet, death
 save and GM edit paths have no undoable root, so their endings are not undone. The other mechanics-batch callers need no
 receipt: basic action check settlement applies only `STABILIZE` and Cleaving only `DAMAGE`, neither of which raises hit points,
-and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Not yet: hidden or unnoticed zones (MOVE-3.3 to 3.5).
+and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which is not an undoable root: `REVERT_LAST_ACTION` refuses it, and the Scene undo (`UNDO_LAST_SCENE_MOVE`) refuses a move that recorded rule receipts, because it restores only the token's position. Concealed and unnoticed zones are below (MOVE-3.3 to 3.6).
 
 A result that tiers on the target's hit points (`HIT_POINT_TIERS` path rows, T2i4a) compiles to
 `compilation.hitPointTierPlans`: one active-effect plan per tier, each carrying `hitPointTier: { atMost }`, with
@@ -1084,6 +1091,13 @@ condition's last counted turn (D62.2) removes the effect's conditions under `dnd
 turn-effect result binds that removal to the expiring effect itself (an `EXPIRE` lifecycle, its own effect id, no
 paths), not to a trace candidate, since the duration node outputs nothing.
 
+A test-less action's table (ATTACK-16.T1c2a, current) amends T1a's "save result path only" rule: an action with no
+attack, save or check may resolve its one path (ON_USE) through one `ROLL_TABLE`, rolled server-side in its single
+DIRECT graph (`directRollTableGraph`). The graph is the same table graph a save's OUTCOME phase runs (table die, row
+gates, path-gated row outcomes, `rollTableRoll` output), admitted by the same rules, so `rollTableRowPlans` and
+`encounterActiveEffectPlan` work unchanged from the DIRECT outputs. The table must be the action's only path. Tables on
+an attack's or a check's result paths stay refused.
+
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
 (the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add
@@ -1099,7 +1113,7 @@ settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice,
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
-**GM environmental zones (MOVE-3.2, ADR 0038, server current; tabletop tool MOVE-3.T1b pending).** The GM command
+**GM environmental zones (MOVE-3.2, ADR 0038, current).** The GM command
 `PLACE_ZONE` carries an authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome (the zone `outcome` node map's values) and a
 Scene point. `planEncounterEnvironmentalZone` (`encounterEnvironmentalZone.ts`) wraps it in the passive Effect an item
 leaving it authors and runs the same `compileEffect`, `bindEncounterEffect`, `compilePassiveZone`,
@@ -1108,6 +1122,42 @@ No creature stands behind it, so a zone that needs one (maintenance, a cast save
 unaffected picks, required sight, a non-fixed escape DC, a source-turn trigger or a source-ability save bonus) is
 refused as `TARGET_UNAVAILABLE`. `placeEnvironmentalZone` (`encounter-persistence`) stores it with receipt
 `{ spatialEffectId }`, and GM undo (`REVERT_LAST_ACTION`) deletes it. Entries then settle as every placed zone's do.
+On the tabletop, `CampaignTabletopZoneTool` (`apps/web`) authors the zone through the shared `FormRenderer` on the
+`outcome` node map, sizes it with `pointAreaOfShape` (`shared/vtt`, the same reading the area actions use), aims it
+through the stage's point-area pick and sends `PLACE_ZONE`. It offers undo while the placement is still the Run's last
+action, sending `REVERT_LAST_ACTION` at the placement's committed version so a later command makes the undo stale.
+The stage does not yet draw a placed zone's outline.
+
+**Concealed zones (MOVE-3.3, server current; GM DC input and map outline on web pending).** A zone fixed to the Scene
+may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's Stealth or Sleight of Hand roll result
+(`PLACER_ROLL`). They live in the zone's mutable `spatialState` (`concealment: { spotDc, knownByActorIds }` and
+`disarmDc`), not its placement, because the GM sets them at placement (`PLACE_ZONE` `spotDc`/`disarmDc`) or later
+(`SET_ZONE_DCS`, GM-only, receipt `{ spatialEffectId, before, afterVersion }`; GM undo restores `before` while the zone
+is still at `afterVersion`). `withZoneDcs` (`encounterZoneConcealment.ts`) makes the placer, the zone's
+`origin.sourceActorId`, know of a newly concealed zone; a GM-placed zone has no placer, so only the GM knows of it.
+A ZONE manifest can author `camouflage: { spotDc }` (MOVE-3.4), a `HeldEscapeDcAuthored` (`FIXED`, or `SOURCE_SAVE_DC` for the cast's save DC pinned at placement). `placedZoneRecord` passes it to `withZoneDcs` as a `FLAT` spot DC, so the zone is concealed from everyone but its placer on placement; a GM-typed `spotDc` overrides it, and an environmental (GM) zone refuses `SOURCE_SAVE_DC` because it has no source.
+Concealment is separate from the placement's `visibility`/`revealed` pair, which hides a zone from everyone until it
+triggers. `readEncounterSessionState` redacts per member once, for Convex and the room alike: the GM reads every zone,
+and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`
+(`zoneConcealedFrom`), so `halfSpeedFields`, `movementCostZones` and the new `placedZones` (the outlines the map draws)
+leave it out. Only the GM reads the DCs in `placedZones`. The movement path still triggers a concealed zone for every
+mover.
+
+**Reveal and disarm (MOVE-3.7, current).** `REVEAL_ZONE` (GM-only, `actorIds`) adds the chosen Characters to
+`knownByActorIds` (`withZoneRevealedTo`), so they read the zone like its placer, and their sightings settle (removed). It shares `SET_ZONE_DCS`'s receipt (`before`/`after`) and its undo
+(`revertZoneDcs`, which also restores the settled sightings). `DISARM_ZONE` (GM-only) deletes a zone fixed to the Scene that no Concentration holds; its receipt keeps
+the whole zone (`definition`, `lifecycle`, `placement`, `spatialState`) and the GM's undo recreates it under the same id
+(`revertZoneDisarm`). The four zone GM commands run through `executeZoneCommand` (`zoneCommand.ts`). The disarm DC stays
+GM-only in `placedZones`, including for a player who was shown the zone. A botched disarm is the GM's call.
+
+**Unnoticed zones (MOVE-3.6, current).** An actor not in a concealed zone's `knownByActorIds` has not noticed it.
+`toSpatialInstances` carries `knownByActorIds` onto the spatial instance, and `crossesSpatialFieldCarefully`
+(`shared/vtt/spatial.ts`) lets a careful mover skip the entry save and pay double only in a field it knows of: both
+`collectSpatialMovementCandidates` and `preparedMovementCost` read it, so an unaware mover's `carefully` neither bypasses
+nor doubles the cost, and entering triggers the zone. Each `placedZones` row carries `unawareActorIds`: every Run actor
+not in `knownByActorIds` for the GM, only the player's own controlled actors for a player, and `[]` for a zone in plain
+sight. The tabletop offers "Move carefully" only for fields the mover has noticed, and the GM's dragged route appends
+"<zone> not noticed by <labels>" for each concealed zone it enters (`formatSceneRoute`).
 
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
@@ -1813,6 +1863,35 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   stays ungated and spends any unspent allowance. Publication marks it spent (`finish.teleportCastCommandId`). Undo order is the move first
   (`UNDO_LAST_SCENE_MOVE` restores the allowance in the same transaction), then the cast (`REVERT_LAST_ACTION` removes an unspent allowance
   and is refused once a move spent it). This is the one enforced movement exception in ADR 0034: the spell grants the move.
+- **Cover tiers (SPELLS-14.T1).** `resolveSquareGridCover` (`packages/shared/src/domains/vtt/optionalCombatGeometry.ts`) works out
+  a target's cover on a square grid by the corner method: from the origin corner (an attacker's space, or an area's point of origin)
+  that leaves the least cover, one line to each corner of the target's least-covered square, with corners inset a hair so a wall on
+  a space's own edge still counts. A barrier that stops movement along a line blocks it (closed doors do, open ones do not), and so
+  does another creature's space. The tiers are System data: the System document's optional `cover` (`systemAuthoredDtoSchema`)
+  lists ascending tiers with their blocked-line threshold, bonus and whether they block targeting, plus the highest tier creatures
+  give on their own. Walls give the tier their lines reach; creatures add lines only up to that cap. The SRD authors half (1 line,
+  +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
+  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space.
+- **Cover applied (SPELLS-14.T2).** The Campaign setting `automaticCover` (default on, an automation setting beside
+  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover. `prepareEncounterActionMechanics`
+  always asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
+  `resolveSquareGridCover`). The Worker reads the live Scene for it (`nativeLiveCover.ts`: attack and cast preparation, the area
+  action's per-target preparation, an opportunity attack's reactor→mover lines); the encounter-persistence preview host has no
+  barrier reader, so it computes no cover and its previews show the uncovered d20. A tier that blocks targeting is a hard
+  `EncounterValidationError` in prepare for a single target, and an area leaves that creature out of the caught set
+  (`nativeEncounterAreaRules.ts`, lines from the area's origin point). Any other tier folds into the d20 as generic, labelled
+  `foldedBonuses` (`packages/schema/src/shared/d20FoldedBonuses.ts`): an attack's `defenseOrDc` operand, or the saver's `modifier`
+  for the abilities the System's `cover.saveAbilityDefinitionIds` names (the SRD names Dexterity). The compiler adds the folded
+  amounts to the attack/save facts and the `d20Audit`, so the evidence's `modifier` and `defenseOrDc` hold what the roll used and
+  `foldedBonuses` names where the difference came from; the roll record carries the list and the card shows "Half cover +2" (a save)
+  or "Half cover: target's defense +2" (an attack). Nothing in code names a cover tier or number. Paths whose host has no Scene
+  context (the counterspell cast pause, area collision revalidation) apply no cover.
+- **Cover override (SPELLS-14.T3).** The GM sets a target's tier on its Scene token, `coverTierOverride: { tierCode }` (absent =
+  automatic, `null` = no cover, otherwise a System tier `code`), through the GM-only `UPSERT_SCENE_TOKEN`. `resolveEncounterCover`
+  takes the override first and computes a tier only when `automatic` is set; an unknown code gives no cover. The override is
+  direction-agnostic, so it applies to every attacker and area origin. `applySceneGeometryDelta` drops it on `TOKEN_MOVED` and
+  `TOKEN_MOVE_UNDONE` (cover is positional), and an opportunity attack ignores the mover's override. The tabletop shows it to
+  everyone as a COVER token status.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,
@@ -1822,7 +1901,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
   free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
   attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
-  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  outcome (`planForcedMovementDestination` in `nativeForcedMovementDestination.ts`, shared with a won contest, over
+  `holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit
@@ -2473,9 +2553,11 @@ adapter supports, ranged long range (`longAmount`, `encounterActionLongRangeCont
 attacks, timed conditions (one effect owning several conditions and, beside them, a speed grant:
 `conditionContributions` and the plan-level `lifecycle`, SPELLS-27.T9) and multi-condition hits are defined by the compiler
 (`systems/dnd5e/effectActionCompiler`) and fail closed outside those shapes. Range and reach use one
-measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
-(`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
-reason, and may only shrink. Versatile grips author one effect per grip.
+measure, `measureSceneTokenFootprintDistance`. The primary entries before an immediate save are the hit's
+damage and any GM rulings beside it (Wereboar Tusks' curse ahead of its Charge save, ATTACK-5.T4w); a
+ruling rolls no dice and sizes no hit point maximum reduction. The SRD attack sweep
+(`__tests__/srdCreatureAttackSweep.test.ts`) prepares, executes and plans every SRD Creature attack with no
+exceptions (ATTACK-5.T4w retired its allowlist). Versatile grips author one effect per grip.
 
 Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
 (`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where
@@ -2761,6 +2843,14 @@ translated to its own place, merged in `compareSpatialMovementCandidates` order.
 (same dice, pending prompts, Concentration checks, receipts under the move's command and projection), so a dragged creature's
 0 hit points or STOP interruption stops the whole drag at that contact, and the Scene undo refuses the move because it recorded
 receipts. The list is recomputed from the live holds on every segment and resume, so no snapshot field carries it.
+A `SOURCE_FOLLOWS_TARGET` relationship rides the same drag the other way (MOVE-4.T2b1): when the creature holding it
+moves voluntarily, `encounterMovementDrag` carries the relationship's source (a creature clinging to it) along the same
+displacement, with the same path checks and one undo, but a follower never doubles the cost. The room also lets a mover
+cross and end inside the space of each creature it follows (derived from the live relationship; nothing is stored).
+Forced movement carries no follower. A won passage contest whose rule seals `successMovement: 'ENTER_BLOCKER_SPACE'`
+(the SRD climb, MOVE-4.T2b2) ends the move inside the blocker's space: the receipt audits `enteredPosition`, the
+response's terminal result is that position one Scene version on, and `terminalMovementPathEnd` binds it to the audited
+contact where the walked path (cost, fog, the stored geometry check) ends.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's
@@ -2819,7 +2909,10 @@ Every application goes through `planEncounterMechanicsBatch` and settles one gen
 (`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
 `CONTESTED_ACTION` output. The shared settler `settleTargetOutcome` (`targetOutcomeSettlement.ts`) re-applies the
 receipt applications in Convex and refuses a checksum mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
-contest outcome whose push owes a destination pick fails closed.
+won outcome whose push owes a destination pick (D157) pauses the contest as `contestPhase: 'DESTINATION'`: the sealed
+choice from `holdForForcedMovementDestination` holds the settled outcome completion, so the resume restores it
+(`planNativeTargetOutcome` `held`, fenced by its facts and published checksums) instead of re-rolling, and settles the
+answered square with `settleForcedMovementDestination` before the commit.
 
 **Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
 check-settled kind (CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with

@@ -5,10 +5,8 @@ import {
   prepareActiveRuleEffectRecord,
   prepareMaintainedEffectStateRecord
 } from './activeRuleEffectRecords.js'
-import {
-  prepareNativeActionEffectsPlan,
-  prepareNativeIncomingDamageGrantTriggers
-} from './encounterActionEffects.js'
+import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
 import { createLinkedRiders, riderEffectKey } from './encounterActionEffectPlans.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
@@ -134,8 +132,8 @@ export function planEncounterMovementReactionEffects<
     create(riderEffectKey(index), plan)
   )
   // The reactor's attack roll or spell cast uses up its grants; the mover's effects that end on
-  // damage end, and its own damage triggers give it timed grants, each freeing the conditions it
-  // alone held in its holder's own batch.
+  // damage end, and its own damage triggers and the attack's mark give it timed grants, each freeing
+  // the conditions it alone held in its holder's own batch.
   const dispositions = new Map([
     [prepared.actor.id, prepared.actor.disposition],
     [prepared.target.id, prepared.target.disposition]
@@ -167,10 +165,10 @@ export function planEncounterMovementReactionEffects<
     applications: [...input.execution.applications, ...effects.relationshipConditionApplications],
     damagerActorId: prepared.actor.id,
     dispositions,
-    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+    grantTriggers: prepareAttackTargetGrantTriggers({
       encounter: prepared.state,
-      holder: prepared.target,
-      held: prepared.targetFacts.activeEffects,
+      attacker: prepared.actor,
+      target: prepared.targetFacts,
       occurrenceId: input.occurrenceId,
       commandId: input.commandId,
       ordinal: input.ordinal,
@@ -192,7 +190,8 @@ export function planEncounterMovementReactionEffects<
       consumedGrants: [
         ...reactor.consumedGrants,
         ...decoyStrike.endedGrants,
-        ...mover.endedEffects
+        ...mover.endedEffects,
+        ...mover.replacedEffects
       ],
       decoyStrike,
       sourceReleases: reactor.sourceReleases,

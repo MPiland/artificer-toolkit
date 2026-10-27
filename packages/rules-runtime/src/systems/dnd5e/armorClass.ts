@@ -1,9 +1,4 @@
-import { EQUIPMENT_PROPERTY_CODE, resolveHandOccupancy } from '@artificer-toolkit/shared/core'
-import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
-
-import type { ArmorClassResult, CreatureArmorClassEquipment } from '../../armorClassCapability.js'
-import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
-import { characterPolicyRecord } from './characterPolicyValues.js'
+import type { ArmorClassResult } from '../../armorClassCapability.js'
 
 /**
  * The one D&D armor class formula. The standard base is worn armor (its armor class plus the
@@ -42,10 +37,6 @@ export function selectDnd5eHeldShield<Shield>(
   return best?.shield ?? null
 }
 
-type ItemModifiers =
-  | { ok: true; abilityBonuses: number[]; flatBonuses: number[] }
-  | Extract<ArmorClassResult, { ok: false }>
-
 /**
  * An armor or shield's authored armor class, for Characters and Creatures alike (D143): one
  * without it is refused, never given a default.
@@ -63,139 +54,9 @@ export function resolveDnd5eEquipmentArmorClass(
     : { ok: true, armorClass }
 }
 
-function failure(equipmentId: string, reason: string): ItemModifiers {
-  return { ok: false, equipmentId, reason }
-}
-
-/**
- * A Creature has no restriction evaluator, so only the SRD while-equipped restriction is
- * understood: one group and context whose single condition is "this source is equipped".
- * Placement in a worn or hand slot is what equipping means for a Creature.
- */
-function isWhileEquippedRestriction(restrictions: unknown): boolean {
-  const groups = characterPolicyRecord(restrictions).groups
-  const contexts =
-    Array.isArray(groups) && groups.length === 1 ? characterPolicyRecord(groups[0]).contexts : null
-  const conditions =
-    Array.isArray(contexts) && contexts.length === 1
-      ? characterPolicyRecord(contexts[0]).conditions
-      : null
-  const [condition] = Array.isArray(conditions) && conditions.length === 1 ? conditions : []
-  const { kind, constraint, predicateCode } = characterPolicyRecord(condition)
-  return (
-    kind === 'PREDICATE' && constraint === 'INCLUDE' && predicateCode === 'WHILE_SOURCE_EQUIPPED'
-  )
-}
-
-/** The ability bonuses and flat bonuses an armor or shield item grants itself, or why not. */
-function itemArmorClassModifiers(
-  item: CompiledEquipment,
-  dexterityModifier: number
-): ItemModifiers {
-  const abilityBonuses: number[] = []
-  const flatBonuses: number[] = []
-  for (const modifier of item.modifiers ?? []) {
-    if (modifier.valueDomainCode !== 'ARMOR_CLASS') continue
-    if (!isWhileEquippedRestriction(modifier.restrictions))
-      return failure(
-        item.id,
-        `Equipment "${item.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
-      )
-    const { payload } = modifier
-    if (
-      modifier.modifierKind === 'ABILITY_MODIFIER_BONUS' &&
-      payload !== undefined &&
-      'ability' in payload &&
-      payload.ability === 'DEXTERITY'
-    ) {
-      abilityBonuses.push(resolveAbilityModifierBonus(dexterityModifier, payload))
-    } else if (
-      modifier.modifierKind === 'BONUS' &&
-      payload !== undefined &&
-      'valueKind' in payload &&
-      payload.valueKind === 'FIXED'
-    ) {
-      flatBonuses.push(payload.amount)
-    } else {
-      return failure(
-        item.id,
-        `Equipment "${item.id}" has an armor class modifier a Creature cannot evaluate.`
-      )
-    }
-  }
-  return { ok: true, abilityBonuses, flatBonuses }
-}
-
-/**
- * A Creature's armor class from its effective loadout (D107): worn armor, one shield held in a
- * hand, and its natural armor bonus. A shield that is only carried or worn counts for nothing.
- * Equipment a Creature cannot evaluate yields a failure the caller decides on. Active-effect
- * grants are added by the consumers, not here.
- */
-export function resolveDnd5eCreatureArmorClass(input: {
-  dexterityScore: number
-  naturalArmorBonus: number
-  equipment: readonly CreatureArmorClassEquipment[]
-}): ArmorClassResult {
-  const dexterityModifier = abilityModifier(input.dexterityScore)
-  const wornArmor = input.equipment.find(
-    (entry) => entry.useState === 'WORN' && entry.compiled.category === 'ARMOR'
-  )
-  const occupancy = resolveHandOccupancy(
-    input.equipment.map((entry) => ({
-      id: entry.id,
-      slot: entry.useState,
-      twoHanded: entry.compiled.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED)
-    }))
-  )
-
-  let armor: { armorClass: number; abilityBonuses: readonly number[] } | null = null
-  let flatBonuses: readonly number[] = []
-  if (wornArmor) {
-    const modifiers = itemArmorClassModifiers(wornArmor.compiled, dexterityModifier)
-    if (!modifiers.ok) return modifiers
-    const base = resolveDnd5eEquipmentArmorClass(
-      wornArmor.compiled.id,
-      wornArmor.compiled.armorClass
-    )
-    if (!base.ok) return base
-    armor = { armorClass: base.armorClass, abilityBonuses: modifiers.abilityBonuses }
-    flatBonuses = modifiers.flatBonuses
-  }
-  const heldShields: { inMainHand: boolean; shield: number }[] = []
-  for (const [inMainHand, id] of [
-    [true, occupancy.mainHandId],
-    [false, occupancy.offHandId]
-  ] as const) {
-    const shield = input.equipment.find((entry) => entry.id === id)
-    if (shield?.compiled.category !== 'SHIELD') continue
-    const modifiers = itemArmorClassModifiers(shield.compiled, dexterityModifier)
-    if (!modifiers.ok) return modifiers
-    const base = resolveDnd5eEquipmentArmorClass(shield.compiled.id, shield.compiled.armorClass)
-    if (!base.ok) return base
-    heldShields.push({
-      inMainHand,
-      shield: [...modifiers.abilityBonuses, ...modifiers.flatBonuses].reduce(
-        (sum, value) => sum + value,
-        base.armorClass
-      )
-    })
-  }
-  const shieldBonus = selectDnd5eHeldShield(heldShields, (bonus) => bonus) ?? 0
-  return {
-    ok: true,
-    armorClass: combineDnd5eArmorClass({
-      armor,
-      dexterityModifier,
-      setValues: [],
-      shield: shieldBonus,
-      additive: [input.naturalArmorBonus, ...flatBonuses]
-    }).effective
-  }
-}
-
 /** For consumers that must not continue with Equipment the armor class cannot evaluate. */
-export function requireDnd5eArmorClass(result: ArmorClassResult): number {
+export function requireDnd5eArmorClass(result: ArmorClassResult | null): number {
+  if (result === null) throw new Error('D&D armor class requires a Dexterity score.')
   if (!result.ok) throw new Error(result.reason)
   return result.armorClass
 }

@@ -117,6 +117,7 @@ if (
   process.argv.includes('--encounter-disarm') ||
   process.argv.includes('--encounter-disarm-browser') ||
   process.argv.includes('--encounter-area-browser') ||
+  process.argv.includes('--encounter-shove-aside-browser') ||
   process.argv.includes('--encounter-hide-browser') ||
   process.argv.includes('--encounter-player-browser')
 ) {
@@ -2705,6 +2706,7 @@ try {
     process.argv.includes('--encounter-disarm') ||
     process.argv.includes('--encounter-disarm-browser') ||
     process.argv.includes('--encounter-area-browser') ||
+    process.argv.includes('--encounter-shove-aside-browser') ||
     process.argv.includes('--encounter-hide-browser') ||
     process.argv.includes('--encounter-player-browser') ||
     process.argv.includes('--encounter-heat-metal-browser') ||
@@ -2737,6 +2739,7 @@ try {
     const effectsBrowser = process.argv.includes('--encounter-effects-browser')
     const effectJourney = process.argv.includes('--encounter-effects') || effectsBrowser
     const areaBrowser = process.argv.includes('--encounter-area-browser')
+    const shoveAsideBrowser = process.argv.includes('--encounter-shove-aside-browser')
     const hideBrowser = process.argv.includes('--encounter-hide-browser')
     const playerBrowser = process.argv.includes('--encounter-player-browser')
     const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
@@ -2747,6 +2750,7 @@ try {
       actionContention ||
       disarm ||
       areaBrowser ||
+      shoveAsideBrowser ||
       hideBrowser ||
       playerBrowser ||
       heatMetalBrowser ||
@@ -2968,6 +2972,69 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/area-vtt-browser-20261010/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (shoveAsideBrowser) {
+        publicationAuthors.push({
+          client: owner.client,
+          userId: owner.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind: 'CREATURE'
+        })
+        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        const { createAreaWolf } = await import('./fixtures/encounterArea')
+        const wolves = [
+          createAreaWolf(crypto.randomUUID(), 'Shoving wolf'),
+          createAreaWolf(crypto.randomUUID(), 'Shoved wolf')
+        ] as const
+        for (const wolf of wolves) {
+          const draft = await owner.client.mutation(api.content.drafts.save, {
+            subjectKind: 'CREATURE',
+            subjectId: wolf.id,
+            systemId: srdSystemRecord.id,
+            label: wolf.label,
+            payload: wolf
+          })
+          assert.ok(draft.updatedAt)
+          await owner.client.mutation(api.content.publication.publishDraft, {
+            subjectKind: 'CREATURE',
+            subjectId: draft.subjectId,
+            expectedDraftUpdatedAt: draft.updatedAt
+          })
+        }
+        const { verifyEncounterShoveAside } = await import('./developmentEncounterShoveAside')
+        await verifyEncounterShoveAside({
+          owner: owner.client,
+          campaignId: campaign.id,
+          shoverId: wolves[0].id,
+          targetId: wolves[1].id,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterShoveAsideBrowser } =
+              await import('../../web/tests/live-backend/encounterShoveAside')
+            owner.client.setAuth(await owner.fetchToken())
+            await verifyEncounterShoveAsideBrowser(
+              {
+                ...fixture,
+                owner,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/shove-aside-vtt-browser-20261026/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url

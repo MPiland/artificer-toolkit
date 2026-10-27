@@ -10,6 +10,7 @@ import { systemVocabularySnapshotSchema } from '@artificer-toolkit/schema/projec
 import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import {
   encounterOptionalCombatSnapshotDtoSchema,
+  type Dnd5eOptionalCombatReusableDefinitionDocumentDto,
   type Dnd5eOptionalCombatRuleKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
@@ -321,22 +322,31 @@ export function srdActorRules(actors: readonly EncounterRunActorState[]) {
   )
 }
 
-/** Selected SRD optional combat rules, pinned as an Encounter snapshot and its checksum. */
-export function srdOptionalCombat(kinds: readonly Dnd5eOptionalCombatRuleKindDto[]) {
+/**
+ * Selected SRD optional combat rules, pinned as an Encounter snapshot and its checksum; `homebrew`
+ * rewrites each seeded document as a GM's copy would, under its recomputed checksum.
+ */
+export function srdOptionalCombat(
+  kinds: readonly Dnd5eOptionalCombatRuleKindDto[],
+  homebrew?: (
+    document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
+  ) => Dnd5eOptionalCombatReusableDefinitionDocumentDto
+) {
   const snapshot = encounterOptionalCombatSnapshotDtoSchema.parse({
     schemaVersion: 1,
     gameSystemId: SRD_SYSTEM_ID,
     definitions: kinds.map((kind) => {
       const seed = SRD_OPTIONAL_COMBAT_DEFINITIONS.find((entry) => entry.document.kind === kind)
       if (!seed) throw new Error(`SRD optional combat rule "${kind}" is missing.`)
+      const document = homebrew ? homebrew(seed.document) : seed.document
       return {
         definitionId: seed.id,
         contentSourceId: SRD_CONTENT_SOURCE.id,
         definitionVersion: 1,
-        definitionChecksum: seed.checksum,
+        definitionChecksum: homebrew ? checksumRuleDocument(document) : seed.checksum,
         contractVersion: 1,
         label: seed.label,
-        document: seed.document
+        document
       }
     })
   })
@@ -353,11 +363,17 @@ export function srdEncounterState(input: {
   turnSequence?: number
   automationMode?: AutomationModeDto
   trackAmmunition?: boolean
+  zoneNoticing?: EncounterRunState['zoneNoticing']
+  automaticCover?: boolean
   initiativePolicy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  optionalCombatHomebrew?: Parameters<typeof srdOptionalCombat>[1]
   sides?: readonly { id: string; label: string }[]
 }): EncounterRunState {
-  const optionalCombat = srdOptionalCombat(input.optionalCombatKinds ?? [])
+  const optionalCombat = srdOptionalCombat(
+    input.optionalCombatKinds ?? [],
+    input.optionalCombatHomebrew
+  )
   return encounterRunStateSchema.parse({
     id: ENCOUNTER_ID,
     campaignId: CAMPAIGN_ID,
@@ -369,6 +385,8 @@ export function srdEncounterState(input: {
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
     trackAmmunition: input.trackAmmunition ?? false,
+    zoneNoticing: input.zoneNoticing ?? 'GM_PROMPT',
+    automaticCover: input.automaticCover ?? true,
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,

@@ -127,6 +127,7 @@ export function roomMovementSettlementCallbacks(input: {
       persistLiveMovementConcentrationEnd(ctx, step, concentrationCallbacks),
     persistAreaDeparture: (step) => persistLiveMovementAreaDeparture(ctx, step),
     persistMoveEnd: (step) => persistLiveMovementMoveEnd(ctx, step),
-    endHolderGrants: (step) => endHolderStateGrants(ctx, step)
+    endHolderGrants: (step) => endHolderStateGrants(ctx, step),
+    applyMechanics
   }
 }

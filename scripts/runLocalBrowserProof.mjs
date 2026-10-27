@@ -13,6 +13,7 @@ import {
   ensureLocalConvexFixtures,
   loadLocalEnvironment,
   run,
+  selfManagedBrowserProof,
   startLocalSessionWorker,
   startLocalWebApp,
   useGeneratedLocalAdminKey
@@ -43,10 +44,13 @@ await ensureLocalConvexFixtures(artifactDirectory)
 
 const services = []
 try {
-  services.push(await startLocalSessionWorker(artifactDirectory))
-  services.push(await startLocalWebApp(artifactDirectory))
+  // The self-managed proof starts its own Worker and web app on the same ports.
+  if (proof !== selfManagedBrowserProof) {
+    services.push(await startLocalSessionWorker(artifactDirectory))
+    services.push(await startLocalWebApp(artifactDirectory))
+  }
   await run(
-    'pwsh.exe',
+    'pwsh',
     [
       '-NoProfile',
       '-NonInteractive',

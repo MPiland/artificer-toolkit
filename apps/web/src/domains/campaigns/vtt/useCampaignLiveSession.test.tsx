@@ -193,7 +193,9 @@ describe('useCampaignLiveSession', () => {
         turnMovement: [],
         halfSpeedFields: [],
         auras: [],
-        movementCostZones: []
+        movementCostZones: [],
+        placedZones: [],
+        pendingZoneSightings: []
       },
       preparedPending: [],
       actorSides: null,

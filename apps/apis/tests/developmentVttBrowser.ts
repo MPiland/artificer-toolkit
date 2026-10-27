@@ -6,6 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 import { convexEnvironmentValue } from './developmentConvexEnvironment'
+import { proofPwsh, proofYarn } from './developmentShell'
 
 type FixtureCredential = {
   email: string
@@ -127,12 +128,12 @@ export async function verifyDevelopmentVttBrowser(input: {
     : null
   try {
     const browserRun = promisify(execFile)(
-      'pwsh.exe',
+      proofPwsh,
       [
         '-NoProfile',
         '-NonInteractive',
         '-Command',
-        'yarn.ps1 workspace @artificer-toolkit/web test:e2e:vtt-local --workers=1 --output=$env:CONVEX_E2E_OUTPUT; exit $LASTEXITCODE'
+        `${proofYarn} workspace @artificer-toolkit/web test:e2e:vtt-local --workers=1 --output=$env:CONVEX_E2E_OUTPUT; exit $LASTEXITCODE`
       ],
       {
         cwd: repoRoot,

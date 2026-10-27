@@ -11,6 +11,7 @@ import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
 import { manifestDtoSchema } from '../effects/manifest.js'
+import { zoneDcDtoSchema } from '../shared/spatial.js'
 import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -55,22 +56,10 @@ export const commandBaseDtoSchema = lazySchema(() =>
   })
 )
 
-const optionalCombatActionIntentSelectionValueDtoSchema = lazySchema(() =>
-  z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('ENTITY'),
-      entityId: postgresUuidSchema
-    }),
-    z.strictObject({
-      kind: z.literal('POSITION'),
-      position: spatialPointDtoSchema
-    })
-  ])
-)
 const optionalCombatActionIntentSelectionDtoSchema = lazySchema(() =>
   z.strictObject({
     fieldId: checksumSchema,
-    value: optionalCombatActionIntentSelectionValueDtoSchema
+    value: z.strictObject({ kind: z.literal('ENTITY'), entityId: postgresUuidSchema })
   })
 )
 
@@ -284,8 +273,11 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     systemTrigger: z.optional(
       z.strictObject({
         parentCommandId: uuidSchema,
-        /** Absent for the default, reaching 0 hit points. */
-        trigger: z.optional(z.literal('START_OF_TURN'))
+        /**
+         * Absent for the default, reaching 0 hit points. RULE: an optional combat rule's own action,
+         * raised by the rule's failed save the parent receipt records.
+         */
+        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE']))
       })
     ),
     acceptedWieldConflict: z._default(
@@ -619,13 +611,54 @@ export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
 /**
  * GM-only (MOVE-3.2): places an environmental zone, authored through the same zone node map as
  * authored content, fixed to the Scene with its origin at `point`. It has no source creature, so
- * its saves use their authored fixed DC.
+ * its saves use their authored fixed DC. A spot DC conceals it from every player (MOVE-3.3).
  */
 export const placeZoneInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('PLACE_ZONE'),
     zone: manifestDtoSchema,
-    point: spatialPointDtoSchema
+    point: spatialPointDtoSchema,
+    spotDc: z.optional(zoneDcDtoSchema),
+    disarmDc: z.optional(zoneDcDtoSchema)
+  })
+)
+/**
+ * GM-only (MOVE-3.3): sets or clears a placed zone's spot DC and disarm DC; null clears one. A zone
+ * with a spot DC is concealed from every player whose Characters do not know of it, and clearing it
+ * puts the zone in plain sight.
+ */
+export const setZoneDcsInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('SET_ZONE_DCS'),
+    spatialEffectId: postgresUuidSchema,
+    spotDc: z.nullable(zoneDcDtoSchema),
+    disarmDc: z.nullable(zoneDcDtoSchema)
+  })
+)
+/** GM-only (MOVE-3.5): settles a Character's prompted sighting of a concealed zone without revealing it. */
+export const dismissZoneSightingInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('DISMISS_ZONE_SIGHTING'),
+    spatialEffectId: postgresUuidSchema,
+    actorId: uuidSchema
+  })
+)
+/**
+ * GM-only (MOVE-3.7): shows a concealed zone to chosen Characters, from a Search roll at the table or
+ * a prompted sighting. They then see the zone and no longer trigger it unaware.
+ */
+export const revealZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('REVEAL_ZONE'),
+    spatialEffectId: postgresUuidSchema,
+    actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+  })
+)
+/** GM-only (MOVE-3.7): disarms a zone fixed to the Scene, which removes it. */
+export const disarmZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('DISARM_ZONE'),
+    spatialEffectId: postgresUuidSchema
   })
 )
 /**
@@ -689,6 +722,10 @@ export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputD
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
 export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
+export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
+export type DismissZoneSightingInputDto = z.infer<typeof dismissZoneSightingInputDtoSchema>
+export type RevealZoneInputDto = z.infer<typeof revealZoneInputDtoSchema>
+export type DisarmZoneInputDto = z.infer<typeof disarmZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>

@@ -5,6 +5,7 @@ import {
   type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import {
+  encounterFollowRelationships,
   encounterSourceRelationships,
   type EncounterRelationshipActiveEffectsByActorId
 } from './encounterRelationshipActionFacts.js'
@@ -36,9 +37,11 @@ const translated = (path: readonly ScenePoint[], offset: ScenePoint) =>
   path.map((point) => ({ x: point.x + offset.x, y: point.y + offset.y }))
 
 /**
- * What a grappler's voluntary move drags (D105): the tokens of the creatures its own
- * `TARGET_DRAGGED` holds bind, one level deep. The move costs double unless every dragged creature
- * is two or more sizes smaller than the mover; an unknown size counts as not smaller. `path`, when
+ * What a voluntary move carries along, one level deep: the creatures the mover's own
+ * `TARGET_DRAGGED` holds bind (D105), and the creatures that follow the mover through a
+ * `SOURCE_FOLLOWS_TARGET` relationship on it (a creature clinging to it). A drag costs double unless
+ * every dragged creature is two or more sizes smaller than the mover; an unknown size counts as not
+ * smaller. A follower costs the mover nothing. `path`, when
  * given, is checked for each dragged token translated by its offset from the mover: a path that
  * leaves the map, crosses a barrier, or ends overlapping a token that stays put is refused
  * (release the grapple first), unless either token does not occupy its space. Scene effects the drag crosses settle on the dragged creature in
@@ -63,14 +66,24 @@ export function encounterMovementDrag(input: {
       )
       .map(({ actorId }) => actorId)
   )
+  const followerActorIds = new Set(
+    encounterFollowRelationships(input.activeEffectsByActorId)
+      .filter(({ actorId }) => actorId === mover.actorId)
+      .map(({ sourceActorId }) => sourceActorId)
+  )
   const tokens = [...input.actorIdByTokenId]
-    .filter(([tokenId, actorId]) => tokenId !== mover.tokenId && heldActorIds.has(actorId))
+    .filter(
+      ([tokenId, actorId]) =>
+        tokenId !== mover.tokenId && (heldActorIds.has(actorId) || followerActorIds.has(actorId))
+    )
     .map(([tokenId, actorId]) => ({ tokenId, actorId }))
     .sort((left, right) => left.tokenId.localeCompare(right.tokenId))
   const doublesCost = encounterDragDoublesCost(
     input.gameSystemId,
     input.sizeOf(mover.actorId),
-    tokens.map(({ actorId }) => input.sizeOf(actorId))
+    tokens
+      .filter(({ actorId }) => heldActorIds.has(actorId))
+      .map(({ actorId }) => input.sizeOf(actorId))
   )
   const { path } = input
   if (!path || tokens.length === 0) return { kind: 'DRAG', tokens, doublesCost }

@@ -12,7 +12,10 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
+import type { MovementTarget } from './encounterMovementTargets.js'
+import type { MaintenanceLinkSaveFacts } from './maintenanceLinkCapability.js'
 import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
@@ -47,7 +50,7 @@ export type OptionalCombatEconomy = 'ACTION' | 'BONUS_ACTION'
 export interface OptionalMovementContributor {
   readonly influence: string
   readonly id: string
-  readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
+  readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SIZE_RELATION'
 }
 
 export interface MovementPassageProposal {
@@ -237,6 +240,17 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
+/**
+ * An effect a passage rule's won contest gives the creature it contested, sourced by the mover (the
+ * cling a climb leaves). definitionId is the rule that authors it.
+ */
+export interface PassageAppliedEffect {
+  readonly definitionId: string
+  readonly effectId: string
+  readonly label: string
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
 /** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
 export interface AttackAppliedEffect {
   readonly effectId: string
@@ -300,8 +314,23 @@ export interface FlankingInput extends OptionalCombatPolicyInput {
 }
 
 /**
+ * The Encounter's active massive-damage rule (ATTACK-16): one damage source of at least
+ * `threshold` of the holder's maximum hit points owes a save of `savingThrowAbilityDefinitionId`
+ * against `difficultyClass`, rolled through `published`, the graph this exact definition builds.
+ */
+export interface MassiveDamageRule {
+  readonly pin: OptionalCombatPolicyPin
+  readonly threshold: { readonly numerator: number; readonly denominator: number }
+  readonly savingThrowAbilityDefinitionId: string
+  readonly difficultyClass: number
+  readonly published: ServerPublishedRuleDefinitionDto
+  /** The raised Effect a failed save runs on its holder; null when the rule raises none. */
+  readonly failedSaveEffectId: string | null
+}
+
+/**
  * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale,
- * Facing, Flanking, attack-applied effects and consequence tables.
+ * Facing, Flanking, Massive Damage, attack-applied effects and consequence tables.
  */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
@@ -327,10 +356,20 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   consequenceRollTables(input: OptionalCombatPolicyInput): readonly ConsequenceRollTable[]
   /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
   attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
+  /** The effects the Encounter's enabled passage rules give the creature a won contest passed; none when off. */
+  passageAppliedEffects(input: OptionalCombatPolicyInput): readonly PassageAppliedEffect[]
   /** The Encounter's active Facing rule, or null when facing is off. */
   facingRule(input: OptionalCombatPolicyInput): FacingRule | null
   /** The capability an actor needs to flank, or null when flanking is off. */
   flankingParticipantCapabilityDefinitionId(input: OptionalCombatPolicyInput): string | null
   /** The attack's flanking contributor, or null when the attack is not flanked. */
   resolveFlanking(input: FlankingInput): OptionalCombatD20Contributor | null
+  /** The Encounter's active massive-damage rule, or null when it is off. */
+  massiveDamageRule(input: OptionalCombatPolicyInput): MassiveDamageRule | null
+  /** The facts a holder's massive-damage save runs `rule.published` with. */
+  massiveDamageSaveFacts(input: {
+    rule: MassiveDamageRule
+    targetActorId: string
+    target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
+  }): MaintenanceLinkSaveFacts
 }

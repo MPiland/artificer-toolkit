@@ -1,3 +1,4 @@
+import type { D20FoldedBonusDto } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import type {
   RollEvidenceDto,
   RollResultDto,
@@ -23,7 +24,10 @@ export function supportsWebGL() {
 }
 
 /** A roll the card can show; a rule-settled roll also carries the check that explains its dice. */
-export type DicePresentationRoll = RollResultDto & { ruleCheck?: RollRuleCheckDto }
+export type DicePresentationRoll = RollResultDto & {
+  ruleCheck?: RollRuleCheckDto
+  foldedBonuses?: D20FoldedBonusDto[]
+}
 
 type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED' }>
 

@@ -15,6 +15,7 @@ import { isRecord } from '#forms/utils/valueGuards'
 type RuntimeRecord = Record<string, unknown>
 type VocabularyKey = Exclude<
   keyof NonNullable<SystemResponseDto>,
+  | 'cover'
   | 'defaults'
   | 'description'
   | 'id'
@@ -24,6 +25,7 @@ type VocabularyKey = Exclude<
   | 'rulesetVersion'
   | 'schemaVersion'
   | 'userId'
+  | 'zoneSpotPassiveDefinitionId'
 >
 
 const MAX_COLLECTION_ITEMS = 5

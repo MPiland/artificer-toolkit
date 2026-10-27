@@ -736,7 +736,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0007-0070-00ee00000000', [['4d6+9', 'SLASHING']]], // Roc: Talons
   ['00000000-0002-0001-0070-1ba000000000', [['4d8+4', 'PIERCING']]], // Roper: Bite
   ['00000000-0002-0005-0070-1ba000000000', []], // Roper: Tendril (prints no hit damage)
-  ['00000000-0002-01f9-0070-00ef00000000', []], // Roper: Tendril (prints no hit damage)
   ['00000000-0002-0001-0070-1e1900000000', []], // Rug of Smothering: Smother (prints no hit damage)
   ['00000000-0002-0001-0070-0e0700000000', [['1d8+1', 'PIERCING']]], // Rust Monster: Bite
   ['00000000-0002-0001-0070-00f200000000', [['1d10+5', 'PIERCING']]], // Saber-Toothed Tiger: Bite

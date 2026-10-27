@@ -8,6 +8,7 @@ import {
   mergeSizeBudgets,
   mergeSlice,
   parseSlices,
+  READ_TRIES,
   MergeRefused,
   nextMergeNumber,
   runsVerdict,
@@ -92,6 +93,61 @@ describe('runsVerdict', () => {
       runAt('Live backend', '2026-10-18T10:00:00Z', 'completed', 'success')
     ]
     expect(runsVerdict(runs)).toEqual({ state: 'pending', detail: 'Tests' })
+  })
+
+  describe('Browser journeys gate only where they ran (RELIABILITY-20.2)', () => {
+    const green = [
+      runAt('Tests', '2026-10-27T10:00:00Z', 'completed', 'success', 1),
+      runAt('Live backend', '2026-10-27T10:00:00Z', 'completed', 'success', 2)
+    ]
+
+    it('is green without a browser run', () => {
+      expect(runsVerdict(green)).toEqual({ state: 'green', detail: 'Tests 1, Live backend 2' })
+    })
+
+    it('counts a green browser run', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'success', 3)
+      ]
+      expect(runsVerdict(runs)).toEqual({
+        state: 'green',
+        detail: 'Tests 1, Live backend 2, Browser journeys 3'
+      })
+    })
+
+    it('is red when any browser run failed, even under a newer green dispatch', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'failure', 3),
+        runAt('Browser journeys', '2026-10-27T11:00:00Z', 'completed', 'success', 4)
+      ]
+      expect(runsVerdict(runs)).toEqual({ state: 'red', detail: 'Browser journeys 3 failure' })
+    })
+
+    it('waits for a browser run in progress', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-27T10:00:00Z', 'in_progress', '', 3)
+      ]
+      expect(runsVerdict(runs)).toEqual({ state: 'pending', detail: 'Browser journeys' })
+    })
+
+    it('ignores a cancelled duplicate beside a green browser run, but not a lone cancelled one', () => {
+      const cancelled = runAt(
+        'Browser journeys',
+        '2026-10-27T11:00:00Z',
+        'completed',
+        'cancelled',
+        4
+      )
+      const passed = runAt('Browser journeys', '2026-10-27T10:00:00Z', 'completed', 'success', 3)
+      expect(runsVerdict([...green, passed, cancelled]).state).toBe('green')
+      expect(runsVerdict([...green, cancelled])).toEqual({
+        state: 'red',
+        detail: 'Browser journeys 4 cancelled'
+      })
+    })
   })
 
   it('ignores other workflows', () => {
@@ -221,7 +277,8 @@ describe('mergeSlice waiting on dispatched runs', () => {
       conclusion = 'success',
       finishAfterPolls = 2,
       commitRuns = [],
-      emptyCommitListings = Infinity
+      emptyCommitListings = Infinity,
+      failReads = []
     } = {}
   ) => {
     const calls = []
@@ -268,10 +325,15 @@ describe('mergeSlice waiting on dispatched runs', () => {
       }
       throw new Error(`unexpected gh ${args.join(' ')}`)
     }
+    // failReads: stderr texts returned, in order, by the next gh reads (list/view) before they succeed.
+    const ghResult = (args) =>
+      args[0] === 'run' && failReads.length > 0
+        ? { status: 1, stdout: '', stderr: failReads.shift() }
+        : { status: 0, stdout: gh(args), stderr: '' }
     const tools = {
       run: (command, args) =>
         command === 'gh'
-          ? { status: 0, stdout: gh(args), stderr: '' }
+          ? ghResult(args)
           : spawnSync('git', args, { cwd: work, encoding: 'utf8', env: gitEnv }),
       sleep: async (ms) => {
         clock += ms
@@ -310,6 +372,50 @@ describe('mergeSlice waiting on dispatched runs', () => {
     ).toEqual([])
   })
 
+  describe('Browser journeys on the slice tip (RELIABILITY-20.2)', () => {
+    const run = (workflowName, databaseId, conclusion) => ({
+      workflowName,
+      databaseId,
+      status: 'completed',
+      conclusion,
+      createdAt: '2026-10-27T10:00:00Z'
+    })
+    const testsAndLive = [run('Tests', 1, 'success'), run('Live backend', 2, 'success')]
+    const merge = async (commitRuns) => {
+      const { work, tip, origin } = repo()
+      const before = sh(origin, 'rev-parse', PHASE)
+      const { tools, calls } = platform(work, { emptyCommitListings: 0, commitRuns })
+      const outcome = await mergeSlice(input(tip), tools).catch((error) => error)
+      return { outcome, calls, tip, phase: sh(origin, 'rev-parse', PHASE), before, origin }
+    }
+
+    it('refuses a tip whose browser run is red, pushing nothing', async () => {
+      const { outcome, phase, before } = await merge([
+        ...testsAndLive,
+        run('Browser journeys', 3, 'failure')
+      ])
+      expect(outcome).toBeInstanceOf(MergeRefused)
+      expect(outcome.message).toMatch(/Not green.*Browser journeys 3 failure/)
+      expect(phase).toBe(before)
+    })
+
+    it('merges a tip whose browser run is green', async () => {
+      const { outcome, origin, tip } = await merge([
+        ...testsAndLive,
+        run('Browser journeys', 3, 'success')
+      ])
+      expect(outcome).toBeUndefined()
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+    })
+
+    it('merges a tip with no browser run without dispatching one', async () => {
+      const { outcome, origin, tip, calls } = await merge(testsAndLive)
+      expect(outcome).toBeUndefined()
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+      expect(calls.filter((call) => call.includes('browser-journeys.yml'))).toEqual([])
+    })
+  })
+
   it('finds a dispatched run by branch listing when gh prints no run URL', async () => {
     const { work, tip, origin } = repo()
     const { tools } = platform(work, { printUrl: false })
@@ -329,6 +435,41 @@ describe('mergeSlice waiting on dispatched runs', () => {
     const { work, tip } = repo()
     const { tools } = platform(work, { finishAfterPolls: Infinity })
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/did not finish/)
+  })
+
+  // Real gh stderr from the failed merge runs m470 (HTTP 500) and m472 (HTTP 504).
+  const HTTP_500 =
+    'failed to get run: HTTP 500 (https://api.github.com/repos/MPiland/artificer-toolkit/actions/workflows/367981974)'
+  const HTTP_504 = "failed to get run: HTTP 504: We couldn't respond to your request in time."
+
+  it.each([HTTP_500, HTTP_504])(
+    'retries a transient GitHub error and still merges: %s',
+    async (stderr) => {
+      const { work, tip, origin } = repo()
+      const failReads = [stderr]
+      const { tools } = platform(work, { failReads })
+      await mergeSlice(input(tip), tools)
+      expect(failReads).toHaveLength(0)
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+    }
+  )
+
+  it('fails with the error after exactly READ_TRIES attempts when a 5xx persists', async () => {
+    const { work, tip, origin } = repo()
+    const before = sh(origin, 'rev-parse', PHASE)
+    const failReads = Array(READ_TRIES + 5).fill(HTTP_500)
+    const { tools } = platform(work, { failReads })
+    await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 500/)
+    expect(READ_TRIES + 5 - failReads.length).toBe(READ_TRIES)
+    expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+  })
+
+  it('fails at once on a 4xx with a single attempt', async () => {
+    const { work, tip } = repo()
+    const failReads = Array(READ_TRIES).fill('failed to get run: HTTP 404: Not Found')
+    const { tools } = platform(work, { failReads })
+    await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 404/)
+    expect(failReads).toHaveLength(READ_TRIES - 1)
   })
 
   describe('batching several slices', () => {

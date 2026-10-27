@@ -6,6 +6,8 @@ import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
 import type { AttackDomainCode, DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
+import type { CreatureArmorClassEquipment } from './armorClassCapability.js'
+
 type RollContributor = CharacterRulePolicyOutput['rollContributorEvidence']['initiative'][number]
 
 /** The traits an attack carries that a qualified damage defense is bypassed by. */
@@ -79,6 +81,18 @@ export interface AttackProfileCapabilityAdapter {
     traits: AttackTraits | null,
     sourceId: string | null
   ): { kind: AttackDamageDefense['kind']; damageTypeId: string }[]
+  /**
+   * What a Creature's attack with one of its loadout weapons adds to its authored roll and damage:
+   * the bonuses its folded loadout applies to that weapon, as for a Character's attack (ATTACK-6.3).
+   */
+  creatureWeaponBonuses(input: {
+    abilityScores: Readonly<Record<string, number>>
+    equipment: readonly CreatureArmorClassEquipment[]
+    loadoutEntryId: string
+    attackKind: AttackKind
+    grip: 'ONE_HANDED' | 'TWO_HANDED' | null
+    activation: string | null
+  }): { attack: number; damage: number }
   /** Settles a compiled attack Effect's path restrictions that need no attacking item. */
   reduceItemlessAttackRestrictions<TEffect extends CompiledEffectGroup>(effect: TEffect): TEffect
   /** The circumstances a compiled attack Effect's paths ask about when it rolls. */

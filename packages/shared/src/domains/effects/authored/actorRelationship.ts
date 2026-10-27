@@ -2,6 +2,7 @@ import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
+import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { PathLifecycleTurnAnchorAuthored } from './path.js'
 import type { AttackSlotCondition, SavingThrowAuthored } from '#authored'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
@@ -18,6 +19,7 @@ export type ActorRelationshipModuleAuthored =
       id: string
       order: number
       kind: 'SOURCE_ATTACK_ROLL_INFLUENCE'
+      /** The attack action effects it influences; an empty list influences every attack against the target. */
       actionEffectIds: string[]
       /** A code from the System's roll-influence vocabulary. */
       influence: string
@@ -41,6 +43,8 @@ export type ActorRelationshipModuleAuthored =
       checks: CheckChoiceAuthored
       dc: EscapeDcAuthored
       actorKinds: Array<'TARGET' | 'CREATURE_WITHIN_REACH'>
+      /** Where a won escape moves the hold's source, pushed by the escaper. */
+      holderForcedMovement?: ForcedMovementAuthored
     }
   | {
       id: string

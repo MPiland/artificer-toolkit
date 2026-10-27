@@ -18,6 +18,7 @@ import {
   passesThrough
 } from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
+import { preparePassageAppliedEffects } from './encounterPassageAppliedEffects.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import type { FrozenMovementReactionRemainder } from './encounterSpatialMovementRuleService.js'
@@ -33,6 +34,8 @@ type PassageSettlement = {
     consumption: EncounterActionEconomyConsumption
     /** The one-check grants (Help) both rollers' contest checks used up. */
     consumedGrants: ActiveRuleEffectRecord[]
+    /** What the rule behind a won contest gives the contested creature (the cling a climb leaves). */
+    createdEffects: ActiveRuleEffectRecord[]
   }
 }
 
@@ -114,6 +117,8 @@ export async function evaluateEncounterMovementPassageResponse<
     }) !== movement.blockerCurrentnessChecksum
   )
     throw new Error('Movement passage blocker changed before resolution.')
+  const mover = input.sceneTokens.find((token) => token.id === movement.root.tokenId)
+  if (!mover) throw new Error('Movement passage mover is unavailable.')
   const characterActors = input.actors.filter((actor) => actor.kind === 'CHARACTER')
   if (new Set(characterActors.map((actor) => actor.sourceId)).size !== characterActors.length)
     throw new Error('Encounter Character target is stale.')
@@ -150,6 +155,10 @@ export async function evaluateEncounterMovementPassageResponse<
     resolution,
     responseCommand,
     targets,
+    footprints: {
+      mover: { width: mover.width, height: mover.height },
+      blocker: { position: blocker.position, width: blocker.width, height: blocker.height }
+    },
     ...(retained ? { retained } : {})
   })
   const resolutionCommands = evaluated.movement.root.resolutionCommands
@@ -209,9 +218,30 @@ export async function evaluateEncounterMovementPassageResponse<
     const economy = evaluated.pending.actionEconomy
     if (!source || !economy) throw new Error('Movement passage allowance is unavailable.')
     const consumption = { ...economy, afterUsed: economy.beforeUsed + 1 }
+    const blockerTarget = targets.get(movement.blockerActorId)
+    let createdEffects: ActiveRuleEffectRecord[] = []
+    if (evaluated.execution.outcome === 'SUCCESS' && blockerTarget) {
+      // Every holder's relationships count against what the mover may hold at once.
+      targets = new Map([
+        ...(await callbacks.loadTargets(state.actorIds.filter((id) => !targets.has(id)))),
+        ...targets
+      ])
+      createdEffects = preparePassageAppliedEffects({
+        state,
+        definitionId: evaluated.pending.origin.pin.definitionId,
+        occurrenceId: input.occurrenceId,
+        commandId: responseCommand.commandId,
+        occurredAt,
+        source,
+        target: blockerTarget,
+        activeEffectsByActorId: new Map(
+          [...targets].map(([actorId, target]) => [actorId, target.activeEffects])
+        )
+      })
+    }
     settlements.push({
       kind: 'PASSAGE',
-      plan: { actor: source.actor, consumption, consumedGrants }
+      plan: { actor: source.actor, consumption, consumedGrants, createdEffects }
     })
     withTargetActor(
       encounterRunActorStateSchema.parse({
@@ -224,7 +254,10 @@ export async function evaluateEncounterMovementPassageResponse<
       })
     )
   }
-  if (evaluated.kind === 'DECLINED' || !passesThrough(evaluated.pending, evaluated.execution))
+  if (evaluated.kind === 'DECLINED' || !passesThrough(evaluated.pending, evaluated.execution)) {
+    // A won contest that enters the blocker's space ends the move there: one more token write.
+    const entered =
+      evaluated.kind === 'COMPLETE' ? evaluated.receipt.audit.enteredPosition : undefined
     return {
       outcome: {
         kind: 'TERMINAL' as const,
@@ -234,11 +267,11 @@ export async function evaluateEncounterMovementPassageResponse<
           encounterId: state.id,
           encounterVersion: state.version + 1,
           sceneId: root.sceneId,
-          sceneVersion: root.currentSceneVersion,
+          sceneVersion: root.currentSceneVersion + (entered ? 1 : 0),
           tokenId: root.tokenId,
           movementKind: root.movementKind,
           reactionExecutions: remainder.completedReactionExecutions,
-          terminalPosition: root.currentPosition,
+          terminalPosition: entered ?? root.currentPosition,
           remainder
         }),
         selectionChecksum: remainder.spatialSelectionChecksum,
@@ -249,6 +282,7 @@ export async function evaluateEncounterMovementPassageResponse<
       settlements,
       resolutionCommands
     }
+  }
   const remainingActorIds = state.actorIds.filter((id) => !targets.has(id))
   if (remainingActorIds.length > 0) {
     const remainingTargets = await callbacks.loadTargets(remainingActorIds)

@@ -31,10 +31,17 @@ export async function readScopeObjects(t: Pick<Test, 'query'>, ref: ContentSnaps
     const sources: ContentSnapshotListSource[] = []
     let cursor: string | null = null
     for (let isDone = false; !isDone;) {
-      const page: { sources: string[]; continueCursor: string; isDone: boolean } = await t.query(
+      const page:
+        | { sources: string[]; continueCursor: string; isDone: boolean }
+        | { pendingCompilation: true } = await t.query(
         internal.contentSnapshots.heads.readScopeKind,
-        { ...ref, kind, paginationOpts: { numItems: 100, cursor } }
+        {
+          ...ref,
+          kind,
+          paginationOpts: { numItems: 100, cursor }
+        }
       )
+      if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
       for (const json of page.sources) sources.push(JSON.parse(json) as ContentSnapshotListSource)
       cursor = page.continueCursor
       isDone = page.isDone

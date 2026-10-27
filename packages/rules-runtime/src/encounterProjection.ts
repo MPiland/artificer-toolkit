@@ -27,7 +27,11 @@ import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
-import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
+import {
+  snapshotAbilityScores,
+  snapshotFeatureDefinitions,
+  stableActors
+} from './encounterActorState.js'
 import type { MoraleActorFacts } from './optionalCombatPolicyCapability.js'
 import {
   armorClassCapabilityRegistry,
@@ -106,15 +110,7 @@ export function snapshotStatBlock(actor: {
   if (actor.kind !== 'CREATURE' || !isRecord(actor.snapshot)) return null
   const payload = actor.snapshot.payload
   if (!isRecord(payload)) return null
-  const abilityScores = payload.abilityScores
-  const abilities = isRecord(abilityScores)
-    ? Object.fromEntries(
-        Object.entries(abilityScores).filter(
-          (entry): entry is [string, number] =>
-            typeof entry[1] === 'number' && Number.isFinite(entry[1])
-        )
-      )
-    : null
+  const abilities = snapshotAbilityScores(actor)
   const naturalArmorBonus = payload.naturalArmorBonus
   // A Creature's armor class is computed from its effective loadout, so replacing or losing
   // armor or a shield in an Encounter changes it (D107).
@@ -382,6 +378,8 @@ function projectGmFacts(
     status: encounter.status,
     automationMode: encounter.automationMode,
     trackAmmunition: encounter.trackAmmunition,
+    zoneNoticing: encounter.zoneNoticing,
+    automaticCover: encounter.automaticCover,
     healthDisplayDefault: encounter.healthDisplayDefault,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null

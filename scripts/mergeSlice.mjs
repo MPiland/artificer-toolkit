@@ -8,7 +8,8 @@
 // when the slice contains the phase tip), and after the phase push the merge commit goes to
 // <batch-prefix><N> as the full-run backstop. Otherwise the phase tip merges into the slice, goes to
 // <batch-prefix><N>, and reaches the phase branch only once Tests and Live are green there: a fast-forward,
-// or a --no-ff merge when the phase branch has moved by docs/ only meanwhile.
+// or a --no-ff merge when the phase branch has moved by docs/ only meanwhile. Browser journeys gate a
+// tip only where they ran (WHEN_RAN); they are never dispatched.
 // A merge whose only conflict is scripts/fileSizeBudget.json takes the lower cap per entry, lowers a cap
 // further to a module's merged size when the merge left it smaller, and commits once the merged tree
 // passes the source ratchets.
@@ -19,6 +20,9 @@ import { pathToFileURL } from 'node:url'
 import { ratchetProblems, shrunkCaps, SIZE_BUDGET } from './sourceRatchets.mjs'
 
 export const WORKFLOWS = { Tests: 'tests.yml', 'Live backend': 'live-backend.yml' }
+// Gates a tip only when it ran there, and then every run counts: a push runs the journeys its change
+// reaches and a dispatch one named proof, so a newer run does not supersede an older one.
+export const WHEN_RAN = ['Browser journeys']
 const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
 const POLL_MS = 60_000
 // Overall wait for one set of runs; the workflow's own timeout is 120 minutes.
@@ -26,6 +30,11 @@ const WAIT_MS = 90 * 60_000
 const DISPATCH_SKEW_MS = 60_000
 const LISTING_TRIES = 4
 const LISTING_RETRY_MS = 5_000
+// A read that fails with a GitHub 5xx or a network timeout is retried for about 2.5 minutes.
+export const READ_TRIES = 6
+const READ_RETRY_MS = 30_000
+const TRANSIENT_GH_ERROR =
+  /HTTP 5\d\d|timed? ?out|timeout|connection reset|ECONNRESET|unexpected EOF/i
 
 export class MergeRefused extends Error {}
 
@@ -38,31 +47,39 @@ export function nextMergeNumber(refs, prefix) {
   return Math.max(0, ...numbers) + 1
 }
 
-// The newest run per required workflow on one commit (a re-dispatch supersedes an older run).
-// 'green' needs every workflow completed with success; any other completed conclusion is 'red'.
-// A cancelled run is a duplicate superseded by a push or dispatch, so it only counts when the
-// workflow has no other run on the commit.
+// The newest run per required workflow on one commit (a re-dispatch supersedes an older run), plus
+// every run of a WHEN_RAN workflow there. 'green' needs every counted run completed with success; any
+// other completed conclusion is 'red'. A cancelled run is a duplicate superseded by a push or dispatch,
+// so it only counts when the workflow has no other run on the commit.
 export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
-  const latest = workflows.map((name) => {
-    const byNewest = runs
+  const newestFirst = (name) =>
+    runs
       .filter((run) => run.workflowName === name)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const latest = workflows.map((name) => {
+    const byNewest = newestFirst(name)
     return byNewest.find((run) => run.conclusion !== 'cancelled') ?? byNewest[0]
   })
   const missing = workflows.filter((_, index) => !latest[index])
-  const red = latest.filter((run) => run?.status === 'completed' && run.conclusion !== 'success')
+  const whenRan = WHEN_RAN.flatMap((name) => {
+    const byNewest = newestFirst(name)
+    const uncancelled = byNewest.filter((run) => run.conclusion !== 'cancelled')
+    return uncancelled.length > 0 ? uncancelled : byNewest.slice(0, 1)
+  })
+  const counted = [...latest.filter(Boolean), ...whenRan]
+  const red = counted.filter((run) => run.status === 'completed' && run.conclusion !== 'success')
   if (red.length > 0)
     return {
       state: 'red',
       detail: red.map((run) => `${run.workflowName} ${run.databaseId} ${run.conclusion}`).join(', ')
     }
-  const pending = latest.filter((run) => run && run.status !== 'completed')
+  const pending = counted.filter((run) => run.status !== 'completed')
   if (missing.length > 0) return { state: 'missing', missing }
   if (pending.length > 0)
     return { state: 'pending', detail: pending.map((run) => run.workflowName).join(', ') }
   return {
     state: 'green',
-    detail: latest.map((run) => `${run.workflowName} ${run.databaseId}`).join(', ')
+    detail: counted.map((run) => `${run.workflowName} ${run.databaseId}`).join(', ')
   }
 }
 
@@ -126,6 +143,22 @@ const gh = (tools, ...args) => {
   return result.stdout.trim()
 }
 
+// Reads only (list, view): repeating them is harmless. Writes (dispatch) use `gh` and never retry. A 4xx
+// or any other failure throws at once.
+async function ghRead(tools, ...args) {
+  for (let attempt = 1; ; attempt += 1) {
+    const result = tools.run('gh', args)
+    if (result.status === 0) return result.stdout.trim()
+    if (attempt === READ_TRIES || !TRANSIENT_GH_ERROR.test(result.stderr))
+      throw new Error(`gh ${args.join(' ')} failed:
+${result.stderr}`)
+    tools.log(
+      `gh ${args[0]} ${args[1]} hit a transient error, retrying (${attempt}/${READ_TRIES}).`
+    )
+    await tools.sleep(READ_RETRY_MS)
+  }
+}
+
 const lines = (text) => text.split('\n').filter(Boolean)
 
 const remoteSha = (tools, branch) =>
@@ -138,7 +171,7 @@ const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
 // it is retried, and only a listing that stays empty counts as empty.
 async function listRuns(tools, ...args) {
   for (let attempt = 1; ; attempt += 1) {
-    const listed = JSON.parse(gh(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
+    const listed = JSON.parse(await ghRead(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
     if (listed.length > 0 || attempt === LISTING_TRIES) return listed
     await tools.sleep(LISTING_RETRY_MS)
   }
@@ -175,26 +208,30 @@ async function findDispatchedId(tools, branch, name, startedAt) {
   return created[0] ? String(created[0].databaseId) : null
 }
 
-// Waits for Tests and Live to finish on `sha`. A workflow with no run is dispatched on `branch` once
-// (Live is path-filtered, and a GITHUB_TOKEN push triggers nothing) and that run is then polled by its
-// id; workflows the script did not dispatch are read from the commit listing. The caller has checked
-// that `branch` points at `sha`.
+// Waits for Tests and Live, and any Browser journeys run, to finish on `sha`. A required workflow with no
+// run is dispatched on `branch` once (Live is path-filtered, and a GITHUB_TOKEN push triggers nothing) and
+// that run is then polled by its id; workflows the script did not dispatch are read from the commit
+// listing. The caller has checked that `branch` points at `sha`.
 async function waitForGreen(tools, sha, branch) {
   const dispatched = new Map()
   const deadline = tools.now() + WAIT_MS
   for (;;) {
     for (const [name, entry] of dispatched)
       entry.id ??= await findDispatchedId(tools, branch, name, entry.startedAt)
-    const dispatchedRuns = [...dispatched.values()]
-      .filter((entry) => entry.id)
-      .map((entry) => JSON.parse(gh(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS)))
+    const dispatchedRuns = await Promise.all(
+      [...dispatched.values()]
+        .filter((entry) => entry.id)
+        .map(async (entry) =>
+          JSON.parse(await ghRead(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS))
+        )
+    )
     const listedRuns = (await runsOn(tools, sha)).filter((run) => !dispatched.has(run.workflowName))
     const verdict = runsVerdict([...listedRuns, ...dispatchedRuns])
     if (verdict.state === 'green') return tools.log(`Green on ${sha}: ${verdict.detail}.`)
     if (verdict.state === 'red') throw new MergeRefused(`Not green on ${sha}: ${verdict.detail}.`)
     if (tools.now() > deadline)
       throw new MergeRefused(
-        `Tests and Live did not finish on ${sha} within ${WAIT_MS / 60_000} minutes.`
+        `The runs on ${sha} did not finish within ${WAIT_MS / 60_000} minutes.`
       )
     const toDispatch = (verdict.missing ?? []).filter((name) => !dispatched.has(name))
     if (toDispatch.length > 0) {

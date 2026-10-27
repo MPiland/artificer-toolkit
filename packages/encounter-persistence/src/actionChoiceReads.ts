@@ -7,7 +7,10 @@ import { ammunitionInStock } from '@artificer-toolkit/rules-runtime/character/ch
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { castChoiceOptions } from '@artificer-toolkit/rules-runtime/encounterCastChoice'
+import {
+  castChoiceOptions,
+  offeredCastChoiceOptions
+} from '@artificer-toolkit/rules-runtime/encounterCastChoice'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -234,6 +237,21 @@ export async function readEncounterActionChoices(
       : {}
   const handReleaseFor = (weapon: Parameters<typeof evaluateEncounterWeaponDraw>[0]['weapon']) =>
     evaluateEncounterWeaponDraw({ weapon, hands: heldItems, holds: handHolds.length })
+  const activeOptionalRules = activeOptionalCombatDefinitions({
+    automationMode: state.automationMode,
+    snapshot: state.optionalCombatSnapshot
+  })
+  // A pick lists only the options this Encounter's optional combat rules offer.
+  const offeredCastChoice = (
+    options:
+      | readonly {
+          optionId: string
+          label: string
+          requiresOptionalRule?: { definitionId: string }
+        }[]
+      | null
+      | undefined
+  ) => options && { options: offeredCastChoiceOptions(options, activeOptionalRules) }
   if (actor.kind === 'CHARACTER' && creature === null) {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
@@ -381,7 +399,7 @@ export async function readEncounterActionChoices(
               ? entry.compilation.zonePlacement
               : undefined,
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
-              ? entry.compilation.choice
+              ? offeredCastChoice(entry.compilation.choice?.options)
               : undefined,
             Boolean(activeEffectPlan?.chosenItem),
             entry?.kind === 'CHARACTER_ACTION' &&
@@ -452,7 +470,6 @@ export async function readEncounterActionChoices(
               triggerCode: action.mechanicFacts.invocation.triggerCode
             })
           const targetPolicy = buildCompiledActionTargetPolicy(action)
-          const castChoice = castChoiceOptions(action.compiledEffect)
           return {
             id: action.actionId,
             label: action.label,
@@ -481,7 +498,7 @@ export async function readEncounterActionChoices(
               targetPolicy,
               null,
               null,
-              castChoice && { options: castChoice }
+              offeredCastChoice(castChoiceOptions(action.compiledEffect))
             ),
             warnings: economy.warnings
           }
@@ -558,8 +575,6 @@ export async function readEncounterActionChoices(
           ({ definition }) => definition.id === action.definitionId
         )?.document
         const targetPolicy = buildCompiledActionTargetPolicy(action)
-        // A basic action that picks its win's outcome with the attempt (Shove, D105) offers it.
-        const castChoice = castChoiceOptions(action.compiledEffect)
         return {
           id: action.actionId,
           label: action.label,
@@ -570,11 +585,12 @@ export async function readEncounterActionChoices(
           grip: null,
           wieldConflict: admission.kind === 'STOW_HELD_WEAPON' ? admission : null,
           attackSlot: economy.attackSlot,
+          // A basic action that picks its win's outcome with the attempt (Shove, D105) offers it.
           target: encounterActionChoiceTarget(
             targetPolicy,
             null,
             null,
-            castChoice && { options: castChoice }
+            offeredCastChoice(castChoiceOptions(action.compiledEffect))
           ),
           warnings: economy.warnings
         }
@@ -760,10 +776,7 @@ export async function readEncounterActionChoices(
     heldGrantEnds,
     effectOffers,
     releases,
-    optionalRules: activeOptionalCombatDefinitions({
-      automationMode: state.automationMode,
-      snapshot: state.optionalCombatSnapshot
-    })
+    optionalRules: activeOptionalRules
       .filter((definition) => definition.document.kind === 'DISARM')
       .map((definition) => ({
         definitionId: definition.definitionId,

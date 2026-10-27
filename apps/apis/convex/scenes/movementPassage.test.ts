@@ -18,7 +18,9 @@ import {
 import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
   SRD_REACTION_ALLOWANCE_DEFINITION_ID,
   SRD_RULE_STATE_DEFINITIONS
@@ -66,7 +68,7 @@ const pendingRuleOccurrence = makeFunctionReference<
 
 useLocalRoomWorker()
 
-function optional(kind: 'OVERRUN' | 'TUMBLE') {
+function optional(kind: 'CLIMB_ONTO_LARGER_CREATURE' | 'OVERRUN' | 'TUMBLE') {
   const definition = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (candidate) => candidate.document.kind === kind
   )
@@ -74,6 +76,9 @@ function optional(kind: 'OVERRUN' | 'TUMBLE') {
   return definition
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
 /** Actual Scene setup with two authored Creature snapshots and active optional-combat definitions. */
 async function setupPassageScene(
   input: {
@@ -83,6 +88,8 @@ async function setupPassageScene(
     /** The blocker's ally (off the Scene) Helps it on its own turn before the mover's turn. */
     blockerHelp?: boolean
     path?: { x: number; y: number }[]
+    /** Offers the SRD climb, against a blocker that is one size larger than the mover. */
+    climb?: boolean
   } = {}
 ) {
   const base = await setupCreatureReactionRun(
@@ -97,7 +104,8 @@ async function setupPassageScene(
   for (const definitions of sourceImportBatches([
     ...SRD_RULE_STATE_DEFINITIONS,
     optional('OVERRUN'),
-    optional('TUMBLE')
+    optional('TUMBLE'),
+    ...(input.climb ? [optional('CLIMB_ONTO_LARGER_CREATURE')] : [])
   ]))
     await base.t.mutation(importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -117,7 +125,11 @@ async function setupPassageScene(
     const optionalSnapshot = {
       schemaVersion: 1 as const,
       gameSystemId: state.gameSystemId,
-      definitions: [optional('OVERRUN'), optional('TUMBLE')].map((definition) => ({
+      definitions: [
+        optional('OVERRUN'),
+        optional('TUMBLE'),
+        ...(input.climb ? [optional('CLIMB_ONTO_LARGER_CREATURE')] : [])
+      ].map((definition) => ({
         definitionId: definition.id,
         contentSourceId: SRD_CONTENT_SOURCE.id,
         definitionVersion: 1,
@@ -137,6 +149,28 @@ async function setupPassageScene(
       stateChecksum: checksumCanonicalJson(withOptionalCombat)
     })
   })
+  if (input.climb)
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', base.run.id).eq('id', base.reactor.id)
+        )
+        .unique()
+      if (!row) throw new Error('Passage fixture reactor is unavailable.')
+      const state = await readTestActor(ctx, row)
+      const { snapshot } = state
+      if (!isRecord(snapshot) || !isRecord(snapshot.payload))
+        throw new Error('Passage fixture reactor has no Creature snapshot.')
+      await writeRunActor(
+        { db: createConvexEncounterStore(ctx) },
+        row._id,
+        encounterRunActorStateSchema.parse({
+          ...state,
+          snapshot: { ...snapshot, payload: { ...snapshot.payload, size: 'LARGE' } }
+        })
+      )
+    })
   const runVersion = async () => {
     const run = await base.t.run((ctx) =>
       ctx.db
@@ -862,5 +896,74 @@ describe('native Scene movement passage', () => {
     // The passage receipt's audit terminalPosition is held history the room keeps; its producer test
     // is apps/session-worker/test/nativeMovementPlanning.test.ts, "stops a successful passage at the sealed
     // next hostile blocker".
+  }, 30_000)
+})
+
+describe('a won climb settles the cling its definition authors (MOVE-4.T2a)', () => {
+  /** The Active Effects the room's checkpoint leaves on the blocker, as Convex holds them. */
+  async function blockerEffects(value: Awaited<ReturnType<typeof setupPassageScene>>) {
+    await checkpointLiveRoom(value.base.campaign.id)
+    return value.base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRunActors')
+        .withIndex('by_encounterId_id', (q) =>
+          q.eq('encounterId', value.base.run.id).eq('id', value.base.reactor.id)
+        )
+        .unique()
+      if (!row) throw new Error('Passage fixture blocker is unavailable.')
+      return listActiveRuleEffects(
+        { db: createConvexEncounterStoreReader(ctx) },
+        turnEffectOwner(await readTestActor(ctx, row), value.base.run.id)
+      )
+    })
+  }
+
+  async function climb(rolls: number[]) {
+    const value = await setupPassageScene({ climb: true })
+    await exhaustFixtureReaction(value)
+    const { choice } = await issuePassage(value)
+    await queueRoomRolls(value.base.campaign.id, { rolls, repeat: 0 })
+    const option = choice.options.find((entry) => entry.ruleKind === 'CLIMB_ONTO_LARGER_CREATURE')
+    if (!option) throw new Error('Expected a climb passage option.')
+    const response = await respond(value, choice, {
+      kind: 'PASSAGE_OPTION',
+      optionId: option.optionId
+    })
+    return { value, response }
+  }
+
+  it('creates the authored cling on the blocker once, owned and sourced by the climb, and replays without a second', async () => {
+    const { value, response } = await climb([19, 0])
+    expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    // The won climb enters the blocker's space (MOVE-4.T2b2).
+    expect(await readCheckpointedTokenPosition(value, value.moverTokenId)).toEqual({
+      x: 350,
+      y: 50
+    })
+    const effects = await blockerEffects(value)
+    expect(effects).toHaveLength(1)
+    const [effect] = effects
+    expect(effect?.definition.origin).toMatchObject({
+      kind: 'ENCOUNTER',
+      sourceAggregateId: value.base.run.id,
+      sourceActorId: value.base.mover.id
+    })
+    expect(effect?.owner).toEqual({
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: value.base.run.id,
+      targetActorId: value.base.reactor.id
+    })
+    expect(JSON.stringify(effect?.definition.stateContributions)).toContain(
+      'SOURCE_ATTACK_ROLL_INFLUENCE'
+    )
+    await queueRoomRolls(value.base.campaign.id, { rolls: [0, 19], repeat: 0 })
+    await expect(replayResponse(value, response)).resolves.toEqual(response.result)
+    expect(await blockerEffects(value)).toEqual(effects)
+  }, 30_000)
+
+  it('gives the blocker nothing when the climber loses the contest', async () => {
+    const { value, response } = await climb([0, 19])
+    expect(response.result.occurrence).toMatchObject({ status: 'COMPLETE', pending: null })
+    expect(await blockerEffects(value)).toEqual([])
   }, 30_000)
 })

@@ -14,7 +14,11 @@ import {
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
+import {
+  buildCompiledActionCompilerSource,
+  buildCompiledActionTargetPolicy,
+  compileCastChoicePlans
+} from '../encounterActionEntryPointCompiler.js'
 import { castChoiceOptions } from '../encounterCastChoice.js'
 import {
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -84,6 +88,27 @@ function checkWinning(outcome: Record<string, unknown>, dc: unknown = CONTEST_DC
 }
 
 /** An action under the SRD System, whose condition vocabulary a relationship outcome names. */
+/** `effect` with its CHOICE path's option at `optionIndex` influencing the initiator's check. */
+function withOptionInfluence(
+  effect: EffectAuthored,
+  optionIndex: number,
+  influence: string
+): EffectAuthored {
+  return {
+    ...effect,
+    paths: effect.paths.map((path) =>
+      path.selectionKind === 'CHOICE'
+        ? {
+            ...path,
+            options: path.options.map((option, index) =>
+              index === optionIndex ? { ...option, initiatorCheckInfluence: influence } : option
+            )
+          }
+        : path
+    )
+  }
+}
+
 function srdAction(effect: EffectAuthored) {
   return {
     ...characterActionDescriptor(compileEffect(effect)),
@@ -201,8 +226,12 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
     })
   }
 
-  it('offers knocking the target prone or pushing it 5 feet away', () => {
-    expect(options().map(({ label }) => label)).toEqual(['Knock prone', 'Push 5 feet away'])
+  it('offers knocking the target prone, pushing it 5 feet away, or the optional 5 feet aside', () => {
+    expect(options().map(({ label }) => label)).toEqual([
+      'Knock prone',
+      'Push 5 feet away',
+      'Shove 5 feet aside'
+    ])
   })
 
   it('tests each pick by the two-roller contest, with an outcome only on the win', () => {
@@ -229,6 +258,49 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
     )
     expect(operationKeys(prone?.published)).toEqual([DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY])
     expect(operationKeys(push?.published)).toEqual([DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY])
+  })
+
+  it("carries an option's initiator check influence onto that option's pick alone", () => {
+    const action = srdAction(
+      withOptionInfluence(basicActionEffect(SRD_BASIC_ACTION_IDS.SHOVE), 1, 'DISADVANTAGE')
+    )
+    const influences = castChoiceOptions(action.compiledEffect)?.map(
+      ({ label, compiledEffect }) => [
+        label,
+        compiledEffect.entries.flatMap((entry) =>
+          'initiatorCheckInfluence' in entry && entry.initiatorCheckInfluence !== undefined
+            ? [entry.initiatorCheckInfluence]
+            : []
+        )
+      ]
+    )
+    expect(influences).toEqual([
+      ['Knock prone', []],
+      ['Push 5 feet away', ['DISADVANTAGE']],
+      ['Shove 5 feet aside', ['DISADVANTAGE']]
+    ])
+  })
+
+  it('refuses an option influence on an action whose check is not contested', () => {
+    const shove = basicActionEffect(SRD_BASIC_ACTION_IDS.SHOVE)
+    const uncontested = withOptionInfluence(
+      {
+        ...shove,
+        invocation: {
+          ...shove.invocation,
+          check: {
+            checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] },
+            dc: { kind: 'FIXED', value: 10 }
+          }
+        }
+      } as EffectAuthored,
+      0,
+      'ADVANTAGE'
+    )
+    const action = srdAction(uncontested)
+    expect(() =>
+      compileCastChoicePlans(adapter, action, buildCompiledActionTargetPolicy(action))
+    ).toThrow("Only a contested check's options influence the initiator's check.")
   })
 })
 

@@ -93,6 +93,7 @@ export function planEncounterEnvironmentalZone(input: {
     compiled.choosesUnaffected ||
     compiled.requiredSight ||
     (compiled.heldCondition?.escape && compiled.heldCondition.escape.dc.kind !== 'FIXED') ||
+    compiled.camouflage?.spotDc.kind === 'SOURCE_SAVE_DC' ||
     compiled.turnTriggers?.includes('START_OF_SOURCE_TURN') ||
     compiled.occupantSaveBonus?.amount.kind === 'SOURCE_ABILITY_MODIFIER'
   )

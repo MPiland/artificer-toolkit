@@ -4,11 +4,9 @@ import type {
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
-  ForcedMovementCollisionAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
-  ManifestLightAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
@@ -104,6 +102,8 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
+import { MANIFEST_CAMOUFLAGE_NODE_MAP } from './manifestCamouflage.js'
+import { MANIFEST_LIGHT_NODE_MAP } from './manifestLight.js'
 import {
   PATH_LIFECYCLE_ESCAPE_NODE_MAP,
   PATH_LIFECYCLE_ON_END_NODE_MAP,
@@ -114,6 +114,8 @@ import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
+import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
+import { FORCED_MOVEMENT_COLLISION_NODE_MAP } from './forcedMovementCollision.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -200,13 +202,11 @@ const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
 const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
 const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
-const forcedMovementCollision = buildNodeMap<ForcedMovementCollisionAuthored>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
-const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
@@ -272,51 +272,6 @@ const OUTCOME_BREAKPOINT_NODE_MAP: NodeMap<OutcomeBreakpointNode> = outcomeBreak
     )
   }
 )
-
-const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthored> =
-  forcedMovementCollision.define('forcedMovementCollision', ({ map, nodes, data }) => {
-    const { text, selectSingle, groupObject } = nodes
-    const { table } = data
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set('diceConfig', text(['diceConfig'], 'Damage Dice Per 10 Feet', { requiredIf: true }))
-      .set(
-        'damageTypeId',
-        selectSingle(
-          ['damageTypeId'],
-          'Damage Type',
-          {
-            kind: 'DATA',
-            relationship: table('damage_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'savingThrow',
-        groupObject(['savingThrow'], 'Struck Creature Save', () => SAVING_THROW_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'conditionId',
-        selectSingle(
-          ['conditionId'],
-          'Condition On Failure',
-          {
-            kind: 'DATA',
-            relationship: table('condition_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { requiredIf: true }
-        )
-      )
-  })
 
 const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
   pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
@@ -737,29 +692,6 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
         )
     }
   )
-
-const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.define(
-  'manifestLight',
-  ({ map, nodes }) => {
-    const { groupObject } = nodes
-
-    map
-      .set(
-        'bright',
-        groupObject(['bright'], 'Bright Light', () => MEASUREMENT_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'dimAdditional',
-        groupObject(['dimAdditional'], 'Additional Dim Light', () => MEASUREMENT_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-  }
-)
 
 const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
   manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond, data }) => {
@@ -2347,6 +2279,16 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'camouflage',
+      groupObject(['camouflage'], 'Camouflage', () => MANIFEST_CAMOUFLAGE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE)
+        ])
+      })
+    )
+    .set(
       'destructionMustResolveInOrder',
       toggle(['destructionMustResolveInOrder'], 'Destroy Components in Order', {
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
@@ -2737,28 +2679,30 @@ const NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<
 
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define(
   'choiceOption',
-  ({ map, nodes }) => {
-    const { text, richText, number, groupObject } = nodes
+  ({ map, nodes, data }) => {
+    const { text, richText, number, selectSingle, groupObject } = nodes
+    const { table } = data
 
     map
       .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set('description', richText(['description'], 'Description', { requiredIf: true }))
       .set(
-        'order',
-        number(['order'], 'Order', {
-          requiredIf: true
+        'initiatorCheckInfluence',
+        selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
-        'label',
-        text(['label'], 'Label', {
-          requiredIf: true
-        })
-      )
-      .set(
-        'description',
-        richText(['description'], 'Description', {
-          requiredIf: true
-        })
+        'requiresOptionalRule',
+        groupObject(
+          ['requiresOptionalRule'],
+          'Requires Optional Rule',
+          () => CHOICE_OPTION_REQUIRED_RULE_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
       .set(
         'resultBlock',
@@ -2772,28 +2716,30 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
 
 const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<
   PathChoiceOptionAuthored<NonManifestOutcomeAuthored>
-> = nonManifestChoiceOption.define('nonManifestChoiceOption', ({ map, nodes }) => {
-  const { text, richText, number, groupObject } = nodes
+> = nonManifestChoiceOption.define('nonManifestChoiceOption', ({ map, nodes, data }) => {
+  const { text, richText, number, selectSingle, groupObject } = nodes
+  const { table } = data
 
   map
     .set('id', text(['id'], 'ID'))
+    .set('order', number(['order'], 'Order', { requiredIf: true }))
+    .set('label', text(['label'], 'Label', { requiredIf: true }))
+    .set('description', richText(['description'], 'Description', { requiredIf: true }))
     .set(
-      'order',
-      number(['order'], 'Order', {
-        requiredIf: true
+      'initiatorCheckInfluence',
+      selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
+        kind: 'DATA',
+        relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
       })
     )
     .set(
-      'label',
-      text(['label'], 'Label', {
-        requiredIf: true
-      })
-    )
-    .set(
-      'description',
-      richText(['description'], 'Description', {
-        requiredIf: true
-      })
+      'requiresOptionalRule',
+      groupObject(
+        ['requiresOptionalRule'],
+        'Requires Optional Rule',
+        () => CHOICE_OPTION_REQUIRED_RULE_NODE_MAP,
+        { presentation: 'inline' }
+      )
     )
     .set(
       'resultBlock',

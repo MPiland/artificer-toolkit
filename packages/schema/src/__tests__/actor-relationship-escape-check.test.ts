@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
+import {
+  actorRelationshipDtoSchema,
+  actorRelationshipModuleDtoSchema
+} from '../effects/actorRelationship.js'
 
 const athletics = '00000000-0000-4000-8000-00000000c004'
 const acrobatics = '00000000-0000-4000-8000-00000000c001'
@@ -51,6 +54,40 @@ describe('ESCAPE_CHECK relationship module (D105)', () => {
         abilityDefinitionId: strength,
         fixedDc: 13
       }).success
+    ).toBe(false)
+  })
+
+  it('moves a contested escape’s holder by an authored forced movement (MOVE-4.3)', () => {
+    const contest = { kind: 'CONTEST', checks: { skillIds: [athletics], abilityDefinitionIds: [] } }
+    const landing = {
+      id: '00000000-0000-4000-8000-0000000e5c02',
+      effectKind: 'FORCED_MOVEMENT',
+      direction: 'ANY',
+      actionEconomy: 'NONE',
+      distanceMode: 'EXACT',
+      amount: 5,
+      unit: 'FEET'
+    }
+    expect(parse({ dc: contest, holderForcedMovement: landing })).toBe(true)
+    expect(parse({ dc: contest, holderForcedMovement: { ...landing, direction: 'UP' } })).toBe(
+      false
+    )
+    const relationship = (module: object) =>
+      actorRelationshipDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000e5c03',
+        effectKind: 'ACTOR_RELATIONSHIP',
+        heldAtOnce: 1,
+        modules: [{ ...escape, ...module }]
+      }).success
+    expect(relationship({ dc: contest, holderForcedMovement: landing })).toBe(true)
+    // Only an escape the held creature contests against its holder moves that holder.
+    expect(relationship({ holderForcedMovement: landing })).toBe(false)
+    expect(
+      relationship({
+        dc: contest,
+        actorKinds: ['CREATURE_WITHIN_REACH'],
+        holderForcedMovement: landing
+      })
     ).toBe(false)
   })
 })

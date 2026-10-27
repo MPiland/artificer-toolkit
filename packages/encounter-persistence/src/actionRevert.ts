@@ -9,10 +9,8 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  damageSaveCheckMutatesRun,
-  type ConcentrationEndReason
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { type ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { damageSaveCheckMutatesRun } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
@@ -62,6 +60,7 @@ import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
+import { revertZoneDcs, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
@@ -265,6 +264,18 @@ export async function revertLastEncounterAction(
   if (root?.commandType === 'PLACE_ZONE') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertPlaceZone(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'SET_ZONE_DCS' || root?.commandType === 'REVEAL_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneDcs(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'DISARM_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneDisarm(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'DISMISS_ZONE_SIGHTING') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneSightingDismissal(ctx, { ...scope, root })
   }
   if (root?.commandType === 'CREATURE_REST') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
@@ -942,7 +953,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       unsupported.add(CONCENTRATION_END_LIMIT[outputs.reason])
     } else if (outputs.kind === 'DAMAGE_SAVE_CHECK') {
       // A failed Concentration save ended a maintained effect, and a made repeat save released a
-      // turn effect; the receipt keeps the contents of neither.
+      // turn effect; the receipt keeps the contents of neither. A massive-damage save only records.
       if (damageSaveCheckMutatesRun(outputs))
         unsupported.add(
           outputs.source === 'CONCENTRATION' ? 'lost Concentration' : 'a released effect'

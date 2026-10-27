@@ -4,12 +4,14 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
 import { dnd5eFacingRule } from './facingPolicy.js'
+import { dnd5eMassiveDamageRule, dnd5eMassiveDamageSaveFacts } from './massiveDamagePolicy.js'
 import {
   dnd5eFlankingParticipantCapabilityDefinitionId,
   resolveDnd5eFlankingContributor
 } from './flankingPolicy.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import {
+  dnd5ePassageAppliedEffects,
   prepareDnd5eClimbOntoContest,
   prepareDnd5eOverrunContest,
   prepareDnd5eTumbleContest
@@ -187,7 +189,10 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareMoraleSave: prepareDnd5eMoraleSave,
   consequenceRollTables: dnd5eConsequenceRollTables,
   attackAppliedEffects: dnd5eAttackAppliedEffects,
+  passageAppliedEffects: dnd5ePassageAppliedEffects,
   facingRule: dnd5eFacingRule,
   flankingParticipantCapabilityDefinitionId: dnd5eFlankingParticipantCapabilityDefinitionId,
-  resolveFlanking: resolveDnd5eFlankingContributor
+  resolveFlanking: resolveDnd5eFlankingContributor,
+  massiveDamageRule: dnd5eMassiveDamageRule,
+  massiveDamageSaveFacts: dnd5eMassiveDamageSaveFacts
 } as const satisfies OptionalCombatPolicyCapabilityAdapter

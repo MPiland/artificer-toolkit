@@ -14,6 +14,7 @@ import {
   VALUE_DOMAIN_CODE
 } from '@artificer-toolkit/shared'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/basicActions'
+import { DND5E_SHOVE_ASIDE_DEFINITION_ID } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { BASIC_ACTION_DEFINITION_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -491,7 +492,9 @@ function grappleEffect(actionId: string) {
 
 /**
  * Shove (D105): the grapple contest, and on a win the shover's pick, made with the attempt (D148):
- * the target has the Prone condition, or is pushed 5 feet straight away (D157).
+ * the target has the Prone condition, or is pushed 5 feet straight away (D157). Under the Shove
+ * Aside optional rule the pick also offers 5 feet aside, at disadvantage, to a square the shover
+ * picks after the win (MOVE-2.T3b, D157 amendment).
  */
 function shoveEffect(actionId: string) {
   const prone = SRD_CONDITION_TYPES.find(({ code }) => code === 'PRONE')
@@ -513,6 +516,20 @@ function shoveEffect(actionId: string) {
         amount: 5,
         unit: 'FEET' as const
       }
+    },
+    {
+      label: 'Shove 5 feet aside',
+      description: 'The target moves 5 feet to a space within your reach.',
+      requiresOptionalRule: { definitionId: DND5E_SHOVE_ASIDE_DEFINITION_ID },
+      initiatorCheckInfluence: 'DISADVANTAGE',
+      outcome: {
+        effectKind: EFFECT_KIND.FORCED_MOVEMENT,
+        direction: 'ASIDE' as const,
+        actionEconomy: 'NONE' as const,
+        distanceMode: 'EXACT' as const,
+        amount: 5,
+        unit: 'FEET' as const
+      }
     }
   ]
   return {
@@ -527,11 +544,10 @@ function shoveEffect(actionId: string) {
         groupType: PATH_GROUP_TYPE.CHOICE,
         originKind: 'SOURCE' as const,
         selectionKind: 'CHOICE' as const,
-        options: options.map(({ label, description, outcome }, index) => ({
+        options: options.map(({ outcome, ...option }, index) => ({
           id: basicActionChildId(actionId, 0x220, index + 1),
           order: index + 1,
-          label,
-          description,
+          ...option,
           resultBlock: {
             id: basicActionChildId(actionId, 0x221, index + 1),
             resultKind: 'SINGLE' as const,

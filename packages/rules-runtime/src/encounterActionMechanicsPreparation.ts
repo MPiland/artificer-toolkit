@@ -42,6 +42,7 @@ import {
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
+import { coverFoldedBonuses, type EncounterCoverFacts } from './encounterCover.js'
 import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
 import {
   characterActionDrawWeapon,
@@ -50,7 +51,8 @@ import {
 } from './encounterWeaponDraw.js'
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import { pickedCastChoiceEffect } from './encounterCastChoice.js'
+import { offeredCastChoiceOptions, pickedCastChoiceEffect } from './encounterCastChoice.js'
+import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import {
   attackAgainstHolds,
   encounterAttackSightContributors,
@@ -212,15 +214,23 @@ export async function prepareEncounterActionSource<
       )
     : undefined
   // The one place a cast's pick swaps its option's plans in, before anything runs (D148). A zone
-  // action places the zone its caster picked instead.
+  // action places the zone its caster picked instead. Only the options this Encounter's optional
+  // combat rules offer can be picked, and a no-prompt flow runs the first of them.
+  const activeOptionalRules = activeOptionalCombatDefinitions({
+    automationMode: state.automationMode,
+    snapshot: state.optionalCombatSnapshot
+  })
   const compilation = entry?.schemaVersion === 4 ? entry.compilation : null
-  const picked = compilation?.choice?.options.find(
-    ({ optionId }) => optionId === input.choiceOptionId
-  )
+  const offered = compilation?.choice
+    ? offeredCastChoiceOptions(compilation.choice.options, activeOptionalRules)
+    : []
+  const picked =
+    offered.find(({ optionId }) => optionId === input.choiceOptionId) ??
+    (fallsBackToFirst ? offered[0] : undefined)
   if (
     entry &&
     (compilation?.choice
-      ? !picked && !fallsBackToFirst
+      ? !picked
       : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
@@ -276,6 +286,7 @@ export async function prepareEncounterActionSource<
           pickedCastChoiceEffect(
             loaded.capability.compiledEffect,
             input.choiceOptionId,
+            activeOptionalRules,
             fallsBackToFirst
           )
         )
@@ -388,6 +399,15 @@ export async function prepareEncounterActionMechanics<
     targetFacts: MovementTarget<TCharacterFacts>
     capabilityDefinitionId: string
   }) => Promise<EncounterFlankingFacts | null>
+  /**
+   * The target's cover against this action's origin (the attacker, or an area's point), for the
+   * System's cover rules: the GM's tier on the target token, else the computed one while the Run's
+   * automatic cover is on. Null when the action has no Scene or no tier applies.
+   */
+  loadCover?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<EncounterCoverFacts | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -757,6 +777,22 @@ export async function prepareEncounterActionMechanics<
           capabilityDefinitionId: flankingCapabilityId
         })
       : null
+  const cover = input.loadCover ? await input.loadCover({ sourceFacts, targetFacts }) : null
+  if (cover?.tier?.blocksTargeting)
+    throw new EncounterValidationError(`The target has ${cover.tier.label.toLowerCase()}.`)
+  // An attack on a decoy rolls against the decoy's own armor class, which cover does not move.
+  const coveredTest =
+    attackKind !== null
+      ? input.attackDecoy
+        ? null
+        : ({ kind: 'ATTACK' } as const)
+      : compilerSource?.savingThrowAbilityDefinitionId
+        ? ({
+            kind: 'SAVE',
+            abilityDefinitionId: compilerSource.savingThrowAbilityDefinitionId
+          } as const)
+        : null
+  const foldedBonuses = coveredTest ? coverFoldedBonuses(cover, coveredTest) : []
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
@@ -931,6 +967,7 @@ export async function prepareEncounterActionMechanics<
           ),
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
+      foldedBonuses,
       conditionOutcomeRules: {
         hitIsCritical:
           attackKind !== null &&

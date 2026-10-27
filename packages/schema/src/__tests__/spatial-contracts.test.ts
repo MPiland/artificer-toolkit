@@ -51,6 +51,8 @@ function placement() {
 function effectDefinition() {
   return {
     schemaVersion: 2 as const,
+    linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER' as const,
@@ -77,6 +79,7 @@ function effectDefinition() {
       outputs: { result: { kind: 'LITERAL', value: true } }
     },
     adapterFacts: {},
+    perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE' as const,
       anchor: 'HOLDER' as const,
@@ -224,6 +227,55 @@ describe('spatial contracts', () => {
         },
         spatialState: { schemaVersion: 1, revealed: false }
       }).success
+    ).toBe(false)
+  })
+
+  it('keeps spot and disarm DCs on a zone fixed to the Scene, with who knows of it sorted (MOVE-3.3)', () => {
+    const fixed = {
+      ...placement(),
+      anchorKind: 'FIXED' as const,
+      sourceTokenId: null,
+      geometry: {
+        frame: 'SCENE_ABSOLUTE' as const,
+        shape: { kind: 'CIRCLE' as const, center: { x: 0, y: 0 }, radius: 10 }
+      },
+      visibility: 'PUBLIC' as const,
+      revealOnTrigger: false
+    }
+    const current = (placementInput: object, spatialState: object) =>
+      spatialRuleEffectCurrentStateDtoSchema.safeParse({
+        definition: effectDefinition(),
+        lifecycle: { schemaVersion: 1, remainingTicks: null },
+        placement: placementInput,
+        spatialState: { schemaVersion: 1, revealed: true, ...spatialState }
+      }).success
+    const spotDc = { value: 15, source: 'PLACER_ROLL' }
+    const disarmDc = { value: 12, source: 'FLAT' }
+
+    expect(
+      current(fixed, {
+        concealment: { spotDc, knownByActorIds: [ids.actor, ids.source] },
+        disarmDc
+      })
+    ).toBe(true)
+    expect(current(fixed, { disarmDc })).toBe(true)
+    expect(
+      current(fixed, { concealment: { spotDc, knownByActorIds: [ids.source, ids.actor] } })
+    ).toBe(false)
+    const sighting = (actorId: string, status = 'PROMPTED') => ({ actorId, status })
+    const sighted = (sightings: object[]) => ({
+      concealment: { spotDc, knownByActorIds: [ids.actor], sightings }
+    })
+    expect(current(fixed, sighted([sighting(ids.source), sighting(ids.moving, 'DISMISSED')]))).toBe(
+      true
+    )
+    expect(current(fixed, sighted([sighting(ids.actor)]))).toBe(false)
+    expect(current(fixed, sighted([sighting(ids.moving), sighting(ids.source)]))).toBe(false)
+    expect(current(fixed, sighted([sighting(ids.source, 'SEEN')]))).toBe(false)
+    expect(current(fixed, { disarmDc: { value: 0, source: 'FLAT' } })).toBe(false)
+    expect(current(fixed, { disarmDc: { value: 12, source: 'SKILL' } })).toBe(false)
+    expect(
+      current({ ...placement(), visibility: 'PUBLIC', revealOnTrigger: false }, { disarmDc })
     ).toBe(false)
   })
 

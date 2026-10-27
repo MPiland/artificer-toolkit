@@ -40,6 +40,9 @@ beforeAll(async () => {
   process.env.LOCAL_R2_ENDPOINT = r2.endpoint
 })
 
+// A content snapshot build the file's last writes scheduled can still be reading when this runs;
+// convex-test serves its queries without yielding to the event loop, so a full-SRD build delays the
+// close by its remaining read phase (about 10-15 s), as it delays a test (`testTimeout`).
 afterAll(async () => {
   await r2?.close()
-})
+}, 30_000)
