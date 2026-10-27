@@ -4,6 +4,7 @@ import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { EFFECT_ID_NODE_MAP } from '../../shared/maps/index.js'
+import { FORCED_MOVEMENT_NODE_MAP } from './forcedMovement.js'
 import { ACTIVATION_NODE_MAP } from './invocation.js'
 
 const actorRelationshipModule = buildNodeMap<AllUnionFields<ActorRelationshipModuleAuthored>>()
@@ -112,6 +113,18 @@ export const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define
           presentation: 'inline',
           showIf: local.field(['kind']).eq('ESCAPE_CHECK')
         })
+      )
+      .set(
+        'holderForcedMovement',
+        groupObject(
+          ['holderForcedMovement'],
+          'Holder Forced Movement',
+          () => FORCED_MOVEMENT_NODE_MAP,
+          {
+            presentation: 'inline',
+            showIf: local.field(['kind']).eq('ESCAPE_CHECK')
+          }
+        )
       )
       .set(
         'actorKinds',

@@ -89,7 +89,8 @@
   },
   "resolutions": {
     "@convex-dev/react-query@npm:0.1.0": "patch:@convex-dev/react-query@npm%3A0.1.0#~/.yarn/patches/convex-react-query-npm-0.1.0-stale-query-removal.patch",
-    "convex@npm:1.46.0": "patch:convex@npm%3A1.46.0#~/.yarn/patches/convex-npm-1.46.0-4174a5f4e7.patch"
+    "convex@npm:1.46.0": "patch:convex@npm%3A1.46.0#~/.yarn/patches/convex-npm-1.46.0-4174a5f4e7.patch",
+    "prosemirror-model": "1.25.12"
   },
   "packageManager": "yarn@4.18.1"
 }
