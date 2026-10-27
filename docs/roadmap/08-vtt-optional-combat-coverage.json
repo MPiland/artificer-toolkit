@@ -239,7 +239,12 @@
         "parameterKind": "SHOVE_ASIDE"
       },
       "owner": "basic-action-option",
-      "requiredFacts": ["encounter-optional-rule-selection", "forced-movement", "occupied-footprints", "reach"],
+      "requiredFacts": [
+        "encounter-optional-rule-selection",
+        "forced-movement",
+        "occupied-footprints",
+        "reach"
+      ],
       "persistenceImpact": [
         "campaign-optional-rule-selection",
         "encounter-settings-snapshot",
