@@ -2,16 +2,30 @@ import { actionTargetActorId } from '@artificer-toolkit/schema/api/encounterRule
 import { contestDefenderPolicy } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
 import { readEncounterActorControl } from './actorController.js'
 import { readRunActors, readRunState } from './documents.js'
-import { projectNativeActionPending, readNativeActionPending } from './actionPending.js'
+import {
+  projectNativeActionPending,
+  readNativeActionPending,
+  type NativeActionPending
+} from './actionPending.js'
 import { withEncounterRollModeReasons } from './rollModeReasons.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
 import type { EncounterReadTransaction } from './ports.js'
+
+type PendingContest = NonNullable<NativeActionPending['context']['contest']>
+
+/** A paused contest and the participant whose evidence it awaits (null policy past its d20s). */
+export type NativeContestPending = NativeActionPending & {
+  contest: PendingContest
+  participant: 'INITIATOR' | 'DEFENDER' | 'OUTCOME' | 'DESTINATION'
+  policy: PendingContest['initiator'] | ReturnType<typeof contestDefenderPolicy> | null
+  rollerActorId: string
+}
 
 /** Identifies the sealed participant, independently of the user who started the action. */
 export async function readNativeContestPending(
   ctx: EncounterReadContext,
   occurrence: EncounterDocument<'encounterRuleOccurrences'>
-) {
+): Promise<NativeContestPending> {
   const pending = await readNativeActionPending(ctx, occurrence)
   const { snapshot, context, command } = pending
   const contest = context.contest
