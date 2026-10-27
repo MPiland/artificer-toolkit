@@ -1,3 +1,4 @@
+import type { CharacterActionModelInput } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type {
   CharacterRulePolicyInput,
@@ -296,4 +297,23 @@ export function evaluateDnd5eCharacterModifiers(
       })
     }
   })
+}
+
+/**
+ * Resolved groups as an action reads them: each contribution with the applicability of the folded
+ * modifier it came from. Character and Creature attacks read the same groups (ATTACK-6.3).
+ */
+export function dnd5eActionModifierGroups(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
+  modifierGroups: readonly CharacterResolvedModifierGroup[]
+): CharacterActionModelInput['modifierGroups'] {
+  return modifierGroups.map((group) => ({
+    domainKey: group.domainKey,
+    contributions: group.contributions.map((contribution) => ({
+      ...dnd5eFoldedModifierApplicability(grantFold, contribution),
+      value: contribution.value,
+      ability: contribution.ability ?? null,
+      state: contribution.state
+    }))
+  }))
 }

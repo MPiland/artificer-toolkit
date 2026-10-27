@@ -14,7 +14,8 @@ import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 /**
  * SPELLS-14.T2: with automatic cover on, the tier the live Scene gives a target is folded into the
  * d20 test: the attack's target AC, a save's modifier. Total cover refuses the target or drops it
- * from an area's caught set. The room, not a fixture, measures the cover.
+ * from an area's caught set. The room, not a fixture, measures the cover. SPELLS-14.T3: the GM's
+ * tier on the target token applies the same way, with automatic cover off or in place of the computed one.
  */
 
 const SOURCE_ID = testUuid(0xe01)
@@ -117,6 +118,79 @@ describe('Cover applied to an attack (SPELLS-14.T2)', () => {
     expect(answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(answer)).toContain('total cover')
     expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+  })
+})
+
+/** The GM sets the cover of the token at `index` through the Scene's own token upsert. */
+async function setCover(
+  room: Awaited<ReturnType<typeof attackRoom>>,
+  index: number,
+  coverTierOverride: { tierCode: string | null }
+) {
+  const { scene } = room.room
+  const token = scene.tokens[index]
+  if (!token) throw new Error('The Scene holds no such token.')
+  const commandId = crypto.randomUUID()
+  const answer = await room.room.send(commandId, {
+    scope: 'SCENE',
+    command: {
+      type: 'UPSERT_SCENE_TOKEN',
+      commandId,
+      expectedSceneVersion: scene.version,
+      sceneId: scene.id,
+      token: { ...token, coverTierOverride }
+    }
+  })
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+}
+
+/** The attack at the target token at `index`, against the Scene after the GM's one cover edit. */
+async function attackAfterCover(
+  room: Awaited<ReturnType<typeof attackRoom>>,
+  targetId: string,
+  index: number
+) {
+  const sceneContext = room.sceneContext(index)
+  const { command, answer } = await room.startAction(targetId, [], {
+    ...sceneContext,
+    expectedSceneVersion: sceneContext.expectedSceneVersion + 1
+  })
+  return { commandId: command.commandId, answer }
+}
+
+describe('The GM’s cover tier on a target (SPELLS-14.T3)', () => {
+  it('applies the tier the GM sets while automatic cover is off', async () => {
+    const room = await attackRoom(false)
+    await setCover(room, 2, { tierCode: 'HALF' })
+    const { commandId, answer } = await attackAfterCover(room, TARGET_ID, 2)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { d20 } = await settledBatch(room, commandId)
+    expect(d20).toMatchObject({
+      total: 13,
+      defenseOrDc: 15,
+      resultPath: 'ON_MISS',
+      foldedBonuses: [{ ...HALF_COVER, operand: 'defenseOrDc' }]
+    })
+  })
+
+  it('refuses the target when the GM sets total cover', async () => {
+    const room = await attackRoom(false)
+    await setCover(room, 2, { tierCode: 'TOTAL' })
+    const before = await readRoomHistory(room.room.base.stub)
+    const { answer } = await attackAfterCover(room, TARGET_ID, 2)
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).toContain('total cover')
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+  })
+
+  it('overrides the computed tier while automatic cover is on', async () => {
+    const room = await attackRoom(true)
+    await setCover(room, 2, { tierCode: null })
+    const { commandId, answer } = await attackAfterCover(room, TARGET_ID, 2)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { d20 } = await settledBatch(room, commandId)
+    expect(d20).toMatchObject({ total: 13, defenseOrDc: 13, resultPath: 'ON_HIT' })
+    expect(d20?.foldedBonuses).toBeUndefined()
   })
 })
 

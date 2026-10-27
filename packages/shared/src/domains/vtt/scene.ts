@@ -144,6 +144,11 @@ export interface SceneToken {
   /** The assigned Campaign Character this token represents; its controllers move it outside an Encounter (D162). */
   characterId?: string
   controlledByUserIds: string[]
+  /**
+   * The GM's cover tier for this target, by System cover tier code (null: no cover). It replaces the
+   * computed tier against every attacker and area origin, and any move of the token clears it.
+   */
+  coverTierOverride?: { tierCode: string | null }
   height: number
   hidden: boolean
   id: string

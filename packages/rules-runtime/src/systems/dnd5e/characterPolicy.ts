@@ -16,7 +16,7 @@ import {
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { evaluateDnd5e2014CharacterGrantFold } from './characterGrantFold.js'
 import { evaluateDnd5eCharacterItemMechanics } from './characterItemMechanics.js'
-import { evaluateDnd5eCharacterModifiers } from './characterModifiers.js'
+import { dnd5eActionModifierGroups, evaluateDnd5eCharacterModifiers } from './characterModifiers.js'
 import { evaluateDnd5eCharacterMovementAndSenses } from './characterMovementAndSenses.js'
 import { evaluateDnd5eCharacterResources } from './characterResources.js'
 import { evaluateDnd5eCharacterRollModes } from './characterRollModes.js'
@@ -112,15 +112,7 @@ export function evaluateDnd5e2014CharacterPolicy(
       scaling: proficiency.scaling,
       category: proficiency.category ?? null
     })),
-    modifierGroups: modifierGroups.map((group) => ({
-      domainKey: group.domainKey,
-      contributions: group.contributions.map((contribution) => ({
-        ...dnd5eFoldedModifierApplicability(grantFold, contribution),
-        value: contribution.value,
-        ability: contribution.ability ?? null,
-        state: contribution.state
-      }))
-    })),
+    modifierGroups: dnd5eActionModifierGroups(grantFold, modifierGroups),
     itemAdjustments: itemMechanics.map((item) => ({
       itemInstanceId: item.itemInstanceId,
       attackBonus: item.calculations.attackBonus.override === null ? item.attackBonus : 0,

@@ -452,6 +452,7 @@ export interface ActionRoomConfig extends Pick<
   | 'concentrationDependentActorIds'
   | 'characterClassFeatures'
   | 'characterEquipment'
+  | 'publishedEquipment'
   | 'characterPlay'
   | 'characterSpellcasting'
   | 'formCreatures'

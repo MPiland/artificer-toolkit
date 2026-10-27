@@ -296948,6 +296948,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297247,6 +297248,7 @@ export declare const api: {
                   assetId: string | null;
                   characterId?: string;
                   controlledByUserIds: Array<string>;
+                  coverTierOverride?: { tierCode: string | null };
                   height: number;
                   hidden: boolean;
                   id: string;
@@ -297588,6 +297590,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297888,6 +297891,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -298123,6 +298127,7 @@ export declare const api: {
               assetId: string | null;
               characterId?: string;
               controlledByUserIds: Array<string>;
+              coverTierOverride?: { tierCode: string | null };
               height: number;
               hidden: boolean;
               id: string;
@@ -306803,6 +306808,7 @@ export declare const internal: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;

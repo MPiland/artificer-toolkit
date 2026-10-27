@@ -10,7 +10,8 @@ type Input = Parameters<typeof buildVttTokenPresentations>[0]
 
 /**
  * The tokens' presentations. Actor conditions arrive as type IDs, so the Campaign's System
- * vocabulary names them; tokens show no condition until it loads.
+ * vocabulary names them, and its cover tiers label the GM's cover choice; tokens show neither
+ * until it loads.
  */
 export function useVttTokenPresentations({
   actorIdByTokenId,
@@ -23,7 +24,7 @@ export function useVttTokenPresentations({
   pending,
   scene,
   targetEntries
-}: Omit<Input, 'encounter' | 'scene' | 'conditionTypes' | 'targetableTokenIds'> & {
+}: Omit<Input, 'encounter' | 'scene' | 'conditionTypes' | 'coverTiers' | 'targetableTokenIds'> & {
   encounter: Input['encounter'] | undefined
   gameSystemId: string
   scene: Input['scene'] | null | undefined
@@ -33,6 +34,10 @@ export function useVttTokenPresentations({
     ...convexQuery(convexApi.content.systems.get, { id: gameSystemId }),
     select: (system) => system?.conditionTypes
   }).data
+  const coverTiers = useQuery({
+    ...convexQuery(convexApi.content.systems.get, { id: gameSystemId }),
+    select: (system) => system?.cover?.tiers
+  }).data
   return useMemo(
     () =>
       scene && encounter
@@ -41,6 +46,7 @@ export function useVttTokenPresentations({
             artUrls,
             boundTokenControl,
             conditionTypes,
+            coverTiers,
             currentUserId,
             encounter,
             lootActorIds,
@@ -54,6 +60,7 @@ export function useVttTokenPresentations({
       artUrls,
       boundTokenControl,
       conditionTypes,
+      coverTiers,
       currentUserId,
       encounter,
       lootActorIds,

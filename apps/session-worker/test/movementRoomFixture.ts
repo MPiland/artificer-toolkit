@@ -241,6 +241,8 @@ export interface MovementRoomConfig {
   characterClassFeatures?: readonly ClassFeature[]
   /** Further SRD Equipment the mover Character carries, equipped (see healersKit). */
   characterEquipment?: readonly EquipmentAuthored[]
+  /** Further SRD Equipment the source publishes that no Character carries (see a variant's parent). */
+  publishedEquipment?: readonly EquipmentAuthored[]
   /** The mover Character's starting play state, where it differs from the capture. */
   characterPlay?: CharacterPlayOverrides
   /** The mover Character's Class casts these spells, preparing the listed ones. */
@@ -420,6 +422,7 @@ export async function movementRoom(config: MovementRoomConfig) {
         darkvision: config.characterDarkvision,
         classFeatures: config.characterClassFeatures,
         equipment: config.characterEquipment,
+        publishedEquipment: config.publishedEquipment,
         play: config.characterPlay,
         spellcasting: config.characterSpellcasting,
         creatures: config.formCreatures
