@@ -282,6 +282,7 @@ const encounterBase = {
   name: 'Vault confrontation',
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
   facingStepDegrees: null,
+  facingArcs: null,
   round: 3,
   status: 'ACTIVE',
   blueprintId: '99999999-9999-4999-8999-999999999903',

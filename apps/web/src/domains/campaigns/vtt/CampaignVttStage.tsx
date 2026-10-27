@@ -688,6 +688,7 @@ export function CampaignVttStage({
     lootActorIds: liveLoot.lootActorIds,
     pending: pendingOccurrence ?? null,
     scene: renderedScene,
+    selectedTokenId,
     targetEntries
   })
   const rendererAreaAim = useMemo(
@@ -726,9 +727,7 @@ export function CampaignVttStage({
     renderedScene
   ])
   // A selection whose token left the Scene counts as no selection.
-  const selectedSceneTokenId = scene?.tokens.some((token) => token.id === selectedTokenId)
-    ? selectedTokenId
-    : null
+  const selectedSceneTokenId = scene?.tokens.find(({ id }) => id === selectedTokenId)?.id ?? null
   // Hover or focus lists a token's statuses; otherwise the selected token's are listed.
   const listedTokenId = inspectedTokenId ?? selectedSceneTokenId
   const listedPresentation = listedTokenId ? tokenPresentations?.[listedTokenId] : undefined

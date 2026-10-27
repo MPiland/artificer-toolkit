@@ -289888,6 +289888,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
@@ -290002,6 +290007,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
@@ -291167,6 +291177,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
@@ -291281,6 +291296,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
@@ -292264,6 +292284,11 @@ export declare const api: {
             campaignId: string;
             createdAt: string;
             currentActorId: string | null;
+            facingArcs?: Array<{
+              arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+              fromDegrees: number;
+              toDegrees: number;
+            }> | null;
             facingStepDegrees?: number | null;
             gameSystemId: string;
             healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
@@ -292377,6 +292402,11 @@ export declare const api: {
             campaignId: string;
             createdAt: string;
             currentActorId: string | null;
+            facingArcs?: Array<{
+              arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+              fromDegrees: number;
+              toDegrees: number;
+            }> | null;
             facingStepDegrees?: number | null;
             gameSystemId: string;
             id: string;
@@ -292671,6 +292701,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
@@ -292785,6 +292820,11 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingArcs?: Array<{
+                  arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  fromDegrees: number;
+                  toDegrees: number;
+                }> | null;
                 facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
@@ -293424,6 +293464,11 @@ export declare const api: {
           campaignId: string;
           createdAt: string;
           currentActorId: string | null;
+          facingArcs?: Array<{
+            arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+            fromDegrees: number;
+            toDegrees: number;
+          }> | null;
           facingStepDegrees?: number | null;
           gameSystemId: string;
           healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";

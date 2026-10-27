@@ -20,6 +20,7 @@ import {
   sceneRangeOutline,
   sceneLightLevels,
   spatialSegmentShareInside,
+  type FacingArcSector,
   type SceneGrid,
   type SceneIlluminationLevel,
   type SceneIlluminationRenderClass,
@@ -98,6 +99,13 @@ export const statusCategoryColours: Record<VttStatusCategory, number> = {
 export const statusOverflowColour = 0xffffff
 /** Workshop Teal (DESIGN.md): technical selection. */
 export const selectionOutlineColor = 0x0891b2
+/** The front arc is safe ground, the sides are caution and the rear is where an attack gains the edge. */
+export const facingArcColours: Record<FacingArcSector['arc'], number> = {
+  FRONT: 0x22b8cf,
+  LEFT_SIDE: 0xfab005,
+  REAR: 0xff6b6b,
+  RIGHT_SIDE: 0xfab005
+}
 
 export interface VttTokenPresentation {
   accessibleDescription: string
@@ -106,6 +114,11 @@ export interface VttTokenPresentation {
   dispositionLabel: string | null
   /** Draws the token's facing: it is an Encounter creature while the Facing rule is active. */
   facing: boolean
+  /**
+   * The Facing rule's arcs around the selected or current-turn token, as the Scene bearings each
+   * covers; null when they are not drawn.
+   */
+  facingArcs: FacingArcSector[] | null
   fillColor: number
   halo: { color: number; label: string } | null
   marked: boolean
@@ -625,6 +638,7 @@ export function sceneTokenAppearanceKey(
     token.width,
     presentation?.artUrl,
     presentation?.facing,
+    presentation?.facingArcs?.map((sector) => `${sector.arc}@${sector.fromBearing}`).join(','),
     presentation?.fillColor,
     presentation?.halo?.color,
     presentation?.marked,
@@ -1153,4 +1167,28 @@ export function describeSceneLighting(
 
 function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {
   return left.x === right.x && left.y === right.y
+}
+
+/** A facing arc reaches this far past the token's footprint. */
+const FACING_ARC_REACH = 40
+
+/** How far from the token's centre its facing arcs are drawn. */
+export function facingArcRadius(token: { height: number; width: number }): number {
+  return Math.max(token.width, token.height) / 2 + FACING_ARC_REACH
+}
+
+/** Degrees between the samples that approximate a facing arc's curved edge. */
+const FACING_ARC_SAMPLE_DEGREES = 5
+
+/** The wedge a facing arc covers around a token's centre: the centre, then its sampled outer edge. */
+export function facingArcWedge(sector: FacingArcSector, radius: number): ScenePoint[] {
+  const span = sector.toBearing - sector.fromBearing
+  const samples = Math.max(1, Math.ceil(span / FACING_ARC_SAMPLE_DEGREES))
+  return [
+    { x: 0, y: 0 },
+    ...Array.from({ length: samples + 1 }, (_, index) => {
+      const bearing = ((sector.fromBearing + (span * index) / samples) * Math.PI) / 180
+      return { x: Math.sin(bearing) * radius, y: -Math.cos(bearing) * radius }
+    })
+  ]
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
+import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   tabletopConditions,
@@ -95,6 +97,43 @@ describe('VTT token presentation model', () => {
 
     expect(present(45).facing).toBe(true)
     expect(present(null).facing).toBe(false)
+  })
+
+  it('gives the selected and current-turn tokens Facing arcs from the shared classifier', () => {
+    const arcs = [
+      { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+      { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+      { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+      { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+    ] as const
+    const actor = tabletopGmEncounter.actors[0]!
+    const scene = sceneForActor()
+    const token = { ...scene.tokens[0]!, rotationDegrees: 90 }
+    const present = (
+      encounter: Partial<EncounterGmProjectionDto>,
+      selectedTokenId: string | null
+    ) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, actor.id]]),
+        conditionTypes: srdSystemRecord.conditionTypes,
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: { ...tabletopGmEncounter, facingArcs: [...arcs], ...encounter },
+        pending: null,
+        scene: { ...scene, tokens: [token] },
+        selectedTokenId
+      })[token.id]!
+    const notCurrent = { currentActorId: null }
+
+    // Current turn: the arcs follow the token's facing.
+    expect(present({}, null).facingArcs).toEqual(facingArcSectors({ arcs, rotationDegrees: 90 }))
+    // Selected, though not the current turn.
+    expect(present(notCurrent, token.id).facingArcs).toEqual(
+      facingArcSectors({ arcs, rotationDegrees: 90 })
+    )
+    // Neither selected nor current, the rule off, or no rule arcs: nothing is drawn.
+    expect(present(notCurrent, null).facingArcs).toBeNull()
+    expect(present({ facingArcs: null }, token.id).facingArcs).toBeNull()
   })
 
   it('shows players no health for any actor', () => {

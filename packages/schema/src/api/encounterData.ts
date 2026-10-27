@@ -15,6 +15,7 @@ import {
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import {
   encounterOptionalCombatSummaryDtoSchema,
+  facingArcTableDtoSchema,
   facingStepDegreesDtoSchema
 } from '../shared/optionalCombat.js'
 import {
@@ -287,6 +288,8 @@ export const encounterPlayerProjectionDtoSchema = lazySchema(() =>
     ),
     /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
     facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
+    /** The Facing rule's arcs, which the tabletop draws around a token; null when the rule is off. */
+    facingArcs: z._default(z.nullable(facingArcTableDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),
@@ -322,6 +325,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     ),
     /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
     facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
+    /** The Facing rule's arcs, which the tabletop draws around a token; null when the rule is off. */
+    facingArcs: z._default(z.nullable(facingArcTableDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),

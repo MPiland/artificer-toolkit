@@ -216,6 +216,7 @@ export function projectPlayerEncounterProjection(
     initiativePolicy: encounter.initiativePolicy,
     optionalCombatRules: encounter.optionalCombatRules,
     facingStepDegrees: encounter.facingStepDegrees,
+    facingArcs: encounter.facingArcs,
     version: encounter.version,
     round: encounter.round,
     currentActorId: listedCurrentActor?.id ?? null,

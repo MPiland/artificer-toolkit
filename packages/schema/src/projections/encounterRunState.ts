@@ -282,7 +282,8 @@ export const encounterRunStateSchema = lazySchema(() =>
       actors: true,
       initiativePolicy: true,
       optionalCombatRules: true,
-      facingStepDegrees: true
+      facingStepDegrees: true,
+      facingArcs: true
     }),
     {
       actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
