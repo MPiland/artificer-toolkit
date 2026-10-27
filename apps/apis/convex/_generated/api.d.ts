@@ -302901,6 +302901,16 @@ export declare const internal: {
       >;
     };
     heads: {
+      awaitCompilation: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          revisionBuiltFrom: number;
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeId: string;
+        },
+        null
+      >;
       claimSupersededObjects: FunctionReference<
         "mutation",
         "internal",
@@ -303041,7 +303051,8 @@ export declare const internal: {
           scope: "SOURCE" | "CAMPAIGN";
           scopeId: string;
         },
-        { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { pendingCompilation: true }
       >;
     };
     manifest: {

@@ -29,7 +29,8 @@ import { fixture } from '../../tests/fixtures/characters'
 import {
   compileAsPublished,
   importedSubject,
-  importSeededSubjects
+  importSeededSubjects,
+  syncImportedDerived
 } from '../../tests/fixtures/publication'
 import { startLocalR2 } from '../../tests/localR2'
 import { api, internal } from '../_generated/api'
@@ -39,7 +40,7 @@ import { insertAuthoredVersion } from '../content/documents'
 import { parsePublicationDocument } from '../content/publicationDocument'
 import { requireDefaultUserContentSource } from '../content/sources'
 import { withSceneVisionTracking } from '../lib/mutations'
-import type { ContentSnapshotScopeRef } from './marking'
+import { CONTENT_SNAPSHOT_BUILD_DELAY_MS, type ContentSnapshotScopeRef } from './marking'
 
 const unshare = makeFunctionReference<
   'mutation',
@@ -334,12 +335,17 @@ describe('content snapshot builds', () => {
         let pages = 0
         let cursor: string | null = null
         for (let isDone = false; !isDone; pages++) {
-          const page: { sources: string[]; continueCursor: string; isDone: boolean } =
-            await t.query(internal.contentSnapshots.heads.readScopeKind, {
+          const page:
+            | { sources: string[]; continueCursor: string; isDone: boolean }
+            | { pendingCompilation: true } = await t.query(
+            internal.contentSnapshots.heads.readScopeKind,
+            {
               ...ref,
-              kind: 'RACE',
+              kind: 'RACE' as const,
               paginationOpts: { numItems: 2, cursor }
-            })
+            }
+          )
+          if ('pendingCompilation' in page) throw new Error('A root compilation is pending.')
           for (const json of page.sources)
             paged.push((JSON.parse(json) as { document: { id: string } }).document.id)
           cursor = page.continueCursor
@@ -472,6 +478,34 @@ describe('content snapshot builds', () => {
             )
           )
         ).toBe(true)
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('builds as soon as a pending compilation lands, without waiting out the failure backoff', async () => {
+    const { t, server, srdSource, head, rootIds } = await setup()
+    try {
+      const subjects = [elf, highElf].map((race) =>
+        importedSubject({ subjectKind: 'RACE', ...race, document: race })
+      )
+      // As in the seed, the subrace compiles only after every root exists, so this build waits.
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects
+      })
+      vi.advanceTimersByTime(CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+      await t.finishInProgressScheduledFunctions()
+      const waiting = await head(srdSource)
+      expect(waiting?.builtRevision).not.toBe(waiting?.revision)
+
+      await syncImportedDerived(t, subjects)
+      vi.advanceTimersByTime(CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+      await t.finishInProgressScheduledFunctions()
+      const built = await head(srdSource)
+      expect(built).toMatchObject({ builtRevision: built?.revision })
+      expect(built?.failedBuilds).toBeUndefined()
+      expect(await rootIds(srdSource, built, 'RACE')).toEqual([elf.id, highElf.id].sort())
     } finally {
       await server.close()
     }

@@ -26,7 +26,10 @@ function Invoke-Container([string]$Command) {
   if ($LASTEXITCODE -ne 0) { throw "The local fixture container step failed (exit $LASTEXITCODE)." }
 }
 
-if ((docker port $container 8026/tcp 2>$null) -notcontains '127.0.0.1:8026') {
+# A throwaway CI container shares the runner's host network instead (.github/workflows/browser-journeys.yml),
+# so its Node actions reach the host Worker through host.docker.internal as Docker Desktop does locally.
+$hostNetwork = (docker inspect --format '{{.HostConfig.NetworkMode}}' $container 2>$null) -eq 'host'
+if (-not $hostNetwork -and (docker port $container 8026/tcp 2>$null) -notcontains '127.0.0.1:8026') {
   throw "$container must publish container port 8026 on host 127.0.0.1:8026 only."
 }
 

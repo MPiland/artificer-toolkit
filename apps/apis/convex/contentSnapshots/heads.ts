@@ -97,11 +97,14 @@ export const readScopeKind = internalQuery({
     kind: zodToConvex(contentSnapshotKindSchema),
     paginationOpts: paginationOptsValidator
   },
-  returns: v.object({
-    sources: v.array(v.string()),
-    continueCursor: v.string(),
-    isDone: v.boolean()
-  }),
+  returns: v.union(
+    v.object({
+      sources: v.array(v.string()),
+      continueCursor: v.string(),
+      isDone: v.boolean()
+    }),
+    v.object({ pendingCompilation: v.literal(true) })
+  ),
   handler: async (ctx, { scope, scopeId, kind, paginationOpts }) => {
     const { page, continueCursor, isDone } =
       scope === 'SOURCE'
@@ -145,12 +148,13 @@ export const readScopeKind = internalQuery({
               ? { storedParentId: root.parentEquipmentId }
               : {})
       }
-      // Fails closed: a snapshot never carries a root its readers would have to recompile.
+      // A snapshot never carries a root its readers would have to recompile; the build waits for
+      // the compilation instead (`awaitCompilation`).
       const compilation = await readAuthoredVersionCompilation(ctx, {
         versionId: root.currentVersionPublicId
       })
       if (!compilation || compilation.authoredChecksum !== root.checksum)
-        throw new Error('Content snapshot source compilation is missing or stale.')
+        return { pendingCompilation: true as const }
       const source: ContentSnapshotListSource =
         publication.subjectKind === 'EQUIPMENT'
           ? {
@@ -389,6 +393,25 @@ export const commitBuild = internalMutation({
     if (dirty)
       await scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
     return 'COMMITTED'
+  }
+})
+
+/**
+ * A build that found a root without its current compilation is waiting on that compilation, not
+ * failing: writing it marks the scope (`lib/mutations.ts`). A mark during this build already bumped
+ * `revision`, so it rebuilds now; otherwise the lease is released for that mark to schedule.
+ */
+export const awaitCompilation = internalMutation({
+  args: { ...vContentSnapshotScopeRef, revisionBuiltFrom: v.number() },
+  returns: v.null(),
+  handler: async (ctx, { revisionBuiltFrom, ...ref }) => {
+    const head = await readContentSnapshotHead(ctx.db, ref)
+    if (!head) return null
+    const marked = head.revision > revisionBuiltFrom
+    await ctx.db.patch(head._id, { buildScheduledAt: marked ? Date.now() : undefined })
+    if (marked)
+      await scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_BUILD_DELAY_MS)
+    return null
   }
 })
 

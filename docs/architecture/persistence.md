@@ -671,12 +671,16 @@ identities, numeric versions and stored parent metadata, and original storage ch
   the key, and `deletingAt` while cleanup deletes it.
 - **Dirty marking.** Triggers in `lib/mutations.ts` mark a scope once per transaction, bump `revision` and
   schedule `contentSnapshots/actions:build` 2 seconds later unless a lease is live. Marking sources:
-  `authoredRoots` (the root's source and every Campaign sharing it), `authoredVersions`, `campaignContentShares`,
-  import completion (`importJobs`), and, for existing heads only, `contentSources`, `campaigns` (System, owner,
+  `authoredRoots` (the root's source and every Campaign sharing it), `authoredVersions`,
+  `authoredVersionCompilations` (a recompile writes only this row), `campaignContentShares`, import completion (`importJobs`), and, for existing heads only, `contentSources`, `campaigns` (System, owner,
   catalogue) and `campaignMemberships` (status, role).
 - **Build.** The Node action reads `revision`, then each kind in pages of 100 roots (a write between pages bumps
   `revision` and triggers another build), builds the `index`, `list` and `documents` parts and uploads gzipped
-  objects only for keys without a row. Unchanged kinds keep their keys.
+  objects only for keys without a row. Unchanged kinds keep their keys. A root whose current compilation is
+  missing or stale (the seed compiles Classes and subraces after every root exists) makes the build wait, not
+  fail: `awaitCompilation` releases the lease, so the compilation's own mark schedules the next build, or
+  reschedules at once when a mark landed during the build. Only other errors take `failBuild`'s backoff
+  (1, 2, 4, 8 and 16 minutes).
 - **`commitBuild`** is a compare-and-set that writes only when `revisionBuiltFrom > builtRevision`, inserts or
   revives referenced rows and supersedes the previous head's other keys. A referenced key that is being deleted
   or has vanished returns `RETRY` and reschedules after a minute. A deleted source or Campaign deletes its head
