@@ -189,10 +189,12 @@ describe('a rule’s failed save raises its action on the holder (ATTACK-16.T1c2
   }, 120000)
 
   it('raises nothing on a made save or when the rule names no action for one', async () => {
-    for (const room of [
-      await shockRoom({ holder: 'CREATURE', saveFace: 20, tableFace: 2 }),
-      await shockRoom({ holder: 'CREATURE', saveFace: 2, tableFace: 2, raises: false })
+    // Each room rigs the dice it is built with, so each is built just before it bites.
+    for (const config of [
+      { saveFace: 20, raises: true },
+      { saveFace: 2, raises: false }
     ]) {
+      const room = await shockRoom({ holder: 'CREATURE', tableFace: 2, ...config })
       const version = await room.version()
       await bite(room, HOLDER_ID)
       expect(await creatureConditions(room)).toEqual([])
