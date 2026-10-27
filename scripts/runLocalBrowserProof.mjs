@@ -46,7 +46,7 @@ try {
   services.push(await startLocalSessionWorker(artifactDirectory))
   services.push(await startLocalWebApp(artifactDirectory))
   await run(
-    'pwsh.exe',
+    'pwsh',
     [
       '-NoProfile',
       '-NonInteractive',

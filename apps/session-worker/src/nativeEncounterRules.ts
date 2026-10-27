@@ -502,15 +502,13 @@ export async function planNativeLiveEncounterAction(
   if (capturedScene && capturedScene.kind !== 'ACTION_SCENE')
     throw new Error('Action Scene context is unavailable.')
   const sceneInputs = capturedScene?.context ?? null
-  const sceneContext = sceneInputs
-    ? {
-        sceneId: sceneInputs.sceneId,
-        sceneVersion: sceneInputs.sceneVersion,
-        sourceToken: sceneInputs.sourceToken,
-        targetToken: sceneInputs.targetToken,
-        grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: sceneInputs.sceneGrid })
-      }
-    : null
+  const sceneContext = sceneInputs && {
+    sceneId: sceneInputs.sceneId,
+    sceneVersion: sceneInputs.sceneVersion,
+    sourceToken: sceneInputs.sourceToken,
+    targetToken: sceneInputs.targetToken,
+    grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: sceneInputs.sceneGrid })
+  }
   const definitions = {
     requireCurrent: async (definitionId: string) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -531,6 +529,7 @@ export async function planNativeLiveEncounterAction(
           activeEffectsByActorId
         })),
         system,
+        rules: state,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,

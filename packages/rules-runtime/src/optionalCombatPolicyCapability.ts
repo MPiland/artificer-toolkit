@@ -324,6 +324,8 @@ export interface MassiveDamageRule {
   readonly savingThrowAbilityDefinitionId: string
   readonly difficultyClass: number
   readonly published: ServerPublishedRuleDefinitionDto
+  /** The raised Effect a failed save runs on its holder; null when the rule raises none. */
+  readonly failedSaveEffectId: string | null
 }
 
 /**

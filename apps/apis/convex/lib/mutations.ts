@@ -257,6 +257,16 @@ triggers.register('authoredVersions', async (ctx, change) => {
     if (version)
       await markContentScope(ctx, { scope: 'SOURCE', scopeId: version.contentSourceId }, true)
 })
+// Snapshots carry each root's compilation, and a recompile (derived sync, a parent's children, the
+// compiler migration) writes only this row; a build that found it missing waits for this mark.
+triggers.register('authoredVersionCompilations', async (ctx, change) => {
+  const { subjectId } = change.newDoc ?? change.oldDoc
+  const root = await ctx.innerDb
+    .query('authoredRoots')
+    .withIndex('by_publicId', (query) => query.eq('id', subjectId))
+    .unique()
+  if (root) await markAuthoredContent(ctx, root)
+})
 triggers.register('contentSources', async (ctx, change) => {
   if (change.operation === 'insert') return
   await markContentScope(ctx, { scope: 'SOURCE', scopeId: change.oldDoc.id }, false)

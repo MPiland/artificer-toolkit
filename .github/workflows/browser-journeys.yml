@@ -1,0 +1,104 @@
+# Live browser journeys on a GitHub runner against a throwaway stack: a self-hosted Convex container
+# (the image live-backend.yml pins) plus the Session Worker under local `wrangler dev` and the web app,
+# so a slice proves a browser journey without the gitignored local configuration. ADR 0035 forbids
+# Convex Cloud, not this container; nothing here reaches Cloudflare or uses a repository secret. The
+# container takes the local container and instance names, and scripts/throwawayConvexStack.mjs
+# generates its env and the ignored local env files, so scripts/runLocalBrowserProof.mjs (Worker, web
+# app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
+# runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
+# RELIABILITY-20.T1 runs the player-browser proof; T2 owns triggers and merge-slice gating, T3 the
+# other *-browser proofs.
+#   git push origin HEAD:ci/<slice>
+name: Browser journeys
+
+on:
+  push:
+    branches: ['ci/**']
+    paths:
+      - '.github/workflows/browser-journeys.yml'
+      - 'scripts/throwawayConvexStack.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-journeys-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  player-browser:
+    name: player-browser on a throwaway stack
+    if: startsWith(github.ref, 'refs/heads/ci/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODE_OPTIONS: --max-old-space-size=8192
+      # The local Worker's telemetry is the only Cloudflare endpoint wrangler dev would call.
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          build: 'true'
+      - name: Install Chromium
+        run: yarn workspace @artificer-toolkit/web exec playwright install --with-deps chromium
+      - name: Start Convex backend
+        run: |
+          # Image digest: the single source is CONVEX_BACKEND_IMAGE in live-backend.yml.
+          image=$(sed -nE 's/^  CONVEX_BACKEND_IMAGE: (.+)$/\1/p' .github/workflows/live-backend.yml)
+          [ -n "$image" ] || { echo 'CONVEX_BACKEND_IMAGE not found in live-backend.yml.' >&2; exit 1; }
+          docker run -d --name phase82-convex-local-linux --network host \
+            --add-host host.docker.internal:127.0.0.1 \
+            -e INSTANCE_NAME=phase82-local-linux \
+            -e CONVEX_CLOUD_ORIGIN=http://127.0.0.1:3210 -e CONVEX_SITE_ORIGIN=http://127.0.0.1:3211 \
+            "$image"
+          for _ in $(seq 60); do
+            curl -fsS http://127.0.0.1:3210/version && exit 0
+            sleep 2
+          done
+          echo 'Convex backend did not become ready.' >&2
+          exit 1
+      - name: Provision the throwaway env
+        run: node scripts/throwawayConvexStack.mjs --secrets-file="$RUNNER_TEMP/throwaway-secrets"
+      # Function errors and console output are not in the container log, and the backend keeps only a
+      # short history, so `convex logs` streams for the rest of the job.
+      - name: Stream Convex function logs
+        run: |
+          key=$(docker exec phase82-convex-local-linux ./generate_admin_key.sh | tail -n 1)
+          echo "::add-mask::$key"
+          echo "::add-mask::${key##*|}"
+          mkdir -p browser-journey-logs
+          nohup yarn workspace @artificer-toolkit/apis exec convex logs \
+            --url http://127.0.0.1:3210 --admin-key "$key" \
+            > browser-journey-logs/convex-function.log 2>&1 &
+      # Seeding builds Content snapshots into the R2 substitute; runLocalBrowserProof reuses it.
+      - name: Start the local Convex fixtures
+        run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
+      - name: Deploy and seed
+        run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
+      - name: Run player-browser
+        run: node scripts/runLocalBrowserProof.mjs --name=ci-player-browser --proof=player-browser
+      - name: Evidence holds no generated secret
+        if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
+          mkdir -p browser-journey-logs
+          docker logs phase82-convex-local-linux > browser-journey-logs/convex-backend.log 2>&1 || true
+          for path in local-validation/browser-proof local-validation/local-convex-proofs; do
+            [ -d "$path" ] && cp -R "$path" browser-journey-logs/
+          done
+          if grep -rlFf "$RUNNER_TEMP/throwaway-secrets" browser-journey-logs; then
+            echo 'A generated secret reached the evidence; it is not uploaded.' >&2
+            rm -rf browser-journey-logs
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: player-browser-evidence
+          path: browser-journey-logs/
+          retention-days: 7
+          if-no-files-found: ignore

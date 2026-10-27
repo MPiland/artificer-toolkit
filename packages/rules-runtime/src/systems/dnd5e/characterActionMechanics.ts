@@ -164,7 +164,7 @@ function resolveOutcomeValue(
  * those scoped to the ability the attack is made with (Weakening Breath's Strength-based attacks).
  */
 function attackModifierContributions(
-  input: CharacterActionModelInput,
+  modifierGroups: CharacterActionModelInput['modifierGroups'],
   attackDomain: string,
   valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
   modifierKinds: readonly string[],
@@ -173,7 +173,7 @@ function attackModifierContributions(
 ): ModifierContribution[] {
   // Domain keys sort their params, so a roll influence's comes last.
   const influenceParam = influence === null ? '' : `|influence=${influence}`
-  return input.modifierGroups
+  return modifierGroups
     .filter((group) =>
       modifierKinds.some((kind) => {
         const key = `${valueDomainCode}:${kind}`
@@ -189,6 +189,30 @@ function attackModifierContributions(
 }
 
 /**
+ * The applied bonuses and penalties an attack's modifier domain adds to its roll or its damage for
+ * one target. Character and Creature attacks share it (ATTACK-6.3).
+ */
+export function dnd5eAttackBonusTotal(
+  modifierGroups: CharacterActionModelInput['modifierGroups'],
+  attackDomain: string,
+  valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
+  target: Dnd5eModifierTarget
+): number {
+  return attackModifierContributions(
+    modifierGroups,
+    attackDomain,
+    valueDomainCode,
+    ['BONUS', 'PENALTY'],
+    target.attackAbility
+  )
+    .filter(
+      (contribution) =>
+        contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+    )
+    .reduce((sum, contribution) => sum + contribution.value, 0)
+}
+
+/**
  * The attack's ability is the one its highest applied ability modifier adds (finesse picks the better).
  * Only the attacking item's own modifiers name it; a Character-wide ability bonus from another source
  * adds to the roll without changing which ability the attack uses.
@@ -199,7 +223,12 @@ function usedAttackAbility(
   target: Dnd5eModifierTarget
 ): string | null {
   return (
-    attackModifierContributions(input, attackDomain, 'ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
+    attackModifierContributions(
+      input.modifierGroups,
+      attackDomain,
+      'ATTACK_ROLL',
+      ABILITY_MODIFIER_KINDS
+    )
       .filter(
         (contribution) =>
           contribution.state === 'APPLIED' &&
@@ -251,7 +280,7 @@ export function resolveDnd5eActionMechanic(
     attackDomain === null
       ? []
       : attackModifierContributions(
-          input,
+          input.modifierGroups,
           attackDomain,
           valueDomainCode,
           modifierKinds,
@@ -286,7 +315,7 @@ export function resolveDnd5eActionMechanic(
     )
   }
   const resolveAttackBonus = (): number | null => {
-    if (attackKind === null) return null
+    if (attackKind === null || attackDomain === null) return null
     if (isDnd5eSpellAttackKind(attackKind)) {
       if (context.spellcasting?.attackBonus == null) return null
       // Spellcasting already counts Character-wide spell attack modifiers; add the spell's own.
@@ -337,7 +366,7 @@ export function resolveDnd5eActionMechanic(
     return (
       abilityTotal('ATTACK_ROLL') +
       Math.floor(input.proficiencyBonus * proficiency) +
-      appliedTotal(applicable('ATTACK_ROLL', ['BONUS', 'PENALTY'])) +
+      dnd5eAttackBonusTotal(input.modifierGroups, attackDomain, 'ATTACK_ROLL', target) +
       (adjustment?.attackBonus ?? 0)
     )
   }
@@ -353,10 +382,10 @@ export function resolveDnd5eActionMechanic(
   /** Weapon and spell attacks add their damage modifiers (ability, +N, Dueling) to the first
    * damage roll, together with the item's manual damage adjustment. */
   const attackDamageBonus =
-    attackKind === null
+    attackDomain === null
       ? 0
       : abilityTotal('DAMAGE') +
-        appliedTotal(applicable('DAMAGE', ['BONUS', 'PENALTY'])) +
+        dnd5eAttackBonusTotal(input.modifierGroups, attackDomain, 'DAMAGE', target) +
         (adjustment?.damageBonus ?? 0) -
         (equipment?.degradation ?? 0)
   const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')

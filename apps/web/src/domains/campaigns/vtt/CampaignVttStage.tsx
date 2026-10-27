@@ -1654,10 +1654,9 @@ export function CampaignVttStage({
           ) : null}
           <CampaignVttSceneObjectMenu
             boundTokenControl={boundTokenControl}
+            campaign={campaign}
             currentUserId={currentUserId}
-            memberships={campaign.memberships}
             previewTokenId={previewTokenId}
-            role={campaign.role}
             scene={scene}
             selectedTokenId={selectedSceneTokenId}
             renderer={renderer}
@@ -1668,6 +1667,7 @@ export function CampaignVttStage({
             onInspectToken={setInspectedTokenId}
             onSelectToken={setSelectedTokenId}
             onPreviewToken={setChosenPreviewTokenId}
+            onSceneCommand={dispatchSceneCommand}
             onTokenMove={(tokenId, position) => {
               const token = scene.tokens.find((candidate) => candidate.id === tokenId)
               if (token) commitTokenMove(tokenId, [token.position, position])

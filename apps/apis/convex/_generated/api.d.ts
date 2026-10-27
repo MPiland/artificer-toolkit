@@ -32258,6 +32258,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -61668,6 +61669,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -91087,6 +91089,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -120497,6 +120500,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -149942,6 +149946,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -179352,6 +179357,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -208732,6 +208738,7 @@ export declare const api: {
                           >;
                         };
                       }>;
+                      failedSaveEffectId?: string;
                       kind: "MASSIVE_DAMAGE";
                       savingThrowAbilityDefinitionId: string;
                       savingThrowDifficultyClass: number;
@@ -237872,6 +237879,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -267282,6 +267290,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -296940,6 +296949,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297239,6 +297249,7 @@ export declare const api: {
                   assetId: string | null;
                   characterId?: string;
                   controlledByUserIds: Array<string>;
+                  coverTierOverride?: { tierCode: string | null };
                   height: number;
                   hidden: boolean;
                   id: string;
@@ -297580,6 +297591,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -297880,6 +297892,7 @@ export declare const api: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;
@@ -298115,6 +298128,7 @@ export declare const api: {
               assetId: string | null;
               characterId?: string;
               controlledByUserIds: Array<string>;
+              coverTierOverride?: { tierCode: string | null };
               height: number;
               hidden: boolean;
               id: string;
@@ -302888,6 +302902,16 @@ export declare const internal: {
       >;
     };
     heads: {
+      awaitCompilation: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          revisionBuiltFrom: number;
+          scope: "SOURCE" | "CAMPAIGN";
+          scopeId: string;
+        },
+        null
+      >;
       claimSupersededObjects: FunctionReference<
         "mutation",
         "internal",
@@ -303028,7 +303052,8 @@ export declare const internal: {
           scope: "SOURCE" | "CAMPAIGN";
           scopeId: string;
         },
-        { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { continueCursor: string; isDone: boolean; sources: Array<string> }
+        | { pendingCompilation: true }
       >;
     };
     manifest: {
@@ -306795,6 +306820,7 @@ export declare const internal: {
                     assetId: string | null;
                     characterId?: string;
                     controlledByUserIds: Array<string>;
+                    coverTierOverride?: { tierCode: string | null };
                     height: number;
                     hidden: boolean;
                     id: string;

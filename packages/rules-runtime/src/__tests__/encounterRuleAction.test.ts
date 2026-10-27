@@ -16,6 +16,7 @@ import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPrep
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
+import { encounterMassiveDamageRule } from '../encounterMassiveDamage.js'
 import { encounterRuleActionId, parseEncounterRuleActionId } from '../encounterRuleAction.js'
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
 import {
@@ -351,5 +352,54 @@ describe('a rule-owned action source (ATTACK-16.T1b)', () => {
     await expect(
       prepareRuleAction({ actor: ogre, characterFacts: null, effectId: testUuid(0x16bf) })
     ).rejects.toThrow('The selected rule action is stale.')
+  })
+})
+
+describe('a rule’s failed-save action (ATTACK-16.T1c2b)', () => {
+  const seed = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+    (entry) => entry.document.kind === 'MASSIVE_DAMAGE'
+  )!
+  const authored = (failedSaveEffectId: string) =>
+    dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+      ...seed.document,
+      raisedEffects: [shockEffect],
+      parameters: { ...seed.document.parameters, failedSaveEffectId }
+    })
+
+  it('names one of the rule’s raised Effects, which the pinned rule reads', () => {
+    const parsed = authored(SHOCK_EFFECT_ID)
+    expect(parsed.success).toBe(true)
+    expect(authored(STABILIZE_EFFECT_ID).error?.issues).toMatchObject([
+      {
+        path: ['parameters', 'failedSaveEffectId'],
+        message: 'A failed save must raise one of the rule’s raised effects.'
+      }
+    ])
+    const document = parsed.data!
+    const state = srdEncounterState({ actors: [], currentActorId: null })
+    const snapshot = encounterOptionalCombatSnapshotDtoSchema.parse({
+      schemaVersion: 1,
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: [
+        {
+          definitionId: seed.id,
+          contentSourceId: SRD_CONTENT_SOURCE.id,
+          definitionVersion: 1,
+          definitionChecksum: checksumRuleDocument(document),
+          contractVersion: 1,
+          label: seed.label,
+          document
+        }
+      ]
+    })
+    const policy = (optionalCombatSnapshot: typeof snapshot) => ({
+      ...state,
+      optionalCombatSnapshot,
+      optionalCombatSnapshotChecksum: checksumRuleDocument(optionalCombatSnapshot)
+    })
+    expect(encounterMassiveDamageRule(policy(snapshot))?.failedSaveEffectId).toBe(SHOCK_EFFECT_ID)
+    expect(
+      encounterMassiveDamageRule(policy(homebrewRuleSnapshot().snapshot))?.failedSaveEffectId
+    ).toBeNull()
   })
 })
