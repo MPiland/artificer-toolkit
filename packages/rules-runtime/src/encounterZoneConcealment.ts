@@ -65,7 +65,7 @@ export function zoneSightPoint(shape: SpatialGeometryDto): { x: number; y: numbe
  * already have a sighting, so a replayed evaluation adds nothing.
  */
 export function zoneSightingCandidates(
-  { concealment }: Pick<SpatialRuleEffectStateDto, 'concealment'>,
+  { concealment }: SpatialRuleEffectStateDto,
   actorIds: readonly string[]
 ): string[] {
   if (!concealment) return []

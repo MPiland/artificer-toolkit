@@ -7,6 +7,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
+import type { ZoneDcDto } from '@artificer-toolkit/schema/shared/spatial'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -87,7 +88,7 @@ async function zonesShownTo(client: Member) {
   return { placedZones, halfSpeedFields: halfSpeedFields.map(({ id }) => id) }
 }
 
-async function setDcs(room: Room, spatialEffectId: string, spotDc = SPOT_DC) {
+async function setDcs(room: Room, spatialEffectId: string, spotDc: ZoneDcDto = SPOT_DC) {
   return room.send({
     type: 'SET_ZONE_DCS',
     encounterId: room.room.encounterId,
