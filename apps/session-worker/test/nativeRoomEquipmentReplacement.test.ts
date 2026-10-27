@@ -12,8 +12,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { dagger } from '@artificer-toolkit/source-data/srd/equipment/dagger.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
+import { greatclubPlus1 } from '@artificer-toolkit/source-data/srd/equipment/greatclub-plus-1.js'
 import { mace } from '@artificer-toolkit/source-data/srd/equipment/mace.js'
 import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsword.js'
 import { runInDurableObject } from 'cloudflare:test'
@@ -23,7 +25,12 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readPendingActionDecision, readRoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readCharacterHitPoints,
+  readPendingActionDecision,
+  readRoomHistory
+} from './roomHistoryReads.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 
 const FIGHTER_ACTOR_ID = testUuid(0xd00)
@@ -50,9 +57,15 @@ const RANGE = ['TARGET_RANGE_UNCHECKED' as const]
  * A seeded SRD Ogre on its turn beside a Fighter. The Fighter carries `compatibleGreatclub`, which
  * publishes it and a Dagger (with the Club every room publishes) into the room's R2 content: the
  * sources a replacement reads. With `autoRoll` the GM's rolls are made for them, so the Ogre's
- * attack with its held weapon resolves in one command.
+ * attack with its held weapon resolves in one command; `rolls` follow its hit's d20 as raw dice.
+ * `publishedEquipment` is published beside them, carried by no one.
  */
-async function equipmentRoom(creatureName = 'Ogre', autoRoll?: 'GAME_MASTER') {
+async function equipmentRoom(
+  creatureName = 'Ogre',
+  autoRoll?: 'GAME_MASTER',
+  publishedEquipment: readonly EquipmentAuthored[] = [],
+  rolls: readonly number[] = []
+) {
   const creature = seededSrdCreature(creatureName)
   const ogre = srdCreatureActor({ id: OGRE_ID, creature })
   const heldEntry = snapshotCreatureEquipmentLoadout(ogre).find(
@@ -66,7 +79,8 @@ async function equipmentRoom(creatureName = 'Ogre', autoRoll?: 'GAME_MASTER') {
     ownerFeatureId: attackFeatureId,
     characterEquipment:
       creatureName === 'Ogre' ? [compatibleGreatclub, dagger] : [shortsword, mace],
-    ...(autoRoll && { autoRoll, rolls: [HIT_FACE] })
+    publishedEquipment,
+    ...(autoRoll && { autoRoll, rolls: [HIT_FACE, ...rolls] })
   })
   const room = acting.room
   const stub = room.base.stub
@@ -433,5 +447,42 @@ describe('a loadout replacement racing the Ogre’s attack (ATTACK-6.5, ATTACK-6
         ({ loadoutEntryId }) => loadoutEntryId === room.heldEntryId
       )?.equipmentId
     ).toBe(compatibleGreatclub.id)
+  })
+})
+
+/**
+ * The GM hands the Ogre a magic Greatclub +1 in place of its Greatclub, and its printed Greatclub
+ * attack then hits and damages with the weapon's +1, as a Character's attack with it does.
+ */
+describe('a replaced magic weapon’s bonuses in the Ogre’s attack (ATTACK-6.3)', () => {
+  /** The d20 modifier and the Fighter's hit points lost when the Ogre hits, each d8 showing 1. */
+  async function ogreHit(replacement: EquipmentAuthored | null) {
+    const room = await equipmentRoom('Ogre', 'GAME_MASTER', [greatclub, greatclubPlus1], [0, 0])
+    if (replacement) {
+      const replaced = await room.replace({ equipmentId: replacement.id })
+      expect(replaced.type, JSON.stringify(replaced)).toBe('COMMAND_COMMITTED')
+    }
+    const before = await readCharacterHitPoints(room.room.base.stub, FIGHTER_ID)
+    const commandId = crypto.randomUUID()
+    const attacked = await room.attack(await room.runVersion(), commandId)
+    expect(attacked.type, JSON.stringify(attacked)).toBe('COMMAND_COMMITTED')
+    const history = await readRoomHistory(room.room.base.stub)
+    const receipt = history.receipts.find(
+      (candidate) => candidate.commandId === commandId && candidate.commandType === 'RESOLVE_ACTION'
+    )
+    if (!receipt) throw new Error('The attack receipt is missing.')
+    const execution = parseReceiptExecution(receipt)
+    if (execution.status !== 'COMPLETE') throw new Error('The attack did not complete.')
+    const outputs = execution.applicationOutputs as { d20?: { modifier: number } | null }
+    return {
+      modifier: outputs.d20?.modifier,
+      lost: before - (await readCharacterHitPoints(room.room.base.stub, FIGHTER_ID))
+    }
+  }
+
+  it('adds the Greatclub +1’s attack and damage bonus to the printed +6 and 2d8 + 4', async () => {
+    // The print governs a mundane Greatclub: its ability bonus is the stat block's alone.
+    expect(await ogreHit(null)).toEqual({ modifier: 6, lost: 1 + 1 + 4 })
+    expect(await ogreHit(greatclubPlus1)).toEqual({ modifier: 7, lost: 1 + 1 + 4 + 1 })
   })
 })

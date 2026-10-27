@@ -192,6 +192,7 @@ function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = 
     attackMechanic: {
       rollDefinitionId: rugIds.attack,
       attackBonus: 5,
+      damageBonus: 0,
       rollMode: 'NORMAL',
       definitionChecksum: checksumRuleDocument({
         kind: 'RUG_SMOTHER',

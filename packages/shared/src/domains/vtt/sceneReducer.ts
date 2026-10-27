@@ -347,9 +347,13 @@ export function applySceneGeometryDelta<
       }
       return {
         ...state,
-        tokens: state.tokens.map((token) =>
-          token.id === delta.tokenId ? { ...token, ...patch } : token
-        )
+        tokens: state.tokens.map((token) => {
+          if (token.id !== delta.tokenId) return token
+          if (delta.kind === 'TOKEN_FACING_SET') return { ...token, ...patch }
+          // Cover is positional, so a move ends the GM's cover override.
+          const { coverTierOverride: _cleared, ...moved } = token
+          return { ...moved, ...patch }
+        })
       }
     }
     case 'DOOR_STATE_SET': {

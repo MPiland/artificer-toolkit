@@ -1855,8 +1855,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
   creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space.
 - **Cover applied (SPELLS-14.T2).** The Campaign setting `automaticCover` (default on, an automation setting beside
-  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover (the GM's tier is T3). When on,
-  `prepareEncounterActionMechanics` asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
+  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover. `prepareEncounterActionMechanics`
+  always asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
   `resolveSquareGridCover`). The Worker reads the live Scene for it (`nativeLiveCover.ts`: attack and cast preparation, the area
   action's per-target preparation, an opportunity attack's reactor→mover lines); the encounter-persistence preview host has no
   barrier reader, so it computes no cover and its previews show the uncovered d20. A tier that blocks targeting is a hard
@@ -1868,6 +1868,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `foldedBonuses` names where the difference came from; the roll record carries the list and the card shows "Half cover +2" (a save)
   or "Half cover: target's defense +2" (an attack). Nothing in code names a cover tier or number. Paths whose host has no Scene
   context (the counterspell cast pause, area collision revalidation) apply no cover.
+- **Cover override (SPELLS-14.T3).** The GM sets a target's tier on its Scene token, `coverTierOverride: { tierCode }` (absent =
+  automatic, `null` = no cover, otherwise a System tier `code`), through the GM-only `UPSERT_SCENE_TOKEN`. `resolveEncounterCover`
+  takes the override first and computes a tier only when `automatic` is set; an unknown code gives no cover. The override is
+  direction-agnostic, so it applies to every attacker and area origin. `applySceneGeometryDelta` drops it on `TOKEN_MOVED` and
+  `TOKEN_MOVE_UNDONE` (cover is positional), and an opportunity attack ignores the mover's override. The tabletop shows it to
+  everyone as a COVER token status.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,

@@ -48,7 +48,8 @@ export async function readNativeLiveCover(input: {
       origin: input.originPoint
         ? { kind: 'POINT', point: input.originPoint }
         : { kind: 'TOKEN', token: sourceToken },
-      targetTokenId: loaded.observerTokenId
+      targetTokenId: loaded.observerTokenId,
+      automatic: input.state.automaticCover
     }),
     input.refuseBlocked ?? false
   )

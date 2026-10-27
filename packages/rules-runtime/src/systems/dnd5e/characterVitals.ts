@@ -20,11 +20,8 @@ import {
   selectDnd5eHeldShield
 } from './armorClass.js'
 import { resolveDnd5eCharacterAbilityBonuses } from './characterDerivedStats.js'
-import {
-  evaluateDnd5eCharacterModifiers,
-  type CharacterResolvedModifierGroup
-} from './characterModifiers.js'
-import { foldDnd5eCreatureEquipment } from './creatureFeatureGrantFold.js'
+import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
+import { evaluateDnd5eCreatureEquipment } from './creatureFeatureGrantFold.js'
 import { hitPointGain } from './hitPointRules.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 import {
@@ -135,25 +132,10 @@ export function resolveDnd5eCreatureArmorClass(input: {
     .map((item) => resolveDnd5eEquipmentArmorClass(item.source.equipmentId, item.armorClass))
     .find((result) => !result.ok)
   if (missing) return missing
-  const grantFold = foldDnd5eCreatureEquipment({
-    systemId: DND5E_SYSTEM_ID,
+  const { grantFold, modifierGroups } = evaluateDnd5eCreatureEquipment({
     abilityScores: input.abilityScores,
     equipment: input.equipment
   })
-  const modifierGroups = evaluateDnd5eCharacterModifiers(
-    {
-      totalLevel: 0,
-      grantFoldFacts: { base: { classes: [] } },
-      derivedBaseFacts: {
-        abilities: Object.entries(input.abilityScores).map(([abilityId, baseScore]) => ({
-          abilityId,
-          baseScore
-        })),
-        spellcasting: null
-      }
-    },
-    grantFold
-  )
   return {
     ok: true,
     armorClass:
