@@ -126,7 +126,7 @@ const contestDefenderRollEvidenceDtoSchema = lazySchema(() =>
  * awaits evidence. It is factual continuation state, never executable graph
  * data; the application resumes the existing spatial/reaction pipeline from it.
  */
-export const optionalCombatPassageContinuationDtoSchema = lazySchema(() =>
+const optionalCombatPassageContinuationDtoSchemaImpl = lazySchema(() =>
   z
     .strictObject({
       root: spatialMovementPendingRootDtoSchema,
@@ -187,6 +187,14 @@ export const optionalCombatPassageContinuationDtoSchema = lazySchema(() =>
       })
     )
 )
+
+/** Named so declaration emit references it instead of inlining its execution results. */
+export type OptionalCombatPassageContinuationDto = z.infer<
+  typeof optionalCombatPassageContinuationDtoSchemaImpl
+>
+
+export const optionalCombatPassageContinuationDtoSchema: z.ZodMiniType<OptionalCombatPassageContinuationDto> =
+  optionalCombatPassageContinuationDtoSchemaImpl
 
 /**
  * A movement passage contest's sealed choice. `successMovement` is what the rule's policy has a won

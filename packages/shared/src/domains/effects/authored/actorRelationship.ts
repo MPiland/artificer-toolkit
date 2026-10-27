@@ -2,6 +2,7 @@ import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
+import type { ForcedMovementAuthored } from './forcedMovement.js'
 import type { PathLifecycleTurnAnchorAuthored } from './path.js'
 import type { AttackSlotCondition, SavingThrowAuthored } from '#authored'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
@@ -42,6 +43,8 @@ export type ActorRelationshipModuleAuthored =
       checks: CheckChoiceAuthored
       dc: EscapeDcAuthored
       actorKinds: Array<'TARGET' | 'CREATURE_WITHIN_REACH'>
+      /** Where a won escape moves the hold's source, pushed by the escaper. */
+      holderForcedMovement?: ForcedMovementAuthored
     }
   | {
       id: string

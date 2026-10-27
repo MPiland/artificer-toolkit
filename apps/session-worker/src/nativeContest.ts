@@ -8,6 +8,7 @@ import {
   liveSessionEncounterContestCommitInputSchema,
   liveSessionEncounterContestPendingInputSchema
 } from '@artificer-toolkit/schema/api/liveSessionEncounterContest'
+import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput,
@@ -105,11 +106,17 @@ type ContestPendingContext = Extract<
 /**
  * What a won contest changes: an action's outcome (the Disarmed item or the hold) from its prepared
  * mechanics, its forced movements landing where `forcedMovementPick` reads (D157), or a contested
- * escape that ends the held source's `activeEffectId`.
+ * escape that ends the held source's `activeEffectId` and moves its holder by `holderMovement`.
  */
 type ContestSettlement =
   | { kind: 'ACTION'; prepared: PreparedContest; forcedMovementPick: ForcedMovementPick }
-  | { kind: 'ESCAPE'; holderEffects: readonly ActiveRuleEffectRecord[]; activeEffectId: string }
+  | {
+      kind: 'ESCAPE'
+      holderEffects: readonly ActiveRuleEffectRecord[]
+      activeEffectId: string
+      holderMovement: LiveSessionForcedMovement | null
+      forcedMovementPick: ForcedMovementPick
+    }
 type ContestRolls = Extract<
   Awaited<ReturnType<typeof executeEncounterOptionalContestAction>>,
   { kind: 'COMPLETE' }
@@ -287,6 +294,7 @@ export async function planNativeLiveContest(
       capture,
       runtime: executionOptions.runtime,
       random: executionOptions.random,
+      forcedMovementPick: executionOptions.forcedMovementPick,
       revisions: reads.revisions
     })
   }
@@ -418,6 +426,7 @@ export async function planNativeLiveEscapeContest(input: {
   capture: Parameters<typeof spendNativeHolderActivation>[0]['capture']
   runtime: RulesRuntimeService
   random(maximum: number): number
+  forcedMovementPick: ForcedMovementPick
   revisions(): LiveSessionRulesRevisions
 }) {
   const { root, state, actors, activeEffectsByActorId } = input
@@ -462,7 +471,13 @@ export async function planNativeLiveEscapeContest(input: {
     actors,
     actor,
     target: holderActor,
-    settlement: { kind: 'ESCAPE', holderEffects: heldEffects, activeEffectId: effect.id },
+    settlement: {
+      kind: 'ESCAPE',
+      holderEffects: heldEffects,
+      activeEffectId: effect.id,
+      holderMovement: escape.holderMovement,
+      forcedMovementPick: input.forcedMovementPick
+    },
     actorRules: reconcileEncounterActorRuleOutput(
       evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
       facts
@@ -771,6 +786,23 @@ export async function planNativeLiveContestRolls(input: {
       rollerActorId: contest.initiator.actorId
     })
   const settledOutcome = outcome?.kind === 'SETTLED' ? outcome : null
+  // A won escape pushes its holder off the escaper; the contest graph is the one graph a pick holds.
+  const escapeMovement =
+    sourceWins && settlement.kind === 'ESCAPE' && settlement.holderMovement
+      ? {
+          pick: settlement.forcedMovementPick,
+          movements: [settlement.holderMovement],
+          completion: {
+            execution: execution.execution,
+            published: preparation.published,
+            initialPublished: preparation.published,
+            initialFactsChecksum: checksumRuleDocument(execution.execution.evidence.facts),
+            phaseReceipts: null,
+            d20: null,
+            nestedD20: null
+          }
+        }
+      : null
   // A movement with two or more legal squares waits for its source to pick one (D157).
   const destination = await planForcedMovementDestination({
     runtime: input.runtime,
@@ -785,7 +817,7 @@ export async function planNativeLiveContestRolls(input: {
             movements: settledOutcome.forcedMovements,
             completion: settledOutcome.completion
           }
-        : null,
+        : escapeMovement,
     answer: destinationAnswered
   })
   if (destination.kind === 'HELD')

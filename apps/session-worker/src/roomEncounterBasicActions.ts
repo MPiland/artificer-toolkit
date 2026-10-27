@@ -36,7 +36,7 @@ import { planNativeLiveChangeFacing } from './nativeChangeFacingAction.js'
 import { setRoomActorFacing } from './roomActionFacing.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
-import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
+import { applyRoomForcedMovements, readRoomForcedMovementPick } from './roomActionForcedMovement.js'
 import {
   assertRoomEncounterReadFence,
   assertRoomEncounterRulesRevisions
@@ -151,7 +151,8 @@ export async function executeRoomEncounterEscape(
   const plan = await planNativeLiveEscape(scope, input.command, {
     ...basicActionExecution(input),
     // A rescuer's reach to the held creature reads the Run's bound Scene, as a relationship end does.
-    readReachScene: (state) => readRoomBoundSceneTokens(ctx, transaction, state)
+    readReachScene: (state) => readRoomBoundSceneTokens(ctx, transaction, state),
+    forcedMovementPick: (pick) => readRoomForcedMovementPick({ ctx, transaction, ...pick })
   })
   if (plan.kind === 'REPLAY') return plan.result
   if (plan.kind === 'CONTEST') return persistRoomEncounterContest({ ...input, plan: plan.contest })

@@ -120,7 +120,8 @@ const facingDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
 /**
  * The cling a won climb gives the climbed creature, sourced by the climber: the climber follows the
  * target and its attacks against the target have advantage. One cling per climber; it holds until
- * the climber is released.
+ * the climber is released, or the target dislodges it with an action: its Athletics against the
+ * climber's Athletics or Acrobatics, a win dropping the climber in a space 5 feet away.
  */
 function climbClingEffect() {
   const childId = (kind: string) =>
@@ -166,6 +167,30 @@ function climbClingEffect() {
                   kind: 'SOURCE_ATTACK_ROLL_INFLUENCE',
                   actionEffectIds: [],
                   influence: 'ADVANTAGE'
+                },
+                {
+                  id: childId('dislodge'),
+                  order: 3,
+                  kind: 'ESCAPE_CHECK',
+                  activation: { code: 'ACTION', amount: 1 },
+                  checks: { skillIds: [SRD_ATHLETICS_SKILL_ID], abilityDefinitionIds: [] },
+                  dc: {
+                    kind: 'CONTEST',
+                    checks: {
+                      skillIds: [SRD_ACROBATICS_SKILL_ID, SRD_ATHLETICS_SKILL_ID].sort(),
+                      abilityDefinitionIds: []
+                    }
+                  },
+                  actorKinds: ['TARGET'],
+                  holderForcedMovement: {
+                    id: childId('dislodge-landing'),
+                    effectKind: 'FORCED_MOVEMENT',
+                    direction: 'ANY',
+                    actionEconomy: 'NONE',
+                    distanceMode: 'EXACT',
+                    amount: 5,
+                    unit: 'FEET'
+                  }
                 }
               ]
             }
