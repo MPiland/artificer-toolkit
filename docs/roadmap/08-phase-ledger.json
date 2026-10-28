@@ -20217,7 +20217,7 @@
             },
             {
               "id": "RELIABILITY-21.15",
-              "text": "scene-live-browser passes without reruns: the Session Worker challenges a live-session socket for re-authentication only at or after that socket's own token expiry, never early after an Encounter fan-out.",
+              "text": "scene-live-browser passes without reruns: every live-session socket, including one woken from hibernation, is challenged for re-authentication at its own token expiry minus the ADR 0035 Amendment 23 lead (60 s), and the proof accepts a challenge in [exp - lead, exp).",
               "status": "TODO",
               "proof": [],
               "origin": []
@@ -20448,8 +20448,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Find why the Session Worker sends AUTHENTICATION_REQUIRED to a live-session socket about 60 s before its token expires, right after an ENCOUNTER_SESSION fan-out, and make each socket's challenge follow its own token expiry, with a Worker regression test that fails before the fix; remove scene-live-browser from KNOWN_BUG_PROOFS.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367.",
+              "text": "Make RoomAdmissions.restore challenge a socket woken from hibernation at its own exp - LIVE_SESSION_REAUTHENTICATION_LEAD_MS (today restore -> #trackExpiry only arms the close, roomAdmissions.ts:78/82-85), with a Worker wake regression test that fails before the fix; fix the scene-live-browser proof (nativeSceneLive.ts:185) to accept a challenge in [exp - lead, exp) per ADR 0035 Amendment 23.",
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367. Re-scoped 2026-10-28 by orchestrator ruling A: the original AC contradicted ADR 0035 A23; the early challenge is A23 working, the real bug is the missing challenge after hibernation wake (T15 ruling packet).",
               "activeWorkbook": "docs/architecture/live-sessions.md"
             },
             {
