@@ -60,9 +60,11 @@ describe('room Rogue Cunning Action (SPELLS-31.T4l1)', () => {
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
       ],
       characterClassFeatures: [cunningAction],
-      // The room offers the Rogue Disengage through Cunning Action.
-      characterAction: ({ id }) => id === offered
+      // The room's default action is the Rogue's own; the offer is taken by its id below.
+      characterAction: () => true
     })
+    const { basicActionChoices } = await room.actionChoices()
+    expect(basicActionChoices.map(({ id }) => id)).toContain(offered)
     const take = (actionId: string) =>
       room.startAction(ROGUE_ACTOR_ID, [], null, null, actionId, ROGUE_ACTOR_ID)
 

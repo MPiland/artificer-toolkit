@@ -4,7 +4,11 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterActionSourceInput } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import {
+  actorGrantedActions,
+  nextGrantedAttackCharge,
+  parseGrantedActionId
+} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 
 /** The feet an actor has moved this turn, read from the room's store. */
@@ -57,8 +61,8 @@ export async function readNativeLiveTurnUses(
 
 /**
  * What an action source reads of the offers held effects make, as they stand now: a granted action's
- * holder effects, spent uses and Character rules (D160, D188), or a repeat's every-holder effects, turn and spent uses (D166,
- * D190a). Any other action reads neither.
+ * holder effects, spent uses and Character rules (D160, D188), or a repeat's every-holder effects,
+ * turn and spent uses (D166, D190a). Any other action reads neither.
  */
 export async function readNativeActionSourceOffers(input: {
   capture: Parameters<typeof readNativeLiveTurnUses>[0]
@@ -80,6 +84,23 @@ export async function readNativeActionSourceOffers(input: {
         }
       }
     : { repeat: { effectsByHolder: input.activeEffectsByActorId, turn: input.state, spentKeys } }
+}
+
+/**
+ * What the actor's next weapon attack charges through its weapon-attack offers (Flurry of Blows),
+ * as they stand now; null when no offer covers it.
+ */
+export async function readNativeWeaponAttackOffer(input: {
+  capture: Parameters<typeof readNativeLiveTurnUses>[0]
+  actor: Parameters<typeof actorGrantedActions>[1]
+  heldEffects: Parameters<typeof actorGrantedActions>[0]
+  characterRules: Parameters<typeof actorGrantedActions>[2]
+}) {
+  const holds = actorGrantedActions(input.heldEffects, input.actor, input.characterRules).filter(
+    ({ offer }) => offer.weaponAttack
+  )
+  const spent = holds.length > 0 ? await readNativeLiveTurnUses(input.capture, input.actor.id) : []
+  return nextGrantedAttackCharge(holds, spent)
 }
 
 /**

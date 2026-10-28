@@ -4,6 +4,7 @@ import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import type { CharacterRulePolicyFactsResult } from './character/characterRulePolicyFacts.js'
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
+import type { HeldGrantedAction } from './encounterGrantedActions.js'
 
 /**
  * An always-on effect of a passive feature (SPELLS-31.2): its holder holds it until one of its
@@ -26,6 +27,23 @@ export function standingEffectReturnsOn(
   for (const entry of effect.entries)
     if ('lifecycle' in entry && entry.lifecycle?.returnsOn) return entry.lifecycle.returnsOn
   return null
+}
+
+/**
+ * The offers a Character's compiled passive effect makes on every turn: a grant with no duration
+ * (Cunning Action), as a Creature trait's (D188). The effect's id stands in for the held effect's id.
+ */
+export function compiledStandingGrantedActions(
+  effect: Pick<CompiledEffectGroup, 'id' | 'invocation' | 'entries'>
+): HeldGrantedAction[] {
+  if (effect.invocation.kind !== 'PASSIVE') return []
+  return effect.entries
+    .flatMap((entry) =>
+      'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT' && !entry.duration
+        ? (entry.lifecycle?.grantedActions ?? [])
+        : []
+    )
+    .map((offer, offerIndex) => ({ effectId: effect.id, offerIndex, offer }))
 }
 
 /**

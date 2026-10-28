@@ -23,12 +23,9 @@ import {
   initiativeRestoreSources,
   type InitiativeRestoreSource
 } from './characterInitiativeRestores.js'
-import {
-  compiledStandingGrantedActions,
-  type HeldGrantedAction
-} from '../encounterGrantedActions.js'
+import type { HeldGrantedAction } from '../encounterGrantedActions.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
-import { standingEffectReturnsOn } from '../standingEffects.js'
+import { compiledStandingGrantedActions, standingEffectReturnsOn } from '../standingEffects.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 

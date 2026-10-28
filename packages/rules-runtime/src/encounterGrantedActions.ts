@@ -1,7 +1,6 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import {
   encounterBasicActionDefinitionId,
@@ -104,23 +103,6 @@ export function nextGrantedAttackCharge(
   if (useKey) return { useKey }
   const charged = holds.find(({ offer }) => offer.activation !== 'FREE')
   return charged ? { activation: charged.offer.activation } : null
-}
-
-/**
- * The offers a Character's compiled passive effect makes on every turn: a grant with no duration
- * (Cunning Action), as a Creature trait's (D188). The effect's id stands in for the held effect's id.
- */
-export function compiledStandingGrantedActions(
-  effect: Pick<CompiledEffectGroup, 'id' | 'invocation' | 'entries'>
-): HeldGrantedAction[] {
-  if (effect.invocation.kind !== 'PASSIVE') return []
-  return effect.entries
-    .flatMap((entry) =>
-      'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT' && !entry.duration
-        ? (entry.lifecycle?.grantedActions ?? [])
-        : []
-    )
-    .map((offer, offerIndex) => ({ effectId: effect.id, offerIndex, offer }))
 }
 
 /** The rules a Character's standing offers are read from; see `compiledStandingGrantedActions`. */
