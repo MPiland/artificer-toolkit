@@ -194,13 +194,22 @@ describe('native Character commit', () => {
         .unique()
     )
     if (!active) throw new Error('Missing active row')
+    // The structure clock lives on the build record.
+    const build = await t.run((ctx) =>
+      ctx.db
+        .query('characterBuildStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', first.character.id))
+        .unique()
+    )
+    if (!build) throw new Error('Missing build row')
     await t.run((ctx) =>
-      ctx.db.patch(active._id, {
-        updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+      ctx.db.patch(build._id, {
+        updatedAt: new Date(Date.parse(build.updatedAt) + 1000).toISOString()
       })
     )
     const unchanged = await t.run((ctx) => ctx.db.get(active._id))
     if (!unchanged) throw new Error('Missing unchanged active row')
+    const unchangedBuild = await t.run((ctx) => ctx.db.get(build._id))
     await expect(
       owner.caller.mutation(api.characters.commit.commit, {
         expectedDraftId: edit.id,
@@ -212,6 +221,7 @@ describe('native Character commit', () => {
       edit
     )
     expect(await t.run((ctx) => ctx.db.get(active._id))).toEqual(unchanged)
+    expect(await t.run((ctx) => ctx.db.get(build._id))).toEqual(unchangedBuild)
     await owner.caller.mutation(api.characters.drafts.discard, {
       id: first.character.id,
       expectedDraftId: edit.id
