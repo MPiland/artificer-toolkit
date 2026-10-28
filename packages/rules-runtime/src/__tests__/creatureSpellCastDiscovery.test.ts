@@ -2,6 +2,7 @@ import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/s
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { describe, expect, it } from 'vitest'
 
+import { planCreatureRest } from '../encounterCreatureRest.js'
 import { assertEncounterFeatureActionCapabilityCurrent } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { discoverEncounterFeatureActionCapabilities } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -127,7 +128,7 @@ describe('Creature spell cast execution (SPELLS-33.T3c2b)', () => {
         level,
         {
           ownerFeatureId: spellcasting.id,
-          slotRowId: SLOT_ROWS.find((row) => row.level === level)!.id,
+          slotKey: SLOT_ROWS.find((row) => row.level === level)!.id,
           spellId: srdByLabel(SRD.spells, 'Fireball').id
         }
       ])
@@ -179,7 +180,7 @@ describe('Creature spell cast execution (SPELLS-33.T3c2b)', () => {
         .replace(/ \(\d+\w+ level\)$/, '')
       expect(cast.spellSlotUse).toEqual({
         ownerFeatureId: sphinxSpellcasting.id,
-        slotRowId: slotRows.find((row) => row.level === cast.spellCast?.castLevel)!.id,
+        slotKey: slotRows.find((row) => row.level === cast.spellCast?.castLevel)!.id,
         spellId: srdByLabel(SRD.spells, spellLabel).id
       })
     }
@@ -198,7 +199,7 @@ describe('Creature spell cast execution (SPELLS-33.T3c2b)', () => {
         actor,
         capability: {
           ...fireball,
-          spellSlotUse: { ...fireball.spellSlotUse!, slotRowId: SLOT_ROWS[0]!.id }
+          spellSlotUse: { ...fireball.spellSlotUse!, slotKey: SLOT_ROWS[0]!.id }
         },
         spells: SPELLS
       })
@@ -214,5 +215,136 @@ describe('Creature spell cast execution (SPELLS-33.T3c2b)', () => {
         spells: SPELLS
       })
     ).toThrow('Spell cast is stale')
+  })
+})
+
+describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
+  const DJINNI = srdByLabel(SRD.creatures, 'Djinni')
+  const ACOLYTE = srdByLabel(SRD.creatures, 'Acolyte')
+  const PLANETAR = srdByLabel(SRD.creatures, 'Planetar')
+  const grantOf = (creature: typeof MAGE, spellLabel: string) => {
+    const spellId = srdByLabel(SRD.spells, spellLabel).id
+    for (const feature of creature.features)
+      for (const grant of feature.grants?.spells ?? [])
+        if (grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(spellId))
+          return { feature, grant, spellId }
+    throw new Error(`${creature.label} has no grant of ${spellLabel}.`)
+  }
+  const directCasts = (
+    creature: typeof MAGE,
+    label: string,
+    featureCharges?: Record<string, number>
+  ) =>
+    discoverCreatureCasts(creature, featureCharges).filter(
+      (capability) => capability.featureOptionId === null && capability.label.startsWith(label)
+    )
+  /** The Creature with the Feature owning `spellLabel`'s grant rewritten by `edit`. */
+  const withGrant = (
+    creature: typeof MAGE,
+    spellLabel: string,
+    edit: (grant: ReturnType<typeof grantOf>['grant']) => ReturnType<typeof grantOf>['grant']
+  ): typeof MAGE => {
+    const { feature, grant } = grantOf(creature, spellLabel)
+    return {
+      ...creature,
+      features: creature.features.map((entry) =>
+        entry.id !== feature.id
+          ? entry
+          : {
+              ...entry,
+              grants: {
+                ...entry.grants,
+                spells: entry.grants!.spells!.map((candidate) =>
+                  candidate.id === grant.id ? edit(candidate) : candidate
+                )
+              }
+            }
+      )
+    }
+  }
+
+  it('offers a 3/day spell at its own level and binds the cast to its grant’s charge pool', () => {
+    const { feature, grant, spellId } = grantOf(PLANETAR, 'Flame Strike')
+    const casts = directCasts(PLANETAR, 'Flame Strike')
+    expect(casts.map((capability) => capability.spellCast?.castLevel)).toEqual([5])
+    expect(casts[0]?.ownerFeatureId).toBe(feature.id)
+    expect(casts[0]?.spellSlotUse).toEqual({
+      ownerFeatureId: feature.id,
+      slotKey: grant.charges!.id,
+      spellId
+    })
+    expect(casts[0]?.spellSaveDc).toBe(20)
+    expect(directCasts(DJINNI, 'Thunderwave').map((capability) => capability.spellSlotUse)).toEqual(
+      [null]
+    )
+  })
+
+  it('stops offering the spell once its pool is spent, and refuses a cast issued before', () => {
+    const { grant } = grantOf(PLANETAR, 'Flame Strike')
+    const spent = { [grant.charges!.id]: 3 }
+    expect(directCasts(PLANETAR, 'Flame Strike', { [grant.charges!.id]: 2 })).toHaveLength(1)
+    expect(directCasts(PLANETAR, 'Flame Strike', spent)).toEqual([])
+    const [flameStrike] = directCasts(PLANETAR, 'Flame Strike')
+    expect(() =>
+      assertEncounterFeatureActionCapabilityCurrent({
+        actor: srdCreatureActor({ id: testUuid(0xe3), creature: PLANETAR, featureCharges: spent }),
+        capability: flameStrike!,
+        spells: SPELLS
+      })
+    ).toThrow('Spell cast is stale')
+  })
+
+  it('casts a limited-use cast-at-level grant at the grant’s level only, from its shared pool', () => {
+    const { feature, grant } = grantOf(ACOLYTE, 'Cure Wounds')
+    const pooled = ['Bless', 'Cure Wounds', 'Sanctuary'].flatMap((label) =>
+      directCasts(ACOLYTE, label)
+    )
+    expect(pooled.map((capability) => capability.label)).toEqual([
+      'Bless (1st level)',
+      'Cure Wounds (1st level)',
+      'Sanctuary (1st level)'
+    ])
+    expect(new Set(pooled.map((capability) => capability.spellSlotUse?.slotKey))).toEqual(
+      new Set([grant.charges!.id])
+    )
+    expect(new Set(pooled.map((capability) => capability.spellSlotUse?.ownerFeatureId))).toEqual(
+      new Set([feature.id])
+    )
+    expect(directCasts(ACOLYTE, 'Cure Wounds', { [grant.charges!.id]: 3 })).toEqual([])
+  })
+
+  it('casts a cast-at-level grant with no pool at its level for free', () => {
+    const fixed = withGrant(ACOLYTE, 'Cure Wounds', ({ charges: _charges, ...grant }) => ({
+      ...grant,
+      attributes: ['PREPARED', 'CAST_AT_LEVEL'],
+      castAtLevel: 3
+    }))
+    const casts = directCasts(fixed, 'Cure Wounds')
+    expect(casts.map((capability) => [capability.label, capability.spellSlotUse])).toEqual([
+      ['Cure Wounds (3rd level)', null]
+    ])
+  })
+
+  it('recovers a spent pool on the rest its reset names, and an X/day pool on neither', () => {
+    const acolytePool = grantOf(ACOLYTE, 'Cure Wounds').grant.charges!.id
+    const djinniPool = grantOf(DJINNI, 'Tongues').grant.charges!.id
+    const acolyte = srdCreatureActor({
+      id: testUuid(0xe4),
+      creature: ACOLYTE,
+      featureCharges: { [acolytePool]: 2 }
+    })
+    expect(planCreatureRest(acolyte, 'SHORT').resets).toEqual([])
+    expect(planCreatureRest(acolyte, 'LONG').resets).toEqual([{ key: acolytePool, beforeUsed: 2 }])
+    const djinni = srdCreatureActor({
+      id: testUuid(0xe5),
+      creature: DJINNI,
+      featureCharges: { [djinniPool]: 1 }
+    })
+    expect(planCreatureRest(djinni, 'LONG').resets).toEqual([])
+  })
+
+  it('offers no limited-use spell whose grant has no pool a Creature can count', () => {
+    const unpooled = withGrant(PLANETAR, 'Flame Strike', ({ charges: _charges, ...grant }) => grant)
+    expect(directCasts(unpooled, 'Flame Strike')).toEqual([])
   })
 })

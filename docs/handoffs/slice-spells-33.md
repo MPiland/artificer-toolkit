@@ -586,6 +586,13 @@ Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.
 - Proofs: `creatureSpellCastDiscovery.test.ts` (bonus and DC, slot binding, Lich and Gynosphinx options, stale casts) and `nativeRoomCreatureSpellCast.test.ts`. In the room test, the Mage's Fireball spends the 3rd-level row with its receipt, undo restores the row and the Wolf, and an upcast spends the 4th-level row.
 - The receipt shape and the SRD grants change stored data: reset and reseed local data after merge (D196).
 
+## T3c2c done: creature innate casts from a charge pool (`ci/spells-33-t3c2c`)
+
+- `listCreatureSpellCasts` now offers `LIMITED_USE` and `CAST_AT_LEVEL` grants through the shared candidate builder (`fixedLevel` from `castAtLevel`, as the Character path does). A pooled cast binds `spellSlotUse.slotKey` (renamed from `slotRowId`) to the grant's `charges.id`, so the T3c2b spend, `spellCastConsumption` receipt and undo apply unchanged. The pool is offered while `amount - used > 0`; a `CAST_AT_LEVEL` grant with no pool is free; a `LIMITED_USE` grant without a `FIXED_AMOUNT` pool is not offered. Cantrips spend nothing (the Character rule).
+- `planCreatureRest` also recovers grant pools whose `resetKind` the rest names; `DAILY` ("X/day") pools recover on neither rest, as for Characters.
+- Proofs: `creatureSpellCastDiscovery.test.ts` (Planetar Flame Strike pool binding and exhaustion, stale cast, Acolyte cast-at-level shared pool, pool-less cast-at-level, rest) and `nativeRoomCreatureSpellCast.test.ts` (Planetar casts Flame Strike in the room, the pool is spent with its receipt, undo restores it; a spent pool offers no cast).
+- Data findings, not changed here: Planetar and Pit Fiend author "3/day each" as one pool shared by the grant's spells (the Djinni authors one grant per spell); Archmage and Acolyte author slotted spellcasting as per-level `LIMITED_USE` pools, so they cannot upcast.
+
 ## T3c3 resume: creature rest room command (fresh session, independent)
 
 Branch `ci/spells-33-t3c3`. Do not edit the ledger.
