@@ -10,11 +10,12 @@
 # (every *-browser proof of scripts/runLocalConvexProof.ps1, the one proof list) when the slice's changes
 # since the phase branch reach a journey through the Tests workflow's import graph, or change the stack;
 # otherwise the run passes with no proof. A dispatch runs one named proof (any runLocalConvexProof.ps1
-# proof) or, unnamed, every CI proof. A KNOWN_BUG_PROOFS proof runs without gating until its fix task
-# removes it. merge-slice requires every run on a tip green
-# (docs/architecture/ci-validation.md#browser-journeys).
+# proof) or, unnamed, every CI proof. The selected proofs run in shards, several per stack. A
+# KNOWN_BUG_PROOFS proof runs in the non-gating shard until its fix task removes it. `reverse` runs each
+# shard's proofs in reverse order, which proves they do not depend on each other. merge-slice requires
+# every run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
 #   git push origin HEAD:ci/<slice>
-#   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof=<name>]
+#   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof=<name>] [-f reverse=true]
 name: Browser journeys
 
 on:
@@ -25,13 +26,17 @@ on:
       proof:
         description: One proof from scripts/runLocalConvexProof.ps1 (empty runs every CI proof)
         default: ''
+      reverse:
+        description: Run each shard's proofs in reverse order
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
-# A named dispatch has its own group, so trying one proof never cancels the push run merge-slice reads.
+# A named or reversed dispatch has its own group, so it never cancels the push run merge-slice reads.
 concurrency:
-  group: browser-journeys-${{ github.ref }}-${{ inputs.proof }}
+  group: browser-journeys-${{ github.ref }}-${{ inputs.proof }}${{ inputs.reverse && '-reverse' || '' }}
   cancel-in-progress: true
 
 env:
@@ -45,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
-      proofs: ${{ steps.select.outputs.proofs }}
+      shards: ${{ steps.select.outputs.shards }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,19 +66,21 @@ jobs:
         id: select
         env:
           PROOF: ${{ inputs.proof }}
-        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --event "$GITHUB_EVENT_NAME" --proof "$PROOF"
+          REVERSE: ${{ inputs.reverse && '--reverse' || '' }}
+        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --event "$GITHUB_EVENT_NAME" --proof "$PROOF" $REVERSE
 
-  # Each proof runs on its own stack: serially they take over three hours, and a fresh stack keeps
-  # proofs from sharing state. A known-bug proof's failure leaves the run green.
+  # Booting a stack takes longer than most proofs, so each shard boots one and runs its proofs on it in
+  # turn; proofs make their own accounts and records, as they do on the long-lived local container. The
+  # known-bug shard's failure leaves the run green.
   journey:
-    name: ${{ matrix.proof }} on a throwaway stack${{ matrix.knownBug && format(' (KNOWN-BUG {0})', matrix.knownBug) || '' }}
+    name: ${{ matrix.name }} on a throwaway stack
     needs: select
-    if: needs.select.outputs.proofs != '[]'
-    continue-on-error: ${{ matrix.knownBug != '' }}
+    if: needs.select.outputs.shards != '[]'
+    continue-on-error: ${{ matrix.knownBug }}
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.select.outputs.proofs) }}
+        include: ${{ fromJSON(needs.select.outputs.shards) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -125,27 +132,43 @@ jobs:
       # builds are done; a fresh stack waits for them before the browser opens.
       - name: Deploy, seed and build Content snapshots
         run: node scripts/liveBackendValidation.mjs --steps=deploy,seed,snapshots --log-dir=browser-journey-logs/live-backend
-      - name: Run ${{ matrix.proof }}
+      # Every proof runs even after one fails, and each reports its own result.
+      - name: Run the shard's proofs
         env:
-          PROOF: ${{ matrix.proof }}
-        # account-deletion-browser requires its evidence name to start with the proof name.
-        run: node scripts/runLocalBrowserProof.mjs --name="$PROOF-ci" --proof="$PROOF"
-      - name: Label the known-bug result
-        if: always() && matrix.knownBug != ''
-        env:
-          PROOF: ${{ matrix.proof }}
-          TASK: ${{ matrix.knownBug }}
-          STATUS: ${{ job.status }}
+          PROOFS: ${{ toJSON(matrix.proofs) }}
         run: |
-          echo "$PROOF KNOWN-BUG $TASK: $STATUS (not gating)." >> "$GITHUB_STEP_SUMMARY"
+          failed=0
+          while IFS=$'\t' read -r proof task; do
+            label=${task:+ (KNOWN-BUG $task, not gating)}
+            echo "::group::$proof"
+            started=$SECONDS
+            # account-deletion-browser requires its evidence name to start with the proof name.
+            if node scripts/runLocalBrowserProof.mjs --name="$proof-ci" --proof="$proof"; then
+              result=passed
+            else
+              result=FAILED
+              failed=1
+            fi
+            echo '::endgroup::'
+            # The seconds refresh scripts/browserJourneyDurations.json.
+            echo "$proof $result in $((SECONDS - started)) s$label"
+            echo "- $proof: $result in $((SECONDS - started)) s$label" >> "$GITHUB_STEP_SUMMARY"
+          done < <(jq -r '.[] | [.proof, .knownBug] | @tsv' <<< "$PROOFS")
+          exit "$failed"
       - name: Evidence holds no generated secret
         if: always()
+        env:
+          PROOFS: ${{ toJSON(matrix.proofs) }}
         run: |
           [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
           mkdir -p browser-journey-logs
           docker logs phase82-convex-local-linux > browser-journey-logs/convex-backend.log 2>&1 || true
-          for path in local-validation/browser-proof local-validation/local-convex-proofs; do
-            [ -d "$path" ] && cp -R "$path" browser-journey-logs/
+          # One folder per proof; the stack's logs stay at the top.
+          for proof in $(jq -r '.[].proof' <<< "$PROOFS"); do
+            mkdir -p "browser-journey-logs/$proof"
+            for path in "local-validation/browser-proof/$proof-ci" local-validation/local-convex-proofs/"$proof"-ci*; do
+              [ -e "$path" ] && cp -R "$path" "browser-journey-logs/$proof/"
+            done
           done
           if grep -rlFf "$RUNNER_TEMP/throwaway-secrets" browser-journey-logs; then
             echo 'A generated secret reached the evidence; it is not uploaded.' >&2
@@ -155,7 +178,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ matrix.proof }}-evidence
+          name: ${{ matrix.name }} evidence
           path: browser-journey-logs/
           retention-days: 7
           if-no-files-found: ignore
