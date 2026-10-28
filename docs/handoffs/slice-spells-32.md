@@ -60,6 +60,20 @@ Open points for the ruling:
 1. Stonecunning, Artificer's Lore and Naturally Stealthy as C: each depends on a GM call about the subject or the cover, like Natural Explorer (SPELLS-31.T1 ruling).
 2. Dwarven Resilience as A with the POISONED condition: the SRD says "saving throws against poison", which also covers poison damage saves. The broader reading needs a damage-type qualifier on SAVING_THROW_MODIFIER and would move it to T4j.
 
+## T5 conversions (D156)
+
+All three use existing options; the three kinds and the unused `races/closed-rule-effect.ts` helper are deleted.
+
+| Kind                 | Class            | Authored as                                                                                                                                                            |
+| -------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HALFLING_LUCKY       | existing options | passive `gmRulingEffect` (SPELLS-31.T5c shape, no charge): the reroll of a 1 waits on the d20 result reroll window in future-enhancements "Deferred rules pieces"      |
+| RELENTLESS_ENDURANCE | existing options | unbound `DAMAGE_INTERCEPTION` ENABLE, `dropToHitPoints: 1`, `negatesKill: false`, no save, spending the feature's existing long-rest charge (as the Boar's Relentless) |
+| SAVAGE_ATTACKS       | existing options | melee `CRITICAL_EXTRA_DICE` BONUS of 1, as Brutal Critical; the two add together                                                                                       |
+
+Proofs: `raceTraitOptionsAuthoringParity.test.ts` (race node map keeps the SRD and a homebrew trait unchanged; SRD and homebrew resolve through the same interception and critical paths), `characterFeatureDamageInterception.test.ts` (drops to 1 with no save, writes the use, holds nothing once spent, long rest only), `characterCriticalRules.test.ts` (Half-Orc melee die, none at range, stacks with Brutal Critical).
+
 ## Status
 
 T1 classification and proposed split recorded; waiting on the orchestrator's ruling.
+
+T5 converted on `ci/spells-32-t5`.
