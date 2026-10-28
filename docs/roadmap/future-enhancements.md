@@ -576,6 +576,7 @@ Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 
 These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
 
+- **Total application cap on an action:** Oil Flask's "Ignite the coating" is authored with `maxApplicationsTotal: 1` (`oil-flask.ts:102`), but no runtime reads the field. The engine piece counts an action's applications across its effect's life and refuses one past the cap. Deferred by the user on 2026-10-28.
 - **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).
 - **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
 - **Compelled turns:** Confusion, Compulsion and Eyebite Panicked.
