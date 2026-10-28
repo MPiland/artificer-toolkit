@@ -433,7 +433,13 @@ export const adultBrassDragon: CreatureAuthored = {
                   baseDc: 19
                 },
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-001d-0070-000500000000', rangeKind: 'SPECIAL' },
+                range: { id: '00000000-0005-001d-0070-000500000000', rangeKind: 'SELF' },
+                shape: {
+                  id: '00000000-0005-0069-0070-000500000000',
+                  shapeKind: 'SPHERE',
+                  radius: { amount: 10, unit: 'FEET' }
+                },
+                targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' },
                 resourceUse: { chargeId: '00000000-0005-0015-0070-000500000000', cost: 2 }
               },
               paths: [
@@ -460,13 +466,6 @@ export const adultBrassDragon: CreatureAuthored = {
                         id: '00000000-0005-0067-0070-000500000000',
                         effectKind: 'CONDITION',
                         conditionId: '00000000-0000-0000-0002-000c00000000'
-                      },
-                      {
-                        id: '00000000-0005-0068-0070-000500000000',
-                        effectKind: 'MANUAL_ADJUDICATION',
-                        label: 'Fly after the Wing Attack',
-                        reasonCode: 'GM_CHOICE',
-                        instructions: 'The dragon can then fly up to half its flying speed.'
                       }
                     ]
                   }

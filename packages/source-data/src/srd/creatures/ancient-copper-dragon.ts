@@ -551,7 +551,13 @@ export const ancientCopperDragon: CreatureAuthored = {
                   baseDc: 23
                 },
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-001e-0070-164e00000000', rangeKind: 'SPECIAL' },
+                range: { id: '00000000-0005-001e-0070-164e00000000', rangeKind: 'SELF' },
+                shape: {
+                  id: '00000000-0005-0069-0070-164e00000000',
+                  shapeKind: 'SPHERE',
+                  radius: { amount: 15, unit: 'FEET' }
+                },
+                targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' },
                 resourceUse: { chargeId: '00000000-0005-0015-0070-164e00000000', cost: 2 }
               },
               paths: [
