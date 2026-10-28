@@ -38,6 +38,7 @@ import {
   versionWithCompilation
 } from '../../tests/fixtures/publication'
 import { insertAuthoredVersion } from '../content/documents'
+import { readHeldPartyEquipment } from './partyInventoryDocuments'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -248,7 +249,7 @@ async function ownedEquipment(
 }
 
 describe('native Campaign party inventory', () => {
-  it('resolves repeated current Equipment once per page without bypassing per-item or later source validation', async () => {
+  it('lists from root facts while commands keep per-item and later source validation', async () => {
     const { t, campaign, gm, readStored } = await setup()
     await gm.caller.mutation(mutate, { input: addItem(campaign.id, 0) })
     await gm.caller.mutation(mutate, { input: addItem(campaign.id, 1) })
@@ -261,21 +262,30 @@ describe('native Campaign party inventory', () => {
     try {
       const page = await gm.caller.query(items, pageInput(campaign.id))
       expect(page.page).toHaveLength(2)
-      expect(resolve).toHaveBeenCalledTimes(1)
-      // RELIABILITY-21.2: the page reads no subject compiler (D163); compiling each held item
-      // timed the page out at Convex's 1 s limit on CI.
+      // RELIABILITY-21.2 and .13: the page neither compiles nor resolves held Equipment (D163); it
+      // reads root catalogue facts, since each parse timed the page out at Convex's 1 s limit on CI.
+      expect(resolve).not.toHaveBeenCalled()
       expect(compile).not.toHaveBeenCalled()
+      const readHeld = () =>
+        t.run(async (ctx) => {
+          const stored = await ctx.db
+            .query('campaigns')
+            .withIndex('by_publicId', (q) => q.eq('id', campaign.id))
+            .unique()
+          const item = await ctx.db.get(second._id)
+          if (!stored || !item) throw new Error('Missing Campaign item.')
+          return readHeldPartyEquipment(ctx, stored, item)
+        })
+      await expect(readHeld()).resolves.toMatchObject({ id: club.id })
       await t.run((ctx) => ctx.db.patch(second._id, { retainedRulesJson: '{}' }))
-      await expect(gm.caller.query(items, pageInput(campaign.id))).rejects.toThrow()
+      await expect(readHeld()).rejects.toThrow()
       await t.run(async (ctx) => {
         await ctx.db.patch(second._id, {
           retainedRulesJson: second.retainedRulesJson
         })
         await corruptPublishedVersionPayload(ctx, club.id)
       })
-      await expect(gm.caller.query(items, pageInput(campaign.id))).rejects.toThrow(
-        /checksum|identity/i
-      )
+      await expect(readHeld()).rejects.toThrow(/checksum|identity/i)
     } finally {
       resolve.mockRestore()
       compile.mockRestore()

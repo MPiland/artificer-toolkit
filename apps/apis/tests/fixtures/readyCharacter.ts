@@ -15,12 +15,15 @@ export async function readyCharacterFixture(
   {
     base: sourceClass = fighter,
     classLevel = 1,
+    subclass,
     ...options
   }: Partial<Pick<typeof fighter | ClassAuthoredDto, 'resources' | 'spellcasting' | 'features'>> & {
     /** The SRD base Class the Character takes; defaults to the Fighter. */
     base?: typeof fighter
     /** The Character's level in that Class; defaults to 1. */
     classLevel?: number
+    /** An SRD subclass of that Class the Character has chosen. */
+    subclass?: typeof fighter
   } = {},
   equipment = club,
   existing?: Awaited<ReturnType<typeof fixture>>
@@ -84,6 +87,9 @@ export async function readyCharacterFixture(
     subjects: [
       importedSubject({ subjectKind: 'RACE', ...human, document: { ...human, features: [] } }),
       importedSubject({ subjectKind: 'CLASS', ...baseClass, document: baseClass }),
+      ...(subclass
+        ? [importedSubject({ subjectKind: 'CLASS', ...subclass, document: subclass })]
+        : []),
       importedSubject({ subjectKind: 'BACKGROUND', ...background, document: background }),
       importedSubject({ subjectKind: 'EQUIPMENT', ...equipment, document: equipment })
     ]
@@ -97,7 +103,9 @@ export async function readyCharacterFixture(
         ...draft.payload.character.intent,
         race: { raceId: human.id },
         background: { backgroundId: background.id },
-        classes: [{ classId: baseClass.id, classLevel }],
+        classes: [
+          { classId: baseClass.id, classLevel, ...(subclass ? { subclassId: subclass.id } : {}) }
+        ],
         abilities: {
           method: 'STANDARD_ARRAY',
           assignments: [
