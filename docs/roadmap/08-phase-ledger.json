@@ -20174,9 +20174,10 @@
             {
               "id": "RELIABILITY-21.12",
               "text": "campaign-collaboration-browser passes without reruns: the \"Shared with party\" option appears after the direct-sent step within the journey timeout.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["CampaignNotebook.test.tsx"],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T12."
             }
           ],
           "tasks": [
@@ -20335,7 +20336,7 @@
             },
             {
               "id": "RELIABILITY-21.T12",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.12"],
               "wsjf": {
                 "bv": 5,
@@ -20344,7 +20345,9 @@
                 "size": 2
               },
               "text": "Find why campaign-collaboration-browser intermittently times out (30 s) waiting for the \"Shared with party\" option after the direct-sent step, and fix the cause in the product or the harness; the assertion and timeout stay.",
-              "note": "Registered 2026-10-27 (user yes, D187 growth +2). Intermittent since m500: spells-4-t2lb2d Browser journeys 40595948111, 40593017249, 40589375558; vtt-ui-1-t1 40584640884; reliability-21-t11 40594866820 attempt 1. Passes on rerun."
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2). Intermittent since m500: spells-4-t2lb2d Browser journeys 40595948111, 40593017249, 40589375558; vtt-ui-1-t1 40584640884; reliability-21-t11 40594866820 attempt 1. Passes on rerun. Merged in m509.",
+              "mergedAt": "2026-10-28T02:48:19Z",
+              "proof": "Tests 40616943265, Browser journeys 40616943232 (attempt 2; attempt 1 red only on scene-live-browser HTTP 429) green on 73b991bd6; reviewed (notebook creator waits for the first notes page); merged in m509 (run 40622052421). Proofs: CampaignNotebook.test.tsx (red before the fix), campaign-collaboration-browser"
             }
           ]
         }

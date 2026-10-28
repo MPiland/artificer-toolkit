@@ -90,7 +90,8 @@ export function CampaignNotebook({
       {notebook.status === 'Exhausted' && visibleSections.length === 0 ? (
         <Text c='dimmed'>No sections yet.</Text>
       ) : null}
-      {active ? (
+      {/* Sections load above the creator; showing it earlier would shove it away mid-entry. */}
+      {active && notebook.status !== 'LoadingFirstPage' ? (
         <form
           className={sharedStyles.form}
           onSubmit={(event: SubmitEvent) => {
