@@ -158,6 +158,11 @@ Booting a stack (checkout, setup, Chromium, the Convex container, deploy, seed a
   - Re-running reach on each run's change showed that 22 of the 27 runs with changes reach the shared driver (it imports the SRD corpus to seed), `routes/__root.tsx` or `apps/apis/convex/schema.ts`. Dropping type-only imports did not change that.
   - The 5 web-only runs reached the campaign and tabletop routes that most campaign and encounter proofs drive.
   - A sound per-proof rule would have saved about 45 of 760 jobs (6%).
+- **Independence:** reversed run 40753154902 passed all 20 gating proofs with every shard's order flipped. In the known-bug shard, `vtt-browser` and `character-sheet-browser` failed as they do alone; the other three passed.
+- **Built-output hashing, considered and rejected:** skipping a run whose web, Convex and Worker builds are byte-identical to the merge base's.
+  - Every one of the 24 runs that change a reached file still differs after type and comment stripping, so their builds would differ too. The other 3 selected runs changed stack files, which run every proof by design.
+  - It would have skipped none of the 32 runs beyond the 5 the graph already skips.
+  - It would add an install and three builds to every `select` job.
 - **After:** a full run uses 6 proof jobs (5 gating, 1 known-bug), 7 concurrent jobs with `select`, which is 73% fewer slots. Runner time drops to about 6 × 354 + 4,305 ≈ 6,430 seconds (about 107 minutes, 51% less). Wall-clock time stays about the same: the longest shard is `scene-live-browser` alone, at about 22 minutes against 23 before.
 
 ## Red proof
