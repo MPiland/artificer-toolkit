@@ -105,14 +105,45 @@ describe('native Campaign Vehicle definition options', () => {
     ).rejects.toThrow('not found')
   })
 
-  it('rejects a corrupt publication instead of silently omitting an authorized option', async () => {
+  it('pages from root catalogue facts alone and rejects stale facts', async () => {
+    // RELIABILITY-21.13: every row loaded, checksummed and parsed its published payload to read its
+    // status. The picker reads root catalogue facts alone (D163), so no payload is loaded, while
+    // facts bound to another checksum are rejected instead of silently omitting an option.
     const { base, campaign, definitions } = await setup()
-    await base.t.run((ctx) => corruptPublishedVersionPayload(ctx, definitions[0]!.id))
+    await base.t.run(async (ctx) => {
+      for (const definition of definitions) await corruptPublishedVersionPayload(ctx, definition.id)
+    })
+    const page: AuthoredCataloguePage['page'] = []
+    let cursor: string | null = null
+    while (true) {
+      const result: AuthoredCataloguePage = await base.first.caller.query(definitionOptions, {
+        campaignId: campaign.id,
+        paginationOpts: { cursor, numItems: 8 }
+      })
+      page.push(...result.page)
+      if (result.isDone) break
+      cursor = result.continueCursor
+    }
+    expect(new Set(page.map((entry) => entry.id))).toEqual(
+      new Set(definitions.map((entry) => entry.id))
+    )
+    await base.t.run(async (ctx) => {
+      const [root, other] = await Promise.all(
+        [definitions[0]!.id, definitions[1]!.id].map((id) =>
+          ctx.db
+            .query('authoredRoots')
+            .withIndex('by_publicId', (q) => q.eq('id', id))
+            .unique()
+        )
+      )
+      if (!root?.catalogue || !other) throw new Error('Missing stale Vehicle root')
+      await ctx.db.patch(root._id, { catalogue: { ...root.catalogue, checksum: other.checksum } })
+    })
     await expect(
       base.first.caller.query(definitionOptions, {
         campaignId: campaign.id,
         paginationOpts: { cursor: null, numItems: 8 }
       })
-    ).rejects.toThrow('checksum mismatch')
+    ).rejects.toThrow('catalogue facts are missing or stale')
   })
 })

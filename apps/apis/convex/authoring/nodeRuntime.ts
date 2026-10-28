@@ -1,4 +1,6 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
+import type { Validator } from 'convex/values'
+import type { z } from 'zod'
 import {
   normalizeNodeRuntimeValues,
   resolveNodeRuntime
@@ -20,7 +22,11 @@ import { createSystemSourceReader } from './systemSources'
 
 export const resolve = query({
   args: zodToConvexFields(nodeRuntimeResolveRequestDtoSchema.shape),
-  returns: zodToConvex(nodeRuntimeCompactResolveResponseDtoSchema),
+  get returns(): Validator<NodeRuntimeCompactResolveResponseDto, 'required', string> {
+    return zodToConvex<z.core.$ZodType<NodeRuntimeCompactResolveResponseDto>>(
+      nodeRuntimeCompactResolveResponseDtoSchema
+    )
+  },
   handler: async (ctx, args): Promise<NodeRuntimeCompactResolveResponseDto> => {
     const identity = await requireIdentity(ctx)
     const input = nodeRuntimeResolveRequestDtoSchema.parse(args)

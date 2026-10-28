@@ -1,9 +1,10 @@
-import { ConvexError } from 'convex/values'
+import { ConvexError, v } from 'convex/values'
 import { describe, expect, it } from 'vitest'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import { domainRejection, playerControlFixture } from '../../tests/fixtures/playerControl'
 import { executeInRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { api } from '../_generated/api'
+import { query } from './queries'
 
 useLocalRoomWorker()
 
@@ -71,5 +72,26 @@ describe('Encounter domain rejections at the Convex boundary', () => {
       )
     expect(failure).toBeInstanceOf(Error)
     expect(failure).not.toBeInstanceOf(ConvexError)
+  })
+
+  it('leave validator getters unread until Convex exports them', () => {
+    const reads: string[] = []
+    const registered = query({
+      get args() {
+        reads.push('args')
+        return {}
+      },
+      get returns() {
+        reads.push('returns')
+        return v.null()
+      },
+      handler: () => null
+    })
+    // Convex re-evaluates a module on every call, so a getter read at registration rebuilds its
+    // validator on every call.
+    expect(reads).toStrictEqual([])
+    const exported = registered as unknown as { exportReturns: () => string }
+    expect(JSON.parse(exported.exportReturns())).toStrictEqual({ type: 'null' })
+    expect(reads).toStrictEqual(['returns'])
   })
 })
