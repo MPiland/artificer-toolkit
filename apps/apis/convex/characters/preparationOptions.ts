@@ -13,6 +13,7 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
 import type { QueryCtx } from '../_generated/server'
 
@@ -72,6 +73,12 @@ export const get = query({
   handler: async (ctx, args): Promise<CharacterPreparationOptionsResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = characterSheetReadInputSchema.parse(args)
+    const stored = await readStoredCharacterSheetSection(ctx, {
+      userId,
+      lookupId: id,
+      section: characterSheetSection.preparation
+    })
+    if (stored !== undefined) return characterPreparationOptionsResponseDtoSchema.parse(stored)
     const current = await loadCharacterSheet(ctx, userId, id)
     if (!current) return null
     return projectCharacterPreparationOptions(ctx, current)

@@ -25,6 +25,7 @@ import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
+import { storeCharacterSheetSections } from './sheetSectionDerivation'
 import {
   writeCharacterOperationalRecords,
   writeCharacterOperationalStructure
@@ -52,7 +53,8 @@ const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
  * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
- * returned facts for its own Sheet response. Callers own authority, replay, receipts and advancing
+ * returned facts for its own Sheet response. From the same facts it stores the derived Sheet
+ * sections that Sheet queries serve (ADR 0040). Callers own authority, replay, receipts and advancing
  * the stream once per transaction.
  */
 export async function writeCharacterRecord(
@@ -214,15 +216,19 @@ export async function writeCharacterRecord(
   )
   if (!facts) throw new Error('Written Character is unavailable for evaluation.')
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
-  if (
+  const unchanged =
     held ||
     (stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
       checksumCanonicalJson(stats.speeds) === checksumCanonicalJson(nextPlayRecord.speeds))
-  )
-    return { row: facts.active, facts }
-  await ctx.db.patch(playId, stats)
-  const row = { ...facts.active, play: { ...facts.active.play, ...stats } }
-  return { row, facts: { ...facts, active: row } }
+  if (!unchanged) await ctx.db.patch(playId, stats)
+  const row = unchanged
+    ? facts.active
+    : { ...facts.active, play: { ...facts.active.play, ...stats } }
+  const written = { row, facts: { ...facts, active: row } }
+  // A resolution-scope evaluation carries the whole catalogue; stored sections use active sources.
+  if ((reader.catalogScope ?? 'active') === 'active')
+    await storeCharacterSheetSections(ctx, written.facts, reader.authorityScope)
+  return written
 }
 
 /**

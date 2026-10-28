@@ -82,6 +82,9 @@ export async function commitCharacter(
     checksumCanonicalJson(splitCharacterStatePlay(committed.state).play) !==
       checksumCanonicalJson(splitCharacterStatePlay(current.state).play)
   const streamVersion = (activeRecord?.play.streamVersion ?? 0) + (playChanged ? 1 : 0)
+  // The committed Character has no draft, and the Sheet sections its write stores say so.
+  await deleteCharacterDraftPayload(ctx, draftRecord)
+  await ctx.db.delete(draftRecord._id)
   const written = await writeCharacterRecord(ctx, {
     current: activeRecord,
     fields: {
@@ -98,7 +101,7 @@ export async function commitCharacter(
     // The stored stats evaluate the committed Character over the context commit just read.
     sourceContext: { characterId: committed.id, ownerUserId: userId, context: prepared.context }
   })
-  const { maximumHitPoints, speeds } = written.row.play
+  const { maximumHitPoints } = written.row.play
   // A lower maximum takes current hit points down with it. Readers clamp anyway, but a stored value
   // above the maximum would swallow the next damage or healing. Only the play record is rewritten.
   const clampsHitPoints =
@@ -119,11 +122,10 @@ export async function commitCharacter(
         current: written.row,
         fields: { streamVersion: streamVersion + (playChanged ? 0 : 1), updatedAt: now },
         document: stored,
-        stats: { maximumHitPoints, speeds }
+        // Re-evaluated over the same sources so the stored Sheet sections show the clamped value.
+        sourceContext: written.facts?.sourceContext
       })
     : written
-  await deleteCharacterDraftPayload(ctx, draftRecord)
-  await ctx.db.delete(draftRecord._id)
   // This mutation verified the owner and just wrote the row.
   await syncAccountUsage(ctx, 'personalCharacters', committed.id, userId)
   return characterBuilderCommitOutputSchema.parse({

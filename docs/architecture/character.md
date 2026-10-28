@@ -855,7 +855,9 @@ and writes remain transitional; this list integration is not Campaign or release
 flowchart LR
   Request["characters/sheetSlices:get — UUID or alias, optional Campaign, slice"] --> Owner["Current viewer + active Character + route checks"]
   Owner --> Notes["NOTES: play version, Build notebook, note/group records"]
-  Owner --> Current["Mechanical slices: current published sources + complete active state"]
+  Owner --> Stored{"Stored section current? (ADR 0040)"}
+  Stored -- yes --> Result
+  Stored -- no --> Current["Mechanical slices: current published sources + complete active state"]
   Current --> Prepare["Shared structural repair + readiness, read-only"]
   Prepare --> Policy["Installed TypeScript Character policy"]
   Policy --> Projection["Neutral Sheet projector"]
@@ -866,9 +868,14 @@ flowchart LR
 The queries read committed Character state. A working draft contributes only its presence
 flag, never proposed structure, play state or private notes. UUID and route-alias lookups share the
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
-anonymous callers are denied. The current-source preparation and policy run synchronously on every
-read. An unresolved structural source blocks the Sheet instead of serving a stored stale projection.
-This query does not persist repairs, advance the stream or consume a draft.
+anonymous callers are denied. Every Character write derives the Sheet once and stores its slices,
+listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-character-sheet-sections.md)).
+After the same authority checks, a read serves its stored section while the fingerprint of every
+input the derivation read (Character, draft and route, System, source and Campaign content heads,
+the Campaign fields and state the Sheet reads, rule effects) still matches; otherwise it runs the
+current-source preparation and policy as before. A miss is therefore slower but never stale: an
+unresolved structural source still blocks the Sheet. This query does not persist repairs, advance
+the stream or consume a draft.
 
 The shared read envelope and DTOs live in `schema/api/characterSheetSlices`. The backend's Builder context loader retains
 the selected Creature/Vehicle maps for the final policy/projection call without adding those records
@@ -881,9 +888,8 @@ NOTES validates only the head, play and Build records and complete ordered note/
 the Build's checksummed collection counts, with no
 inventory, spell, extras or authored-source reads and no mechanics evaluation. It is owner-only;
 Campaign GM and party projections cannot request private notes. Both explicit and implicit assignment
-authority retain the Campaign deletion fence. The mechanical slices still assemble and evaluate the
-complete Character before selecting their DTO; narrowing HP and mechanical storage reads remains
-completion work. The complete Sheet endpoint remains a transitional native-proof consumer.
+authority retain the Campaign deletion fence. A stored mechanical slice reads no authored content;
+a miss assembles and evaluates the complete Character before selecting its DTO. The complete Sheet endpoint remains a transitional native-proof consumer.
 
 ### Native personal Sheet commands — partial local implementation
 

@@ -1,0 +1,216 @@
+import { makeFunctionReference } from 'convex/server'
+import { describe, expect, it } from 'vitest'
+import type { z } from 'zod'
+import type {
+  CampaignDetailDto,
+  CreateCampaignInput
+} from '@artificer-toolkit/schema/api/campaignCore'
+import type { listCampaignAdjustmentsInputSchema } from '@artificer-toolkit/schema/api/campaignLiveState'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
+import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { api } from '../_generated/api'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
+import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
+import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+
+/**
+ * A stored section read checks authority and the derivation's inputs (the System document is 34 KB
+ * of it) and returns one stored section; it reads no authored content.
+ */
+const STORED_SECTION_READ_BYTES = 120_000
+
+const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
+  'campaigns/create:create'
+)
+const campaignSheet = makeFunctionReference<
+  'query',
+  z.input<typeof listCampaignAdjustmentsInputSchema>,
+  CharacterSheetResponseDto
+>('campaigns/characterSheet:get')
+
+const slices = characterSheetSliceSchema.options.filter((slice) => slice !== 'NOTES')
+
+async function setup() {
+  const base = await readyCharacterFixture()
+  const { draft, character } = await base.createCharacter()
+  await base.owner.caller.mutation(api.characters.commit.commit, {
+    expectedDraftId: draft.id,
+    mode: 'create',
+    character
+  })
+  const { owner: player, other: gm, t } = base
+  const campaign = await gm.caller.mutation(createCampaign, {
+    name: 'Stored Sheet sections',
+    format: 'ONGOING',
+    toneTags: ['HEROIC'],
+    contentMaturity: 'STANDARD',
+    gameSystemId: srdSystemRecord.id,
+    primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+  })
+  await t.run(async (ctx) => {
+    await ctx.db.insert('campaignMemberships', {
+      campaignId: campaign.id,
+      userId: player.userId,
+      role: 'PLAYER',
+      status: 'ACTIVE',
+      accessStartedAt: campaign.createdAt,
+      joinedAt: campaign.createdAt,
+      leftAt: null
+    })
+    await ctx.db.insert('campaignCharacterAssignments', {
+      campaignId: campaign.id,
+      userId: player.userId,
+      characterId: character.id,
+      assignedAt: campaign.createdAt
+    })
+  })
+  const party = await createPartyPlayer(t, campaign)
+  await party.join()
+  const input = { campaignId: campaign.id, characterId: character.id }
+  // A Sheet command is a Character write: it stores the sections every viewer reads.
+  const current = await player.caller.query(campaignSheet, input)
+  const visibility = await player.caller.mutation(api.characters.sheetCommands.execute, {
+    id: character.id,
+    command: {
+      type: 'SET_PARTY_VISIBILITY',
+      commandId: crypto.randomUUID(),
+      expectedVersion: current.meta.streamVersion,
+      visibility: { sheet: true, health: 'HIDDEN' }
+    }
+  })
+  const forgetDerivation = () =>
+    t.run(async (ctx) => {
+      for (const row of await ctx.db.query('characterSheetDerivations').collect())
+        await ctx.db.delete(row._id)
+    })
+  return { t, player, gm, party, campaign, character, input, visibility, forgetDerivation }
+}
+
+describe('Stored Character Sheet sections (ADR 0040)', () => {
+  it('serves every viewer the sections a live derivation would, from one write', async () => {
+    const { t, player, gm, party, character, input, forgetDerivation } = await setup()
+    const viewers = [
+      { member: player, party: false },
+      { member: gm, party: false },
+      { member: party, party: true }
+    ]
+    const readSlices = () =>
+      Promise.all(
+        viewers.map(({ member }) =>
+          Promise.all(
+            slices.map((slice) =>
+              member.caller.query(api.characters.sheetSlices.get, {
+                id: character.id,
+                campaignId: input.campaignId,
+                slice
+              })
+            )
+          )
+        )
+      )
+    const sheet = await player.caller.query(campaignSheet, input)
+    const targets = listCharacterSheetPanelTargets(sheet)
+    expect(targets.length).toBeGreaterThan(slices.length)
+    const readPanels = () =>
+      Promise.all([
+        Promise.all(
+          targets.map((target) =>
+            player.caller.query(api.characters.panels.get, { id: character.id, target })
+          )
+        ),
+        Promise.all(
+          targets.map((target) =>
+            gm.caller.query(api.campaigns.characterSheet.panel, { ...input, target })
+          )
+        ),
+        player.caller.query(api.characters.preparationOptions.get, { id: character.id }),
+        gm.caller.query(api.campaigns.characterSheet.preparationOptions, input)
+      ])
+
+    const storedIds = await t.run(async (ctx) => {
+      const sections = await Promise.all(
+        viewers.flatMap(({ member, party: partyViewer }) =>
+          slices.map((slice) =>
+            readStoredCharacterSheetSection(ctx, {
+              userId: partyViewer ? player.userId : member.userId,
+              lookupId: character.id,
+              campaignId: input.campaignId,
+              party: partyViewer,
+              section: characterSheetSection.slice(slice)
+            })
+          )
+        )
+      )
+      return sections.filter((section) => section !== undefined).length
+    })
+    expect(storedIds).toBe(viewers.length * slices.length)
+    const stored = { slices: await readSlices(), panels: await readPanels() }
+
+    await forgetDerivation()
+    expect({ slices: await readSlices(), panels: await readPanels() }).toEqual(stored)
+  }, 120_000)
+
+  it('reads one stored section without authored content', async () => {
+    const { t, player, character, input } = await setup()
+    const totals = createDatabaseIoTotals()
+    const section = await t.run((ctx) =>
+      readStoredCharacterSheetSection(
+        { ...ctx, db: countDatabaseIo(ctx.db, totals) },
+        {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: input.campaignId,
+          section: characterSheetSection.slice('COMMON')
+        }
+      )
+    )
+    expect(section).toBeDefined()
+    expect(totals.reads.byTable.authoredRoots).toBeUndefined()
+    expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
+    expect(totals.reads.byTable.characterSheetSections?.documents).toBe(1)
+    expect(totals.reads.bytes).toBeLessThanOrEqual(STORED_SECTION_READ_BYTES)
+  }, 60_000)
+
+  it('derives live once an input changes outside a Character write', async () => {
+    const { t, player, character, input, visibility } = await setup()
+    const readCommon = () =>
+      t.run((ctx) =>
+        readStoredCharacterSheetSection(ctx, {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: input.campaignId,
+          section: characterSheetSection.slice('COMMON')
+        })
+      )
+    expect(await readCommon()).toBeDefined()
+    await t.run(async (ctx) => {
+      const campaign = await ctx.db
+        .query('campaigns')
+        .withIndex('by_publicId', (q) => q.eq('id', input.campaignId))
+        .unique()
+      await ctx.db.patch(campaign!._id, { contentMaturity: 'MATURE' })
+    })
+    expect(await readCommon()).toBeUndefined()
+
+    // A note write advances the play stream without storing sections; the Sheet still reports it.
+    const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'CREATE_NOTE',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        title: 'Session one'
+      }
+    })
+    const common = await player.caller.query(api.characters.sheetSlices.get, {
+      id: character.id,
+      campaignId: input.campaignId,
+      slice: 'COMMON'
+    })
+    expect(common?.data.meta.streamVersion).toBe(note.streamVersion)
+  }, 60_000)
+})

@@ -156,6 +156,15 @@ export async function removeAccountPrivateCharacters(ctx: MutationCtx, userId: s
       .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
       .unique()
     if (build) await ctx.db.delete(build._id)
+    for await (const row of ctx.db
+      .query('characterSheetSections')
+      .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', characterId)))
+      await ctx.db.delete(row._id)
+    const derivation = await ctx.db
+      .query('characterSheetDerivations')
+      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+      .unique()
+    if (derivation) await ctx.db.delete(derivation._id)
     if (active) {
       await ctx.db.delete(active.play._id)
       await ctx.db.delete(active._id)

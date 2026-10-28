@@ -807,6 +807,36 @@ async function readCharacters(
       ).flat()
     )
   }
+  operational.characterSheetDerivations = uniqueRows(
+    (
+      await Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterSheetDerivations')
+              .withIndex('by_characterId', (q) => q.eq('characterId', id)),
+            1,
+            'Character Sheet derivations'
+          )
+        )
+      )
+    ).flat()
+  )
+  operational.characterSheetSections = uniqueRows(
+    (
+      await Promise.all(
+        characterIds.map((id) =>
+          bounded(
+            ctx.db
+              .query('characterSheetSections')
+              .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', id)),
+            512,
+            'Character Sheet sections'
+          )
+        )
+      )
+    ).flat()
+  )
   return {
     ...operational,
     characters,

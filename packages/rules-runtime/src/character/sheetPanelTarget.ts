@@ -1,4 +1,5 @@
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { CharacterSheetAdjustment } from '@artificer-toolkit/shared/character'
 
 export function characterSheetAdjustmentMatchesPanelTarget(
@@ -50,6 +51,43 @@ export function characterSheetAdjustmentMatchesPanelTarget(
     case 'RESOURCE':
       return false
   }
+}
+
+/**
+ * Every panel the Sheet itself links to, without a cast level or passive entry: the panels a write
+ * stores (ADR 0040). PROFICIENCIES reads the resolution catalogue, so it is always derived live.
+ */
+export function listCharacterSheetPanelTargets(
+  sheet: CharacterSheetResponseDto
+): CharacterSheetPanelTargetDto[] {
+  const { overview, reference, spells, inventory, resources, extras } = sheet
+  return [
+    ...overview.abilities.map(({ ability }) => ({ kind: 'ABILITY' as const, ability })),
+    ...overview.savingThrows.map(({ ability }) => ({ kind: 'SAVING_THROW' as const, ability })),
+    ...overview.skills.map(({ skillId }) => ({ kind: 'SKILL' as const, skillId })),
+    { kind: 'SKILLS' },
+    { kind: 'SENSES' },
+    ...reference.senses.map(({ senseId }) => ({
+      kind: 'SENSES' as const,
+      entry: { kind: 'SENSE' as const, senseId }
+    })),
+    { kind: 'MOVEMENT' },
+    { kind: 'DEFENSES' },
+    { kind: 'SPELLS' },
+    ...spells.spells.flatMap((spell) =>
+      (spell.sources ?? []).map(({ source }) => ({ kind: 'SPELL' as const, source }))
+    ),
+    ...inventory.items.map(({ id }) => ({ kind: 'ITEM' as const, itemInstanceId: id })),
+    ...resources.items.map(({ owner }) => ({ kind: 'RESOURCE' as const, owner })),
+    { kind: 'EXTRAS' },
+    ...extras.items.flatMap((extra) =>
+      extra.kind === 'VEHICLE'
+        ? [{ kind: 'VEHICLE' as const, vehicleInstanceId: extra.id }]
+        : extra.kind === 'SPELL_SUMMON'
+          ? []
+          : [{ kind: 'COMPANION' as const, companionInstanceId: extra.id }]
+    )
+  ]
 }
 
 export function getCharacterSheetPanelAdjustmentIds(

@@ -29,6 +29,7 @@ import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheetCommands'
 import { projectCharacterSheetPanel } from '../characters/panels'
 import { projectCharacterPreparationOptions } from '../characters/preparationOptions'
+import { characterSheetSection, readStoredCharacterSheetSection } from '../characters/sheetSections'
 import { prepareCharacterRest } from '../characters/rest'
 import { presentRoll } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
 import { evaluateCharacterRoll, retainUserRoll } from '../rollDocuments'
@@ -118,6 +119,13 @@ export const panel = query({
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId, target } = campaignCharacterSheetPanelInputSchema.parse(args)
+    const stored = await readStoredCharacterSheetSection(ctx, {
+      userId,
+      lookupId: characterId,
+      campaignId,
+      section: characterSheetSection.panel(target)
+    })
+    if (stored !== undefined) return characterSheetPanelDtoSchema.parse(stored)
     const current = await loadCharacterSheet(
       ctx,
       userId,
@@ -139,6 +147,13 @@ export const preparationOptions = query({
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
+    const stored = await readStoredCharacterSheetSection(ctx, {
+      userId,
+      lookupId: characterId,
+      campaignId,
+      section: characterSheetSection.preparation
+    })
+    if (stored !== undefined) return characterPreparationOptionsResponseDtoSchema.parse(stored)
     const current = await loadCharacterSheet(ctx, userId, characterId, campaignId)
     if (!current) throw new Error('Assigned Character not found.')
     return projectCharacterPreparationOptions(ctx, current)

@@ -931,11 +931,9 @@ async function setMaxHpModifierAndCollect(
     () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
   )
   assertTimestamp(submittedAt)
-  if (collect) {
-    const durationMs = observedAt - submittedAt
-    samples.authoritative.push(durationMs)
-    samples.ruleBound.push(durationMs)
-  }
+  // A personal Sheet edit is a Convex command and a reactive Sheet read, not a room round trip, so it
+  // is a rule-bound sample only (the frozen gate budgets ruleBound on its own).
+  if (collect) samples.ruleBound.push(observedAt - submittedAt)
 }
 
 async function readMaxHitPoints(page: Page): Promise<number> {

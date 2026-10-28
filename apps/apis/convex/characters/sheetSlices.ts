@@ -28,6 +28,7 @@ import {
   readVerifiedCharacterBuild
 } from './stateDocuments'
 import { loadCharacterSheet } from './sheetPreparation'
+import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 import {
   characterConcentrationRoomRouteDtoSchema,
   characterSheetLiveAuthorityReadInputSchema,
@@ -104,6 +105,14 @@ export const get = query({
     const reader = campaignId
       ? await readCampaignCharacterReader(ctx, campaignId, characterId, userId)
       : { loadAsUserId: userId, party: false }
+    const stored = await readStoredCharacterSheetSection(ctx, {
+      userId: reader.loadAsUserId,
+      lookupId: characterId,
+      campaignId,
+      party: reader.party,
+      section: characterSheetSection.slice(slice)
+    })
+    if (stored !== undefined) return characterSheetSliceResponseDtoSchema.parse(stored)
     const current = await loadCharacterSheet(ctx, reader.loadAsUserId, characterId, campaignId)
     if (!current) return null
     if (reader.party && !current.sheetState.partyVisibility.sheet)
