@@ -12,6 +12,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -21,7 +22,6 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SHAPE_KIND,
   SPELL_GRANT_ATTRIBUTE,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
@@ -47,6 +47,7 @@ import {
 import {
   abilityScoreImprovementOptions,
   closedRuleEffect,
+  gmRulingEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
 
@@ -965,24 +966,19 @@ export const bard: ClassAuthored = {
       availableAtLevel: 6,
       order: 8,
       effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 0x60, 9),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_COUNTERCHARM,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: classRowId(BD, 0x69, 9), rangeKind: RANGE_KIND.SELF },
-            shape: {
-              id: classRowId(BD, 0x6e, 9),
-              shapeKind: SHAPE_KIND.SPHERE,
-              radius: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'WILLING'
-            }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(BD, 0x60, 9),
+            range: classRowId(BD, 0x69, 9),
+            path: classRowId(BD, 0x80, 9),
+            result: classRowId(BD, 0x81, 9),
+            outcome: classRowId(BD, 0x82, 9)
+          },
+          label: 'Countercharm',
+          instructions:
+            'Until the end of your next turn, you and friendly creatures within 30 feet of you that can hear you have advantage on saving throws against being frightened or charmed. The GM applies the advantage and ends the performance early if you are incapacitated or silenced or choose to end it.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          activationCode: ACTIVATION_CODE.ACTION
         })
       ]
     },

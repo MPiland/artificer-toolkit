@@ -48,6 +48,7 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
       'Black Pudding',
       'Chain Devil',
       'Fire Shield',
+      'Oath of Devotion',
       'Paladin',
       'Spirit Guardians'
     ])

@@ -73,6 +73,7 @@ const MODELED_COMPONENT_KEYS: ReadonlySet<string> = new Set([
   'blockingRules',
   'automaticSaveSuccessImmunityDamageTypeId',
   'occupantSaveBonus',
+  'occupantConditionImmunity',
   'behaviors'
 ])
 
@@ -141,11 +142,12 @@ export function placedSpaceZone(compiledEffect: CompiledEffectGroup): PlacedSpac
         'A placed zone component models only its region, interaction and behavior.'
       )
     const [behavior] = component.behaviors ?? []
-    // A component lending an occupant save bonus acts on no one, so it authors no behavior (D155).
-    if (component.occupantSaveBonus) {
+    // A component lending its occupants a save bonus or condition immunity acts on no one, so it
+    // authors no behavior (D155).
+    if (component.occupantSaveBonus || component.occupantConditionImmunity) {
       if (component.behaviors?.length)
         throw new CharacterRuleActionUnsupportedCompilationError(
-          'A zone lending an occupant save bonus authors no behavior.'
+          'A zone lending its occupants a benefit authors no behavior.'
         )
       return { component, behavior: null }
     }

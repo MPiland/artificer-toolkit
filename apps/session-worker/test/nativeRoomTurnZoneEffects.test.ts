@@ -23,6 +23,7 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { srdCreatureRecords } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { spiritGuardians } from '@artificer-toolkit/source-data/srd/spells/spirit-guardians.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -994,6 +995,66 @@ describe('a save inside a paladin’s Aura of Protection (SPELLS-20 T5c, D155)',
 
   it('reaches the same ally 30 feet away at paladin level 18', async () => {
     expect(await wolfSave({ x: 550, y: 150 }, 18)).toEqual({ modifier: 3, boundModifier: 3 })
+  })
+})
+
+describe('a frightening area inside a paladin’s Aura of Courage (SPELLS-31.T4r, D155)', () => {
+  const paladin = srdByLabel(SRD.classes, 'Paladin')
+  const auraOfCourage = paladin.features?.find(({ label }) => label === 'Aura of Courage')
+  const cloaker = srdCreatureRecords.find((record) => record.label === 'Cloaker')
+  const moanId = cloaker?.features.find((feature) => feature.label === 'Moan')?.id
+  const NEAR_WOLF_ID = testUuid(0x2250)
+  const FAR_WOLF_ID = testUuid(0x2251)
+
+  it('keeps the Paladin and the ally beside it from being frightened by a Cloaker’s Moan, and frightens the ally beyond 10 feet', async () => {
+    if (!auraOfCourage || !cloaker || !moanId)
+      throw new Error('Missing SRD Aura of Courage or Moan.')
+    // The Cloaker (acting first) moans at everyone within 60 feet; the Paladin stands at (250, 150)
+    // with one allied Wolf beside it and another 25 feet beyond its space.
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: testUuid(0x2252), creature: cloaker, disposition: 'HOSTILE' }),
+        casterActor,
+        srdCreatureActor({ id: NEAR_WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' }),
+        srdCreatureActor({ id: FAR_WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
+      ],
+      positions: { [FAR_WOLF_ID]: { x: 850, y: 150 } },
+      ownerFeatureId: moanId,
+      characterClassFeatures: [auraOfCourage],
+      characterPlay: { characterClass: paladin, classLevel: 10 },
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+    // Binding the Paladin's token again places its aura (D147).
+    for (const command of [
+      { type: 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' },
+      { type: 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING', tokenId: room.room.scene.tokens[1]!.id }
+    ]) {
+      const answer = await room.send({
+        ...command,
+        actorId: CASTER_ACTOR_ID,
+        commandId: crypto.randomUUID(),
+        encounterId: room.room.encounterId,
+        expectedEncounterVersion: await room.version(),
+        sceneId: room.room.scene.id
+      })
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    }
+    const frightened = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')?.id
+    expect(
+      (await readZones(room)).map(
+        (zone) => readSpatialEffect(zone).placement.occupantConditionImmunity
+      )
+    ).toEqual([{ dispositionFilter: 'ALLIES_AND_SOURCE', conditionTypeIds: [frightened] }])
+
+    // Every save fails (each die shows a 2), so only the aura keeps the condition off.
+    const { answer } = await room.startCasterCenteredAreaAction()
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(
+      (await readRoomHistory(room.room.base.stub)).activeEffects.map(
+        ({ targetActorId }) => targetActorId
+      )
+    ).toEqual([FAR_WOLF_ID])
   })
 })
 

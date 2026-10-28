@@ -906,12 +906,16 @@ and placed by the same `planEncounterPassiveZones`, which takes each Character's
 (`characterRules`) and resolves the zone against its ability modifiers and class levels; a Creature resolves against its
 snapshot ability scores. `placeEncounterPassiveZones` reads those rules through the host's `readCharacterRules`, as the
 Campaign owner reads them; a Character whose rules are unavailable keeps no zones.
-At save time (T5c) `encounterOccupantSaveAuras` finds the auras holding an actor (its token footprint shares area with
-the zone, the source is the actor or its ally, a defeated Creature source is suppressed); the Worker reads them through
-the internal `OCCUPANT_SAVE_AURAS` turn capture, and `withEncounterOccupantSaveBonus`, applied after
-`withEncounterHolderDefense` in the one save-target preparation, skips a Character source that is unconscious and adds
-the largest amount to every save row's modifier, so the bound save fact records it. The target records the amount
-(`occupantSaveBonus`) and `rebuildEncounterTurnTarget` reapplies it, because turn stages rebuild caught targets from raw facts.
+The same SOURCE zone may instead (or also) carry `occupantConditionImmunity` (D155 amendment, SPELLS-31.T4r): condition
+type ids it keeps off the source and its allies, compiled and placed under the same rules and persisted on the placement.
+At target preparation (T5c) `encounterOccupantAuras` finds the auras holding an actor (its token footprint shares area
+with the zone, the source is the actor or its ally, a defeated Creature source is suppressed); the Worker reads them
+through the internal `OCCUPANT_AURAS` turn capture, and `withEncounterOccupantAuras`, applied after
+`withEncounterHolderDefense` in `prepareNativeLiveMovementTarget`, skips a Character source that is unconscious, adds the
+largest save bonus to every save row's modifier, so the bound save fact records it, and joins the aura's condition ids to
+the target's `conditionImmunityIds`, which every condition application reads. The target records both
+(`occupantSaveBonus`, `occupantConditionImmunityIds`) and `rebuildEncounterTurnTarget` reapplies them, because turn stages
+rebuild caught targets from raw facts. The immunity refuses new applications only; a condition held on entry stays.
 `MELEE_HIT_ON_SOURCE` (D153, SPELLS-20 T6d1) compiles to `retaliatesMeleeHits: true` on a SOURCE zone (refused on any
 other attachment) and adds no movement or turn trigger. A placement may also carry `sourceGrant`, the one APPLY_GRANT
 authored beside the zone manifest, compiled through `modifierGrantEntryPlan` as a timed grant counted on the
