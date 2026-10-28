@@ -91,7 +91,6 @@ export const KNOWN_BUG_PROOFS = {
   'character-sheet-browser': 'RELIABILITY-21.T3',
   'character-sheet-spells-browser': 'RELIABILITY-21.T3',
   'effects-browser': 'RELIABILITY-21.T6',
-  'disarm-browser': 'RELIABILITY-21.T7',
   'vtt-browser': 'RELIABILITY-21.T9'
 }
 
