@@ -7,8 +7,6 @@ import type {
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
-  ManifestOccupantConditionImmunityAuthored,
-  ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
   PathChosenItemAuthored,
@@ -102,6 +100,10 @@ import {
 import { MANIFEST_CAMOUFLAGE_NODE_MAP } from './manifestCamouflage.js'
 import { MANIFEST_LIGHT_NODE_MAP } from './manifestLight.js'
 import {
+  MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP,
+  MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP
+} from './manifestOccupantAura.js'
+import {
   PATH_LIFECYCLE_ESCAPE_NODE_MAP,
   PATH_LIFECYCLE_ON_END_NODE_MAP,
   PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP
@@ -133,7 +135,6 @@ type FollowUpSaveBranchNode = AllUnionFields<FollowUpSaveBranchAuthored>
 type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
 type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
 type ManifestProximityRuleNode = ManifestProximityRuleAuthored
-type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
@@ -205,8 +206,6 @@ const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
-const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
-const manifestOccupantConditionImmunity = buildNodeMap<ManifestOccupantConditionImmunityAuthored>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
 const hitPointTierRow = buildNodeMap<PathHitPointTierRowAuthored>()
@@ -687,107 +686,6 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
             requiredIf: true,
             showIf: local.field(['kind']).eq('NAMED_OBJECT')
           })
-        )
-    }
-  )
-
-const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
-  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond, data }) => {
-    const { text, number, selectSingle } = nodes
-    const local = cond.local()
-    const isAbilityModifier = local.field(['amountKind']).eq('SOURCE_ABILITY_MODIFIER')
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set(
-        'domain',
-        selectSingle(
-          ['domain'],
-          'Applies To',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'EVERY_SAVING_THROW', label: 'Every Saving Throw' }]
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'amountKind',
-        selectSingle(
-          ['amountKind'],
-          'Amount',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'FIXED', label: 'Fixed' },
-              { code: 'SOURCE_ABILITY_MODIFIER', label: 'Source Ability Modifier' }
-            ]
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'amount',
-        number(['amount'], 'Bonus', {
-          requiredIf: true,
-          showIf: local.field(['amountKind']).eq('FIXED'),
-          constraints: { minimum: 1 }
-        })
-      )
-      .set(
-        'ability',
-        selectSingle(
-          ['ability'],
-          'Ability',
-          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
-          { requiredIf: true, showIf: isAbilityModifier }
-        )
-      )
-      .set('minimum', number(['minimum'], 'Minimum Bonus', { showIf: isAbilityModifier }))
-      .set(
-        'dispositionFilter',
-        selectSingle(
-          ['dispositionFilter'],
-          'Benefits',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [{ code: 'ALLIES_AND_SOURCE', label: 'Source and Its Allies' }]
-          },
-          { requiredIf: true }
-        )
-      )
-  })
-
-const MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP: NodeMap<ManifestOccupantConditionImmunityAuthored> =
-  manifestOccupantConditionImmunity.define(
-    'manifestOccupantConditionImmunity',
-    ({ map, nodes, data }) => {
-      const { text, selectSingle, selectMulti } = nodes
-      map
-        .set('id', text(['id'], 'ID'))
-        .set(
-          'conditionTypeIds',
-          selectMulti(
-            ['conditionTypeIds'],
-            'Conditions',
-            {
-              kind: 'DATA',
-              relationship: data.table('condition_types', { selectColumns: CODE_COLUMNS })
-            },
-            { requiredIf: true }
-          )
-        )
-        .set(
-          'dispositionFilter',
-          selectSingle(
-            ['dispositionFilter'],
-            'Benefits',
-            {
-              kind: 'INLINE_OPTIONS',
-              options: [{ code: 'ALLIES_AND_SOURCE', label: 'Source and Its Allies' }]
-            },
-            { requiredIf: true }
-          )
         )
     }
   )

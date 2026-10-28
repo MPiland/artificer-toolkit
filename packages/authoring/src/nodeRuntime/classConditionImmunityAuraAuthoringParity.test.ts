@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ClassAuthored, FeatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { draconicBloodlineOrigin } from '@artificer-toolkit/source-data/srd/classes/draconic-bloodline.js'
