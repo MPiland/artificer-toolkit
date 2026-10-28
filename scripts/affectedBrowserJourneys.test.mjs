@@ -7,14 +7,15 @@ import {
   checkKnownBugs,
   JOURNEY_ENTRIES,
   journeyRunReason,
-  KNOWN_BUG_PROOFS,
   ledgerTasks,
   GATING_SHARDS,
   proofNames,
+  pushProofs,
   runnerProofs,
   shardProofs
 } from './affectedBrowserJourneys.mjs'
 import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
+import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
 
 // The repository's own import graph, so the entries are proved against the code the journeys serve.
 describe('browser journey selection', () => {
@@ -65,6 +66,37 @@ describe('browser journey selection', () => {
     ['a web snapshot', ['apps/web/src/auth/__snapshots__/AuthForms.test.tsx.snap']]
   ])('skips %s', (_, changed) => {
     expect(journeyRunReason(graph, changed)).toBeNull()
+  })
+
+  describe('known-bug label edits', () => {
+    const ciProofs = ['builder-browser', 'player-browser', 'vtt-browser']
+    const labels = { 'builder-browser': 'RELIABILITY-21.T16' }
+
+    it('selects no proofs for an added or retargeted label', () => {
+      const added = { ...labels, 'vtt-browser': 'RELIABILITY-21.T9' }
+      const retargeted = { 'builder-browser': 'RELIABILITY-21.T9' }
+      for (const head of [added, retargeted])
+        expect(pushProofs(graph, ['scripts/knownBugProofs.json'], ciProofs, labels, head)).toEqual({
+          reason: null,
+          proofs: []
+        })
+    })
+
+    it('selects exactly the proof whose label was removed', () => {
+      const base = { ...labels, 'vtt-browser': 'RELIABILITY-21.T9' }
+      expect(pushProofs(graph, ['scripts/knownBugProofs.json'], ciProofs, base, labels)).toEqual({
+        reason: 'known-bug labels removed',
+        proofs: ['vtt-browser']
+      })
+    })
+
+    it('selects every proof when the selector code changes too', () => {
+      const changed = ['scripts/knownBugProofs.json', 'scripts/affectedBrowserJourneys.mjs']
+      expect(pushProofs(graph, changed, ciProofs, labels, {})).toEqual({
+        reason: 'scripts/affectedBrowserJourneys.mjs changed',
+        proofs: ciProofs
+      })
+    })
   })
 })
 

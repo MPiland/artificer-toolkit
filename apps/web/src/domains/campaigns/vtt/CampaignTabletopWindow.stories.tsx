@@ -34,6 +34,7 @@ import {
   latestStageRenderer
 } from './vttSceneRenderer.assertions'
 import {
+  auraColor,
   facingArcRadius,
   facingArcWedge,
   gmDarknessCapAlpha,
@@ -352,6 +353,95 @@ export const GmSeesTokenStatuses: Story = {
     // The GM also sees how hurt the Warden is.
     await expect(description).toContain('Wounded')
     await expectDrawnWardenPresentation('OWNER', presentedTokensFixtures.gmEncounter)
+  }
+}
+
+// VTT_UI-3.1 journey data: Ember (visible) and the hidden Vault Warden each carry an aura.
+const [auraEmberToken, auraWardenToken] = tabletopLiveScene.tokens
+const emberAura = {
+  id: '12121212-1212-4121-8121-000000000011',
+  label: 'Spirit Guardians',
+  radius: 245,
+  sourceTokenId: auraEmberToken!.id
+}
+const wardenAura = {
+  id: '12121212-1212-4121-8121-000000000012',
+  label: 'Fire Aura',
+  radius: 105,
+  sourceTokenId: auraWardenToken!.id
+}
+const emberAuraLabel = `Spirit Guardians around ${auraEmberToken!.label}`
+const wardenAuraLabel = `Fire Aura around ${auraWardenToken!.label}`
+
+// The auras the stage draws, read from the renderer's drawn presentation overlays.
+async function drawnAuras(expectedLabels: readonly string[]) {
+  const renderer = await latestStageRenderer()
+  return waitFor(() => {
+    const drawn = renderer
+      .getDiagnostics()
+      .overlays.filter((overlay) => overlay.strokeColors.includes(auraColor))
+    expect(drawn.map((overlay) => overlay.label)).toEqual(expectedLabels)
+    return drawn
+  })
+}
+
+// The server lists every aura to the GM, who sees the hidden Warden too.
+export const GmSeesEveryAura: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, {
+      auras: [emberAura, wardenAura],
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const drawn = await drawnAuras([emberAuraLabel, wardenAuraLabel])
+    await expect(drawn.map((overlay) => overlay.circles)).toEqual([
+      [{ center: auraEmberToken!.position, radius: emberAura.radius }],
+      [{ center: auraWardenToken!.position, radius: wardenAura.radius }]
+    ])
+    await expect(
+      page.getByRole('img', { name: 'Interactive campaign scene' }).getAttribute('aria-description')
+    ).toContain(`Auras: ${emberAuraLabel}; ${wardenAuraLabel}`)
+  }
+}
+
+// The server omits the hidden Warden's aura for the player (D121); the visible source's aura draws.
+export const PlayerSeesOnlyAVisibleSourcesAura: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, {
+      auras: [emberAura],
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    // The Warden is hidden, so the player's Scene carries no Warden token either.
+    await expect(auraWardenToken!.hidden).toBe(true)
+    await expect(
+      projectScene('PLAYER', tabletopLiveScene).tokens.map((token) => token.id)
+    ).not.toContain(auraWardenToken!.id)
+    const drawn = await drawnAuras([emberAuraLabel])
+    await expect(drawn[0]!.circles).toEqual([
+      { center: auraEmberToken!.position, radius: emberAura.radius }
+    ])
+    const description = page
+      .getByRole('img', { name: 'Interactive campaign scene' })
+      .getAttribute('aria-description')
+    await expect(description).toContain(`Auras: ${emberAuraLabel}`)
+    await expect(description).not.toContain(wardenAuraLabel)
   }
 }
 

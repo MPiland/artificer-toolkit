@@ -11,7 +11,7 @@
 # since the phase branch reach a journey through the Tests workflow's import graph, or change the stack;
 # otherwise the run passes with no proof. A dispatch runs one named proof (any runLocalConvexProof.ps1
 # proof) or, unnamed, every CI proof. The selected proofs run in shards, several per stack. A
-# KNOWN_BUG_PROOFS proof runs in the non-gating shard until its fix task removes it. `reverse` runs each
+# scripts/knownBugProofs.json proof runs in the non-gating shard until its fix task removes it. `reverse` runs each
 # shard's proofs in reverse order, which proves they do not depend on each other. merge-slice requires
 # every run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
 #   git push origin HEAD:ci/<slice>

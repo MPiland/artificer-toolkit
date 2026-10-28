@@ -28,6 +28,7 @@ import {
 } from '../shared/spatialFacts.js'
 import {
   compiledSpatialHeldConditionDtoSchema,
+  spatialOccupantConditionImmunityDtoSchema,
   spatialZoneLabelSchema,
   zoneBlockingRulesSchema,
   zoneMovementCostMultiplierSchema,
@@ -642,6 +643,11 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
         ])
       })
     ),
+    /**
+     * The conditions the zone keeps off every occupant its filter matches (D155 amendment); absent
+     * for none.
+     */
+    occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema),
     /**
      * The components that reach a band beside the zone's shape on the side its caster chooses: a
      * straight wall's left or right, a ring's inside or outside (D154). Absent for none.

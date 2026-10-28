@@ -164,6 +164,16 @@ export type ManifestOccupantSaveBonusAuthored = {
   | { amountKind: 'SOURCE_ABILITY_MODIFIER'; ability: string; minimum?: number }
 )
 
+/**
+ * Conditions an occupant the filter matches cannot be given while the zone holds it and its
+ * Character source is conscious (D155 amendment, SPELLS-31.T4r).
+ */
+export type ManifestOccupantConditionImmunityAuthored = {
+  id: string
+  conditionTypeIds: string[]
+  dispositionFilter: 'ALLIES_AND_SOURCE'
+}
+
 export type ManifestComponentAuthored = {
   id: string
   order: number
@@ -192,6 +202,7 @@ export type ManifestComponentAuthored = {
   /** A target immune to this damage type succeeds on the component's save unrolled. */
   automaticSaveSuccessImmunityDamageTypeId?: string
   occupantSaveBonus?: ManifestOccupantSaveBonusAuthored
+  occupantConditionImmunity?: ManifestOccupantConditionImmunityAuthored
   requiresIgnition?: boolean
   maxApplicationsPerTurn?: number
   maxApplicationsTotal?: number

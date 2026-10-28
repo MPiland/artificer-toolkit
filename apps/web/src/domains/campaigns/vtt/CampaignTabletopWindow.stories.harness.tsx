@@ -6,6 +6,7 @@ import { useEffect, useState, type ComponentProps, type JSX, type ReactNode } fr
 import { fn, mocked } from 'storybook/test'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaigns'
+import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
   encounterCommandResultDtoSchema,
   type EncounterCommandResultDto,
@@ -69,6 +70,8 @@ export const shownScene = validated(campaignSceneShowingDtoSchema)({
   shownAt: '2099-08-15T20:00:00.000Z'
 })
 export type TabletopFixtures = {
+  /** The auras the server lists for the rendered viewer (it omits a source the viewer cannot see). */
+  auras?: EncounterSessionStateDto['auras']
   gmEncounter: EncounterGmProjectionDto
   liveScene: CampaignSceneStateDto
   playerEncounter: EncounterPlayerProjectionDto
@@ -160,7 +163,7 @@ export function renderWindow(
     waitingOn: null,
     turnMovement: [],
     halfSpeedFields: [],
-    auras: [],
+    auras: fixtures.auras ?? [],
     movementCostZones: [],
     placedZones: [],
     pendingZoneSightings: []
