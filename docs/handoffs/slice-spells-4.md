@@ -751,3 +751,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 ## SPELLS-8.T7 (D187a): Arcane Sword as a summon
 
 See [slice-spells-8-t7.md](slice-spells-8-t7.md). Arcane Sword follows the Spiritual Weapon shape; the `WEAPON` manifest is now unauthored, and a Concentration summon no longer fails the area receipt.
+
+## T2lb2d (AC SPELLS-4.1): Heat Metal browser journey
+
+Test-only carry-over from T2lb2c. Adds the `heat-metal-browser` local proof (`--encounter-heat-metal-browser`): the player casts Heat Metal on an Ogre's Longsword in a real browser, then on the next turn sees the REPEAT_SOURCE_PATH row (cast level and frozen DC) and uses it as a bonus action. The Ogre's turn and the dice go through the owner API as stand-ins. Files: `apps/apis/tests/developmentEncounterHeatMetal.ts`, `fixtures/encounterHeatMetal.ts`, `apps/web/tests/live-backend/encounterHeatMetal.ts`, plus the flag wiring in `developmentDrafts.ts`, an optional spell-slot parameter on `developmentSpellCharacterFixture.ts` and the proof name in the two scripts.
+
+**Proven in CI** (browser journeys, `heat-metal-browser`): the cast, the repeat row (cast level 2, frozen DC) on the next turn, and its use. The journey found that repeat rows sent no Scene measure, so every range-limited repeat warned "Range can't be checked"; `CampaignTabletopEffectOffers` now sends the Scene read from the offer's origin creature to the holder (unit test in `CampaignTabletopActionDrawer.test.tsx`).

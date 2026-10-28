@@ -801,6 +801,33 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
     expect(await screen.findByText('Repeated.')).toBeVisible()
   })
 
+  it('measures a repeat on the Scene from the acting creature to the holder', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const [sourceToken, targetToken] = tabletopLiveScene.tokens
+    renderDrawer(onResolve, {
+      effectOffers: repeatOfferChoices,
+      actorIdByTokenId: new Map([
+        [sourceToken!.id, tabletopGmEncounter.currentActorId!],
+        [targetToken!.id, repeatOfferChoices[0].holderActorId]
+      ])
+    })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    await user.click(within(section).getByRole('button', { name: /Repeat Heat Metal on/ }))
+
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sceneContext: {
+          sceneId: tabletopLiveScene.id,
+          expectedSceneVersion: tabletopLiveScene.version,
+          sourceTokenId: sourceToken!.id,
+          targetTokenId: targetToken!.id
+        }
+      })
+    )
+  })
+
   it('never offers the current holder as the new one', async () => {
     const user = userEvent.setup()
     renderDrawer(vi.fn(), { effectOffers: effectOfferChoices })
