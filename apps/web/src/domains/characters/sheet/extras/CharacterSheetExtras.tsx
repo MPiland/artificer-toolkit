@@ -2,7 +2,7 @@ import type { CharacterSheetExtrasSliceDto } from '@artificer-toolkit/schema/api
 import { Alert, Button, Drawer, Select, Text } from '@mantine/core'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
 import { IconPlus } from '@tabler/icons-react'
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { getCharacterSheetExtraOptions } from '#app/data/characters/queries'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
@@ -42,13 +42,16 @@ export function CharacterSheetExtras({
   const priorExtraIds = useRef<Set<string> | undefined>(undefined)
   const isCreature = kind !== null && CREATURE_KINDS.has(kind)
   const sourceKind = isCreature ? 'CREATURE' : 'VEHICLE'
-  const extraOptions = useQuery(
-    getCharacterSheetExtraOptions(opened && kind !== null ? sheet.meta.characterId : undefined, {
+  // Each search is a new query key: keep the last results and leave the field enabled, because
+  // disabling the focused input blurs it and the blur resets the typed search.
+  const extraOptions = useQuery({
+    ...getCharacterSheetExtraOptions(opened && kind !== null ? sheet.meta.characterId : undefined, {
       kind: sourceKind,
       limit: 25,
       ...(sourceQuery ? { query: sourceQuery } : {})
-    })
-  )
+    }),
+    placeholderData: keepPreviousData
+  })
   const sourceOptions = extraOptions.data?.items ?? []
 
   useEffect(() => {
@@ -167,10 +170,10 @@ export function CharacterSheetExtras({
           {kind ? (
             <Select
               data={sourceOptions.map((option) => ({ value: option.id, label: option.label }))}
-              disabled={pending || extraOptions.isPending}
+              disabled={pending}
               label={isCreature ? 'Creature' : 'Vehicle'}
               nothingFoundMessage={
-                extraOptions.isPending
+                extraOptions.isFetching
                   ? 'Loading options…'
                   : 'No matching options. Try another search.'
               }
