@@ -249,6 +249,7 @@ describe('Character rule contracts', () => {
       rest: {
         totalHitDice: 5,
         currentExhaustion: 2,
+        maximumExhaustion: 6,
         attunementSlotOverride: null
       }
     })

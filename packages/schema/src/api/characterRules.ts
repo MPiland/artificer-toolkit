@@ -963,7 +963,9 @@ export const characterRulePolicyInputSchema = lazySchema(() =>
     eligibilityFacets: z.array(eligibilityEvaluationSchema).check(z.maxLength(200)),
     rest: z.strictObject({
       totalHitDice: integerSchema.check(z.gte(0)).check(z.lte(100)),
-      currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
+      currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(20)),
+      /** The System vocabulary's maximum level of its exhaustion condition; 0 when it has none. */
+      maximumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(20)),
       attunementSlotOverride: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(100))),
       companions: z.optional(
         z
@@ -1531,10 +1533,10 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     rest: z.strictObject({
       hitDieConstitutionModifier: finiteNumberSchema,
       hitDiceRecoveredAfterLongRest: integerSchema.check(z.gte(0)),
-      currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
-      minimumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
-      maximumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(6)),
-      exhaustionAfterLongRest: integerSchema.check(z.gte(0)).check(z.lte(6)),
+      currentExhaustion: integerSchema.check(z.gte(0)).check(z.lte(20)),
+      minimumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(20)),
+      maximumExhaustion: integerSchema.check(z.gte(0)).check(z.lte(20)),
+      exhaustionAfterLongRest: integerSchema.check(z.gte(0)).check(z.lte(20)),
       attunementSlotLimit: integerSchema.check(z.gte(0)),
       companionHitDiceRecoveredAfterLongRest: z
         .array(

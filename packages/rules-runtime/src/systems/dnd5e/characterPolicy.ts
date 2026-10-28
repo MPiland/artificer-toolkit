@@ -213,7 +213,7 @@ export function evaluateDnd5e2014CharacterPolicy(
       hitDiceRecoveredAfterLongRest: recoveredHitDice(input.rest.totalHitDice),
       currentExhaustion: input.rest.currentExhaustion,
       minimumExhaustion: 0,
-      maximumExhaustion: 6,
+      maximumExhaustion: input.rest.maximumExhaustion,
       exhaustionAfterLongRest: Math.max(0, input.rest.currentExhaustion - 1),
       attunementSlotLimit: input.rest.attunementSlotOverride ?? 3,
       companionHitDiceRecoveredAfterLongRest: (input.rest.companions ?? []).map((companion) => ({

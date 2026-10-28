@@ -7,6 +7,8 @@ import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterArmorClassRuleFacts } from './characterArmorClassRuleFacts.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
+import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
+import { systemConditionMaximumLevel } from '../conditionLevels.js'
 import { buildCharacterHandRuleFacts } from './characterHandRuleFacts.js'
 import { buildCharacterActionRuleFacts } from './characterActionRuleFacts.js'
 import { buildCharacterCompanionMechanicsRuleFacts } from './characterCompanionMechanicsRuleFacts.js'
@@ -150,6 +152,11 @@ export function composeCharacterRulePolicyFacts(
     rest: {
       totalHitDice: totalHitDice(character),
       currentExhaustion: character.state.exhaustion?.level ?? 0,
+      maximumExhaustion: systemConditionMaximumLevel(
+        context.vocabularySnapshot?.document.conditionTypes ?? [],
+        creatureConditionCapabilityRegistry.require(snapshot.systemId)
+          .exhaustionConditionDefinitionId
+      ),
       attunementSlotOverride: input.attunementSlotOverride ?? null,
       companions: (character.state.creatures ?? []).map((companion) => ({
         companionInstanceId: companion.id,

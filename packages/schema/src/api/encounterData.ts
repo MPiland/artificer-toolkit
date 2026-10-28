@@ -143,6 +143,8 @@ const encounterActorConditionDtoSchema = lazySchema(() =>
   z.object({
     conditionTypeId: postgresUuidSchema,
     notes: z.optional(z.string()),
+    /** A leveled condition's level (Exhaustion), from 1 to its System maximum; absent is level 1. */
+    level: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20))),
     innate: z.optional(z.literal(true))
   })
 )

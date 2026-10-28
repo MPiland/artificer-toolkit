@@ -188,6 +188,41 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
     )
   }, 30000)
 
+  it('sets a leveled condition’s level on a Creature and refuses levels the System does not author', async () => {
+    const base = await setup()
+    const { other: gm, run, customActor } = base
+    const conditionId = (code: string) => SRD_CONDITION_TYPES.find((type) => type.code === code)!.id
+    const exhaustion = srdSystemRecord.conditionTypes.find((type) => type.code === 'EXHAUSTION')!
+    const setConditions = (
+      conditions: { conditionTypeId: string; level?: number }[],
+      expectedVersion: number
+    ) =>
+      executeInRoom(
+        gm.caller,
+        update({
+          type: 'UPDATE_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          actorId: customActor.id,
+          conditions
+        })
+      )
+
+    const result = await setConditions([{ conditionTypeId: exhaustion.id, level: 3 }], 0)
+    expect(
+      result.projection.actors.find((actor) => actor.id === customActor.id)?.conditions
+    ).toEqual([{ conditionTypeId: exhaustion.id, level: 3 }])
+    for (const conditions of [
+      [{ conditionTypeId: exhaustion.id, level: exhaustion.maximumLevel! + 1 }],
+      [{ conditionTypeId: exhaustion.id, level: 0 }],
+      [{ conditionTypeId: conditionId('PRONE'), level: 2 }]
+    ])
+      await expect(setConditions(conditions, result.projection.version)).rejects.toThrow()
+    expect(readStoredRunActor((await stored(base, run.id, customActor.id)).actor!)).toMatchObject({
+      conditions: [{ conditionTypeId: exhaustion.id, level: 3 }]
+    })
+  }, 30000)
   it('bridges a Character Sheet command, retains max override, and replays its original Encounter result', async () => {
     const base = await setup()
     const { t, owner, other: gm, character, run, characterActor, readState } = base
