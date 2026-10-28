@@ -29,11 +29,6 @@ export const characterSheetDerivationRecordSchema = lazySchema(() =>
   z.strictObject({
     characterId: z.string(),
     fingerprint: projectionChecksumSchema,
-    /**
-     * The fingerprint the stored panels were derived from. A Character write stores the other
-     * sections at once and queues the panels, which serve only once this matches again.
-     */
-    panelsFingerprint: z.nullable(projectionChecksumSchema),
     sections: z.array(sectionIdentitySchema)
   })
 )

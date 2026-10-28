@@ -873,9 +873,7 @@ listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-
 inline when one of the Sheet's own writers (Sheet commands, the GM overlay refresh, the Encounter
 port) evaluated the Sheet itself, otherwise (Builder commit, resolution-scope commands, focused
 preference and note writes, other Character writers) through the queued
-`characters/sheetSectionDerivation:store` mutation. The inline store leaves the panels to that
-queued mutation, since they are most of the projection; a panel read serves only while the
-derivation's `panelsFingerprint` matches, so an open panel derives live until it has run. A listed Spell the Character does not
+`characters/sheetSectionDerivation:store` mutation. A listed Spell the Character does not
 reference has no stored panel, because the Sheet evaluates only referenced Spells. An owner's preparation options read their
 content-snapshot manifest from the current heads.
 Stored rows leave out the stream version, and reads add it back from the Character's play record,

@@ -27,8 +27,6 @@ export const characterSheetSection = {
   preparation: 'PREPARATION'
 } as const
 
-const isPanel = (section: string) => section.startsWith('PANEL:')
-
 export type CharacterSheetSectionValue = {
   viewer: CharacterSheetSectionViewer
   section: string
@@ -198,10 +196,7 @@ export async function readStoredCharacterSheetSection(
       publicId: authorized.route.publicId
     })
   ])
-  const derivedFrom = isPanel(input.section)
-    ? derivation?.panelsFingerprint
-    : derivation?.fingerprint
-  if (!derivation || !row || derivedFrom !== fingerprint) return undefined
+  if (!derivation || !row || derivation.fingerprint !== fingerprint) return undefined
   const entry = derivation.sections.find(
     (section) => section.viewer === viewer && section.section === input.section
   )
@@ -212,16 +207,12 @@ export async function readStoredCharacterSheetSection(
   return value
 }
 
-/**
- * Replaces the Character's stored sections, writing only those whose checksum changed. Without
- * `panels` the values hold no panels: the stored ones are kept, still tied to `panelsFingerprint`.
- */
+/** Replaces the Character's stored sections, writing only those whose checksum changed. */
 export async function writeCharacterSheetSections(
   ctx: MutationCtx,
   characterId: string,
   fingerprint: string,
-  values: readonly CharacterSheetSectionValue[],
-  panels: boolean
+  values: readonly CharacterSheetSectionValue[]
 ) {
   const key = (section: { viewer: string; section: string }) =>
     `${section.viewer} ${section.section}`
@@ -241,27 +232,19 @@ export async function writeCharacterSheetSections(
     else await ctx.db.insert('characterSheetSections', row)
   }
   const kept = new Set(sections.map(key))
-  const keptPanels = panels
-    ? []
-    : (stored?.sections ?? []).filter((section) => isPanel(section.section))
   for (const section of stored?.sections ?? []) {
-    if (kept.has(key(section)) || (!panels && isPanel(section.section))) continue
+    if (kept.has(key(section))) continue
     const existing = await readSectionRow(ctx, characterId, section.viewer, section.section)
     if (existing) await ctx.db.delete('characterSheetSections', existing._id)
   }
   const derivation = {
     characterId,
     fingerprint,
-    panelsFingerprint: panels ? fingerprint : (stored?.panelsFingerprint ?? null),
-    sections: [
-      ...sections.map(({ viewer, section, checksum }) => ({ viewer, section, checksum })),
-      ...keptPanels
-    ]
+    sections: sections.map(({ viewer, section, checksum }) => ({ viewer, section, checksum }))
   }
   if (!stored) await ctx.db.insert('characterSheetDerivations', derivation)
   else if (
     stored.fingerprint !== fingerprint ||
-    stored.panelsFingerprint !== derivation.panelsFingerprint ||
     checksumCanonicalJson(stored.sections) !== checksumCanonicalJson(derivation.sections)
   )
     await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
@@ -272,9 +255,9 @@ const storeReference = makeFunctionReference<'mutation', { characterId: string }
 )
 
 /**
- * Queues the Sheet's derivation after a write that did not store it (Builder commit, which reads
- * only referenced content, a resolution-scope command, a writer outside the Sheet's own commands,
- * the focused preference and note writes) and for the panels of one that did.
+ * Queues the Sheet's derivation after a write that did not store it: Builder commit (referenced
+ * content only), a resolution-scope command, a writer outside the Sheet's own commands and the
+ * focused preference write.
  */
 export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
   await ctx.scheduler.runAfter(0, storeReference, { characterId })

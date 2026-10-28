@@ -224,7 +224,7 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
     expect(await readCommon()).toEqual(common)
   }, 60_000)
 
-  it('stores the panels after the Sheet command that changed them has returned', async () => {
+  it('stores every section, panels included, within the Sheet command and queues nothing', async () => {
     const { t, player, character, input, visibility } = await setup()
     const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
     const readStored = (section: string) =>
@@ -236,9 +236,7 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
           section
         })
       )
-    const readPanel = () =>
-      player.caller.query(api.characters.panels.get, { id: character.id, target: target! })
-    expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
 
     await player.caller.mutation(api.characters.sheetCommands.execute, {
       id: character.id,
@@ -249,12 +247,13 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
         adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 1 }
       }
     })
-    // The command stores its slices; its panels derive live until the queued store has run.
+    // A queued re-derivation would rewrite the derivation row and rerun every subscribed slice
+    // read, so the command stores the whole Sheet itself.
+    const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+    expect(scheduled.filter((row) => row.state.kind === 'pending').map((row) => row.name)).toEqual(
+      []
+    )
     expect(await readStored(characterSheetSection.slice('COMMON'))).not.toBeNull()
-    expect(await readStored(characterSheetSection.panel(target!))).toBeNull()
-    const live = await readPanel()
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
-    expect(await readPanel()).toEqual(live)
   }, 60_000)
 })

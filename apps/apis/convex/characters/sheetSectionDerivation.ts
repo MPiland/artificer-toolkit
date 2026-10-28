@@ -21,7 +21,6 @@ import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
   characterSheetSection,
   readCharacterSheetFingerprint,
-  scheduleCharacterSheetSections,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
 } from './sheetSections'
@@ -42,20 +41,15 @@ function projectSlices(
     }))
 }
 
-type CharacterSheetFacts = NonNullable<
-  Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>
->
-
 /**
- * Projects the stored Sheet sections from evaluated facts, for each viewer that can read the
- * Character: its owner, the GM of its Campaign and, while "Party can view" is on, the party. Rule
- * evaluation does not depend on the viewer, so one evaluation serves them all (ADR 0040).
+ * Projects every stored Sheet section from the facts this write evaluated, for each viewer that
+ * can read the Character: its owner, the GM of its Campaign and, while "Party can view" is on, the
+ * party. Rule evaluation does not depend on the viewer, so the write evaluates once (ADR 0040).
  */
-async function storeSections(
+export async function storeCharacterSheetSections(
   ctx: MutationCtx,
-  facts: CharacterSheetFacts,
-  authorityScope: CampaignInternalScope | undefined,
-  panels: boolean
+  facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>,
+  authorityScope?: CampaignInternalScope
 ) {
   const characterId = facts.active.id
   const campaign = facts.sourceContext.context.sourceAccess.campaign
@@ -80,7 +74,7 @@ async function storeSections(
     const current = projectCharacterSheetFacts({ ...facts, campaignContext })
     values.push(...projectSlices(current.sheet, campaignContext))
     const viewed = projectCharacterSheetForViewer(current.sheet, campaignContext)
-    for (const target of panels ? listCharacterSheetPanelTargets(viewed) : []) {
+    for (const target of listCharacterSheetPanelTargets(viewed)) {
       // The Sheet evaluates only the Spells it references; another listed Spell's panel (a
       // full-list Spell not yet learned or prepared) derives live with that Spell loaded.
       if (target.kind === 'SPELL' && !referencedSpellIds.has(target.source.spellId)) continue
@@ -106,20 +100,7 @@ async function storeSections(
     { active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
     authorityScope
   )
-  await writeCharacterSheetSections(ctx, characterId, fingerprint, values, panels)
-}
-
-/**
- * Stores the sections of the write that evaluated these facts, except the panels: they are most of
- * the projection, so the queued derivation stores them after the write has returned.
- */
-export async function storeCharacterSheetSections(
-  ctx: MutationCtx,
-  facts: CharacterSheetFacts,
-  authorityScope?: CampaignInternalScope
-) {
-  await storeSections(ctx, facts, authorityScope, false)
-  await scheduleCharacterSheetSections(ctx, facts.active.id)
+  await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
@@ -131,7 +112,7 @@ export const store = internalMutation({
     // A deleted Character, or one that needs Builder repair, has no Sheet to store.
     if (active?.status !== 'ACTIVE') return null
     const facts = await loadCharacterSheetFacts(ctx, active.userId, characterId)
-    if (facts) await storeSections(ctx, facts, undefined, true)
+    if (facts) await storeCharacterSheetSections(ctx, facts)
     return null
   }
 })
