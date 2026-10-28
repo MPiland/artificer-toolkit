@@ -457,15 +457,56 @@ export function actionPreviewOverlays(
   return overlays
 }
 
+export const auraColor = 0x7950f2
+
 /**
- * The overlays the stage hands the renderer: the action preview while the drawer is open (including
- * while the caster aims an area's center) plus the picked area once it is no longer being aimed.
+ * The AURA circle of each aura the session lists, around its source token as drawn now, so it moves
+ * with the token. The server lists only auras whose source the viewer may see (D121); an aura whose
+ * source token is not in the viewer's Scene draws nothing.
+ */
+export function auraOverlays(
+  auras: EncounterSessionStateDto['auras'],
+  tokens: CampaignSceneStateDto['tokens']
+): VttScenePresentationOverlay[] {
+  return auras.flatMap((aura) => {
+    const source = tokens.find((token) => token.id === aura.sourceTokenId)
+    return source
+      ? [
+          {
+            center: source.position,
+            color: auraColor,
+            id: `aura:${aura.id}`,
+            kind: 'CIRCLE' as const,
+            label: `${aura.label ?? 'Aura'} around ${source.label}`,
+            purpose: 'AURA' as const,
+            radius: aura.radius
+          }
+        ]
+      : []
+  })
+}
+
+/** The aura sentence for the canvas description; null when no aura is drawn. */
+export function describeAuraOverlays(
+  overlays: readonly VttScenePresentationOverlay[] | undefined
+): string | null {
+  const labels = (overlays ?? [])
+    .filter((overlay) => overlay.purpose === 'AURA')
+    .map((overlay) => overlay.label)
+  return labels.length > 0 ? `Auras: ${labels.join('; ')}` : null
+}
+
+/**
+ * The overlays the stage hands the renderer: the visible auras, the action preview while the drawer
+ * is open (including while the caster aims an area's center) plus the picked area once it is no
+ * longer being aimed.
  */
 export function stageOverlays({
   actionPreview,
   aimingArea,
   areaAim,
   areaSize,
+  auras,
   drawerOpened,
   scene
 }: {
@@ -473,6 +514,7 @@ export function stageOverlays({
   aimingArea: boolean
   areaAim: VttAreaAim | null
   areaSize: VttAreaSize | null
+  auras: EncounterSessionStateDto['auras']
   drawerOpened: boolean
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
@@ -481,6 +523,7 @@ export function stageOverlays({
   const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
   const band = picked && areaSize && areaAim ? areaBandOverlay(areaSize, areaAim) : null
   const overlays = [
+    ...(scene ? auraOverlays(auras, scene.tokens) : []),
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
     ...(picked ? [picked] : []),
     ...(band ? [band] : [])

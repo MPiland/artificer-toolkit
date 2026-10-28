@@ -707,6 +707,7 @@ export function CampaignVttStage({
       aimingArea: rendererAreaAim !== null,
       areaAim,
       areaSize,
+      auras: encounterSessionState?.auras ?? [],
       drawerOpened: actionsOpened,
       scene: renderedScene ?? null
     })
@@ -722,6 +723,7 @@ export function CampaignVttStage({
     areaAim,
     areaSize,
     destinationPick,
+    encounterSessionState?.auras,
     focusedDestination,
     rendererAreaAim,
     renderedScene

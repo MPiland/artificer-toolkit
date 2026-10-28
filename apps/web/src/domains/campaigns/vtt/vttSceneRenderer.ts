@@ -44,6 +44,7 @@ import {
   dashedPolygonSegments,
   dimOverlayAlpha,
   ellipseArcPoints,
+  describeAuraOverlays,
   describeSceneLighting,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
@@ -234,6 +235,12 @@ export interface VttSceneRenderer {
     loadedMapAssetCount: number
     mapLoadComplete: boolean
     overlayCount: number
+    /** The drawn presentation overlays: each one's label, stroked circles and stroke colours. */
+    overlays: {
+      circles: { center: ScenePoint; radius: number }[]
+      label: string
+      strokeColors: number[]
+    }[]
     sceneVersion: number | null
     tokenArtCount: number
     tokenOverflowCount: number
@@ -1454,12 +1461,13 @@ export async function createVttSceneRenderer(
     })
   }
 
-  function updateCanvasDescription(scene: CampaignSceneStateDto): void {
-    const lighting = describeSceneLighting(scene, visionLabels, illuminationLevels)
-    app.canvas.setAttribute(
-      'aria-description',
-      lighting ? `${tokenSummary}. ${lighting}` : tokenSummary
-    )
+  function updateCanvasDescription(next: VttSceneRendererUpdate): void {
+    const sentences = [
+      tokenSummary,
+      describeAuraOverlays(next.overlays),
+      describeSceneLighting(next.scene, visionLabels, illuminationLevels)
+    ]
+    app.canvas.setAttribute('aria-description', sentences.filter(Boolean).join('. '))
   }
 
   function drawBarriers(scene: CampaignSceneStateDto): void {
@@ -1915,6 +1923,7 @@ export async function createVttSceneRenderer(
 
   function overlayGraphic(overlay: VttScenePresentationOverlay): Graphics {
     const graphic = new pixi.Graphics()
+    graphic.label = overlay.label
     if (overlay.kind === 'CIRCLE') {
       graphic
         .circle(overlay.center.x, overlay.center.y, overlay.radius)
@@ -2048,7 +2057,7 @@ export async function createVttSceneRenderer(
     drawPresentationOverlays(next.overlays)
     drawTokens(next.scene, next.tokenPresentations, next.selectedTokenId ?? null)
     concealTokens(next)
-    updateCanvasDescription(next.scene)
+    updateCanvasDescription(next)
     if (renderedMeasurements !== next.scene.measurements) {
       drawMeasurements(next.scene)
       renderedMeasurements = next.scene.measurements
@@ -2599,6 +2608,22 @@ export async function createVttSceneRenderer(
         loadedMapAssetCount: loadedMapUrls.size,
         mapLoadComplete,
         overlayCount: renderedOverlays?.length ?? 0,
+        overlays: presentationLayer.children.map((child) => ({
+          circles:
+            child instanceof pixi.Graphics
+              ? child.context.instructions.flatMap((instruction) =>
+                  instruction.action === 'stroke'
+                    ? instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
+                        shape instanceof pixi.Circle
+                          ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
+                          : []
+                      )
+                    : []
+                )
+              : [],
+          label: child.label,
+          strokeColors: drawnStyles(child, 'stroke').map((stroke) => stroke.color)
+        })),
         sceneVersion: current?.scene.version ?? null,
         tokenArtCount: [...tokenVisuals.values()].filter((entry) => entry.presentation?.artUrl)
           .length,
