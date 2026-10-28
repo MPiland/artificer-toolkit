@@ -28,6 +28,8 @@ import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/viciou
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 
+const SOURCE_ACTOR_ID = testUuid(0xd001)
+
 type ListedEffect = Pick<
   ActiveRuleEffectRecord,
   'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
@@ -42,7 +44,7 @@ function grantEffect(input: {
 }): ListedEffect {
   const planned = plannedModifierGrant({
     encounterId: ENCOUNTER_ID,
-    sourceActorId: testUuid(0xd001),
+    sourceActorId: SOURCE_ACTOR_ID,
     holderActorId: testUuid(0xd002),
     lifecycle: {},
     ...(input.sourceLabel ? { sourceLabel: input.sourceLabel } : {})
@@ -96,6 +98,7 @@ describe('listActiveGrantListings', () => {
         effectId: carried.id,
         label: 'Aid',
         sourceHidden: false,
+        sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: 2001,
         polarity: 'BENEFICIAL'
@@ -104,6 +107,7 @@ describe('listActiveGrantListings', () => {
         effectId: run.id,
         label: 'Antitoxin (vial)',
         sourceHidden: false,
+        sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: 7,
         expiresAtCampaignMinute: null,
         polarity: 'BENEFICIAL'
@@ -112,6 +116,7 @@ describe('listActiveGrantListings', () => {
         effectId: untimed.id,
         label: expect.any(String),
         sourceHidden: false,
+        sourceActorId: SOURCE_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: null,
         polarity: 'BENEFICIAL'
@@ -381,7 +386,7 @@ describe('polarity of real SRD grants (D110)', () => {
     if (!effect) throw new Error('The SRD source has no effect.')
     const planned = plannedModifierGrant({
       encounterId: ENCOUNTER_ID,
-      sourceActorId: testUuid(0xd001),
+      sourceActorId: SOURCE_ACTOR_ID,
       holderActorId: testUuid(0xd002),
       lifecycle,
       resultPath,
@@ -533,11 +538,11 @@ describe('hideActiveGrantSources', () => {
       })
     ])
     expect(hideActiveGrantSources([hidden!])).toEqual([
-      { ...hidden, label: null, polarity: 'BENEFICIAL' }
+      { ...hidden, label: null, sourceActorId: null, polarity: 'BENEFICIAL' }
     ])
   })
 
-  it('clears only the label of a grant whose source was hidden', () => {
+  it('clears only the label and source actor of a grant whose source was hidden', () => {
     const [shown, hidden] = listActiveGrantListings([
       grantEffect({
         id: 0xd031,
@@ -553,9 +558,10 @@ describe('hideActiveGrantSources', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: 3 }
       })
     ])
+    expect(shown!.sourceActorId).toBe(SOURCE_ACTOR_ID)
     expect(hideActiveGrantSources([shown!, hidden!])).toEqual([
       shown,
-      { ...hidden, label: null, sourceHidden: true }
+      { ...hidden, label: null, sourceActorId: null, sourceHidden: true }
     ])
   })
 })

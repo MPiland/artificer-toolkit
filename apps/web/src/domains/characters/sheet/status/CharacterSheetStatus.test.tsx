@@ -315,6 +315,7 @@ describe('Character Sheet status', () => {
         effectId: '33333333-3333-4333-8333-333333333301',
         label: 'Aid',
         sourceHidden: false,
+        sourceActorId: null,
         remainingTicks: 4,
         expiresAtCampaignMinute: null,
         polarity: 'BENEFICIAL'
@@ -323,6 +324,7 @@ describe('Character Sheet status', () => {
         effectId: '33333333-3333-4333-8333-333333333302',
         label: null,
         sourceHidden: true,
+        sourceActorId: null,
         remainingTicks: null,
         expiresAtCampaignMinute: null,
         polarity: 'NEUTRAL'

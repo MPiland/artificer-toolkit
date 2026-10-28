@@ -201,6 +201,8 @@ export function listActiveGrantListings(
                 effectId: id,
                 label: contribution.sourceLabel,
                 sourceHidden: contribution.sourceHidden,
+                sourceActorId:
+                  definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null,
                 remainingTicks: lifecycle.remainingTicks,
                 expiresAtCampaignMinute: lifecycle.expiresAtCampaignMinute ?? null,
                 polarity: grantPolarity(definition.frozenGraph.source.gameSystemId, contribution)
@@ -230,7 +232,9 @@ export function carriedConcentration(
 export function hideActiveGrantSources(
   grants: readonly ActiveGrantListingDto[]
 ): ActiveGrantListingDto[] {
-  return grants.map((grant) => (grant.sourceHidden ? { ...grant, label: null } : grant))
+  return grants.map((grant) =>
+    grant.sourceHidden ? { ...grant, label: null, sourceActorId: null } : grant
+  )
 }
 
 /** A Concentration as a player reads it: a hidden source's label is withheld. */

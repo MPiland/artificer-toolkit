@@ -202,6 +202,7 @@ describe('player encounter projection', () => {
         effectId: '00000000-0000-4000-8000-0000000000a1',
         label: 'Aid',
         sourceHidden: false,
+        sourceActorId: null,
         remainingTicks: 5,
         expiresAtCampaignMinute: null,
         polarity: 'BENEFICIAL' as const
@@ -210,6 +211,7 @@ describe('player encounter projection', () => {
         effectId: '00000000-0000-4000-8000-0000000000a2',
         label: 'Hidden trap blessing',
         sourceHidden: true,
+        sourceActorId: PUBLIC_ACTOR_ID,
         remainingTicks: null,
         expiresAtCampaignMinute: 2001,
         polarity: 'NEUTRAL' as const
@@ -220,7 +222,7 @@ describe('player encounter projection', () => {
     expect(gm.actors[0]?.activeGrants).toEqual(grants)
     expect(projectPlayerEncounterProjection(gm, noCharacters).actors[0]?.activeGrants).toEqual([
       grants[0],
-      { ...grants[1], label: null }
+      { ...grants[1], label: null, sourceActorId: null }
     ])
   })
 
@@ -251,6 +253,7 @@ describe('player encounter projection', () => {
           effectId: '00000000-0000-4000-8000-0000000000c1',
           label: 'Aid',
           sourceHidden: false,
+          sourceActorId: null,
           remainingTicks: 5,
           expiresAtCampaignMinute: null,
           polarity: 'BENEFICIAL' as const

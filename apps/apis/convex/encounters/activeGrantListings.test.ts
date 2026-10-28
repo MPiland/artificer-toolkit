@@ -85,12 +85,14 @@ describe('Active grant listings (D99)', () => {
     const listing = (
       effect: { id: string },
       label: string | null,
+      sourceActorId: string | null,
       sourceHidden: boolean,
       remainingTicks: number
     ) => ({
       effectId: effect.id,
       label,
       sourceHidden,
+      sourceActorId,
       remainingTicks,
       expiresAtCampaignMinute: null,
       polarity: 'BENEFICIAL' as const
@@ -98,30 +100,34 @@ describe('Active grant listings (D99)', () => {
 
     // The GM's turn tracker and token read every label.
     expect(await grantsOf(base.owner, enemy.id)).toEqual([
-      listing(shown, 'Antitoxin (vial)', false, 3),
-      listing(hidden, 'Hidden trap blessing', true, 5)
+      listing(shown, 'Antitoxin (vial)', enemy.id, false, 3),
+      listing(hidden, 'Hidden trap blessing', enemy.id, true, 5)
     ])
     expect(await grantsOf(base.owner, base.actor.id)).toEqual([
-      listing(secret, 'Secret boon', true, 10)
+      listing(secret, 'Secret boon', base.actor.id, true, 10)
     ])
     // A player sees the grants and their time, never what a hidden source was.
     expect(await grantsOf(base.player, enemy.id)).toEqual([
-      listing(shown, 'Antitoxin (vial)', false, 3),
-      listing(hidden, null, true, 5)
+      listing(shown, 'Antitoxin (vial)', enemy.id, false, 3),
+      listing(hidden, null, null, true, 5)
     ])
-    expect(await grantsOf(base.player, base.actor.id)).toEqual([listing(secret, null, true, 10)])
+    expect(await grantsOf(base.player, base.actor.id)).toEqual([
+      listing(secret, null, null, true, 10)
+    ])
 
     // The Sheet lists the Character's grants the same way.
     const playerSheet = await base.player.caller.query(api.characters.sheet.get, {
       id: base.character.id
     })
-    expect(playerSheet?.overview.activeGrants).toEqual([listing(secret, null, true, 10)])
+    expect(playerSheet?.overview.activeGrants).toEqual([listing(secret, null, null, true, 10)])
     expect(JSON.stringify(playerSheet)).not.toContain('Secret boon')
     const gmSheet = await base.owner.caller.query(api.campaigns.characterSheet.get, {
       campaignId: base.campaign.id,
       characterId: base.character.id
     })
-    expect(gmSheet.overview.activeGrants).toEqual([listing(secret, 'Secret boon', true, 10)])
+    expect(gmSheet.overview.activeGrants).toEqual([
+      listing(secret, 'Secret boon', base.actor.id, true, 10)
+    ])
 
     // The GM ends a Creature's grant by hand, in the room.
     await attachFixtureRoom(base.t, base.campaign.id)
@@ -136,7 +142,7 @@ describe('Active grant listings (D99)', () => {
       }
     })
     expect(ended.projection.actors.find((actor) => actor.id === enemy.id)?.activeGrants).toEqual([
-      listing(shown, 'Antitoxin (vial)', false, 3)
+      listing(shown, 'Antitoxin (vial)', enemy.id, false, 3)
     ])
 
     // Only the GM ends one, only a grant of that actor, and a Character's ends on its Sheet.
