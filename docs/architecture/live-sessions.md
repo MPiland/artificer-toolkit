@@ -593,7 +593,8 @@ authorization cache and is refused when that cache does not admit the captured m
 
 **Proactive re-challenge (ADR 0035 Amendment 23, current).** The room does not wait for a request to
 find an expired token. Through its single coalesced alarm it sends `AUTHENTICATION_REQUIRED` to each
-admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s). The browser's
+admitted socket at `Admission.deadline` minus `reauthenticationLeadMs` (60 s), including a socket
+restored by a wake: a restore arms no expiry, so the alarm that wakes the room challenges it. The browser's
 `liveSessionClient` answers every challenge with an access token, so a passive socket re-admits before
 expiry. `useCampaignLiveSession` reuses its token while more than `LIVE_SESSION_REAUTHENTICATION_LEAD_MS`
 (the same 60 s, in `liveSessionIdentity.ts`) remains before its `exp`, and fetches a new one otherwise, so a
