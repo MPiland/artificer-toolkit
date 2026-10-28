@@ -17,6 +17,7 @@ import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/cha
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
+import { createContentMemo } from '@artificer-toolkit/shared/contentMemo'
 import {
   canReadAuthoredRoot,
   readAuthoredVersion,
@@ -49,6 +50,9 @@ import {
   vehicleCleanupRowAvailable,
   readVehicleCleanupProgress
 } from './vehicleCleanupDocuments'
+
+// The Equipment DTO parse of a verified stored document, by its exact JSON (every command re-reads it).
+const publishedEquipment = createContentMemo<EquipmentAuthoredDto>()
 
 async function readPartySourceIds(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
   const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
@@ -117,7 +121,9 @@ export async function readPartyEquipmentSource(
       root,
       await readAuthoredVersion(ctx, root)
     )
-    document = equipmentAuthoredDtoSchema.parse(published.document)
+    document = publishedEquipment(published.documentJson, () =>
+      equipmentAuthoredDtoSchema.parse(published.document)
+    )
   } else {
     const publication = await readCurrentPublication(ctx, root)
     if (publication.subjectKind !== 'EQUIPMENT')
@@ -191,8 +197,10 @@ export async function readHeldPartyEquipment(
   campaign: Doc<'campaigns'>,
   item: { equipmentId: string; retainedRulesJson?: string }
 ) {
+  // Retained rules are validated even while the source is current, so a later fallback cannot fail.
+  const retained = item.retainedRulesJson ? readRetainedPartyEquipment(campaign, item) : null
   const source = await readPartyEquipmentSource(ctx, campaign, item.equipmentId)
-  if (!source) return readRetainedPartyEquipment(campaign, item)
+  if (!source) return retained ?? readRetainedPartyEquipment(campaign, item)
   return (
     await resolveCurrentEquipment(
       ctx,
