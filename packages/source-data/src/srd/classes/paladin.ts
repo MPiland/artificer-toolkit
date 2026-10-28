@@ -37,6 +37,7 @@ import {
   type FacetAuthored,
   type ShapeAuthored
 } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
@@ -107,10 +108,10 @@ function selfClassRuleEffect(
   })
 }
 
-/** Aura of Protection's reach (D155): 10 feet, growing to 30 feet at paladin level 18. */
-function auraOfProtectionShape(entry: number): ShapeAuthored {
+/** A paladin aura's reach (D155): 10 feet, growing to 30 feet at paladin level 18. */
+function paladinAuraShape(group: number, entry: number): ShapeAuthored {
   return {
-    id: classRowId(P, 0x71, entry),
+    id: classRowId(P, group, entry),
     shapeKind: SHAPE_KIND.SPHERE,
     radius: {
       amount: 10,
@@ -121,7 +122,7 @@ function auraOfProtectionShape(entry: number): ShapeAuthored {
         classId: CLASS_IDS.PALADIN,
         breakpoints: [
           {
-            id: classRowId(P, 0x71, entry + 1),
+            id: classRowId(P, group, entry + 1),
             level: 18,
             order: 1,
             value: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
@@ -129,6 +130,70 @@ function auraOfProtectionShape(entry: number): ShapeAuthored {
         ]
       }
     }
+  }
+}
+
+/**
+ * A paladin aura keeping conditions off the paladin and allies within it while the paladin is
+ * conscious (D155 occupant condition immunity), its rows drawn from `group`.
+ */
+export function paladinConditionImmunityAura(input: {
+  id: string
+  rangeId: string
+  group: number
+  label: string
+  conditionCodes: readonly string[]
+}): EffectAuthored {
+  const rowId = (entry: number) => classRowId(P, input.group, entry)
+  return {
+    id: input.id,
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: input.rangeId, rangeKind: RANGE_KIND.SELF },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+      },
+      shape: paladinAuraShape(input.group, 0)
+    },
+    paths: [
+      {
+        id: rowId(2),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: rowId(3),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: rowId(4),
+              effectKind: EFFECT_KIND.MANIFEST,
+              manifestKind: MANIFEST_KIND.ZONE,
+              attachmentKind: 'SOURCE',
+              label: input.label,
+              shape: paladinAuraShape(input.group, 5),
+              components: [
+                {
+                  id: rowId(7),
+                  order: 1,
+                  label: input.label,
+                  occupantConditionImmunity: {
+                    id: rowId(8),
+                    conditionTypeIds: input.conditionCodes.map(conditionTypeId),
+                    dispositionFilter: 'ALLIES_AND_SOURCE'
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 function vocabularyEntryId(entries: readonly { id: string; code: string }[], code: string): string {
@@ -1058,7 +1123,7 @@ export const paladin: ClassAuthored = {
               selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: TARGET_DISPOSITION_KIND.ANY
             },
-            shape: auraOfProtectionShape(0)
+            shape: paladinAuraShape(0x71, 0)
           },
           paths: [
             {
@@ -1078,7 +1143,7 @@ export const paladin: ClassAuthored = {
                     manifestKind: MANIFEST_KIND.ZONE,
                     attachmentKind: 'SOURCE',
                     label: 'Aura of Protection',
-                    shape: auraOfProtectionShape(5),
+                    shape: paladinAuraShape(0x71, 5),
                     components: [
                       {
                         id: classRowId(P, 0x71, 7),
@@ -1134,23 +1199,12 @@ export const paladin: ClassAuthored = {
       description:
         "Starting at 10th level, you and friendly creatures within 10 feet of you can't be frightened while you are conscious.\n\nAt 18th level, the range of this aura increases to 30 feet.",
       effects: [
-        closedRuleEffect({
+        paladinConditionImmunityAura({
           id: classRowId(P, 0x60, 13),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_AURA_OF_COURAGE,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: classRowId(P, 0x69, 13),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
-            }
-          }
+          rangeId: classRowId(P, 0x69, 13),
+          group: 0x72,
+          label: 'Aura of Courage',
+          conditionCodes: ['FRIGHTENED']
         })
       ],
       availableAtLevel: 10,

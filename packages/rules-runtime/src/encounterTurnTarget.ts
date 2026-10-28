@@ -8,12 +8,15 @@ import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { withHolderDefenseGrants } from './encounterHolderDefense.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
-import { withOccupantSaveBonusRows } from './encounterOccupantSaveAuras.js'
+import {
+  withOccupantConditionImmunities,
+  withOccupantSaveBonusRows
+} from './encounterOccupantAuras.js'
 
 /**
  * The turn's target as the next stage observes it: `actor` and `characterFacts` carry what earlier
  * stages staged, `activeEffects` the effects still in force, and `source` the facts that do not change,
- * including the holder state its defensive grants (Dodge) apply with and the save-bonus aura it was
+ * including the holder state its defensive grants (Dodge) apply with and the occupant auras it was
  * prepared with (D155).
  */
 export function rebuildEncounterTurnTarget<
@@ -42,7 +45,12 @@ export function rebuildEncounterTurnTarget<
   const rebuilt = input.source.holderState
     ? withHolderDefenseGrants(input.state.gameSystemId, conditioned, input.source.holderState)
     : conditioned
-  return input.source.occupantSaveBonus === undefined
-    ? rebuilt
-    : withOccupantSaveBonusRows(rebuilt, input.source.occupantSaveBonus)
+  const { occupantSaveBonus, occupantConditionImmunityIds } = input.source
+  const saved =
+    occupantSaveBonus === undefined
+      ? rebuilt
+      : withOccupantSaveBonusRows(rebuilt, occupantSaveBonus)
+  return occupantConditionImmunityIds === undefined
+    ? saved
+    : withOccupantConditionImmunities(saved, occupantConditionImmunityIds)
 }

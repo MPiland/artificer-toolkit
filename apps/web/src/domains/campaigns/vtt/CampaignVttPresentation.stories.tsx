@@ -19,10 +19,15 @@ import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRendere
 import {
   drawnToken,
   expectDrawnPresentation,
-  latestStageRenderer,
-  type VttRendererDiagnostics
+  latestStageRenderer
 } from './vttSceneRenderer.assertions'
-import { actionPreviewOverlays, type VttScenePresentationOverlay } from './vttSceneRenderer.model'
+import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
+import {
+  actionPreviewOverlays,
+  auraColor,
+  auraOverlays,
+  type VttScenePresentationOverlay
+} from './vttSceneRenderer.model'
 import {
   maxStatusSegments,
   minimumFocusedTokenScreenSize,
@@ -284,7 +289,7 @@ async function renderedScene(canvasElement: HTMLElement) {
       canvas
         .getByRole('img', { name: 'Interactive campaign scene' })
         .getAttribute('aria-description') ?? '',
-    diagnostics: JSON.parse(output.textContent ?? '{}') as VttRendererDiagnostics
+    diagnostics: JSON.parse(output.textContent ?? '{}') as VttSceneRendererDiagnostics
   }
 }
 
@@ -308,6 +313,29 @@ export const ActionRangeAndTargetPreview: Story = {
     const { diagnostics } = await renderedScene(canvasElement)
     // Normal and long range around the acting token, and the ring on the target.
     await expect(diagnostics).toMatchObject({ overlayCount: 3 })
+  }
+}
+
+// VTT_UI-3.1: a session aura is drawn as an AURA circle around its source token and described.
+const emberAura = {
+  id: '12121212-1212-4121-8121-000000000001',
+  label: 'Spirit Guardians',
+  radius: 245,
+  sourceTokenId: emberToken!.id
+}
+export const AuraAroundItsSource: Story = {
+  args: { overlays: auraOverlays([emberAura], presentationScene.tokens) },
+  play: async ({ canvasElement }) => {
+    const { description, diagnostics } = await renderedScene(canvasElement)
+    const label = `Spirit Guardians around ${emberToken!.label}`
+    await expect(diagnostics.overlays).toEqual([
+      {
+        circles: [{ center: emberToken!.position, radius: emberAura.radius }],
+        label,
+        strokeColors: [auraColor]
+      }
+    ])
+    await expect(description).toContain(`Auras: ${label}`)
   }
 }
 
