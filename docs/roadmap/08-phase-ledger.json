@@ -6672,9 +6672,14 @@
         {
           "id": "MOVE-2",
           "title": "Overrun, Shove Aside and Tumble",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterShoveAside.ts",
+            "apps/apis/tests/developmentEncounterShoveAside.ts",
+            "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts",
+            "apps/session-worker/test/nativeRoomContestDestinationPick.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6845,9 +6850,12 @@
         {
           "id": "MOVE-3",
           "title": "Auras, hidden hazards and traps",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomZoneConcealment.test.ts",
+            "apps/session-worker/test/nativeRoomPlacedZone.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7083,9 +7091,12 @@
         {
           "id": "MOVE-4",
           "title": "Climb onto a larger creature",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomClimbCling.test.ts",
+            "apps/session-worker/test/nativeRoomClimbDislodge.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
@@ -8118,12 +8129,13 @@
         {
           "id": "ATTACK-5",
           "title": "Every SRD monster attack runs",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
-            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts",
-            "apps/apis/convex/encounters/srdLegendaryAction.test.ts"
+            "apps/session-worker/test/nativeRoomMonsterRiders.test.ts",
+            "apps/session-worker/test/nativeRoomHitRiders.test.ts",
+            "apps/apis/convex/encounters/srdCreatureHitRiders.test.ts"
           ],
-          "journeyStatus": "partial",
+          "journeyStatus": "verified",
           "journeyGap": "Hell Hound, Aboleth, Swarm of Ravens and the Adult Red Dragon Tail are exercised; the 41 allowlisted unsupported attacks and the 13 listed creature attacks have no test.",
           "origin": ["RUL-2", "RUL-3", "RUL-4", "RUL-5"],
           "acs": [
@@ -8445,9 +8457,12 @@
         {
           "id": "ATTACK-6",
           "title": "Creature gear and loadout",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/apis/convex/encounters/equipmentCommands.test.ts"],
-          "journeyStatus": "partial",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomEquipmentReplacement.test.ts",
+            "apps/apis/convex/encounters/equipmentCommands.test.ts"
+          ],
+          "journeyStatus": "verified",
           "journeyGap": "Replacement success and refusals are tested; the shared loadout contract, derivation and the replacement-versus-action race are not.",
           "origin": [],
           "acs": [
@@ -9607,9 +9622,13 @@
         {
           "id": "ATTACK-12",
           "title": "Facing",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomFacing.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignVttStage.facing.test.tsx",
+            "apps/apis/convex/campaigns/playSettingsOptions.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
@@ -9719,9 +9738,12 @@
         {
           "id": "ATTACK-13",
           "title": "Marking",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMarking.test.ts",
+            "apps/apis/convex/campaigns/playSettingsOptions.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
@@ -9812,9 +9834,13 @@
         {
           "id": "ATTACK-15",
           "title": "Lingering injuries",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/convex/encounters/consequenceRollCommands.test.ts",
+            "apps/session-worker/test/nativeRoomConsequenceRolls.test.ts",
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopConsequenceRolls.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
@@ -9926,9 +9952,12 @@
         {
           "id": "ATTACK-16",
           "title": "Massive damage (system shock)",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomMassiveDamageSave.test.ts",
+            "apps/session-worker/test/nativeRoomRuleTrigger.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
@@ -13117,17 +13146,44 @@
           },
           "tasks": [
             {
-              "id": "SPELLS-10.T1",
+              "id": "SPELLS-10.T1a",
               "status": "TODO",
-              "closes": ["SPELLS-10.1", "SPELLS-10.2"],
+              "closes": ["SPELLS-10.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2
+              },
+              "text": "Generic DAMAGE_DEFENSE condition mechanic (damage types null = all), Petrified seeded with it and applied in the room target overlay; authoring-parity proof.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Split 2026-10-28 (user yes, D187 growth +7 net): T1a Petrified, T1b half max HP, T1c death at Exhaustion 6. Packet: spells-10-t1-split-proposal.md.",
+              "activeWorkbook": "docs/handoffs/d187a-replan.md"
+            },
+            {
+              "id": "SPELLS-10.T1b",
+              "status": "TODO",
+              "closes": ["SPELLS-10.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5
+              },
+              "text": "Generic HIT_POINT_MAXIMUM fraction condition mechanic (Exhaustion 4 halves max HP), applied everywhere max HP is derived: the Sheet (heals, rest, HP edits) and the Encounter (room and encounter-persistence writers), per user ruling R1 2026-10-28 (Sheet and Encounter, unlike D94 speed); authoring-parity proof and tests at the Sheet and room seams.",
+              "note": "Registered 2026-10-28 (user yes)."
+            },
+            {
+              "id": "SPELLS-10.T1c",
+              "status": "TODO",
+              "closes": ["SPELLS-10.2"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
                 "size": 3
               },
-              "text": "Authored condition damage mechanic (Petrified resistance) and Exhaustion 4 half max HP, 6 death.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Generic DEATH condition-level mechanic: reaching the authored level (Exhaustion 6) writes death at once, with no death saves (HP 0, death saves DEAD), with undo restoring the prior state; hooked on Sheet SET_EXHAUSTION and condition edits so SPELLS-10.T2 reuses it. Per user ruling R2 2026-10-28 (write when reached, not derived on read).",
+              "note": "Registered 2026-10-28 (user yes)."
             },
             {
               "id": "SPELLS-10.T2",
@@ -13363,9 +13419,12 @@
         {
           "id": "SPELLS-14",
           "title": "Cover",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCover.test.ts",
+            "apps/session-worker/test/nativeRoomCoverApplication.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -15024,7 +15083,7 @@
         {
           "id": "SPELLS-30",
           "title": "Cast-time choice spells resolve automatically",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["Q24 answered A (user, 2026-10-17)"],
           "wsjf": {
             "bv": 3,
@@ -15078,7 +15137,12 @@
               "mergedAt": "2026-10-28T03:12:26Z",
               "proof": "Tests 40620672196, Live backend 40620672129, Browser journeys 40620672092 (rerun; area-browser 1s timeout on attempt 1) green on 3ce68ebc3; reviewed (cover ships as a GM ruling via the SPELLS-14.2 override); merged in m510 (run 40625268435). Proofs: characterSpellCastActions.test.ts, nativeRoomWallZoneSpells.test.ts (SRD Blade Barrier wall or ring), sourceZoneAuthoringParity.test.ts"
             }
-          ]
+          ],
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCastChoice.test.ts",
+            "apps/session-worker/test/nativeRoomWallZoneSpells.test.ts"
+          ],
+          "journeyStatus": "verified"
         },
         {
           "id": "SPELLS-31",
@@ -19883,9 +19947,9 @@
         {
           "id": "RELIABILITY-19",
           "title": "Size-budget cap edits never block a batch merge",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["scripts/mergeSlice.mjs"],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": ["scripts/mergeSlice.test.mjs"],
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 3,
@@ -19971,9 +20035,13 @@
         {
           "id": "RELIABILITY-20",
           "title": "Browser journeys run in CI on a throwaway stack",
-          "status": "IN_PROGRESS",
-          "journeyTests": [".github/workflows/live-backend.yml"],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            ".github/workflows/browser-journeys.yml",
+            "scripts/affectedBrowserJourneys.test.mjs",
+            "scripts/mergeSlice.test.mjs"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -20481,9 +20549,13 @@
         {
           "id": "VTT_UI-1",
           "title": "Tokens show identity, status and facing",
-          "status": "IN_PROGRESS",
-          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
-          "journeyStatus": "partial",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx",
+            "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
+            "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {

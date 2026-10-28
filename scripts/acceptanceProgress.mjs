@@ -35,14 +35,11 @@ const isPbiProven = (pbi) =>
   pbi.acs.every((ac) => ac.status === 'DONE' && hasProof(ac)) &&
   journeyStatusOf(pbi) === 'verified'
 
+// Every feature needs accepted UAT to be DONE; built features without it are UAT_READY.
 const featureStatus = (feature) => {
   const { pbis, uat = [] } = feature
-  if (
-    (pbis.length > 0 || uat.length > 0) &&
-    pbis.every((pbi) => pbi.status === 'DONE') &&
-    uat.every((item) => item.status === 'PASSED')
-  ) {
-    return 'DONE'
+  if (pbis.every((pbi) => pbi.status === 'DONE') && (pbis.length > 0 || uat.length > 0)) {
+    return uat.length > 0 && uat.every((item) => item.status === 'PASSED') ? 'DONE' : 'UAT_READY'
   }
   const started =
     pbis.some((pbi) => pbi.status !== 'TODO' || pbi.acs.some((ac) => ac.status !== 'TODO')) ||
@@ -323,7 +320,9 @@ const buildReport = () => {
       kind: feature.kind,
       dependsOn: feature.dependsOn ?? [],
       status: statusById.get(feature.id),
-      readyToStart: (feature.dependsOn ?? []).every((id) => statusById.get(id) === 'DONE'),
+      readyToStart: (feature.dependsOn ?? []).every((id) =>
+        ['DONE', 'UAT_READY'].includes(statusById.get(id))
+      ),
       pbiDone: count(pbis, (pbi) => pbi.status === 'DONE'),
       pbiTotal: pbis.length,
       acDone: pbis.reduce((sum, pbi) => sum + pbi.acDone, 0),
@@ -396,7 +395,11 @@ const formatText = (report) => {
     'Features in dependency order:',
     ...report.features.map((feature) => {
       const journey = (status) => count(feature.pbis, (pbi) => pbi.journeyStatus === status)
-      const wait = feature.status === 'DONE' ? '' : feature.readyToStart ? ' ready' : ' waiting'
+      const wait = ['DONE', 'UAT_READY'].includes(feature.status)
+        ? ''
+        : feature.readyToStart
+          ? ' ready'
+          : ' waiting'
       return (
         `  ${feature.id} [${feature.status}${wait}] ` +
         `PBIs ${feature.pbiDone}/${feature.pbiTotal}, ACs ${feature.acDone}/${feature.acTotal}, ` +
