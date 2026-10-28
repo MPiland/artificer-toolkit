@@ -16863,7 +16863,7 @@
             },
             {
               "id": "SPELLS-33.T5afp",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16872,7 +16872,10 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f2", "SPELLS-31.T5p"]
               },
-              "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "mergedAt": "2026-10-28T06:27:49Z",
+              "proof": "Tests 40635760877 green on c820aebc4, Live backend 40632439959 green on d408a2ac7 (same production code), Browser journeys 40635760898 green but known bugs; reviewed (Assassin Evasion as evasionGrant, Berserker Reckless and Priest Divine Eminence as GM rulings; three CREATURE_* closed kinds deleted); merged (run 40643031137). Proofs: creatureEvasionAndRecklessAuthoringParity, nativeRoomMonsterRiders",
+              "note": " Merged in m514."
             },
             {
               "id": "SPELLS-33.T5k",
