@@ -92,7 +92,7 @@ export async function readNativeActionSourceOffers(input: {
  */
 export async function readNativeWeaponAttackOffer(input: {
   capture: Parameters<typeof readNativeLiveTurnUses>[0]
-  actor: Parameters<typeof actorGrantedActions>[1]
+  actor: Parameters<typeof actorGrantedActions>[1] & { id: string }
   heldEffects: Parameters<typeof actorGrantedActions>[0]
   characterRules: Parameters<typeof actorGrantedActions>[2]
 }) {
