@@ -226,11 +226,9 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
     const spellId = srdByLabel(SRD.spells, spellLabel).id
     for (const feature of creature.features)
       for (const grant of feature.grants?.spells ?? [])
-        if (grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(spellId)) {
-          // Only the authored variant that may be limited-use declares a pool.
-          const pooled: { id: string; charges?: { id: string } } = grant
-          return { feature, grant, spellId, pool: pooled.charges }
-        }
+        // Only some authored grant variants name their spells, and only the limited-use one a pool.
+        if ('spellIds' in grant && grant.spellIds.includes(spellId))
+          return { feature, grant, spellId, pool: 'charges' in grant ? grant.charges : undefined }
     throw new Error(`${creature.label} has no grant of ${spellLabel}.`)
   }
   const directCasts = (
@@ -245,28 +243,16 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
   const withoutPool = (
     creature: typeof MAGE,
     spellLabel: string,
-    changes: Partial<ReturnType<typeof grantOf>['grant']> = {}
+    changes: { attributes?: string[]; castAtLevel?: number } = {}
   ): typeof MAGE => {
-    const { feature, grant } = grantOf(creature, spellLabel)
-    return {
-      ...creature,
-      features: creature.features.map((entry) =>
-        entry.id !== feature.id
-          ? entry
-          : {
-              ...entry,
-              grants: {
-                ...entry.grants,
-                spells: entry.grants!.spells!.map((candidate) => {
-                  if (candidate.id !== grant.id) return candidate
-                  // Only the limited-use authored variant declares `charges`.
-                  const { charges: _charges, ...unpooled } = { charges: undefined, ...candidate }
-                  return { ...unpooled, ...changes }
-                })
-              }
-            }
-      )
-    }
+    const { grant } = grantOf(creature, spellLabel)
+    const copy = structuredClone(creature)
+    const edited = copy.features
+      .flatMap((feature) => feature.grants?.spells ?? [])
+      .find((candidate) => candidate.id === grant.id)!
+    Reflect.deleteProperty(edited, 'charges')
+    Object.assign(edited, changes)
+    return copy
   }
 
   it('offers a 3/day spell at its own level and binds the cast to its grant’s charge pool', () => {

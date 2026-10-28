@@ -142,16 +142,16 @@ describe('a Creature casts a granted Spell from a slot in a real room (SPELLS-33
 describe('a Creature casts an innate 1/day Spell from its charge pool in a real room (SPELLS-33.T3c2c)', () => {
   const ONI_ID = testUuid(0xb12)
   const ogreMage = installedSrdCreature(oni)
+  // Only some authored grant variants name their spells, and only the limited-use one a pool.
   const innate = ogreMage.features.find((feature) =>
     feature.grants?.spells?.some(
-      (grant) =>
-        grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
+      (grant) => 'spellIds' in grant && grant.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
     )
   )
-  const pool = innate?.grants?.spells?.find(
-    (grant) =>
-      grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
-  )?.charges
+  const grant = innate?.grants?.spells?.find(
+    (candidate) => 'spellIds' in candidate && candidate.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
+  )
+  const pool = grant && 'charges' in grant ? grant.charges : undefined
   if (!innate || !pool) throw new Error('The Oni has no Cone of Cold pool.')
 
   function oniRoom(featureCharges?: Record<string, number>) {
