@@ -684,15 +684,18 @@ function byLabel(left: { id: string; label: string }, right: { id: string; label
 const toClassSource = (document: ClassAuthored) =>
   toContentSnapshotIndexEntry({ subjectKind: 'CLASS', document: document as ClassAuthoredDto })
 /** The Class pool matters only once a selected Class reaches its subclass level. */
+/** A Class past its subclass level without a readable subclass needs the subclass options. */
 function isSubclassSelectionDue(character: CharacterAuthored, classes: readonly CompiledClass[]) {
-  return character.intent.classes.some((selection) =>
-    classes.some(
-      (record) =>
-        record.id === selection.classId &&
-        record.category === 'BASE' &&
-        record.subclassSelectionLevel !== undefined &&
-        selection.classLevel >= record.subclassSelectionLevel
-    )
+  return character.intent.classes.some(
+    (selection) =>
+      !classes.some((record) => record.id === selection.subclassId) &&
+      classes.some(
+        (record) =>
+          record.id === selection.classId &&
+          record.category === 'BASE' &&
+          record.subclassSelectionLevel !== undefined &&
+          selection.classLevel >= record.subclassSelectionLevel
+      )
   )
 }
 
