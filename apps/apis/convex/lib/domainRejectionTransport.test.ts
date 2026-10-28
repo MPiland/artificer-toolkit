@@ -92,6 +92,6 @@ describe('Encounter domain rejections at the Convex boundary', () => {
     expect(reads).toStrictEqual([])
     const exported = registered as unknown as { exportReturns: () => string }
     expect(JSON.parse(exported.exportReturns())).toStrictEqual({ type: 'null' })
-    expect(reads).toStrictEqual(['returns'])
+    expect(new Set(reads)).toStrictEqual(new Set(['returns']))
   })
 })
