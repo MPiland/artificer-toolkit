@@ -89,6 +89,7 @@ export const KNOWN_BUG_PROOFS = {
   'campaign-custody-browser': 'RELIABILITY-21.T13',
   'character-sheet-browser': 'RELIABILITY-21.T14',
   'effects-browser': 'RELIABILITY-21.T13',
+  'publication-class-browser': 'RELIABILITY-21.T13',
   'vtt-browser': 'RELIABILITY-21.T9'
 }
 
