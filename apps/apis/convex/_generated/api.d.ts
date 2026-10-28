@@ -3603,6 +3603,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             armorClass: number;
@@ -18164,6 +18165,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             armorClass: number;
@@ -20284,6 +20286,7 @@ export declare const api: {
                   label: string | null;
                   polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                   remainingTicks: number | null;
+                  sourceActorId: string | null;
                   sourceHidden: boolean;
                 }>;
                 armorClass: number;
@@ -289669,6 +289672,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -289966,6 +289970,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -290958,6 +290963,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -291255,6 +291261,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -292071,6 +292078,7 @@ export declare const api: {
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
+                sourceActorId: string | null;
                 sourceHidden: boolean;
               }>;
               concealment?: {
@@ -292361,6 +292369,7 @@ export declare const api: {
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
+                sourceActorId: string | null;
                 sourceHidden: boolean;
               }>;
               concentration?: {
@@ -292482,6 +292491,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -292779,6 +292789,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -293251,6 +293262,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             concealment?: {
