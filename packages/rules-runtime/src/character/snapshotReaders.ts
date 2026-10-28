@@ -256,9 +256,10 @@ export function createLazySnapshotReaders(
     },
     readFeatureSources: async (missingFeatureIds) =>
       (await withDocuments(FEATURE_SOURCE_KINDS)).readFeatureSources(missingFeatureIds),
-    readSpellCatalogue: async (referencedSpellIds) =>
+    readSpellCatalogue: async (referencedSpellIds, classSpellLists) =>
       (referencedSpellIds.size ? await withDocuments(['SPELL']) : readers).readSpellCatalogue(
-        referencedSpellIds
+        referencedSpellIds,
+        classSpellLists
       ),
     readRaces: () => readers.readRaces(),
     readClasses: () => readers.readClasses(),

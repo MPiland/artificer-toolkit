@@ -15,7 +15,7 @@ import { readCharacterDraftPayload, replaceCharacterDraftPayload } from '../char
 import schema from '../schema'
 import { internalMutation } from '../lib/mutations'
 import { authoredCatalogueMetadataSchema } from '@artificer-toolkit/schema/api/authoredCatalogue'
-import { rootCatalogueFacts } from './catalogueMetadata'
+import { hasRootCatalogueFacts, rootCatalogueFacts } from './catalogueMetadata'
 import {
   readAuthoredVersionCompilation,
   readPublishedRootDocument,
@@ -75,9 +75,9 @@ export const backfillRootCatalogueFacts = migrations.define({
     if (!root.catalogue) return undefined
     const existing = authoredCatalogueMetadataSchema.parse(root.catalogue)
     if (existing.checksum !== root.checksum) throw new Error('Stored catalogue checksum mismatch.')
+    if (hasRootCatalogueFacts(root, existing)) return undefined
     const { document } = await readPublishedRootDocument(ctx, root)
     const facts = rootCatalogueFacts(root.subjectKind, document)
-    if (Object.keys(facts).every((key) => key in existing)) return undefined
     return { catalogue: authoredCatalogueMetadataSchema.parse({ ...existing, ...facts }) }
   }
 })

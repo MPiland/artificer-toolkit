@@ -54,8 +54,14 @@ export const authoredCatalogueMetadataSchema = lazySchema(() =>
     race: z.optional(contentSnapshotRaceIndexEntrySchema),
     class: z.optional(contentSnapshotClassIndexEntrySchema),
     background: z.optional(contentSnapshotBackgroundIndexEntrySchema),
-    // An Equipment root's prose beyond label and description, so a held item's pin reads the root.
-    equipment: z.optional(z.strictObject({ quote: z.optional(authoredRichTextSchema) })),
+    // An Equipment root's prose beyond label and description, so a held item's pin reads the root,
+    // and on a base (non-variant) root whether it has capacity, which its variants inherit.
+    equipment: z.optional(
+      z.strictObject({
+        quote: z.optional(authoredRichTextSchema),
+        container: z.optional(z.boolean())
+      })
+    ),
     spell: z.optional(
       z.strictObject({
         // Transitional backfill marker; readers reject incomplete selector facts.
