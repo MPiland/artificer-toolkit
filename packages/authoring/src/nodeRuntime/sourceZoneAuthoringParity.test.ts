@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
@@ -8,6 +8,7 @@ import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.j
 import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
 import { earthquake } from '@artificer-toolkit/source-data/srd/spells/earthquake.js'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
+import { guardianOfFaith } from '@artificer-toolkit/source-data/srd/spells/guardian-of-faith.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
@@ -63,13 +64,13 @@ function auraZones(equipment: EquipmentAuthored) {
       : []
   )
   if (!zones.length || zones.length !== blocks.length)
-    throw new Error('Spirit Guardians must author a zone for every pick.')
+    throw new Error('The spell must author a zone for every pick.')
   return zones
 }
 
-/** The aura the way the Builder authors it with another radius, ability, save DC method and dice. */
-function variant(): EquipmentAuthored {
-  const equipment = carrying(spiritGuardians.effects as EquipmentAuthored['effects'])
+/** The zone the way the Builder authors it with another radius and save DC method. */
+function variant(spell: SpellAuthored = spiritGuardians): EquipmentAuthored {
+  const equipment = carrying(spell.effects as EquipmentAuthored['effects'])
   for (const aura of auraZones(equipment)) {
     const behavior = aura.components?.[0]?.behaviors?.[0]
     if (!behavior || !('savingThrow' in behavior.invocation))
@@ -125,9 +126,10 @@ describe('the source aura through the equipment node map', () => {
     ['Wall of Fire', wallOfFire],
     ['Wall of Thorns', wallOfThorns],
     ['Plant Growth', plantGrowth],
-    ['Earthquake', earthquake]
+    ['Earthquake', earthquake],
+    ['Guardian of Faith', guardianOfFaith]
   ])(
-    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e, T2a4, T2q; SPELLS-20.T6d1)',
+    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e, T2a4, T2q, T2r; SPELLS-20.T6d1)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)
@@ -136,10 +138,16 @@ describe('the source aura through the equipment node map', () => {
     }
   )
 
-  it('keeps an aura with another radius and a fixed DC the same way, so it resolves like the SRD aura', async () => {
-    const authored = variant()
-    const result = await normalize(authored)
-    expect(result.clearedPaths).toEqual([])
-    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
-  })
+  it.each([
+    ['Spirit Guardians', spiritGuardians],
+    ['Guardian of Faith', guardianOfFaith]
+  ])(
+    'keeps a %s zone with another radius and a fixed DC the same way, so it resolves like the SRD zone',
+    async (_name, spell) => {
+      const authored = variant(spell)
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+    }
+  )
 })

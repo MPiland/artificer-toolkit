@@ -56,25 +56,45 @@ export const antipathySympathy: SpellAuthored = {
           id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.CHOICE,
           originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x213, 1),
-              durationKind: DURATION_KIND.DAY,
-              amount: 10
+          selectionKind: 'CHOICE' as const,
+          // The designated creature kind, the 60-foot or sight trigger and the compelled movement have no
+          // engine piece, so each aura is the GM's to rule from the description (D187a).
+          options: [
+            {
+              label: 'Antipathy',
+              instructions:
+                'Creatures of the designated kind that see the target or come within 60 feet of it make a Wisdom saving throw or are frightened, and must move away until they are more than 60 feet away and cannot see it.'
             },
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ANTIPATHY_SYMPATHY' as const
-              }
-            ]
-          }
+            {
+              label: 'Sympathy',
+              instructions:
+                'Creatures of the designated kind that see the target or come within 60 feet of it make a Wisdom saving throw or must use their movement to approach it, and cannot willingly move away from it.'
+            }
+          ].map(({ label, instructions }, index) => ({
+            id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x215, index + 1),
+            order: index + 1,
+            label,
+            resultBlock: {
+              id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x216, index + 1) + '__result',
+              resultKind: 'SINGLE' as const,
+              duration: {
+                id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x217, index + 1),
+                durationKind: DURATION_KIND.DAY,
+                amount: 10
+              },
+              outcomes: [
+                {
+                  id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x216, index + 1),
+                  effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                  label,
+                  reasonCode: 'GM_CHOICE' as const,
+                  instructions: `${instructions} An affected creature that ends its turn more than 60 feet from the target and unable to see it repeats the save, ending the effect on a success; it also repeats it every 24 hours. A creature that succeeds is immune for 1 minute.`
+                }
+              ]
+            }
+          }))
         }
       ]
     }

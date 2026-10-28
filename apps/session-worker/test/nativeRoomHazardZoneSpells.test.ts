@@ -11,6 +11,7 @@ import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
 import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
 import { grease } from '@artificer-toolkit/source-data/srd/spells/grease.js'
+import { guardianOfFaith } from '@artificer-toolkit/source-data/srd/spells/guardian-of-faith.js'
 import { incendiaryCloud } from '@artificer-toolkit/source-data/srd/spells/incendiary-cloud.js'
 import { insectPlague } from '@artificer-toolkit/source-data/srd/spells/insect-plague.js'
 import { moonbeam } from '@artificer-toolkit/source-data/srd/spells/moonbeam.js'
@@ -278,6 +279,80 @@ describe.each(SPELLS)('the SRD $spell.label zone (SPELLS-4.T1a, T1c)', (subject)
       ]
     })
     expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - firstCast.dice)
+  })
+})
+
+/**
+ * SPELLS-4.T2r (D187a): the SRD Guardian of Faith, authored from core options, places a 15-foot
+ * reach at the chosen point. A creature that moves into it makes a Dexterity save the first time on
+ * a turn, taking 20 radiant damage on a failure or half on a success; the caster leaves allies
+ * unaffected. The guardian sits 28 feet from the caster; the Brown Bear starts 22.5 feet from it,
+ * its token clear of the 300-unit reach, and steps 12.5 feet in, to 10 feet from the guardian.
+ */
+describe('the SRD Guardian of Faith zone (SPELLS-4.T2r)', () => {
+  const castLabel = 'Guardian of Faith (4th level)'
+  const guardian = { x: 600, y: 500 }
+  const outside = { x: 600, y: 950 }
+  const inside = { x: 600, y: 700 }
+  const room = (rolls?: readonly number[]) =>
+    zoneRoom({ spell: guardianOfFaith }, castLabel, outside, rolls, brownBear)
+
+  it('is placed at the chosen point and acts only on entry, once a turn, with a Dexterity save', async () => {
+    const zone = await castAtTheCenter(await room(), guardian)
+    expect(zone.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: guardianOfFaith.label,
+      triggerModes: ['ENTER', 'CROSS'],
+      turnTriggers: [],
+      maxApplicationsPerTurn: 1
+    })
+    expect(JSON.parse(zone.definitionJson)).toMatchObject({
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
+          SRD_ABILITY_DEFINITION_IDS.DEXTERITY,
+        [DND5E_SAVE_DC_FACT_KEY]: WIZARD_SAVE_DC
+      }
+    })
+  })
+
+  it.each([
+    { outcome: 'fails', rolls: [], damage: 20 },
+    // The save shows a 20.
+    { outcome: 'makes', rolls: [19], damage: 10 }
+  ])(
+    'deals $damage radiant to a creature that enters and $outcome its save, and nothing on a second entry that turn',
+    async ({ rolls, damage }) => {
+      // The cast rolls nothing, so the first draw is the entry save.
+      const zoneRoomed = await room(rolls)
+      await castAtTheCenter(zoneRoomed, guardian)
+      await zoneRoomed.advanceTurn()
+      const hitPointsBefore = await hitPointsOf(zoneRoomed, WOLF_ID)
+
+      const enters = await walkerMoves(zoneRoomed, [outside, inside])
+      const leaves = await walkerMoves(zoneRoomed, [inside, outside])
+      const reenters = await walkerMoves(zoneRoomed, [outside, inside])
+
+      expect(enters.executions).toHaveLength(1)
+      expect(enters.executions[0]).toMatchObject({
+        applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: damage })]
+      })
+      expect(leaves.executions).toEqual([])
+      expect(reenters.executions).toEqual([])
+      expect(await hitPointsOf(zoneRoomed, WOLF_ID)).toBe((hitPointsBefore ?? 0) - damage)
+    }
+  )
+
+  it('never puts a creature the caster left unaffected through the save or its damage', async () => {
+    const zoneRoomed = await room()
+    const { answer } = await zoneRoomed.startAreaAction(guardian, [], 'GM', [WOLF_ID])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await zoneRoomed.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(zoneRoomed, WOLF_ID)
+
+    const walk = await walkerMoves(zoneRoomed, [outside, inside])
+
+    expect(walk.executions).toEqual([])
+    expect(await hitPointsOf(zoneRoomed, WOLF_ID)).toBe(hitPointsBefore)
   })
 })
 
