@@ -37,8 +37,11 @@ export function isSupportedArea(
     // A zone's later entry saves do not filter by creature type, so its appear save may not either.
     (overZone &&
       (targeting.allowedCreatureTypeIds?.length || targeting.excludedCreatureTypeIds?.length)) ||
-    invocation.activation.code !== 'ACTION' ||
-    invocation.activation.amount !== 1
+    // An Action, or a free option its Feature charge pays for (a Legendary Wing Attack).
+    !(
+      (invocation.activation.code === 'ACTION' && invocation.activation.amount === 1) ||
+      isChargedFreeActivation(invocation)
+    )
   )
     return false
   // A Self action that names no shape reaches the creatures in the caster's own space.

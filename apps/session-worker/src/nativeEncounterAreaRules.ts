@@ -226,7 +226,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
       actor: base.caster,
       token: base.scene?.sourceToken ?? null
     }))
-  refuseActionOutsideItsWindow(lead.prepared)
+  refuseActionOutsideItsWindow(lead.prepared, command)
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
 
   const evaluation = await evaluateNativeLiveActionEconomy({
@@ -764,7 +764,7 @@ async function prepareAreaCasterLead(
     actor: base.caster,
     token: base.scene?.sourceToken ?? null
   })
-  refuseActionOutsideItsWindow(target.prepared)
+  refuseActionOutsideItsWindow(target.prepared, input.command)
   return {
     target,
     evaluation: await evaluateNativeLiveActionEconomy({

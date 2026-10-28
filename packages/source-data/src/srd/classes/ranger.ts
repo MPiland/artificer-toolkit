@@ -25,11 +25,12 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
@@ -77,29 +78,16 @@ const RA = 8 // Ranger class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
   return closedRuleEffect({
     id: classRowId(RA, 0x60, entry),
     ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
   })
 }
 
@@ -956,8 +944,21 @@ export const ranger: ClassAuthored = {
       description:
         "Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can't be tracked by nonmagical means, unless you choose to leave a trail.",
       effects: [
-        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_RANGER_VANISH, ACTIVATION_CODE.BONUS_ACTION),
-        selfClassRuleEffect(0x8b, CLOSED_RULE_KIND.CLASS_RANGER_VANISH)
+        standingGrantedActionsEffect({
+          id: classRowId(RA, 0x60, 16),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(RA, 0x69, 16), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: 'SELF' }
+          },
+          grantedActions: [
+            {
+              activation: ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [SRD_BASIC_ACTION_IDS.HIDE]
+            }
+          ]
+        })
       ],
       availableAtLevel: 14,
       order: 16

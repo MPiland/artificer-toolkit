@@ -105,15 +105,31 @@ export function nextGrantedAttackCharge(
   return charged ? { activation: charged.offer.activation } : null
 }
 
-/** Every offer the actor holds: its held effects' and its Creature traits'. */
+/** The rules a Character's standing offers are read from; see `compiledStandingGrantedActions`. */
+export type StandingGrantedActionCharacterRules = {
+  standingGrantedActions: readonly HeldGrantedAction[]
+}
+
+/**
+ * The offers an actor's own traits and features make on every turn: a Creature's from its stat
+ * block, a Character's from its current rules (none when they are unavailable).
+ */
+export function actorStandingGrantedActions(
+  actor: Parameters<typeof snapshotFeatureDefinitions>[0],
+  characterRules: StandingGrantedActionCharacterRules | null | undefined
+): HeldGrantedAction[] {
+  return actor.kind === 'CHARACTER'
+    ? [...(characterRules?.standingGrantedActions ?? [])]
+    : standingGrantedActions(snapshotFeatureDefinitions(actor))
+}
+
+/** Every offer the actor holds: its held effects' and its own traits' and features'. */
 export function actorGrantedActions(
   heldEffects: readonly HeldEffect[],
-  actor: Parameters<typeof snapshotFeatureDefinitions>[0]
+  actor: Parameters<typeof snapshotFeatureDefinitions>[0],
+  characterRules: StandingGrantedActionCharacterRules | null | undefined
 ): HeldGrantedAction[] {
-  return [
-    ...heldGrantedActions(heldEffects),
-    ...standingGrantedActions(snapshotFeatureDefinitions(actor))
-  ]
+  return [...heldGrantedActions(heldEffects), ...actorStandingGrantedActions(actor, characterRules)]
 }
 
 /**

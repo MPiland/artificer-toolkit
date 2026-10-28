@@ -1,5 +1,3 @@
-import { runInDurableObject } from 'cloudflare:test'
-import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { attackDecoyFor } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import {
@@ -29,13 +27,13 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { endTriggerEffectSeed } from './endTriggerEffectSeed.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { readLegendaryChoice, respondToLegendaryChoice } from './legendaryRoomReads.js'
 import { movementRoom } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -242,51 +240,6 @@ function spentDragon(id: string) {
   })
 }
 
-/** The Legendary Action choice the room is holding: its occurrence, owner and options. */
-function readLegendaryChoice(stub: DurableObjectStub) {
-  return runInDurableObject(stub, async (_instance, context) => {
-    const room = new RoomEncounterStore(context.storage)
-    const occurrence = room
-      .documents('encounterRuleOccurrences')
-      .find((candidate) => candidate.state === 'PENDING')
-    if (!occurrence) return null
-    const snapshot = await readPendingSnapshot({ db: room.store }, occurrence)
-    const choice = snapshot?.applicationContext
-    if (choice?.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
-      throw new Error('Expected a Legendary Action choice.')
-    return {
-      occurrence,
-      encounterVersion: room.documents('encounterRuns')[0]!.version,
-      ownerActorId: choice.choice.ownerActorId,
-      options: choice.choice.options
-    }
-  })
-}
-
-/** Answers the room's pending Legendary Action choice with `resolution`. */
-async function respond(
-  room: Awaited<ReturnType<typeof movementRoom>>,
-  resolution: Record<string, unknown>
-) {
-  const held = await readLegendaryChoice(room.base.stub)
-  if (!held) throw new Error('No Legendary Action choice is pending.')
-  const commandId = crypto.randomUUID()
-  const answer = await room.send(commandId, {
-    scope: 'ENCOUNTER',
-    command: {
-      type: 'RESOLVE_RULE_OCCURRENCE',
-      encounterId: room.encounterId,
-      commandId,
-      expectedVersion: held.encounterVersion,
-      occurrenceId: held.occurrence.id,
-      expectedOccurrenceVersion: held.occurrence.version,
-      correlationId: null,
-      resolution
-    }
-  })
-  return { ...held, answer }
-}
-
 describe('a room ADVANCE_TURN with Legendary Action windows', () => {
   it('holds the declined and executed windows in one ADVANCE_TURN receipt, with the pool spend, the entering refresh and the allowance refresh', async () => {
     const wolf = srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
@@ -315,12 +268,12 @@ describe('a room ADVANCE_TURN with Legendary Action windows', () => {
 
     const first = await readLegendaryChoice(room.base.stub)
     expect(first?.ownerActorId).toBe(FIRST_DRAGON_ID)
-    await respond(room, { kind: 'DECLINE' })
+    await respondToLegendaryChoice(room, { kind: 'DECLINE' })
     const second = await readLegendaryChoice(room.base.stub)
     expect(second?.ownerActorId).toBe(SECOND_DRAGON_ID)
     const option = second?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    await respond(room, {
+    await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: SECOND_DRAGON_ID
@@ -394,7 +347,7 @@ describe('a room ADVANCE_TURN with Legendary Action windows', () => {
     const option = choice?.options[0]
     if (choice?.ownerActorId !== FIRST_DRAGON_ID || !option)
       throw new Error('Expected the dragon’s Legendary option.')
-    await respond(room, {
+    await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: CHARACTER_ACTOR_ID
@@ -464,7 +417,7 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
     for (let held = await readLegendaryChoice(room.base.stub); held;) {
       const option = held.options[0]
       if (!option) throw new Error('Expected a Legendary option.')
-      await respond(
+      await respondToLegendaryChoice(
         room,
         held.ownerActorId === UNICORN_ID && shield
           ? { kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: UNICORN_ID }
@@ -511,7 +464,7 @@ describe('a unicorn using Shimmering Shield at another creature’s turn end', (
     expect((await readRoomHistory(room.base.stub)).activeEffects).toHaveLength(1)
     await advance()
     for (let window = await readLegendaryChoice(room.base.stub); window;) {
-      await respond(room, { kind: 'DECLINE' })
+      await respondToLegendaryChoice(room, { kind: 'DECLINE' })
       window = await readLegendaryChoice(room.base.stub)
     }
     expect((await readRoomHistory(room.base.stub)).activeEffects).toEqual([])
@@ -560,7 +513,7 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
     const held = await readLegendaryChoice(room.base.stub)
     const option = held?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    await respond(room, {
+    await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       // The self Tail targets its owner; the attack Tail strikes the Wolf.
@@ -637,7 +590,7 @@ describe('a Legendary Action that damages the holder of a damage-triggered effec
     })
     const option = (await readLegendaryChoice(room.base.stub))?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    const { answer } = await respond(room, {
+    const { answer } = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -722,7 +675,7 @@ describe('a Legendary Action that gives its target a passive timed grant (SPELLS
     })
     const option = (await readLegendaryChoice(room.base.stub))?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    const { answer } = await respond(room, {
+    const { answer } = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -765,7 +718,7 @@ describe('a Legendary Action marks its melee target under Marking (ATTACK-13.T3)
     const option = choice?.options[0]
     if (choice?.ownerActorId !== FIRST_DRAGON_ID || !option)
       throw new Error('Expected the dragon’s Legendary option.')
-    const { answer } = await respond(room, {
+    const { answer } = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId
@@ -881,7 +834,7 @@ describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', (
     const choice = await readLegendaryChoice(room.base.stub)
     const option = choice?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    const { answer } = await respond(room, {
+    const { answer } = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -1028,7 +981,7 @@ describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', (
     const choice = await readLegendaryChoice(room.base.stub)
     const option = choice?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    const struck = await respond(room, {
+    const struck = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -1126,7 +1079,7 @@ describe('a Fire Shield’s burn gives a dragon with Aversion of Fire its grant 
     })
     const option = (await readLegendaryChoice(room.base.stub))?.options[0]
     if (!option) throw new Error('Expected a Legendary option.')
-    const { answer } = await respond(room, {
+    const { answer } = await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -1193,7 +1146,7 @@ describe('a warm Fire Shield answers a Legendary Action’s melee hit (SPELLS-20
     const option = first?.options[0]
     if (first?.ownerActorId !== FIRST_DRAGON_ID || !option)
       throw new Error('Expected the first dragon’s Legendary option.')
-    await respond(room, {
+    await respondToLegendaryChoice(room, {
       kind: 'LEGENDARY_OPTION',
       optionId: option.optionId,
       targetActorId: WOLF_ID
@@ -1202,7 +1155,7 @@ describe('a warm Fire Shield answers a Legendary Action’s melee hit (SPELLS-20
     // Settling the second window re-runs the first from its retained evidence, and the turn
     // commits the burn once.
     expect((await readLegendaryChoice(room.base.stub))?.ownerActorId).toBe(SECOND_DRAGON_ID)
-    await respond(room, { kind: 'DECLINE' })
+    await respondToLegendaryChoice(room, { kind: 'DECLINE' })
     expect(await readLegendaryChoice(room.base.stub)).toBeNull()
 
     const after = await readRoomHistory(room.base.stub)
@@ -1337,7 +1290,7 @@ describe('a Legendary Action attack against a Mirror Image (SPELLS-4.T2k2b)', ()
       expect(advanced.type, JSON.stringify(advanced)).toBe('COMMAND_COMMITTED')
       const option = (await readLegendaryChoice(room.base.stub))?.options[0]
       if (!option) throw new Error('Expected a Legendary option.')
-      const { answer } = await respond(room, {
+      const { answer } = await respondToLegendaryChoice(room, {
         kind: 'LEGENDARY_OPTION',
         optionId: option.optionId,
         targetActorId: WOLF_ID

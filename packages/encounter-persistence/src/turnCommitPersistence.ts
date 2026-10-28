@@ -16,6 +16,7 @@ import {
   nativeConcentrationDamageApplications,
   zoneEffectDamage
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { delegatedLegendaryOption } from '@artificer-toolkit/rules-runtime/encounterTurnLegendaryAction'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { recordZoneApplications, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
@@ -156,6 +157,12 @@ export async function persistEncounterTurnCommit(
         (state.automationMode === 'MANUAL' ? null : state.initiativePolicySnapshotChecksum))
   )
     throw new Error('Live Session terminal initiative is stale.')
+  // A delegated window commits the outgoing turn's end so far and starts no turn; the continuation
+  // ends nothing again and starts the next turn.
+  const delegated = delegatedLegendaryOption(root)
+  const continuing = state.delegatedLegendaryAction !== undefined
+  if (delegated && (input.incomingTurn.kind !== 'NONE' || input.incomingZoneTurn !== undefined))
+    throw new Error('Live Session delegated turn end starts no turn.')
   const ruleActors = durableActors.filter((actor) => actor.kind !== 'CHARACTER')
   if (
     input.rules.actors.length !== ruleActors.length ||
@@ -225,12 +232,13 @@ export async function persistEncounterTurnCommit(
     },
     zoneCallbacks
   )
-  await persistEncounterGrantTicks(ctx, {
-    state,
-    stage: 'END_OF_TURN',
-    turnActorId: state.currentActorId,
-    occurredAt: input.occurredAt
-  })
+  if (!continuing)
+    await persistEncounterGrantTicks(ctx, {
+      state,
+      stage: 'END_OF_TURN',
+      turnActorId: state.currentActorId,
+      occurredAt: input.occurredAt
+    })
   await persistEncounterTurnResources(
     ctx,
     {
@@ -248,11 +256,12 @@ export async function persistEncounterTurnCommit(
     }
   )
   // After the Legendary Actions: the damage they deal at this turn's end counts as taken.
-  await persistEncounterIdleTurnCheck(
-    ctx,
-    { state, campaign, turnActorId: state.currentActorId, occurredAt: input.occurredAt },
-    callbacks.readCharacterRules
-  )
+  if (!delegated)
+    await persistEncounterIdleTurnCheck(
+      ctx,
+      { state, campaign, turnActorId: state.currentActorId, occurredAt: input.occurredAt },
+      callbacks.readCharacterRules
+    )
   await persistEncounterInitiativeRollCards(ctx, {
     state,
     campaign,
@@ -266,7 +275,9 @@ export async function persistEncounterTurnCommit(
       staged.stagedRoundState,
       root.commandType === 'ADVANCE_TURN' ? { replaceExistingRound: true } : undefined
     )
-  if (advance && original) {
+  const advancing = !delegated && advance && original ? { advance, original } : null
+  if (advancing) {
+    const { advance, original } = advancing
     if (advance.kind === 'ROUND_WRAP' && advance.cadence === 'ENCOUNTER_START')
       await correctInitiativeCursor({
         ctx,
@@ -293,7 +304,9 @@ export async function persistEncounterTurnCommit(
   // actor count both of its boundaries.
   const openerId = root.proposedTerminalTransition.currentActorId
   for (const turnActorId of [
-    ...(advance && original ? skippedActorIdsOfAdvance({ state: original, plan: advance }) : []),
+    ...(advancing
+      ? skippedActorIdsOfAdvance({ state: advancing.original, plan: advancing.advance })
+      : []),
     ...(root.initiative && openerId !== null
       ? root.initiative.orderedActorIds.slice(
           0,
@@ -318,14 +331,16 @@ export async function persistEncounterTurnCommit(
     stage: 'START_OF_TURN',
     actorId: root.proposedTerminalTransition.currentActorId
   } as const
-  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn effects again.
+  // A turn that was already begun (Previous Turn, then Next) never runs its start-of-turn effects
+  // again, and a delegated turn end begins none.
   const incomingBegun =
-    incomingBoundary.actorId !== null &&
-    (await readTurnStartedBy(ctx, {
-      encounterId: state.id,
-      round: root.proposedTerminalTransition.round,
-      actorId: incomingBoundary.actorId
-    })) !== null
+    delegated !== null ||
+    (incomingBoundary.actorId !== null &&
+      (await readTurnStartedBy(ctx, {
+        encounterId: state.id,
+        round: root.proposedTerminalTransition.round,
+        actorId: incomingBoundary.actorId
+      })) !== null)
   const incoming = incomingBegun
     ? { result: null, actors: [] }
     : await persistEncounterTurnEffects(
@@ -379,25 +394,45 @@ export async function persistEncounterTurnCommit(
       },
       callbacks
     )
-  const nextState = encounterRunStateSchema.parse({
-    ...state,
-    ...root.proposedTerminalTransition,
-    // START and ADVANCE_TURN always begin a new turn, even for the same actor.
-    turnSequence: state.turnSequence + 1,
-    // Only the new turn's catches count: the outgoing turn is over, so its limit is never read again.
-    ...(incomingZones
+  const nextState = encounterRunStateSchema.parse(
+    delegated
       ? {
-          zoneApplications: recordZoneApplications(
-            state.zoneApplications,
-            state.turnSequence + 1,
-            incomingZones.phase.executions.map(({ candidate }) => candidate.candidate)
-          )
+          ...state,
+          delegatedLegendaryAction: {
+            parentCommandId: root.rootCommandId,
+            holderActorId: delegated.ownerActorId,
+            actionId: delegated.actionId,
+            settledOwnerActorIds: [
+              ...new Set([
+                ...(state.delegatedLegendaryAction?.settledOwnerActorIds ?? []),
+                ...(root.completedLegendaryActions ?? []).map(({ choice }) => choice.ownerActorId)
+              ])
+            ]
+          },
+          version: state.version + 1,
+          updatedAt: input.occurredAt
         }
-      : {}),
-    version: state.version + 1,
-    updatedAt: input.occurredAt
-  })
-  await markTurnStarted(ctx, { state: nextState, commandId: root.rootCommandId })
+      : {
+          ...state,
+          delegatedLegendaryAction: undefined,
+          ...root.proposedTerminalTransition,
+          // START and ADVANCE_TURN always begin a new turn, even for the same actor.
+          turnSequence: state.turnSequence + 1,
+          // Only the new turn's catches count: the outgoing turn is over, so its limit is never read again.
+          ...(incomingZones
+            ? {
+                zoneApplications: recordZoneApplications(
+                  state.zoneApplications,
+                  state.turnSequence + 1,
+                  incomingZones.phase.executions.map(({ candidate }) => candidate.candidate)
+                )
+              }
+            : {}),
+          version: state.version + 1,
+          updatedAt: input.occurredAt
+        }
+  )
+  if (!delegated) await markTurnStarted(ctx, { state: nextState, commandId: root.rootCommandId })
   const characterIds = new Set(
     durableActors.flatMap((actor) =>
       actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []

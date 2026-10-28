@@ -457,6 +457,38 @@ describe('basic combat actions in the room (Q11)', () => {
     expect(await activeEffectCount(base, base.enemy.id)).toBe(0)
   })
 
+  it("the GM sets a Creature's Exhaustion level and its attacks follow that level", async () => {
+    const base = await basicActionFixture({ bite: 'ATTACK', promptRolls: true })
+    const exhaustion = srdSystemRecord.conditionTypes.find((value) => value.code === 'EXHAUSTION')
+    if (!exhaustion) throw new Error('Missing Exhaustion condition fixture.')
+    const setExhaustion = async (level: number) =>
+      base.gm({
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await base.version(),
+        actorId: base.companion.id,
+        conditions: [{ conditionTypeId: exhaustion.id, level }]
+      })
+
+    // Level 2 halves speed but leaves attack rolls alone; level 3 gives them disadvantage.
+    await setExhaustion(2)
+    await base.gm(await base.bite(base.companion.id, base.character.id))
+    const atLevelTwo = await d20Pending(base)
+    expect(atLevelTwo.request.rollMode).toBe('NORMAL')
+    await base.gm(enterFaces(base, atLevelTwo))
+
+    await setExhaustion(3)
+    await base.gm(
+      await base.bite(base.companion.id, base.character.id, {
+        acknowledgedWarnings: ['ACTION_ECONOMY_UNAVAILABLE']
+      })
+    )
+    expect((await d20Pending(base)).request).toMatchObject({
+      rollMode: 'DISADVANTAGE',
+      derivedRollModeReasons: ['Exhaustion']
+    })
+  })
   it('an attack entry in the timeline reads the label of the attack', async () => {
     const base = await basicActionFixture({ bite: 'ATTACK' })
     await setCurrentActor(base, base.companion.id)
