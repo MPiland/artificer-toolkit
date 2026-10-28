@@ -126,8 +126,8 @@ const conditionMechanicFields = lazySchemaParts(() => ({
 
 /**
  * One typed rule a condition applies while an actor has it (D94). Rules the Encounter room
- * evaluates: d20 roll modes, saves that fail without a roll, a speed of 0 or a fraction, and hits
- * that become critical.
+ * evaluates: d20 roll modes, saves that fail without a roll, a speed of 0 or a fraction, hits that
+ * become critical and damage defenses.
  */
 export const conditionMechanicDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -163,6 +163,13 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
     z.strictObject({
       ...conditionMechanicFields(),
       kind: z.literal('APPROACH_SOURCE_FORBIDDEN')
+    }),
+    /** A damage defense the holder has against each listed damage type (SPELLS-10). */
+    z.strictObject({
+      ...conditionMechanicFields(),
+      kind: z.literal('DAMAGE_DEFENSE'),
+      defense: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
+      damageTypeIds: sortedUniqueUuidsSchema.check(z.minLength(1))
     })
   ])
 )

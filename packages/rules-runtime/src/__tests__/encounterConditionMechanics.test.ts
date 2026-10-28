@@ -3,8 +3,14 @@ import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
+  damageDispositionOf,
+  resolveIncomingDamage
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { conditionMechanicDtoSchema } from '@artificer-toolkit/schema/shared/ruleState'
+import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
@@ -40,6 +46,7 @@ const ENCOUNTER_ID = '11111111-1111-4111-8111-111111111111'
 const ACTOR_ID = '33333333-3333-4333-8333-333333333331'
 const ATTACKER_ID = '33333333-3333-4333-8333-333333333332'
 const HOMEBREW_SLOWED_ID = '66666666-6666-4666-8666-666666666661'
+const HOMEBREW_EMBERWARD_ID = '66666666-6666-4666-8666-666666666663'
 const { STRENGTH, DEXTERITY, WISDOM } = SRD_ABILITY_DEFINITION_IDS
 
 function conditionId(code: string) {
@@ -82,8 +89,49 @@ const homebrewSlowed = currentConditionDefinition({
   }
 })
 
+function damageTypeId(code: string) {
+  const damageType = SRD_DAMAGE_TYPES.find((entry) => entry.code === code)
+  if (!damageType) throw new Error(`Unknown SRD damage type ${code}.`)
+  return damageType.id
+}
+const FIRE = damageTypeId('FIRE')
+const COLD = damageTypeId('COLD')
+
+/** A homebrew condition authored as data alone: immune to fire, vulnerable to cold (SPELLS-10). */
+const homebrewEmberward = currentConditionDefinition({
+  id: HOMEBREW_EMBERWARD_ID,
+  definitionFamilyKey: 'condition-rule-state',
+  label: 'Emberward rule policy',
+  document: {
+    schemaVersion: 1,
+    kind: 'CONDITION_RULE_STATE',
+    id: HOMEBREW_EMBERWARD_ID,
+    gameSystemId: SRD_SYSTEM_ID,
+    capabilitySuppressions: [],
+    perceptionContributions: [],
+    mechanics: [
+      {
+        id: '66666666-6666-4666-8666-666666666664',
+        order: 0,
+        kind: 'DAMAGE_DEFENSE',
+        defense: 'IMMUNITY',
+        damageTypeIds: [FIRE],
+        minimumLevel: null
+      },
+      {
+        id: '66666666-6666-4666-8666-666666666665',
+        order: 1,
+        kind: 'DAMAGE_DEFENSE',
+        defense: 'VULNERABILITY',
+        damageTypeIds: [COLD],
+        minimumLevel: null
+      }
+    ]
+  }
+})
+
 function sourceWith(reads: string[]) {
-  return srdConditionDefinitionSource({ extra: [homebrewSlowed], reads })
+  return srdConditionDefinitionSource({ extra: [homebrewSlowed, homebrewEmberward], reads })
 }
 
 function target(conditions: readonly string[], initialConditionRows: unknown[] | null = null) {
@@ -414,6 +462,81 @@ describe('encounter condition mechanics (D94)', () => {
     expect(rebuilt.targetDerivedFacts.savingThrowDefinitions).toEqual(
       target([]).targetDerivedFacts.savingThrowDefinitions
     )
+  })
+})
+
+describe('condition damage defenses (SPELLS-10.1)', () => {
+  async function conditioned(
+    conditions: readonly string[],
+    defenses: MovementTarget['defenses'] = []
+  ) {
+    return withEncounterConditionMechanics({
+      target: { ...target(conditions), defenses },
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: sourceWith([])
+    })
+  }
+
+  it('a Petrified creature resists every damage type, halving each application', async () => {
+    const { defenses } = await conditioned([PETRIFIED])
+    for (const { id } of SRD_DAMAGE_TYPES)
+      expect(damageDispositionOf(defenses, id)).toBe('RESISTANT')
+    expect(
+      resolveIncomingDamage({
+        requestedAmount: 11,
+        incomingHalved: false,
+        damageDisposition: damageDispositionOf(defenses, FIRE)
+      })
+    ).toBe(5)
+  })
+
+  it('keeps the holder’s own defenses and stands in for a same defense limited to some sources', async () => {
+    const { defenses } = await conditioned(
+      [PETRIFIED],
+      [
+        { kind: 'VULNERABILITY', damageTypeId: COLD },
+        { kind: 'RESISTANCE', damageTypeId: FIRE, sourceEffectIds: [HOMEBREW_SLOWED_ID] }
+      ]
+    )
+    expect(damageDispositionOf(defenses, COLD)).toBe('RESISTANT_AND_VULNERABLE')
+    expect(defenses.filter(({ damageTypeId }) => damageTypeId === FIRE)).toEqual([
+      { kind: 'RESISTANCE', damageTypeId: FIRE }
+    ])
+    expect(new Set(defenses.map(({ kind, damageTypeId }) => `${kind}:${damageTypeId}`)).size).toBe(
+      defenses.length
+    )
+  })
+
+  it('a homebrew condition applies its authored damage defenses with no condition-specific code', async () => {
+    const { defenses } = await conditioned([HOMEBREW_EMBERWARD_ID])
+    expect(damageDispositionOf(defenses, FIRE)).toBe('IMMUNE')
+    expect(damageDispositionOf(defenses, COLD)).toBe('VULNERABLE')
+    expect(damageDispositionOf(defenses, damageTypeId('ACID'))).toBe('NORMAL')
+  })
+
+  it('a removed condition’s defenses leave with it when the target is rebuilt', async () => {
+    const petrified = await conditioned([PETRIFIED])
+    const rebuilt = applyEncounterConditionMechanics({
+      target: { ...target([]), conditionDefinitions: petrified.conditionDefinitions },
+      gameSystemId: SRD_SYSTEM_ID
+    })
+    expect(rebuilt.defenses).toEqual([])
+  })
+
+  it('a damage defense names at least one damage type', () => {
+    const mechanic = {
+      id: '66666666-6666-4666-8666-666666666666',
+      order: 0,
+      kind: 'DAMAGE_DEFENSE',
+      defense: 'RESISTANCE',
+      minimumLevel: null
+    }
+    expect(conditionMechanicDtoSchema.safeParse({ ...mechanic, damageTypeIds: [] }).success).toBe(
+      false
+    )
+    expect(
+      conditionMechanicDtoSchema.safeParse({ ...mechanic, damageTypeIds: [FIRE] }).success
+    ).toBe(true)
   })
 })
 
