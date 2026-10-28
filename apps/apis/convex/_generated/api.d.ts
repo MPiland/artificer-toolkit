@@ -284639,7 +284639,7 @@ export declare const api: {
             description?: string | null;
             id: string;
             label: string;
-            levelled?: boolean;
+            maximumLevel?: number;
             short?: string | null;
             unseen?: boolean;
           }>;
@@ -289065,6 +289065,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   consequenceRollOffers?: Array<{
@@ -289358,6 +289359,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   controllerUserIds: Array<string>;
@@ -290356,6 +290358,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   consequenceRollOffers?: Array<{
@@ -290649,6 +290652,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   controllerUserIds: Array<string>;
@@ -291471,6 +291475,7 @@ export declare const api: {
               conditions: Array<{
                 conditionTypeId: string;
                 innate?: true;
+                level?: number;
                 notes?: string;
               }>;
               consequenceRollOffers?: Array<{
@@ -291757,6 +291762,7 @@ export declare const api: {
               conditions: Array<{
                 conditionTypeId: string;
                 innate?: true;
+                level?: number;
                 notes?: string;
               }>;
               controllerUserIds: Array<string>;
@@ -291884,6 +291890,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   consequenceRollOffers?: Array<{
@@ -292177,6 +292184,7 @@ export declare const api: {
                   conditions: Array<{
                     conditionTypeId: string;
                     innate?: true;
+                    level?: number;
                     notes?: string;
                   }>;
                   controllerUserIds: Array<string>;
@@ -292655,6 +292663,7 @@ export declare const api: {
             conditions: Array<{
               conditionTypeId: string;
               innate?: true;
+              level?: number;
               notes?: string;
             }>;
             consequenceRollOffers?: Array<{

@@ -44,6 +44,7 @@ import {
   dashedPolygonSegments,
   dimOverlayAlpha,
   ellipseArcPoints,
+  describeAuraOverlays,
   describeSceneLighting,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
@@ -90,6 +91,7 @@ import {
   tokenFacingLabel
 } from './vttTokenFacing'
 import { createVttAreaAimGesture } from './vttAreaAimGesture'
+import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 import { createVttPingPress, isVttPingKey, vttPingRingFrame } from './vttPing'
 import { clampVttZoomScale } from './vttZoom.model'
 
@@ -202,76 +204,7 @@ export interface VttSceneRenderer {
   focusPoint: (point: ScenePoint) => void
   /** Centres the token and zooms in until its footprint is readable; never zooms out. */
   focusToken: (token: { height: number; position: ScenePoint; width: number }) => void
-  getDiagnostics: () => {
-    /** The in-progress token drag: its path length, where the token is drawn and the route line drawn. */
-    activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
-    doorVisualCreateCount: number
-    /** How many route lines are drawn: one during a token drag, none otherwise. */
-    dragRouteLabel: string | null
-    dragRouteLineCount: number
-    facingIndicatorCount: number
-    fogRenderCount: number
-    lighting: {
-      ambientIllumination: CampaignSceneStateDto['ambientIllumination'] | null
-      brightLightCount: number
-      /** The zone graphics drawn, by kind: darkening and magical zones in the overlay, cues above it. */
-      darknessZones: {
-        dim: number
-        heavyObscured: number
-        lightObscured: number
-        magical: number
-        ordinary: number
-        unspecified: number
-      }
-      dimLightCount: number
-      /** The tint polygons drawn, in order: each one's fill colour, alpha and polygon count. */
-      lightTints: { alpha: number; color: number; polygonCount: number; radius: 'bright' | 'dim' }[]
-      /** The sight polygons cut out of the vision mask. */
-      visionCount: number
-      /** The fill alpha of each visual-only darkness zone graphic. */
-      visualZoneAlphas: number[]
-    }
-    loadedMapAssetCount: number
-    mapLoadComplete: boolean
-    overlayCount: number
-    sceneVersion: number | null
-    tokenArtCount: number
-    tokenOverflowCount: number
-    tokenStatusCount: number
-    tokenVisualCount: number
-    /** What is drawn per Token: its body footprint, position and rotations (the body stays upright). */
-    tokens: {
-      /** The colour of the drawn body fill. */
-      bodyFillColor: number | null
-      /** Whether the current-turn crosshair is drawn, the shape cue that tells it from a reaction halo. */
-      crosshairDrawn: boolean
-      /** The drawn facing arcs, by arc name, with the sampled outline of each wedge. */
-      facingArcs: { arc: string; polygon: ScenePoint[] }[]
-      facingRotationDegrees: number | null
-      footprint: { height: number; width: number }
-      /** Whether the ring that marks the token as pickable while targeting is drawn. */
-      targetableDrawn: boolean
-      /** The drawn turn or reaction halo. */
-      halo: { color: number; label: string } | null
-      id: string
-      /** The bounds of the drawn inner disposition ring, in the token's own space. */
-      innerRing: { height: number; width: number; x: number; y: number }
-      /** The bounds of the drawn outer status ring, in the token's own space. */
-      outerRing: { height: number; width: number; x: number; y: number }
-      position: ScenePoint
-      /** The colour of the drawn inner ring. */
-      ringColor: number | null
-      rotationDegrees: number
-      /** The drawn selection outline: its colour and how many dashes it is made of. */
-      selection: { color: number; dashSegmentCount: number } | null
-      /** The drawn outer-ring segments in order; the overflow segment is the hollow one. */
-      statusSegments: { color: number; overflow: boolean }[]
-      /** False while darkness conceals the token from the view token's senses. */
-      visible: boolean
-    }[]
-    transientVisualCount: number
-    zoomScale: number
-  }
+  getDiagnostics: () => VttSceneRendererDiagnostics
   previewDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN' | null) => void
   retryMap: (delivery: SignedVttMapDeliveryDto) => void
   /**
@@ -1454,12 +1387,13 @@ export async function createVttSceneRenderer(
     })
   }
 
-  function updateCanvasDescription(scene: CampaignSceneStateDto): void {
-    const lighting = describeSceneLighting(scene, visionLabels, illuminationLevels)
-    app.canvas.setAttribute(
-      'aria-description',
-      lighting ? `${tokenSummary}. ${lighting}` : tokenSummary
-    )
+  function updateCanvasDescription(next: VttSceneRendererUpdate): void {
+    const sentences = [
+      tokenSummary,
+      describeAuraOverlays(next.overlays),
+      describeSceneLighting(next.scene, visionLabels, illuminationLevels)
+    ]
+    app.canvas.setAttribute('aria-description', sentences.filter(Boolean).join('. '))
   }
 
   function drawBarriers(scene: CampaignSceneStateDto): void {
@@ -1915,6 +1849,7 @@ export async function createVttSceneRenderer(
 
   function overlayGraphic(overlay: VttScenePresentationOverlay): Graphics {
     const graphic = new pixi.Graphics()
+    graphic.label = overlay.label
     if (overlay.kind === 'CIRCLE') {
       graphic
         .circle(overlay.center.x, overlay.center.y, overlay.radius)
@@ -2048,7 +1983,7 @@ export async function createVttSceneRenderer(
     drawPresentationOverlays(next.overlays)
     drawTokens(next.scene, next.tokenPresentations, next.selectedTokenId ?? null)
     concealTokens(next)
-    updateCanvasDescription(next.scene)
+    updateCanvasDescription(next)
     if (renderedMeasurements !== next.scene.measurements) {
       drawMeasurements(next.scene)
       renderedMeasurements = next.scene.measurements
@@ -2599,6 +2534,22 @@ export async function createVttSceneRenderer(
         loadedMapAssetCount: loadedMapUrls.size,
         mapLoadComplete,
         overlayCount: renderedOverlays?.length ?? 0,
+        overlays: presentationLayer.children.map((child) => ({
+          circles:
+            child instanceof pixi.Graphics
+              ? child.context.instructions.flatMap((instruction) =>
+                  instruction.action === 'stroke'
+                    ? instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
+                        shape instanceof pixi.Circle
+                          ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
+                          : []
+                      )
+                    : []
+                )
+              : [],
+          label: child.label,
+          strokeColors: drawnStyles(child, 'stroke').map((stroke) => stroke.color)
+        })),
         sceneVersion: current?.scene.version ?? null,
         tokenArtCount: [...tokenVisuals.values()].filter((entry) => entry.presentation?.artUrl)
           .length,

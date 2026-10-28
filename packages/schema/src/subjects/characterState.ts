@@ -205,7 +205,7 @@ const characterConditionStateDtoSchemaRaw = lazySchema(() =>
 )
 const characterExhaustionStateDtoSchemaRaw = lazySchema(() =>
   z.object({
-    level: z.number().check(z.int()).check(z.gte(0)).check(z.lte(6)),
+    level: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
     notes: z.optional(z.string())
   })
 )

@@ -96,11 +96,12 @@ export function forcedMovementDestinationAfterKey(
   return nearest ?? focused
 }
 
-/** Outlines every legal square on the board, marking the one the keyboard focuses. */
+/** Outlines every legal square on the board, marking the one the keyboard focuses; none without a pick. */
 export function forcedMovementDestinationOverlays(
-  pick: VttForcedMovementPick,
+  pick: VttForcedMovementPick | null,
   focused: ScenePoint | null
 ): VttScenePresentationOverlay[] {
+  if (!pick) return []
   const halfWidth = pick.squares.width / 2
   const halfHeight = pick.squares.height / 2
   return pick.destinations.map(({ position, label }) => ({

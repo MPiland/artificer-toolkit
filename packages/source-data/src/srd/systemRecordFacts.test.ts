@@ -81,10 +81,12 @@ describe('SRD System record facts', () => {
     })
   })
 
-  it('marks Exhaustion as the only levelled condition', () => {
+  it('marks Exhaustion as the only levelled condition, up to level 6', () => {
     expect(
-      system.conditionTypes.filter(({ levelled }) => levelled).map(({ code }) => code)
-    ).toEqual(['EXHAUSTION'])
+      system.conditionTypes
+        .filter(({ maximumLevel }) => maximumLevel !== undefined)
+        .map(({ code, maximumLevel }) => ({ code, maximumLevel }))
+    ).toEqual([{ code: 'EXHAUSTION', maximumLevel: 6 }])
   })
 
   it('marks Invisible as the only unseen condition', () => {

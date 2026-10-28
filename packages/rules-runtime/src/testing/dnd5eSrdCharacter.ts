@@ -29,6 +29,8 @@ import {
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { systemConditionMaximumLevel } from '../conditionLevels.js'
+import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { buildCharacterActionRuleFacts } from '../character/characterActionRuleFacts.js'
 import { buildCharacterArmorClassRuleFacts } from '../character/characterArmorClassRuleFacts.js'
 import { buildCharacterHandRuleFacts } from '../character/characterHandRuleFacts.js'
@@ -276,7 +278,16 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     ...resourceFacts,
     actionCandidates: actionFacts.actionCandidates,
     eligibilityFacets: [],
-    rest: { totalHitDice: totalLevel, currentExhaustion: 0, attunementSlotOverride: null }
+    rest: {
+      totalHitDice: totalLevel,
+      currentExhaustion: 0,
+      maximumExhaustion: systemConditionMaximumLevel(
+        srdSystemRecord.conditionTypes,
+        creatureConditionCapabilityRegistry.require(srdSystemRecord.id)
+          .exhaustionConditionDefinitionId
+      ),
+      attunementSlotOverride: null
+    }
   })
   return {
     facts,

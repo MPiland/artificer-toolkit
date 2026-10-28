@@ -139,7 +139,7 @@ export const SRD_CONDITION_TYPES = [
   {
     id: vocabId(D.conditionType, 4),
     code: 'EXHAUSTION',
-    levelled: true,
+    maximumLevel: 6,
     label: 'Exhaustion',
     description:
       'Some special abilities and environmental hazards cause a special condition called exhaustion.'

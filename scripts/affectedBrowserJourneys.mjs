@@ -3,7 +3,8 @@
 // Worker and Convex through the proof driver, so a push runs the CI proofs when its changes reach one of
 // those entries through the Tests workflow's import graph (scripts/affectedTests.mjs) or change the stack
 // the job starts. A dispatch runs the proof it names, or every CI proof. The CI proofs are the *-browser
-// proofs of scripts/runLocalConvexProof.ps1; a KNOWN_BUG_PROOFS entry runs without gating.
+// proofs of scripts/runLocalConvexProof.ps1; a scripts/knownBugProofs.json entry runs without gating, and
+// a push that removes one runs that proof.
 //   node scripts/affectedBrowserJourneys.mjs --base <ref> [--event <name>] [--proof <name>]
 // Writes `proofs`, a JSON matrix of { proof, knownBug } that is empty when nothing is reached, to
 // $GITHUB_OUTPUT when set.
@@ -12,7 +13,12 @@ import { appendFileSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { affectedFiles, buildImportGraph, changesSince, fullRunReason } from './affectedTests.mjs'
+// CI proofs that have never passed in CI, each with the registered task that fixes it (RELIABILITY-20.3).
+// They run and upload evidence but do not gate; the fix task removes its entries.
+import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
 import { isTestPath } from './redProof.mjs'
+
+const KNOWN_BUG_FILE = 'scripts/knownBugProofs.json'
 
 /**
  * What a journey runs besides every deployed Convex module: the proof driver, the web app's TanStack
@@ -81,13 +87,17 @@ export function runnerProofs(runnerScript) {
 }
 
 /**
- * CI proofs that have never passed in CI, each with the registered task that fixes it (RELIABILITY-20.3).
- * They run and upload evidence but do not gate; the fix task removes its entries.
+ * Why a push runs CI proofs, and which. Every one when the change reaches a journey; otherwise the proofs
+ * whose known-bug label the change removed, so they gate again. Adding or retargeting a label needs no
+ * run, which is why the label file stays out of JOURNEY_STACK (RELIABILITY-21.17).
  */
-export const KNOWN_BUG_PROOFS = {
-  'campaign-custody-browser': 'RELIABILITY-21.T13',
-  'publication-class-browser': 'RELIABILITY-21.T13',
-  'vtt-browser': 'RELIABILITY-21.T16'
+export function pushProofs(graph, changed, ciProofs, baseKnownBugs, knownBugs) {
+  const reason = journeyRunReason(graph, changed)
+  if (reason) return { reason, proofs: ciProofs }
+  const released = ciProofs.filter((proof) => baseKnownBugs[proof] && !knownBugs[proof])
+  return released.length > 0
+    ? { reason: 'known-bug labels removed', proofs: released }
+    : { reason: null, proofs: [] }
 }
 
 /** Every task in the phase ledger, wherever its feature or PBI nests it. */
@@ -158,8 +168,19 @@ function main() {
     })
       .split('\n')
       .filter(Boolean)
-    const reason = journeyRunReason(buildImportGraph(root, tracked), changed)
-    proofs = reason ? ciProofs : []
+    const git = (...gitArgs) => execFileSync('git', gitArgs, { cwd: root, encoding: 'utf8' })
+    const baseKnownBugs = git('ls-tree', '--name-only', mergeBase, KNOWN_BUG_FILE).trim()
+      ? JSON.parse(git('show', `${mergeBase}:${KNOWN_BUG_FILE}`))
+      : {}
+    const push = pushProofs(
+      buildImportGraph(root, tracked),
+      changed,
+      ciProofs,
+      baseKnownBugs,
+      KNOWN_BUG_PROOFS
+    )
+    const { reason } = push
+    proofs = push.proofs
     summary = reason
       ? `${reason}: ${proofs.join(', ')}.`
       : `${changed.length} files changed since ${base}; none reaches a browser journey.`

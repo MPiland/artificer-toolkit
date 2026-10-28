@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { planEncounterPassiveZones } from '../encounterPassiveZones.js'
 import { plannedSpatialEffectRecord } from '../encounterPlacedZone.js'
 import {
-  encounterOccupantSaveAuras,
-  withEncounterOccupantSaveBonus,
-  type EncounterOccupantSaveAura
-} from '../encounterOccupantSaveAuras.js'
+  encounterOccupantAuras,
+  withEncounterOccupantAuras,
+  type EncounterOccupantAura
+} from '../encounterOccupantAuras.js'
 import { system } from '../testing/characterContextFixtures.js'
 import { evaluateSrdCharacter, SRD, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import {
@@ -108,7 +109,7 @@ function aurasHolding(
   actors: readonly EncounterRunActorState[],
   squaresAway = 1
 ) {
-  return encounterOccupantSaveAuras({
+  return encounterOccupantAuras({
     targetActorId,
     actors,
     effects: aura ? [aura] : [],
@@ -122,7 +123,8 @@ describe('the save-bonus auras holding an actor (SPELLS-20 T5c, D155)', () => {
     effectId: aura?.id,
     sourceActorId: SOURCE_ID,
     sourceCharacterId: PALADIN_CHARACTER_ID,
-    amount: 3
+    saveBonus: 3,
+    conditionImmunityIds: []
   }
 
   it('holds an ally beside the paladin and the paladin itself', () => {
@@ -141,7 +143,7 @@ describe('the save-bonus auras holding an actor (SPELLS-20 T5c, D155)', () => {
     expect(aurasHolding(GOBLIN_ID, [goblinActor('FRIENDLY'), paladin], 3)).toEqual([])
     expect(aurasHolding(GOBLIN_ID, [goblinActor('FRIENDLY'), paladin], 2)).toEqual([lent])
     expect(
-      encounterOccupantSaveAuras({
+      encounterOccupantAuras({
         targetActorId: GOBLIN_ID,
         actors: [goblinActor('FRIENDLY'), paladin],
         effects: aura ? [aura] : [],
@@ -171,14 +173,12 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
   const rows = target.targetDerivedFacts.savingThrowDefinitions as { modifier: number }[]
   const unconscious =
     creatureConditionCapabilityRegistry.require(DND5E_SYSTEM_ID).zeroHitPointsConditionDefinitionId!
-  const characterAura = (
-    amount: number,
-    effectId = testUuid(0x5c10)
-  ): EncounterOccupantSaveAura => ({
+  const characterAura = (amount: number, effectId = testUuid(0x5c10)): EncounterOccupantAura => ({
     effectId,
     sourceActorId: SOURCE_ID,
     sourceCharacterId: PALADIN_CHARACTER_ID,
-    amount
+    saveBonus: amount,
+    conditionImmunityIds: []
   })
   const modifiers = (prepared: typeof target) =>
     (prepared.targetDerivedFacts.savingThrowDefinitions as { modifier: number }[]).map(
@@ -188,7 +188,7 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
   it('adds the largest bonus of the auras holding the target to every save row', async () => {
     expect(rows.length).toBeGreaterThan(0)
     const read: unknown[] = []
-    const prepared = await withEncounterOccupantSaveBonus({
+    const prepared = await withEncounterOccupantAuras({
       target,
       gameSystemId: DND5E_SYSTEM_ID,
       auras: [characterAura(1), characterAura(3, testUuid(0x5c11))],
@@ -205,7 +205,7 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
   })
 
   it('keeps the bonus on a turn target rebuilt from the prepared one', async () => {
-    const prepared = await withEncounterOccupantSaveBonus({
+    const prepared = await withEncounterOccupantAuras({
       target,
       gameSystemId: DND5E_SYSTEM_ID,
       auras: [characterAura(3)],
@@ -224,7 +224,7 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
   })
 
   it('lends nothing while the source Character is unconscious', async () => {
-    const prepared = await withEncounterOccupantSaveBonus({
+    const prepared = await withEncounterOccupantAuras({
       target,
       gameSystemId: DND5E_SYSTEM_ID,
       auras: [characterAura(3)],
@@ -237,7 +237,7 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
     const readCharacterConditionIds = async (): Promise<string[]> => {
       throw new Error('A Creature source has no Character to read.')
     }
-    const prepared = await withEncounterOccupantSaveBonus({
+    const prepared = await withEncounterOccupantAuras({
       target,
       gameSystemId: DND5E_SYSTEM_ID,
       auras: [{ ...characterAura(2), sourceCharacterId: null }],
@@ -245,12 +245,132 @@ describe('a save inside a save-bonus aura (SPELLS-20 T5c, D155)', () => {
     })
     expect(modifiers(prepared)).toEqual(rows.map(({ modifier }) => modifier + 2))
     expect(
-      await withEncounterOccupantSaveBonus({
+      await withEncounterOccupantAuras({
         target,
         gameSystemId: DND5E_SYSTEM_ID,
         auras: [],
         readCharacterConditionIds
       })
     ).toBe(target)
+  })
+})
+
+describe('the condition-immunity auras holding an actor (SPELLS-31.T4r, D155)', () => {
+  const frightened = srdSystemRecord.conditionTypes.find(({ code }) => code === 'FRIGHTENED')?.id
+  /** The real SRD Aura of Courage of a paladin of `level`, placed and stored. */
+  const courage = (level: number) =>
+    planEncounterPassiveZones({
+      state: srdEncounterState({ actors: [paladin], currentActorId: SOURCE_ID }),
+      occurrenceId: OCCURRENCE_ID,
+      rootCommandId: root.rootCommandId,
+      actors: [paladin],
+      system,
+      sceneGrid: GRID,
+      tokens: tokensWithGoblin(1),
+      actorIdByTokenId,
+      characterRules: new Map([
+        [
+          PALADIN_CHARACTER_ID,
+          evaluateSrdCharacter({
+            classes: [{ label: 'Paladin', level }],
+            features: [
+              srdFeature({
+                owner: 'CLASS',
+                classLabel: 'Paladin',
+                featureLabel: 'Aura of Courage',
+                level: 10
+              })
+            ]
+          })
+        ]
+      ])
+    }).map((zone) =>
+      plannedSpatialEffectRecord(zone, {
+        encounterId: ENCOUNTER_ID,
+        sceneId: SCENE_ID,
+        createdOrdinal: 1,
+        createdAt: TIMESTAMP
+      })
+    )
+  const holding = (level: number, squaresAway: number) => {
+    const effects = courage(level)
+    return encounterOccupantAuras({
+      targetActorId: GOBLIN_ID,
+      actors: [goblinActor('FRIENDLY'), paladin],
+      effects,
+      tokens: tokensWithGoblin(squaresAway),
+      actorIdByTokenId
+    }).map(({ effectId, saveBonus, conditionImmunityIds }) => ({
+      placed: effects.some(({ id }) => id === effectId),
+      saveBonus,
+      conditionImmunityIds
+    }))
+  }
+
+  it('keeps frightened off an ally within 10 feet, and within 30 feet at paladin level 18', () => {
+    expect(frightened).toBeDefined()
+    const held = [{ placed: true, saveBonus: null, conditionImmunityIds: [frightened] }]
+    expect(holding(10, 2)).toEqual(held)
+    expect(holding(10, 3)).toEqual([])
+    expect(holding(18, 6)).toEqual(held)
+  })
+})
+
+describe('a target inside a condition-immunity aura (SPELLS-31.T4r, D155)', () => {
+  const target = srdCreatureTarget(goblinActor('FRIENDLY'))
+  const charmed = testUuid(0x5c20)
+  const frightened = testUuid(0x5c21)
+  const unconscious =
+    creatureConditionCapabilityRegistry.require(DND5E_SYSTEM_ID).zeroHitPointsConditionDefinitionId!
+  const immunityAura = (conditionImmunityIds: string[], effectId = testUuid(0x5c22)) => ({
+    effectId,
+    sourceActorId: SOURCE_ID,
+    sourceCharacterId: PALADIN_CHARACTER_ID,
+    saveBonus: null,
+    conditionImmunityIds
+  })
+
+  it('joins the auras’ conditions to its condition immunities and leaves its saves alone', async () => {
+    const prepared = await withEncounterOccupantAuras({
+      target,
+      gameSystemId: DND5E_SYSTEM_ID,
+      auras: [immunityAura([frightened]), immunityAura([charmed, frightened], testUuid(0x5c23))],
+      readCharacterConditionIds: async () => []
+    })
+    expect(prepared.conditionImmunityIds).toEqual([
+      ...new Set([...target.conditionImmunityIds, charmed, frightened])
+    ])
+    expect(prepared.occupantConditionImmunityIds).toEqual([charmed, frightened].sort())
+    expect(prepared.targetDerivedFacts).toEqual(target.targetDerivedFacts)
+    expect(prepared.occupantSaveBonus).toBeUndefined()
+  })
+
+  it('keeps them on a turn target rebuilt from the prepared one', async () => {
+    const prepared = await withEncounterOccupantAuras({
+      target,
+      gameSystemId: DND5E_SYSTEM_ID,
+      auras: [immunityAura([frightened])],
+      readCharacterConditionIds: async () => []
+    })
+    const rebuild = (source: typeof target) =>
+      rebuildEncounterTurnTarget({
+        source,
+        actor: source.actor,
+        characterFacts: null,
+        activeEffects: [],
+        state: srdEncounterState({ actors: [source.actor], currentActorId: GOBLIN_ID })
+      })
+    expect(rebuild(prepared).conditionImmunityIds).toContain(frightened)
+    expect(rebuild(target).conditionImmunityIds).not.toContain(frightened)
+  })
+
+  it('lends nothing while the source Character is unconscious', async () => {
+    const prepared = await withEncounterOccupantAuras({
+      target,
+      gameSystemId: DND5E_SYSTEM_ID,
+      auras: [immunityAura([frightened])],
+      readCharacterConditionIds: async () => [unconscious]
+    })
+    expect(prepared).toBe(target)
   })
 })

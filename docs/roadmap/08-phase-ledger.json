@@ -13091,10 +13091,10 @@
           "acs": [
             {
               "text": "A Petrified creature has resistance to all damage, through an authored condition mechanic.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-10.T1a (m519); see each task's proof."],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): the condition policy has no damage mechanic yet.",
+              "note": "Registered from SPELLS-2 (D94): the condition policy has no damage mechanic yet. Closed 2026-10-28 by SPELLS-10.T1a.",
               "id": "SPELLS-10.1"
             },
             {
@@ -13107,10 +13107,10 @@
             },
             {
               "text": "The GM sets a leveled condition's level (Exhaustion) on a Creature in the Encounter, and its mechanics follow the level.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-10.T2 (m528); see each task's proof."],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): the runtime reads a Creature condition row's level, but no editor sets it.",
+              "note": "Registered from SPELLS-2 (D94): the runtime reads a Creature condition row's level, but no editor sets it. Closed 2026-10-28 by SPELLS-10.T2.",
               "id": "SPELLS-10.3"
             },
             {
@@ -13147,7 +13147,7 @@
           "tasks": [
             {
               "id": "SPELLS-10.T1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-10.1"],
               "wsjf": {
                 "bv": 5,
@@ -13156,8 +13156,9 @@
                 "size": 2
               },
               "text": "Generic DAMAGE_DEFENSE condition mechanic (damage types null = all), Petrified seeded with it and applied in the room target overlay; authoring-parity proof.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Split 2026-10-28 (user yes, D187 growth +7 net): T1a Petrified, T1b half max HP, T1c death at Exhaustion 6. Packet: spells-10-t1-split-proposal.md.",
-              "activeWorkbook": "docs/handoffs/d187a-replan.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Split 2026-10-28 (user yes, D187 growth +7 net): T1a Petrified, T1b half max HP, T1c death at Exhaustion 6. Packet: spells-10-t1-split-proposal.md. Merged in m519.",
+              "mergedAt": "2026-10-28T15:41:29Z",
+              "proof": "Tests 40704526302, Live backend 40704531604, Browser journeys 40711987111 on c54b7c9; generic DAMAGE_DEFENSE condition mechanic, Petrified resistance with authoring-parity proof."
             },
             {
               "id": "SPELLS-10.T1b",
@@ -13187,7 +13188,7 @@
             },
             {
               "id": "SPELLS-10.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-10.3"],
               "wsjf": {
                 "bv": 5,
@@ -13196,7 +13197,9 @@
                 "size": 3
               },
               "text": "GM sets leveled condition level on an Encounter Creature.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m528.",
+              "mergedAt": "2026-10-28T20:52:59Z",
+              "proof": "Tests 40756225010, Live backend 40756224877, Browser journeys 40756224744 on 8eee6a96f; System condition maximumLevel (SRD Exhaustion 6) replaces levelled, read by the dnd5e Character policy, GM Creature level control with validation."
             },
             {
               "id": "SPELLS-10.T3",
@@ -15550,7 +15553,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2o"]
               },
-              "text": "Join SPELLS-4.T2l: Cunning Action, Fast Hands, Vanish, Ki disciplines. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2l: Cunning Action, Fast Hands, Vanish, Ki disciplines. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/architecture/character.md"
             },
             {
               "id": "SPELLS-31.T4l2",
@@ -15611,7 +15615,7 @@
             },
             {
               "id": "SPELLS-31.T4r",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15621,8 +15625,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j1", "SPELLS-31.T5l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m527.",
+              "mergedAt": "2026-10-28T20:29:19Z",
+              "proof": "Tests 40753885755, Live backend 40753885788, Browser journeys 40753885400 on 628825d2e; classConditionImmunityAuraAuthoringParity.test.ts, encounterOccupantSaveBonusCompilation.test.ts, encounterOccupantSaveAuras.test.ts, nativeRoomTurnZoneEffects.test.ts. Draconic Presence names its 5 sorcery points in ruling text; a condition held on aura entry is not removed (deferred edge case)."
             },
             {
               "id": "SPELLS-31.T4s",
@@ -16418,7 +16423,7 @@
             },
             {
               "id": "SPELLS-33.T3c2c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -16428,8 +16433,9 @@
                 "after": ["SPELLS-33.T3c2b"]
               },
               "text": "Creature innate casting in the room: offer and cast creature spell grants paid from a charge pool (LIMITED_USE, X/day) and FIXED_LEVEL grants through the shared cast-candidate builder, spending the charge with undo; room journey on an innate caster. T3c2a1 offers only at-will and slot-paid grants.",
-              "note": "Registered 2026-10-20 from the T3c2a1 review.",
-              "activeWorkbook": "docs/architecture/persistence.md"
+              "note": "Registered 2026-10-20 from the T3c2a1 review. Merged in m524.",
+              "mergedAt": "2026-10-28T18:16:50Z",
+              "proof": "Tests 40735649311, Live backend 40735649314, Browser journeys 40735649331 on 73a92da3c; creature charge-pool and fixed-level casts in the room with undo."
             },
             {
               "id": "SPELLS-33.T3c3",
@@ -16802,10 +16808,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-33.T4l2"]
               },
-              "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated."
+              "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated.",
+              "note": " Re-sized 3 to 5 (orchestrator ruling B 2026-10-28): the area option is delegated through the area coordinator with ADVANCE_TURN split around it; all 20 dragons get self sphere, damage and prone; the fly is a GM ruling.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4m",
@@ -16963,7 +16971,7 @@
             },
             {
               "id": "SPELLS-33.T5l",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16972,7 +16980,10 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5l"]
               },
-              "text": "per-target immunity after a save: frightful presences, glares, stench (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "per-target immunity after a save: frightful presences, glares, stench (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "mergedAt": "2026-10-19T03:52:36Z",
+              "proof": "Delivered by SPELLS-33.T7a (m159) and T7b (m160): Cloaker Moan, Dragon and Tarrasque Frightful Presence, Nalfeshnee Horror Nimbus, Mummy and Mummy Lord Dreadful Glare converted and kinds deleted.",
+              "note": " Duplicate registration of the T1-split T5l row (already registered as T7a/T7b), found 2026-10-28; Hezrou Stench and Sea Hag Horrific Appearance stay in SPELLS-33.T4pr."
             },
             {
               "id": "SPELLS-33.T5n1",
@@ -20175,18 +20186,18 @@
             {
               "id": "RELIABILITY-21.1",
               "text": "authoring/nodeRuntime:resolve stays under the 1 s query limit, and the publication-class journey loads the authoring tools.",
-              "status": "DONE",
+              "status": "TODO",
               "proof": ["nodeRuntime.test.ts"],
               "origin": [],
-              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1."
+              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1. Reopened 2026-10-28: publication-class-browser still fails on CI (resolve over the 1 s limit); owned by T19."
             },
             {
               "id": "RELIABILITY-21.2",
               "text": "campaigns/partyInventory:equipmentOptions stays under the 1 s query limit, and the campaign-custody journey passes.",
-              "status": "DONE",
+              "status": "TODO",
               "proof": ["Closed by RELIABILITY-21.T2 (m517); see each task's proof."],
               "origin": [],
-              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2."
+              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2. Reopened 2026-10-28: campaign-custody-browser still fails on CI (partyInventory:items); owned by T18."
             },
             {
               "id": "RELIABILITY-21.3",
@@ -20242,10 +20253,10 @@
             {
               "id": "RELIABILITY-21.9",
               "text": "The first (cold) durable VTT sample meets the 250 ms p95 budget, and the budget assertion is unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T9 (m523); see each task's proof."],
               "origin": [],
-              "note": "Proof: vtt."
+              "note": "Proof: vtt. Closed 2026-10-28 by RELIABILITY-21.T9."
             },
             {
               "id": "RELIABILITY-21.10",
@@ -20281,20 +20292,44 @@
             {
               "id": "RELIABILITY-21.14",
               "text": "character-sheet-browser passes: typing in the Sheet Extras Creature select keeps the typed text instead of resetting the field on every keystroke.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T14 (m525); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T14."
             },
             {
               "id": "RELIABILITY-21.15",
               "text": "scene-live-browser passes without reruns: every live-session socket, including one woken from hibernation, is challenged for re-authentication at its own token expiry minus the ADR 0035 Amendment 23 lead (60 s), and the proof accepts a challenge in [exp - lead, exp).",
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T15 (m520); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T15."
+            },
+            {
+              "id": "RELIABILITY-21.16",
+              "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
               "status": "TODO",
               "proof": [],
               "origin": []
             },
             {
-              "id": "RELIABILITY-21.16",
-              "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
+              "id": "RELIABILITY-21.17",
+              "text": "Adding, retargeting or removing a known-bug label alone does not run every browser journey: label edits run only the proofs whose label was removed.",
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T17 (m527); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T17."
+            },
+            {
+              "id": "RELIABILITY-21.18",
+              "text": "A full Browser journeys run uses about 6 duration-balanced runner jobs instead of one per proof; every CI proof still runs and gates, known-bug proofs stay non-gating per proof in their own shard, single-proof dispatch is unchanged, and before/after slot and runner-minute measurements are recorded.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
+            },
+            {
+              "id": "RELIABILITY-21.19",
+              "text": "Slices gate on Tests, Live backend and the browser journeys their acceptance criteria name; merge batches run every journey in shards; a journey that fails only on a merge batch is traced to the slice that broke it; recurring flaky proofs (account-deletion fixture cleanup timeout, disarm, effects) are fixed or labelled first.",
               "status": "TODO",
               "proof": [],
               "origin": []
@@ -20426,7 +20461,7 @@
             },
             {
               "id": "RELIABILITY-21.T9",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.9"],
               "wsjf": {
                 "bv": 5,
@@ -20434,9 +20469,10 @@
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m523.",
               "text": "Cold-start durable VTT latency is 363 ms against the 250 ms budget, and only the first sample is over (warm samples are 53-91 ms). Find the cold cost and cut it. The assertion stays. vtt-browser gates again.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-28T17:35:23Z",
+              "proof": "Tests 40721886668, Live backend 40721886418, Browser journeys 40721885775 on b6aade778; cold-start door p95 39-73 ms against 250 ms. vtt-browser rule convergence moved to T16."
             },
             {
               "id": "RELIABILITY-21.T10",
@@ -20499,7 +20535,7 @@
             },
             {
               "id": "RELIABILITY-21.T14",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.14"],
               "wsjf": {
                 "bv": 5,
@@ -20508,12 +20544,13 @@
                 "size": 2
               },
               "text": "Fix the Sheet Extras Creature select so it keeps typed text instead of resetting the field on every keystroke, with a regression test that fails before the fix; remove character-sheet-browser from KNOWN_BUG_PROOFS.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +2). Found by RELIABILITY-21.T3 (builder-browser run 40646922722 packet, reliability-21-t3-findings.md).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +2). Found by RELIABILITY-21.T3 (builder-browser run 40646922722 packet, reliability-21-t3-findings.md). Merged in m525.",
+              "mergedAt": "2026-10-28T18:51:05Z",
+              "proof": "Tests 40736583332, Live backend 40736583174, Browser journeys 40736583209 on 8a8607626; CharacterSheetExtras regression test red at merge-base. character-sheet-browser label moved to T16."
             },
             {
               "id": "RELIABILITY-21.T15",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.15"],
               "wsjf": {
                 "bv": 5,
@@ -20522,8 +20559,9 @@
                 "size": 3
               },
               "text": "Make RoomAdmissions.restore challenge a socket woken from hibernation at its own exp - LIVE_SESSION_REAUTHENTICATION_LEAD_MS (today restore -> #trackExpiry only arms the close, roomAdmissions.ts:78/82-85), with a Worker wake regression test that fails before the fix; fix the scene-live-browser proof (nativeSceneLive.ts:185) to accept a challenge in [exp - lead, exp) per ADR 0035 Amendment 23.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367. Re-scoped 2026-10-28 by orchestrator ruling A: the original AC contradicted ADR 0035 A23; the early challenge is A23 working, the real bug is the missing challenge after hibernation wake (T15 ruling packet).",
-              "activeWorkbook": "docs/architecture/live-sessions.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367. Re-scoped 2026-10-28 by orchestrator ruling A: the original AC contradicted ADR 0035 A23; the early challenge is A23 working, the real bug is the missing challenge after hibernation wake (T15 ruling packet). Merged in m520.",
+              "mergedAt": "2026-10-28T16:11:16Z",
+              "proof": "Tests 40713640166, Live backend 40713639831, Browser journeys 40713639939 on e36b88838; Worker wake regression test, scene-live-browser label removed."
             },
             {
               "id": "RELIABILITY-21.T16",
@@ -20538,6 +20576,75 @@
               "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge. Riders (orchestrator rulings 2026-10-28, description-only): also remove character-sheet-browser (T14) and vtt-browser (T9) from KNOWN_BUG_PROOFS; bring vtt-browser rule convergence (Sheet Max HP edit, measured 1.27-1.45 s) within budget, fix its first-edit non-convergence flake, and decide with evidence whether rule samples belong in the authoritative bucket.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI.",
               "activeWorkbook": "docs/architecture/character.md"
+            },
+            {
+              "id": "RELIABILITY-21.T17",
+              "status": "DONE",
+              "closes": ["RELIABILITY-21.17"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Move KNOWN_BUG_PROOFS out of JOURNEY_STACK into scripts/knownBugProofs.json so a label-only edit no longer selects every proof; a push that removes a label runs that proof.",
+              "note": "Registered 2026-10-28 (user yes). Merged in m527.",
+              "mergedAt": "2026-10-28T20:29:19Z",
+              "proof": "Tests 40753835023, Live backend 40753835284, Browser journeys 40753835185 on 1e1782543; labels in scripts/knownBugProofs.json outside JOURNEY_STACK, pushProofs runs only released proofs."
+            },
+            {
+              "id": "RELIABILITY-21.T18",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Bound campaigns/partyInventory:items under the 1 s limit: drop the public to internal runQuery hop, make args/returns lazy getters, and use one variant signal (category or parentEquipmentId) for root catalogue facts; remove campaign-custody-browser from the known-bug labels.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13)."
+            },
+            {
+              "id": "RELIABILITY-21.T19",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Bound authoring/nodeRuntime:resolve handler and returns-validation cost under the 1 s limit (the T1 options); remove publication-class-browser from the known-bug labels.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13)."
+            },
+            {
+              "id": "RELIABILITY-21.T20",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.18"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Shard Browser journeys into about 6 duration-balanced jobs with one stack each, every proof run and reported even after a failure, known-bug proofs in their own non-gating shard, shard membership derived from the proof list and recorded durations, and a reversed-order independence run. Per-proof selection (about 6 percent saving) and built-output hashing (0 of 32 pushes) were measured and rejected.",
+              "note": "Registered 2026-10-28 (user yes).",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
+            },
+            {
+              "id": "RELIABILITY-21.T21",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 3,
+                "after": ["RELIABILITY-21.T20"]
+              },
+              "text": "Slice gate policy: ci/<slice> pushes run only the journeys their ACs name, merge batches run every journey in shards, merge-slice traces a merge-only journey failure to its slice; fix or label the recurring flaky proofs first.",
+              "note": "Registered 2026-10-28 (user yes)."
             }
           ]
         }
@@ -20780,7 +20887,7 @@
           "tasks": [
             {
               "id": "VTT_UI-3.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-3.1"],
               "wsjf": {
                 "bv": 5,
@@ -20789,7 +20896,9 @@
                 "size": 3
               },
               "text": "Aura previews: draw each visible aura (label, radius, source token from the session state SPELLS-20.T3 delivers) as an AURA overlay circle clipped like other area overlays, shown only to viewers the state already allows (visibility is decided server-side; web only draws), and listed in the canvas description. Proof: renderer model test, CampaignVttPresentation story sampling the overlay, window journey story where the GM and a player see the aura of a visible source and a hidden source's aura is absent for the player.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m526.",
+              "mergedAt": "2026-10-28T19:32:22Z",
+              "proof": "Tests 40742903221, Browser journeys 40742903035 on 683ad4c14 (web-only, no Live run); renderer model test, CampaignVttPresentation story and window journey story."
             },
             {
               "id": "VTT_UI-3.T2",
