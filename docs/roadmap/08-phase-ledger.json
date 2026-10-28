@@ -6672,9 +6672,14 @@
         {
           "id": "MOVE-2",
           "title": "Overrun, Shove Aside and Tumble",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterShoveAside.ts",
+            "apps/apis/tests/developmentEncounterShoveAside.ts",
+            "apps/session-worker/test/nativeRoomShoveAsideOption.test.ts",
+            "apps/session-worker/test/nativeRoomContestDestinationPick.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -6845,9 +6850,12 @@
         {
           "id": "MOVE-3",
           "title": "Auras, hidden hazards and traps",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomZoneConcealment.test.ts",
+            "apps/session-worker/test/nativeRoomPlacedZone.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -7083,9 +7091,12 @@
         {
           "id": "MOVE-4",
           "title": "Climb onto a larger creature",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomClimbCling.test.ts",
+            "apps/session-worker/test/nativeRoomClimbDislodge.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": ["G2-OPTIONAL-COMBAT"],
           "acs": [
             {
