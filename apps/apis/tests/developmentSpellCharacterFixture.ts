@@ -11,14 +11,15 @@ import type { DevelopmentClient } from './developmentClient'
 export async function createDevelopmentSpellCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
-  spells: readonly Pick<typeof shield, 'id' | 'label'>[] = [magicMissile, shield, detectMagic]
+  spells: readonly Pick<typeof shield, 'id' | 'label'>[] = [magicMissile, shield, detectMagic],
+  slots: readonly { spellLevel: number; slotCount: number }[] = [{ spellLevel: 1, slotCount: 2 }]
 ) {
   assert.ok(wizard.spellcasting)
   const result = await createDevelopmentCharacter(owner, characterId, {
     spellcasting: {
       ...wizard.spellcasting,
       attributes: ['PREPARES_SPELLS', 'USES_SPELLBOOK'],
-      spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }]
+      spellLimits: [{ classLevel: 1, slots: [...slots], cantripsLimit: 0 }]
     }
   })
   const classId = result.character.intent.classes[0]?.classId
