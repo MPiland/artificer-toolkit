@@ -174,7 +174,8 @@ describe('seeded SRD Legendary Actions in the room (D51 option B)', () => {
     const before = await characterAfter(base)
     const choice = await executeInRoom(base.owner.caller, advance(base))
     const { pending, option } = tailAttack(choice)
-    // Detect has no executable effect and Wing Attack is an area save, so only the Tail runs.
+    // Detect has no executable effect, and Wing Attack's area centers on a token the dragon lacks
+    // here, so only the Tail runs.
     expect(pending.options.map((entry) => entry.label)).toEqual(['Tail Attack'])
     expect(option).toMatchObject({ featureCost: 1, targetActorIds: [base.characterActor.id] })
     // An ungranted Creature's choice stays with the GM.

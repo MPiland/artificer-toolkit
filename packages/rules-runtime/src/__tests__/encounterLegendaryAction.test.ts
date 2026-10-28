@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   encounterRunActorStateSchema,
-  type EncounterRunActorState
+  type EncounterRunActorState,
+  type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
@@ -28,7 +29,10 @@ import {
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { resolveEncounterRuleCapabilityStates } from '../encounterRuleCapabilityState.js'
-import { prepareTurnLegendaryActions } from '../encounterTurnLegendaryAction.js'
+import {
+  delegatedLegendaryOption,
+  prepareTurnLegendaryActions
+} from '../encounterTurnLegendaryAction.js'
 import { discoverTurnLegendaryWindows } from '../encounterTurnLegendaryDiscovery.js'
 import {
   evaluateLegendaryActionEligibility,
@@ -160,10 +164,19 @@ async function legendaryPin() {
 function discoverWindows(input: {
   actors: readonly EncounterRunActorState[]
   outgoingActorId: string
+  /** The actors with a token in a Scene; none by default. */
+  tokenBoundActorIds?: readonly string[]
+  delegatedLegendaryAction?: EncounterRunState['delegatedLegendaryAction']
 }) {
   return discoverTurnLegendaryWindows({
     spells: new Map(),
-    state: srdEncounterState({ actors: input.actors, currentActorId: input.outgoingActorId }),
+    state: {
+      ...srdEncounterState({ actors: input.actors, currentActorId: input.outgoingActorId }),
+      ...(input.delegatedLegendaryAction
+        ? { delegatedLegendaryAction: input.delegatedLegendaryAction }
+        : {})
+    },
+    tokenBoundActorIds: new Set(input.tokenBoundActorIds ?? []),
     occurrenceId: OCCURRENCE_ID,
     outgoingActorId: input.outgoingActorId,
     actors: input.actors,
@@ -331,7 +344,7 @@ describe('Legendary Action choices offered at the end of a turn', () => {
     ).toEqual([])
   })
 
-  it('leaves out an SRD option it cannot execute instead of failing the whole window', async () => {
+  it('leaves out an SRD option it cannot execute instead of failing the whole window, and offers an area centered on its owner only to an owner with a token', async () => {
     const srdDragon = (options: typeof srdLegendaryActions.options) =>
       srdCreatureActor({
         id: DRAGON_ID,
@@ -343,26 +356,62 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         },
         featureCharges: { [srdLegendaryActions.id]: 0 }
       })
-    // The SRD Wing Attack is an area save, which a turn cannot run yet; Tail Attack runs the Tail.
+    // The SRD Wing Attack is an area centered on the dragon, which only its token can center; Tail
+    // Attack runs the Tail.
+    const tailAttack = {
+      label: 'Tail Attack',
+      targetActorIds: [WOLF_ID],
+      featureCost: 1,
+      poolBefore: 3,
+      poolRemaining: 2
+    }
+    const actors = [srdDragon(srdLegendaryActions.options), wolfActor]
+    expect(await offered({ actors, outgoingActorId: WOLF_ID })).toEqual([
+      { ownerActorId: DRAGON_ID, options: [tailAttack] }
+    ])
+    // With a token, Wing Attack is offered as an option the area coordinator runs, naming its owner.
+    const [window] = await discoverWindows({
+      actors,
+      outgoingActorId: WOLF_ID,
+      tokenBoundActorIds: [DRAGON_ID]
+    })
     expect(
-      await offered({
-        actors: [srdDragon(srdLegendaryActions.options), wolfActor],
-        outgoingActorId: WOLF_ID
-      })
+      window?.choice.options
+        .map(({ label, targetActorIds, featureCost, poolBefore, poolRemaining, delegated }) => ({
+          label,
+          targetActorIds,
+          featureCost,
+          poolBefore,
+          poolRemaining,
+          delegated
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label))
     ).toEqual([
+      { ...tailAttack, delegated: undefined },
       {
-        ownerActorId: DRAGON_ID,
-        options: [
-          {
-            label: 'Tail Attack',
-            targetActorIds: [WOLF_ID],
-            featureCost: 1,
-            poolBefore: 3,
-            poolRemaining: 2
-          }
-        ]
+        label: 'Wing Attack (Costs 2 Actions)',
+        targetActorIds: [DRAGON_ID],
+        featureCost: 2,
+        poolBefore: 3,
+        poolRemaining: 1,
+        delegated: true
       }
     ])
+  })
+
+  it('offers no second window to an owner already settled before a turn end split around a delegated option', async () => {
+    expect(
+      await offered({
+        actors: [dragon(), wolfActor],
+        outgoingActorId: WOLF_ID,
+        delegatedLegendaryAction: {
+          parentCommandId: '00000000-0000-4000-8000-00000000b010',
+          holderActorId: BAT_ID,
+          actionId: 'any-action',
+          settledOwnerActorIds: [DRAGON_ID]
+        }
+      })
+    ).toEqual([])
   })
   it('offers the Vampire Unarmed Strike, whose action authors a damage-or-grapple pick (SPELLS-33.T4i1f)', async () => {
     const vampireActor = srdCreatureActor({
@@ -552,6 +601,7 @@ describe('Legendary Action turn window', () => {
     autoRollByActorId?: Readonly<Record<string, boolean>>
     /** Every die the turn rolls, as 0-based faces in request order. */
     faces?: readonly number[]
+    tokenBoundActorIds?: readonly string[]
   }) {
     const state = srdEncounterState({
       actors: input.actors,
@@ -570,7 +620,11 @@ describe('Legendary Action turn window', () => {
       updatedAt: '2026-09-26T00:00:01.000Z',
       actors: input.actors,
       discoverWindows: ({ outgoingActorId, actors }) =>
-        discoverWindows({ actors, outgoingActorId }),
+        discoverWindows({
+          actors,
+          outgoingActorId,
+          ...(input.tokenBoundActorIds ? { tokenBoundActorIds: input.tokenBoundActorIds } : {})
+        }),
       // The same preparation every Encounter action runs, against each actor's current facts.
       prepareMechanics: (mechanics) =>
         prepareEncounterActionMechanics({
@@ -598,8 +652,16 @@ describe('Legendary Action turn window', () => {
   }
 
   /** The owner's paused Legendary Action choice and its option with this label. */
-  async function pausedChoice(actors: readonly EncounterRunActorState[], label = 'Tail Attack') {
-    const paused = await prepare({ actors, turnRoot: root({ currentActorId: WOLF_ID }) })
+  async function pausedChoice(
+    actors: readonly EncounterRunActorState[],
+    label = 'Tail Attack',
+    tokenBoundActorIds?: readonly string[]
+  ) {
+    const paused = await prepare({
+      actors,
+      turnRoot: root({ currentActorId: WOLF_ID }),
+      ...(tokenBoundActorIds ? { tokenBoundActorIds } : {})
+    })
     if (paused.kind !== 'PENDING') throw new Error('Expected the Legendary Action choice.')
     const context = paused.snapshot.applicationContext
     if (context.kind !== 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE')
@@ -967,21 +1029,22 @@ describe('Legendary Action turn window', () => {
   })
 
   it('offers and runs a free save option that spends the pool, as the SRD authors Wing Attack', async () => {
-    // The SRD Wing Attack keeps its FREE activation, Legendary charge cost and save, but targets one
-    // creature within 15 feet, since a turn cannot run its area yet.
+    // The SRD Wing Attack keeps its FREE activation, Legendary charge cost, save, damage and prone,
+    // but targets one creature within 15 feet instead of its area, which the turn delegates.
     const wingAttack = srdLegendaryActions.options?.find((option) =>
       option.label.startsWith('Wing Attack')
     )
     const [effect] = wingAttack?.effects ?? []
     if (!wingAttack || effect?.invocation.kind !== 'ACTION')
       throw new Error('Expected the SRD Wing Attack action.')
+    const { shape: _area, ...invocation } = effect.invocation
     const singleTargetWing = {
       ...wingAttack,
       effects: [
         {
           ...effect,
           invocation: {
-            ...effect.invocation,
+            ...invocation,
             range: {
               id: effect.invocation.range.id,
               rangeKind: 'DISTANCE' as const,
@@ -1048,13 +1111,58 @@ describe('Legendary Action turn window', () => {
             kind: 'DAMAGE',
             requestedAmount: 1 + 2 + 10,
             damageTypeId: srdDamageTypeId('Bludgeoning')
-          }
+          },
+          { kind: 'CONDITION_APPLY', conditionId: srdCondition('Prone') }
         ]
       }
     })
     const settledDragon = done.actors.find((actor) => actor.id === DRAGON_ID)
     if (!settledDragon) throw new Error('Expected the dragon.')
     expect(featureChargeUsed(settledDragon, srdLegendaryActions.id)).toBe(2)
+  })
+
+  it('delegates the SRD Wing Attack area to its own root, ending the turn’s windows unspent', async () => {
+    const srdDragon = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: ancientRedDragon,
+      featureCharges: { [srdLegendaryActions.id]: 0 }
+    })
+    const actors = [srdDragon, wolfActor]
+    const tokenBoundActorIds = [DRAGON_ID]
+    const {
+      snapshot,
+      context,
+      tailAttack: wing
+    } = await pausedChoice(actors, 'Wing Attack (Costs 2 Actions)', tokenBoundActorIds)
+    // Its area names no creature, so the owner stands for it; another target is a stale choice.
+    await expect(
+      prepare({
+        actors,
+        turnRoot: context.root,
+        pending: snapshot,
+        resolution: { kind: 'LEGENDARY_OPTION', optionId: wing.optionId, targetActorId: WOLF_ID },
+        tokenBoundActorIds
+      })
+    ).rejects.toThrow('Legendary Action choice is stale.')
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: { kind: 'LEGENDARY_OPTION', optionId: wing.optionId, targetActorId: DRAGON_ID },
+      tokenBoundActorIds
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The delegation settles the window.')
+    expect(done.root.legendaryActionQueue).toBeUndefined()
+    expect(done.root.completedLegendaryActions).toEqual([
+      {
+        choice: context.choice,
+        selectionChecksum: checksumRuleDocument(context.choice),
+        resolution: { kind: 'DELEGATED', selectedOptionId: wing.optionId }
+      }
+    ])
+    expect(delegatedLegendaryOption(done.root)).toEqual(wing)
+    // The delegated root spends the charges and rolls the saves, so the turn changes no one.
+    expect(done.actors).toEqual(actors)
   })
 
   it('checks each owner again before its window, after earlier windows this turn (D51)', async () => {

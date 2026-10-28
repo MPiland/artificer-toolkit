@@ -322,6 +322,23 @@ export const encounterRunStateSchema = lazySchema(() =>
             })
           )
       ),
+      /**
+       * Set while a turn's end waits on a delegated Legendary Action: the ADVANCE_TURN that selected
+       * it, the option's owner and action, and the owners whose windows this turn end has settled.
+       * The rule-raised action runs next, then a continuation ADVANCE_TURN offers the remaining
+       * windows and starts the next turn.
+       */
+      delegatedLegendaryAction: z.optional(
+        z.strictObject({
+          parentCommandId: postgresUuidSchema,
+          holderActorId: postgresUuidSchema,
+          actionId: z.string().check(z.minLength(1)),
+          settledOwnerActorIds: z
+            .array(postgresUuidSchema)
+            .check(z.minLength(1))
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        })
+      ),
       sides: z
         .array(
           z.strictObject({
