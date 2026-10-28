@@ -1,9 +1,9 @@
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -25,9 +25,8 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { conditionSaveAdvantageGrants } from '../classes/mechanics.js'
+import { conditionSaveAdvantageGrants, gmRulingEffect } from '../classes/mechanics.js'
 import { conditionTypeId } from '../spells/shared.js'
-import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -122,11 +121,21 @@ export const halfling: RaceAuthored = {
         'When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll the die and must use the new roll.',
       availableAtLevel: 1,
       order: 1,
+      // The reroll waits on a d20 result reroll window (future-enhancements).
       effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(3, 2, entry),
-          CLOSED_RULE_KIND.RACE_HALFLING_LUCKY
-        )
+        gmRulingEffect({
+          ids: {
+            effect: raceFeatureId(3, 2, 20),
+            range: raceFeatureId(3, 2, 21),
+            path: raceFeatureId(3, 2, 22),
+            result: raceFeatureId(3, 2, 23),
+            outcome: raceFeatureId(3, 2, 24)
+          },
+          label: 'Lucky',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'When you roll a 1 on the d20 for an attack roll, ability check or saving throw, reroll the die and use the new roll. The GM applies the new result in place of the 1.'
+        })
       ]
     },
     {
