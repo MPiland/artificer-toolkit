@@ -61,7 +61,8 @@ export async function loadCharacterBuilderContext(
       undefined,
       authorityScope,
       undefined,
-      referenceSpellIds
+      referenceSpellIds,
+      catalogScope === 'active' ? 'classLists' : 'complete'
     )
   )
   const sources = context.sourceAccess
