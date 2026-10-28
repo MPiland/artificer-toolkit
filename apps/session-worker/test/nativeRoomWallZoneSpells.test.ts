@@ -5,6 +5,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
+import { bladeBarrier } from '@artificer-toolkit/source-data/srd/spells/blade-barrier.js'
 import { wallOfFire } from '@artificer-toolkit/source-data/srd/spells/wall-of-fire.js'
 import { wallOfThorns } from '@artificer-toolkit/source-data/srd/spells/wall-of-thorns.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -403,5 +404,149 @@ describe('the SRD Wall of Thorns drawn as a straight wall (SPELLS-4.T1i)', () =>
     // The 450-unit walk keeps the Wolf's 100-unit footprint over the 100-unit wall for the 200 units
     // its center crosses from 400 to 600, which cost four times as much as the 250 units outside.
     expect(await wolfFeetMoved(room)).toBeCloseTo((plainFeet * (250 + 4 * 200)) / 450)
+  })
+})
+
+/**
+ * SPELLS-30.T2: the SRD Blade Barrier, cast as the straight wall or the ring its caster picks. A
+ * creature entering it or starting its turn there makes a Dexterity save against 6d10 slashing, half
+ * on a success, and its space is difficult terrain.
+ */
+describe('the SRD Blade Barrier drawn as a straight wall or a ring (SPELLS-30.T2)', () => {
+  const BLADE_BARRIER = { spell: bladeBarrier, castLabel: 'Blade Barrier (6th level)' }
+  const BLADES = {
+    kind: 'WALL',
+    from: WALL.from,
+    to: WALL.to,
+    choiceOptionId: choiceOptionIdOf(bladeBarrier, 'Straight Wall')
+  } as const
+  /** A 15-foot ring around the middle of the map: its 5-foot wall runs 200 to 300 units out. */
+  const BLADE_RING = {
+    kind: 'RING',
+    center: RING.center,
+    outerRadius: 300,
+    choiceOptionId: choiceOptionIdOf(bladeBarrier, 'Ringed Wall')
+  } as const
+  /** Every die a 1: 6d10 deals 6, halved to 3 on a successful save. */
+  const BLADE_DAMAGE = 6
+  const SAVE_SUCCEEDS = [19]
+
+  async function bladesRoom(
+    wolfAt: { x: number; y: number },
+    target: Parameters<Room['startAreaCommand']>[0] = BLADES,
+    rolls: readonly number[] = []
+  ) {
+    const room = await wallRoom(wolfAt, BLADE_BARRIER, rolls)
+    const { answer } = await room.startAreaCommand(target)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    return room
+  }
+
+  async function wolfFeetMoved(room: Room) {
+    const movements = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterTurnMovements')
+    )
+    return movements
+      .filter(({ actorId }) => actorId === WOLF_ID)
+      .reduce((total, { usedFeet }) => total + usedFeet, 0)
+  }
+
+  it('stands as one 5-foot wall of blades between the two ends drawn, held by its Concentration', async () => {
+    const room = await bladesRoom(WEST_OF_THE_WALL)
+
+    const [wall, ...others] = await readZones(room)
+
+    expect(others).toEqual([])
+    expect(wall?.maintainedEffectStateId).not.toBeNull()
+    expect(wall?.placement).toMatchObject({
+      anchorKind: 'FIXED',
+      label: 'Blade Barrier Wall',
+      triggerModes: ['ENTER', 'CROSS'],
+      turnTriggers: ['START_OF_TURN'],
+      maxApplicationsPerTurn: 1,
+      movementCostMultiplier: 2,
+      blockingRules: ['THREE_QUARTERS_COVER'],
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: {
+          kind: 'POLYGON',
+          points: [
+            { x: 450, y: 300 },
+            { x: 450, y: 900 },
+            { x: 550, y: 900 },
+            { x: 550, y: 300 }
+          ]
+        }
+      }
+    })
+  })
+
+  it.each([
+    { outcome: 'the full damage on a failed save', rolls: [], damage: BLADE_DAMAGE },
+    { outcome: 'half the damage on a successful save', rolls: SAVE_SUCCEEDS, damage: 3 }
+  ])('deals a creature that walks through it $outcome', async ({ rolls, damage }) => {
+    const room = await bladesRoom(WEST_OF_THE_WALL, BLADES, rolls)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [WEST_OF_THE_WALL, EAST_OF_THE_WALL])
+
+    expect(walk.terminalPosition).toEqual(EAST_OF_THE_WALL)
+    expect(walk.executions).toHaveLength(1)
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - damage)
+  })
+
+  it('makes a creature that starts its turn in it save against the blades', async () => {
+    const room = await bladesRoom({ x: 500, y: 600 })
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    // The wall appears with no save; the caster's turn ends and the Wolf's starts in the blades.
+    await room.advanceTurn()
+
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - BLADE_DAMAGE)
+  })
+
+  it('charges twice the movement for the stretch walked through it', async () => {
+    const plain = await wallRoom(WEST_OF_THE_WALL, BLADE_BARRIER)
+    await plain.advanceTurn()
+    await walkerMoves(plain, [WEST_OF_THE_WALL, EAST_OF_THE_WALL])
+    const plainFeet = await wolfFeetMoved(plain)
+
+    const room = await bladesRoom(WEST_OF_THE_WALL)
+    await room.advanceTurn()
+    await walkerMoves(room, [WEST_OF_THE_WALL, EAST_OF_THE_WALL])
+
+    // The Wolf's 100-unit footprint overlaps the 100-unit wall while its center crosses from 400 to
+    // 600, which costs twice as much as the 250 units outside.
+    expect(await wolfFeetMoved(room)).toBeCloseTo((plainFeet * (250 + 2 * 200)) / 450)
+  })
+
+  it('rings the center out to the radius drawn, hollow by all but its 5-foot wall', async () => {
+    const room = await bladesRoom(RING.center, BLADE_RING)
+
+    const [ring, ...others] = await readZones(room)
+
+    expect(others).toEqual([])
+    expect(ring?.placement).toMatchObject({
+      label: 'Blade Barrier Ring',
+      turnTriggers: ['START_OF_TURN'],
+      movementCostMultiplier: 2,
+      blockingRules: ['THREE_QUARTERS_COVER'],
+      geometry: {
+        frame: 'SCENE_ABSOLUTE',
+        shape: { kind: 'RING', center: RING.center, outerRadius: 300, innerRadius: 200 }
+      }
+    })
+  })
+
+  it('cuts a creature that walks out of the hollow through the ring', async () => {
+    const room = await bladesRoom(RING.center, BLADE_RING)
+    await room.advanceTurn()
+    const hitPointsBefore = await hitPointsOf(room, WOLF_ID)
+
+    const walk = await walkerMoves(room, [RING.center, { x: 950, y: 600 }])
+
+    expect(walk.executions).toHaveLength(1)
+    expect(await hitPointsOf(room, WOLF_ID)).toBe((hitPointsBefore ?? 0) - BLADE_DAMAGE)
   })
 })

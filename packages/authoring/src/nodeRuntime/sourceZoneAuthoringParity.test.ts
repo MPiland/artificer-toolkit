@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { bladeBarrier } from '@artificer-toolkit/source-data/srd/spells/blade-barrier.js'
 import { blackTentacles } from '@artificer-toolkit/source-data/srd/spells/black-tentacles.js'
 import { cloudkill } from '@artificer-toolkit/source-data/srd/spells/cloudkill.js'
 import { fireShield } from '@artificer-toolkit/source-data/srd/spells/fire-shield.js'
@@ -125,11 +126,12 @@ describe('the source aura through the equipment node map', () => {
     ['Fire Shield', fireShield],
     ['Wall of Fire', wallOfFire],
     ['Wall of Thorns', wallOfThorns],
+    ['Blade Barrier', bladeBarrier],
     ['Plant Growth', plantGrowth],
     ['Earthquake', earthquake],
     ['Guardian of Faith', guardianOfFaith]
   ])(
-    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e, T2a4, T2q, T2r; SPELLS-20.T6d1)',
+    'keeps the SRD %s zone exactly as authored (SPELLS-4.T1a, T1b, T1c, T1d, T1e, T2a4, T2q, T2r; SPELLS-20.T6d1; SPELLS-30.T2)',
     async (_name, spell) => {
       const authored = carrying(spell.effects as EquipmentAuthored['effects'])
       const result = await normalize(authored)
