@@ -157,8 +157,8 @@ function createFullPoolReaders(publications: readonly FullPoolPublication[]): Re
     }),
     readFeats: async () => ofKind('FEAT').map(({ document: { id, label } }) => ({ id, label })),
     // The picker entries come from the Spell documents, as the snapshot index part carries them.
-    readSpellCatalogue: async (referencedSpellIds) => ({
-      ...(await ruleReaders.readSpellCatalogue(referencedSpellIds)),
+    readSpellCatalogue: async (referencedSpellIds, classSpellLists) => ({
+      ...(await ruleReaders.readSpellCatalogue(referencedSpellIds, classSpellLists)),
       entries: ofKind('SPELL').map((published) => toContentSnapshotIndexEntry(published))
     })
   }

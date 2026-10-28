@@ -15,6 +15,40 @@ import {
   buildCharacterSpellRuleFacts,
   collectCharacterRuleInputSpellIds
 } from './characterSpellRuleFacts.js'
+import { collectSpellClassListAdditions } from './spellClassListAdditions.js'
+
+/**
+ * The class spell lists a Character's classes and subclasses draw on: the lists named by their ids,
+ * plus the Spells their spellcasting lists explicitly or their reached features add (D175).
+ */
+export type CharacterClassSpellLists = {
+  classIds: readonly string[]
+  spellIds: ReadonlySet<string>
+}
+
+export function collectCharacterClassSpellLists(
+  character: CharacterAuthored,
+  registry: CharacterRuleRegistry
+): CharacterClassSpellLists {
+  const { classSelections } = collectGrantedFeaturesForCharacter(character, registry)
+  return {
+    classIds: [
+      ...new Set(
+        classSelections.flatMap(({ row }) =>
+          row.subclassId ? [row.classId, row.subclassId] : [row.classId]
+        )
+      )
+    ],
+    spellIds: new Set(
+      classSelections.flatMap((selection) => [
+        ...selection.spellcasting.flatMap((spellcasting) => spellcasting.availableSpellIds ?? []),
+        ...collectSpellClassListAdditions(selection.features, selection.row.classLevel).flatMap(
+          (addition) => addition.spellIds
+        )
+      ])
+    )
+  }
+}
 
 type SpellGrantFeature = {
   id: string
