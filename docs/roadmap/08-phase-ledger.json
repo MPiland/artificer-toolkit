@@ -20536,7 +20536,8 @@
                 "size": 8
               },
               "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge. Riders (orchestrator rulings 2026-10-28, description-only): also remove character-sheet-browser (T14) and vtt-browser (T9) from KNOWN_BUG_PROOFS; bring vtt-browser rule convergence (Sheet Max HP edit, measured 1.27-1.45 s) within budget, fix its first-edit non-convergence flake, and decide with evidence whether rule samples belong in the authoritative bucket.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI."
+              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI.",
+              "activeWorkbook": "docs/architecture/character.md"
             }
           ]
         }
