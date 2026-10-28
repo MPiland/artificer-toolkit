@@ -318,8 +318,8 @@ function creatureSpellSlotReceipt(
   prepared: Pick<NativeEncounterActionMechanicsInput['prepared'], 'actor' | 'source'>
 ): SpellSlotConsumptionReceiptDto | null {
   const { actor, source } = prepared
-  const slot = source.kind === 'CREATURE' ? source.capability.spellSlotUse : null
-  if (!slot) return null
+  if (source.kind !== 'CREATURE' || !source.capability.spellSlotUse) return null
+  const slot = source.capability.spellSlotUse
   const beforeUsed = featureChargeUsed(actor, slot.slotRowId)
   return {
     owner: { kind: 'CREATURE', actorId: actor.id, featureId: slot.ownerFeatureId },
