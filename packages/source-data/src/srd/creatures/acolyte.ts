@@ -53,6 +53,7 @@ export const acolyte: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.WISDOM,
+            spellSaveDc: 12,
             order: 0
           },
           {
@@ -69,6 +70,7 @@ export const acolyte: CreatureAuthored = {
             ],
             castAtLevel: 1,
             castingAbility: S.ABILITY_CODE.WISDOM,
+            spellSaveDc: 12,
             charges: {
               id: S.featureId(2, 103),
               limitKind: 'FIXED_AMOUNT',

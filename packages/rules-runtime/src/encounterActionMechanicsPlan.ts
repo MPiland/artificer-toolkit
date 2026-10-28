@@ -20,6 +20,7 @@ import type { CharacterMovementFacts } from './encounterMovementTargets.js'
 import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
+import type { SpellSlotConsumptionReceiptDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 
 type ActionCharacterFacts = CharacterMovementFacts & {
   character: CharacterAuthored
@@ -93,7 +94,7 @@ export function characterSpellConsumptionReceipt(
 ) {
   return spellConsumption
     ? {
-        characterId: spellConsumption.characterId,
+        owner: { kind: 'CHARACTER' as const, characterId: spellConsumption.characterId },
         spellId: spellConsumption.spellId,
         candidateId: spellConsumption.candidateId,
         slotKey: spellConsumption.slotKey,
@@ -303,12 +304,30 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
         afterQuantity: itemConsumption.afterQuantity
       }
     : null
-  const spellConsumptionReceipt = characterSpellConsumptionReceipt(spellConsumption)
   return {
     resourceReceipt,
     itemConsumptionReceipt,
-    spellConsumptionReceipt,
+    spellConsumptionReceipt:
+      characterSpellConsumptionReceipt(spellConsumption) ?? creatureSpellSlotReceipt(prepared),
     featureResourceReceipt: nativeSourceFeatureResourceReceipt(prepared)
+  }
+}
+
+/** The receipt of the slot row a Creature's spell cast spends; null for any other action. */
+function creatureSpellSlotReceipt(
+  prepared: Pick<NativeEncounterActionMechanicsInput['prepared'], 'actor' | 'source'>
+): SpellSlotConsumptionReceiptDto | null {
+  const { actor, source } = prepared
+  if (source.kind !== 'CREATURE' || !source.capability.spellSlotUse) return null
+  const slot = source.capability.spellSlotUse
+  const beforeUsed = featureChargeUsed(actor, slot.slotRowId)
+  return {
+    owner: { kind: 'CREATURE', actorId: actor.id, featureId: slot.ownerFeatureId },
+    spellId: slot.spellId,
+    candidateId: source.capability.actionId,
+    slotKey: slot.slotRowId,
+    beforeUsed,
+    afterUsed: beforeUsed + 1
   }
 }
 
@@ -338,21 +357,39 @@ export function nativeSourceFeatureResourceReceipt(
     : null
 }
 
-/** A Creature source's feature charge the action spends, applied to the source as settled so far. */
+/**
+ * A Creature source's feature charge and spell slot the action spends, applied to the source as
+ * settled so far.
+ */
 function spendNativeSourceFeatureCharge(
   prepared: NativeEncounterActionMechanicsInput['prepared'],
   settledSource: NativeEncounterActionMechanicsInput['prepared']['actor']
 ) {
   const { source, resourceUse, featureUsed, featureSpent } = prepared
-  if (source.kind !== 'CREATURE' || !resourceUse || featureSpent <= 0) return settledSource
-  if (featureChargeUsed(settledSource, source.capability.ownerFeatureId) !== featureUsed)
+  if (source.kind !== 'CREATURE') return settledSource
+  const spends = [
+    ...(resourceUse && featureSpent > 0
+      ? [{ key: source.capability.ownerFeatureId, beforeUsed: featureUsed, spent: featureSpent }]
+      : []),
+    ...(source.capability.spellSlotUse
+      ? [
+          {
+            key: source.capability.spellSlotUse.slotRowId,
+            beforeUsed: featureChargeUsed(prepared.actor, source.capability.spellSlotUse.slotRowId),
+            spent: 1
+          }
+        ]
+      : [])
+  ]
+  if (spends.length === 0) return settledSource
+  if (spends.some(({ key, beforeUsed }) => featureChargeUsed(settledSource, key) !== beforeUsed))
     throw new Error('The selected Encounter feature action resource changed before settlement.')
   return encounterRunActorStateSchema.parse({
     ...settledSource,
-    resources: withFeatureChargeUsed(
-      settledSource,
-      source.capability.ownerFeatureId,
-      featureUsed + featureSpent
+    resources: spends.reduce<unknown>(
+      (resources, { key, beforeUsed, spent }) =>
+        withFeatureChargeUsed({ resources }, key, beforeUsed + spent),
+      settledSource.resources
     )
   })
 }

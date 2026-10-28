@@ -65,6 +65,7 @@ export const gynosphinx: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         157,
         S.ABILITY_CODE.INTELLIGENCE,
+        16,
         [S.SPELL_IDS.MAGE_HAND, S.SPELL_IDS.MINOR_ILLUSION, S.SPELL_IDS.PRESTIDIGITATION],
         [
           {

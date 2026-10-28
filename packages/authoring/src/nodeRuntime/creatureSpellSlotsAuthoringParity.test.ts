@@ -10,12 +10,14 @@ import { lich } from '@artificer-toolkit/source-data/srd/creatures/lich.js'
 import { mage } from '@artificer-toolkit/source-data/srd/creatures/mage.js'
 import { mummyLord } from '@artificer-toolkit/source-data/srd/creatures/mummy-lord.js'
 import { priest } from '@artificer-toolkit/source-data/srd/creatures/priest.js'
+import { srdCreatures } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
+import { dnd5eAttackProfileCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackDamageDefenses'
 
 /**
  * SPELLS-33 T3b: a slotted caster authors its Spellcasting as a cantrip grant plus one PREPARED
@@ -119,3 +121,29 @@ describe.each(casters)(
     })
   }
 )
+
+describe('every SRD Creature spell grant states its stat block’s spell save DC (SPELLS-33 T3c2b)', () => {
+  const featuresWithSpells = srdCreatures.flatMap((creature) =>
+    (creature.features ?? []).flatMap((feature) =>
+      feature.grants?.spells?.length
+        ? [{ label: `${creature.label}: ${feature.label}`, feature }]
+        : []
+    )
+  )
+
+  it.each(featuresWithSpells.map(({ label, feature }) => [label, feature] as const))(
+    '%s',
+    (_, { description, grants }) => {
+      const dc = description?.match(/spell save DC (\d+)/)?.[1]
+      const toHit = description?.match(/\+(\d+) to hit with spell attacks/)?.[1]
+      for (const grant of grants?.spells ?? [])
+        expect(grant.spellSaveDc).toBe(dc === undefined ? undefined : Number(dc))
+      // The System derives the spell attack bonus from the DC; it must match the stated bonus.
+      if (dc !== undefined && toHit !== undefined)
+        expect(
+          dnd5eAttackProfileCapabilityAdapter.creatureSpellcasting({ spellSaveDc: Number(dc) })
+            .attackBonus
+        ).toBe(Number(toHit))
+    }
+  )
+})

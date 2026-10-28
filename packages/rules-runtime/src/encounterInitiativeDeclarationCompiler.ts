@@ -319,7 +319,11 @@ export function compileEncounterInitiativeDeclaration(input: {
       )
       if (!capability)
         throw new EncounterConflictError('The declared Creature action is unavailable.')
-      assertEncounterFeatureActionCapabilityCurrent({ actor: input.source.actor, capability })
+      assertEncounterFeatureActionCapabilityCurrent({
+        actor: input.source.actor,
+        capability,
+        spells: input.source.spells
+      })
       return {
         kind: 'CREATURE_FEATURE_ACTION',
         optionId: capability.actionId,

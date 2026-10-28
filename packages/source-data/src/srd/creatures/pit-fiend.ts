@@ -111,6 +111,7 @@ export const pitFiend: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.DETECT_MAGIC, S.SPELL_IDS.FIREBALL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 21,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -122,6 +123,7 @@ export const pitFiend: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.HOLD_MONSTER, S.SPELL_IDS.WALL_OF_FIRE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 21,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(219, 703),

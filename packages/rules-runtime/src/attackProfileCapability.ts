@@ -93,6 +93,8 @@ export interface AttackProfileCapabilityAdapter {
     grip: 'ONE_HANDED' | 'TWO_HANDED' | null
     activation: string | null
   }): { attack: number; damage: number }
+  /** A Creature's spell attack bonus and spell save DC from the spell save DC its grant states. */
+  creatureSpellcasting(input: { spellSaveDc: number }): { attackBonus: number; saveDc: number }
   /** Settles a compiled attack Effect's path restrictions that need no attacking item. */
   reduceItemlessAttackRestrictions<TEffect extends CompiledEffectGroup>(effect: TEffect): TEffect
   /** The circumstances a compiled attack Effect's paths ask about when it rolls. */

@@ -61,6 +61,7 @@ export const glabrezu: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.DARKNESS, S.SPELL_IDS.DETECT_MAGIC, S.SPELL_IDS.DISPEL_MAGIC],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 16,
             order: 0
           },
           ...([S.SPELL_IDS.CONFUSION, S.SPELL_IDS.FLY, S.SPELL_IDS.POWER_WORD_STUN] as const).map(
@@ -73,6 +74,7 @@ export const glabrezu: CreatureAuthored = {
               spellIds: [spellId],
               attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
               castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+              spellSaveDc: 16,
               charges: {
                 id: S.actionId(142, 402 + index),
                 limitKind: 'FIXED_AMOUNT' as const,

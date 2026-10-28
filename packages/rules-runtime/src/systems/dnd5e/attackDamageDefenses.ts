@@ -175,6 +175,11 @@ export const dnd5eAttackProfileCapabilityAdapter = {
     dnd5eAttackRollContributors(policy, domain, dnd5eCharacterAttackTarget(attack)),
   attackDamageDefenses: dnd5eAttackDamageDefenses,
   creatureWeaponBonuses: resolveDnd5eCreatureWeaponBonuses,
+  // Both come from the same proficiency bonus and ability modifier: the DC adds 8, the attack does not.
+  creatureSpellcasting: ({ spellSaveDc }) => ({
+    attackBonus: spellSaveDc - 8,
+    saveDc: spellSaveDc
+  }),
   reduceItemlessAttackRestrictions: (effect) => reduceEffectRestrictions(effect, null),
   compiledAttackReads: (compiledEffect) => {
     const effect = compiledEffect as CompiledEffectGroup

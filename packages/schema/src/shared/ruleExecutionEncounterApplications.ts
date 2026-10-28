@@ -377,16 +377,7 @@ export const characterItemDegradationReceiptDtoSchema: z.ZodMiniType<CharacterIt
       )
   )
 
-/** One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. */
-export type CharacterSpellSlotConsumptionReceiptDto = {
-  characterId: string
-  /** The spell cast and its cast candidate; both null when the slot paid for an optional on-hit rider. */
-  spellId: string | null
-  candidateId: string | null
-  slotKey: string
-  beforeUsed: number
-  afterUsed: number
-}
+/** One spell slot (or the pact slot) a Character's cast spent, as its Sheet records it. */
 export const characterSpellSlotConsumptionFieldsSchema = lazySchema(() =>
   z.strictObject({
     characterId: uuidSchema,
@@ -399,25 +390,75 @@ export const characterSpellSlotConsumptionFieldsSchema = lazySchema(() =>
     afterUsed: positiveIntegerSchema
   })
 )
+export type CharacterSpellSlotConsumptionFieldsDto = z.infer<
+  typeof characterSpellSlotConsumptionFieldsSchema
+>
+
+/** Whose slot a cast spent: a Character's Sheet slot, or a slot row of a Creature's Feature. */
+export type SpellSlotOwnerDto =
+  | { kind: 'CHARACTER'; characterId: string }
+  | { kind: 'CREATURE'; actorId: string; featureId: string }
+
+/**
+ * One spell slot (or the pact slot) a cast spent: the slot's used count rises by one. A Creature's
+ * `slotKey` is the slot row id of its Feature's `spellSlots` table (SPELLS-33).
+ */
+export type SpellSlotConsumptionReceiptDto = {
+  owner: SpellSlotOwnerDto
+  /** The spell cast and its cast candidate; both null when the slot paid for an optional on-hit rider. */
+  spellId: string | null
+  candidateId: string | null
+  slotKey: string
+  beforeUsed: number
+  afterUsed: number
+}
 // Named so the receipt unions that embed it stay under the compiler's declaration size limit.
-export const characterSpellSlotConsumptionReceiptDtoSchema: z.ZodMiniType<CharacterSpellSlotConsumptionReceiptDto> =
+export const spellSlotConsumptionReceiptDtoSchema: z.ZodMiniType<SpellSlotConsumptionReceiptDto> =
   lazySchema(() =>
-    characterSpellSlotConsumptionFieldsSchema.check(
-      z.superRefine((value, context) => {
-        if (value.afterUsed !== value.beforeUsed + 1)
-          context.addIssue({
-            code: 'custom',
-            message: 'A spell slot consumption spends exactly one slot.'
+    z
+      .strictObject({
+        owner: z.discriminatedUnion('kind', [
+          z.strictObject({ kind: z.literal('CHARACTER'), characterId: uuidSchema }),
+          z.strictObject({
+            kind: z.literal('CREATURE'),
+            actorId: uuidSchema,
+            featureId: authoredIdentifierSchema
           })
-        if ((value.spellId === null) !== (value.candidateId === null))
-          context.addIssue({
-            code: 'custom',
-            path: ['candidateId'],
-            message: 'A spell slot consumption names its spell and cast candidate together.'
-          })
+        ]),
+        spellId: z.nullable(uuidSchema),
+        candidateId: z.nullable(
+          z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000))
+        ),
+        slotKey: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(1_000)),
+        beforeUsed: nonNegativeIntegerSchema,
+        afterUsed: positiveIntegerSchema
       })
-    )
+      .check(
+        z.superRefine((value, context) => {
+          if (value.afterUsed !== value.beforeUsed + 1)
+            context.addIssue({
+              code: 'custom',
+              message: 'A spell slot consumption spends exactly one slot.'
+            })
+          if ((value.spellId === null) !== (value.candidateId === null))
+            context.addIssue({
+              code: 'custom',
+              path: ['candidateId'],
+              message: 'A spell slot consumption names its spell and cast candidate together.'
+            })
+        })
+      )
   )
+
+/** A slot receipt names the source that cast: its Character, or the Creature actor itself. */
+export function spellSlotOwnedBySource(
+  receipt: SpellSlotConsumptionReceiptDto,
+  source: { sourceActorId: string; sourceCharacterId?: string | null }
+) {
+  return receipt.owner.kind === 'CHARACTER'
+    ? source.sourceCharacterId != null && receipt.owner.characterId === source.sourceCharacterId
+    : receipt.owner.actorId === source.sourceActorId
+}
 
 /** One action-economy allowance use. An overridden ("Do it anyway") use may exceed the maximum. */
 export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
@@ -472,10 +513,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       targetActorId: uuidSchema,
       sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
       resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
-      spellCastConsumption: z._default(
-        z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-        null
-      ),
+      spellCastConsumption: z._default(z.nullable(spellSlotConsumptionReceiptDtoSchema), null),
       featureResourceConsumption: z._default(
         z.nullable(encounterFeatureResourceReceiptDtoSchema),
         null
@@ -918,14 +956,11 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             message: 'Item consumption must match the source Character.'
           })
         const spell = value.spellCastConsumption
-        if (
-          spell &&
-          (value.sourceCharacterId == null || spell.characterId !== value.sourceCharacterId)
-        )
+        if (spell && !spellSlotOwnedBySource(spell, value))
           context.addIssue({
             code: 'custom',
             path: ['spellCastConsumption'],
-            message: 'Spell slot consumption must match the source Character.'
+            message: 'Spell slot consumption must match the source.'
           })
         const sourceMaintenanceMutation =
           value.sourceCharacterId != null &&
@@ -941,7 +976,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             draw?.kind === 'CHARACTER_ITEM_DRAW' ||
             degradation !== null ||
             consumption !== null ||
-            spell !== null ||
+            spell?.owner.kind === 'CHARACTER' ||
             sourceMaintenanceMutation ||
             sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId ?? null)
           )
@@ -1230,7 +1265,7 @@ export const sourceSpendReceiptShape = () => ({
   /** The weapon the source hit with, corroded by what it struck; undo restores its penalty and use. */
   sourceItemDegradation: z._default(z.nullable(characterItemDegradationReceiptDtoSchema), null),
   sourceItemConsumption: z.nullable(characterItemConsumptionReceiptDtoSchema),
-  spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+  spellCastConsumption: z.nullable(spellSlotConsumptionReceiptDtoSchema),
   actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
   attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema)
 })
@@ -1282,7 +1317,7 @@ export function validateSourceSpendReceipts(
     (draw?.kind === 'ENCOUNTER_ACTOR_ITEM_DRAW' && draw.actorId !== value.sourceActorId) ||
     (degradation && degradation.characterId !== value.sourceCharacterId) ||
     (consumption && consumption.characterId !== value.sourceCharacterId) ||
-    (spell && spell.characterId !== value.sourceCharacterId)
+    (spell && !spellSlotOwnedBySource(spell, value))
   )
     context.addIssue({
       code: 'custom',
@@ -1311,7 +1346,7 @@ export function validateSourceSpendReceipts(
       draw?.kind === 'CHARACTER_ITEM_DRAW' ||
       degradation !== null ||
       consumption !== null ||
-      spell !== null ||
+      spell?.owner.kind === 'CHARACTER' ||
       sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
     )
   )

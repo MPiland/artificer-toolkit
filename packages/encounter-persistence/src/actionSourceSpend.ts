@@ -79,14 +79,16 @@ export function sourceSpendMutation(input: {
     throw new Error('Live Session action item is missing.')
   if (spell) {
     // The mechanics batch checks the version against the fenced Character it plans with.
-    const { expectedStreamVersion: _spellStreamVersion, ...receipt } = spell
+    const { expectedStreamVersion: _spellStreamVersion, characterId, ...receipt } = spell
     if (
       source.kind !== 'CHARACTER' ||
-      source.sourceId !== spell.characterId ||
-      checksumCanonicalJson(receipt) !== checksumCanonicalJson(receipts.spellCastConsumption)
+      source.sourceId !== characterId ||
+      checksumCanonicalJson({ owner: { kind: 'CHARACTER', characterId }, ...receipt }) !==
+        checksumCanonicalJson(receipts.spellCastConsumption)
     )
       throw new Error('Live Session action spell slot scope mismatch.')
-  } else if (receipts.spellCastConsumption !== null)
+    // A Creature's slot row settles with its feature charges.
+  } else if (receipts.spellCastConsumption?.owner.kind === 'CHARACTER')
     throw new Error('Live Session action spell slot is missing.')
   const stow = input.command.acceptedWieldConflict
   if (stow && source.kind !== 'CHARACTER') throw new Error('Live Session stow scope mismatch.')
@@ -148,7 +150,7 @@ export function combineSpendMutations(...mutations: readonly SpendMutation[]): S
 }
 
 /**
- * Applies the source's feature charge, action economy and Attack action to the source as its outcome
+ * Applies the source's feature charge, Creature spell slot row, action economy and Attack action to the source as its outcome
  * left it, and writes the actor when they changed it. Returns the source as settled.
  */
 export async function settleActionSourceSpend(
@@ -160,7 +162,8 @@ export async function settleActionSourceSpend(
     spend: Pick<
       SourceSpendReceipts,
       'featureResourceConsumption' | 'actionEconomyTransition' | 'attackActionTransition'
-    >
+    > &
+      Partial<Pick<SourceSpendReceipts, 'spellCastConsumption'>>
     economyOverridden: boolean
     /** The source attacked a hostile creature: an actor armed for an idle-bound grant is marked engaged. */
     engages?: boolean
@@ -181,6 +184,19 @@ export async function settleActionSourceSpend(
     settledSource = encounterRunActorStateSchema.parse({
       ...settledSource,
       resources: withFeatureChargeUsed(settledSource, feature.ownerFeatureId, feature.afterUsed)
+    })
+  }
+  const slot = spend.spellCastConsumption
+  if (slot?.owner.kind === 'CREATURE') {
+    if (
+      source.kind !== 'CREATURE' ||
+      slot.owner.actorId !== source.id ||
+      featureChargeUsed(settledSource, slot.slotKey) !== slot.beforeUsed
+    )
+      throw new Error('Live Session spell slot receipt mismatch.')
+    settledSource = encounterRunActorStateSchema.parse({
+      ...settledSource,
+      resources: withFeatureChargeUsed(settledSource, slot.slotKey, slot.afterUsed)
     })
   }
   if (spend.actionEconomyTransition)

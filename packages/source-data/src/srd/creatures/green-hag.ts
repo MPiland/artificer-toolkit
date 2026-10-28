@@ -68,6 +68,7 @@ export const greenHag: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 12,
             order: 0
           }
         ]

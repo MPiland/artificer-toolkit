@@ -72,6 +72,7 @@ export const archmage: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 17,
             order: 0
           },
           {
@@ -88,6 +89,7 @@ export const archmage: CreatureAuthored = {
             ],
             castAtLevel: 1,
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 17,
             order: 1
           },
           {
@@ -104,6 +106,7 @@ export const archmage: CreatureAuthored = {
             ],
             castAtLevel: 2,
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 17,
             order: 2
           },
           ...[
@@ -139,6 +142,7 @@ export const archmage: CreatureAuthored = {
             ],
             castAtLevel: level as number,
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 17,
             charges: {
               id: S.featureId(28, 220 + index),
               limitKind: 'FIXED_AMOUNT' as const,

@@ -76,6 +76,7 @@ export const unicorn: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             order: 0
           },
           ...[
@@ -91,6 +92,7 @@ export const unicorn: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             charges: {
               id: S.featureId(276, 230 + index),
               limitKind: 'FIXED_AMOUNT' as const,
