@@ -20327,9 +20327,10 @@
             {
               "id": "RELIABILITY-21.18",
               "text": "A full Browser journeys run uses about 6 duration-balanced runner jobs instead of one per proof; every CI proof still runs and gates, known-bug proofs stay non-gating per proof in their own shard, single-proof dispatch is unchanged, and before/after slot and runner-minute measurements are recorded.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T20 (m531); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T20."
             },
             {
               "id": "RELIABILITY-21.19",
@@ -20608,7 +20609,8 @@
                 "size": 3
               },
               "text": "Bound campaigns/partyInventory:items under the 1 s limit: drop the public to internal runQuery hop, make args/returns lazy getters, and use one variant signal (category or parentEquipmentId) for root catalogue facts; remove campaign-custody-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13).",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T19",
@@ -20621,11 +20623,12 @@
                 "size": 3
               },
               "text": "Bound authoring/nodeRuntime:resolve handler and returns-validation cost under the 1 s limit (the T1 options); remove publication-class-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13).",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T20",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.18"],
               "wsjf": {
                 "bv": 5,
@@ -20634,8 +20637,9 @@
                 "size": 3
               },
               "text": "Shard Browser journeys into about 6 duration-balanced jobs with one stack each, every proof run and reported even after a failure, known-bug proofs in their own non-gating shard, shard membership derived from the proof list and recorded durations, and a reversed-order independence run. Per-proof selection (about 6 percent saving) and built-output hashing (0 of 32 pushes) were measured and rejected.",
-              "note": "Registered 2026-10-28 (user yes).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes). Merged in m531.",
+              "mergedAt": "2026-10-28T22:42:46Z",
+              "proof": "Tests 40778344969, Live backend 40778344930, Browser journeys 40778344933 on 61fa878e7; shardProofs packs gating proofs onto 5 duration-balanced stacks plus one non-gating known-bug shard (affectedBrowserJourneys.test.mjs); reversed run 40753154902 passed all 20 gating proofs; full run 6 proof jobs instead of 25 (73% fewer slots, about 51% less runner time), measurements in ci-validation.md#shards."
             },
             {
               "id": "RELIABILITY-21.T21",
