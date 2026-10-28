@@ -118,7 +118,7 @@ export const kraken: CreatureAuthored = {
       label: 'Siege Monster',
       description: 'Siege Monster. The kraken deals double damage to objects and structures.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(180, 503),
           invocation: {
             kind: 'PASSIVE',
@@ -127,7 +127,10 @@ export const kraken: CreatureAuthored = {
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+          label: 'Siege Monster',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The kraken deals double damage to objects and structures: the GM doubles the damage its attacks deal to an object or structure.'
         })
       ],
       order: 4
