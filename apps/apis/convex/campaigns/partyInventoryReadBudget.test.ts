@@ -21,8 +21,14 @@ import { items } from './partyInventory'
 // next mutation past Convex's 1 s limit. Each row re-resolved the Campaign's catalogue binding, so a
 // full 8-row page read the 34 KB System document 8 times (404 KB per page before the fix). A page
 // resolves the binding once.
-const ROWS = 8
-const PAGE_BUDGET_BYTES = 192 * 1024
+// RELIABILITY-21.T18: one write re-ran every 8-row page of every client at once (23 executions in a
+// second on CI). A page holds the 48 rows a client requests and reads no System document, so one
+// execution's reads stay bounded by these budgets.
+const ROWS = 48
+// Measured 151 documents and 406 KB: identity, authority, inventory and binding reads, then each
+// row's item, root and content source.
+const PAGE_BUDGET_BYTES = 512 * 1024
+const PAGE_BUDGET_DOCUMENTS = 8 + 3 * ROWS
 
 type Handler = (ctx: QueryCtx, args: unknown) => Promise<CampaignPartyItemPage>
 
@@ -64,7 +70,10 @@ describe('party inventory items read budget', () => {
     const base = await publicationFixture(
       import.meta.glob('/apps/apis/convex/**/*.*s'),
       import.meta.glob('../betterAuth/**/*.*s'),
-      [subjects]
+      // An import batch holds at most 10 subjects.
+      Array.from({ length: Math.ceil(subjects.length / 10) }, (_, batch) =>
+        subjects.slice(batch * 10, batch * 10 + 10)
+      )
     )
     const campaign = await base.first.caller.mutation(api.campaigns.create.create, {
       name: 'Party inventory budget',
@@ -105,8 +114,27 @@ describe('party inventory items read budget', () => {
     expect(result.page.map((row) => row.label).sort()).toEqual(
       equipment.map((entry) => entry.label).sort()
     )
-    expect(totals.reads.byTable.systems?.documents).toBe(1)
+    expect(totals.reads.byTable.systems).toBeUndefined()
+    expect(totals.reads.byTable.rulesCatalogues?.documents).toBe(1)
+    expect(totals.reads.documents).toBeLessThanOrEqual(PAGE_BUDGET_DOCUMENTS)
     expect(totals.reads.bytes).toBeLessThanOrEqual(PAGE_BUDGET_BYTES)
+    // The page returns nothing from the System document: without it, the same page comes back.
+    await base.t.run(async (ctx) => {
+      const system = await ctx.db
+        .query('systems')
+        .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
+        .unique()
+      if (!system) throw new Error('Missing SRD System')
+      await ctx.db.delete(system._id)
+    })
+    await expect(
+      base.first.caller.run((ctx) =>
+        handler(inOwnTransaction(ctx as unknown as QueryCtx), {
+          campaignId: campaign.id,
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      )
+    ).resolves.toStrictEqual(result)
   }, 300_000)
 
   it('lists held Equipment from root catalogue facts alone and rejects stale facts', async () => {
