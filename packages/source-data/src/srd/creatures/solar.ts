@@ -334,6 +334,7 @@ export const solar: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.DETECT_EVIL_AND_GOOD],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 25,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -345,6 +346,7 @@ export const solar: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.INVISIBILITY],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 25,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL, S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
             order: 1
           },
@@ -362,6 +364,7 @@ export const solar: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [spellId as string],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 25,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(256, 720 + index),

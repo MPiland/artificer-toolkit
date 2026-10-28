@@ -63,6 +63,7 @@ export const lamia: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.DISGUISE_SELF, S.SPELL_IDS.MAJOR_IMAGE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 13,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -79,6 +80,7 @@ export const lamia: CreatureAuthored = {
               S.SPELL_IDS.SUGGESTION
             ],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 13,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(181, 703),
@@ -97,6 +99,7 @@ export const lamia: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.GEAS],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 13,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(181, 705),

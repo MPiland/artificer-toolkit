@@ -69,6 +69,7 @@ export const stormGiant: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             order: 0
           },
           ...[S.SPELL_IDS.CONTROL_WEATHER, S.SPELL_IDS.WATER_BREATHING].map((spellId, index) => ({
@@ -80,6 +81,7 @@ export const stormGiant: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             charges: {
               id: S.featureId(266, 230 + index),
               limitKind: 'FIXED_AMOUNT' as const,

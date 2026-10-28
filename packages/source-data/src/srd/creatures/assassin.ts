@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { evasionGrant } from '../classes/mechanics.js'
 import * as S from './shared.js'
 import * as R from './rollInfluenceGrants.js'
 export const assassin: CreatureAuthored = {
@@ -56,17 +57,7 @@ export const assassin: CreatureAuthored = {
       label: 'Evasion',
       description:
         'Evasion. If the assassin is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, the assassin instead takes no damage if it succeeds on the saving throw, and only half damage if it fails.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(29, 103),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(29, 104), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_EVASION
-        })
-      ],
+      grants: { modifiers: [evasionGrant(S.actionId(29, 103))] },
       order: 2
     },
     {

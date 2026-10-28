@@ -12040,7 +12040,7 @@
               "proof": "Tests and Live green on tip e4e95d7d4; Glyph of Warding, Symbol, Delayed Blast Fireball and Storm of Vengeance are MANUAL_ADJUDICATION rulings; Earthquake automates its difficult-terrain zone with prone saves, fissures and structures description only; proofs sourceZoneAuthoringParity.test.ts, manualBesideSpellAuthoringParity.test.ts and characterSpellCastActions.test.ts."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2r",
               "wsjf": {
@@ -12050,7 +12050,10 @@
                 "size": 8,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted.",
+              "mergedAt": "2026-10-28T04:13:43Z",
+              "proof": "Tests 40628469400, Live backend 40628469427, Browser journeys 40628469398 green on f039bf526; reviewed (three closed kinds deleted; zone entry-save DC and made-save binding fixes); merged in m512 (run 40630683536). Proofs: SRD zone parity, manual-beside-spell parity, worker room test",
+              "note": " Merged in m512."
             },
             {
               "status": "DONE",
@@ -15997,10 +16000,13 @@
           "acs": [
             {
               "id": "SPELLS-32.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: 14 racial trait closed-rule kinds.",
-              "text": "Every racial trait CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: 14 racial trait closed-rule kinds. Closed 2026-10-28 by SPELLS-32.T1, SPELLS-32.T2, SPELLS-32.T3, SPELLS-32.T4j, SPELLS-32.T5, SPELLS-32.T6.",
+              "text": "Every racial trait CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
+              "proof": [
+                "Closed by SPELLS-32.T1undefined), SPELLS-32.T2undefined), SPELLS-32.T3undefined), SPELLS-32.T4j (m428), SPELLS-32.T5 (m513), SPELLS-32.T6undefined); see each task's proof."
+              ]
             }
           ],
           "tasks": [
@@ -16066,7 +16072,7 @@
             },
             {
               "id": "SPELLS-32.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -16081,7 +16087,10 @@
                   "SPELLS-31.T5f3"
                 ]
               },
-              "text": "Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+              "text": "Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "mergedAt": "2026-10-28T05:35:15Z",
+              "proof": "Tests 40633232143, Live backend 40633232139, Browser journeys 40633232154 green on 8369ce269; reviewed (three RACE_* closed kinds and races/closed-rule-effect.ts deleted; Relentless Endurance as DAMAGE_INTERCEPTION, Savage Attacks as melee CRITICAL_EXTRA_DICE, Lucky as a GM ruling); merged in m513 (run 40638770580). Proofs: raceTraitOptionsAuthoringParity, characterFeatureDamageInterception, characterCriticalRules",
+              "note": " Merged in m513."
             },
             {
               "id": "SPELLS-32.T6",
@@ -16328,7 +16337,7 @@
             },
             {
               "id": "SPELLS-33.T3c2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 8,
@@ -16337,7 +16346,10 @@
                 "size": 5,
                 "after": ["SPELLS-33.T3c2a2b"]
               },
-              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today). Discovery also emits a capability for effect.grantedSpellCast (T6c: Lich Cantrip, Gynosphinx Cast a Spell legendary options)."
+              "text": "Creature spell cast in the room (split from T3c2): cast a granted spell, spend the slot row, undo; room journey. Also from T3c2a1: assertEncounterFeatureActionCapabilityCurrent must recognize spell-cast capabilities, and spell attacks need their attackMechanic (null today). Discovery also emits a capability for effect.grantedSpellCast (T6c: Lich Cantrip, Gynosphinx Cast a Spell legendary options).",
+              "mergedAt": "2026-10-28T06:56:32Z",
+              "proof": "Tests 40644095617, Live backend 40644095635, Browser journeys 40644095640 green on c12a68a83; reviewed (spellCastConsumption owner union, creatureSpellSlotConsumption deleted, authored spellSaveDc on SPELL_GRANT for 32 creatures with attack bonus DC-8 derived, proficiencyBonus fact dropped); merged in m515 batch (run 40646859630). Proofs: creature spell parity (DC and to-hit), room creature cast tests, SRD compile golden",
+              "note": " Merged in m515."
             },
             {
               "id": "SPELLS-33.T3c2c",
@@ -16854,7 +16866,7 @@
             },
             {
               "id": "SPELLS-33.T5afp",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16863,7 +16875,10 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f2", "SPELLS-31.T5p"]
               },
-              "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "mergedAt": "2026-10-28T06:27:49Z",
+              "proof": "Tests 40635760877 green on c820aebc4, Live backend 40632439959 green on d408a2ac7 (same production code), Browser journeys 40635760898 green but known bugs; reviewed (Assassin Evasion as evasionGrant, Berserker Reckless and Priest Divine Eminence as GM rulings; three CREATURE_* closed kinds deleted); merged (run 40643031137). Proofs: creatureEvasionAndRecklessAuthoringParity, nativeRoomMonsterRiders",
+              "note": " Merged in m514."
             },
             {
               "id": "SPELLS-33.T5k",
@@ -20090,10 +20105,10 @@
             {
               "id": "RELIABILITY-21.1",
               "text": "authoring/nodeRuntime:resolve stays under the 1 s query limit, and the publication-class journey loads the authoring tools.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["nodeRuntime.test.ts"],
               "origin": [],
-              "note": "Proof: publication-class."
+              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1."
             },
             {
               "id": "RELIABILITY-21.2",
@@ -20133,18 +20148,18 @@
             {
               "id": "RELIABILITY-21.6",
               "text": "The effects journey passes: the driver does not fail after a Worker eager-reload 409.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T6 (m511); see each task's proof."],
               "origin": [],
-              "note": "Proof: effects."
+              "note": "Proof: effects. Closed 2026-10-28 by RELIABILITY-21.T6."
             },
             {
               "id": "RELIABILITY-21.7",
               "text": "The disarm journey passes without RulesRevisionChangedError during preparation or a membership reload 409.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T7 (m511); see each task's proof."],
               "origin": [],
-              "note": "Proof: disarm."
+              "note": "Proof: disarm. Closed 2026-10-28 by RELIABILITY-21.T7."
             },
             {
               "id": "RELIABILITY-21.8",
@@ -20185,12 +20200,19 @@
               "proof": ["CampaignNotebook.test.tsx"],
               "origin": [],
               "note": "Closed 2026-10-28 by RELIABILITY-21.T12."
+            },
+            {
+              "id": "RELIABILITY-21.13",
+              "text": "area-browser and account-deletion-browser pass without reruns while every proof runs: no Convex query or mutation on their paths (the area scene hydrate query, Encounter history verification, characters/sheetCommands:execute) exceeds the 1 s function limit on CI.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-21.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.1"],
               "wsjf": {
                 "bv": 5,
@@ -20198,8 +20220,10 @@
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Bound authoring/nodeRuntime:resolve read and compute work (it takes over 1 s on CI, so the page shows \"Could not load authoring tools\"), with a read-budget regression test. publication-class gates again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m515.",
+              "text": "Bound authoring/nodeRuntime:resolve read and compute work (it takes over 1 s on CI, so the page shows \"Could not load authoring tools\"), with a read-budget regression test. publication-class gates again.",
+              "mergedAt": "2026-10-28T06:56:32Z",
+              "proof": "Tests 40642443606, Live backend 40642443697, Browser journeys 40642443620 green on 97c0945c1 (publication-class-browser gating and green); reviewed (ruling B: response-local nodes table in packages/schema nodeRuntimeTransport, expandNodeRuntimeResponse the only consumer); merged in m515 batch (run 40646859630). Seeded Fighter response 756,287 to 410,506 bytes, resolve 874-971 to 464-575 ms. Proof: nodeRuntime.test.ts <500,000-byte budget (fails on the old shape) plus deep-equal parity"
             },
             {
               "id": "RELIABILITY-21.T2",
@@ -20259,7 +20283,7 @@
             },
             {
               "id": "RELIABILITY-21.T6",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.6"],
               "wsjf": {
                 "bv": 5,
@@ -20267,12 +20291,14 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Diagnose developmentEncounterEffects.ts:377 failing after a Worker eager-reload 409. The fix is product or driver depending on the root cause, with a regression test. effects-browser gates again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m511.",
+              "text": "Diagnose developmentEncounterEffects.ts:377 failing after a Worker eager-reload 409. The fix is product or driver depending on the root cause, with a regression test. effects-browser gates again.",
+              "mergedAt": "2026-10-28T03:35:47Z",
+              "proof": "Tests 40625233145, Live backend 40625233068, Browser journeys 40625233093 green on 27484e101 (T6+T7 combined, attempt 1); reviewed (browser-mode expectation corrected to D121: player reads omit unbound-controlled creatures; target conditions checked on the GM read); merged in m511 (run 40627499124). Proofs: apps/apis/tests/developmentEncounterEffects.ts (effects-browser gates)"
             },
             {
               "id": "RELIABILITY-21.T7",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.7"],
               "wsjf": {
                 "bv": 5,
@@ -20280,8 +20306,10 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Diagnose RulesRevisionChangedError (\"revision changed during preparation\") followed by a membership reload 409 in the disarm journey, with a regression test. disarm-browser gates again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m511.",
+              "text": "Diagnose RulesRevisionChangedError (\"revision changed during preparation\") followed by a membership reload 409 in the disarm journey, with a regression test. disarm-browser gates again.",
+              "mergedAt": "2026-10-28T03:35:47Z",
+              "proof": "Tests 40618214256, Browser journeys 40618214227 green on fb29d8a2d; carried into 27484e101 (Tests 40625233145, Live backend 40625233068, Browser journeys 40625233093 green); reviewed (proof asserts the D107 preselected attack instead of re-picking it); merged in m511 (run 40627499124). Proofs: apps/web/tests/live-backend/encounterDisarm.ts (disarm-browser gates)"
             },
             {
               "id": "RELIABILITY-21.T8",
@@ -20355,6 +20383,19 @@
               "note": "Registered 2026-10-27 (user yes, D187 growth +2). Intermittent since m500: spells-4-t2lb2d Browser journeys 40595948111, 40593017249, 40589375558; vtt-ui-1-t1 40584640884; reliability-21-t11 40594866820 attempt 1. Passes on rerun. Merged in m509.",
               "mergedAt": "2026-10-28T02:48:19Z",
               "proof": "Tests 40616943265, Browser journeys 40616943232 (attempt 2; attempt 1 red only on scene-live-browser HTTP 429) green on 73b991bd6; reviewed (notebook creator waits for the first notes page); merged in m509 (run 40622052421). Proofs: CampaignNotebook.test.tsx (red before the fix), campaign-collaboration-browser"
+            },
+            {
+              "id": "RELIABILITY-21.T13",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.13"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths.",
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun."
             }
           ]
         }

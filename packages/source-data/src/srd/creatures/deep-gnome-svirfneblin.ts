@@ -98,6 +98,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
               S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY
             ],
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 11,
             order: 0
           },
           ...(
@@ -111,6 +112,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 11,
             charges: {
               id: S.actionId(78, 402 + index),
               limitKind: 'FIXED_AMOUNT' as const,

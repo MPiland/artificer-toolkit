@@ -91,4 +91,24 @@ describe('Character critical rules from authored grants (D158)', () => {
     }
     expect(criticalRules(barbarian, 'Shortbow', 'RANGED').extraDice).toBe(0)
   })
+
+  it('gives a Half-Orc one extra melee die from Savage Attacks and none at range (SPELLS-32.T5)', () => {
+    const halfOrc = {
+      abilities: { STRENGTH: 16, DEXTERITY: 16 },
+      race: 'Half-Orc',
+      classes: [{ label: 'Fighter', level: 1 }]
+    }
+    expect(criticalRules(halfOrc, 'Greataxe', 'MELEE').extraDice).toBe(1)
+    expect(criticalRules(halfOrc, 'Shortbow', 'RANGED').extraDice).toBe(0)
+  })
+
+  it('adds Savage Attacks to Brutal Critical for a Half-Orc Barbarian', () => {
+    const halfOrcBarbarian = {
+      abilities: { STRENGTH: 16 },
+      race: 'Half-Orc',
+      classes: [{ label: 'Barbarian', level: 9 }],
+      features: [brutalCritical()]
+    }
+    expect(criticalRules(halfOrcBarbarian, 'Greataxe', 'MELEE').extraDice).toBe(2)
+  })
 })

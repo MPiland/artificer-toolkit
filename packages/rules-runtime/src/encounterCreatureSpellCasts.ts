@@ -12,6 +12,10 @@ import {
 export interface CreatureSpellCastCandidate {
   ownerFeature: FeatureDto
   cast: SpellCastCandidate
+  /** The spell save DC the grant states; null when it states none. */
+  spellSaveDc: number | null
+  /** The Feature's slot table row the cast spends, by id; null for a cast that spends no slot. */
+  slotRowId: string | null
 }
 
 /**
@@ -19,7 +23,8 @@ export interface CreatureSpellCastCandidate {
  * A Creature's grants are always granted: there is no class or preparation to gate them. A grant that
  * pays from a slot (no at-will, limited-use or cast-at-level attribute) offers the spell at every
  * level of the Feature's slot table at or above the spell's own that still has a slot left. A grant
- * paid from a charge pool has no Creature cast path yet, so it is not offered.
+ * paid from a charge pool has no Creature cast path yet, so it is not offered. A slot cast spends
+ * the row of its cast level.
  */
 export function listCreatureSpellCasts(input: {
   actor: Parameters<typeof featureChargeUsed>[0] & { id: string }
@@ -27,11 +32,16 @@ export function listCreatureSpellCasts(input: {
   spellLevelsById: ReadonlyMap<string, { label: string; level: number }>
 }): readonly CreatureSpellCastCandidate[] {
   const { candidates, append } = createSpellCastCandidateList(createCharacterSpellCastCandidateId)
-  const ownerByCandidateId = new Map<string, FeatureDto>()
+  const grantByCandidateId = new Map<
+    string,
+    { ownerFeature: FeatureDto; spellSaveDc: number | null; slotRowIdByLevel: Map<number, string> }
+  >()
   for (const feature of input.features) {
-    const slotLevelsWithSlots = new Set(
+    const slotRowIdByLevel = new Map(
       (feature.grants?.spellSlots?.levels ?? []).flatMap((row) =>
-        row.amount - featureChargeUsed(input.actor, row.id) > 0 ? [row.level] : []
+        row.amount - featureChargeUsed(input.actor, row.id) > 0
+          ? [[row.level, row.id] as const]
+          : []
       )
     )
     for (const grant of feature.grants?.spells ?? []) {
@@ -55,17 +65,31 @@ export function listCreatureSpellCasts(input: {
           {
             offersLevel:
               mode === 'SPELL_SLOT' && spell.level > 0
-                ? (level) => slotLevelsWithSlots.has(level)
+                ? (level) => slotRowIdByLevel.has(level)
                 : undefined
           }
         )
         for (const added of candidates.slice(before))
-          ownerByCandidateId.set(added.candidateId, feature)
+          grantByCandidateId.set(added.candidateId, {
+            ownerFeature: feature,
+            spellSaveDc: grant.spellSaveDc ?? null,
+            slotRowIdByLevel
+          })
       }
     }
   }
-  return candidates.map((cast) => ({
-    ownerFeature: ownerByCandidateId.get(cast.candidateId)!,
-    cast
-  }))
+  return candidates.map((cast) => {
+    const { ownerFeature, spellSaveDc, slotRowIdByLevel } = grantByCandidateId.get(
+      cast.candidateId
+    )!
+    return {
+      ownerFeature,
+      cast,
+      spellSaveDc,
+      slotRowId:
+        cast.castMode === 'SPELL_SLOT' && cast.castLevel > 0
+          ? slotRowIdByLevel.get(cast.castLevel)!
+          : null
+    }
+  })
 }

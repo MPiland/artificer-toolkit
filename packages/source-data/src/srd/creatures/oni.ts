@@ -58,6 +58,7 @@ export const oni: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.DARKNESS, S.SPELL_IDS.INVISIBILITY],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 13,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -74,6 +75,7 @@ export const oni: CreatureAuthored = {
               S.SPELL_IDS.SLEEP
             ],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 13,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(211, 703),

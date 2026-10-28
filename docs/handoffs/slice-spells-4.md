@@ -757,3 +757,11 @@ See [slice-spells-8-t7.md](slice-spells-8-t7.md). Arcane Sword follows the Spiri
 Test-only carry-over from T2lb2c. Adds the `heat-metal-browser` local proof (`--encounter-heat-metal-browser`): the player casts Heat Metal on an Ogre's Longsword in a real browser, then on the next turn sees the REPEAT_SOURCE_PATH row (cast level and frozen DC) and uses it as a bonus action. The Ogre's turn and the dice go through the owner API as stand-ins. Files: `apps/apis/tests/developmentEncounterHeatMetal.ts`, `fixtures/encounterHeatMetal.ts`, `apps/web/tests/live-backend/encounterHeatMetal.ts`, plus the flag wiring in `developmentDrafts.ts`, an optional spell-slot parameter on `developmentSpellCharacterFixture.ts` and the proof name in the two scripts.
 
 **Proven in CI** (browser journeys, `heat-metal-browser`): the cast, the repeat row (cast level 2, frozen DC) on the next turn, and its use. The journey found that repeat rows sent no Scene measure, so every range-limited repeat warned "Range can't be checked"; `CampaignTabletopEffectOffers` now sends the Scene read from the offer's origin creature to the holder (unit test in `CampaignTabletopActionDrawer.test.tsx`).
+
+## T2r (AC SPELLS-4.1, D187a): zone and aura miscellany
+
+- Guardian of Faith is a placed 15-foot zone. A creature that enters it makes a Dexterity save against the spell save DC: 20 radiant damage on a failure, half on a success, at most once per turn. Allies are spared through the cast-time unaffected pick. The 60-damage end is a GM_CHOICE ruling ("Dismiss the guardian"); `maxApplicationsTotal` is not used.
+- Antipathy/Sympathy is a cast-time choice between two GM rulings. Contingency is a PLAYER_DECLARATION plus a GM_CHOICE. The semantic ledger lists their ruling ids as manual exceptions.
+- Deleted: the `GUARDIAN_OF_FAITH`, `ANTIPATHY_SYMPATHY` and `CONTINGENCY` closed rule kinds.
+- Proof: `sourceZoneAuthoringParity.test.ts` (Guardian of Faith as authored and as a homebrew variant); `manualBesideSpellAuthoringParity.test.ts` (Antipathy/Sympathy, Contingency); room `nativeRoomHazardZoneSpells.test.ts` "the SRD Guardian of Faith zone".
+- Deferred pieces: [future-enhancements.md](../roadmap/future-enhancements.md#deferred-rules-pieces-d187a-2026-10-23) "Zone and aura miscellany".

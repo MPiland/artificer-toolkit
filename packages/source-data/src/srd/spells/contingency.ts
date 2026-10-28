@@ -53,22 +53,34 @@ export const contingency: SpellAuthored = {
           id: spellChildId(SPELL_IDS.CONTINGENCY, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.CONTINGENCY, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.CONTINGENCY, 0x213, 1),
               durationKind: DURATION_KIND.DAY,
               amount: 10
             },
+            // No stored spell with a declared trigger exists, so the contingent spell is a ruling (D187a).
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONTINGENCY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'CONTINGENCY' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Store the Contingent Spell',
+                reasonCode: 'PLAYER_DECLARATION' as const,
+                instructions:
+                  'You choose a spell of 5th level or lower with a casting time of 1 action that can target you, expend its slot, and describe the circumstance that triggers it.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.CONTINGENCY, 0x2f0, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Trigger the Contingency',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The first time the circumstance occurs, the contingent spell takes effect on you alone and the contingency ends. Casting contingency again, or losing the material component, ends it.'
               }
             ]
           }

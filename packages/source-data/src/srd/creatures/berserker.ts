@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const berserker: CreatureAuthored = {
@@ -42,15 +43,19 @@ export const berserker: CreatureAuthored = {
       label: 'Reckless',
       description:
         'Reckless. At the start of its turn, the berserker can gain advantage on all melee weapon attack rolls during that turn, but attack rolls against it have advantage until the start of its next turn.',
+      // Same rule as the Barbarian's Reckless Attack: its two grants end on different turn boundaries, so it is a GM ruling (D187a).
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(44, 101),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(44, 102), rangeKind: S.RANGE_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RECKLESS
+          label: 'Reckless',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'At the start of its turn, the berserker can attack recklessly. It then has advantage on melee weapon attack rolls this turn, and attack rolls against it have advantage until the start of its next turn. The GM applies both.'
         })
       ],
       order: 1

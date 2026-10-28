@@ -88,6 +88,7 @@ export const lich: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         183,
         S.ABILITY_CODE.INTELLIGENCE,
+        20,
         [S.SPELL_IDS.MAGE_HAND, S.SPELL_IDS.PRESTIDIGITATION, S.SPELL_IDS.RAY_OF_FROST],
         [
           {

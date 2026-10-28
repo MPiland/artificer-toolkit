@@ -48,6 +48,7 @@ export const mage: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         187,
         S.ABILITY_CODE.INTELLIGENCE,
+        14,
         [
           S.SPELL_IDS.FIRE_BOLT,
           S.SPELL_IDS.LIGHT,

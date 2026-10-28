@@ -275,6 +275,16 @@ export async function settleAreaCommit(args: {
         spend.featureResourceReceipt.afterUsed
       )
     })
+  // A Creature's slot row settles here; a Character's slot settles with its Sheet.
+  if (spend.spellConsumptionReceipt?.owner.kind === 'CREATURE')
+    settledCaster = encounterRunActorStateSchema.parse({
+      ...settledCaster,
+      resources: withFeatureChargeUsed(
+        settledCaster,
+        spend.spellConsumptionReceipt.slotKey,
+        spend.spellConsumptionReceipt.afterUsed
+      )
+    })
   if (actionEconomy)
     settledCaster = consumeEncounterActionEconomy({
       actor: settledCaster,

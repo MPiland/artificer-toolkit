@@ -44,6 +44,8 @@ import { saveDamageMultiplied } from './effectActionSaveDamage.js'
 export interface TestPlan {
   kind: TestKind
   branches: ReadonlyMap<string, Outcome | EntryDiceOutcome>
+  /** The source entry a fixed branch outcome is authored by, where a held effect binds it (a zone's made save). */
+  branchEntryIds?: ReadonlyMap<string, string>
   /** A condition a result path applies beside its branch, from a proposal of its own (D142). */
   conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
 }
@@ -224,17 +226,15 @@ export function compileTestDefinition(
               nodeId: recurringPlan.frozenGraphNodeId
             },
             // A zone's made save deals its own damage from its own proposal node.
-            ...[...plan.branches].flatMap(([pathCode, outcome]) =>
-              isEntryDiceOutcome(outcome) &&
-              `proposal-${pathCode.toLowerCase()}` !== recurringPlan.frozenGraphNodeId
-                ? [
-                    {
-                      sourceEntryId: outcome.entryId,
-                      nodeId: `proposal-${pathCode.toLowerCase()}`
-                    }
-                  ]
+            ...[...plan.branches].flatMap(([pathCode, outcome]) => {
+              const sourceEntryId = isEntryDiceOutcome(outcome)
+                ? outcome.entryId
+                : plan.branchEntryIds?.get(pathCode)
+              const nodeId = `proposal-${pathCode.toLowerCase()}`
+              return sourceEntryId && nodeId !== recurringPlan.frozenGraphNodeId
+                ? [{ sourceEntryId, nodeId }]
                 : []
-            ),
+            }),
             ...conditions.map(([pathCode, { entryId }]) => ({
               sourceEntryId: entryId,
               nodeId: `proposal-${pathCode.toLowerCase()}${CONDITION_PROPOSAL_SUFFIX}`

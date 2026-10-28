@@ -178,6 +178,7 @@ export async function discoverTurnLegendaryWindows(input: {
           })
         : []
     ),
+    spells: input.spells,
     lockedCharacters,
     activeEffectsByActorId: new Map(
       [...targets].map(([actorId, target]) => [actorId, target.activeEffects])

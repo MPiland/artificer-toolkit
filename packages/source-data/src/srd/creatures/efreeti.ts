@@ -64,6 +64,7 @@ export const efreeti: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.DETECT_MAGIC],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 15,
             order: 0
           },
           {
@@ -75,6 +76,7 @@ export const efreeti: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.ENLARGE_REDUCE, S.SPELL_IDS.TONGUES],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 15,
             charges: {
               id: S.actionId(95, 402),
               limitKind: 'FIXED_AMOUNT',
@@ -102,6 +104,7 @@ export const efreeti: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 15,
             charges: {
               id: S.actionId(95, 403 + index),
               limitKind: 'FIXED_AMOUNT' as const,
