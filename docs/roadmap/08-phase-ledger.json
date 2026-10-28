@@ -13084,7 +13084,7 @@
         {
           "id": "SPELLS-10",
           "title": "Condition mechanics completions",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -15621,7 +15621,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j1", "SPELLS-31.T5l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/architecture/character.md"
             },
             {
               "id": "SPELLS-31.T4s",
@@ -16427,7 +16428,8 @@
                 "after": ["SPELLS-33.T3c2b"]
               },
               "text": "Creature innate casting in the room: offer and cast creature spell grants paid from a charge pool (LIMITED_USE, X/day) and FIXED_LEVEL grants through the shared cast-candidate builder, spending the charge with undo; room journey on an innate caster. T3c2a1 offers only at-will and slot-paid grants.",
-              "note": "Registered 2026-10-20 from the T3c2a1 review."
+              "note": "Registered 2026-10-20 from the T3c2a1 review.",
+              "activeWorkbook": "docs/architecture/persistence.md"
             },
             {
               "id": "SPELLS-33.T3c3",
@@ -20334,7 +20336,7 @@
             },
             {
               "id": "RELIABILITY-21.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.3"],
               "wsjf": {
                 "bv": 5,
@@ -20342,8 +20344,10 @@
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Bound characters/sheetSlices:get read and compute work, with a read-budget regression test. builder-browser and character-sheet-browser gate again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m518.",
+              "text": "Bound characters/sheetSlices:get read and compute work, with a read-budget regression test. builder-browser and character-sheet-browser gate again.",
+              "mergedAt": "2026-10-28T14:37:15Z",
+              "proof": "Tests 40700233770, Browser journeys 40700233862, Live backend 40704519180 on b1cf5926d; sheetReadBudget.test.ts caps the Sheet read (3.46 MB to 581 KB). AC 21.3 stays open: builder-browser still times out on the four-reload fan-out, now owned by T16."
             },
             {
               "id": "RELIABILITY-21.T4",
@@ -20431,7 +20435,8 @@
                 "size": 3
               },
               "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Cold-start durable VTT latency is 363 ms against the 250 ms budget, and only the first sample is over (warm samples are 53-91 ms). Find the cold cost and cut it. The assertion stays. vtt-browser gates again."
+              "text": "Cold-start durable VTT latency is 363 ms against the 250 ms budget, and only the first sample is over (warm samples are 53-91 ms). Find the cold cost and cut it. The assertion stays. vtt-browser gates again.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T10",
@@ -20523,15 +20528,16 @@
             {
               "id": "RELIABILITY-21.T16",
               "status": "TODO",
-              "closes": ["RELIABILITY-21.16"],
+              "closes": ["RELIABILITY-21.16", "RELIABILITY-21.3"],
               "wsjf": {
                 "bv": 8,
                 "tc": 5,
                 "rr": 8,
                 "size": 8
               },
-              "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI."
+              "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge. Riders (orchestrator rulings 2026-10-28, description-only): also remove character-sheet-browser (T14) and vtt-browser (T9) from KNOWN_BUG_PROOFS; bring vtt-browser rule convergence (Sheet Max HP edit, measured 1.27-1.45 s) within budget, fix its first-edit non-convergence flake, and decide with evidence whether rule samples belong in the authoritative bucket.",
+              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI.",
+              "activeWorkbook": "docs/architecture/character.md"
             }
           ]
         }
