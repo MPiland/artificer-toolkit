@@ -13,9 +13,18 @@ export function systemTriggerCommandId(
 }
 
 /**
+ * The ADVANCE_TURN that finishes a turn end split around a delegated Legendary Action: the remaining
+ * windows and the next turn's start, once the delegated action has resolved.
+ */
+export function delegatedLegendaryContinuationCommandId(parentCommandId: string) {
+  return uuidv5(`${parentCommandId}:legendary-continuation`, NAMESPACE)
+}
+
+/**
  * The root command for a rule the Encounter raises on a creature's behalf, such as a passive effect
- * on reaching 0 hit points. It aims at the holder's own space: the committed parent command is the
- * only caller of this builder, and admission proves the link against that command's receipt.
+ * on reaching 0 hit points or a Legendary Action delegated from a turn end. It aims at the holder's
+ * own space: the committed parent command is the only caller of this builder, and admission proves
+ * the link against that command's receipt.
  */
 export function systemTriggerAreaCommand(input: {
   encounterId: string
@@ -24,6 +33,7 @@ export function systemTriggerAreaCommand(input: {
   holderActorId: string
   actionId: string
   scene: { sceneId: string; expectedSceneVersion: number }
+  trigger?: 'LEGENDARY_ACTION'
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
@@ -36,7 +46,10 @@ export function systemTriggerAreaCommand(input: {
     acceptedWieldConflict: null,
     acknowledgedWarnings: [],
     sceneContext: null,
-    systemTrigger: { parentCommandId: input.parentCommandId }
+    systemTrigger: {
+      parentCommandId: input.parentCommandId,
+      ...(input.trigger ? { trigger: input.trigger } : {})
+    }
   }
 }
 

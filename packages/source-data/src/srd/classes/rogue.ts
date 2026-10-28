@@ -24,12 +24,13 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored,
   type FacetAuthored
 } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
@@ -110,29 +111,16 @@ function elusiveRestriction(grant: number): FacetAuthored {
   }
 }
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(R, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
   return closedRuleEffect({
     id: classRowId(R, 0x60, entry),
     ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(R, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
   })
 }
 
@@ -703,11 +691,25 @@ export const rogue: ClassAuthored = {
       description:
         'Starting at 2nd level, your quick thinking and agility allow you to move and act quickly. You can take a bonus action on each of your turns in combat. This action can be used only to take the Dash, Disengage, or Hide action.',
       effects: [
-        selfClassRuleEffect(
-          4,
-          CLOSED_RULE_KIND.CLASS_ROGUE_CUNNING_ACTION,
-          ACTIVATION_CODE.BONUS_ACTION
-        )
+        standingGrantedActionsEffect({
+          id: classRowId(R, 0x60, 4),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(R, 0x69, 4), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: 'SELF' }
+          },
+          grantedActions: [
+            {
+              activation: ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [
+                SRD_BASIC_ACTION_IDS.DASH,
+                SRD_BASIC_ACTION_IDS.DISENGAGE,
+                SRD_BASIC_ACTION_IDS.HIDE
+              ]
+            }
+          ]
+        })
       ],
       availableAtLevel: 2,
       order: 3

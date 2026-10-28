@@ -240,6 +240,11 @@ export const legendaryActionChoiceOptionDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       /** The exact execution plan the option runs. */
       actionSourceChecksum: checksumSchema,
+      /**
+       * Set for an area the owner centers on itself: the turn hands the selected option to the area
+       * coordinator as a rule-raised action between the outgoing turn's end and the next turn.
+       */
+      delegated: z.optional(z.literal(true)),
       chargeId: uuidSchema,
       featureCost: positiveIntegerSchema,
       poolBefore: nonNegativeIntegerSchema,
@@ -335,6 +340,8 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
       selectionChecksum: checksumSchema,
       resolution: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('DECLINED') }),
+        /** A delegated option, which its own rule-raised action resolves after this commit. */
+        z.strictObject({ kind: z.literal('DELEGATED'), selectedOptionId: checksumSchema }),
         z.strictObject({
           kind: z.literal('EXECUTED'),
           selectedOptionId: checksumSchema,
@@ -384,6 +391,12 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           })
           return
         }
+        if ((resolution.kind === 'DELEGATED') !== (option.delegated === true))
+          context.addIssue({
+            code: 'custom',
+            path: ['resolution', 'kind'],
+            message: 'Only a delegated Legendary Action option is delegated, and it always is.'
+          })
         if (resolution.kind !== 'EXECUTED') return
         const application = resolution.application
         if (

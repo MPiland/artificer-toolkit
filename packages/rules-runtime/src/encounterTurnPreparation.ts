@@ -17,7 +17,10 @@ import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import type { prepareEncounterTurnEffects } from './encounterTurnEffects.js'
 import type { prepareEncounterTurnZoneEffects } from './encounterTurnZoneEffects.js'
 import type { prepareEncounterTurnInitiative } from './encounterTurnInitiative.js'
-import type { prepareTurnLegendaryActions } from './encounterTurnLegendaryAction.js'
+import {
+  delegatedLegendaryOption,
+  type prepareTurnLegendaryActions
+} from './encounterTurnLegendaryAction.js'
 import type { prepareEncounterTurnRecharge } from './encounterTurnRecharge.js'
 import type { prepareEncounterTurnDeathSave } from './encounterTurnDeathSave.js'
 
@@ -175,23 +178,24 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     pending?.applicationContext.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS'
       ? pending.applicationContext
       : null
-  // Only an advancing turn has an outgoing boundary; a START's zone boundary is the incoming one.
-  const outgoingZonePending =
-    root.commandType === 'ADVANCE_TURN' && zoneContext?.currentCandidate.boundaryOrdinal === 0
-  const outgoing =
-    root.commandType === 'ADVANCE_TURN'
-      ? await stages.effects({
-          state,
-          userId: campaign.ownerUserId,
-          autoRollByActorId: input.autoRollByActorId,
-          root,
-          occurrenceId,
-          actors: input.actors,
-          boundary: { ordinal: 0, stage: 'END_OF_TURN', actorId: state.currentActorId },
-          ...(root.outgoingTurn ? { retainedPhase: root.outgoingTurn } : {}),
-          ...(outgoingPending ? { pending, resolution: input.resolution } : {})
-        })
-      : null
+  // Only an advancing turn has an outgoing boundary; a START's zone boundary is the incoming one. A
+  // continuation after a delegated Legendary Action already ended the outgoing turn.
+  const endsOutgoing =
+    root.commandType === 'ADVANCE_TURN' && state.delegatedLegendaryAction === undefined
+  const outgoingZonePending = endsOutgoing && zoneContext?.currentCandidate.boundaryOrdinal === 0
+  const outgoing = endsOutgoing
+    ? await stages.effects({
+        state,
+        userId: campaign.ownerUserId,
+        autoRollByActorId: input.autoRollByActorId,
+        root,
+        occurrenceId,
+        actors: input.actors,
+        boundary: { ordinal: 0, stage: 'END_OF_TURN', actorId: state.currentActorId },
+        ...(root.outgoingTurn ? { retainedPhase: root.outgoingTurn } : {}),
+        ...(outgoingPending ? { pending, resolution: input.resolution } : {})
+      })
+    : null
   if (outgoing?.kind === 'PENDING') return outgoing
   const startOutgoing = root.commandType === 'ADVANCE_TURN' && !root.outgoingTurn
   if (outgoing) root = { ...root, outgoingTurn: outgoing.phase }
@@ -200,21 +204,20 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     stage: 'END_OF_TURN',
     actorId: state.currentActorId
   } as const
-  const outgoingZones =
-    root.commandType === 'ADVANCE_TURN'
-      ? await stages.zones({
-          state,
-          userId: campaign.ownerUserId,
-          autoRollByActorId: input.autoRollByActorId,
-          root,
-          occurrenceId,
-          actors: outgoing!.actors,
-          movementTargets: outgoing!.movementTargets,
-          boundary: outgoingBoundary,
-          ...(root.outgoingZoneTurn ? { retainedPlan: root.outgoingZoneTurn } : {}),
-          ...(outgoingZonePending ? { pending, resolution: input.resolution } : {})
-        })
-      : null
+  const outgoingZones = outgoing
+    ? await stages.zones({
+        state,
+        userId: campaign.ownerUserId,
+        autoRollByActorId: input.autoRollByActorId,
+        root,
+        occurrenceId,
+        actors: outgoing.actors,
+        movementTargets: outgoing.movementTargets,
+        boundary: outgoingBoundary,
+        ...(root.outgoingZoneTurn ? { retainedPlan: root.outgoingZoneTurn } : {}),
+        ...(outgoingZonePending ? { pending, resolution: input.resolution } : {})
+      })
+    : null
   if (outgoingZones?.kind === 'PENDING') return outgoingZones
   if (outgoingZones?.plan) root = { ...root, outgoingZoneTurn: outgoingZones.plan }
   const outgoingActors = outgoingZones?.actors ?? input.actors
@@ -235,6 +238,27 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
   })
   if (legendary.kind === 'PENDING') return legendary
   root = legendary.root
+  // A delegated window commits the turn end so far; the next turn starts in the continuation.
+  if (delegatedLegendaryOption(root))
+    return {
+      kind: 'COMPLETE' as const,
+      root,
+      actors: legendary.actors,
+      outgoingActors,
+      incomingActors: legendary.actors,
+      outgoing,
+      incoming: {
+        kind: 'COMPLETE' as const,
+        actors: legendary.actors,
+        movementTargets: legendary.movementTargets,
+        plan: null,
+        phase: { kind: 'NONE' as const }
+      },
+      outgoingZones: outgoingZones?.plan ?? null,
+      incomingZones: null,
+      rechargePlan: null,
+      deathSavePlan: null
+    }
   // The turn's effects and Legendary Actions may have killed a Character (D96).
   const deadCharacterIds = deadCharacterIdsOfTargets(
     legendary.movementTargets.values(),

@@ -29,6 +29,7 @@ import authSchema from '../betterAuth/schema'
 import { createSystemSourceReader } from './systemSources'
 import { readSystemOwner } from '../content/definitionStore'
 import { authoredSourceFacts, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
+import { getValueAtPath, isRuntimeRecord } from '@artificer-toolkit/shared/utils'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -187,10 +188,49 @@ describe('native Convex authoring resolver', () => {
     } satisfies NodeRuntimeResolveRequestDto
 
     const compact = await caller.query(resolve, request)
-    const original = await t.run(async (ctx) =>
-      resolveNodeRuntime(await createSystemSourceReader(ctx, request.systemId, userId), request)
-    )
+    let readerCalls = 0
+    const { original, perScope } = await t.run(async (ctx) => {
+      const reader = await createSystemSourceReader(ctx, request.systemId, userId)
+      const counted: typeof reader = (...query) => {
+        readerCalls += 1
+        return reader(...query)
+      }
+      const original = await resolveNodeRuntime(counted, request)
+      // Each scope resolved on its own, with nothing shared with the other scopes, must equal the
+      // model the shared resolution gave it. A scope's parent is its nearest enclosing scope.
+      const scopeValues = (path: readonly (string | number)[]) => {
+        const values = getValueAtPath(request.values, path)
+        if (!isRuntimeRecord(values)) throw new Error('A resolved scope must have record values.')
+        return values
+      }
+      const perScope: Pick<typeof original, 'mapId' | 'steps' | 'clearPaths'>[] = []
+      for (const scope of original.scopes) {
+        const enclosing = original.scopes
+          .filter(
+            (other) =>
+              other.path.length < scope.path.length &&
+              other.path.every((segment, index) => scope.path[index] === segment)
+          )
+          .sort((left, right) => right.path.length - left.path.length)
+        const lineage = [...enclosing.map((other) => scopeValues(other.path)), request.values]
+        const alone = await resolveNodeRuntime(reader, {
+          mapId: scope.mapId,
+          systemId: request.systemId,
+          values: scopeValues(scope.path),
+          parentValues: lineage[0],
+          ancestors: lineage
+        })
+        perScope.push({ mapId: alone.mapId, steps: alone.steps, clearPaths: alone.clearPaths })
+      }
+      return { original, perScope }
+    })
 
+    // RELIABILITY-21.T19: re-resolving 1,283 scopes that share 62 models cost ~335 reader calls and
+    // ~30,000 resolved nodes, which ran past resolve's 1 s budget on CI. Equal scopes resolve once.
+    expect(readerCalls).toBeLessThan(60)
+    expect(perScope).toEqual(
+      original.scopes.map(({ mapId, steps, clearPaths }) => ({ mapId, steps, clearPaths }))
+    )
     expect(compact.scopes.length).toBeGreaterThan(1000)
     expect(compact.models.length).toBeLessThan(compact.scopes.length / 10)
     expect(new TextEncoder().encode(JSON.stringify(compact)).byteLength).toBeLessThan(1_000_000)

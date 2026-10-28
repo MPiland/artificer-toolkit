@@ -275,9 +275,10 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
         parentCommandId: uuidSchema,
         /**
          * Absent for the default, reaching 0 hit points. RULE: an optional combat rule's own action,
-         * raised by the rule's failed save the parent receipt records.
+         * raised by the rule's failed save the parent receipt records. LEGENDARY_ACTION: a delegated
+         * Legendary Action option, raised by the ADVANCE_TURN that selected it.
          */
-        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE']))
+        trigger: z.optional(z.enum(['START_OF_TURN', 'RULE', 'LEGENDARY_ACTION']))
       })
     ),
     acceptedWieldConflict: z._default(

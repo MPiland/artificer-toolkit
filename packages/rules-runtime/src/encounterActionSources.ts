@@ -14,9 +14,10 @@ import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { isInstalledMeleeAttackTrigger } from './platformRulesRuntime.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 import {
+  actorStandingGrantedActions,
   parseGrantedActionId,
   resolveGrantedAction,
-  standingGrantedActions
+  type StandingGrantedActionCharacterRules
 } from './encounterGrantedActions.js'
 import {
   discoverEncounterRepeatPath,
@@ -57,12 +58,12 @@ export type EncounterActionSourceInput = {
   /** The System's current authored basic actions, read for a basic action's identity. */
   basicActions?: readonly EncounterBasicActionEntry[]
   /**
-   * The actor's held effects and the once-per-turn keys it has spent, read for a granted action
-   * (D160); required when `actionId` names one.
+   * The actor's held effects, the once-per-turn keys it has spent and, for a Character, the current
+   * rules its standing offers are read from, read for a granted action (D160, D188); required when
+   * `actionId` names one.
    */
-  granted?: {
-    heldEffects: Parameters<typeof resolveGrantedAction>[0]['heldEffects']
-    spentKeys: readonly string[]
+  granted?: Pick<Parameters<typeof resolveGrantedAction>[0], 'heldEffects' | 'spentKeys'> & {
+    characterRules?: StandingGrantedActionCharacterRules | null
   }
   /**
    * Every Run actor's held effects, the Run's turn and the once-per-turn keys the actor has spent,
@@ -190,7 +191,7 @@ export function resolveEncounterActionSource(
       ? resolveGrantedAction({
           actionId: input.actionId,
           heldEffects: input.granted?.heldEffects ?? [],
-          standing: standingGrantedActions(snapshotFeatureDefinitions(actor)),
+          standing: actorStandingGrantedActions(actor, input.granted?.characterRules),
           spentKeys: input.granted?.spentKeys ?? []
         })
       : null
