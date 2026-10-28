@@ -6,7 +6,6 @@ import {
   MODIFIER_SCOPE_KIND,
   VALUE_DOMAIN_CODE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   MANUAL_ADJUDICATION_REASON,
   PATH_CODE,
@@ -16,9 +15,10 @@ import {
   TRIGGER,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_STEALTH_SKILL_ID, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -47,16 +47,20 @@ export const thiefRoguishArchetype: ClassAuthored = {
       availableAtLevel: 3,
       order: 0,
       effects: [
-        closedRuleEffect({
+        standingGrantedActionsEffect({
           id: classRowId(R, 20, 1),
           invocation: {
-            kind: 'ACTION',
+            kind: 'PASSIVE',
             triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
             range: { id: classRowId(R, 21, 1), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_THIEF_FAST_HANDS
+          grantedActions: [
+            {
+              activation: ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [SRD_BASIC_ACTION_IDS.USE_AN_OBJECT]
+            }
+          ]
         })
       ]
     },

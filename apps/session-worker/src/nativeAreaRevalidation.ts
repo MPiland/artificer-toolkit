@@ -80,7 +80,7 @@ export async function revalidateAreaTarget(
     actor,
     token
   })
-  refuseActionOutsideItsWindow(target.prepared)
+  refuseActionOutsideItsWindow(target.prepared, command)
   const evaluation = await evaluateNativeLiveActionEconomy({
     prepared: target.prepared,
     state,

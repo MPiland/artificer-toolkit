@@ -122,6 +122,24 @@ function same(left: unknown, right: unknown) {
 }
 
 /**
+ * The option a turn end hands to its own rule-raised action, which is always its last window: the
+ * turn commits the end so far, the action resolves, and a continuation runs the rest. Null when the
+ * turn delegated nothing.
+ */
+export function delegatedLegendaryOption(
+  root: Pick<TurnCoordinatorRootDto, 'completedLegendaryActions'>
+) {
+  const last = root.completedLegendaryActions?.at(-1)
+  const resolution = last?.resolution
+  if (resolution?.kind !== 'DELEGATED') return null
+  const option = last!.choice.options.find(
+    (entry) => entry.optionId === resolution.selectedOptionId
+  )
+  if (!option?.delegated) throw new Error('Delegated Legendary Action option is unavailable.')
+  return option
+}
+
+/**
  * Reconstructs every completed owner decision before extending a turn; it never writes mechanics.
  * A selected option runs the action it names through the same prepared, phased action path as any
  * other Encounter action (D51 option B), against the target its controller picked.
@@ -594,6 +612,9 @@ export async function prepareTurnLegendaryActions<
         (entry.kind === 'LEGENDARY_DECLINE' || entry.kind === 'LEGENDARY_OPTION') &&
         entry.selectionChecksum === evidence.selectionChecksum
     )
+    // A delegation commits the turn end at once, so no paused turn retains one.
+    if (evidence.resolution.kind === 'DELEGATED')
+      throw new Error('Retained Legendary Action delegation is stale.')
     if (
       !decision ||
       (evidence.resolution.kind === 'DECLINED'
@@ -673,6 +694,26 @@ export async function prepareTurnLegendaryActions<
                 }
               : null
         if (!selection) throw new Error('Legendary Action choice is required.')
+        const delegated = choice.options.find(
+          (option) => option.optionId === selection.optionId && option.delegated
+        )
+        if (delegated) {
+          const owner = await windowFor(choice.ownerActorId)
+          if (
+            !owner ||
+            !same(owner.choice, choice) ||
+            selection.targetActorId !== choice.ownerActorId
+          )
+            throw new Error('Legendary Action choice is stale.')
+          completed.push({
+            choice,
+            selectionChecksum: checksumCanonicalJson(choice),
+            resolution: { kind: 'DELEGATED', selectedOptionId: delegated.optionId }
+          })
+          // The turn end commits here; the remaining windows wait for the continuation.
+          root = { ...root, completedLegendaryActions: completed, legendaryActionQueue: undefined }
+          return { kind: 'COMPLETE' as const, root, actors, movementTargets: targets }
+        }
         const result = await execute(choice, selection, completed.length)
         if (result.kind === 'PENDING') return result
         completed.push(result.evidence)
