@@ -282,6 +282,7 @@ interface ManagedClient {
   context: BrowserContext
   failedRequests: string[]
   liveSessionFrames: string[]
+  liveSessionFrameTimes: number[]
   liveSessionSentFrameTimes: number[]
   liveSessionSentFrames: string[]
   liveSessionUrls: string[]
@@ -425,6 +426,8 @@ async function collectDoorConvergenceTimings(
       )
     })
     const sentFrameStart = gm.liveSessionSentFrames.length
+    const playerFrameStarts = players.map((player) => player.liveSessionFrames.length)
+    await Promise.all(players.map((player) => armSceneVersionStamp(player.page, priorVersion + 1)))
     const liveSceneConvergence = Promise.all(
       [gm, ...players].map((client) => waitForSceneVersion(client.page, priorVersion + 1))
     )
@@ -457,6 +460,30 @@ async function collectDoorConvergenceTimings(
       ...players.map((player) => expectDoorHidden(player))
     ])
     diagnostics[`doorCommit${index + 1}Ms`] = durableMs
+    const sentOffset = gm.liveSessionSentFrames
+      .slice(sentFrameStart)
+      .findIndex((payload) => isSceneDoorCommandFrame(payload))
+    const sentAt = gm.liveSessionSentFrameTimes[sentFrameStart + sentOffset]!
+    const segments = await Promise.all(
+      players.map(async (player, playerIndex) => {
+        const committedIndex = player.liveSessionFrames.findIndex(
+          (payload, frameIndex) =>
+            frameIndex >= playerFrameStarts[playerIndex]! &&
+            parsedFrame(payload)?.type === 'COMMAND_COMMITTED'
+        )
+        return {
+          receivedMs: (player.liveSessionFrameTimes[committedIndex] ?? Number.NaN) - sentAt,
+          renderedMs: (await readSceneVersionStamp(player.page)) - sentAt
+        }
+      })
+    )
+    console.info(
+      `Managed VTT door ${index + 1} segments: ${JSON.stringify({
+        clickToSendMs: sentAt - submittedAt,
+        durableMs,
+        players: segments
+      })}`
+    )
     if (index >= warmupPairs) {
       samples.authoritative.push(Math.max(...observedAt) - submittedAt)
       samples.durable.push(durableMs)
@@ -650,6 +677,29 @@ async function readSceneVersion(page: Page): Promise<number> {
   const version = Number(label.slice(1))
   if (!Number.isInteger(version)) throw new Error(`Invalid managed Scene version ${label}.`)
   return version
+}
+
+async function armSceneVersionStamp(page: Page, version: number): Promise<void> {
+  await liveSceneRegion(page).evaluate((region, label) => {
+    const state = window as unknown as Record<string, unknown>
+    state.__vttSceneVersionAt = null
+    const observer = new MutationObserver(() => {
+      const shown = Array.from(region.querySelectorAll('*')).some(
+        (element) => element.childElementCount === 0 && element.textContent === label
+      )
+      if (!shown) return
+      state.__vttSceneVersionAt = Date.now()
+      observer.disconnect()
+    })
+    observer.observe(region, { characterData: true, childList: true, subtree: true })
+  }, `v${version}`)
+}
+
+async function readSceneVersionStamp(page: Page): Promise<number> {
+  const stamp = await page.evaluate(
+    () => (window as unknown as Record<string, unknown>).__vttSceneVersionAt
+  )
+  return typeof stamp === 'number' ? stamp : Number.NaN
 }
 
 async function waitForSceneVersion(page: Page, version: number): Promise<number> {
@@ -977,6 +1027,7 @@ async function openManagedClient(
       context,
       failedRequests,
       liveSessionFrames: [],
+      liveSessionFrameTimes: [],
       liveSessionSentFrameTimes: [],
       liveSessionSentFrames: [],
       liveSessionUrls: [],
@@ -1021,6 +1072,7 @@ function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
     socket.on('framereceived', ({ payload }) => {
       const rawPayload = payload.toString()
       client.liveSessionFrames.push(rawPayload)
+      client.liveSessionFrameTimes.push(Date.now())
       if (
         !client.visualFrameTracking ||
         client.visualFramePaintPending ||
