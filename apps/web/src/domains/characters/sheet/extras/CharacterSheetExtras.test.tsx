@@ -83,6 +83,60 @@ describe('CharacterSheetExtras native catalogue', () => {
     unmount()
     client.clear()
   })
+
+  it('keeps the typed creature search and the field enabled while a search is in flight (RELIABILITY-21.T14)', async () => {
+    const user = userEvent.setup()
+    const owl = { id: '00000000-0000-4000-8000-000000000504', label: 'Owl' }
+    let releaseSearches = () => {}
+    const searches = new Promise<void>((resolve) => {
+      releaseSearches = resolve
+    })
+    const query = vi.fn(async ({ queryKey }: QueryFunctionContext) => {
+      if (characterSheetExtraCatalogReadInputSchema.parse(queryKey[2]).query) await searches
+      return { items: [owl], nextCursor: null }
+    })
+    const client = new QueryClient({
+      defaultOptions: { queries: { queryFn: query, retry: false } }
+    })
+    const { unmount } = render(
+      <MantineProvider>
+        <QueryClientProvider client={client}>
+          <CharacterSheetExtras
+            pending={false}
+            sheet={{
+              ...characterSheetFixture,
+              extras: {
+                ...characterSheetFixture.extras,
+                kindOptions: [{ code: 'COMPANION', label: 'Companion' }]
+              }
+            }}
+            submitCommand={vi.fn()}
+          />
+        </QueryClientProvider>
+      </MantineProvider>
+    )
+    await user.click(screen.getByRole('button', { name: 'Add Extra' }))
+    const drawer = await screen.findByRole('dialog', { name: 'Add Extra' })
+    await user.click(within(drawer).getByRole('combobox', { name: 'Kind' }))
+    await user.click(await screen.findByRole('option', { hidden: true, name: 'Companion' }))
+    const creature = within(drawer).getByRole('combobox', { name: 'Creature' })
+    await waitFor(() => expect(creature).toBeEnabled())
+
+    await user.type(creature, 'Owl')
+    await waitFor(() =>
+      expect(query.mock.lastCall?.[0].queryKey[2]).toMatchObject({ query: 'Owl' })
+    )
+    expect(creature).toBeEnabled()
+    expect(creature).toHaveFocus()
+    expect(creature).toHaveValue('Owl')
+
+    releaseSearches()
+    await user.click(await screen.findByRole('option', { hidden: true, name: 'Owl' }))
+    expect(creature).toHaveValue('Owl')
+    expect(within(drawer).getByRole('combobox', { name: 'Origin' })).toBeInTheDocument()
+    unmount()
+    client.clear()
+  })
 })
 
 describe('CharacterSheetExtras spell summons (D190)', () => {

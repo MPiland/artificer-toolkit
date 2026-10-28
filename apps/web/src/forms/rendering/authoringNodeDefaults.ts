@@ -100,6 +100,7 @@ import type {
   ManifestDestructionCriterionAuthored,
   ManifestCamouflageAuthored,
   ManifestLightAuthored,
+  ManifestOccupantConditionImmunityAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   ManualAdjudicationAuthored,
@@ -588,6 +589,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       } satisfies ManifestLightAuthored
     case 'manifestCamouflage':
       return { spotDc: { kind: 'SOURCE_SAVE_DC' } } satisfies ManifestCamouflageAuthored
+    case 'manifestOccupantConditionImmunity':
+      return {
+        id: crypto.randomUUID(),
+        conditionTypeIds: [],
+        dispositionFilter: 'ALLIES_AND_SOURCE'
+      } satisfies ManifestOccupantConditionImmunityAuthored
     case 'manifestOccupantSaveBonus':
       return {
         id: crypto.randomUUID(),

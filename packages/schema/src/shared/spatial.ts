@@ -193,6 +193,17 @@ export function spatialHeldConditionDtoSchema<TDc extends z.ZodMiniType>(dcSchem
   })
 }
 
+/**
+ * The conditions a zone keeps off its source and the source's allies inside it (D155 amendment:
+ * Aura of Courage), compiled and placed alike: nothing about them is resolved at placement.
+ */
+export const spatialOccupantConditionImmunityDtoSchema = lazySchema(() =>
+  z.strictObject({
+    dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
+    conditionTypeIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(16))
+  })
+)
+
 /** A compiled zone's held condition; its escape DC may be its source's save DC. */
 export const compiledSpatialHeldConditionDtoSchema = lazySchema(() =>
   spatialHeldConditionDtoSchema(heldEscapeDcDtoSchema)
@@ -263,7 +274,9 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
           dispositionFilter: z.literal('ALLIES_AND_SOURCE'),
           amount: z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30))
         })
-      )
+      ),
+      /** The conditions the zone keeps off its source and the source's allies inside it. */
+      occupantConditionImmunity: z.optional(spatialOccupantConditionImmunityDtoSchema)
     })
     .check(
       z.superRefine((placement, context) => {
@@ -271,12 +284,14 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
           placement.triggerModes.length > 0 ||
           placement.turnTriggers !== undefined ||
           placement.retaliatesMeleeHits === true
-        if (placement.occupantSaveBonus && (triggered || placement.anchorKind !== 'TOKEN'))
-          context.addIssue({
-            code: 'custom',
-            path: ['occupantSaveBonus'],
-            message: 'A zone lending a save bonus is untriggered and anchored to its source token.'
-          })
+        for (const key of ['occupantSaveBonus', 'occupantConditionImmunity'] as const)
+          if (placement[key] && (triggered || placement.anchorKind !== 'TOKEN'))
+            context.addIssue({
+              code: 'custom',
+              path: [key],
+              message:
+                'A zone lending its occupants a benefit is untriggered and anchored to its source token.'
+            })
         if (placement.retaliatesMeleeHits && placement.anchorKind !== 'TOKEN')
           context.addIssue({
             code: 'custom',

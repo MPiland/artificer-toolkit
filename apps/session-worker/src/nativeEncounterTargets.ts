@@ -15,7 +15,7 @@ import {
   buildMovementTarget,
   characterConditionIds
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime/encounterOccupantSaveAuras'
+import { withEncounterOccupantAuras } from '@artificer-toolkit/rules-runtime/encounterOccupantAuras'
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
@@ -161,9 +161,9 @@ export async function prepareNativeLiveMovementTarget(input: {
   })
   const inputs = await capture({ kind: 'INPUTS' })
   if (inputs.kind !== 'INPUTS') throw new Error('Encounter inputs are unavailable.')
-  const auras = await capture({ kind: 'OCCUPANT_SAVE_AURAS', actorId: actor.id })
-  if (auras.kind !== 'OCCUPANT_SAVE_AURAS' || auras.actorId !== actor.id)
-    throw new Error('Encounter save auras are unavailable.')
+  const auras = await capture({ kind: 'OCCUPANT_AURAS', actorId: actor.id })
+  if (auras.kind !== 'OCCUPANT_AURAS' || auras.actorId !== actor.id)
+    throw new Error('Encounter occupant auras are unavailable.')
   // Only an actor with a defensive grant (Dodge) reads its capability definitions.
   const defended = await withEncounterHolderDefense({
     target,
@@ -173,7 +173,7 @@ export async function prepareNativeLiveMovementTarget(input: {
     runEffectsByActorId: input.activeEffectsByActorId,
     readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, actor.id)
   })
-  const saved = await withEncounterOccupantSaveBonus({
+  const saved = await withEncounterOccupantAuras({
     target: defended,
     gameSystemId: state.gameSystemId,
     auras: auras.auras,

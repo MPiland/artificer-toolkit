@@ -47,10 +47,10 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   /** Exact owner-Feature charge binding for this action, when one is authored. */
   featureResourceUse: { chargeId: string; cost: number } | null
   /**
-   * The slot table row a Spell cast spends, of the Feature whose table it is; null for an action
-   * that spends no slot. The row id keys its used count.
+   * What a Spell cast spends, of the Feature that grants it: a slot table row or the grant's charge
+   * pool, whose id keys its used count; null for an action that spends neither.
    */
-  spellSlotUse: { ownerFeatureId: string; slotRowId: string; spellId: string } | null
+  spellSlotUse: { ownerFeatureId: string; slotKey: string; spellId: string } | null
   /** Exact held Equipment source backing this Feature action, when authored. */
   equipmentBinding?: {
     loadoutEntryId: string
@@ -476,7 +476,8 @@ interface CreatureSpellCastAction {
 /**
  * The Spell casts a Creature can make from the Run's pinned Spells (D163): each cast of its grants,
  * and each cast a Feature option's `grantedSpellCast` makes of a granted spell of that kind, which
- * also pays the option's own cost and is never a reaction. A slot cast spends the row of its level.
+ * also pays the option's own cost and is never a reaction. A slot cast spends the row of its level,
+ * and an innate limited-use cast a use of its grant's charge pool.
  * A spell attack rolls the caster's spell attack bonus and a spell save reads its spell save DC,
  * both from the DC the grant states; a spell attack whose grant states none is listed unavailable.
  */
@@ -504,14 +505,12 @@ function creatureSpellCastActions(input: {
         : []
     )
   )
-  return casts.flatMap(({ ownerFeature, cast, spellSaveDc, slotRowId }) => {
+  return casts.flatMap(({ ownerFeature, cast, spellSaveDc, slotKey }) => {
     const spell = spells.get(cast.spellId)!
     const label = spellCastLabel(spell, cast)
     const spellcasting = spellSaveDc === null ? null : profile.creatureSpellcasting({ spellSaveDc })
     const spellSlotUse =
-      slotRowId === null
-        ? null
-        : { ownerFeatureId: ownerFeature.id, slotRowId, spellId: cast.spellId }
+      slotKey === null ? null : { ownerFeatureId: ownerFeature.id, slotKey, spellId: cast.spellId }
     const spellKind = cast.spellLevel === 0 ? 'CANTRIP' : 'LEVELED'
     const groups = castableEffectGroups(spell).map((compiledEffect, index) => ({
       compiledEffect,
