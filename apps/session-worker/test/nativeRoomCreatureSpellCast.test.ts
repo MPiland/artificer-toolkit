@@ -3,7 +3,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { mage } from '@artificer-toolkit/source-data/srd/creatures/mage.js'
-import { planetar } from '@artificer-toolkit/source-data/srd/creatures/planetar.js'
+import { oni } from '@artificer-toolkit/source-data/srd/creatures/oni.js'
 import { SPELL_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -56,8 +56,18 @@ const featureChargesOf = (history: RoomHistory, actorId = MAGE_ID) => {
   return state.resources.featureCharges ?? {}
 }
 
-/** Casts the caster's offered `label` at the Wolf's point, settles the Wolf's failed save and returns the action id. */
-async function castAtWolf(room: Room, label: string, actorId = MAGE_ID) {
+/** Casts the caster's offered `label` aimed by `aim`, settles the Wolf's failed save and returns the action id. */
+async function castAtWolf(
+  room: Room,
+  label: string,
+  actorId = MAGE_ID,
+  aim:
+    | { kind: 'POINT'; point: { x: number; y: number } }
+    | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } } = {
+    kind: 'POINT',
+    point: WOLF_POINT
+  }
+) {
   const action = (await room.actionChoices()).actions.find((choice) => choice.label === label)
   if (!action) throw new Error(`The room offers the caster no ${label}.`)
   const answer = await room.send({
@@ -69,8 +79,7 @@ async function castAtWolf(room: Room, label: string, actorId = MAGE_ID) {
     expectedVersion: await room.version(),
     actorId,
     target: {
-      kind: 'POINT',
-      point: WOLF_POINT,
+      ...aim,
       sceneId: room.room.scene.id,
       expectedSceneVersion: room.room.scene.version
     },
@@ -130,49 +139,54 @@ describe('a Creature casts a granted Spell from a slot in a real room (SPELLS-33
   })
 })
 
-describe('a Creature casts an innate 3/day Spell from its charge pool in a real room (SPELLS-33.T3c2c)', () => {
-  const PLANETAR_ID = testUuid(0xb12)
-  const angel = installedSrdCreature(planetar)
-  const innate = angel.features.find((feature) =>
+describe('a Creature casts an innate 1/day Spell from its charge pool in a real room (SPELLS-33.T3c2c)', () => {
+  const ONI_ID = testUuid(0xb12)
+  const ogreMage = installedSrdCreature(oni)
+  const innate = ogreMage.features.find((feature) =>
     feature.grants?.spells?.some(
       (grant) =>
-        grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.FLAME_STRIKE)
+        grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
     )
   )
   const pool = innate?.grants?.spells?.find(
     (grant) =>
-      grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.FLAME_STRIKE)
+      grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(SPELL_IDS.CONE_OF_COLD)
   )?.charges
-  if (!innate || !pool) throw new Error('The Planetar has no Flame Strike pool.')
+  if (!innate || !pool) throw new Error('The Oni has no Cone of Cold pool.')
 
-  function planetarRoom(featureCharges?: Record<string, number>) {
-    const greatsword = angel.features.find(({ label }) => label.startsWith('Greatsword'))
-    if (!greatsword) throw new Error('The Planetar has no Greatsword.')
+  function oniRoom(featureCharges?: Record<string, number>) {
+    const glaive = ogreMage.features.find(({ label }) => label.startsWith('Glaive'))
+    if (!glaive) throw new Error('The Oni has no Glaive.')
     return actionRoom({
       actors: [
-        srdCreatureActor({ id: PLANETAR_ID, creature: angel, featureCharges }),
+        srdCreatureActor({ id: ONI_ID, creature: ogreMage, featureCharges }),
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
       ],
       positions: { [WOLF_ID]: WOLF_POINT },
-      ownerFeatureId: greatsword.id,
+      ownerFeatureId: glaive.id,
       pinSpells: true,
       fallbackRoll: 1
     })
   }
 
   it('spends one use of the pool with a receipt, and undo gives it back', async () => {
-    const room = await planetarRoom()
+    const room = await oniRoom()
     const stub = room.room.base.stub
     const before = await readRoomHistory(stub)
 
-    const flameStrikeId = await castAtWolf(room, 'Flame Strike (5th level)', PLANETAR_ID)
+    // From the east edge of the Oni's one-cell token at its default (150, 150), toward the Wolf.
+    const coneOfColdId = await castAtWolf(room, 'Cone of Cold (5th level)', ONI_ID, {
+      kind: 'DIRECTED',
+      origin: { x: 200, y: 150 },
+      toward: WOLF_POINT
+    })
     const cast = await readRoomHistory(stub)
-    expect(featureChargesOf(cast, PLANETAR_ID)[pool.id]).toBe(1)
+    expect(featureChargesOf(cast, ONI_ID)[pool.id]).toBe(1)
     expect(areaReceipts(cast).roots.map(({ outputs }) => outputs.spellCastConsumption)).toEqual([
       {
-        owner: { kind: 'CREATURE', actorId: PLANETAR_ID, featureId: innate.id },
-        spellId: SPELL_IDS.FLAME_STRIKE,
-        candidateId: flameStrikeId,
+        owner: { kind: 'CREATURE', actorId: ONI_ID, featureId: innate.id },
+        spellId: SPELL_IDS.CONE_OF_COLD,
+        candidateId: coneOfColdId,
         slotKey: pool.id,
         beforeUsed: 0,
         afterUsed: 1
@@ -190,14 +204,14 @@ describe('a Creature casts an innate 3/day Spell from its charge pool in a real 
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     const reverted = await readRoomHistory(stub)
-    expect(featureChargesOf(reverted, PLANETAR_ID)[pool.id] ?? 0).toBe(0)
+    expect(featureChargesOf(reverted, ONI_ID)[pool.id] ?? 0).toBe(0)
     expect(vitalsOf(reverted)).toEqual(vitalsOf(before))
   })
 
   it('offers the spell no more once the pool is spent', async () => {
-    const room = await planetarRoom({ [pool.id]: 3 })
+    const room = await oniRoom({ [pool.id]: 1 })
     const labels = (await room.actionChoices()).actions.map(({ label }) => label)
-    expect(labels.some((label) => label.startsWith('Greatsword'))).toBe(true)
-    expect(labels).not.toContain('Flame Strike (5th level)')
+    expect(labels.some((label) => label.startsWith('Glaive'))).toBe(true)
+    expect(labels).not.toContain('Cone of Cold (5th level)')
   })
 })

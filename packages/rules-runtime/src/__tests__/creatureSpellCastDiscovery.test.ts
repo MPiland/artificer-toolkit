@@ -221,13 +221,16 @@ describe('Creature spell cast execution (SPELLS-33.T3c2b)', () => {
 describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
   const DJINNI = srdByLabel(SRD.creatures, 'Djinni')
   const ACOLYTE = srdByLabel(SRD.creatures, 'Acolyte')
-  const PLANETAR = srdByLabel(SRD.creatures, 'Planetar')
+  const PIT_FIEND = srdByLabel(SRD.creatures, 'Pit Fiend')
   const grantOf = (creature: typeof MAGE, spellLabel: string) => {
     const spellId = srdByLabel(SRD.spells, spellLabel).id
     for (const feature of creature.features)
       for (const grant of feature.grants?.spells ?? [])
-        if (grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(spellId))
-          return { feature, grant, spellId }
+        if (grant.authoringModeKind === 'SELECTED' && grant.spellIds.includes(spellId)) {
+          // Only the authored variant that may be limited-use declares a pool.
+          const pooled: { id: string; charges?: { id: string } } = grant
+          return { feature, grant, spellId, pool: pooled.charges }
+        }
     throw new Error(`${creature.label} has no grant of ${spellLabel}.`)
   }
   const directCasts = (
@@ -238,11 +241,11 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
     discoverCreatureCasts(creature, featureCharges).filter(
       (capability) => capability.featureOptionId === null && capability.label.startsWith(label)
     )
-  /** The Creature with the Feature owning `spellLabel`'s grant rewritten by `edit`. */
-  const withGrant = (
+  /** The Creature with `spellLabel`'s grant stripped of its charge pool and given `changes`. */
+  const withoutPool = (
     creature: typeof MAGE,
     spellLabel: string,
-    edit: (grant: ReturnType<typeof grantOf>['grant']) => ReturnType<typeof grantOf>['grant']
+    changes: Partial<ReturnType<typeof grantOf>['grant']> = {}
   ): typeof MAGE => {
     const { feature, grant } = grantOf(creature, spellLabel)
     return {
@@ -254,9 +257,12 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
               ...entry,
               grants: {
                 ...entry.grants,
-                spells: entry.grants!.spells!.map((candidate) =>
-                  candidate.id === grant.id ? edit(candidate) : candidate
-                )
+                spells: entry.grants!.spells!.map((candidate) => {
+                  if (candidate.id !== grant.id) return candidate
+                  // Only the limited-use authored variant declares `charges`.
+                  const { charges: _charges, ...unpooled } = { charges: undefined, ...candidate }
+                  return { ...unpooled, ...changes }
+                })
               }
             }
       )
@@ -264,38 +270,38 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
   }
 
   it('offers a 3/day spell at its own level and binds the cast to its grant’s charge pool', () => {
-    const { feature, grant, spellId } = grantOf(PLANETAR, 'Flame Strike')
-    const casts = directCasts(PLANETAR, 'Flame Strike')
+    const { feature, pool, spellId } = grantOf(PIT_FIEND, 'Hold Monster')
+    const casts = directCasts(PIT_FIEND, 'Hold Monster')
     expect(casts.map((capability) => capability.spellCast?.castLevel)).toEqual([5])
     expect(casts[0]?.ownerFeatureId).toBe(feature.id)
     expect(casts[0]?.spellSlotUse).toEqual({
       ownerFeatureId: feature.id,
-      slotKey: grant.charges!.id,
+      slotKey: pool!.id,
       spellId
     })
-    expect(casts[0]?.spellSaveDc).toBe(20)
+    expect(casts[0]?.spellSaveDc).toBe(21)
     expect(directCasts(DJINNI, 'Thunderwave').map((capability) => capability.spellSlotUse)).toEqual(
       [null]
     )
   })
 
   it('stops offering the spell once its pool is spent, and refuses a cast issued before', () => {
-    const { grant } = grantOf(PLANETAR, 'Flame Strike')
-    const spent = { [grant.charges!.id]: 3 }
-    expect(directCasts(PLANETAR, 'Flame Strike', { [grant.charges!.id]: 2 })).toHaveLength(1)
-    expect(directCasts(PLANETAR, 'Flame Strike', spent)).toEqual([])
-    const [flameStrike] = directCasts(PLANETAR, 'Flame Strike')
+    const { pool } = grantOf(PIT_FIEND, 'Hold Monster')
+    const spent = { [pool!.id]: 3 }
+    expect(directCasts(PIT_FIEND, 'Hold Monster', { [pool!.id]: 2 })).toHaveLength(1)
+    expect(directCasts(PIT_FIEND, 'Hold Monster', spent)).toEqual([])
+    const [holdMonster] = directCasts(PIT_FIEND, 'Hold Monster')
     expect(() =>
       assertEncounterFeatureActionCapabilityCurrent({
-        actor: srdCreatureActor({ id: testUuid(0xe3), creature: PLANETAR, featureCharges: spent }),
-        capability: flameStrike!,
+        actor: srdCreatureActor({ id: testUuid(0xe3), creature: PIT_FIEND, featureCharges: spent }),
+        capability: holdMonster!,
         spells: SPELLS
       })
     ).toThrow('Spell cast is stale')
   })
 
   it('casts a limited-use cast-at-level grant at the grant’s level only, from its shared pool', () => {
-    const { feature, grant } = grantOf(ACOLYTE, 'Cure Wounds')
+    const { feature, pool } = grantOf(ACOLYTE, 'Cure Wounds')
     const pooled = ['Bless', 'Cure Wounds', 'Sanctuary'].flatMap((label) =>
       directCasts(ACOLYTE, label)
     )
@@ -305,20 +311,19 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
       'Sanctuary (1st level)'
     ])
     expect(new Set(pooled.map((capability) => capability.spellSlotUse?.slotKey))).toEqual(
-      new Set([grant.charges!.id])
+      new Set([pool!.id])
     )
     expect(new Set(pooled.map((capability) => capability.spellSlotUse?.ownerFeatureId))).toEqual(
       new Set([feature.id])
     )
-    expect(directCasts(ACOLYTE, 'Cure Wounds', { [grant.charges!.id]: 3 })).toEqual([])
+    expect(directCasts(ACOLYTE, 'Cure Wounds', { [pool!.id]: 3 })).toEqual([])
   })
 
   it('casts a cast-at-level grant with no pool at its level for free', () => {
-    const fixed = withGrant(ACOLYTE, 'Cure Wounds', ({ charges: _charges, ...grant }) => ({
-      ...grant,
+    const fixed = withoutPool(ACOLYTE, 'Cure Wounds', {
       attributes: ['PREPARED', 'CAST_AT_LEVEL'],
       castAtLevel: 3
-    }))
+    })
     const casts = directCasts(fixed, 'Cure Wounds')
     expect(casts.map((capability) => [capability.label, capability.spellSlotUse])).toEqual([
       ['Cure Wounds (3rd level)', null]
@@ -326,8 +331,8 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
   })
 
   it('recovers a spent pool on the rest its reset names, and an X/day pool on neither', () => {
-    const acolytePool = grantOf(ACOLYTE, 'Cure Wounds').grant.charges!.id
-    const djinniPool = grantOf(DJINNI, 'Tongues').grant.charges!.id
+    const acolytePool = grantOf(ACOLYTE, 'Cure Wounds').pool!.id
+    const djinniPool = grantOf(DJINNI, 'Tongues').pool!.id
     const acolyte = srdCreatureActor({
       id: testUuid(0xe4),
       creature: ACOLYTE,
@@ -344,7 +349,7 @@ describe('Creature innate casts from a charge pool (SPELLS-33.T3c2c)', () => {
   })
 
   it('offers no limited-use spell whose grant has no pool a Creature can count', () => {
-    const unpooled = withGrant(PLANETAR, 'Flame Strike', ({ charges: _charges, ...grant }) => grant)
-    expect(directCasts(unpooled, 'Flame Strike')).toEqual([])
+    const unpooled = withoutPool(PIT_FIEND, 'Hold Monster')
+    expect(directCasts(unpooled, 'Hold Monster')).toEqual([])
   })
 })
