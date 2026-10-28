@@ -2739,7 +2739,9 @@ reinstated: a caster whose stamped grants all sit on Characters outside the Run.
 **Listing and ending (D99 Q2 A, SPELLS-5.8).** `listActiveGrantListings` lists a holder's grants (label,
 whether the source was hidden, the Encounter actor whose action gave it, rounds left or the carried expiry
 minute, and its polarity); `hideActiveGrantSources` nulls a hidden source's label and source actor for everyone
-but the GM and keeps the polarity (D110). The VTT token status list names another actor's grant by that
+but the GM and keeps the polarity (D110); it also nulls a source actor the player's projection does not
+list (ATTACK-17.3), so the id never reveals an unseen actor, and the Sheet, which lists no actors, names none.
+The VTT token status list names another actor's grant by that
 source (a mark reads "Mark from <marker>", VTT_UI-1.3).
 Polarity is BENEFICIAL or HARMFUL only when every piece of the grant reads that way for its holder, otherwise
 NEUTRAL; it is derived from the frozen modifiers and senses, never authored, and the VTT status ring colours by it. Encounter actors carry them as `activeGrants`

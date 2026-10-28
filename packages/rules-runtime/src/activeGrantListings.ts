@@ -228,12 +228,20 @@ export function carriedConcentration(
   return effects.length === 0 ? null : heldConcentration(effects)
 }
 
-/** Only the GM learns what a hidden source was (D99). */
+/**
+ * Grants as a player reads them: only the GM learns what a hidden source was (D99), and a source
+ * actor the player is not listed is withheld, so its id cannot reveal an unseen actor (ATTACK-17.3).
+ */
 export function hideActiveGrantSources(
-  grants: readonly ActiveGrantListingDto[]
+  grants: readonly ActiveGrantListingDto[],
+  listedActorIds: ReadonlySet<string>
 ): ActiveGrantListingDto[] {
   return grants.map((grant) =>
-    grant.sourceHidden ? { ...grant, label: null, sourceActorId: null } : grant
+    grant.sourceHidden
+      ? { ...grant, label: null, sourceActorId: null }
+      : grant.sourceActorId && !listedActorIds.has(grant.sourceActorId)
+        ? { ...grant, sourceActorId: null }
+        : grant
   )
 }
 

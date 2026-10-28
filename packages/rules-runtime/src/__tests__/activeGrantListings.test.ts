@@ -537,7 +537,7 @@ describe('hideActiveGrantSources', () => {
         lifecycle: { schemaVersion: 1, remainingTicks: 3 }
       })
     ])
-    expect(hideActiveGrantSources([hidden!])).toEqual([
+    expect(hideActiveGrantSources([hidden!], new Set([SOURCE_ACTOR_ID]))).toEqual([
       { ...hidden, label: null, sourceActorId: null, polarity: 'BENEFICIAL' }
     ])
   })
@@ -559,9 +559,21 @@ describe('hideActiveGrantSources', () => {
       })
     ])
     expect(shown!.sourceActorId).toBe(SOURCE_ACTOR_ID)
-    expect(hideActiveGrantSources([shown!, hidden!])).toEqual([
+    expect(hideActiveGrantSources([shown!, hidden!], new Set([SOURCE_ACTOR_ID]))).toEqual([
       shown,
       { ...hidden, label: null, sourceActorId: null, sourceHidden: true }
     ])
+  })
+
+  it('withholds a source actor the player is not listed, keeping the label', () => {
+    const [shown] = listActiveGrantListings([
+      grantEffect({
+        id: 0xd034,
+        createdOrdinal: 1,
+        sourceLabel: 'Aid',
+        lifecycle: { schemaVersion: 1, remainingTicks: 3 }
+      })
+    ])
+    expect(hideActiveGrantSources([shown!], new Set())).toEqual([{ ...shown, sourceActorId: null }])
   })
 })

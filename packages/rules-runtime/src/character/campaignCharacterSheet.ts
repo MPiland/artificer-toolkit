@@ -189,7 +189,8 @@ export function projectCharacterSheetForViewer(
       maxHitPointsReductions: projected.overview.maxHitPointsReductions.map((reduction) =>
         reduction.sourceHidden ? { ...reduction, label: null } : reduction
       ),
-      activeGrants: hideActiveGrantSources(projected.overview.activeGrants),
+      // The Sheet lists no Encounter actors, so it names no grant's source actor.
+      activeGrants: hideActiveGrantSources(projected.overview.activeGrants, new Set()),
       // Only the caster and the GM end a Concentration (SPELLS-5.11); a hidden source stays unnamed.
       concentration:
         context.viewer === 'PARTY_MEMBER'

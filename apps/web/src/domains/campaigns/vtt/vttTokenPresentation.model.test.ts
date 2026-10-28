@@ -451,7 +451,10 @@ describe('VTT token presentation model', () => {
       label: `${mark.label} from ${ember!.label}, ${activeGrantTimeLeft(mark)}`
     })
     expect(mark.polarity).toBe('HARMFUL')
-    const [hidden] = hideActiveGrantSources([{ ...mark, sourceHidden: true }])
+    const [hidden] = hideActiveGrantSources(
+      [{ ...mark, sourceHidden: true }],
+      new Set([ember!.id, warden!.id])
+    )
     expect(present(hidden!)?.label).toBe(`Hidden source, ${activeGrantTimeLeft(mark)}`)
   })
 

@@ -199,10 +199,10 @@ export function projectPlayerEncounterProjection(
   encounter: EncounterGmProjectionDto,
   viewer: EncounterProjectionViewer
 ): EncounterPlayerProjectionDto {
-  const listedCurrentActor = encounter.actors.find(
-    (actor) =>
-      actor.id === encounter.currentActorId && playerSeesActor(actor, viewer, encounter.actors)
+  const listedActors = encounter.actors.filter((actor) =>
+    playerSeesActor(actor, viewer, encounter.actors)
   )
+  const listedActorIds = new Set(listedActors.map((actor) => actor.id))
   return encounterPlayerProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -219,69 +219,70 @@ export function projectPlayerEncounterProjection(
     facingArcs: encounter.facingArcs,
     version: encounter.version,
     round: encounter.round,
-    currentActorId: listedCurrentActor?.id ?? null,
-    actors: encounter.actors
-      .filter((actor) => playerSeesActor(actor, viewer, encounter.actors))
-      .map((actor) => {
-        const character =
-          actor.kind === 'CHARACTER' && actor.sourceId
-            ? viewer.characters.get(actor.sourceId)
-            : undefined
-        const controlled = playerControlsActor(actor, viewer, encounter.actors)
-        const unseenReason =
-          controlled || !viewer.unseenActorIds.has(actor.id)
-            ? null
-            : carriesConditionType(actor.conditions, viewer.unseenConditionTypeIds)
-              ? ('INVISIBLE' as const)
-              : ('HIDDEN' as const)
-        if (!controlled && actor.reveal === 'UNNAMED' && viewer.unseenActorIds.has(actor.id))
-          return {
-            id: actor.id,
-            encounterId: actor.encounterId,
-            kind: 'CREATURE' as const,
-            label: UNSEEN_CREATURE_LABEL,
-            sourceId: null,
-            sourceRevision: null,
-            public: true,
-            controllerUserIds: [],
-            disposition: 'NEUTRAL' as const,
-            initiative: actor.initiative,
-            manualOrder: actor.manualOrder,
-            conditions: [],
-            activeGrants: [],
-            concentration: null,
-            defeated: false,
-            absence: null,
-            health: null,
-            unseenReason
-          }
-        const level: HealthDisplayLevelDto = controlled
-          ? 'EXACT'
-          : actor.kind === 'CHARACTER'
-            ? (character?.health ?? 'HIDDEN')
-            : (actor.healthDisplay ?? encounter.healthDisplayDefault)
+    currentActorId:
+      encounter.currentActorId && listedActorIds.has(encounter.currentActorId)
+        ? encounter.currentActorId
+        : null,
+    actors: listedActors.map((actor) => {
+      const character =
+        actor.kind === 'CHARACTER' && actor.sourceId
+          ? viewer.characters.get(actor.sourceId)
+          : undefined
+      const controlled = playerControlsActor(actor, viewer, encounter.actors)
+      const unseenReason =
+        controlled || !viewer.unseenActorIds.has(actor.id)
+          ? null
+          : carriesConditionType(actor.conditions, viewer.unseenConditionTypeIds)
+            ? ('INVISIBLE' as const)
+            : ('HIDDEN' as const)
+      if (!controlled && actor.reveal === 'UNNAMED' && viewer.unseenActorIds.has(actor.id))
         return {
           id: actor.id,
           encounterId: actor.encounterId,
-          kind: actor.kind,
-          label: actor.label,
-          sourceId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
+          kind: 'CREATURE' as const,
+          label: UNSEEN_CREATURE_LABEL,
+          sourceId: null,
           sourceRevision: null,
-          public: actor.public,
-          controllerUserIds: actor.controllerUserIds,
-          disposition: actor.disposition,
+          public: true,
+          controllerUserIds: [],
+          disposition: 'NEUTRAL' as const,
           initiative: actor.initiative,
           manualOrder: actor.manualOrder,
-          conditions: actor.conditions,
-          activeGrants: hideActiveGrantSources(actor.activeGrants),
-          // Only an actor's controllers end its Concentration (SPELLS-5.11).
-          concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
-          defeated: actor.defeated,
-          absence: actor.absence,
-          health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints),
+          conditions: [],
+          activeGrants: [],
+          concentration: null,
+          defeated: false,
+          absence: null,
+          health: null,
           unseenReason
         }
-      }),
+      const level: HealthDisplayLevelDto = controlled
+        ? 'EXACT'
+        : actor.kind === 'CHARACTER'
+          ? (character?.health ?? 'HIDDEN')
+          : (actor.healthDisplay ?? encounter.healthDisplayDefault)
+      return {
+        id: actor.id,
+        encounterId: actor.encounterId,
+        kind: actor.kind,
+        label: actor.label,
+        sourceId: actor.kind === 'CHARACTER' ? actor.sourceId : null,
+        sourceRevision: null,
+        public: actor.public,
+        controllerUserIds: actor.controllerUserIds,
+        disposition: actor.disposition,
+        initiative: actor.initiative,
+        manualOrder: actor.manualOrder,
+        conditions: actor.conditions,
+        activeGrants: hideActiveGrantSources(actor.activeGrants, listedActorIds),
+        // Only an actor's controllers end its Concentration (SPELLS-5.11).
+        concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
+        defeated: actor.defeated,
+        absence: actor.absence,
+        health: playerActorHealth(level, actor.currentHitPoints, actor.maxHitPoints),
+        unseenReason
+      }
+    }),
     createdAt: encounter.createdAt,
     updatedAt: encounter.updatedAt
   })

@@ -9,6 +9,7 @@ import {
   projectPlayerEncounterProjection,
   unseenEncounterActorIds
 } from '../encounterPlayerProjection.js'
+import { srdMarkListing } from '../testing/srdMarkListing.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-000000000001'
 const CAMPAIGN_ID = '00000000-0000-4000-8000-000000000002'
@@ -224,6 +225,24 @@ describe('player encounter projection', () => {
       grants[0],
       { ...grants[1], label: null, sourceActorId: null }
     ])
+  })
+
+  // VTT_UI-1.3: a mark names its marker only to a player who is shown that marker (ATTACK-17.3).
+  it('withholds the marker of an SRD mark from a player who cannot see the marker', () => {
+    const mark = srdMarkListing({ markerActorId: HIDDEN_ACTOR_ID, holderActorId: PUBLIC_ACTOR_ID })
+    const gm = gmEncounter([
+      { ...gmActor(PUBLIC_ACTOR_ID, true), activeGrants: [mark] },
+      { ...gmActor(HIDDEN_ACTOR_ID, true), controllerUserIds: [] }
+    ])
+    const grantsSeenBy = (unseenActorIds: ReadonlySet<string>) =>
+      projectPlayerEncounterProjection(gm, { ...noCharacters, unseenActorIds }).actors
+
+    expect(mark).toMatchObject({ sourceActorId: HIDDEN_ACTOR_ID, sourceHidden: false })
+    const unseen = grantsSeenBy(new Set([HIDDEN_ACTOR_ID]))
+    expect(unseen.map((actor) => actor.id)).toEqual([PUBLIC_ACTOR_ID])
+    expect(unseen[0]?.activeGrants).toEqual([{ ...mark, sourceActorId: null }])
+    expect(JSON.stringify(unseen)).not.toContain(HIDDEN_ACTOR_ID)
+    expect(grantsSeenBy(new Set())[0]?.activeGrants).toEqual([mark])
   })
 
   it('shows a Concentration to its controllers and the GM only, hiding a hidden source label (SPELLS-5.11)', () => {
