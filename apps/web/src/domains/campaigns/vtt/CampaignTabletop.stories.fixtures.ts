@@ -6,7 +6,7 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { convexQuery } from '@convex-dev/react-query'
 import type { QueryClient } from '@tanstack/react-query'
 import { buildVttTokenPresentations } from './vttTokenPresentation.model'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import type {
   EncounterGmProjectionDto,
@@ -36,7 +36,7 @@ const assignedCharacter = {
   id: '33333333-3333-4333-8333-333333333333',
   publicId: 'embers-wake',
   label: "Ember's Wake",
-  systemId: '44444444-4444-4444-8444-444444444444'
+  systemId: SRD_SYSTEM_ID
 } satisfies NonNullable<CampaignDetailDto['assignedCharacter']>
 
 export const tabletopSceneDefinition = {
@@ -282,6 +282,7 @@ const encounterBase = {
   name: 'Vault confrontation',
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
   facingStepDegrees: null,
+  facingArcs: null,
   round: 3,
   status: 'ACTIVE',
   blueprintId: '99999999-9999-4999-8999-999999999903',

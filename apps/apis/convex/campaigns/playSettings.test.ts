@@ -763,13 +763,13 @@ describe('native Campaign play settings', () => {
     const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
-    const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
+    const hittingCover = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'HITTING_COVER'
     )
-    if (!disarm || !climb) throw new Error('Missing optional combat fixtures.')
+    if (!disarm || !hittingCover) throw new Error('Missing optional combat fixtures.')
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [disarm, climb]
+      definitions: [disarm, hittingCover]
     })
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
@@ -778,7 +778,10 @@ describe('native Campaign play settings', () => {
     expect(saved.optionalCombatRuleDefinitionIds).toEqual([disarm.id])
     const before = await stored(t)
     await expect(
-      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [climb.id] })
+      owner.caller.mutation(save, {
+        ...input(saved),
+        optionalCombatRuleDefinitionIds: [hittingCover.id]
+      })
     ).rejects.toThrow('not available for Encounter execution')
     await expect(
       owner.caller.mutation(save, {
@@ -805,7 +808,8 @@ describe('native Campaign play settings', () => {
 
   it.each([
     { kind: 'INJURIES', ac: 'ATTACK-15.3' },
-    { kind: 'MASSIVE_DAMAGE', ac: 'ATTACK-16.2' }
+    { kind: 'MASSIVE_DAMAGE', ac: 'ATTACK-16.2' },
+    { kind: 'CLIMB_ONTO_LARGER_CREATURE', ac: 'MOVE-4.4' }
   ] as const)(
     'offers and saves $kind only while its System policy resolves it ($ac)',
     async ({ kind }) => {

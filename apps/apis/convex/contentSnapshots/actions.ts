@@ -15,8 +15,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
-import { CONTENT_SNAPSHOT_PAGE_MAX_ROOTS } from './heads'
-import { vContentSnapshotScopeRef } from './marking'
+import { CONTENT_SNAPSHOT_FIRST_RETRY_MS, CONTENT_SNAPSHOT_PAGE_MAX_ROOTS } from './heads'
+import {
+  CONTENT_SNAPSHOT_BUILD_DELAY_MS,
+  scheduleContentSnapshotBuild,
+  vContentSnapshotScopeRef
+} from './marking'
 import { createContentSnapshotStorage } from './storage'
 
 /**
@@ -55,6 +59,17 @@ export const build = internalAction({
             }
           )
           if ('pendingCompilation' in page) {
+            // Marks keep the head hot while content is written (a seed marks it several times a
+            // second), so a build that was marked meanwhile reschedules without writing the head.
+            const latest = await ctx.runQuery(internal.contentSnapshots.heads.readBuildStart, ref)
+            if (latest && latest.revision > start.revision) {
+              await scheduleContentSnapshotBuild(
+                ctx.scheduler,
+                ref,
+                CONTENT_SNAPSHOT_BUILD_DELAY_MS
+              )
+              return null
+            }
             await ctx.runMutation(internal.contentSnapshots.heads.awaitCompilation, {
               ...ref,
               revisionBuiltFrom: start.revision
@@ -115,7 +130,13 @@ export const build = internalAction({
       })
       return null
     } catch (error) {
-      await ctx.runMutation(internal.contentSnapshots.heads.failBuild, ref)
+      // failBuild writes the head too and can lose every retry to the marks; the lease must still
+      // end in a scheduled build, so the action schedules the first backoff itself.
+      await ctx
+        .runMutation(internal.contentSnapshots.heads.failBuild, ref)
+        .catch(() =>
+          scheduleContentSnapshotBuild(ctx.scheduler, ref, CONTENT_SNAPSHOT_FIRST_RETRY_MS)
+        )
       throw error
     }
   }

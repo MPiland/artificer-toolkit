@@ -574,6 +574,46 @@ describe('content snapshot builds', () => {
     }
   }, 30_000)
 
+  it('reschedules a waiting build that a later mark overtook without writing the head', async () => {
+    const { t, server, srdSource, head, settle, rootIds } = await setup()
+    try {
+      const subjects = [elf, highElf].map((race) =>
+        importedSubject({ subjectKind: 'RACE', ...race, document: race })
+      )
+      await t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects
+      })
+      const marked = await head(srdSource)
+      // A seed marks the head between a build's reads; a head write from the build would race them.
+      // convex-test runs one transaction at a time in arrival order, so holding that turn queues the
+      // build's first read ahead of the import, and the import ahead of the build's next read.
+      await Promise.all([import('./actions'), import('./heads')])
+      const nextMacrotask = () => new Promise((resolve) => setImmediate(resolve))
+      let releaseTurn = () => {}
+      const heldTurn = t.run(() => new Promise<void>((resolve) => (releaseTurn = resolve)))
+      const building = t.action(internal.contentSnapshots.actions.build, srdSource)
+      await nextMacrotask()
+      const dwarfSubject = importedSubject({ subjectKind: 'RACE', ...dwarf, document: dwarf })
+      const importing = t.mutation(internal.content.import.importSubjects, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: [dwarfSubject]
+      })
+      await nextMacrotask()
+      releaseTurn()
+      await Promise.all([heldTurn, importing, building])
+      expect(await head(srdSource)).toEqual({ ...marked, revision: marked!.revision + 1 })
+
+      await syncImportedDerived(t, subjects)
+      await settle()
+      const built = await head(srdSource)
+      expect(built).toMatchObject({ builtRevision: built?.revision })
+      expect(await rootIds(srdSource, built, 'RACE')).toEqual([dwarf.id, elf.id, highElf.id].sort())
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
   it('rebuilds only the official source that a platform import changes', async () => {
     const { t, server, userSource, srdSource, publish, settle, head } = await setup()
     try {

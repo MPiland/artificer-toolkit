@@ -219,13 +219,17 @@ export async function verifyEncounterAreaBrowser(
       },
       assertHistory: async (entry) => {
         stage = 'verify the Encounter history'
+        // The canonical-slug redirect runs only once the client has authenticated.
+        ownerSession.authenticated = false
         await ownerPage.goto(origin + '/campaigns/' + encodeURIComponent(input.campaign.publicId), {
           waitUntil: 'domcontentloaded',
           timeout: 90_000
         })
+        await expect.poll(() => ownerSession.authenticated).toBe(true)
         await waitForRouterIdle(ownerPage)
         const slug = new URL(ownerPage.url()).pathname.split('/').filter(Boolean)[2]
-        if (!slug) throw new Error('Campaign route did not resolve a canonical slug.')
+        if (!slug)
+          throw new Error(`Campaign route did not resolve a canonical slug: ${ownerPage.url()}`)
         ownerSession.authenticated = false
         await ownerPage.goto(
           origin +

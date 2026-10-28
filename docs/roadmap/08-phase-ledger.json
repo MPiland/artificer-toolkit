@@ -7122,17 +7122,27 @@
             },
             {
               "text": "The target can try to dislodge the climber with the authored contest, and a dislodged climber lands in a legal adjacent space.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/session-worker/test/nativeRoomClimbDislodge.test.ts",
+                "packages/encounter-persistence/src/__tests__/contestEscapeMovement.test.ts",
+                "packages/rules-runtime/src/__tests__/encounterEscapeCheck.test.ts",
+                "escapeCheckForcedMovementAuthoringParity.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "MOVE-4.3"
+              "id": "MOVE-4.3",
+              "note": "Closed 2026-10-27 by MOVE-4.T3a, MOVE-4.T3b."
             },
             {
               "text": "Campaign settings offer the rule only once it resolves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/campaigns/playSettings.test.ts",
+                "apps/apis/convex/campaigns/playSettingsOptions.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "MOVE-4.4"
+              "id": "MOVE-4.4",
+              "note": "Closed 2026-10-27 by MOVE-4.T4."
             }
           ],
           "wsjf": {
@@ -7224,7 +7234,7 @@
             },
             {
               "id": "MOVE-4.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.3"],
               "wsjf": {
                 "bv": 2,
@@ -7234,12 +7244,13 @@
                 "after": ["MOVE-4.T3a"]
               },
               "text": "Extract the forced-movement fields from maps/path.ts into a shared node map, add the escape check holderForcedMovement form field, with an authoring parity proof and docs.",
-              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3.",
-              "activeWorkbook": "docs/architecture/dnd5e-optional-combat.md"
+              "note": "Split 2026-10-27 at seam audit (local_afc85abb): the dislodge reuses the cling ESCAPE_CHECK with an optional holderForcedMovement, but persistence refuses escape forced movement, the D157 destination pause covers only action contests, and forced-movement form fields are inline in maps/path.ts. Size 5 re-scored to 5+3. Merged in m501.",
+              "mergedAt": "2026-10-27T19:42:06Z",
+              "proof": "Tests 40565969882, Live 40565969752/40566021151 and Browser journeys 40565969965 green on de722a04c; reviewed (helper typed on the forced-movement builder API, one cond cast); merged in m501. Proofs: escapeCheckForcedMovementAuthoringParity.test.ts"
             },
             {
               "id": "MOVE-4.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.4"],
               "wsjf": {
                 "bv": 2,
@@ -7249,7 +7260,9 @@
                 "after": ["MOVE-4.T3b"]
               },
               "text": "Register in the integrated table, offer in Campaign settings, journey test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m504.",
+              "mergedAt": "2026-10-27T22:03:47Z",
+              "proof": "Tests 40578490663, Live 40578490454 and Browser journeys 40578490708 green on 621855e5c; reviewed (CLIMB_ONTO_LARGER_CREATURE in the integrated table; Hitting Cover replaces Climb as the unsupported-rule example); merged in m504 (run 40591717273). Proofs: apps/apis/convex/campaigns/playSettings.test.ts, apps/apis/convex/campaigns/playSettingsOptions.test.ts"
             }
           ]
         }
@@ -11696,7 +11709,8 @@
                 "after": ["SPELLS-4.T2lb2c", "RELIABILITY-20.T1"]
               },
               "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
-              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1."
+              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1.",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -20092,18 +20106,21 @@
             {
               "id": "RELIABILITY-21.4",
               "text": "encounters/activeReads:active stays under the 1 s query limit on a CI runner.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/activeReadBudget.test.ts",
+                "apps/apis/convex/contentSnapshots/build.test.ts"
+              ],
               "origin": [],
-              "note": "Proof: (flaky proofs)."
+              "note": "Proof: (flaky proofs). Closed 2026-10-27 by RELIABILITY-21.T4, RELIABILITY-21.T11."
             },
             {
               "id": "RELIABILITY-21.5",
               "text": "The publication journeys pass with a single prosemirror-model installed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T5 (m502); see each task's proof."],
               "origin": [],
-              "note": "Proof: publication, publication-feat, publication-equipment."
+              "note": "Proof: publication, publication-feat, publication-equipment. Closed 2026-10-27 by RELIABILITY-21.T5."
             },
             {
               "id": "RELIABILITY-21.6",
@@ -20124,10 +20141,10 @@
             {
               "id": "RELIABILITY-21.8",
               "text": "Account deletion closes the deleted subject's live sockets, so revocation reports no user.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T8 (m506); see each task's proof."],
               "origin": [],
-              "note": "Proof: account-deletion."
+              "note": "Proof: account-deletion. Closed 2026-10-27 by RELIABILITY-21.T8."
             },
             {
               "id": "RELIABILITY-21.9",
@@ -20148,10 +20165,17 @@
             {
               "id": "RELIABILITY-21.11",
               "text": "A fresh stack builds every Content snapshot head after seed without OCC exhaustion or a stuck unbuilt head, stays under the backend write-rate limit, and area-browser resolves its campaign route and gates again.",
+              "status": "DONE",
+              "proof": ["apps/apis/convex/contentSnapshots/build.test.ts"],
+              "origin": [],
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. Closed 2026-10-27 by RELIABILITY-21.T11."
+            },
+            {
+              "id": "RELIABILITY-21.12",
+              "text": "campaign-collaboration-browser passes without reruns: the \"Shared with party\" option appears after the direct-sent step within the journey timeout.",
               "status": "TODO",
               "proof": [],
-              "origin": [],
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it."
+              "origin": []
             }
           ],
           "tasks": [
@@ -20196,7 +20220,7 @@
             },
             {
               "id": "RELIABILITY-21.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.4"],
               "wsjf": {
                 "bv": 5,
@@ -20204,13 +20228,14 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m504.",
               "text": "Bound encounters/activeReads:active read work, with a read-budget regression test. This reduces the flaky player, hide, campaign-collaboration and area runs.",
-              "activeWorkbook": "docs/architecture/persistence.md"
+              "mergedAt": "2026-10-27T22:03:47Z",
+              "proof": "Tests 40587274029, Live 40587274048 and Browser journeys 40587273985 green on 8eb67cac9; reviewed (readVerifiedCharacterBuild, requireIntactAssignedActiveCharacter bound the active read); merged in m504 (run 40591717273). Proof: apps/apis/convex/encounters/activeReadBudget.test.ts. hide-browser and scene-live-browser labelled known bugs under RELIABILITY-21.T11, which also closes 21.4"
             },
             {
               "id": "RELIABILITY-21.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.5"],
               "wsjf": {
                 "bv": 5,
@@ -20218,9 +20243,10 @@
                 "rr": 8,
                 "size": 1
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m502.",
               "text": "Remove the duplicate prosemirror-model (1.25.4 and 1.25.12 since f3337cdfb). First prove that the duplicate causes the failure, then dedupe it with a guard test against duplicate prosemirror-model. publication, publication-feat and publication-equipment gate again.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T20:07:48Z",
+              "proof": "Tests 40554192206, Live 40554192208 and Browser journeys green on bdb8dba16 (publication, publication-feat, publication-equipment pass without known-bug labels); reviewed (root resolution pins one prosemirror-model); merged in m502 (run 40574971923). Proofs: scripts/dependencyDuplicates.test.mjs, publication-browser, publication-feat-browser, publication-equipment-browser"
             },
             {
               "id": "RELIABILITY-21.T6",
@@ -20250,7 +20276,7 @@
             },
             {
               "id": "RELIABILITY-21.T8",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.8"],
               "wsjf": {
                 "bv": 5,
@@ -20258,8 +20284,10 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m506.",
+              "text": "Account deletion revokes and closes the subject's Session sockets. The journey times out polling `revoked` at accountDeletion.ts:272 because the socket stays open. Add a regression test. account-deletion-browser gates again.",
+              "mergedAt": "2026-10-27T23:09:10Z",
+              "proof": "Tests 40594843003, Live 40594842963 and Browser journeys 40594842935 green on 774b433cb (account-deletion-browser passes without its known-bug label); reviewed (the harness counts a main-frame navigation as revoking that page's sockets; the second subject page must still be revoked by the server); merged in m506 (run 40599993817). Proof: apps/web/tests/live-backend/accountDeletion.ts (account-deletion-browser)"
             },
             {
               "id": "RELIABILITY-21.T9",
@@ -20291,7 +20319,7 @@
             },
             {
               "id": "RELIABILITY-21.T11",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.11", "RELIABILITY-21.4"],
               "wsjf": {
                 "bv": 5,
@@ -20299,9 +20327,23 @@
                 "rr": 8,
                 "size": 3
               },
-              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +1, size 3): since m496 (RELIABILITY-20.T4 bounded the Content snapshot build page) area-browser fails on every open slice (\"Campaign route did not resolve a canonical slug\"); stacks log OCC retries on contentSnapshotHeads (contentSnapshots/heads:awaitCompilation and actions:build vs content/import:importSubjects) and a 4 MiB/s write-rate hit from run:cleanupExpiredRuns and notifications/delivery:dispatch; Browser journeys 40527537249 social-browser waited 904 s with 1 unbuilt snapshot head. RELIABILITY-21.T4 (activeReads) does not cover it. 2026-10-27 ruling on RELIABILITY-21.T4: hide-browser and scene-live-browser time out on activeReads:active and predicates only while this write burst saturates the backend; T4 labels them KNOWN-BUG under T11 and AC 21.4 stays open until T11 proves them green. Merged in m507.",
               "text": "Diagnose the snapshot-head contention (check m496 first) and the write-rate burst behind area-browser; fix the build so a collision with importSubjects retries or serializes instead of leaving the head unbuilt; regression test with a concurrent import; remove area-browser from KNOWN_BUG_PROOFS. Also clear the social-browser, hide-browser and scene-live-browser labels.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "mergedAt": "2026-10-27T23:32:30Z",
+              "proof": "Tests 40600067813, Live 40600067946 and Browser journeys 40600067791 green on 14246681f (area, social, hide and scene-live pass without known-bug labels); reviewed (an overtaken waiting build reschedules itself; a failed failBuild schedules the first retry); merged in m507 (run 40602710254). A narrower awaitCompilation window remains and self-heals through the backoff with no lease leak. Proofs: apps/apis/convex/contentSnapshots/build.test.ts, area-browser, social-browser, hide-browser, scene-live-browser"
+            },
+            {
+              "id": "RELIABILITY-21.T12",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.12"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "text": "Find why campaign-collaboration-browser intermittently times out (30 s) waiting for the \"Shared with party\" option after the direct-sent step, and fix the cause in the product or the harness; the assertion and timeout stay.",
+              "note": "Registered 2026-10-27 (user yes, D187 growth +2). Intermittent since m500: spells-4-t2lb2d Browser journeys 40595948111, 40593017249, 40589375558; vtt-ui-1-t1 40584640884; reliability-21-t11 40594866820 attempt 1. Passes on rerun."
             }
           ]
         }
@@ -20368,7 +20410,7 @@
           "tasks": [
             {
               "id": "VTT_UI-1.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-1.3"],
               "wsjf": {
                 "bv": 2,
@@ -20378,7 +20420,9 @@
                 "after": ["ATTACK-12.T1"]
               },
               "text": "Facing arcs on the token: draw the front/side/rear arcs of the selected or current-turn token from the Scene token's facing using the shared optionalCombatGeometry classifier (apps/web only draws; no arc math in web), gated on the Facing rule being on and facing present in the session state ATTACK-12 adds. Proof: model test building presentations through buildVttTokenPresentations, renderer-diagnostics story sampling arc polygons, and a window journey story (select a token with Facing on, see arcs, rotate, arcs follow). Browser test is warranted because the AC is what the user sees.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m505.",
+              "mergedAt": "2026-10-27T22:34:09Z",
+              "proof": "Tests 40586820379, Live 40594908536 and Browser journeys 40586820386 green on f253e453a; reviewed (arc bearings from shared facingArcSectors, web only draws); merged in m505 (run 40594799828). Proofs: apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts, packages/shared/src/__tests__/optionalCombatGeometry.test.ts, CampaignVttPresentation.stories.tsx, CampaignTabletopWindow.stories.tsx"
             },
             {
               "id": "VTT_UI-1.T2",
@@ -20453,8 +20497,8 @@
           "id": "VTT_UI-3",
           "title": "Previews, perception and footprints",
           "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyTests": ["apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -20478,14 +20522,10 @@
             },
             {
               "text": "Light and map colour are rendered from the Scene: the ambient illumination sets the base (BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses); each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art; magical darkness stays black inside light except to senses that pierce it; obscurement draws as its own layer; the GM sees everything and can preview a chosen token's view.",
-              "status": "IN_PROGRESS",
-              "proof": [
-                "apps/web/src/domains/campaigns/vtt/CampaignVttLighting.stories.tsx",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx",
-                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts"
-              ],
+              "status": "DONE",
+              "proof": ["Closed by VTT_UI-3.T4 (m503); see each task's proof."],
               "origin": ["G4-PERCEPTION"],
-              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview reads the Creature's stat-block senses since VTT_UI-5 (2026-10-14).",
+              "note": "Original PARTIAL: V03.5 covers visibility facts, not rendering. Refined 2026-10-12 by the product owner (map colour and darkvision); senses split into VTT_UI-3.4. Rules stay in rules-runtime and the Session Worker; apps/web only draws. Refined by the PO; D108 precedence. Rework of 6568f57eb: lights erase ambient darkness, DARK renders black, no vision wash, GM see-all and token-view preview, pixel-sampled proof against resolveSceneIlluminationAt. Lane 3: D108 precedence drawn as one darkness overlay whose alpha encodes the class (BRIGHT 0, DIM 0.5, ORDINARY and MAGICAL 1): ambient, then darkening zones, then lights erase within their radii clipped by walls, then magical darkness (zone or ambient) last. Light colour is a faint tint; obscurement its own layer; no vision wash, a player's map is black outside their tokens' sight. GM sees all at darkness alpha 0.6 (approved) and can preview one token's view. Lighting stories sample drawn overlay alpha at points and compare with resolveSceneIlluminationAt, including a torch in an ordinary darkness zone, magical darkness over a torch, a magically dark Scene, a wall blocking a light, and a closed versus an open door. The light tint is read from the drawn tint layer (light colour, alpha lightTintAlpha at most 0.2, one polygon per radius); visual-only zones draw at their own opacities (0.3 and 0.62, VisualZonesDrawAtTheirOwnOpacity; red with a fixed 0.5 in tight-red.log). A Player with no seeing token sees a black map. Through the Stage, the GM preview draws one sight polygon and stops on toggle-off or when the token leaves the Scene (window stories). Known behaviour (accepted by lane 1): the GM's chosen preview resumes if that token returns to the Scene. Awaiting lane 1 acceptance of the review fixes. The GM's Creature-token preview reads the Creature's stat-block senses since VTT_UI-5 (2026-10-14). Review fixes accepted by lane 1 and verified green in m503. Closed 2026-10-27 by VTT_UI-3.T4.",
               "id": "VTT_UI-3.2"
             },
             {
@@ -20576,7 +20616,7 @@
             },
             {
               "id": "VTT_UI-3.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-3.2"],
               "wsjf": {
                 "bv": 5,
@@ -20585,7 +20625,9 @@
                 "size": 1
               },
               "text": "Close-out: AC 3.2 lists complete proof (lighting stories sampling resolveSceneIlluminationAt, GM see-all, token-view preview) and its note says only 'awaiting lane 1 acceptance of the review fixes'; verify the stories still pass and mark DONE, register CampaignTabletopWindow.stories.tsx as the PBI journey test (verified to drive the real flow, as VTT_UI-1 does). Ledger-only unless the verification fails.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m503.",
+              "mergedAt": "2026-10-27T20:53:44Z",
+              "proof": "Tests 40574275609 and Browser journeys 40574275677 green on cc374ed71 (lighting stories, GM see-all and token-view preview pass; story fixture moved onto SRD_SYSTEM_ID); reviewed; merged in m503 (run 40580594593). Journey: apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
             }
           ]
         },

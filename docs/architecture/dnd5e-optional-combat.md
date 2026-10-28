@@ -121,6 +121,17 @@ the relationship, and `settleContestEscape` refuses any forced movement that dif
 re-derives from the held effect (none on a loss); only the picked square comes from the commit. With
 no free square the climber stays in place (deferred edge case).
 
+**Climb dislodge authoring (current, MOVE-4.T3b).** The `holderForcedMovement` form field is the
+`FORCED_MOVEMENT_NODE_MAP` (`packages/shared/.../maps/forcedMovement.ts`), a group object on the
+ESCAPE_CHECK module map. `registerForcedMovementOutcomeFields` is the one home for the direction,
+distance, action economy and collision fields: the forced-movement outcome in `maps/path.ts` and the
+standalone map both register it, so the two cannot drift. `escapeCheckForcedMovementAuthoringParity`
+proves the SRD cling, landing included, passes through the effect node map as authored.
+
+Climb onto a larger creature (MOVE-4, current) is offered in Campaign settings once its System policy
+resolves it (T4): `CLIMB_ONTO_LARGER_CREATURE` is in the integrated module table
+(`optionalCombatSourceAccess.ts`), so the cling, its follow and its dislodge run end to end.
+
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
 anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy
@@ -201,6 +212,13 @@ creatures' facing, and a walk ends with a facing choice that offers the directio
 The choice is sent as the move's `facingDegrees`. A selected creature the member controls offers
 "Change facing (reaction)", which sends `CHANGE_FACING`. The room checks the rule, its step and the
 reaction.
+
+**Facing arcs on the token (current, VTT_UI-1.T1).** Both Encounter projections also carry the
+rule's `facingArcs` (null when the rule is off). The selected token and the current-turn token draw
+those arcs around their `rotationDegrees`. `buildVttTokenPresentations` turns them into Scene
+bearings with the shared `facingArcSectors`, which sits beside `classifySquareGridFacingArc` so a
+drawn arc is the one the classifier puts a direction into. `apps/web` only samples each bearing range
+into a wedge polygon to draw it.
 
 The D&D policy may be reused by other systems only through the shared typed primitives. Another
 System can supply different contest, sense, damage, action-economy, or consequence definitions
