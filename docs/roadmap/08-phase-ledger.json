@@ -13209,10 +13209,11 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3
+                "size": 5
               },
               "text": "Automatic failure shown with reason before and after the roll.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 3 to 5 (orchestrator ruling 2026-10-28): optional autoFail reasons {conditionId,label} on the d20 policy, D20_EVIDENCE request and evidence; Encounter direct-action and repeat saves; concentration stays in T4.",
+              "activeWorkbook": "docs/architecture/character.md"
             },
             {
               "id": "SPELLS-10.T4",
@@ -15597,7 +15598,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4o",
@@ -15856,11 +15858,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Re-sized 3 to 5 (orchestrator ruling 2026-10-28): one SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and a shared EXCHANGE_SPELL_SLOTS play command; Sorcerous Restoration and Eldritch Master ship as GM rulings.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5k",
@@ -15874,7 +15877,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5l",
@@ -16877,7 +16881,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2p", "SPELLS-4.T2r"]
               },
-              "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4s1",
@@ -20654,7 +20659,34 @@
                 "after": ["RELIABILITY-21.T20"]
               },
               "text": "Slice gate policy: ci/<slice> pushes run only the journeys their ACs name, merge batches run every journey in shards, merge-slice traces a merge-only journey failure to its slice; fix or label the recurring flaky proofs first.",
-              "note": "Registered 2026-10-28 (user yes)."
+              "note": "Registered 2026-10-28 (user yes).",
+              "activeWorkbook": "docs/architecture/ci-validation.md"
+            },
+            {
+              "id": "RELIABILITY-21.T22",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound auth:onDelete (account deletion) under the 1 s Convex limit on the CI runner, for example by scheduling the per-table deletes in bounded batches; remove the account-deletion-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21)."
+            },
+            {
+              "id": "RELIABILITY-21.T23",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound the owner d20 evidence submission mutation (effects-browser \"submit owner d20 evidence\") under the 1 s Convex limit on the CI runner; remove the effects-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21)."
             }
           ]
         }
@@ -20935,7 +20967,8 @@
                 "size": 3
               },
               "text": "Devil's Sight in the view: prove the Scene vision projection (Session Worker roomSceneVision / roomSceneSensesProjection) hands the warlock token a Devil's Sight sense with MAGICAL_DARKNESS access (full colour, no greyscale, not seeing invisible) and the web renders magical darkness with its dotted outline and a tint distinct from dim, revealing tokens inside the range. Likely mostly proof (the generic sense pipeline exists), plus a fix if the greyscale/colour or marked-magical-darkness requirement fails. Proof: room test with a real warlock Character with the invocation (fails first if projection ignores the sense), window story pixel-sampling the overlay like the existing lighting stories.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/handoffs/lane-3-vtt-ui.md"
             },
             {
               "id": "VTT_UI-3.T4",
