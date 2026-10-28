@@ -19,9 +19,9 @@ import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRendere
 import {
   drawnToken,
   expectDrawnPresentation,
-  latestStageRenderer,
-  type VttRendererDiagnostics
+  latestStageRenderer
 } from './vttSceneRenderer.assertions'
+import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 import {
   actionPreviewOverlays,
   auraColor,
@@ -289,7 +289,7 @@ async function renderedScene(canvasElement: HTMLElement) {
       canvas
         .getByRole('img', { name: 'Interactive campaign scene' })
         .getAttribute('aria-description') ?? '',
-    diagnostics: JSON.parse(output.textContent ?? '{}') as VttRendererDiagnostics
+    diagnostics: JSON.parse(output.textContent ?? '{}') as VttSceneRendererDiagnostics
   }
 }
 

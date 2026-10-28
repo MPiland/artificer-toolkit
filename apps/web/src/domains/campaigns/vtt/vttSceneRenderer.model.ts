@@ -498,8 +498,8 @@ export function describeAuraOverlays(
 
 /**
  * The overlays the stage hands the renderer: the visible auras, the action preview while the drawer
- * is open (including while the caster aims an area's center) plus the picked area once it is no
- * longer being aimed.
+ * is open (including while the caster aims an area's center), the picked area once it is no longer
+ * being aimed, then the forced-movement destinations being picked.
  */
 export function stageOverlays({
   actionPreview,
@@ -507,6 +507,7 @@ export function stageOverlays({
   areaAim,
   areaSize,
   auras,
+  destinationOverlays,
   drawerOpened,
   scene
 }: {
@@ -515,6 +516,7 @@ export function stageOverlays({
   areaAim: VttAreaAim | null
   areaSize: VttAreaSize | null
   auras: EncounterSessionStateDto['auras']
+  destinationOverlays: readonly VttScenePresentationOverlay[]
   drawerOpened: boolean
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
@@ -526,7 +528,8 @@ export function stageOverlays({
     ...(scene ? auraOverlays(auras, scene.tokens) : []),
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
     ...(picked ? [picked] : []),
-    ...(band ? [band] : [])
+    ...(band ? [band] : []),
+    ...destinationOverlays
   ]
   return overlays.length > 0 ? overlays : undefined
 }

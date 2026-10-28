@@ -701,33 +701,30 @@ export function CampaignVttStage({
     [actionPreview?.sourceTokenId, aimingArea, areaSize, zoneAim]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
-  const overlays = useMemo(() => {
-    const staged = stageOverlays({
+  const overlays = useMemo(
+    () =>
+      stageOverlays({
+        actionPreview,
+        aimingArea: rendererAreaAim !== null,
+        areaAim,
+        areaSize,
+        auras: encounterSessionState?.auras ?? [],
+        destinationOverlays: forcedMovementDestinationOverlays(destinationPick, focusedDestination),
+        drawerOpened: actionsOpened,
+        scene: renderedScene ?? null
+      }),
+    [
       actionPreview,
-      aimingArea: rendererAreaAim !== null,
+      actionsOpened,
       areaAim,
       areaSize,
-      auras: encounterSessionState?.auras ?? [],
-      drawerOpened: actionsOpened,
-      scene: renderedScene ?? null
-    })
-    return destinationPick
-      ? [
-          ...(staged ?? []),
-          ...forcedMovementDestinationOverlays(destinationPick, focusedDestination)
-        ]
-      : staged
-  }, [
-    actionPreview,
-    actionsOpened,
-    areaAim,
-    areaSize,
-    destinationPick,
-    encounterSessionState?.auras,
-    focusedDestination,
-    rendererAreaAim,
-    renderedScene
-  ])
+      destinationPick,
+      encounterSessionState?.auras,
+      focusedDestination,
+      rendererAreaAim,
+      renderedScene
+    ]
+  )
   // A selection whose token left the Scene counts as no selection.
   const selectedSceneTokenId = scene?.tokens.find(({ id }) => id === selectedTokenId)?.id ?? null
   // Hover or focus lists a token's statuses; otherwise the selected token's are listed.

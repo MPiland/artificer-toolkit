@@ -444,6 +444,7 @@ describe('VTT scene renderer model', () => {
         areaAim: null,
         areaSize: null,
         auras: [],
+        destinationOverlays: [],
         drawerOpened: true,
         scene: tabletopLiveScene
       }
@@ -464,6 +465,22 @@ describe('VTT scene renderer model', () => {
         expect(stageOverlays({ ...stage, ...area })).toEqual([...previewOnly, picked])
         expect(stageOverlays({ ...stage, ...area, aimingArea: true })).toEqual(previewOnly)
         expect(stageOverlays({ ...stage, ...area, drawerOpened: false })).toEqual([picked])
+      })
+
+      it('draws the forced-movement destinations being picked last', () => {
+        const destination = areaOverlay(
+          { kind: 'RADIUS', radius: 35 },
+          { origin: { x: 700, y: 300 }, toward: null },
+          null
+        )!
+        const destinationOverlays = [destination]
+        expect(stageOverlays({ ...stage, destinationOverlays })).toEqual([
+          ...actionPreviewOverlays(ranged, tabletopLiveScene),
+          destination
+        ])
+        expect(stageOverlays({ ...stage, destinationOverlays, drawerOpened: false })).toEqual([
+          destination
+        ])
       })
 
       it('draws a picked directed area from the token the action is previewed for', () => {
@@ -1578,6 +1595,7 @@ describe('VTT drawn wall and ring areas (SPELLS-4.T1b, D154)', () => {
         areaAim: { origin, toward },
         areaSize: { ...wall, band: { distance: 100, side: 'LEFT' } },
         auras: [],
+        destinationOverlays: [],
         drawerOpened: true,
         scene: null
       })?.map((overlay) => overlay.id)
