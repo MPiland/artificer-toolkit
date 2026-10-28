@@ -13107,10 +13107,10 @@
             },
             {
               "text": "The GM sets a leveled condition's level (Exhaustion) on a Creature in the Encounter, and its mechanics follow the level.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-10.T2 (m528); see each task's proof."],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): the runtime reads a Creature condition row's level, but no editor sets it.",
+              "note": "Registered from SPELLS-2 (D94): the runtime reads a Creature condition row's level, but no editor sets it. Closed 2026-10-28 by SPELLS-10.T2.",
               "id": "SPELLS-10.3"
             },
             {
@@ -13188,7 +13188,7 @@
             },
             {
               "id": "SPELLS-10.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-10.3"],
               "wsjf": {
                 "bv": 5,
@@ -13197,8 +13197,9 @@
                 "size": 3
               },
               "text": "GM sets leveled condition level on an Encounter Creature.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m528.",
+              "mergedAt": "2026-10-28T20:52:59Z",
+              "proof": "Tests 40756225010, Live backend 40756224877, Browser journeys 40756224744 on 8eee6a96f; System condition maximumLevel (SRD Exhaustion 6) replaces levelled, read by the dnd5e Character policy, GM Creature level control with validation."
             },
             {
               "id": "SPELLS-10.T3",
@@ -15614,7 +15615,7 @@
             },
             {
               "id": "SPELLS-31.T4r",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15624,8 +15625,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j1", "SPELLS-31.T5l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m527.",
+              "mergedAt": "2026-10-28T20:29:19Z",
+              "proof": "Tests 40753885755, Live backend 40753885788, Browser journeys 40753885400 on 628825d2e; classConditionImmunityAuraAuthoringParity.test.ts, encounterOccupantSaveBonusCompilation.test.ts, encounterOccupantSaveAuras.test.ts, nativeRoomTurnZoneEffects.test.ts. Draconic Presence names its 5 sorcery points in ruling text; a condition held on aura entry is not removed (deferred edge case)."
             },
             {
               "id": "SPELLS-31.T4s",
@@ -20313,9 +20315,10 @@
             {
               "id": "RELIABILITY-21.17",
               "text": "Adding, retargeting or removing a known-bug label alone does not run every browser journey: label edits run only the proofs whose label was removed.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T17 (m527); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T17."
             },
             {
               "id": "RELIABILITY-21.18",
@@ -20576,7 +20579,7 @@
             },
             {
               "id": "RELIABILITY-21.T17",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.17"],
               "wsjf": {
                 "bv": 3,
@@ -20585,8 +20588,9 @@
                 "size": 2
               },
               "text": "Move KNOWN_BUG_PROOFS out of JOURNEY_STACK into scripts/knownBugProofs.json so a label-only edit no longer selects every proof; a push that removes a label runs that proof.",
-              "note": "Registered 2026-10-28 (user yes).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes). Merged in m527.",
+              "mergedAt": "2026-10-28T20:29:19Z",
+              "proof": "Tests 40753835023, Live backend 40753835284, Browser journeys 40753835185 on 1e1782543; labels in scripts/knownBugProofs.json outside JOURNEY_STACK, pushProofs runs only released proofs."
             },
             {
               "id": "RELIABILITY-21.T18",
