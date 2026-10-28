@@ -521,6 +521,7 @@ function zoneComponentPlan(
           (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
         )
       ]),
+      branchEntryIds: new Map(madeDamageRows.map((row) => ['ON_SAVE_SUCCESS', row.entryId])),
       ...(besideDamage
         ? {
             conditions: new Map([

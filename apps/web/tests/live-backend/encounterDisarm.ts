@@ -98,13 +98,22 @@ export async function verifyEncounterDisarmBrowser(
         stage = 'select Disarm through actions'
         await ownerPage.getByRole('button', { name: 'Open actions', exact: true }).click()
         const { attackSlot, label, sourceLabel } = input.action
+        // The Creature holds the weapon, so the drawer starts on its attack (D107); choosing the
+        // selected option again would clear it. Tab closes the list and keeps the selection.
+        const actionControl = ownerPage.getByRole('combobox', { name: 'Action', exact: true })
+        await expect(actionControl).toBeEnabled()
+        await actionControl.click()
         // An Attack action's option also names its slot (D93), e.g. "Bite" over "Attack 1 of 1".
-        await select(
-          ownerPage,
-          'Action',
-          (sourceLabel ? label + ' · ' + sourceLabel : label) +
-            (attackSlot ? ` Attack ${attackSlot.number} of ${attackSlot.total}` : '')
-        )
+        await expect(
+          ownerPage.getByRole('option', {
+            name:
+              (sourceLabel ? label + ' · ' + sourceLabel : label) +
+              (attackSlot ? ` Attack ${attackSlot.number} of ${attackSlot.total}` : ''),
+            exact: true,
+            selected: true
+          })
+        ).toBeVisible()
+        await actionControl.press('Tab')
         stage = 'pick the Disarm target on the map'
         const map = ownerPage.locator('canvas[aria-description]')
         const targetingTitle = ownerPage.getByText('Pick a target', { exact: true })
