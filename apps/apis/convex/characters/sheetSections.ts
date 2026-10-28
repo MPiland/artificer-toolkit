@@ -2,6 +2,7 @@ import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api
 import type { CharacterSheetSlice } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { CharacterSheetSectionViewer } from '@artificer-toolkit/schema/projections/characterSheetSections'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { sha256Hex } from '@artificer-toolkit/shared/sha256'
 import { makeFunctionReference } from 'convex/server'
 import {
   listActiveRuleEffects,
@@ -26,6 +27,8 @@ export const characterSheetSection = {
   preparation: 'PREPARATION'
 } as const
 
+const isPanel = (section: string) => section.startsWith('PANEL:')
+
 export type CharacterSheetSectionValue = {
   viewer: CharacterSheetSectionViewer
   section: string
@@ -45,6 +48,18 @@ function streamVersionHolder(section: string, value: unknown) {
   if (section === characterSheetSection.preparation) return isRecord(value) ? value : undefined
   if (!section.startsWith('SLICE:') || !isRecord(value) || !isRecord(value.data)) return undefined
   return isRecord(value.data.meta) ? value.data.meta : undefined
+}
+
+/** The section without its stream version, copying only the objects on the way to it. */
+function withoutStreamVersion(section: string, value: unknown): unknown {
+  if (!streamVersionHolder(section, value) || !isRecord(value)) return value
+  if (section === characterSheetSection.preparation) {
+    const { streamVersion: _version, ...rest } = value
+    return rest
+  }
+  const data = value.data as Record<string, unknown>
+  const { streamVersion: _version, ...meta } = data.meta as Record<string, unknown>
+  return { ...value, data: { ...data, meta } }
 }
 
 /**
@@ -183,7 +198,10 @@ export async function readStoredCharacterSheetSection(
       publicId: authorized.route.publicId
     })
   ])
-  if (!derivation || !row || derivation.fingerprint !== fingerprint) return undefined
+  const derivedFrom = isPanel(input.section)
+    ? derivation?.panelsFingerprint
+    : derivation?.fingerprint
+  if (!derivation || !row || derivedFrom !== fingerprint) return undefined
   const entry = derivation.sections.find(
     (section) => section.viewer === viewer && section.section === input.section
   )
@@ -194,12 +212,16 @@ export async function readStoredCharacterSheetSection(
   return value
 }
 
-/** Replaces the Character's stored sections, writing only those whose checksum changed. */
+/**
+ * Replaces the Character's stored sections, writing only those whose checksum changed. Without
+ * `panels` the values hold no panels: the stored ones are kept, still tied to `panelsFingerprint`.
+ */
 export async function writeCharacterSheetSections(
   ctx: MutationCtx,
   characterId: string,
   fingerprint: string,
-  values: readonly CharacterSheetSectionValue[]
+  values: readonly CharacterSheetSectionValue[],
+  panels: boolean
 ) {
   const key = (section: { viewer: string; section: string }) =>
     `${section.viewer} ${section.section}`
@@ -208,16 +230,8 @@ export async function writeCharacterSheetSections(
     (stored?.sections ?? []).map((section) => [key(section), section.checksum])
   )
   const sections = values.map(({ viewer, section, value }) => {
-    // A copy: projections may share objects with the Sheet they were projected from.
-    const unversioned: unknown = JSON.parse(canonicalizeJson(value))
-    const holder = streamVersionHolder(section, unversioned)
-    if (holder) delete holder.streamVersion
-    return {
-      viewer,
-      section,
-      checksum: checksumCanonicalJson(unversioned),
-      json: canonicalizeJson(unversioned)
-    }
+    const json = canonicalizeJson(withoutStreamVersion(section, value))
+    return { viewer, section, checksum: sha256Hex(json), json }
   })
   for (const { json, ...identity } of sections) {
     if (storedChecksums.get(key(identity)) === identity.checksum) continue
@@ -227,19 +241,27 @@ export async function writeCharacterSheetSections(
     else await ctx.db.insert('characterSheetSections', row)
   }
   const kept = new Set(sections.map(key))
+  const keptPanels = panels
+    ? []
+    : (stored?.sections ?? []).filter((section) => isPanel(section.section))
   for (const section of stored?.sections ?? []) {
-    if (kept.has(key(section))) continue
+    if (kept.has(key(section)) || (!panels && isPanel(section.section))) continue
     const existing = await readSectionRow(ctx, characterId, section.viewer, section.section)
     if (existing) await ctx.db.delete('characterSheetSections', existing._id)
   }
   const derivation = {
     characterId,
     fingerprint,
-    sections: sections.map(({ viewer, section, checksum }) => ({ viewer, section, checksum }))
+    panelsFingerprint: panels ? fingerprint : (stored?.panelsFingerprint ?? null),
+    sections: [
+      ...sections.map(({ viewer, section, checksum }) => ({ viewer, section, checksum })),
+      ...keptPanels
+    ]
   }
   if (!stored) await ctx.db.insert('characterSheetDerivations', derivation)
   else if (
     stored.fingerprint !== fingerprint ||
+    stored.panelsFingerprint !== derivation.panelsFingerprint ||
     checksumCanonicalJson(stored.sections) !== checksumCanonicalJson(derivation.sections)
   )
     await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
@@ -250,9 +272,9 @@ const storeReference = makeFunctionReference<'mutation', { characterId: string }
 )
 
 /**
- * Queues the Sheet's derivation after a write that did not store it: Builder commit (referenced
- * content only), a resolution-scope command, a writer outside the Sheet's own commands and the
- * focused preference write.
+ * Queues the Sheet's derivation after a write that did not store it (Builder commit, which reads
+ * only referenced content, a resolution-scope command, a writer outside the Sheet's own commands,
+ * the focused preference and note writes) and for the panels of one that did.
  */
 export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
   await ctx.scheduler.runAfter(0, storeReference, { characterId })

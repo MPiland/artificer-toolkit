@@ -622,6 +622,26 @@ async function assertCommit(input: {
       ...(expectedPersonal[table] ?? []).filter((row) => !matchesCharacter(row, input.characterId)),
       ...targetRows(after.personal, table, input.characterId)
     ]
+  // It stores the panels after the write returns (ADR 0040 decision 7): one queued store for it.
+  const previousScheduledIds = new Set(
+    (expectedPersonal._scheduled_functions ?? []).map((row) => String(row._id))
+  )
+  const queued = (after.personal._scheduled_functions ?? []).filter(
+    (row) => !previousScheduledIds.has(String(row._id))
+  )
+  assert.deepEqual(
+    queued.map((row) => ({ name: row.name, args: row.args })),
+    [
+      {
+        name: 'characters/sheetSectionDerivation:store',
+        args: [{ characterId: input.characterId }]
+      }
+    ]
+  )
+  expectedPersonal._scheduled_functions = [
+    ...(expectedPersonal._scheduled_functions ?? []),
+    ...queued
+  ]
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
   assert.deepEqual(normalize(after.personal), normalize(expectedPersonal))

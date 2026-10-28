@@ -908,6 +908,7 @@ async function collectRuleConvergenceTimings(
     for (let index = 0; index < warmupPairs + measuredPairs; index += 1) {
       let expectedMaxHitPoints = currentMaxHitPoints + alternateModifier - currentModifier
       await setMaxHpModifierAndCollect(
+        client,
         sheet,
         peerSheet,
         alternateModifier,
@@ -919,6 +920,7 @@ async function collectRuleConvergenceTimings(
       currentMaxHitPoints = expectedMaxHitPoints
       expectedMaxHitPoints = currentMaxHitPoints + originalModifier - currentModifier
       await setMaxHpModifierAndCollect(
+        client,
         sheet,
         peerSheet,
         originalModifier,
@@ -935,6 +937,7 @@ async function collectRuleConvergenceTimings(
 }
 
 async function setMaxHpModifierAndCollect(
+  client: ManagedClient,
   sheet: Page,
   peerSheet: Page,
   value: number,
@@ -954,12 +957,20 @@ async function setMaxHpModifierAndCollect(
     )
   })
   await input.press('Enter')
-  await expect
-    .poll(() => readMaxHitPoints(peerSheet), {
-      intervals: [5, 10, 20],
-      timeout: 30_000
-    })
-    .toBe(expectedMaxHitPoints)
+  try {
+    await expect
+      .poll(() => readMaxHitPoints(peerSheet), {
+        intervals: [5, 10, 20],
+        timeout: 30_000
+      })
+      .toBe(expectedMaxHitPoints)
+  } catch (error) {
+    const alerts = await sheet.getByRole('alert').allInnerTexts()
+    throw new Error(
+      `Max HP ${value} did not reach the peer Sheet. Editor input: ${await input.inputValue()}. Alerts: ${alerts.join(' | ') || 'none'}. Browser errors: ${client.browserErrors.slice(-10).join(' | ') || 'none'}.`,
+      { cause: error }
+    )
+  }
   const observedAt = Date.now()
   const submittedAt = await sheet.evaluate(
     () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
