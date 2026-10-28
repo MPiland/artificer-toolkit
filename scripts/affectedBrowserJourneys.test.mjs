@@ -8,10 +8,13 @@ import {
   JOURNEY_ENTRIES,
   journeyRunReason,
   ledgerTasks,
+  GATING_SHARDS,
   proofNames,
   pushProofs,
-  runnerProofs
+  runnerProofs,
+  shardProofs
 } from './affectedBrowserJourneys.mjs'
+import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
 import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
 
 // The repository's own import graph, so the entries are proved against the code the journeys serve.
@@ -148,5 +151,70 @@ describe('known-bug proofs', () => {
     expect(() => checkKnownBugs({ 'player-browser': 'RELIABILITY-21.T1' }, ciProofs, done)).toThrow(
       /is DONE; remove the entry/
     )
+  })
+})
+
+// RELIABILITY-21.18: the real proof list, labels and recorded durations, packed onto shared stacks.
+describe('shardProofs', () => {
+  const root = resolve(import.meta.dirname, '..')
+  const allProofs = runnerProofs(
+    readFileSync(resolve(root, 'scripts/runLocalConvexProof.ps1'), 'utf8')
+  )
+  const ciProofs = allProofs.filter((name) => name.endsWith('-browser'))
+  const shards = shardProofs(ciProofs, KNOWN_BUG_PROOFS, PROOF_SECONDS)
+  const names = (shard) => shard.proofs.map(({ proof }) => proof)
+
+  it('runs every CI proof exactly once', () => {
+    expect(shards.flatMap(names).sort()).toEqual([...ciProofs].sort())
+  })
+
+  it('uses at most the gating shards plus one known-bug shard', () => {
+    expect(shards.filter((shard) => !shard.knownBug)).toHaveLength(GATING_SHARDS)
+    expect(shards.filter((shard) => shard.knownBug).length).toBeLessThanOrEqual(1)
+  })
+
+  it('keeps known-bug proofs apart from gating proofs, each with its own label', () => {
+    for (const shard of shards)
+      for (const { proof, knownBug } of shard.proofs) {
+        expect(knownBug).toBe(KNOWN_BUG_PROOFS[proof] ?? '')
+        expect(shard.knownBug).toBe(Boolean(KNOWN_BUG_PROOFS[proof]))
+      }
+  })
+
+  it('keeps every shard well inside the 45-minute job timeout', () => {
+    const seconds = (shard) => names(shard).reduce((sum, proof) => sum + PROOF_SECONDS[proof], 0)
+    expect(Math.max(...shards.map(seconds))).toBeLessThanOrEqual(30 * 60)
+  })
+
+  it('records durations only for runner proofs', () => {
+    expect(Object.keys(PROOF_SECONDS).filter((proof) => !allProofs.includes(proof))).toEqual([])
+  })
+
+  it('assigns a proof with no recorded duration', () => {
+    const added = shardProofs([...ciProofs, 'new-browser'], KNOWN_BUG_PROOFS, PROOF_SECONDS)
+    expect(added.filter((shard) => names(shard).includes('new-browser'))).toHaveLength(1)
+    expect(added.find((shard) => names(shard).includes('new-browser')).knownBug).toBe(false)
+  })
+
+  it('reverses each shard without moving a proof', () => {
+    const reversed = shardProofs(ciProofs, KNOWN_BUG_PROOFS, PROOF_SECONDS, { reverse: true })
+    expect(reversed.map((shard) => names(shard).reverse())).toEqual(shards.map(names))
+  })
+
+  it.each([
+    ['a gating proof', 'auth-browser', false],
+    ['a known-bug proof', Object.keys(KNOWN_BUG_PROOFS)[0], true],
+    ['a native proof', 'movement', false]
+  ])('runs a dispatched %s alone', (_, proof, knownBug) => {
+    expect(shardProofs([proof], KNOWN_BUG_PROOFS, PROOF_SECONDS)).toEqual([
+      expect.objectContaining({
+        knownBug,
+        proofs: [{ proof, knownBug: KNOWN_BUG_PROOFS[proof] ?? '' }]
+      })
+    ])
+  })
+
+  it('selects no shard when no proof is selected', () => {
+    expect(shardProofs([], KNOWN_BUG_PROOFS, PROOF_SECONDS)).toEqual([])
   })
 })

@@ -4,15 +4,19 @@
 // those entries through the Tests workflow's import graph (scripts/affectedTests.mjs) or change the stack
 // the job starts. A dispatch runs the proof it names, or every CI proof. The CI proofs are the *-browser
 // proofs of scripts/runLocalConvexProof.ps1; a scripts/knownBugProofs.json entry runs without gating, and
-// a push that removes one runs that proof.
-//   node scripts/affectedBrowserJourneys.mjs --base <ref> [--event <name>] [--proof <name>]
-// Writes `proofs`, a JSON matrix of { proof, knownBug } that is empty when nothing is reached, to
-// $GITHUB_OUTPUT when set.
+// a push that removes one runs that proof. The selected proofs are packed onto a few shared stacks
+// (shardProofs), since booting a stack costs more than most proofs.
+//   node scripts/affectedBrowserJourneys.mjs --base <ref> [--event <name>] [--proof <name>] [--reverse]
+// Writes `shards`, a JSON matrix of { name, knownBug, proofs: [{ proof, knownBug }] } that is empty when
+// nothing is reached, to $GITHUB_OUTPUT when set.
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { affectedFiles, buildImportGraph, changesSince, fullRunReason } from './affectedTests.mjs'
+// Seconds each proof's own step took in CI, which balances the shards; refresh it from a full run with the
+// command in docs/architecture/ci-validation.md#browser-journeys.
+import PROOF_SECONDS from './browserJourneyDurations.json' with { type: 'json' }
 // CI proofs that have never passed in CI, each with the registered task that fixes it (RELIABILITY-20.3).
 // They run and upload evidence but do not gate; the fix task removes its entries.
 import KNOWN_BUG_PROOFS from './knownBugProofs.json' with { type: 'json' }
@@ -98,6 +102,45 @@ export function pushProofs(graph, changed, ciProofs, baseKnownBugs, knownBugs) {
   return released.length > 0
     ? { reason: 'known-bug labels removed', proofs: released }
     : { reason: null, proofs: [] }
+}
+
+/** Gating runners a run uses at most; known-bug proofs take one more (RELIABILITY-21.18). */
+export const GATING_SHARDS = 5
+
+/**
+ * Packs proofs onto shared stacks. Known-bug proofs share one non-gating shard, so a known bug never
+ * reddens or hides a gating proof. Gating proofs go longest first onto the least-loaded of GATING_SHARDS
+ * shards by recorded seconds; a proof with no recording counts as the median one. Each shard runs its
+ * proofs in name order, or reversed to prove they do not depend on each other.
+ */
+export function shardProofs(proofs, knownBugs, seconds, { reverse = false } = {}) {
+  const recorded = Object.values(seconds).sort((a, b) => a - b)
+  const median = recorded[Math.floor(recorded.length / 2)] ?? 0
+  const cost = (proof) => seconds[proof] ?? median
+  const gating = proofs.filter((proof) => !knownBugs[proof])
+  const bins = Array.from({ length: Math.min(GATING_SHARDS, gating.length) }, () => ({
+    load: 0,
+    proofs: []
+  }))
+  for (const proof of [...gating].sort((a, b) => cost(b) - cost(a) || a.localeCompare(b))) {
+    const bin = bins.reduce((least, next) => (next.load < least.load ? next : least))
+    bin.load += cost(proof)
+    bin.proofs.push(proof)
+  }
+  const shard = (name, members, knownBug) => {
+    const ordered = [...members].sort()
+    if (reverse) ordered.reverse()
+    return {
+      name,
+      knownBug,
+      proofs: ordered.map((proof) => ({ proof, knownBug: knownBugs[proof] ?? '' }))
+    }
+  }
+  const shards = bins.map((bin, index) =>
+    shard(`Journeys ${index + 1} of ${bins.length}`, bin.proofs, false)
+  )
+  const known = proofs.filter((proof) => knownBugs[proof])
+  return known.length > 0 ? [...shards, shard('Known bugs, not gating', known, true)] : shards
 }
 
 /** Every task in the phase ledger, wherever its feature or PBI nests it. */
@@ -188,10 +231,14 @@ function main() {
   const knownBugs = proofs.filter((proof) => KNOWN_BUG_PROOFS[proof])
   if (knownBugs.length > 0)
     summary += `\n\nNot gating: ${knownBugs.map((proof) => `${proof} KNOWN-BUG ${KNOWN_BUG_PROOFS[proof]}`).join(', ')}.`
+  const shards = shardProofs(proofs, KNOWN_BUG_PROOFS, PROOF_SECONDS, {
+    reverse: args.includes('--reverse')
+  })
+  for (const { name, proofs: members } of shards)
+    summary += `\n\n${name}: ${members.map(({ proof }) => proof).join(', ')}.`
   console.log(summary)
-  const matrix = proofs.map((proof) => ({ proof, knownBug: KNOWN_BUG_PROOFS[proof] ?? '' }))
   if (process.env.GITHUB_OUTPUT)
-    appendFileSync(process.env.GITHUB_OUTPUT, `proofs=${JSON.stringify(matrix)}\n`)
+    appendFileSync(process.env.GITHUB_OUTPUT, `shards=${JSON.stringify(shards)}\n`)
   if (process.env.GITHUB_STEP_SUMMARY)
     appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Browser journeys\n\n${summary}\n`)
 }
