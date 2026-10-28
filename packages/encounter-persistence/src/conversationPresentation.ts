@@ -87,7 +87,16 @@ export function presentChatEntries(
                           ).slice(0, 160)
                         }
                       }
-                    : {})
+                    : payload.roll.ruleCheck?.kind === 'SAVE_AUTO_FAIL'
+                      ? {
+                          ruleCheck: {
+                            ...payload.roll.ruleCheck,
+                            labels: payload.roll.ruleCheck.labels.map((label) =>
+                              presentCampaignPlainText(label, maturity).slice(0, 160)
+                            )
+                          }
+                        }
+                      : {})
             },
       revealedByGm: payload.revealedByGm,
       authorUserId: entry.authorUserId,

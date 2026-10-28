@@ -186,6 +186,14 @@ export const rollRuleCheckDtoSchema = lazySchema(() =>
       amount: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
       /** The source that gave the floor; "Unseen source" for a hidden one. */
       label: ruleCheckLabelSchema
+    }),
+    /**
+     * A saving throw a condition made fail without counting the roll (D94): the d20 term shows the
+     * dice as rolled, and the conditions are why the save failed whatever they show.
+     */
+    z.strictObject({
+      kind: z.literal('SAVE_AUTO_FAIL'),
+      labels: z.array(ruleCheckLabelSchema).check(z.minLength(1)).check(z.maxLength(32))
     })
   ])
 )

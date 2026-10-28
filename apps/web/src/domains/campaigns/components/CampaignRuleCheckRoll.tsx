@@ -11,6 +11,19 @@ export function CampaignRuleCheckRoll({
   evidence: RollRecordDto['evidence']
   ruleCheck: RollRuleCheckDto
 }) {
+  if (ruleCheck.kind === 'SAVE_AUTO_FAIL') {
+    return (
+      <div>
+        <Text>
+          Rolled <strong>{evidence.total}</strong>
+        </Text>
+        <Text c='dimmed' size='xs'>
+          {formatRollEvidence(evidence)}
+        </Text>
+        <Text size='sm'>Fails automatically: {ruleCheck.labels.join(', ')}</Text>
+      </div>
+    )
+  }
   if (ruleCheck.kind === 'D20_MODE_ADJUSTED' || ruleCheck.kind === 'D20_MINIMUM_ROLL') {
     return (
       <div>

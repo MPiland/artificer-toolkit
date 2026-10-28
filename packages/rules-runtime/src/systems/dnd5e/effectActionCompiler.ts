@@ -209,6 +209,7 @@ import { damageSizedOutcomeGraph } from './effectActionDamageSized.js'
 import {
   forcedMovementProposalNode,
   dnd5eResultGate,
+  autoFailAudit,
   dnd5eSaveOutcomeRule,
   testContractVersion
 } from './effectActionOperationRegistry.js'
@@ -3972,7 +3973,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           modifier: matches[0]!.modifier,
           defenseOrDc: dc,
           addedDice,
-          savingThrowAbilityDefinitionId: nestedSaveAbilityDefinitionId
+          savingThrowAbilityDefinitionId: nestedSaveAbilityDefinitionId,
+          ...autoFailAudit(conditionOutcomeRules, nestedSaveAbilityDefinitionId)
         }
       }
     }
@@ -4113,7 +4115,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           contributors,
           contributorChecksum,
           ...folded,
-          savingThrowAbilityDefinitionId: save.abilityDefinitionId
+          savingThrowAbilityDefinitionId: save.abilityDefinitionId,
+          ...autoFailAudit(conditionOutcomeRules, save.abilityDefinitionId)
         }
       }
     }
@@ -4334,6 +4337,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         modifier: matches[0]!.modifier,
         dc: saveDc,
         savingThrowAbilityDefinitionId: abilityDefinitionId,
+        ...(succeedsUnrolled ? {} : autoFailAudit(conditionOutcomeRules, abilityDefinitionId)),
         ...(addedDice.length > 0 ? { addedDice } : {})
       }
     }

@@ -43,6 +43,7 @@ import { EncounterConflictError } from './encounterErrors.js'
 import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {
   resolveEncounterIntegerAnswer,
+  autoFailConditions,
   savingThrowAbility,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
@@ -558,6 +559,7 @@ function d20EvidenceForCompletion(input: {
     defenseOrDc: policy.dc,
     resultPath: execution.outputs.resultPath,
     ...savingThrowAbility(policy),
+    ...autoFailConditions(policy),
     ...(addedDice.length > 0 ? { addedDice: [...addedDice] } : {})
   }
 }

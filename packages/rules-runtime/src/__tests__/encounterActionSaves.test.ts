@@ -8,12 +8,15 @@ import {
   ACTIVATION_CODE
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import { antitoxinEffect, baneEffect, blessEffect } from './antitoxinEffectFixture.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
+import { encounterAutoFailRequest } from '../encounterRollModeReasons.js'
+import { actionD20RollRecord } from '../encounterRuleCheckRolls.js'
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
@@ -514,10 +517,47 @@ describe("saving throws under the saver's conditions (D94)", () => {
       expect(result.d20).toMatchObject({
         selectedNatural: 20,
         total: 22,
-        resultPath: 'ON_SAVE_FAIL'
+        resultPath: 'ON_SAVE_FAIL',
+        autoFailConditionIds: [srdConditionId(code)]
       })
       expect(result.hitPoints).toBe(2)
     }
+  })
+
+  it('names the condition that failed the save on the roll card and the pre-roll request', async () => {
+    const paralyzed = srdConditionId('PARALYZED')
+    const { d20 } = await resolve({
+      feature: acidSpray(),
+      rolls: [19],
+      conditionIds: [paralyzed]
+    })
+    if (!d20) throw new Error('Expected the save d20.')
+    const card = actionD20RollRecord({
+      occurrenceId: crypto.randomUUID(),
+      checkIndex: 0,
+      d20,
+      actionLabel: 'Acid Spray',
+      rollerLabel: 'Wolf',
+      ruleset: {
+        systemId: srdSystemRecord.id,
+        code: srdSystemRecord.rulesetCode,
+        version: srdSystemRecord.rulesetVersion
+      },
+      createdAt: '2026-01-01T00:00:00.000Z',
+      reader: 'PLAYER',
+      autoFailLabels: d20.autoFailConditionIds?.map(
+        (id) => srdSystemRecord.conditionTypes.find((condition) => condition.id === id)?.label ?? ''
+      )
+    })
+    expect(card.ruleCheck).toEqual({ kind: 'SAVE_AUTO_FAIL', labels: ['Paralyzed'] })
+
+    const labelled = encounterAutoFailRequest(
+      (input) => (input.rollMode === 'AUTO_FAIL' ? ['Paralyzed'] : []),
+      d20,
+      null
+    )
+    expect(labelled).toEqual({ autoFail: [{ conditionId: paralyzed, label: 'Paralyzed' }] })
+    expect(encounterAutoFailRequest(() => [], d20, null)).toEqual({})
   })
 
   it("rolls a Paralyzed target's Wisdom save normally", async () => {
@@ -528,6 +568,7 @@ describe("saving throws under the saver's conditions (D94)", () => {
       conditionIds: [srdConditionId('PARALYZED')]
     })
     expect(result.d20).toMatchObject({ total: 14, resultPath: 'ON_SAVE_SUCCESS' })
+    expect(result.d20?.autoFailConditionIds).toBeUndefined()
     expect(result.hitPoints).toBe(11)
   })
 
@@ -557,7 +598,7 @@ describe("saving throws under the saver's conditions (D94)", () => {
     // The TEST boundary rebinds the facts and compares this checksum, so a dropped rule is stale.
     const dropped = bind({
       ...prepared.binding,
-      conditionOutcomeRules: { hitIsCritical: false, saveAutoFailAbilityIds: [] }
+      conditionOutcomeRules: { hitIsCritical: false, saveAutoFails: [] }
     })
     expect(dropped[DND5E_TEST_OUTCOME_RULE_FACT_KEY]).toBe('NONE')
     expect(checksumRuleDocument(dropped)).not.toBe(test?.boundFactsChecksum)

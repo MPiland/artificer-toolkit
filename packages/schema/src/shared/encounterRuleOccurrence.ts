@@ -169,6 +169,22 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
         .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
         .check(z.maxLength(32)),
       /**
+       * The conditions that make this saving throw fail without counting the roll (D94), each
+       * with its label. The d20 is still rolled; the save fails whatever it shows. Absent when no
+       * condition does.
+       */
+      autoFail: z.optional(
+        z
+          .array(
+            z.strictObject({
+              conditionId: uuidSchema,
+              label: z.string().check(z.minLength(1)).check(z.maxLength(160))
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(32))
+      ),
+      /**
        * Dice the roller rolls with the d20 and adds or subtracts after the mode keeps one d20
        * (D156), such as "+1d4 Bless". Absent when the test has none.
        */
