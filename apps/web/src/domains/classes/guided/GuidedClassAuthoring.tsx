@@ -5,6 +5,7 @@ import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants/proficiency'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
+import { expandNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { getNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 import { withForm } from '#forms/app-form/AppForm'
@@ -70,8 +71,8 @@ export const GuidedClassAuthoring = withForm({
         isSubclass && Boolean(session.systemId)
       ),
       select: (response) =>
-        response.steps
-          .flatMap((step) => step.sections)
+        expandNodeRuntimeResponse(response)
+          .steps.flatMap((step) => step.sections)
           .flatMap((section) => section.nodes)
           .flatMap((node) =>
             node.kind === 'INPUT' &&
