@@ -1062,8 +1062,8 @@
 00000000-0005-001d-0070-164e00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-0067-0070-001800000000 CREATURE Teleport (Costs 2 Actions) | SINGLE_GRAPH 52f0251e1b32b4f41fbedaaa87b6ef36fc6d1ede48881cfaa1335fb59d1ba5a4 nodes=1 outputs=1
 00000000-0005-00d2-0070-009d00000000 CREATURE Teleport (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-00d6-0070-009d00000000 CREATURE Cast a Spell (Costs 3 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-01f5-0070-00b700000000 CREATURE Cantrip | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-00d6-0070-009d00000000 CREATURE Cast a Spell (Costs 3 Actions) | NOT_A_DISCOVERED_ACTION
+00000000-0005-01f5-0070-00b700000000 CREATURE Cantrip | NOT_A_DISCOVERED_ACTION
 00000020-0000-0210-0001-000000000001 CHARACTER:spells Acid Arrow | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000020-0000-0210-0002-000000000001 CHARACTER:spells Acid Splash | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=203ef4049720c40dc6f787e7bf2bc3cfe984d0cdd2e18994185946629e7626a9]
 00000020-0000-0210-0003-000000000001 CHARACTER:spells Aid | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
