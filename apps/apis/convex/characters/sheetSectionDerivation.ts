@@ -8,12 +8,15 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
+import { makeFunctionReference } from 'convex/server'
+import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
+import { internalMutation } from '../lib/mutations'
 import { loadCharacterState } from './documents'
 import { projectCharacterSheetPanel } from './panels'
 import { projectCharacterPreparationOptions } from './preparationOptions'
-import type { loadCharacterSheetFacts } from './sheetFacts'
+import { loadCharacterSheetFacts } from './sheetFacts'
 import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
   characterSheetSection,
@@ -90,4 +93,30 @@ export async function storeCharacterSheetSections(
     authorityScope
   )
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
+}
+
+const storeReference = makeFunctionReference<'mutation', { characterId: string }, null>(
+  'characters/sheetSectionDerivation:store'
+)
+
+/** Derives the Sheet once over its own sources and stores its sections. */
+export const store = internalMutation({
+  args: { characterId: v.string() },
+  returns: v.null(),
+  handler: async (ctx, { characterId }) => {
+    const { active } = await loadCharacterState(ctx, characterId)
+    // A deleted Character, or one that needs Builder repair, has no Sheet to store.
+    if (active?.status !== 'ACTIVE') return null
+    const facts = await loadCharacterSheetFacts(ctx, active.userId, characterId)
+    if (facts) await storeCharacterSheetSections(ctx, facts)
+    return null
+  }
+})
+
+/**
+ * Queues the Sheet's derivation after a write that did not evaluate it: Builder commit (referenced
+ * content only), a resolution-scope command and the focused preference and note writes.
+ */
+export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
+  await ctx.scheduler.runAfter(0, storeReference, { characterId })
 }

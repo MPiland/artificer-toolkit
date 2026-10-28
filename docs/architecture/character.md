@@ -869,7 +869,11 @@ The queries read committed Character state. A working draft contributes only its
 flag, never proposed structure, play state or private notes. UUID and route-alias lookups share the
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
 anonymous callers are denied. Every Character write derives the Sheet once and stores its slices,
-listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-character-sheet-sections.md)).
+listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-character-sheet-sections.md)):
+inline when the write evaluated the Sheet itself, otherwise (Builder commit, resolution-scope
+commands, focused preference and note writes) through the queued
+`characters/sheetSectionDerivation:store` mutation. An owner's preparation options read their
+content-snapshot manifest from the current heads.
 After the same authority checks, a read serves its stored section while the fingerprint of every
 input the derivation read (Character, draft and route, System, source and Campaign content heads,
 the Campaign fields and state the Sheet reads, rule effects) still matches; otherwise it runs the

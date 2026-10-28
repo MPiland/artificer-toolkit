@@ -80,7 +80,7 @@ export function listCharacterSheetPanelTargets(
     ...inventory.items.map(({ id }) => ({ kind: 'ITEM' as const, itemInstanceId: id })),
     ...resources.items.map(({ owner }) => ({ kind: 'RESOURCE' as const, owner })),
     { kind: 'EXTRAS' },
-    ...extras.items.flatMap((extra) =>
+    ...extras.items.flatMap((extra): CharacterSheetPanelTargetDto[] =>
       extra.kind === 'VEHICLE'
         ? [{ kind: 'VEHICLE' as const, vehicleInstanceId: extra.id }]
         : extra.kind === 'SPELL_SUMMON'

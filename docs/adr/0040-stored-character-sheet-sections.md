@@ -14,7 +14,7 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
 
 ## Decision
 
-1. **A Character write derives the Sheet once and stores it per section.** `writeCharacterRecord` (every Builder commit, Sheet command and play write that evaluates the Character) ends with `storeCharacterSheetSections`. It projects that one evaluation for each viewer that can read the Character: `CHARACTER_OWNER`; `CAMPAIGN_OWNER` when the Campaign owner is someone else; and `PARTY_MEMBER` slices while "Party can view" is on. For each viewer it stores every slice except Notes, the panel for every target the Sheet lists (`listCharacterSheetPanelTargets`) and the preparation options.
+1. **A Character write derives the Sheet once and stores it per section.** A write that evaluated the Sheet itself (active sources with their prose: most Sheet commands, GM writes and Campaign refreshes) ends in `writeCharacterRecord` with `storeCharacterSheetSections`. Every other Character write queues the internal mutation `characters/sheetSectionDerivation:store`, which derives the Sheet once and stores it. Those writes are a Builder commit (it reads only referenced content, ADR 0036 S7, and stays inside its read budget), a resolution-scope command, and the focused inspiration, party-visibility and note writes. Reads in the moment before it runs derive live. Each store projects its one evaluation for each viewer that can read the Character: `CHARACTER_OWNER`; `CAMPAIGN_OWNER` when the Campaign owner is someone else; and `PARTY_MEMBER` slices while "Party can view" is on. For each viewer it stores every slice except Notes, the panel for every target the Sheet lists (`listCharacterSheetPanelTargets`) and the preparation options.
 2. **Two tables.** `characterSheetSections` holds one row per `(characterId, viewer, section)` with the section's canonical JSON and checksum. `characterSheetDerivations` holds one row per Character: the input fingerprint and the list of stored section checksums. A write replaces only the rows whose checksum changed, deletes rows that no longer exist and rewrites the derivation row only when its fingerprint or list changed.
 3. **The fingerprint covers every stored input the derivation reads.** It checksums:
    - the Character document, Sheet state and play checksums and its stream version;
@@ -25,13 +25,15 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
    - the Campaign Character state and currency options;
    - the Character's active and carried rule effects.
 4. **Reads serve a stored section only while it is current.** `sheetSlices:get`, `panels:get`, `preparationOptions:get` and the Campaign `panel` and `preparationOptions` queries call `readStoredCharacterSheetSection`. It applies the same authority the derived read applies (`readAuthorizedCharacterSheetState`, plus the party visibility check), recomputes the fingerprint and returns the stored section when it matches. On any miss the query derives live as before, so a miss is slower but never wrong, and the derived path still reports access errors.
-5. **Not stored.** Notes (private, read without sources); the Proficiencies panel (it resolves the whole catalogue); panel targets the Sheet does not list (cast-level and passive entries). These always derive live.
+5. **Snapshot heads are read current.** An owner's preparation options carry the content-snapshot manifest. Builds finish without a Character write, so a stored read takes the manifest from the current heads (`readStoredCharacterPreparationOptions`). The fingerprint covers only head revisions.
+6. **Not stored.** Notes (private, read without sources); the Proficiencies panel (it resolves the whole catalogue); panel targets the Sheet does not list (cast-level and passive entries). These always derive live.
 
 ## Consequences
 
 - A Sheet read touches no authored content: it reads authority rows, the fingerprint inputs and one section.
-- Writes do more work (one projection per viewer and section, and the changed rows), but they already evaluated the Character. A Sheet command evaluates once to validate the command; its write reuses that evaluation's source context, so authored content is read once per command.
+- Writes do more work (one projection per viewer and section, and the changed rows). Most already evaluated the Character; the others pay one scheduled derivation. A Sheet command evaluates once to validate the command; its write reuses that evaluation's source context, so authored content is read once per command.
 - Accepted residuals, each a correct live fallback until the next Character write:
-  - note writes advance the stream version without storing sections;
+  - a write that queues the derivation, until that derivation runs;
+  - live-table checkpoint writes to a held Character's play state;
   - Campaign or source changes outside a Character write (catalogue edits, membership changes, published content) change the fingerprint.
 - No migration: pre-launch local data is reset after merge (D196). A Character without stored sections reads live until its next write.

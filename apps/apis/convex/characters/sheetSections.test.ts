@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { z } from 'zod'
 import type {
   CampaignDetailDto,
@@ -71,7 +71,7 @@ async function setup() {
   const party = await createPartyPlayer(t, campaign)
   await party.join()
   const input = { campaignId: campaign.id, characterId: character.id }
-  // A Sheet command is a Character write: it stores the sections every viewer reads.
+  // A Sheet command is a Character write: its derivation stores the sections every viewer reads.
   const current = await player.caller.query(campaignSheet, input)
   const visibility = await player.caller.mutation(api.characters.sheetCommands.execute, {
     id: character.id,
@@ -87,10 +87,14 @@ async function setup() {
       for (const row of await ctx.db.query('characterSheetDerivations').collect())
         await ctx.db.delete(row._id)
     })
+  await t.finishAllScheduledFunctions(vi.runAllTimers)
   return { t, player, gm, party, campaign, character, input, visibility, forgetDerivation }
 }
 
 describe('Stored Character Sheet sections (ADR 0040)', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('serves every viewer the sections a live derivation would, from one write', async () => {
     const { t, player, gm, party, character, input, forgetDerivation } = await setup()
     const viewers = [
@@ -157,6 +161,7 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
   it('reads one stored section without authored content', async () => {
     const { t, player, character, input } = await setup()
     const totals = createDatabaseIoTotals()
+    // Values leave `t.run` as Convex values, so a miss (undefined) arrives as null.
     const section = await t.run((ctx) =>
       readStoredCharacterSheetSection(
         { ...ctx, db: countDatabaseIo(ctx.db, totals) },
@@ -168,7 +173,7 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
         }
       )
     )
-    expect(section).toBeDefined()
+    expect(section).not.toBeNull()
     expect(totals.reads.byTable.authoredRoots).toBeUndefined()
     expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
     expect(totals.reads.byTable.characterSheetSections?.documents).toBe(1)
@@ -186,7 +191,8 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
           section: characterSheetSection.slice('COMMON')
         })
       )
-    expect(await readCommon()).toBeDefined()
+    // A miss (undefined) leaves `t.run` as null.
+    expect(await readCommon()).not.toBeNull()
     await t.run(async (ctx) => {
       const campaign = await ctx.db
         .query('campaigns')
@@ -194,16 +200,17 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
         .unique()
       await ctx.db.patch(campaign!._id, { contentMaturity: 'MATURE' })
     })
-    expect(await readCommon()).toBeUndefined()
+    expect(await readCommon()).toBeNull()
 
-    // A note write advances the play stream without storing sections; the Sheet still reports it.
+    // A note write evaluates nothing: it queues the derivation, and the Sheet reads live meanwhile.
     const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
       id: character.id,
       command: {
         type: 'CREATE_NOTE',
         commandId: crypto.randomUUID(),
         expectedVersion: visibility.streamVersion,
-        title: 'Session one'
+        title: 'Session one',
+        groupId: 'session-notes'
       }
     })
     const common = await player.caller.query(api.characters.sheetSlices.get, {
@@ -212,5 +219,8 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
       slice: 'COMMON'
     })
     expect(common?.data.meta.streamVersion).toBe(note.streamVersion)
+    expect(await readCommon()).toBeNull()
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readCommon()).toEqual(common)
   }, 60_000)
 })

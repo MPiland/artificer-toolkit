@@ -28,7 +28,10 @@ import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { executeCharacterSheetCommandAcknowledgement } from '../characters/sheetCommands'
 import { projectCharacterSheetPanel } from '../characters/panels'
-import { projectCharacterPreparationOptions } from '../characters/preparationOptions'
+import {
+  projectCharacterPreparationOptions,
+  readStoredCharacterPreparationOptions
+} from '../characters/preparationOptions'
 import { characterSheetSection, readStoredCharacterSheetSection } from '../characters/sheetSections'
 import { prepareCharacterRest } from '../characters/rest'
 import { presentRoll } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
@@ -147,13 +150,12 @@ export const preparationOptions = query({
   handler: async (ctx, args) => {
     const { userId } = await requireIdentity(ctx)
     const { campaignId, characterId } = listCampaignAdjustmentsInputSchema.parse(args)
-    const stored = await readStoredCharacterSheetSection(ctx, {
+    const stored = await readStoredCharacterPreparationOptions(ctx, {
       userId,
       lookupId: characterId,
-      campaignId,
-      section: characterSheetSection.preparation
+      campaignId
     })
-    if (stored !== undefined) return characterPreparationOptionsResponseDtoSchema.parse(stored)
+    if (stored) return stored
     const current = await loadCharacterSheet(ctx, userId, characterId, campaignId)
     if (!current) throw new Error('Assigned Character not found.')
     return projectCharacterPreparationOptions(ctx, current)
