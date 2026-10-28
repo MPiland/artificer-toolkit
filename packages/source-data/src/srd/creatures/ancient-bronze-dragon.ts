@@ -532,25 +532,6 @@ export const ancientBronzeDragon: CreatureAuthored = {
                       }
                     ]
                   }
-                },
-                {
-                  id: '00000000-0005-0021-0070-151f00000000',
-                  order: 2,
-                  pathCode: 'ON_SAVE_FAIL',
-                  groupType: 'SEQUENTIAL',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '00000000-0005-0021-0070-151f00000000__result',
-                    resultKind: 'SEQUENCE',
-                    outcomes: [
-                      {
-                        id: '00000000-0005-0021-0070-151f00000000',
-                        effectKind: 'CONDITION',
-                        conditionId: '00000000-0000-0000-0002-000c00000000'
-                      }
-                    ]
-                  }
                 }
               ]
             }

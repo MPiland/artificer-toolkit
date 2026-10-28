@@ -87,7 +87,7 @@ describe('Creature reaction rules and Wing Attack (D187a)', () => {
   })
 
   const dragons = srdCreatures.filter((creature) =>
-    /^(Adult|Ancient) w+ Dragon$/.test(creature.label)
+    /^(Adult|Ancient) \w+ Dragon$/.test(creature.label)
   )
 
   it('finds every adult and ancient dragon', () => {
