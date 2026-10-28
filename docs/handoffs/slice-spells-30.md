@@ -4,12 +4,27 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 
 ## Resume here
 
-- T1 (closes AC SPELLS-30.1): D148 approved 2026-10-17 with three conditions (below). Done and green on `ci/spells-30-t1` at `0f9c2d011`; ready to merge.
-- Branch `claude/nifty-golick-513885`, based on `origin/codex/phase-08-2-convex-cutover`.
+- T1 (closes AC SPELLS-30.1): D148 approved 2026-10-17 with three conditions (below). Merged in m95.
+- T2 (closes AC SPELLS-30.1): Blade Barrier, data-only (D187a, size 2). Branch `claude/spells-30-t2-2c3b2f`, pushed to `ci/spells-30-t2`. The cover clause is a GM ruling (orchestrator ruling B, below).
+
+## T2: Blade Barrier (D154 walls, D148 pick)
+
+### Findings
+
+- `blade-barrier.ts` was already authored from core options: the Straight Wall (100 ft) or Ringed Wall (30 ft radius, hollow, 5 ft wall) pick, `ENTER_OR_PASS_THROUGH` plus `START_TURN_IN_SPACE` (ENTER, CROSS and START_OF_TURN), one application per turn, `movementCostMultiplier 2`, and a Dexterity save for 6d10 slashing, half on a success. No engine change was needed.
+- **Cover gap:** `blockingRules: ['THREE_QUARTERS_COVER']` compiles and is projected on the placed zone, but nothing applies it. `resolveEncounterCover` reads only the Scene's barriers, doors and tokens, plus the GM tier override. D154 assigned zone cover to SPELLS-14, which closed without it.
+- **Ruling B (orchestrator, 2026-10-27):** cover ships as a GM ruling through the SPELLS-14.2 tier override. The orchestrator logs zone cover as a cover source in future-enhancements, and no follow-up task is registered. The spell description now ends with a GM-ruling paragraph that tells the GM to give three-quarters cover with the token's cover override. An authored MANUAL_ADJUDICATION outcome placed beside the zone is not possible: `placedSpaceEntries` (`placedSpaceEntries.ts:38`) refuses any ON_USE companion other than one APPLY_GRANT. The projection is unchanged, and no proof claims that the cover is enforced. `semantic-ledger.json` `authoredSha256` is verified by no code, so it was not regenerated (as in SPELLS-7 and SPELLS-20).
+
+### Proofs
+
+- `packages/rules-runtime/src/__tests__/characterSpellCastActions.test.ts`: Blade Barrier compiles both options (WALL 100 ft, RING 30 ft, 5 ft thick), its triggers, double movement, the cover rule, Concentration and 6d10 per save path.
+- `apps/session-worker/test/nativeRoomWallZoneSpells.test.ts`, "the SRD Blade Barrier drawn as a straight wall or a ring": the wall geometry, full or half damage on a walk through, the turn-start save, twice the movement, the ring geometry and a walk out of the ring.
+- `packages/authoring/src/nodeRuntime/sourceZoneAuthoringParity.test.ts`: the SRD Blade Barrier round-trips the equipment node map unchanged (ADR 0038).
 
 ## T1: per-option execution plan (D148)
 
 Consumers:
+
 - Protection from Energy: resistance to the chosen damage type on the touched willing creature, for its Concentration.
 - Blindness/Deafness: the chosen condition on a failed Constitution save, a repeat save at the end of each of the target's turns, and one extra target per slot level above 2nd.
 
