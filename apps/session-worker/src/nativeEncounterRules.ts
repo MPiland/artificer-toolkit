@@ -18,10 +18,6 @@ import {
   encounterActionSpentTurnUses,
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import {
-  actorGrantedActions,
-  nextGrantedAttackCharge
-} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
@@ -87,7 +83,7 @@ import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
   readNativeLiveTurnMovedFeet,
-  readNativeLiveTurnUses
+  readNativeWeaponAttackOffer
 } from './nativeTurnUses.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
@@ -526,7 +522,8 @@ export async function planNativeLiveEncounterAction(
           actorId: input.actor.id,
           actionId: input.actionId,
           state,
-          activeEffectsByActorId
+          activeEffectsByActorId,
+          characterRules: movementTargets.get(input.actor.id)?.characterFacts?.ruleEvaluation
         })),
         system,
         rules: state,
@@ -678,13 +675,12 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const weaponAttackHolds = actorGrantedActions(
-    activeEffectsByActorId.get(prepared.actor.id) ?? [],
-    prepared.actor
-  ).filter(({ offer }) => offer.weaponAttack)
-  const turnUsesSpent =
-    weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
-  const weaponAttackOffer = nextGrantedAttackCharge(weaponAttackHolds, turnUsesSpent)
+  const weaponAttackOffer = await readNativeWeaponAttackOffer({
+    capture,
+    actor: prepared.actor,
+    heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+    characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
+  })
   const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,

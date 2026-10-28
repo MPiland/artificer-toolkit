@@ -56,6 +56,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
   /** Server-only always-on effects of the Character's passive features, which a rest turns back on. */
   standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
+  /** Server-only basic actions the Character's passive features offer on every turn (D188). */
+  standingGrantedActions: ReturnType<typeof buildCharacterActionRuleFacts>['standingGrantedActions']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -171,6 +173,7 @@ export function composeCharacterRulePolicyFacts(
     actionEntryPoints: actionFacts.entryPoints,
     passiveZoneSources: actionFacts.passiveZones,
     initiativeRestoreSources: actionFacts.initiativeRestores,
-    standingEffectSources: actionFacts.standingEffects
+    standingEffectSources: actionFacts.standingEffects,
+    standingGrantedActions: actionFacts.standingGrantedActions
   }
 }
