@@ -20422,7 +20422,7 @@
               },
               "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths. Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54. Also owns effects-browser: encounters/activeReads:active ran 869-1,092 ms of compute on CI while reading 21-28 documents. Also owns publication-class-browser: authoring/nodeRuntime:resolve on the Class guided-copy edit page read 471 documents and ran 1,169 ms on CI (ci/reliability-21-t3 40688448460, twice), though it passed on ci/reliability-21-t2 40656550933 with RELIABILITY-21.T1 merged.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun.",
-              "activeWorkbook": "reliability-21-t13"
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T14",
@@ -20436,7 +20436,7 @@
               },
               "text": "Fix the Sheet Extras Creature select so it keeps typed text instead of resetting the field on every keystroke, with a regression test that fails before the fix; remove character-sheet-browser from KNOWN_BUG_PROOFS.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +2). Found by RELIABILITY-21.T3 (builder-browser run 40646922722 packet, reliability-21-t3-findings.md).",
-              "activeWorkbook": "reliability-21-t14"
+              "activeWorkbook": "docs/architecture/ci-validation.md"
             },
             {
               "id": "RELIABILITY-21.T15",
@@ -20450,7 +20450,7 @@
               },
               "text": "Find why the Session Worker sends AUTHENTICATION_REQUIRED to a live-session socket about 60 s before its token expires, right after an ENCOUNTER_SESSION fan-out, and make each socket's challenge follow its own token expiry, with a Worker regression test that fails before the fix; remove scene-live-browser from KNOWN_BUG_PROOFS.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367.",
-              "activeWorkbook": "reliability-21-t15"
+              "activeWorkbook": "docs/architecture/live-sessions.md"
             },
             {
               "id": "RELIABILITY-21.T16",
