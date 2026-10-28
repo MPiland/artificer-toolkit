@@ -17,7 +17,6 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   Earthquake: 'CLOSED_RULE',
   'Flaming Sphere': 'MANUAL_ADJUDICATION: the sphere is not authored',
   'Glyph of Warding': 'CLOSED_RULE',
-  'Guardian of Faith': 'CLOSED_RULE',
   'Storm of Vengeance': 'CLOSED_RULE',
   Symbol: 'CLOSED_RULE',
   'Wall of Ice': 'ZONE manifest without interactions'

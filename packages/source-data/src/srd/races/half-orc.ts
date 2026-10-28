@@ -1,7 +1,6 @@
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -29,7 +28,6 @@ import {
   SRD_SKILLS,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -198,12 +196,21 @@ export const halfOrc: RaceAuthored = {
       },
       availableAtLevel: 1,
       order: 3,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(8, 4, entry),
-          CLOSED_RULE_KIND.RACE_RELENTLESS_ENDURANCE
-        )
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(8, 4, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { dropToHitPoints: 1, negatesKill: false },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(8, 5, 1),
@@ -212,12 +219,21 @@ export const halfOrc: RaceAuthored = {
         "When you score a critical hit with a melee weapon attack, you can roll one of the weapon's damage dice one additional time and add it to the extra damage of the critical hit.",
       availableAtLevel: 1,
       order: 4,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(8, 5, entry),
-          CLOSED_RULE_KIND.RACE_SAVAGE_ATTACKS
-        )
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: raceFeatureId(8, 5, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CRITICAL_EXTRA_DICE,
+            domain: { attackDomain: 'MELEE' as const },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED' as const, amount: 1 },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: raceFeatureId(8, 6, 1),
