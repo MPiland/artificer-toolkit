@@ -151,7 +151,8 @@ describe('Builder catalogue from content snapshots', () => {
       readSpellCatalogue
     })
     expect(readSpellCatalogue).toHaveBeenCalledExactlyOnceWith(
-      new Set([fireBolt.id, magicMissile.id])
+      new Set([fireBolt.id, magicMissile.id]),
+      expect.objectContaining({ classIds: [wizard.id] })
     )
     expect([...extended.currentSpellsById.keys()]).toEqual([fireBolt.id, magicMissile.id])
     expect(extended.catalog.spells).toEqual(selected.catalog.spells)

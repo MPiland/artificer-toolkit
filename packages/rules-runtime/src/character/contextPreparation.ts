@@ -43,7 +43,12 @@ import {
 } from '../authoredPublicationHydrate.js'
 import { toContentSnapshotIndexEntry } from '../contentSnapshots.js'
 import { readAcquiredEquipmentRules } from './acquiredEquipmentRules.js'
-import { collectContextSpellIds, needsCharacterSpellCatalog } from './characterContextSpells.js'
+import {
+  collectCharacterClassSpellLists,
+  collectContextSpellIds,
+  needsCharacterSpellCatalog,
+  type CharacterClassSpellLists
+} from './characterContextSpells.js'
 import type { CharacterPresentationLookup, CharacterRuleContext } from './characterRuleContext.js'
 import { getCharacterChosenGrantOwners } from './builderEligibility.js'
 import {
@@ -119,10 +124,14 @@ export type CharacterRuleContextReaders = {
     missingFeatureIds: ReadonlySet<string>
   ): Promise<readonly CharacterRulePublication[]>
   /**
-   * Complete authorized picker facts and only readable referenced mechanics. Referenced ids may
-   * also name non-Spell targets.
+   * Authorized picker facts and only readable referenced mechanics. Referenced ids may also name
+   * non-Spell targets. A reader may bound the picker facts to `classSpellLists` plus the referenced
+   * Spells, the only Spells the Sheet's rules can reach.
    */
-  readSpellCatalogue(referencedSpellIds: ReadonlySet<string>): Promise<{
+  readSpellCatalogue(
+    referencedSpellIds: ReadonlySet<string>,
+    classSpellLists: CharacterClassSpellLists
+  ): Promise<{
     entries: readonly ContentSnapshotIndexEntry<'SPELL'>[]
     publications: readonly CharacterRuleSpellPublication[]
   }>
@@ -555,7 +564,10 @@ export async function prepareCharacterRuleContext(
         (entry) => referencedSpellIds.has(entry.id) && !currentSpellsById.has(entry.id)
       )
     ) {
-      const catalogue = await readers.readSpellCatalogue(referencedSpellIds)
+      const catalogue = await readers.readSpellCatalogue(
+        referencedSpellIds,
+        collectCharacterClassSpellLists(character, context.registry)
+      )
       spellCatalogueEntries = catalogue.entries
       for (const spell of catalogue.publications) currentSpellsById.set(spell.id, spell)
     }
@@ -924,7 +936,7 @@ export async function assembleCharacterReferencedBuilderContext<
   return { ...context, catalog: createCatalog() }
 }
 
-/** Active Sheets need current selections and the complete eligible Class/Spell catalogues. */
+/** Active Sheets need current selections, the eligible Classes and their class-list Spells. */
 export async function prepareActiveCharacterBuilderContext<
   TContext extends PreparedCharacterRuleContext
 >(
