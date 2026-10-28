@@ -25,10 +25,8 @@ import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
-import {
-  scheduleCharacterSheetSections,
-  storeCharacterSheetSections
-} from './sheetSectionDerivation'
+import type { storeCharacterSheetSections } from './sheetSectionDerivation'
+import { scheduleCharacterSheetSections } from './sheetSections'
 import {
   writeCharacterOperationalRecords,
   writeCharacterOperationalStructure
@@ -75,6 +73,11 @@ export async function writeCharacterRecord(
       catalogScope?: 'active' | 'resolution'
       authorityScope?: CampaignInternalScope
     }
+    /**
+     * Stores the Sheet sections from this write's evaluation. Only the Sheet's own writers pass
+     * it, so other writers (content deletion among them) do not load Sheet projection.
+     */
+    storeSheetSections?: typeof storeCharacterSheetSections
   }
 ): Promise<{
   row: CharacterRecordRow
@@ -230,10 +233,14 @@ export async function writeCharacterRecord(
     ? facts.active
     : { ...facts.active, play: { ...facts.active.play, ...stats } }
   const written = { row, facts: { ...facts, active: row } }
-  // Stored sections project the Sheet's own evaluation: active sources with their prose. A
-  // resolution-scope or commit's referenced-only evaluation queues that derivation instead.
-  if ((reader.catalogScope ?? 'active') === 'active' && facts.prepared.context.presentation)
-    await storeCharacterSheetSections(ctx, written.facts, reader.authorityScope)
+  // Stored sections project the Sheet's own evaluation: active sources with their prose. Any
+  // other evaluation (resolution scope, commit's referenced content) queues that derivation.
+  if (
+    input.storeSheetSections &&
+    (reader.catalogScope ?? 'active') === 'active' &&
+    facts.prepared.context.presentation
+  )
+    await input.storeSheetSections(ctx, written.facts, reader.authorityScope)
   else await scheduleCharacterSheetSections(ctx, record.id)
   return written
 }
@@ -269,6 +276,6 @@ export async function writeCharacterNoteRecords(
     _id,
     characterStoredPlayStateSchema.parse({ ...fields, streamVersion, updatedAt })
   )
-  // Stored slices carry the stream version.
+  // Notes are part of the Character's checksum, so its stored sections need a new fingerprint.
   await scheduleCharacterSheetSections(ctx, head.id)
 }

@@ -6,9 +6,9 @@ import {
   projectCharacterSheetForViewer,
   type CharacterSheetCampaignContext
 } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { collectCharacterReferencedSpellIds } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
-import { makeFunctionReference } from 'convex/server'
 import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
@@ -65,17 +65,25 @@ export async function storeCharacterSheetSections(
           { ...facts.campaignContext, viewer: 'CAMPAIGN_OWNER', isCampaignOwner: true }
         ]
       : [ownerContext]
+  const referencedSpellIds = collectCharacterReferencedSpellIds(
+    facts.prepared.character,
+    facts.sourceContext.context
+  )
   const values: CharacterSheetSectionValue[] = []
   for (const campaignContext of contexts) {
     const current = projectCharacterSheetFacts({ ...facts, campaignContext })
     values.push(...projectSlices(current.sheet, campaignContext))
     const viewed = projectCharacterSheetForViewer(current.sheet, campaignContext)
-    for (const target of listCharacterSheetPanelTargets(viewed))
+    for (const target of listCharacterSheetPanelTargets(viewed)) {
+      // The Sheet evaluates only the Spells it references; another listed Spell's panel (a
+      // full-list Spell not yet learned or prepared) derives live with that Spell loaded.
+      if (target.kind === 'SPELL' && !referencedSpellIds.has(target.source.spellId)) continue
       values.push({
         viewer: campaignContext.viewer,
         section: characterSheetSection.panel(target),
         value: projectCharacterSheetPanel(current, target)
       })
+    }
     values.push({
       viewer: campaignContext.viewer,
       section: characterSheetSection.preparation,
@@ -95,10 +103,6 @@ export async function storeCharacterSheetSections(
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }
 
-const storeReference = makeFunctionReference<'mutation', { characterId: string }, null>(
-  'characters/sheetSectionDerivation:store'
-)
-
 /** Derives the Sheet once over its own sources and stores its sections. */
 export const store = internalMutation({
   args: { characterId: v.string() },
@@ -112,11 +116,3 @@ export const store = internalMutation({
     return null
   }
 })
-
-/**
- * Queues the Sheet's derivation after a write that did not evaluate it: Builder commit (referenced
- * content only), a resolution-scope command and the focused preference and note writes.
- */
-export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
-  await ctx.scheduler.runAfter(0, storeReference, { characterId })
-}

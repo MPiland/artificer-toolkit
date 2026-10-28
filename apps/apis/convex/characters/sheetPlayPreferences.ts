@@ -14,7 +14,7 @@ import { readCharacterHead, readCharacterPlay, readCharacterPlayRow } from './st
 import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
-import { scheduleCharacterSheetSections } from './sheetSectionDerivation'
+import { scheduleCharacterSheetSections } from './sheetSections'
 
 /** Projection preferences replace only typed play state; current mechanical values stay intact. */
 export async function executeCharacterPlayPreferenceCommand(

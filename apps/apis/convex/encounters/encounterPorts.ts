@@ -14,6 +14,7 @@ import {
 } from '../campaigns/characterState'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { writeCharacterRecord } from '../characters/characterWrites'
+import { storeCharacterSheetSections } from '../characters/sheetSectionDerivation'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { readCharacterSheetState } from '../characters/sheetStateDocuments'
@@ -136,7 +137,10 @@ export function encounterWriteTransaction(
       postRulesChatMessage: (authority, input) =>
         postRulesChatMessage(encounterWriteTransaction(ctx), authority, input),
       writeCharacterRecord: async (input) => {
-        await writeCharacterRecord(ctx, input)
+        await writeCharacterRecord(ctx, {
+          ...input,
+          storeSheetSections: storeCharacterSheetSections
+        })
       },
       snapshotBlueprintEnemies: (userId, input) => snapshotBlueprintEnemies(ctx, userId, input),
       executeCharacterCommand: (userId, input) =>

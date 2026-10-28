@@ -2,6 +2,7 @@ import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api
 import type { CharacterSheetSlice } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import type { CharacterSheetSectionViewer } from '@artificer-toolkit/schema/projections/characterSheetSections'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { makeFunctionReference } from 'convex/server'
 import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
@@ -29,6 +30,21 @@ export type CharacterSheetSectionValue = {
   viewer: CharacterSheetSectionViewer
   section: string
   value: unknown
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * The object carrying a section's stream version: a slice's `data.meta`, the preparation root.
+ * Every play write bumps the version, so rows store the section without it and reads add it back:
+ * a write that changes nothing else rewrites no section.
+ */
+function streamVersionHolder(section: string, value: unknown) {
+  if (section === characterSheetSection.preparation) return isRecord(value) ? value : undefined
+  if (!section.startsWith('SLICE:') || !isRecord(value) || !isRecord(value.data)) return undefined
+  return isRecord(value.data.meta) ? value.data.meta : undefined
 }
 
 /**
@@ -77,8 +93,8 @@ export async function readCharacterSheetFingerprint(
     character: {
       checksum: active.checksum,
       sheetStateChecksum: active.sheetStateChecksum,
-      playChecksum: active.play.checksum,
-      streamVersion: active.play.streamVersion
+      // Not the stream version: stored sections leave it out and reads add it back.
+      playChecksum: active.play.checksum
     },
     hasDraft: state.hasDraft,
     publicId: state.publicId,
@@ -171,7 +187,11 @@ export async function readStoredCharacterSheetSection(
   const entry = derivation.sections.find(
     (section) => section.viewer === viewer && section.section === input.section
   )
-  return entry?.checksum === row.checksum ? JSON.parse(row.json) : undefined
+  if (entry?.checksum !== row.checksum) return undefined
+  const value: unknown = JSON.parse(row.json)
+  const holder = streamVersionHolder(input.section, value)
+  if (holder) holder.streamVersion = active.play.streamVersion
+  return value
 }
 
 /** Replaces the Character's stored sections, writing only those whose checksum changed. */
@@ -187,24 +207,30 @@ export async function writeCharacterSheetSections(
   const storedChecksums = new Map(
     (stored?.sections ?? []).map((section) => [key(section), section.checksum])
   )
-  const sections = values.map(({ viewer, section, value }) => ({
-    viewer,
-    section,
-    checksum: checksumCanonicalJson(value),
-    json: canonicalizeJson(value)
-  }))
+  const sections = values.map(({ viewer, section, value }) => {
+    // A copy: projections may share objects with the Sheet they were projected from.
+    const unversioned: unknown = JSON.parse(canonicalizeJson(value))
+    const holder = streamVersionHolder(section, unversioned)
+    if (holder) delete holder.streamVersion
+    return {
+      viewer,
+      section,
+      checksum: checksumCanonicalJson(unversioned),
+      json: canonicalizeJson(unversioned)
+    }
+  })
   for (const { json, ...identity } of sections) {
     if (storedChecksums.get(key(identity)) === identity.checksum) continue
     const existing = await readSectionRow(ctx, characterId, identity.viewer, identity.section)
     const row = { characterId, ...identity, json }
-    if (existing) await ctx.db.replace(existing._id, row)
+    if (existing) await ctx.db.replace('characterSheetSections', existing._id, row)
     else await ctx.db.insert('characterSheetSections', row)
   }
   const kept = new Set(sections.map(key))
   for (const section of stored?.sections ?? []) {
     if (kept.has(key(section))) continue
     const existing = await readSectionRow(ctx, characterId, section.viewer, section.section)
-    if (existing) await ctx.db.delete(existing._id)
+    if (existing) await ctx.db.delete('characterSheetSections', existing._id)
   }
   const derivation = {
     characterId,
@@ -216,5 +242,18 @@ export async function writeCharacterSheetSections(
     stored.fingerprint !== fingerprint ||
     checksumCanonicalJson(stored.sections) !== checksumCanonicalJson(derivation.sections)
   )
-    await ctx.db.replace(stored._id, derivation)
+    await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
+}
+
+const storeReference = makeFunctionReference<'mutation', { characterId: string }, null>(
+  'characters/sheetSectionDerivation:store'
+)
+
+/**
+ * Queues the Sheet's derivation after a write that did not store it: Builder commit (referenced
+ * content only), a resolution-scope command, a writer outside the Sheet's own commands and the
+ * focused preference write.
+ */
+export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
+  await ctx.scheduler.runAfter(0, storeReference, { characterId })
 }

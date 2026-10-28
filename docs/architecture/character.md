@@ -870,10 +870,17 @@ flag, never proposed structure, play state or private notes. UUID and route-alia
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
 anonymous callers are denied. Every Character write derives the Sheet once and stores its slices,
 listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-character-sheet-sections.md)):
-inline when the write evaluated the Sheet itself, otherwise (Builder commit, resolution-scope
-commands, focused preference and note writes) through the queued
-`characters/sheetSectionDerivation:store` mutation. An owner's preparation options read their
+inline when one of the Sheet's own writers (Sheet commands, the GM overlay refresh, the Encounter
+port) evaluated the Sheet itself, otherwise (Builder commit, resolution-scope commands, focused
+preference and note writes, other Character writers) through the queued
+`characters/sheetSectionDerivation:store` mutation. A listed Spell the Character does not
+reference has no stored panel, because the Sheet evaluates only referenced Spells. An owner's preparation options read their
 content-snapshot manifest from the current heads.
+Stored rows leave out the stream version, and reads add it back from the Character's play record,
+so a write rewrites only the sections whose content changed: an HP change rewrites each viewer's
+COMMON slice (about 10 KB), bounded at 12 KB per viewer apart from the 800 B play-record budget.
+That one stored write per viewer replaces six or more query invalidations, each of which re-derived
+the whole Sheet (about 350 ms).
 After the same authority checks, a read serves its stored section while the fingerprint of every
 input the derivation read (Character, draft and route, System, source and Campaign content heads,
 the Campaign fields and state the Sheet reads, rule effects) still matches; otherwise it runs the
