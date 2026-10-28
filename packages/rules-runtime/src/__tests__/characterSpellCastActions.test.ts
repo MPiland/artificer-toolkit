@@ -89,6 +89,7 @@ const PROTECTION_FROM_ENERGY = spell('Protection from Energy')
 const BLINDNESS_DEAFNESS = spell('Blindness/Deafness')
 const WALL_OF_FIRE = spell('Wall of Fire')
 const WALL_OF_THORNS = spell('Wall of Thorns')
+const BLADE_BARRIER = spell('Blade Barrier')
 const HEROISM = spell('Heroism')
 const REGENERATE = spell('Regenerate')
 const ENHANCE_ABILITY = spell('Enhance Ability')
@@ -1758,6 +1759,44 @@ describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => 
       // 7d8 on a failed save and 7d8, halved, on a success: each path rolls its own.
       expect(entryDice(zone)).toEqual(Array(14).fill({ kind: 'LITERAL', value: 8 }))
     }
+    expect(options[1]?.zone.ringThickness).toEqual(feet(5))
+  })
+
+  it('offers Blade Barrier as a 100-foot wall or a 60-foot ring of blades that cost double movement and save against the blades on entry or turn start (SPELLS-30.T2)', () => {
+    const { entry, options } = zoneOptions(BLADE_BARRIER)
+
+    expect(
+      encounterActionChoiceTarget(entry?.targetPolicy, null, entry?.compilation.zonePlacement)
+    ).toEqual({
+      kind: 'ZONE_OPTIONS',
+      options: [
+        {
+          id: options[0]!.optionId,
+          label: 'Straight Wall',
+          target: { kind: 'WALL', area: { maxLength: feet(100), thickness: feet(5) } }
+        },
+        {
+          id: options[1]!.optionId,
+          label: 'Ringed Wall',
+          target: { kind: 'RING', area: { maxOuterRadius: feet(30), thickness: feet(5) } }
+        }
+      ]
+    })
+    for (const { zone } of options) {
+      expect(zone).toMatchObject({
+        attachment: 'PLACED_SPACE',
+        triggerModes: ['ENTER', 'CROSS'],
+        turnTriggers: ['START_OF_TURN'],
+        movementCostMultiplier: 2,
+        maxApplicationsPerTurn: 1,
+        blockingRules: ['THREE_QUARTERS_COVER'],
+        maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+      })
+      expect(zone.entry.castSaveDcFactKey).toBe(DND5E_SAVE_DC_FACT_KEY)
+      // 6d10 on a failed save and 6d10, halved, on a success: each path rolls its own.
+      expect(entryDice(zone)).toEqual(Array(12).fill({ kind: 'LITERAL', value: 10 }))
+    }
+    expect(options[0]?.zone).not.toHaveProperty('ringThickness')
     expect(options[1]?.zone.ringThickness).toEqual(feet(5))
   })
 })
