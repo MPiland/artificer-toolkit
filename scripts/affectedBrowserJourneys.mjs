@@ -89,6 +89,7 @@ export const KNOWN_BUG_PROOFS = {
   'builder-browser': 'RELIABILITY-21.T3',
   'character-sheet-browser': 'RELIABILITY-21.T16',
   'character-sheet-spells-browser': 'RELIABILITY-21.T3',
+  'publication-class-browser': 'RELIABILITY-21.T13',
   'vtt-browser': 'RELIABILITY-21.T9'
 }
 
