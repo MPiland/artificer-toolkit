@@ -2,11 +2,10 @@ import {
   authoredCataloguePageSchema,
   type AuthoredCataloguePage
 } from '@artificer-toolkit/schema/api/authoredCatalogue'
-import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/textPolicy'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
 import { catalogueItem } from '../content/catalogueItem'
-import { readAuthoredVersion, readPublishedDocument } from '../content/documents'
+import { readRootCatalogue } from '../content/catalogueMetadata'
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { campaignVehicleListInputSchema } from '@artificer-toolkit/schema/api/campaignVehiclePages'
 import { internalQuery } from '../lib/queries'
@@ -46,11 +45,9 @@ export const list = internalQuery({
         maximumBytesRead: 1024 * 1024
       })
     const page: AuthoredCataloguePage['page'] = []
+    // A picker reads root catalogue facts alone and never loads the payload (D163).
     for (const root of result.page) {
-      const document = vehicleAuthoredDtoSchema.parse(
-        await readPublishedDocument(ctx, root, await readAuthoredVersion(ctx, root))
-      )
-      if (document.status !== undefined && document.status !== 'ACTIVE') continue
+      if (!readRootCatalogue(root).publishedActive) continue
       const item = await catalogueItem(ctx, root, userId, 'MASTER', false)
       page.push({
         ...item,

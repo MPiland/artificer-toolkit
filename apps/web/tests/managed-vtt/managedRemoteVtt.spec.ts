@@ -425,8 +425,10 @@ async function collectDoorConvergenceTimings(
       )
     })
     const sentFrameStart = gm.liveSessionSentFrames.length
+    const clients = [gm, ...players]
+    await Promise.all(clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1)))
     const liveSceneConvergence = Promise.all(
-      [gm, ...players].map((client) => waitForSceneVersion(client.page, priorVersion + 1))
+      clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1))
     )
     await gmAction.click()
     action = nextAction
@@ -445,7 +447,7 @@ async function collectDoorConvergenceTimings(
         { cause: liveSceneResult.reason }
       )
     }
-    const observedAt = liveSceneResult.value
+    const observedAt = await Promise.all(clients.map((client) => sceneVersionShownAt(client.page)))
     const submittedAt = await gm.page.evaluate(
       () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
     )
@@ -596,10 +598,14 @@ async function collectTokenDragTimings(
         throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
 
       await armLocalDragRelease(gm.page)
+      await Promise.all(
+        clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1))
+      )
       await gm.page.mouse.up()
       const releasedAt = await waitForLocalDragRelease(gm.page)
+      await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1)))
       const observedAt = await Promise.all(
-        clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1))
+        clients.map((client) => sceneVersionShownAt(client.page))
       )
 
       if (index >= warmupPairs) {
@@ -652,9 +658,37 @@ async function readSceneVersion(page: Page): Promise<number> {
   return version
 }
 
-async function waitForSceneVersion(page: Page, version: number): Promise<number> {
+/**
+ * Stamps, in the page's own clock, the moment the Scene version label commits to the DOM. Reading
+ * `Date.now()` after a `toBeVisible` wait adds Playwright's retry gaps (0, 20, 50, 100, 100, 500 ms)
+ * and a CDP round trip to every latency sample.
+ */
+async function armSceneVersionShown(page: Page, version: number): Promise<void> {
+  await liveSceneRegion(page).evaluate((region, label) => {
+    const state = window as unknown as Record<string, unknown>
+    state.__vttSceneVersionAt = null
+    const observer = new MutationObserver(() => {
+      const shown = Array.from(region.querySelectorAll('*')).some(
+        (element) => element.childElementCount === 0 && element.textContent === label
+      )
+      if (!shown) return
+      state.__vttSceneVersionAt = Date.now()
+      observer.disconnect()
+    })
+    observer.observe(region, { characterData: true, childList: true, subtree: true })
+  }, `v${version}`)
+}
+
+async function sceneVersionShownAt(page: Page): Promise<number> {
+  const stamp = await page.evaluate(
+    () => (window as unknown as Record<string, unknown>).__vttSceneVersionAt
+  )
+  assertTimestamp(stamp)
+  return stamp
+}
+
+async function waitForSceneVersion(page: Page, version: number): Promise<void> {
   await expect(liveSceneRegion(page).getByText(`v${version}`, { exact: true })).toBeVisible()
-  return Date.now()
 }
 
 async function armLocalDragPaint(page: Page): Promise<void> {

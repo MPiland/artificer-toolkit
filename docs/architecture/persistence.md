@@ -627,7 +627,7 @@ Read paths never compile (PLATFORM-21.T1b, D163): Convex Builder and Sheet prepa
 publish, import, the seed and the migration call a subject compiler (`readPathCompilation.test.ts`), and publish
 compiles before it stores, so a compile failure stores no version or compilation. That guard is per file, so a
 read path that needs only the effective Equipment calls `resolveCurrentEquipment`, never
-`compileCurrentEquipment` (party inventory pages, the snapshot builder projection, the search backfill check).
+`compileCurrentEquipment` (party inventory commands, the snapshot builder projection, the search backfill check).
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;
@@ -638,8 +638,11 @@ a missing or stale projection is rejected; there is no payload fallback. Spell s
 status is `DRAFT` (canonical documents carry no status and are active; publication always writes `ACTIVE`); every write that stores a version sets it (`rootCatalogueFacts.test.ts` walks import,
 replacement and publication). RACE, CLASS and BACKGROUND roots also hold `catalogue.race`, `.class` or
 `.background`: the picker facts `toContentSnapshotIndexEntry` derives once at publish; EQUIPMENT roots hold
-`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, the party
-inventory Equipment picker (`equipmentOptionsReadBudget.test.ts`), commit and the held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
+`catalogue.equipment.quote`, and a base (non-variant) EQUIPMENT root holds `catalogue.equipment.container` (whether
+it has capacity; a variant reads its base's at read time, as `resolveEquipmentAuthored` takes capacity from the
+base, so a base republish never leaves a variant stale). Share and parent-chain authorization, the subclass and Spell witnesses, the party
+inventory Equipment picker (`equipmentOptionsReadBudget.test.ts`), the party inventory list (label and container
+flag; `partyInventoryReadBudget.test.ts`), the Campaign Vehicle picker (`vehicleDefinitionOptions.test.ts`), commit and the held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
 alone, so commit loads no authored payload (`commitReadBudget.test.ts` makes every payload unreadable before it commits). `compilationMigration:run`
 backfills both on older roots.
 

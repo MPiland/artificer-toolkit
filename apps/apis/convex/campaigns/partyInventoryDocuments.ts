@@ -24,7 +24,9 @@ import {
   readPublishedDocumentPayload
 } from '../content/documents'
 import { resolveCurrentEquipment } from '../content/equipmentRelationships'
-import { readCampaignSharedActiveRoot, readCampaignSharedRootPublication } from './contentAccess'
+import { readCampaignSharedActiveRoot, readCurrentPublication } from './contentAccess'
+import { readRootCatalogue } from '../content/catalogueMetadata'
+import { requireParentRoots } from '../content/relationshipReads'
 import { requireSystem } from '../content/systemDocuments'
 import { readCurrencySystem } from './currencySystemDocuments'
 import { readCampaignInventory } from './inventoryVersionDocuments'
@@ -49,7 +51,7 @@ import {
   readVehicleCleanupProgress
 } from './vehicleCleanupDocuments'
 
-// The Equipment DTO parse of a verified stored document, by its exact JSON (every page re-reads it).
+// The Equipment DTO parse of a verified stored document, by its exact JSON (every command re-reads it).
 const publishedEquipment = createContentMemo<EquipmentAuthoredDto>()
 
 async function readPartySourceIds(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
@@ -61,14 +63,20 @@ async function readPartySourceIds(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
   return sourceIds
 }
 
-/** One page's current Equipment reads: the catalogue binding once, each Equipment once. */
+/** One list page's current Equipment reads: the catalogue binding once, each Equipment once. */
 type HeldEquipmentPage = {
   sourceIds: Promise<ReadonlySet<string>>
-  current: Map<string, Promise<Awaited<ReturnType<typeof readPartyEquipment>> | null>>
+  current: Map<string, Promise<HeldEquipmentListing | null>>
 }
 
-/** Party custody grants no access to a member's unshared Homebrew. */
-export async function readPartyEquipmentSource(
+/** What a held item's list row shows of its Equipment. */
+type HeldEquipmentListing = { label: string; isContainer: boolean }
+
+/**
+ * The held Equipment's root under party authority: an enabled official root or a Campaign share.
+ * Party custody grants no access to a member's unshared Homebrew.
+ */
+async function readPartyEquipmentRoot(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   equipmentId: string,
@@ -82,14 +90,32 @@ export async function readPartyEquipmentSource(
   if (root.subjectKind !== 'EQUIPMENT' || root.systemId !== campaign.gameSystemId)
     throw new Error('Stored Campaign Equipment identity mismatch.')
   const sourceIds = await (bindingSourceIds ?? readPartySourceIds(ctx, campaign))
-  const shared = (candidate: Doc<'authoredRoots'>) =>
-    readCampaignSharedRootPublication(ctx, campaign, candidate.subjectKind, candidate.id)
-  let document: EquipmentAuthoredDto
-  if (
+  const official =
     root.ownerUserId === undefined &&
     sourceIds.has(root.contentSourceId) &&
     (await canReadAuthoredRoot(ctx, root, null))
-  ) {
+  const canReadSharedRoot = async (candidate: Doc<'authoredRoots'>) =>
+    (await readCampaignSharedActiveRoot(
+      ctx,
+      campaign,
+      candidate.subjectKind,
+      candidate.id,
+      candidate
+    )) !== null
+  if (!official && !(await canReadSharedRoot(root))) return null
+  return { root, official, sourceIds, canReadSharedRoot }
+}
+
+export async function readPartyEquipmentSource(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  equipmentId: string
+) {
+  const access = await readPartyEquipmentRoot(ctx, campaign, equipmentId)
+  if (!access) return null
+  const { root, sourceIds, canReadSharedRoot } = access
+  let document: EquipmentAuthoredDto
+  if (access.official) {
     const published = await readPublishedDocumentPayload(
       ctx,
       root,
@@ -99,23 +125,38 @@ export async function readPartyEquipmentSource(
       equipmentAuthoredDtoSchema.parse(published.document)
     )
   } else {
-    const publication = await shared(root)
-    if (!publication) return null
+    const publication = await readCurrentPublication(ctx, root)
     if (publication.subjectKind !== 'EQUIPMENT')
       throw new Error('Stored Campaign Equipment subject mismatch.')
     document = publication.document
   }
   // Canonical imported Equipment predates the optional authored status field.
   if (document.status !== undefined && document.status !== 'ACTIVE') return null
-  const canReadSharedRoot = async (candidate: Doc<'authoredRoots'>) =>
-    (await readCampaignSharedActiveRoot(
-      ctx,
-      campaign,
-      candidate.subjectKind,
-      candidate.id,
-      candidate
-    )) !== null
   return { document, sourceIds, canReadSharedRoot }
+}
+
+/**
+ * A held item's list row from root catalogue facts alone (D163), under the same authority as
+ * `readPartyEquipmentSource`; commands resolve and parse the full Equipment.
+ */
+async function readPartyEquipmentListing(
+  ctx: QueryCtx,
+  campaign: Doc<'campaigns'>,
+  equipmentId: string,
+  bindingSourceIds: Promise<ReadonlySet<string>>
+): Promise<HeldEquipmentListing | null> {
+  const access = await readPartyEquipmentRoot(ctx, campaign, equipmentId, bindingSourceIds)
+  if (!access) return null
+  const { root, sourceIds, canReadSharedRoot } = access
+  if (!readRootCatalogue(root).publishedActive) return null
+  // A variant's capacity is its base Equipment's, as `resolveEquipmentAuthored` resolves it.
+  const ancestors = await requireParentRoots(ctx, root, {
+    userId: null,
+    allowedSourceIds: sourceIds,
+    canReadSharedRoot
+  })
+  const base = ancestors.at(-1) ?? root
+  return { label: root.label, isContainer: readRootCatalogue(base).equipment?.container === true }
 }
 
 /** New copies always require current source authority. */
@@ -137,46 +178,38 @@ export async function readPartyEquipment(
   ).effective
 }
 
+/** The retained rules an unavailable source falls back to; an item without them is unusable. */
+function readRetainedPartyEquipment(
+  campaign: Doc<'campaigns'>,
+  item: { equipmentId: string; retainedRulesJson?: string }
+) {
+  if (!item.retainedRulesJson)
+    throw new Error(
+      'Acquired Campaign Equipment is unavailable without usable source or retained rules.'
+    )
+  return readAcquiredEquipmentRules(item.retainedRulesJson, item.equipmentId, campaign.gameSystemId)
+    .equipment
+}
+
 /** Existing custody exposes only this held item's usable mechanics. */
 export async function readHeldPartyEquipment(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  item: { equipmentId: string; retainedRulesJson?: string },
-  page?: HeldEquipmentPage
+  item: { equipmentId: string; retainedRulesJson?: string }
 ) {
-  const retained = item.retainedRulesJson
-    ? readAcquiredEquipmentRules(item.retainedRulesJson, item.equipmentId, campaign.gameSystemId)
-    : null
-  let current = page?.current.get(item.equipmentId)
-  if (!current) {
-    current = (async () => {
-      const source = await readPartyEquipmentSource(
-        ctx,
-        campaign,
-        item.equipmentId,
-        page?.sourceIds
-      )
-      return source
-        ? (
-            await resolveCurrentEquipment(
-              ctx,
-              source.document,
-              null,
-              source.sourceIds,
-              source.canReadSharedRoot
-            )
-          ).effective
-        : null
-    })()
-    page?.current.set(item.equipmentId, current)
-  }
-  const equipment = await current
-  if (equipment) return equipment
-  if (!retained)
-    throw new Error(
-      'Acquired Campaign Equipment is unavailable without usable source or retained rules.'
+  // Retained rules are validated even while the source is current, so a later fallback cannot fail.
+  const retained = item.retainedRulesJson ? readRetainedPartyEquipment(campaign, item) : null
+  const source = await readPartyEquipmentSource(ctx, campaign, item.equipmentId)
+  if (!source) return retained ?? readRetainedPartyEquipment(campaign, item)
+  return (
+    await resolveCurrentEquipment(
+      ctx,
+      source.document,
+      null,
+      source.sourceIds,
+      source.canReadSharedRoot
     )
-  return retained.equipment
+  ).effective
 }
 
 async function presentCampaignItem(
@@ -188,13 +221,22 @@ async function presentCampaignItem(
   const { _id, _creationTime, ...stored } = row
   const item = campaignStoredPartyItemSchema.parse(stored)
   if (item.campaignId !== campaign.id) throw new Error('Stored Campaign inventory scope mismatch.')
-  const equipment = await readHeldPartyEquipment(ctx, campaign, item, page)
+  let current = page.current.get(item.equipmentId)
+  if (!current) {
+    current = readPartyEquipmentListing(ctx, campaign, item.equipmentId, page.sourceIds)
+    page.current.set(item.equipmentId, current)
+  }
+  let equipment = await current
+  if (!equipment) {
+    const retained = readRetainedPartyEquipment(campaign, item)
+    equipment = { label: retained.label, isContainer: retained.capacity !== undefined }
+  }
   return inventoryItemDtoSchema.parse({
     id: item.id,
     label: presentCampaignPlainText(item.customName ?? equipment.label, campaign.contentMaturity),
     quantity: item.quantity,
     containerId: item.containerId,
-    isContainer: equipment.capacity !== undefined
+    isContainer: equipment.isContainer
   })
 }
 

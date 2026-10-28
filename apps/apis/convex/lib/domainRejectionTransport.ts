@@ -26,12 +26,18 @@ export function withDomainRejections<Builder extends (definition: never) => unkn
   // Convex builders are generic over their context and arguments; the wrapper reads only the
   // definition's handler and passes everything else through, so it sees them untyped.
   const registerWith = builder as unknown as (definition: Definition) => unknown
-  const register = (definition: Definition) =>
-    registerWith(
-      typeof definition === 'function'
-        ? translatedHandler(definition)
-        : { ...definition, handler: translatedHandler(definition.handler) }
+  const register = (definition: Definition) => {
+    if (typeof definition === 'function') return registerWith(translatedHandler(definition))
+    const handler = translatedHandler(definition.handler)
+    // Copies descriptors, not values: a spread would run every `get args()`/`get returns()` at
+    // module load, and Convex re-evaluates modules on every call (D59).
+    return registerWith(
+      Object.defineProperties(
+        { handler },
+        { ...Object.getOwnPropertyDescriptors(definition), handler: { value: handler } }
+      )
     )
+  }
   // Only the handler is replaced, so the builder's own signature still describes the wrapper.
   return register as unknown as Builder
 }
