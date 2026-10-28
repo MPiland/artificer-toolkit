@@ -540,7 +540,8 @@ export async function readEncounterActionChoices(
     const spentKeys = await readTurnUses(tx, { state, actorId: actor.id })
     const heldOffers = actorGrantedActions(
       await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id)),
-      actor
+      actor,
+      actorTarget?.characterFacts?.ruleEvaluation
     ).flatMap((held) => {
       if (nextGrantedActionUseKey(held, spentKeys) === undefined) return []
       return offered.flatMap(({ action, admission }) =>

@@ -526,7 +526,8 @@ export async function planNativeLiveEncounterAction(
           actorId: input.actor.id,
           actionId: input.actionId,
           state,
-          activeEffectsByActorId
+          activeEffectsByActorId,
+          characterRules: movementTargets.get(input.actor.id)?.characterFacts?.ruleEvaluation
         })),
         system,
         rules: state,
@@ -680,7 +681,8 @@ export async function planNativeLiveEncounterAction(
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const weaponAttackHolds = actorGrantedActions(
     activeEffectsByActorId.get(prepared.actor.id) ?? [],
-    prepared.actor
+    prepared.actor,
+    movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
   ).filter(({ offer }) => offer.weaponAttack)
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []

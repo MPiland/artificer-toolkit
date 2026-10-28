@@ -33,7 +33,9 @@ import {
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
+import type { PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { CLASS_IDS } from '../ids.js'
 import {
   SRD_CURRENCIES,
@@ -181,6 +183,51 @@ const kiCharge = {
   scalingKind: SCALING.NONE,
   classId: CLASS_IDS.MONK,
   resetKind: 'SHORT_REST' as const
+}
+
+/**
+ * A ki discipline: a Bonus Action that spends 1 ki point and offers its actions until the end of
+ * the turn (Flurry of Blows, Patient Defense, Step of the Wind). Uses ids `classRowId(M, 0xa0..0xa6,
+ * discipline)`.
+ */
+function kiDisciplineEffect(
+  discipline: number,
+  grantedAction: NonNullable<PathLifecycleAuthored['grantedActions']>[number]
+): EffectAuthored {
+  return {
+    id: classRowId(M, 0xa0, discipline),
+    order: discipline,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+      range: { id: classRowId(M, 0xa1, discipline), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' },
+      resourceUse: { chargeId: kiCharge.id, cost: 1 }
+    },
+    paths: [
+      {
+        id: classRowId(M, 0xa2, discipline),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: classRowId(M, 0xa3, discipline),
+          resultKind: 'SINGLE',
+          duration: { id: classRowId(M, 0xa4, discipline), durationKind: 'TURN', amount: 1 },
+          lifecycle: {
+            turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
+            grantedActions: [grantedAction]
+          },
+          outcomes: [
+            { id: classRowId(M, 0xa5, discipline), effectKind: EFFECT_KIND.APPLY_GRANT, grants: {} }
+          ]
+        }
+      }
+    ]
+  }
 }
 
 export const monk: ClassAuthored = {
@@ -526,11 +573,40 @@ export const monk: ClassAuthored = {
       availableAtLevel: 2,
       order: 2,
       effects: [
-        selfClassRuleEffect(
-          3,
-          CLOSED_RULE_KIND.CLASS_MONK_KI_DISCIPLINES,
-          ACTIVATION_CODE.BONUS_ACTION
-        )
+        // Flurry of Blows
+        kiDisciplineEffect(1, {
+          activation: ACTIVATION_CODE.FREE,
+          usesPerTurn: 2,
+          actionDefinitionIds: [],
+          weaponAttack: true
+        }),
+        // Patient Defense
+        kiDisciplineEffect(2, {
+          activation: ACTIVATION_CODE.FREE,
+          usesPerTurn: 1,
+          actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DODGE]
+        }),
+        // Step of the Wind
+        kiDisciplineEffect(3, {
+          activation: ACTIVATION_CODE.FREE,
+          usesPerTurn: 1,
+          actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH, SRD_BASIC_ACTION_IDS.DISENGAGE]
+        }),
+        // The engine neither ties Flurry of Blows to the Attack action nor limits it to unarmed
+        // strikes, and has no jump distance to double, so those clauses are a GM ruling.
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0xa6, 1),
+            range: classRowId(M, 0xa6, 2),
+            path: classRowId(M, 0xa6, 3),
+            result: classRowId(M, 0xa6, 4),
+            outcome: classRowId(M, 0xa6, 5)
+          },
+          label: 'Ki',
+          instructions:
+            'Flurry of Blows is used immediately after you take the Attack action on your turn, and its two attacks are unarmed strikes. Step of the Wind also doubles your jump distance for the turn. The GM applies these limits.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
+        })
       ]
     },
     {

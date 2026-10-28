@@ -57,7 +57,7 @@ export async function readNativeLiveTurnUses(
 
 /**
  * What an action source reads of the offers held effects make, as they stand now: a granted action's
- * holder effects and spent uses (D160), or a repeat's every-holder effects, turn and spent uses (D166,
+ * holder effects, spent uses and Character rules (D160, D188), or a repeat's every-holder effects, turn and spent uses (D166,
  * D190a). Any other action reads neither.
  */
 export async function readNativeActionSourceOffers(input: {
@@ -66,13 +66,18 @@ export async function readNativeActionSourceOffers(input: {
   actionId: string
   state: EncounterRunState
   activeEffectsByActorId: NonNullable<EncounterActionSourceInput['repeat']>['effectsByHolder']
+  characterRules: NonNullable<EncounterActionSourceInput['granted']>['characterRules']
 }): Promise<Pick<EncounterActionSourceInput, 'granted' | 'repeat'>> {
   const granted = parseGrantedActionId(input.actionId)
   if (!granted && !parseRepeatPathActionId(input.actorId, input.actionId)) return {}
   const spentKeys = await readNativeLiveTurnUses(input.capture, input.actorId)
   return granted
     ? {
-        granted: { heldEffects: input.activeEffectsByActorId.get(input.actorId) ?? [], spentKeys }
+        granted: {
+          heldEffects: input.activeEffectsByActorId.get(input.actorId) ?? [],
+          spentKeys,
+          characterRules: input.characterRules
+        }
       }
     : { repeat: { effectsByHolder: input.activeEffectsByActorId, turn: input.state, spentKeys } }
 }
