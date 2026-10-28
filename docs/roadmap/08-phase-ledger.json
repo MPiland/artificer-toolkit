@@ -15032,10 +15032,15 @@
           "acs": [
             {
               "id": "SPELLS-30.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-17; AC confirmed by the user.",
-              "text": "Cast-time choice spells resolve automatically. Protection from Energy grants resistance to the damage type picked at cast. Blindness/Deafness applies the picked condition on a failed save, with a repeat save at the end of each turn and an extra target per slot level. Blade Barrier places the picked wall shape as a zone with its save, damage, cover and difficult terrain. Each is authored from core options and proved on the SRD spell."
+              "note": "Registered 2026-10-17; AC confirmed by the user. Closed 2026-10-28 by SPELLS-30.T1, SPELLS-30.T2.",
+              "text": "Cast-time choice spells resolve automatically. Protection from Energy grants resistance to the damage type picked at cast. Blindness/Deafness applies the picked condition on a failed save, with a repeat save at the end of each turn and an extra target per slot level. Blade Barrier places the picked wall shape as a zone with its save, damage, cover and difficult terrain. Each is authored from core options and proved on the SRD spell.",
+              "proof": [
+                "characterSpellCastActions.test.ts",
+                "nativeRoomWallZoneSpells.test.ts",
+                "sourceZoneAuthoringParity.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -15056,7 +15061,7 @@
             },
             {
               "id": "SPELLS-30.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-30.1"],
               "wsjf": {
                 "bv": 3,
@@ -15066,7 +15071,9 @@
                 "after": ["SPELLS-30.T1", "SPELLS-4.T1b"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey.",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m510.",
+              "mergedAt": "2026-10-28T03:12:26Z",
+              "proof": "Tests 40620672196, Live backend 40620672129, Browser journeys 40620672092 (rerun; area-browser 1s timeout on attempt 1) green on 3ce68ebc3; reviewed (cover ships as a GM ruling via the SPELLS-14.2 override); merged in m510 (run 40625268435). Proofs: characterSpellCastActions.test.ts, nativeRoomWallZoneSpells.test.ts (SRD Blade Barrier wall or ring), sourceZoneAuthoringParity.test.ts"
             }
           ]
         },
