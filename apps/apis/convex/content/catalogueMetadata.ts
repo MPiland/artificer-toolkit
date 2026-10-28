@@ -26,7 +26,7 @@ function storedForm<Value>(value: Value): Value {
  */
 export function rootCatalogueFacts(
   subjectKind: AuthoredPublishDraftInput['subjectKind'],
-  document: { status?: string; quote?: string; category?: string; capacity?: unknown }
+  document: { status?: string; quote?: string; parentEquipmentId?: string; capacity?: unknown }
 ) {
   // A canonical document carries no status and is active; publication always writes ACTIVE.
   const publishedActive = (document.status ?? 'ACTIVE') === 'ACTIVE'
@@ -36,8 +36,11 @@ export function rootCatalogueFacts(
         publishedActive,
         equipment: {
           ...(document.quote === undefined ? {} : { quote: document.quote }),
-          // A variant's capacity is always its base's (`resolveEquipmentAuthored`).
-          ...(document.category === 'VARIANT' ? {} : { container: document.capacity !== undefined })
+          // A variant's capacity is always its base's (`resolveEquipmentAuthored`). The root's
+          // `parentEquipmentId` is the one variant signal its readers and `hasRootCatalogueFacts` use.
+          ...(document.parentEquipmentId === undefined
+            ? { container: document.capacity !== undefined }
+            : {})
         }
       }
     case 'RACE':

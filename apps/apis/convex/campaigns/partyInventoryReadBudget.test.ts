@@ -12,9 +12,10 @@ import {
   importedSubject,
   publicationFixture
 } from '../../tests/fixtures/publication'
+import { getFunctionName } from 'convex/server'
 import { api } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-import { items } from './partyInventoryPages'
+import { items } from './partyInventory'
 
 // RELIABILITY-21.2: four concurrent item pages ran 815-937 ms on CI and starved the custody proof's
 // next mutation past Convex's 1 s limit. Each row re-resolved the Campaign's catalogue binding, so a
@@ -24,6 +25,29 @@ const ROWS = 8
 const PAGE_BUDGET_BYTES = 192 * 1024
 
 type Handler = (ctx: QueryCtx, args: unknown) => Promise<CampaignPartyItemPage>
+
+// RELIABILITY-21.T18: the public query read the page through a `runQuery` hop into a second module
+// graph, which repeated validation, identity and authority; CI ran it at 909-991 ms. It reads in its
+// own transaction.
+function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
+  return {
+    ...ctx,
+    db,
+    runQuery: ((reference, args) => {
+      // Identity still reads the Better Auth component; only an app query is a second module graph.
+      // `getFunctionName` names this app's functions and refuses component references.
+      let appQuery: string | null = null
+      try {
+        appQuery = getFunctionName(reference)
+      } catch {
+        appQuery = null
+      }
+      if (appQuery !== null)
+        throw new Error(`Party item pages read in the public query transaction, not ${appQuery}.`)
+      return ctx.runQuery(reference, args)
+    }) satisfies QueryCtx['runQuery']
+  } as QueryCtx
+}
 
 function handlerOf(registered: object): Handler {
   if (!('_handler' in registered) || typeof registered._handler !== 'function')
@@ -63,13 +87,21 @@ describe('party inventory items read budget', () => {
       })
     const handler = handlerOf(items)
     const totals = createDatabaseIoTotals()
+    const startedAt = performance.now()
     const result = await base.first.caller.run((ctx) =>
-      handler({ ...ctx, db: countDatabaseIo(ctx.db, totals) } as unknown as QueryCtx, {
-        campaignId: campaign.id,
-        paginationOpts: { cursor: null, numItems: 48 }
-      })
+      handler(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        { campaignId: campaign.id, paginationOpts: { cursor: null, numItems: 48 } }
+      )
     )
-    console.info('party items page reads', JSON.stringify(totals.reads))
+    console.info(
+      'party items page reads',
+      JSON.stringify(totals.reads),
+      `${Math.round(performance.now() - startedAt)} ms`
+    )
     expect(result.page.map((row) => row.label).sort()).toEqual(
       equipment.map((entry) => entry.label).sort()
     )
@@ -130,7 +162,13 @@ describe('party inventory items read budget', () => {
     const args = { campaignId: campaign.id, paginationOpts: { cursor: null, numItems: 48 } }
     const totals = createDatabaseIoTotals()
     const result = await base.first.caller.run((ctx) =>
-      handler({ ...ctx, db: countDatabaseIo(ctx.db, totals) } as unknown as QueryCtx, args)
+      handler(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        args
+      )
     )
     expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
     expect(
@@ -154,8 +192,8 @@ describe('party inventory items read budget', () => {
       if (!root?.catalogue || !other) throw new Error('Missing stale Equipment root')
       await ctx.db.patch(root._id, { catalogue: { ...root.catalogue, checksum: other.checksum } })
     })
-    await expect(base.first.caller.run((ctx) => handler(ctx, args))).rejects.toThrow(
-      'catalogue facts are missing or stale'
-    )
+    await expect(
+      base.first.caller.run((ctx) => handler(inOwnTransaction(ctx as unknown as QueryCtx), args))
+    ).rejects.toThrow('catalogue facts are missing or stale')
   }, 300_000)
 })
