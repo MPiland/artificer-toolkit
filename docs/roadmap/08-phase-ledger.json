@@ -20189,10 +20189,10 @@
             {
               "id": "RELIABILITY-21.1",
               "text": "authoring/nodeRuntime:resolve stays under the 1 s query limit, and the publication-class journey loads the authoring tools.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": ["nodeRuntime.test.ts"],
               "origin": [],
-              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1. Reopened 2026-10-28: publication-class-browser still fails on CI (resolve over the 1 s limit); owned by T19."
+              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1. Reopened 2026-10-28: publication-class-browser still fails on CI (resolve over the 1 s limit); owned by T19. Closed 2026-10-28 by RELIABILITY-21.T1, RELIABILITY-21.T19."
             },
             {
               "id": "RELIABILITY-21.2",
@@ -20614,7 +20614,7 @@
             },
             {
               "id": "RELIABILITY-21.T19",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.1"],
               "wsjf": {
                 "bv": 5,
@@ -20623,8 +20623,9 @@
                 "size": 3
               },
               "text": "Bound authoring/nodeRuntime:resolve handler and returns-validation cost under the 1 s limit (the T1 options); remove publication-class-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13). Merged in m532.",
+              "mergedAt": "2026-10-28T22:51:47Z",
+              "proof": "Tests 40779600161, Live backend 40779600040, Browser journeys 40779599882 on f9221b72a; publication-class-browser gates green with its label removed. Per-request scope memo shares 62 models across 1,283 scopes (reader calls 335 to 26, caller.query 444-579 to 297-331 ms locally); nodeRuntime.test.ts asserts reader calls under 60 and per-scope parity."
             },
             {
               "id": "RELIABILITY-21.T20",
