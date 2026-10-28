@@ -313,19 +313,19 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
   }
 }
 
-/** The receipt of the slot row a Creature's spell cast spends; null for any other action. */
+/** The receipt of the slot row or charge pool a Creature's spell cast spends; null otherwise. */
 function creatureSpellSlotReceipt(
   prepared: Pick<NativeEncounterActionMechanicsInput['prepared'], 'actor' | 'source'>
 ): SpellSlotConsumptionReceiptDto | null {
   const { actor, source } = prepared
   if (source.kind !== 'CREATURE' || !source.capability.spellSlotUse) return null
   const slot = source.capability.spellSlotUse
-  const beforeUsed = featureChargeUsed(actor, slot.slotRowId)
+  const beforeUsed = featureChargeUsed(actor, slot.slotKey)
   return {
     owner: { kind: 'CREATURE', actorId: actor.id, featureId: slot.ownerFeatureId },
     spellId: slot.spellId,
     candidateId: source.capability.actionId,
-    slotKey: slot.slotRowId,
+    slotKey: slot.slotKey,
     beforeUsed,
     afterUsed: beforeUsed + 1
   }
@@ -374,8 +374,8 @@ function spendNativeSourceFeatureCharge(
     ...(source.capability.spellSlotUse
       ? [
           {
-            key: source.capability.spellSlotUse.slotRowId,
-            beforeUsed: featureChargeUsed(prepared.actor, source.capability.spellSlotUse.slotRowId),
+            key: source.capability.spellSlotUse.slotKey,
+            beforeUsed: featureChargeUsed(prepared.actor, source.capability.spellSlotUse.slotKey),
             spent: 1
           }
         ]
