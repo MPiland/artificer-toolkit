@@ -23,7 +23,7 @@ export async function readyCharacterFixture(
     /** The Character's level in that Class; defaults to 1. */
     classLevel?: number
     /** An SRD subclass of that Class the Character has chosen. */
-    subclass?: ClassAuthoredDto
+    subclass?: typeof fighter
   } = {},
   equipment = club,
   existing?: Awaited<ReturnType<typeof fixture>>
