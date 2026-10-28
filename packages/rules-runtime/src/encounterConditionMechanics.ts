@@ -141,9 +141,9 @@ export async function withEncounterConditionMechanics<T extends MovementTarget>(
 
 /**
  * Derives the mechanics the target's current conditions apply from its pinned condition
- * definitions and adds their saving-throw contributors to its save rows. A flow that rebuilds a
- * target carries its pins over and re-applies this; a condition gained since the pins were loaded
- * applies nothing until the next load.
+ * definitions, adds their saving-throw contributors to its save rows and their damage defenses to
+ * its defenses. A flow that rebuilds a target carries its pins over and re-applies this; a condition
+ * gained since the pins were loaded applies nothing until the next load.
  */
 export function applyEncounterConditionMechanics<T extends MovementTarget>(input: {
   target: T
@@ -161,6 +161,7 @@ export function applyEncounterConditionMechanics<T extends MovementTarget>(input
   return {
     ...target,
     conditionMechanics,
+    defenses: withConditionDamageDefenses(target.defenses, conditionMechanics),
     targetDerivedFacts: {
       ...target.targetDerivedFacts,
       ...(Array.isArray(savingThrowDefinitions) && conditionMechanics.length
@@ -191,6 +192,34 @@ export function applyEncounterConditionMechanics<T extends MovementTarget>(input
         : {})
     }
   }
+}
+
+/**
+ * The holder's damage defenses with its conditions' defenses added (SPELLS-10). A condition's
+ * defense holds against any damage, so it stands in for the same defense limited to some sources.
+ */
+function withConditionDamageDefenses(
+  defenses: MovementTarget['defenses'],
+  mechanics: readonly EncounterConditionMechanic[]
+): MovementTarget['defenses'] {
+  const added = new Map(
+    mechanics.flatMap(({ mechanic }) =>
+      mechanic.kind === 'DAMAGE_DEFENSE'
+        ? mechanic.damageTypeIds.map(
+            (damageTypeId) =>
+              [
+                `${mechanic.defense}:${damageTypeId}`,
+                { kind: mechanic.defense, damageTypeId }
+              ] as const
+          )
+        : []
+    )
+  )
+  if (!added.size) return defenses
+  return [
+    ...defenses.filter(({ kind, damageTypeId }) => !added.has(`${kind}:${damageTypeId}`)),
+    ...[...added].sort(([left], [right]) => left.localeCompare(right)).map(([, defense]) => defense)
+  ]
 }
 
 /**
