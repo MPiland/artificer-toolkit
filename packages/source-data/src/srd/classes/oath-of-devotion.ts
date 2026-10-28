@@ -14,6 +14,7 @@ import {
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -32,7 +33,8 @@ import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { protectionFromEvilAndGoodGrants } from '../spells/protection-from-evil-and-good.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
+import { paladinConditionImmunityAura } from './paladin.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -278,41 +280,12 @@ export const oathOfDevotion: ClassAuthored = {
       availableAtLevel: 7,
       order: 3,
       effects: [
-        closedRuleEffect({
+        paladinConditionImmunityAura({
           id: classRowId(P, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: classRowId(P, 21, 3),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: MEASUREMENT_UNIT_CODE.FEET,
-              scaling: {
-                scalingKind: 'BREAKPOINTS',
-                scalingSource: SCALING_SOURCE.PARENT_CLASS_LEVEL,
-                breakpoints: [
-                  {
-                    id: classRowId(P, 30, 1),
-                    level: 7,
-                    order: 1,
-                    value: { amount: 10, unit: MEASUREMENT_UNIT_CODE.FEET }
-                  },
-                  {
-                    id: classRowId(P, 30, 2),
-                    level: 18,
-                    order: 2,
-                    value: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
-                  }
-                ]
-              }
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'WILLING'
-            }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_OATH_OF_DEVOTION_AURA_OF_DEVOTION
+          rangeId: classRowId(P, 21, 3),
+          group: 0x73,
+          label: 'Aura of Devotion',
+          conditionCodes: ['CHARMED']
         })
       ]
     },
@@ -345,24 +318,20 @@ export const oathOfDevotion: ClassAuthored = {
         amount: 1
       },
       effects: [
-        closedRuleEffect({
-          id: classRowId(P, 20, 5),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(P, 21, 5),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'HOSTILE'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(P, 20, 5),
+            range: classRowId(P, 21, 5),
+            path: classRowId(P, 0x74, 1),
+            result: classRowId(P, 0x75, 1),
+            outcome: classRowId(P, 0x76, 1)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_OATH_OF_DEVOTION_HOLY_NIMBUS
+          label: 'Holy Nimbus',
+          instructions:
+            'For 1 minute, bright light shines from you in a 30-foot radius and dim light 30 feet beyond that. The GM deals 10 radiant damage to each enemy that starts its turn in the bright light, and gives you advantage on saving throws against spells cast by fiends or undead for the duration.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          resourceUse: { chargeId: classRowId(P, 22, 1), cost: 1 },
+          activationCode: ACTIVATION_CODE.ACTION
         })
       ]
     }

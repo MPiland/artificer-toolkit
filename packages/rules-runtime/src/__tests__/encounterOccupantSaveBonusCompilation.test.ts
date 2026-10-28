@@ -275,3 +275,93 @@ describe('an occupant save-bonus aura (SPELLS-20 T5a, D155)', () => {
     )
   })
 })
+
+describe('an occupant condition-immunity aura (SPELLS-31.T4r, D155)', () => {
+  const conditionId = (code: string) =>
+    srdSystemRecord.conditionTypes.find((condition) => condition.code === code)?.id ?? code
+  /** The SRD paladin's Aura of Courage, carried as a Creature feature so discovery compiles it. */
+  function auraOfCourageFeature(): CreatureFeature {
+    const feature = srdByLabel(SRD.classes, 'Paladin').features?.find(
+      ({ label }) => label === 'Aura of Courage'
+    )
+    if (!feature?.effects) throw new Error('The paladin must author its Aura of Courage.')
+    return {
+      id: feature.id,
+      label: feature.label,
+      description: feature.description,
+      order: 99,
+      effects: structuredClone(feature.effects)
+    }
+  }
+  /** A Builder-authored aura from core options keeping charmed and frightened off within the reach. */
+  const coreOptionsImmunityAura = (change?: (parts: ReturnType<typeof auraParts>) => void) =>
+    coreOptionsAura((parts) => {
+      delete parts.component.occupantSaveBonus
+      parts.component.occupantConditionImmunity = {
+        id: extraId(43),
+        conditionTypeIds: [conditionId('FRIGHTENED')],
+        dispositionFilter: 'ALLIES_AND_SOURCE'
+      }
+      change?.(parts)
+    })
+
+  it('compiles the SRD Aura of Courage to an untriggered source zone keeping frightened off', () => {
+    const zone = passiveZoneOf(auraOfCourageFeature())
+    expect(zone).toMatchObject({
+      attachment: 'SOURCE',
+      triggerModes: [],
+      grant: null,
+      occupantConditionImmunity: {
+        dispositionFilter: 'ALLIES_AND_SOURCE',
+        conditionTypeIds: [conditionId('FRIGHTENED')]
+      }
+    })
+    expect(zone).not.toHaveProperty('occupantSaveBonus')
+  })
+
+  it('compiles the SRD aura as the same zone a core-options aura is (ADR 0038)', () => {
+    const comparable = ({ label: _label, shape, entry, ...rest }: CompiledActionZonePlacement) => {
+      if (!('radius' in shape)) throw new Error('The aura must be a sphere.')
+      const { scaling, ...reach } = shape.radius
+      return {
+        ...rest,
+        reach,
+        breakpoints: scaling?.breakpoints.map(({ id: _id, ...point }) => point),
+        nodes: entry.frozenGraph.definition.nodes.map(({ operation }) => operation)
+      }
+    }
+    expect(comparable(passiveZoneOf(auraOfCourageFeature()))).toEqual(
+      comparable(passiveZoneOf(coreOptionsImmunityAura()))
+    )
+  })
+
+  it('compiles the immunity beside a save bonus on one zone', () => {
+    const zone = passiveZoneOf(
+      coreOptionsImmunityAura(({ component }) => {
+        component.occupantSaveBonus = { ...CHARISMA_BONUS }
+      })
+    )
+    expect(zone.occupantSaveBonus).toBeDefined()
+    expect(zone.occupantConditionImmunity?.conditionTypeIds).toEqual([conditionId('FRIGHTENED')])
+  })
+
+  it('shows an immunity aura with a trigger as unavailable, with no zone', () => {
+    const feature = coreOptionsImmunityAura(({ component }) => {
+      component.interactionKinds = ['START_OF_SOURCE_TURN']
+    })
+    const discovery = discover(feature)
+    expect(discovery.passiveZones).toEqual([])
+    expect(discovery.unavailable).toContainEqual(
+      expect.objectContaining({ ownerFeatureId: feature.id })
+    )
+  })
+
+  it('pins the conditions on the placement', () => {
+    const zone = passiveZoneOf(auraOfCourageFeature())
+    const paladin10 = { abilityModifier: () => 0, classLevel: () => 10 }
+    expect(placeAura(zone, paladin10).placement.occupantConditionImmunity).toEqual({
+      dispositionFilter: 'ALLIES_AND_SOURCE',
+      conditionTypeIds: [conditionId('FRIGHTENED')]
+    })
+  })
+})

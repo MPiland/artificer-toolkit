@@ -200,7 +200,12 @@ function zonePlacementPlan(
   // any, only prices movement there (Entangle's difficult terrain, or Plant Growth's with no save).
   // A zone with components holds only theirs.
   const terrain =
-    first && !first.behavior && !first.component.occupantSaveBonus ? first.component : null
+    first &&
+    !first.behavior &&
+    !first.component.occupantSaveBonus &&
+    !first.component.occupantConditionImmunity
+      ? first.component
+      : null
   if (terrain && later.length)
     unsupported('A zone whose component only prices movement has no band beside its wall.')
   if (
@@ -250,10 +255,10 @@ function zonePlacementPlan(
 }
 
 /**
- * A zone that only lends its occupants a save bonus (D155): an untriggered source zone with one
- * component and no other rule, whose entry is a lasting graph so its spatial definition keeps the
- * shape every zone has. Placement resolves a passive zone's amount and class-level radius against
- * its source.
+ * A zone that only lends its occupants a save bonus, a condition immunity or both (D155): an
+ * untriggered source zone with one component and no other rule, whose entry is a lasting graph so
+ * its spatial definition keeps the shape every zone has. Placement resolves a passive zone's amount
+ * and class-level radius against its source.
  */
 function occupantBonusZonePlacementPlan(
   action: Dnd5eCompiledEffectActionSource,
@@ -261,10 +266,11 @@ function occupantBonusZonePlacementPlan(
   component: PlacedSpaceZone['components'][number]['component']
 ): CharacterRuleActionZonePlacementPlan {
   const bonus = component.occupantSaveBonus
-  if (!bonus) unsupported('A placed zone component needs exactly one behavior.')
+  const immunity = component.occupantConditionImmunity
+  if (!bonus && !immunity) unsupported('A placed zone component needs exactly one behavior.')
   if (zone.attachment !== 'SOURCE')
-    unsupported('An occupant save bonus is lent by a zone centered on its source.')
-  if (bonus.amountKind !== 'FIXED' && action.compiledEffect.invocation.kind !== 'PASSIVE')
+    unsupported('An occupant benefit is lent by a zone centered on its source.')
+  if (bonus && bonus.amountKind !== 'FIXED' && action.compiledEffect.invocation.kind !== 'PASSIVE')
     unsupported('A save bonus of its source’s modifier is lent by a passive zone.')
   if (
     zone.components.length !== 1 ||
@@ -281,24 +287,36 @@ function occupantBonusZonePlacementPlan(
     zone.ringThickness ||
     zone.sourceGrantEntry
   )
-    unsupported('A zone lending an occupant save bonus has no trigger or other rule.')
+    unsupported('A zone lending its occupants a benefit has no trigger or other rule.')
   return {
     attachment: 'SOURCE',
     label: zone.label,
     shape: zone.shape,
     triggerModes: [],
-    occupantSaveBonus: {
-      domain: bonus.domain,
-      dispositionFilter: bonus.dispositionFilter,
-      amount:
-        bonus.amountKind === 'FIXED'
-          ? { kind: 'FIXED', value: bonus.amount }
-          : {
-              kind: 'SOURCE_ABILITY_MODIFIER',
-              ability: bonus.ability,
-              minimum: bonus.minimum ?? null
-            }
-    },
+    ...(bonus
+      ? {
+          occupantSaveBonus: {
+            domain: bonus.domain,
+            dispositionFilter: bonus.dispositionFilter,
+            amount:
+              bonus.amountKind === 'FIXED'
+                ? { kind: 'FIXED', value: bonus.amount }
+                : {
+                    kind: 'SOURCE_ABILITY_MODIFIER',
+                    ability: bonus.ability,
+                    minimum: bonus.minimum ?? null
+                  }
+          }
+        }
+      : {}),
+    ...(immunity
+      ? {
+          occupantConditionImmunity: {
+            dispositionFilter: immunity.dispositionFilter,
+            conditionTypeIds: [...immunity.conditionTypeIds]
+          }
+        }
+      : {}),
     ...lastingZoneEntry(action, zone)
   }
 }

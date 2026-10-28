@@ -7,6 +7,7 @@ import type {
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
+  ManifestOccupantConditionImmunityAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
@@ -205,6 +206,7 @@ const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
+const manifestOccupantConditionImmunity = buildNodeMap<ManifestOccupantConditionImmunityAuthored>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
 const hitPointTierRow = buildNodeMap<PathHitPointTierRowAuthored>()
@@ -756,6 +758,40 @@ const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNo
       )
   })
 
+const MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP: NodeMap<ManifestOccupantConditionImmunityAuthored> =
+  manifestOccupantConditionImmunity.define(
+    'manifestOccupantConditionImmunity',
+    ({ map, nodes, data }) => {
+      const { text, selectSingle, selectMulti } = nodes
+      map
+        .set('id', text(['id'], 'ID'))
+        .set(
+          'conditionTypeIds',
+          selectMulti(
+            ['conditionTypeIds'],
+            'Conditions',
+            {
+              kind: 'DATA',
+              relationship: data.table('condition_types', { selectColumns: CODE_COLUMNS })
+            },
+            { requiredIf: true }
+          )
+        )
+        .set(
+          'dispositionFilter',
+          selectSingle(
+            ['dispositionFilter'],
+            'Benefits',
+            {
+              kind: 'INLINE_OPTIONS',
+              options: [{ code: 'ALLIES_AND_SOURCE', label: 'Source and Its Allies' }]
+            },
+            { requiredIf: true }
+          )
+        )
+    }
+  )
+
 const MANIFEST_COMPONENT_REGION_NODE_MAP: NodeMap<ManifestComponentRegionNode> =
   manifestComponentRegion.define('manifestComponentRegion', ({ map, nodes }) => {
     const { selectSingle, groupObject } = nodes
@@ -866,6 +902,15 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
           {
             presentation: 'inline'
           }
+        )
+      )
+      .set(
+        'occupantConditionImmunity',
+        groupObject(
+          ['occupantConditionImmunity'],
+          'Occupant Condition Immunity',
+          () => MANIFEST_OCCUPANT_CONDITION_IMMUNITY_NODE_MAP,
+          { presentation: 'inline' }
         )
       )
       .set('requiresIgnition', toggle(['requiresIgnition'], 'Requires Ignition'))
