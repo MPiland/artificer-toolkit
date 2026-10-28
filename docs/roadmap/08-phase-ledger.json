@@ -20395,7 +20395,8 @@
                 "size": 3
               },
               "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun."
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun.",
+              "description": " Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54."
             }
           ]
         }
