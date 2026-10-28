@@ -624,7 +624,9 @@ validator still admits `subject-compiler-v1` rows so the migration can read them
 Read paths never compile (PLATFORM-21.T1b, D163): Convex Builder and Sheet preparation, commit, the browser Builder
 (format 3 snapshot `compilations`) and the room hydrate the stored row, checked against the root checksum. Only
 publish, import, the seed and the migration call a subject compiler (`readPathCompilation.test.ts`), and publish
-compiles before it stores, so a compile failure stores no version or compilation.
+compiles before it stores, so a compile failure stores no version or compilation. That guard is per file, so a
+read path that needs only the effective Equipment calls `resolveCurrentEquipment`, never
+`compileCurrentEquipment` (party inventory pages, the snapshot builder projection, the search backfill check).
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;
@@ -635,8 +637,8 @@ a missing or stale projection is rejected; there is no payload fallback. Spell s
 status is `DRAFT` (canonical documents carry no status and are active; publication always writes `ACTIVE`); every write that stores a version sets it (`rootCatalogueFacts.test.ts` walks import,
 replacement and publication). RACE, CLASS and BACKGROUND roots also hold `catalogue.race`, `.class` or
 `.background`: the picker facts `toContentSnapshotIndexEntry` derives once at publish; EQUIPMENT roots hold
-`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, commit and the
-held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
+`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, the party
+inventory Equipment picker (`equipmentOptionsReadBudget.test.ts`), commit and the held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
 alone, so commit loads no authored payload (`commitReadBudget.test.ts` makes every payload unreadable before it commits). `compilationMigration:run`
 backfills both on older roots.
 

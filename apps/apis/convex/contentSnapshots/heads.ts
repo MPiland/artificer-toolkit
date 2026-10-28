@@ -29,7 +29,7 @@ import {
   readAuthoredVersionCompilation,
   readPublishedDocument
 } from '../content/documents'
-import { compileCurrentEquipment } from '../content/equipmentRelationships'
+import { resolveCurrentEquipment } from '../content/equipmentRelationships'
 import { requireSystem } from '../content/systemDocuments'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { parsePublicationDocument } from '../content/publicationDocumentRead'
@@ -298,7 +298,7 @@ async function readEquipmentBuilderFacts(
     const stored = authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
     if (stored.checksum === root.checksum && stored.builder) return stored.builder
   }
-  const { effective } = await compileCurrentEquipment(ctx, document, root.ownerUserId ?? null)
+  const { effective } = await resolveCurrentEquipment(ctx, document, root.ownerUserId ?? null)
   const { builder } = equipmentOptionFacts(document, root.checksum, effective)
   if (!builder) throw new Error('Equipment builder projection requires resolved facts.')
   return builder

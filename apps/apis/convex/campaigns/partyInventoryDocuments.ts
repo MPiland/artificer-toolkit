@@ -23,7 +23,7 @@ import {
   readAuthoredVersion,
   readPublishedDocumentPayload
 } from '../content/documents'
-import { compileCurrentEquipment } from '../content/equipmentRelationships'
+import { resolveCurrentEquipment } from '../content/equipmentRelationships'
 import { readCampaignSharedActiveRoot, readCampaignSharedRootPublication } from './contentAccess'
 import { requireSystem } from '../content/systemDocuments'
 import { readCurrencySystem } from './currencySystemDocuments'
@@ -52,11 +52,27 @@ import {
 // The Equipment DTO parse of a verified stored document, by its exact JSON (every page re-reads it).
 const publishedEquipment = createContentMemo<EquipmentAuthoredDto>()
 
+async function readPartySourceIds(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
+  const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
+    systemId: campaign.gameSystemId,
+    primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
+    additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
+  })
+  return sourceIds
+}
+
+/** One page's current Equipment reads: the catalogue binding once, each Equipment once. */
+type HeldEquipmentPage = {
+  sourceIds: Promise<ReadonlySet<string>>
+  current: Map<string, Promise<Awaited<ReturnType<typeof readPartyEquipment>> | null>>
+}
+
 /** Party custody grants no access to a member's unshared Homebrew. */
 export async function readPartyEquipmentSource(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
-  equipmentId: string
+  equipmentId: string,
+  bindingSourceIds?: Promise<ReadonlySet<string>>
 ) {
   const root = await ctx.db
     .query('authoredRoots')
@@ -65,11 +81,7 @@ export async function readPartyEquipmentSource(
   if (!root) return null
   if (root.subjectKind !== 'EQUIPMENT' || root.systemId !== campaign.gameSystemId)
     throw new Error('Stored Campaign Equipment identity mismatch.')
-  const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
-    systemId: campaign.gameSystemId,
-    primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
-    additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
-  })
+  const sourceIds = await (bindingSourceIds ?? readPartySourceIds(ctx, campaign))
   const shared = (candidate: Doc<'authoredRoots'>) =>
     readCampaignSharedRootPublication(ctx, campaign, candidate.subjectKind, candidate.id)
   let document: EquipmentAuthoredDto
@@ -115,7 +127,7 @@ export async function readPartyEquipment(
   const source = await readPartyEquipmentSource(ctx, campaign, equipmentId)
   if (!source) throw new Error('Campaign Equipment is unavailable.')
   return (
-    await compileCurrentEquipment(
+    await resolveCurrentEquipment(
       ctx,
       source.document,
       null,
@@ -130,18 +142,23 @@ export async function readHeldPartyEquipment(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   item: { equipmentId: string; retainedRulesJson?: string },
-  currentEquipment?: Map<string, Promise<Awaited<ReturnType<typeof readPartyEquipment>> | null>>
+  page?: HeldEquipmentPage
 ) {
   const retained = item.retainedRulesJson
     ? readAcquiredEquipmentRules(item.retainedRulesJson, item.equipmentId, campaign.gameSystemId)
     : null
-  let current = currentEquipment?.get(item.equipmentId)
+  let current = page?.current.get(item.equipmentId)
   if (!current) {
     current = (async () => {
-      const source = await readPartyEquipmentSource(ctx, campaign, item.equipmentId)
+      const source = await readPartyEquipmentSource(
+        ctx,
+        campaign,
+        item.equipmentId,
+        page?.sourceIds
+      )
       return source
         ? (
-            await compileCurrentEquipment(
+            await resolveCurrentEquipment(
               ctx,
               source.document,
               null,
@@ -151,7 +168,7 @@ export async function readHeldPartyEquipment(
           ).effective
         : null
     })()
-    currentEquipment?.set(item.equipmentId, current)
+    page?.current.set(item.equipmentId, current)
   }
   const equipment = await current
   if (equipment) return equipment
@@ -166,12 +183,12 @@ async function presentCampaignItem(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   row: Doc<'campaignPartyItems'>,
-  currentEquipment: Map<string, Promise<Awaited<ReturnType<typeof readPartyEquipment>> | null>>
+  page: HeldEquipmentPage
 ) {
   const { _id, _creationTime, ...stored } = row
   const item = campaignStoredPartyItemSchema.parse(stored)
   if (item.campaignId !== campaign.id) throw new Error('Stored Campaign inventory scope mismatch.')
-  const equipment = await readHeldPartyEquipment(ctx, campaign, item, currentEquipment)
+  const equipment = await readHeldPartyEquipment(ctx, campaign, item, page)
   return inventoryItemDtoSchema.parse({
     id: item.id,
     label: presentCampaignPlainText(item.customName ?? equipment.label, campaign.contentMaturity),
@@ -435,10 +452,13 @@ export async function readCampaignItemPage(
     }
   }
   // One current source resolution per Equipment in this snapshot; each item's retained rules stay independent.
-  const currentEquipment = new Map<
-    string,
-    Promise<Awaited<ReturnType<typeof readPartyEquipment>> | null>
-  >()
+  let sourceIds: Promise<ReadonlySet<string>> | undefined
+  const page: HeldEquipmentPage = {
+    get sourceIds() {
+      return (sourceIds ??= readPartySourceIds(ctx, campaign))
+    },
+    current: new Map()
+  }
   return campaignPartyItemPageSchema.parse({
     ...result,
     owner:
@@ -447,9 +467,7 @@ export async function readCampaignItemPage(
         : { kind: 'VEHICLE', vehicleId },
     version: inventory?.version ?? 0,
     ...(pendingCleanup.size ? { pendingCleanup: [...pendingCleanup.values()] } : {}),
-    page: await Promise.all(
-      visibleRows.map((row) => presentCampaignItem(ctx, campaign, row, currentEquipment))
-    )
+    page: await Promise.all(visibleRows.map((row) => presentCampaignItem(ctx, campaign, row, page)))
   })
 }
 

@@ -14,7 +14,7 @@ import { requireClassParent } from './classRelationships'
 import { requireRaceParent } from './raceRelationships'
 import { backfillCatalogueFamily } from './catalogueFamilies'
 import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
-import { compileCurrentEquipment } from './equipmentRelationships'
+import { resolveCurrentEquipment } from './equipmentRelationships'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 
 function exactEquipmentOptionFacts(actual: unknown, expected: unknown) {
@@ -76,7 +76,7 @@ export const backfill = internalMutation({
         if (root.parentEquipmentId !== parentEquipmentId)
           throw new Error('Catalogue Equipment parent projection mismatch.')
         if (!root.equipmentOptions) throw new Error('Equipment option facts are not materialized.')
-        const { effective } = await compileCurrentEquipment(ctx, authored, root.ownerUserId ?? null)
+        const { effective } = await resolveCurrentEquipment(ctx, authored, root.ownerUserId ?? null)
         const rawFacts = equipmentOptionFacts(authored, root.checksum)
         const expectedFacts = equipmentOptionFacts(authored, root.checksum, effective)
         if (root.equipmentOptions.builder === undefined) {
