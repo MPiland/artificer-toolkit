@@ -282,7 +282,6 @@ interface ManagedClient {
   context: BrowserContext
   failedRequests: string[]
   liveSessionFrames: string[]
-  liveSessionFrameTimes: number[]
   liveSessionSentFrameTimes: number[]
   liveSessionSentFrames: string[]
   liveSessionUrls: string[]
@@ -426,10 +425,10 @@ async function collectDoorConvergenceTimings(
       )
     })
     const sentFrameStart = gm.liveSessionSentFrames.length
-    const playerFrameStarts = players.map((player) => player.liveSessionFrames.length)
-    await Promise.all(players.map((player) => armSceneVersionStamp(player.page, priorVersion + 1)))
+    const clients = [gm, ...players]
+    await Promise.all(clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1)))
     const liveSceneConvergence = Promise.all(
-      [gm, ...players].map((client) => waitForSceneVersion(client.page, priorVersion + 1))
+      clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1))
     )
     await gmAction.click()
     action = nextAction
@@ -448,7 +447,7 @@ async function collectDoorConvergenceTimings(
         { cause: liveSceneResult.reason }
       )
     }
-    const observedAt = liveSceneResult.value
+    const observedAt = await Promise.all(clients.map((client) => sceneVersionShownAt(client.page)))
     const submittedAt = await gm.page.evaluate(
       () => (window as unknown as Record<string, unknown>).__vttActionSubmittedAt
     )
@@ -460,30 +459,6 @@ async function collectDoorConvergenceTimings(
       ...players.map((player) => expectDoorHidden(player))
     ])
     diagnostics[`doorCommit${index + 1}Ms`] = durableMs
-    const sentOffset = gm.liveSessionSentFrames
-      .slice(sentFrameStart)
-      .findIndex((payload) => isSceneDoorCommandFrame(payload))
-    const sentAt = gm.liveSessionSentFrameTimes[sentFrameStart + sentOffset]!
-    const segments = await Promise.all(
-      players.map(async (player, playerIndex) => {
-        const committedIndex = player.liveSessionFrames.findIndex(
-          (payload, frameIndex) =>
-            frameIndex >= playerFrameStarts[playerIndex]! &&
-            parsedFrame(payload)?.type === 'COMMAND_COMMITTED'
-        )
-        return {
-          receivedMs: (player.liveSessionFrameTimes[committedIndex] ?? Number.NaN) - sentAt,
-          renderedMs: (await readSceneVersionStamp(player.page)) - sentAt
-        }
-      })
-    )
-    console.info(
-      `Managed VTT door ${index + 1} segments: ${JSON.stringify({
-        clickToSendMs: sentAt - submittedAt,
-        durableMs,
-        players: segments
-      })}`
-    )
     if (index >= warmupPairs) {
       samples.authoritative.push(Math.max(...observedAt) - submittedAt)
       samples.durable.push(durableMs)
@@ -623,10 +598,14 @@ async function collectTokenDragTimings(
         throw new Error('Managed VTT drag preview has no matching outbound frame timestamp.')
 
       await armLocalDragRelease(gm.page)
+      await Promise.all(
+        clients.map((client) => armSceneVersionShown(client.page, priorVersion + 1))
+      )
       await gm.page.mouse.up()
       const releasedAt = await waitForLocalDragRelease(gm.page)
+      await Promise.all(clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1)))
       const observedAt = await Promise.all(
-        clients.map((client) => waitForSceneVersion(client.page, priorVersion + 1))
+        clients.map((client) => sceneVersionShownAt(client.page))
       )
 
       if (index >= warmupPairs) {
@@ -679,7 +658,12 @@ async function readSceneVersion(page: Page): Promise<number> {
   return version
 }
 
-async function armSceneVersionStamp(page: Page, version: number): Promise<void> {
+/**
+ * Stamps, in the page's own clock, the moment the Scene version label commits to the DOM. Reading
+ * `Date.now()` after a `toBeVisible` wait adds Playwright's retry gaps (0, 20, 50, 100, 100, 500 ms)
+ * and a CDP round trip to every latency sample.
+ */
+async function armSceneVersionShown(page: Page, version: number): Promise<void> {
   await liveSceneRegion(page).evaluate((region, label) => {
     const state = window as unknown as Record<string, unknown>
     state.__vttSceneVersionAt = null
@@ -695,16 +679,16 @@ async function armSceneVersionStamp(page: Page, version: number): Promise<void> 
   }, `v${version}`)
 }
 
-async function readSceneVersionStamp(page: Page): Promise<number> {
+async function sceneVersionShownAt(page: Page): Promise<number> {
   const stamp = await page.evaluate(
     () => (window as unknown as Record<string, unknown>).__vttSceneVersionAt
   )
-  return typeof stamp === 'number' ? stamp : Number.NaN
+  assertTimestamp(stamp)
+  return stamp
 }
 
-async function waitForSceneVersion(page: Page, version: number): Promise<number> {
+async function waitForSceneVersion(page: Page, version: number): Promise<void> {
   await expect(liveSceneRegion(page).getByText(`v${version}`, { exact: true })).toBeVisible()
-  return Date.now()
 }
 
 async function armLocalDragPaint(page: Page): Promise<void> {
@@ -1027,7 +1011,6 @@ async function openManagedClient(
       context,
       failedRequests,
       liveSessionFrames: [],
-      liveSessionFrameTimes: [],
       liveSessionSentFrameTimes: [],
       liveSessionSentFrames: [],
       liveSessionUrls: [],
@@ -1072,7 +1055,6 @@ function observeLiveSessionSockets(page: Page, client: ManagedClient): void {
     socket.on('framereceived', ({ payload }) => {
       const rawPayload = payload.toString()
       client.liveSessionFrames.push(rawPayload)
-      client.liveSessionFrameTimes.push(Date.now())
       if (
         !client.visualFrameTracking ||
         client.visualFramePaintPending ||

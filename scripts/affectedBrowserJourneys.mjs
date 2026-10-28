@@ -88,8 +88,7 @@ export const KNOWN_BUG_PROOFS = {
   'campaign-custody-browser': 'RELIABILITY-21.T13',
   'builder-browser': 'RELIABILITY-21.T3',
   'character-sheet-browser': 'RELIABILITY-21.T3',
-  'character-sheet-spells-browser': 'RELIABILITY-21.T3',
-  'vtt-browser': 'RELIABILITY-21.T9'
+  'character-sheet-spells-browser': 'RELIABILITY-21.T3'
 }
 
 /** Every task in the phase ledger, wherever its feature or PBI nests it. */
