@@ -240,8 +240,9 @@ admissions changed:
 
 - A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
   `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
-  its save.
+  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
+  its save. When its area is centered on its owner, the turn end delegates it to the area coordinator as its own
+  rule-raised root (SPELLS-33.T4l3, D197; `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`).
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
   is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
   of one.
@@ -1370,7 +1371,7 @@ A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REA
 grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
 as a menu (a reactor has one reaction a round, so one choice), and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
-shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
+shares with `LEGENDARY_WINDOW_ONLY` (which exempts the rule-raised root of a delegated Legendary area option, D197). Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
 option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
 that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a

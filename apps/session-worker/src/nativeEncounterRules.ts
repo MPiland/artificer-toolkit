@@ -606,7 +606,7 @@ export async function planNativeLiveEncounterAction(
   })
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS') throw targetNotPermitted()
-  refuseActionOutsideItsWindow(prepared)
+  refuseActionOutsideItsWindow(prepared, command)
   // A target immune to this source's use of the action (D156) is refused outright.
   const immunityLabel = encounterSourceImmunityLabel({
     source: prepared.source,

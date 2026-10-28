@@ -1,5 +1,8 @@
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import type { EncounterAcceptedWieldConflictDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type {
+  EncounterAcceptedWieldConflictDto,
+  ResolveEncounterActionInputDto
+} from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -35,12 +38,17 @@ export function nativeLiveRelationshipFacts(input: {
 
 /**
  * Every action path admits an action through here: a Legendary Action is taken only in its own
- * window, and a reaction only when its trigger happens, never as an ordinary action.
+ * window, or as the root a turn end delegated it to (admission proves that root against the turn's
+ * receipt), and a reaction only when its trigger happens, never as an ordinary action.
  */
-export function refuseActionOutsideItsWindow(prepared: Pick<Prepared, 'actor' | 'source'>) {
+export function refuseActionOutsideItsWindow(
+  prepared: Pick<Prepared, 'actor' | 'source'>,
+  command: Pick<ResolveEncounterActionInputDto, 'systemTrigger'>
+) {
   const { source } = prepared
   if (
     source.kind === 'CREATURE' &&
+    command.systemTrigger?.trigger !== 'LEGENDARY_ACTION' &&
     encounterLegendaryActionFeatureIds(prepared.actor).has(source.capability.ownerFeatureId)
   )
     throw new LiveSessionDomainRejectionError(422, {

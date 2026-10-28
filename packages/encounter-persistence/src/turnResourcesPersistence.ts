@@ -175,7 +175,8 @@ export async function persistEncounterTurnResources(
     if (seenOwners.has(ownerId) || ownerId === state.currentActorId)
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
-    if (evidence.resolution.kind === 'DECLINED') continue
+    // A delegated option spends its charges in its own rule-raised action.
+    if (evidence.resolution.kind !== 'EXECUTED') continue
     const { selectedOptionId, targetActorId, application, attack, castsSpell, decoyEffectId } =
       evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)

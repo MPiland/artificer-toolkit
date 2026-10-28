@@ -415,7 +415,13 @@ export const ancientBlackDragon: CreatureAuthored = {
                   baseDc: 23
                 },
                 activation: { code: 'FREE' },
-                range: { id: '00000000-0005-001d-0070-000e00000000', rangeKind: 'SPECIAL' },
+                range: { id: '00000000-0005-001d-0070-000e00000000', rangeKind: 'SELF' },
+                shape: {
+                  id: '00000000-0005-0069-0070-000e00000000',
+                  shapeKind: 'SPHERE',
+                  radius: { amount: 15, unit: 'FEET' }
+                },
+                targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' },
                 resourceUse: { chargeId: '00000000-0005-0015-0070-000e00000000', cost: 2 }
               },
               paths: [
@@ -437,6 +443,11 @@ export const ancientBlackDragon: CreatureAuthored = {
                         valueKind: 'DICE',
                         scalingKind: 'NONE',
                         diceConfig: '2d6+8'
+                      },
+                      {
+                        id: '00000000-0005-0067-0070-000e00000000',
+                        effectKind: 'CONDITION',
+                        conditionId: '00000000-0000-0000-0002-000c00000000'
                       }
                     ]
                   }

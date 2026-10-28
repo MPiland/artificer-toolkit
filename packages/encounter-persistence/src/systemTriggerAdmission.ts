@@ -76,7 +76,9 @@ export function ruleFailedSaveAction(
  * root targets its holder too, and names the rule action the parent receipt's failed save raises for
  * that holder; it runs while the holder stands, within the window the save fell in, so the rule
  * actions of several saves one command failed each run. A resume skips the version and holder tests,
- * as the answers arrive in later commands.
+ * as the answers arrive in later commands. A Legendary Action root is the area option a turn end
+ * delegated: its parent is that ADVANCE_TURN, and it runs while the Run still holds the delegation
+ * for that holder and action, whatever other rule roots ran since, for a holder that still stands.
  */
 export async function requireSystemTriggerAdmission(
   ctx: EncounterReadTransaction,
@@ -127,7 +129,9 @@ export async function requireSystemTriggerAdmission(
           failedSave?.holderActorId !== holderActorId ||
           ruleAction?.definitionId !== failedSave.definitionId ||
           ruleAction.effectId !== failedSave.effectId
-        : command.target.kind !== 'CASTER_CENTERED') ||
+        : command.target.kind !== 'CASTER_CENTERED' ||
+          (trigger === 'LEGENDARY_ACTION' &&
+            !(parent && 'commandType' in parent && parent.commandType === 'ADVANCE_TURN'))) ||
     command.commandId.toLowerCase() !==
       systemTriggerCommandId(parentCommandId, holderActorId, command.actionId) ||
     parent?.encounterId !== run.id
@@ -138,6 +142,19 @@ export async function requireSystemTriggerAdmission(
     const windowStart = await ruleTriggerWindowStart(ctx, run.id)
     const { encounterVersion } = ruleParent
     if (windowStart === null || encounterVersion < windowStart || encounterVersion > state.version)
+      rejectDomain('VERSION_STALE')
+    if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
+      rejectDomain('ACTOR_DEFEATED')
+    return
+  }
+  if (trigger === 'LEGENDARY_ACTION') {
+    const delegation = state.delegatedLegendaryAction
+    if (
+      delegation?.parentCommandId !== parentCommandId ||
+      delegation.holderActorId !== holderActorId ||
+      delegation.actionId !== command.actionId ||
+      command.expectedVersion !== state.version
+    )
       rejectDomain('VERSION_STALE')
     if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
       rejectDomain('ACTOR_DEFEATED')

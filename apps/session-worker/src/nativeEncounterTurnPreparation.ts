@@ -269,6 +269,12 @@ export function createNativeLiveTurnStages(
           discoverTurnLegendaryWindows({
             ...discovery,
             spells: await readNativeLiveSpellPins(capture),
+            tokenBoundActorIds: await (async () => {
+              const response = await capture({ kind: 'ACTOR_TOKEN_BINDINGS' })
+              if (response.kind !== 'ACTOR_TOKEN_BINDINGS')
+                throw new Error('Legendary Action token bindings are unavailable.')
+              return new Set(response.bindings.map((binding) => binding.actorId))
+            })(),
             deadCharacterIds: deadCharacterIdsOfTargets(
               discovery.movementTargets?.values() ?? [],
               turn.deadCharacterIds

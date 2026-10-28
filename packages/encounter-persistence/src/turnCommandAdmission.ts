@@ -4,6 +4,7 @@ import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/e
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
+import { delegatedLegendaryContinuationCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
 import {
   prepareEncounterTurnResponse,
   matchesNativeTurnResponse
@@ -344,12 +345,19 @@ export async function readLiveEncounterTurnAdmission(
         'ENCOUNTER_NOT_ACTIVE',
         'Only active Encounters with a current actor can advance.'
       )
-    // A player ends only the turn of an actor they control; the GM can end any turn.
-    await requireEncounterActorControl(ctx, {
-      campaign,
-      membership,
-      actor: await readRunActor(ctx, state, state.currentActorId)
-    })
+    // A player ends only the turn of an actor they control; the GM can end any turn. The room
+    // finishes a turn end split around a delegated Legendary Action for whoever answered last.
+    const delegation = state.delegatedLegendaryAction
+    if (
+      !delegation ||
+      input.commandId.toLowerCase() !==
+        delegatedLegendaryContinuationCommandId(delegation.parentCommandId)
+    )
+      await requireEncounterActorControl(ctx, {
+        campaign,
+        membership,
+        actor: await readRunActor(ctx, state, state.currentActorId)
+      })
   }
   return {
     input,

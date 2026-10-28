@@ -46,6 +46,7 @@ import {
   actorIdsOutOfPlayByEffect,
   flagRoomReturnsOntoOccupiedSpace
 } from './roomEncounterReturnsToPlay.js'
+import { raiseRoomDelegatedLegendaryAction } from './roomEncounterDelegatedLegendaryAction.js'
 import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
 import { raiseRoomRuleEffects } from './roomEncounterRuleTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
@@ -394,16 +395,33 @@ export async function executeRoomEncounterCommand(input: {
           execute: executeAction
         })
       : false
+  const delegatedLegendaryAction =
+    currentRun.status === 'ACTIVE' && input.turnExecution
+      ? await raiseRoomDelegatedLegendaryAction({
+          ctx: context,
+          transaction,
+          encounterId: currentRun.id,
+          turnRootCommandId: answeredRootCommandId ?? command.commandId,
+          execute: executeAction,
+          executeTurn
+        })
+      : { committed: false, continuationCommandId: null }
+  // A continuation that finished a split turn end began the next turn, under its own id.
   const raisedStartOfTurnEffects =
     currentRun.status === 'ACTIVE' &&
     input.turnExecution &&
-    (command.type === 'START' ||
+    (delegatedLegendaryAction.continuationCommandId !== null ||
+      command.type === 'START' ||
       command.type === 'ADVANCE_TURN' ||
       command.type === 'RESOLVE_RULE_OCCURRENCE')
       ? await raiseRoomStartOfTurnEffects({
           ctx: context,
           encounterId: currentRun.id,
-          parentCommandId: (answeredRootCommandId ?? command.commandId).toLowerCase(),
+          parentCommandId: (
+            delegatedLegendaryAction.continuationCommandId ??
+            answeredRootCommandId ??
+            command.commandId
+          ).toLowerCase(),
           execute: executeAction
         })
       : false
@@ -463,6 +481,7 @@ export async function executeRoomEncounterCommand(input: {
     mirroredDamage ||
     mirroredRaisedDamage ||
     raisedHpZeroEffects ||
+    delegatedLegendaryAction.committed ||
     raisedStartOfTurnEffects ||
     raisedRuleEffects ||
     flaggedReturn ||

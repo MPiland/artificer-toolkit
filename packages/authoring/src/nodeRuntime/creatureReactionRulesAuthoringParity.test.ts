@@ -4,13 +4,7 @@ import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
-import { adultBrassDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-brass-dragon.js'
-import { adultBronzeDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-bronze-dragon.js'
-import { adultCopperDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-copper-dragon.js'
-import { adultGoldDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-gold-dragon.js'
-import { adultSilverDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-silver-dragon.js'
-import { ancientGoldDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-gold-dragon.js'
-import { ancientSilverDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-silver-dragon.js'
+import { srdCreatures } from '@artificer-toolkit/source-data/srd/creatures/index.js'
 import { hydra } from '@artificer-toolkit/source-data/srd/creatures/hydra.js'
 import { marilith } from '@artificer-toolkit/source-data/srd/creatures/marilith.js'
 import { stoneGolem } from '@artificer-toolkit/source-data/srd/creatures/stone-golem.js'
@@ -23,9 +17,10 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 /**
  * SPELLS-33 T4l2 (D187a): Stone Golem Slow is authored from the Slow spell's action-economy grants
- * and repeat save; Hydra Reactive Heads, Marilith Reactive and the dragons' fly after a Wing Attack
- * ship as GM rulings. Each creature passes the creature node map exactly as authored, and the four
- * closed rule kinds are gone.
+ * and repeat save; Hydra Reactive Heads and Marilith Reactive ship as GM rulings. T4l3: every adult
+ * and ancient dragon's Wing Attack is a self-centered area save with damage and prone, and the fly
+ * after it is the GM's, from the option's description. Each creature passes the creature node map
+ * exactly as authored, and the four closed rule kinds are gone.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -91,23 +86,32 @@ describe('Creature reaction rules and Wing Attack (D187a)', () => {
     await expectAuthoringParity(creature)
   })
 
-  it.each([
-    adultBrassDragon,
-    adultBronzeDragon,
-    adultCopperDragon,
-    adultGoldDragon,
-    adultSilverDragon,
-    ancientGoldDragon,
-    ancientSilverDragon
-  ])('keeps $label’s Wing Attack damage and prone, with the fly as a GM ruling', async (dragon) => {
+  const dragons = srdCreatures.filter((creature) =>
+    /^(Adult|Ancient) \w+ Dragon$/.test(creature.label)
+  )
+
+  it('finds every adult and ancient dragon', () => {
+    expect(dragons).toHaveLength(20)
+  })
+
+  it.each(dragons)('authors $label’s Wing Attack as a self-centered area save', async (dragon) => {
     const options = dragon.features?.flatMap((feature) => feature.options ?? []) ?? []
     const wingAttack = options.find((option) => option.label.startsWith('Wing Attack'))
+    const [effect] = wingAttack?.effects ?? []
+    expect(effect?.invocation).toMatchObject({
+      range: { rangeKind: 'SELF' },
+      shape: {
+        shapeKind: 'SPHERE',
+        radius: { amount: dragon.label.startsWith('Ancient') ? 15 : 10, unit: 'FEET' }
+      },
+      targeting: { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
+    })
     const outcomes = resultBlocks(wingAttack?.effects).flatMap((block) => block.outcomes)
-    expect(outcomes.map(({ effectKind }) => effectKind)).toEqual([
-      'DAMAGE',
-      'CONDITION',
-      'MANUAL_ADJUDICATION'
-    ])
+    // The fly is the dragon's own, once, so it is no outcome of a creature's failed save.
+    expect(outcomes.map(({ effectKind }) => effectKind)).toEqual(['DAMAGE', 'CONDITION'])
+    expect(wingAttack?.description).toContain(
+      'The dragon can then fly up to half its flying speed.'
+    )
     await expectAuthoringParity(dragon)
   })
 
