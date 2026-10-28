@@ -120,10 +120,21 @@ export function compactNodeRuntimeResponse(
         nodes: section.nodes.map((node) => nodes.intern(JSON.stringify(node)))
       }))
     }))
-  const scopes = response.scopes.map(({ path, mapId, steps, clearPaths }) => ({
-    path: [...path],
-    modelIndex: models.intern(JSON.stringify({ mapId, steps: compactSteps(steps), clearPaths }))
-  }))
+  // The resolver shares one model object between scopes with the same model; intern it once.
+  const internedBySteps = new Map<
+    NodeRuntimeStepDto[],
+    Pick<NodeRuntimeResolveResponseDto['scopes'][number], 'mapId' | 'clearPaths'> & {
+      index: number
+    }
+  >()
+  const scopes = response.scopes.map(({ path, mapId, steps, clearPaths }) => {
+    const interned = internedBySteps.get(steps)
+    if (interned?.mapId === mapId && interned.clearPaths === clearPaths)
+      return { path: [...path], modelIndex: interned.index }
+    const index = models.intern(JSON.stringify({ mapId, steps: compactSteps(steps), clearPaths }))
+    internedBySteps.set(steps, { mapId, clearPaths, index })
+    return { path: [...path], modelIndex: index }
+  })
   const root: Pick<NodeRuntimeCompactResolveResponseDto, 'steps' | 'clearPaths'> = JSON.parse(
     JSON.stringify({ steps: compactSteps(response.steps), clearPaths: response.clearPaths })
   )

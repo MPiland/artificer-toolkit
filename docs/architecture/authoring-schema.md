@@ -113,7 +113,8 @@ System UUID; it is not a client-provided query or a new rules language. Code-own
   separate `tooltip` field on vocabulary records, code lists or the manifest. The web
   `AppSelect`/`AppMultiSelect` render a described option's text as a Mantine tooltip on the option;
 - returns the root runtime DTO plus paths that should be cleared when hidden;
-- recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path (an empty object whose child map is keyed by a System table still gets a scope).
+- recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path (an empty object whose child map is keyed by a System table still gets a scope);
+- resolves each distinct scope once per request (RELIABILITY-21.T19). A scope's model is keyed by its map and the values its map's definitions read, so scopes that agree on those values share one model object, and the compact transport interns that object once. Invariant: a node map reads scope values only through `IdRef`-shaped refs (`{ from, up?, path }`, as conditions, relationship inputs and `where` values use) or `LOCAL_COLLECTION` sources. A new way to read a scope must be added to `collectScopeReads` in `nodeRuntimeService.ts`, or equal keys could share a wrong model.
 
 The root and nested scopes are one authoritative resolution result. Rendering, structure-rail navigation, validation progress, and repair targeting consume those same scopes; production web code must not independently re-run the shared DSL. Step metadata may include an optional authored description, which the resolver preserves for platform-appropriate canvas guidance. This keeps parent/ancestor conditions and required state identical across every authoring surface while avoiding one request per nested branch.
 

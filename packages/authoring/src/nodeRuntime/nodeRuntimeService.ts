@@ -16,6 +16,7 @@ import type {
   ArrayGroupPresentation,
   InlineFilter,
   NodeArrayAuthoringMeta,
+  NodeLocalCollectionSource,
   RuntimeNodeEntry,
   RuntimeNodeMap,
   NodeSelectSource
@@ -24,6 +25,8 @@ import {
   clearValuesAtPaths,
   evaluateConditionIf,
   getValueAtPath,
+  isIdRef,
+  resolveIdRef,
   resolveLocalCollectionOptions,
   isRuntimeRecord,
   resolveArrayAuthoringMeta,
@@ -54,12 +57,71 @@ export async function resolveNodeRuntime(
   request: NodeRuntimeResolveRequestDto
 ): Promise<NodeRuntimeResolveResponseDto> {
   const parsedRequest = nodeRuntimeResolveRequestDtoSchema.parse(request)
-  const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
-  const scopes = await resolveNestedRuntimeScopes(db, parsedRequest, resolved.steps)
+  const resolveScope = createScopeResolver(db)
+  const resolved = await resolveScope(parsedRequest)
+  const scopes = await resolveNestedScopes(resolveScope, parsedRequest, resolved.steps, [])
 
   return {
     ...resolved,
     scopes
+  }
+}
+
+type ScopeResolver = (request: NodeRuntimeResolveRequestDto) => Promise<ResolvedRuntimeScope>
+
+/**
+ * Resolves each distinct scope of one request once. A scope's model depends only on its map and
+ * the scope values the map's definitions read, which are all IdRef-shaped refs (conditions,
+ * relationship inputs and where values) or local collections. Scopes that agree on those values
+ * share one resolved model, so a Class with hundreds of grant rows resolves each grant model once.
+ */
+function createScopeResolver(db: NodeRuntimeReader): ScopeResolver {
+  const resolved = new Map<string, Promise<ResolvedRuntimeScope>>()
+  return (request) => {
+    const scope = toScope(request)
+    const reads = scopeReads(getRuntimeNodeMap(request.mapId)).map((read) => {
+      const value = read(scope)
+      // Wrapped so an unset value stays distinct from an explicit null.
+      return value === undefined ? 0 : [value]
+    })
+    const key = JSON.stringify([request.mapId, request.systemId, reads])
+    let pending = resolved.get(key)
+    if (!pending) {
+      pending = resolveNodeRuntimeScope(db, request)
+      resolved.set(key, pending)
+    }
+    return pending
+  }
+}
+
+const scopeReadsByMap = new WeakMap<RuntimeNodeMap, ((scope: NodeRuntimeScope) => unknown)[]>()
+
+function scopeReads(nodeMap: RuntimeNodeMap): ((scope: NodeRuntimeScope) => unknown)[] {
+  let reads = scopeReadsByMap.get(nodeMap)
+  if (!reads) {
+    reads = []
+    collectScopeReads(nodeMap, reads, new Set())
+    scopeReadsByMap.set(nodeMap, reads)
+  }
+  return reads
+}
+
+/** Walks a map's definitions for every scope read; a group's child map is its own scope. */
+function collectScopeReads(
+  definition: unknown,
+  reads: ((scope: NodeRuntimeScope) => unknown)[],
+  seen: Set<object>
+): void {
+  if (typeof definition !== 'object' || definition === null || seen.has(definition)) return
+  seen.add(definition)
+  if (isIdRef(definition)) reads.push((scope) => resolveIdRef(definition, scope))
+  if (isRuntimeRecord(definition) && definition.kind === 'LOCAL_COLLECTION')
+    reads.push((scope) =>
+      resolveLocalCollectionOptions(definition as NodeLocalCollectionSource, scope)
+    )
+  for (const [key, child] of Object.entries(definition)) {
+    if (key === 'nodes' && isRuntimeRecord(definition) && definition.kind === 'GROUP') continue
+    collectScopeReads(child, reads, seen)
   }
 }
 
@@ -128,8 +190,16 @@ async function expandKeyedNodes(
 export async function resolveNestedRuntimeScopes(
   db: NodeRuntimeReader,
   request: NodeRuntimeResolveRequestDto,
+  steps: readonly NodeRuntimeStepDto[]
+): Promise<NodeRuntimeResolvedScopeDto[]> {
+  return resolveNestedScopes(createScopeResolver(db), request, steps, [])
+}
+
+async function resolveNestedScopes(
+  resolveScope: ScopeResolver,
+  request: NodeRuntimeResolveRequestDto,
   steps: readonly NodeRuntimeStepDto[],
-  parentPath: RuntimePath = []
+  parentPath: RuntimePath
 ): Promise<NodeRuntimeResolvedScopeDto[]> {
   const scopes: NodeRuntimeResolvedScopeDto[] = []
 
@@ -154,7 +224,7 @@ export async function resolveNestedRuntimeScopes(
             ancestors: childAncestors,
             systemId: request.systemId
           }
-          const child = await resolveNodeRuntimeScope(db, childRequest)
+          const child = await resolveScope(childRequest)
 
           scopes.push({
             mapId: child.mapId,
@@ -163,7 +233,7 @@ export async function resolveNestedRuntimeScopes(
             clearPaths: child.clearPaths
           })
           scopes.push(
-            ...(await resolveNestedRuntimeScopes(db, childRequest, child.steps, childPath))
+            ...(await resolveNestedScopes(resolveScope, childRequest, child.steps, childPath))
           )
           continue
         }
@@ -181,7 +251,7 @@ export async function resolveNestedRuntimeScopes(
             ancestors: childAncestors,
             systemId: request.systemId
           }
-          const child = await resolveNodeRuntimeScope(db, childRequest)
+          const child = await resolveScope(childRequest)
 
           scopes.push({
             mapId: child.mapId,
@@ -190,7 +260,7 @@ export async function resolveNestedRuntimeScopes(
             clearPaths: child.clearPaths
           })
           scopes.push(
-            ...(await resolveNestedRuntimeScopes(db, childRequest, child.steps, childPath))
+            ...(await resolveNestedScopes(resolveScope, childRequest, child.steps, childPath))
           )
         }
       }
