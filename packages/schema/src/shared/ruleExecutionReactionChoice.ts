@@ -2,12 +2,13 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { z, lazySchema } from '../zod.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import {
-  characterSpellSlotConsumptionReceiptDtoSchema,
+  spellSlotConsumptionReceiptDtoSchema,
+  spellSlotOwnedBySource,
   encounterActionEconomyTransitionDtoSchema,
   ruleCheckD20EvidenceDtoSchema,
   sourceSpendReceiptShape,
   validateSourceSpendReceipts,
-  type CharacterSpellSlotConsumptionReceiptDto,
+  type SpellSlotConsumptionReceiptDto,
   type SourceSpendReceipts
 } from './ruleExecutionEncounterApplications.js'
 import {
@@ -304,7 +305,7 @@ export const encounterFailedCounterDtoSchema: z.ZodMiniType<EncounterFailedCount
 /** What a reactor spent for a counter, countered or failed: its slot and its reaction allowance. */
 type CounterSpendDto = {
   reaction: EncounterCastReactionPinDto
-  spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
+  spellCastConsumption: SpellSlotConsumptionReceiptDto | null
   /** The reactor's own conditions released by effects its cast ended; empty when none. */
   applications: z.infer<typeof sourceApplicationsDtoSchema>
   /** The reactor's Character version once its slot was spent or a condition released; null when neither. */
@@ -313,7 +314,7 @@ type CounterSpendDto = {
 }
 
 const counterSpendShape = () => ({
-  spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+  spellCastConsumption: z.nullable(spellSlotConsumptionReceiptDtoSchema),
   applications: sourceApplicationsDtoSchema,
   characterStreamVersion: z.nullable(aggregateVersionSchema),
   actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
@@ -324,11 +325,14 @@ function validateCounterSpend(value: CounterSpendDto, context: z.core.$Refinemen
   if (
     (value.characterStreamVersion === null) !==
       !(
-        value.spellCastConsumption !== null ||
+        value.spellCastConsumption?.owner.kind === 'CHARACTER' ||
         sourceApplicationsChangeState(value.applications, value.reaction.characterId)
       ) ||
     (value.spellCastConsumption &&
-      value.spellCastConsumption.characterId !== value.reaction.characterId)
+      !spellSlotOwnedBySource(value.spellCastConsumption, {
+        sourceActorId: value.reaction.reactorActorId,
+        sourceCharacterId: value.reaction.characterId
+      }))
   )
     context.addIssue({
       code: 'custom',
@@ -647,7 +651,7 @@ export type EncounterActionReactionReceiptDto = {
   choiceExecution: ServerCompletedRuleExecutionDto
   originalExecutionChecksum: string
   adjustment: EncounterReactionAdjustmentDto | null
-  spellCastConsumption: CharacterSpellSlotConsumptionReceiptDto | null
+  spellCastConsumption: SpellSlotConsumptionReceiptDto | null
   actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema> | null
   /** The reactor's own effect the reaction created; it is what changed the defense. */
   activeEffectTransitions: z.infer<typeof characterActiveEffectCreateReceiptDtoSchema>[]
@@ -669,7 +673,7 @@ function reactionReceiptSchema<EffectReceipt extends z.ZodMiniType>(effectReceip
       choiceExecution: z.lazy(() => serverCompletedRuleExecutionDtoSchema),
       originalExecutionChecksum: checksumSchema,
       adjustment: z.nullable(encounterReactionAdjustmentDtoSchema),
-      spellCastConsumption: z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
+      spellCastConsumption: z.nullable(spellSlotConsumptionReceiptDtoSchema),
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** The reactor's own effect the reaction created; it is what changed the defense. */
       activeEffectTransitions: z.array(effectReceipt).check(z.maxLength(1))

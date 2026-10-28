@@ -71,6 +71,7 @@ export const priest: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         225,
         S.ABILITY_CODE.WISDOM,
+        13,
         [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
         [
           {

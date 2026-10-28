@@ -79,6 +79,7 @@ export const guardianNaga: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         156,
         S.ABILITY_CODE.WISDOM,
+        16,
         [S.SPELL_IDS.MENDING, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
         [
           {

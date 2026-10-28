@@ -26,6 +26,7 @@ export type CompiledSpellGrant = CompiledScalingGrant<
 > & {
   castAtLevel?: number
   castingAbility?: string
+  spellSaveDc?: number
   charges?: CompiledChargeUse
   attributes?: SpellGrantAttribute[]
   filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
@@ -83,6 +84,7 @@ export function compileSpellGrantResult(
     id: authored.id,
     castAtLevel: authored.castAtLevel,
     ...(authored.castingAbility ? { castingAbility: authored.castingAbility } : {}),
+    ...(authored.spellSaveDc ? { spellSaveDc: authored.spellSaveDc } : {}),
     charges:
       'charges' in authored && authored.charges ? compileChargeUse(authored.charges) : undefined,
     attributes: authored.attributes && authored.attributes.length ? authored.attributes : undefined,

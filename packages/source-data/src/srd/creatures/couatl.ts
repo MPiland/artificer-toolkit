@@ -67,6 +67,7 @@ export const couatl: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             order: 0
           }
         ]

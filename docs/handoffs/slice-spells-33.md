@@ -578,6 +578,14 @@ Branch `ci/spells-33-t3c2b`. Size ~5. Do not edit the ledger.
 - Undo restores the slot (the cast commit carries the receipt). A manual-roll or Counterspell interaction keeps its existing behavior.
 - Room journey (`apps/session-worker/test`): Mage casts a levelled spell, the slot is spent, undo restores it; also a low spell (Magic Missile) cast from a higher slot spends that row.
 
+## T3c2b done: creature cast, slot spend and undo in the room (`ci/spells-33-t3c2b`)
+
+- Discovery emits spell-cast feature actions from `encounterCreatureSpellCasts`, and a `grantedSpellCast` effect's casts at its own cost. `assertEncounterFeatureActionCapabilityCurrent` takes the pinned `spells` and rechecks a cast.
+- DC (ruling): SPELL_GRANT has an optional authored `spellSaveDc`, filled on every SRD creature grant from its stat block. The dnd5e adapter's `creatureSpellcasting` derives the spell attack bonus as DC minus 8. There is no `spellAttackBonus` field and no `proficiencyBonus` rule fact. Parity: `creatureSpellSlotsAuthoringParity.test.ts` checks every SRD creature's grants against the stated DC, and every stated "+N to hit" against the derived bonus. All 32 creatures that state a DC pass.
+- Slot receipt (ruling): `spellCastConsumption` is the one slot receipt. Its `owner` is a union of `CHARACTER` and `CREATURE`, and the sibling `creatureSpellSlotConsumption` is deleted. Readers branch on the kind: `actionSourceSpend`, `actionRevert`, `turnResourcesPersistence` (Legendary Action), the Worker area commit, and the schema refines.
+- Proofs: `creatureSpellCastDiscovery.test.ts` (bonus and DC, slot binding, Lich and Gynosphinx options, stale casts) and `nativeRoomCreatureSpellCast.test.ts`. In the room test, the Mage's Fireball spends the 3rd-level row with its receipt, undo restores the row and the Wolf, and an upcast spends the 4th-level row.
+- The receipt shape and the SRD grants change stored data: reset and reseed local data after merge (D196).
+
 ## T3c3 resume: creature rest room command (fresh session, independent)
 
 Branch `ci/spells-33-t3c3`. Do not edit the ledger.

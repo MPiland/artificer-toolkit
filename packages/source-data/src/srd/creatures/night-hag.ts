@@ -59,6 +59,7 @@ export const nightHag: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.DETECT_MAGIC, S.SPELL_IDS.MAGIC_MISSILE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -70,6 +71,7 @@ export const nightHag: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.PLANE_SHIFT],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE, S.SPELL_GRANT_ATTRIBUTE.SELF_ONLY],
             charges: {
               id: S.actionId(204, 703),
@@ -88,6 +90,7 @@ export const nightHag: CreatureAuthored = {
             authoringModeKind: S.AUTHORING_MODE_KIND.SELECTED,
             spellIds: [S.SPELL_IDS.RAY_OF_ENFEEBLEMENT, S.SPELL_IDS.SLEEP],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(204, 705),

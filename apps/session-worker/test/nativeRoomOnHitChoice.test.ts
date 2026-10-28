@@ -167,7 +167,7 @@ describe('room optional on-hit rider paid with a spell slot (ATTACK-9.4)', () =>
     const batch = await settledAttack(room)
     expect(damageOfType(batch, RADIANT_ID)).toEqual([3])
     expect(batch.spellCastConsumption).toMatchObject({
-      characterId: FIGHTER_ID,
+      owner: { kind: 'CHARACTER', characterId: FIGHTER_ID },
       spellId: null,
       candidateId: null,
       slotKey: 'STANDARD:2',

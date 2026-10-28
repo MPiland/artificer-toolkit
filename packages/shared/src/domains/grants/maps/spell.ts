@@ -262,6 +262,7 @@ export const SPELL_GRANT_NODE_MAP = spellGrant.define(
           showIf: local.field(['attributes']).contains(['CAST_AT_LEVEL'])
         })
       )
+      .set('spellSaveDc', number(['spellSaveDc'], 'Spell Save DC'))
       .set(
         'castingAbility',
         selectSingle(['castingAbility'], 'Casting Ability', {

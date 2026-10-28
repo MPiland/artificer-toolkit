@@ -71,6 +71,7 @@ export const deva: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.DETECT_EVIL_AND_GOOD],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             order: 0
           },
           ...([S.SPELL_IDS.COMMUNE, S.SPELL_IDS.RAISE_DEAD] as const).map((spellId, index) => ({
@@ -82,6 +83,7 @@ export const deva: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             charges: {
               id: S.actionId(80, 402 + index),
               limitKind: 'FIXED_AMOUNT' as const,

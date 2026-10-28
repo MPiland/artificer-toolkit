@@ -231,12 +231,13 @@ export function actionId(creatureIndex: number, localIndex: number) {
 /**
  * A slotted caster's Spellcasting grants: its at-will cantrips, one PREPARED grant per spell level
  * listing that level's spells, and the feature's long-rest slot table those slot-mode grants cast
- * from (Acolyte, Spirit Naga). Grant ids use local indexes 220-229 and the table 240-249 of the
- * creature.
+ * from (Acolyte, Spirit Naga), each casting at the spell save DC its stat block states. Grant ids
+ * use local indexes 220-229 and the table 240-249 of the creature.
  */
 export function slottedSpellcastingGrants(
   creatureIndex: number,
   castingAbility: SrdAbilityCode,
+  spellSaveDc: number,
   cantripIds: string[],
   slotted: ReadonlyArray<{ level: number; slots: number; spellIds: string[] }>
 ): NonNullable<FeatureAuthored['grants']> {
@@ -248,6 +249,7 @@ export function slottedSpellcastingGrants(
     authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
     spellIds,
     castingAbility,
+    spellSaveDc,
     order: index
   })
   return {

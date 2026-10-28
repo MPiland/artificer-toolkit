@@ -5,6 +5,7 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
 import {
   assertEncounterFeatureActionCapabilityCurrent,
@@ -302,6 +303,8 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
   occurrenceId: string
   actorRules: EncounterActorRuleOutput
   encounterFeatureCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  /** The Run's pinned Spells (D163), to recheck a Spell cast capability. */
+  spells: ReadonlyMap<string, CompiledSpell>
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionRuleStateCharacterSource>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   definitions: CurrentReusableDefinitionSource
@@ -327,7 +330,7 @@ export async function discoverEncounterLegendaryActionCandidates(input: {
         ? left.actionId.localeCompare(right.actionId)
         : left.ownerFeatureId.localeCompare(right.ownerFeatureId)
     )) {
-      assertEncounterFeatureActionCapabilityCurrent({ actor, capability })
+      assertEncounterFeatureActionCapabilityCurrent({ actor, capability, spells: input.spells })
       if (
         capability.gameSystemId !== input.encounter.gameSystemId ||
         capability.encounterActorId !== actor.id

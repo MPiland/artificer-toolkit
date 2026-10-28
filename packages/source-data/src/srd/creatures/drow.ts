@@ -73,6 +73,7 @@ export const drow: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.DANCING_LIGHTS],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 11,
             order: 0
           },
           ...([S.SPELL_IDS.DARKNESS, S.SPELL_IDS.FAERIE_FIRE] as const).map((spellId, index) => ({
@@ -84,6 +85,7 @@ export const drow: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 11,
             charges: {
               id: S.actionId(88, 402 + index),
               limitKind: 'FIXED_AMOUNT' as const,
