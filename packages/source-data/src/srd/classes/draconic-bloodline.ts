@@ -1,7 +1,4 @@
-import {
-  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
-  ABILITY_CODE
-} from '../vocabulary.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
@@ -12,7 +9,7 @@ import {
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
-  MEASUREMENT_UNIT_CODE,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PROFICIENCY_KIND,
@@ -29,7 +26,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect, equippedCategoryRestriction } from './mechanics.js'
+import { closedRuleEffect, equippedCategoryRestriction, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -281,70 +278,20 @@ export const draconicBloodlineOrigin: ClassAuthored = {
       availableAtLevel: 18,
       order: 4,
       effects: [
-        {
-          id: classRowId(S, 20, 5),
-          order: 1,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(S, 25, 1),
-              dcMethod: 'SOURCE_SAVE_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
-            },
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(S, 21, 5),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'HOSTILE'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(S, 20, 5),
+            range: classRowId(S, 21, 5),
+            path: classRowId(S, 0x8c, 1),
+            result: classRowId(S, 0x8d, 1),
+            outcome: classRowId(S, 0x8e, 1)
           },
-          paths: [
-            {
-              id: classRowId(S, 27, 5),
-              order: 1,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(S, 27, 5)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(S, 29, 9),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_DRACONIC_PRESENCE
-                  }
-                ]
-              }
-            },
-            {
-              id: classRowId(S, 28, 5),
-              order: 2,
-              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${classRowId(S, 28, 5)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(S, 29, 10),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_DRACONIC_PRESENCE
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          label: 'Draconic Presence',
+          instructions:
+            'Spend 5 sorcery points to exude an aura of awe or fear (your choice) to 60 feet for 1 minute, ending early if you lose concentration. The GM has each hostile creature that starts its turn in the aura make a Wisdom saving throw against your spell save DC: on a failure it is charmed (awe) or frightened (fear) until the aura ends, and on a success it is immune to your aura for 24 hours.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          activationCode: ACTIVATION_CODE.ACTION
+        })
       ]
     }
   ]

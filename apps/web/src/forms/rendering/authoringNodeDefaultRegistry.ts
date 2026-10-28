@@ -89,6 +89,7 @@ type AuthoringDefaultKind =
   | 'manifestCamouflage'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
+  | 'manifestOccupantConditionImmunity'
   | 'manifestOccupantSaveBonus'
   | 'manifestProximityRule'
   | 'measurement'
@@ -272,6 +273,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestCamouflage: ['manifestCamouflage'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
+  manifestOccupantConditionImmunity: ['manifestOccupantConditionImmunity'],
   manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
   manifestProximityRule: ['manifestProximityRule'],
   measurement: ['measurement', 'shapeMeasurement'],

@@ -139,6 +139,8 @@ export type MovementTarget<
   targetDerivedFacts: Readonly<Record<string, unknown>>
   /** The save-bonus aura amount (D155) its save rows include, which a rebuilt turn target keeps. */
   occupantSaveBonus?: number
+  /** The conditions occupant auras (D155) keep off the actor, which a rebuilt turn target keeps. */
+  occupantConditionImmunityIds?: readonly string[]
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly QualifiedDamageDefense[]

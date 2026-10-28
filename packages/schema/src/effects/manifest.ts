@@ -86,6 +86,21 @@ const manifestOccupantSaveBonusDtoSchema = lazySchema(() => {
   ])
 })
 
+/**
+ * Conditions a zone keeps off the creatures standing in it (D155 amendment: Aura of Courage): an
+ * occupant its disposition filter matches cannot be given them while the zone holds it and its
+ * Character source is conscious.
+ */
+const manifestOccupantConditionImmunityDtoSchema = lazySchema(() =>
+  z.object({
+    id: authoredIdentifierSchema,
+    conditionTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema).check(
+      z.minLength(1)
+    ),
+    dispositionFilter: z.literal('ALLIES_AND_SOURCE')
+  })
+)
+
 const manifestDestructionCriterionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({
@@ -267,6 +282,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
             ),
             automaticSaveSuccessImmunityDamageTypeId: z.optional(authoredIdentifierSchema),
             occupantSaveBonus: z.optional(manifestOccupantSaveBonusDtoSchema),
+            occupantConditionImmunity: z.optional(manifestOccupantConditionImmunityDtoSchema),
 
             requiresIgnition: z.optional(z.boolean()),
             maxApplicationsPerTurn: z.optional(z.number().check(z.int()).check(z.positive())),

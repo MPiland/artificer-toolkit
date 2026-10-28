@@ -6,11 +6,11 @@ import {
   statusOverflowColour,
   type VttTokenPresentation
 } from './vttSceneRenderer.model'
+import type { VttSceneRendererDiagnostics } from './vttSceneRendererDiagnostics'
 
-export type VttRendererDiagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
-type DrawnToken = VttRendererDiagnostics['tokens'][number]
+type DrawnToken = VttSceneRendererDiagnostics['tokens'][number]
 
-export function drawnToken(diagnostics: VttRendererDiagnostics, id: string): DrawnToken {
+export function drawnToken(diagnostics: VttSceneRendererDiagnostics, id: string): DrawnToken {
   const drawn = diagnostics.tokens.find((token) => token.id === id)
   if (!drawn) throw new Error(`Token ${id} is not drawn.`)
   return drawn

@@ -76,6 +76,7 @@ describe('the board pick for a forced movement’s destination (D157)', () => {
         { x: east.x - 35, y: east.y + 35 }
       ]
     })
+    expect(forcedMovementDestinationOverlays(null, east)).toEqual([])
   })
 
   it('moves the keyboard to the nearest legal square in an arrow’s direction, keeping to its row', () => {

@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Condition held on entering an immunity aura (SPELLS-31.T4r):** an occupant condition-immunity aura (Aura of Courage, Aura of Devotion) refuses new applications of its conditions but does not suppress one the creature already holds when it enters, or when the source wakes. In SRD play the frightened or charmed creature is usually already beside the paladin, and the GM can end the condition by hand. The fix is to suppress held conditions while the aura holds the creature, through the condition-mechanics fold.
 - **Dislodged climber with no free square (MOVE-4.T3a):** a dislodge that wins when no free square lies 5 feet from the target leaves the climber where it was. Its space then overlaps a target it no longer clings to. This is rare and the GM can move the token by hand. The fix is to fall back to the nearest free square.
 
 - **Session notes creator shown before notes load (RELIABILITY-21.T12):** CampaignSessionNotes shows "Add your section" while its sections are still loading, the same layout that made the Campaign notebook push its form out of view. No flake has been seen there. The fix is the notebook's: show the creator after the first page loads.

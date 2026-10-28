@@ -142,7 +142,10 @@ function placedZoneRecord(
   input: PlacedZoneInput,
   id: string,
   zone: Omit<ZoneRegionComponent, 'region'> &
-    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits' | 'occupantSaveBonus' | 'camouflage'>,
+    Pick<
+      CompiledActionZonePlacement,
+      'retaliatesMeleeHits' | 'occupantSaveBonus' | 'occupantConditionImmunity' | 'camouflage'
+    >,
   anchor: ReturnType<typeof zoneAnchor>,
   distanceStep?: number
 ): LiveSessionPlacedSpatialEffect {
@@ -223,6 +226,9 @@ function placedZoneRecord(
       ...(zone.retaliatesMeleeHits ? { retaliatesMeleeHits: true } : {}),
       ...(zone.occupantSaveBonus
         ? { occupantSaveBonus: pinnedOccupantSaveBonus(zone.occupantSaveBonus, input.source) }
+        : {}),
+      ...(zone.occupantConditionImmunity
+        ? { occupantConditionImmunity: zone.occupantConditionImmunity }
         : {}),
       // A held condition's escape against its source's save DC pins the caster's DC (D146).
       ...(heldCondition

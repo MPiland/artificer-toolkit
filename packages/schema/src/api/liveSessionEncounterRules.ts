@@ -150,7 +150,7 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('ACTOR_TOKEN_BINDINGS') }),
     z.strictObject({ kind: z.literal('SEEN_ACTORS') }),
     z.strictObject({ kind: z.literal('SPELL_PINS') }),
-    z.strictObject({ kind: z.literal('OCCUPANT_SAVE_AURAS'), actorId: postgresUuidSchema }),
+    z.strictObject({ kind: z.literal('OCCUPANT_AURAS'), actorId: postgresUuidSchema }),
     z.strictObject({ kind: z.literal('SYSTEM_VOCABULARY') }),
     z.strictObject({
       kind: z.literal('ACTION_SCENE'),
@@ -325,13 +325,13 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
         .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
     }),
     z.strictObject({
-      kind: z.literal('OCCUPANT_SAVE_AURAS'),
+      kind: z.literal('OCCUPANT_AURAS'),
       revisions: liveSessionRulesRevisionsSchema,
       actorId: postgresUuidSchema,
       /**
-       * The save-bonus auras (D155) whose area holds the actor and whose disposition takes it in. A
+       * The occupant auras (D155) whose area holds the actor and whose disposition takes it in. A
        * defeated Creature source lends nothing; whether a Character source is unconscious is
-       * checked by the save-time decorator.
+       * checked by the target decorator.
        */
       auras: z
         .array(
@@ -340,7 +340,10 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
             sourceActorId: postgresUuidSchema,
             /** The source Character's id, null for a Creature or custom source. */
             sourceCharacterId: z.nullable(postgresUuidSchema),
-            amount: z.number().check(z.int())
+            /** The bonus to every saving throw the aura lends; null when it lends none. */
+            saveBonus: z.nullable(z.number().check(z.int())),
+            /** The conditions the aura keeps off the actor; empty when it keeps none. */
+            conditionImmunityIds: z.array(postgresUuidSchema).check(z.maxLength(16))
           })
         )
         .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))

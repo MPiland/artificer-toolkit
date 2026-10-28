@@ -25,11 +25,14 @@ import {
   aimedAreaShape,
   areaBandOverlay,
   areaOverlay,
+  auraColor,
+  auraOverlays,
   buildVttFogMask,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
   darknessZoneStyle,
   dashedPolygonSegments,
+  describeAuraOverlays,
   directedAreaAim,
   drawnAreaAim,
   describeDarknessZone,
@@ -440,6 +443,8 @@ describe('VTT scene renderer model', () => {
         aimingArea: false,
         areaAim: null,
         areaSize: null,
+        auras: [],
+        destinationOverlays: [],
         drawerOpened: true,
         scene: tabletopLiveScene
       }
@@ -462,6 +467,22 @@ describe('VTT scene renderer model', () => {
         expect(stageOverlays({ ...stage, ...area, drawerOpened: false })).toEqual([picked])
       })
 
+      it('draws the forced-movement destinations being picked last', () => {
+        const destination = areaOverlay(
+          { kind: 'RADIUS', radius: 35 },
+          { origin: { x: 700, y: 300 }, toward: null },
+          null
+        )!
+        const destinationOverlays = [destination]
+        expect(stageOverlays({ ...stage, destinationOverlays })).toEqual([
+          ...actionPreviewOverlays(ranged, tabletopLiveScene),
+          destination
+        ])
+        expect(stageOverlays({ ...stage, destinationOverlays, drawerOpened: false })).toEqual([
+          destination
+        ])
+      })
+
       it('draws a picked directed area from the token the action is previewed for', () => {
         const size = { kind: 'CONE' as const, length: 210 }
         const areaAim = {
@@ -474,6 +495,51 @@ describe('VTT scene renderer model', () => {
           areaOverlay(size, areaAim, source)
         ])
         expect(areaOverlay(size, areaAim, source)).not.toBeNull()
+      })
+
+      // VTT_UI-3.1: auras from the session state are drawn whether or not the drawer is open.
+      it('draws each listed aura as an AURA circle around its source token as drawn now', () => {
+        const auras = [
+          { id: '12121212-1212-4121-8121-000000000001', label: 'Spirit Guardians', radius: 535 },
+          { id: '12121212-1212-4121-8121-000000000002', label: null, radius: 245 }
+        ].map((aura, index) => ({ ...aura, sourceTokenId: tabletopLiveScene.tokens[index]!.id }))
+        const [ember, warden] = tabletopLiveScene.tokens
+        const drawn = [
+          {
+            center: ember!.position,
+            color: auraColor,
+            id: `aura:${auras[0]!.id}`,
+            kind: 'CIRCLE',
+            label: `Spirit Guardians around ${ember!.label}`,
+            purpose: 'AURA',
+            radius: 535
+          },
+          {
+            center: warden!.position,
+            color: auraColor,
+            id: `aura:${auras[1]!.id}`,
+            kind: 'CIRCLE',
+            label: `Aura around ${warden!.label}`,
+            purpose: 'AURA',
+            radius: 245
+          }
+        ]
+        expect(auraOverlays(auras, tabletopLiveScene.tokens)).toEqual(drawn)
+        expect(stageOverlays({ ...stage, auras, drawerOpened: false })).toEqual(drawn)
+        expect(stageOverlays({ ...stage, auras })).toEqual([
+          ...drawn,
+          ...actionPreviewOverlays(ranged, tabletopLiveScene)
+        ])
+        // The circle follows the source token's drawn position.
+        const moved = { x: ember!.position.x + 140, y: ember!.position.y }
+        const movedTokens = [{ ...ember!, position: moved }, warden!]
+        expect(auraOverlays(auras, movedTokens)[0]).toMatchObject({ center: moved })
+        // A source token the viewer's Scene does not carry draws no aura.
+        expect(auraOverlays(auras, [warden!])).toEqual([drawn[1]])
+        expect(describeAuraOverlays(stageOverlays({ ...stage, auras }))).toBe(
+          `Auras: Spirit Guardians around ${ember!.label}; Aura around ${warden!.label}`
+        )
+        expect(describeAuraOverlays(stageOverlays(stage))).toBeNull()
       })
     })
   })
@@ -1528,6 +1594,8 @@ describe('VTT drawn wall and ring areas (SPELLS-4.T1b, D154)', () => {
         aimingArea: false,
         areaAim: { origin, toward },
         areaSize: { ...wall, band: { distance: 100, side: 'LEFT' } },
+        auras: [],
+        destinationOverlays: [],
         drawerOpened: true,
         scene: null
       })?.map((overlay) => overlay.id)
