@@ -167,9 +167,18 @@ async function importAcolyteEquipment(t: Awaited<ReturnType<typeof fixture>>['t'
 describe('native Convex authoring resolver', () => {
   it('compacts the complete canonical Fighter model without losing resolved semantics', async () => {
     const { t, caller, userId } = await fixture()
-    const fighter = srdBaselineContent.subjects.classes.find(
-      (subject) => subject.label === 'Fighter'
-    )
+    // Every SRD equipment item and class, so option lists are as large as on a seeded deployment.
+    const { equipment, classes } = srdBaselineContent.subjects
+    const subjects = [
+      ...equipment.map(importedSubject),
+      ...classes.map((subject) => ({ ...importedSubject(subject), subjectKind: 'CLASS' as const }))
+    ]
+    for (let index = 0; index < subjects.length; index += 10)
+      await importSeededSubjects(t, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: subjects.slice(index, index + 10)
+      })
+    const fighter = classes.find((subject) => subject.label === 'Fighter')
     if (!fighter) throw new Error('Missing canonical Fighter fixture')
     const request = {
       mapId: 'class',
@@ -185,6 +194,9 @@ describe('native Convex authoring resolver', () => {
     expect(compact.scopes.length).toBeGreaterThan(1000)
     expect(compact.models.length).toBeLessThan(compact.scopes.length / 10)
     expect(new TextEncoder().encode(JSON.stringify(compact)).byteLength).toBeLessThan(1_000_000)
+    // RELIABILITY-21.T1: validating and serializing the response dominated resolve's 1 s budget
+    // (756 KB before nodes were interned).
+    expect(new TextEncoder().encode(JSON.stringify(compact)).byteLength).toBeLessThan(500_000)
     expect(expandNodeRuntimeResponse(compact)).toEqual(JSON.parse(JSON.stringify(original)))
   })
 
@@ -216,7 +228,7 @@ describe('native Convex authoring resolver', () => {
 
   it('resolves exact canonical skill UUIDs and labels through the shared map', async () => {
     const { caller } = await fixture()
-    const result = await caller.query(resolve, skillInput)
+    const result = expandNodeRuntimeResponse(await caller.query(resolve, skillInput))
     const nodes = result.steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
     const skill = nodes.find((node) => node.id === 'skillIds')
     expect(skill).toMatchObject({
@@ -605,14 +617,16 @@ describe('native Convex authoring resolver', () => {
         systemId: srdSystemRecord.id
       })
     ).toEqual(ownRows.map(({ id, label }) => ({ value: id, label })))
-    const ownedOptions = await caller.query(resolve, {
-      mapId: 'startingEquipmentItem',
-      systemId: srdSystemRecord.id,
-      values: {
-        startingEquipmentKind: 'EQUIPMENT',
-        authoringModeKind: 'SELECTED'
-      }
-    })
+    const ownedOptions = expandNodeRuntimeResponse(
+      await caller.query(resolve, {
+        mapId: 'startingEquipmentItem',
+        systemId: srdSystemRecord.id,
+        values: {
+          startingEquipmentKind: 'EQUIPMENT',
+          authoringModeKind: 'SELECTED'
+        }
+      })
+    )
     expect(
       ownedOptions.steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
     ).toEqual(
@@ -843,7 +857,7 @@ describe('native Convex authoring resolver', () => {
       systemId: srdSystemRecord.id,
       values: {}
     }
-    const result = await caller.query(resolve, request)
+    const result = expandNodeRuntimeResponse(await caller.query(resolve, request))
     const nodes = result.steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
     expect(nodes.find((node) => node.id === 'ruleDefinitionIds')).toMatchObject({
       options: [{ value: definition.id, label: definition.label }]
@@ -901,7 +915,7 @@ describe('native Convex authoring resolver', () => {
         publishedBy: userId
       })
     })
-    expect(await caller.query(resolve, request)).toEqual(result)
+    expect(expandNodeRuntimeResponse(await caller.query(resolve, request))).toEqual(result)
     const foreignChoices = await t.run((ctx) =>
       createSystemSourceReader(ctx, srdSystemRecord.id, crypto.randomUUID()).then((reader) =>
         reader('reusable_definitions', ['id', 'label'], undefined, srdSystemRecord.id)

@@ -139,7 +139,7 @@ const scaledBurst: SpellAuthored = (() => {
 const SLOT_SPENT = [{ slotKey: 'STANDARD:1', used: 1 }]
 
 const spellSpend = {
-  characterId: CHARACTER_ID,
+  owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
   spellId: emberBurst.id,
   slotKey: 'STANDARD:1',
   beforeUsed: 0,

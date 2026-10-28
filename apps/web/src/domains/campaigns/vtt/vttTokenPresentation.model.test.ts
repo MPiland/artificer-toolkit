@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
+import { hideActiveGrantSources } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import { srdMarkListing } from '@artificer-toolkit/rules-runtime/testing/srdMarkListing'
+import { activeGrantTimeLeft } from '../../../components/activeGrants/activeGrantDisplay'
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -384,6 +387,7 @@ describe('VTT token presentation model', () => {
           effectId: '55555555-5555-4555-8555-555555555501',
           label: 'Aid',
           sourceHidden: false,
+          sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
           polarity: 'BENEFICIAL' as const
@@ -392,6 +396,7 @@ describe('VTT token presentation model', () => {
           effectId: '55555555-5555-4555-8555-555555555502',
           label: null,
           sourceHidden: true,
+          sourceActorId: null,
           remainingTicks: null,
           expiresAtCampaignMinute: null,
           polarity: 'NEUTRAL' as const
@@ -418,6 +423,41 @@ describe('VTT token presentation model', () => {
     expect(result.accessibleDescription).toContain('Aid, 4 rounds left')
   })
 
+  // VTT_UI-1.3: a mark (ATTACK-13) is an ordinary grant, categorised by its derived polarity, that
+  // names its marker; a hidden marker stays unnamed for players.
+  it('lists a mark on the marked token with the name of the creature that made it', () => {
+    const [ember, warden] = tabletopGmEncounter.actors
+    const mark = srdMarkListing({ markerActorId: ember!.id, holderActorId: warden!.id })
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const present = (grant: typeof mark) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: new Map([[token.id, warden!.id]]),
+        boundTokenControl: new Map(),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: {
+          ...tabletopGmEncounter,
+          actors: [ember!, { ...warden!, activeGrants: [grant] }]
+        },
+        pending: null,
+        scene
+      })[token.id]!.statuses.find((status) => status.kind === 'EFFECT')
+
+    expect(mark.sourceActorId).toBe(ember!.id)
+    expect(present(mark)).toEqual({
+      category: 'HARMFUL',
+      id: `grant:${mark.effectId}`,
+      kind: 'EFFECT',
+      label: `${mark.label} from ${ember!.label}, ${activeGrantTimeLeft(mark)}`
+    })
+    expect(mark.polarity).toBe('HARMFUL')
+    const [hidden] = hideActiveGrantSources(
+      [{ ...mark, sourceHidden: true }],
+      new Set([ember!.id, warden!.id])
+    )
+    expect(present(hidden!)?.label).toBe(`Hidden source, ${activeGrantTimeLeft(mark)}`)
+  })
+
   it('categorises statuses by what the Encounter data says they are, with a grant read by its polarity and Concentration among them', () => {
     const actor = {
       ...tabletopGmEncounter.actors[0]!,
@@ -426,6 +466,7 @@ describe('VTT token presentation model', () => {
           effectId: '55555555-5555-4555-8555-555555555501',
           label: 'Aid',
           sourceHidden: false,
+          sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
           polarity: 'BENEFICIAL' as const
@@ -434,6 +475,7 @@ describe('VTT token presentation model', () => {
           effectId: '55555555-5555-4555-8555-555555555502',
           label: 'Hex',
           sourceHidden: false,
+          sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
           polarity: 'HARMFUL' as const
@@ -442,6 +484,7 @@ describe('VTT token presentation model', () => {
           effectId: '55555555-5555-4555-8555-555555555503',
           label: 'Mixed boon',
           sourceHidden: false,
+          sourceActorId: null,
           remainingTicks: 4,
           expiresAtCampaignMinute: null,
           polarity: 'NEUTRAL' as const

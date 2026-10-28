@@ -467,6 +467,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
       effectId: '44444444-4444-4444-8444-444444444401',
       label: 'Antitoxin (vial)',
       sourceHidden: false,
+      sourceActorId: null,
       remainingTicks: 2,
       expiresAtCampaignMinute: null,
       polarity: 'BENEFICIAL' as const
@@ -475,6 +476,7 @@ describe('CampaignTabletopEncounterDrawer', () => {
       effectId: '44444444-4444-4444-8444-444444444402',
       label: null,
       sourceHidden: true,
+      sourceActorId: null,
       remainingTicks: 5,
       expiresAtCampaignMinute: null,
       polarity: 'NEUTRAL' as const

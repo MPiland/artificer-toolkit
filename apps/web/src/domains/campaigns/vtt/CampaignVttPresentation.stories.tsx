@@ -71,6 +71,7 @@ const emberActor = {
       effectId: '55555555-5555-4555-8555-555555555501',
       label: 'Blessed',
       sourceHidden: false,
+      sourceActorId: null,
       remainingTicks: 4,
       expiresAtCampaignMinute: null,
       polarity: 'BENEFICIAL' as const

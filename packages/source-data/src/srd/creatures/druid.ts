@@ -51,6 +51,7 @@ export const druid: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         89,
         S.ABILITY_CODE.WISDOM,
+        12,
         [S.SPELL_IDS.DRUIDCRAFT, S.SPELL_IDS.PRODUCE_FLAME, S.SPELL_IDS.SHILLELAGH],
         [
           {

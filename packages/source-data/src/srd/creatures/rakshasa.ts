@@ -69,6 +69,7 @@ export const rakshasa: CreatureAuthored = {
               S.SPELL_IDS.MINOR_ILLUSION
             ],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 18,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             order: 0
           },
@@ -86,6 +87,7 @@ export const rakshasa: CreatureAuthored = {
               S.SPELL_IDS.SUGGESTION
             ],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 18,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(230, 703),
@@ -109,6 +111,7 @@ export const rakshasa: CreatureAuthored = {
               S.SPELL_IDS.TRUE_SEEING
             ],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 18,
             attributes: [S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             charges: {
               id: S.actionId(230, 705),

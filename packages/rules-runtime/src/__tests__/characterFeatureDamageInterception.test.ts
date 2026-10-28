@@ -25,6 +25,8 @@ import { characterActor, ENCOUNTER_ID, TIMESTAMP, testUuid } from '../testing/dn
  * SPELLS-31.T5f3: a Character's feature holds a damage interception bound to its own active effect.
  * Relentless Rage holds only while raging, asks a CON save at 10 plus 5 per use so far, and counts a
  * use on every attempt (`spendsUseOnFailure`); the plan writes the use to the Character's Sheet pool.
+ * SPELLS-32.T5: Relentless Endurance is the same option unbound and without a save, held by a race
+ * feature's long-rest charge.
  */
 
 const ACTOR_ID = testUuid(0xf301)
@@ -81,7 +83,7 @@ const lethal: CharacterRuleActionApplication = {
 
 function plan(
   interception: HeldDamageInterception,
-  rawDie: number,
+  rawDie: number | undefined,
   resourceUsage: CharacterResourceUsage[] = []
 ) {
   const empty = createEmptyCharacterAuthored({
@@ -102,7 +104,11 @@ function plan(
       expectedCharacterStreamVersion: STREAM_VERSION,
       effectiveMaximumHitPoints: 120,
       forceVersionAdvance: false,
-      damageInterceptions: [{ ...interception, saveRoll: { rawDie, addedTotal: 3 } }]
+      damageInterceptions: [
+        rawDie === undefined
+          ? interception
+          : { ...interception, saveRoll: { rawDie, addedTotal: 3 } }
+      ]
     },
     actor: characterActor({ id: ACTOR_ID, characterId: CHARACTER_ID }),
     userId: USER_ID,
@@ -200,5 +206,60 @@ describe('Relentless Rage held by a Character feature (SPELLS-31.T5f3)', () => {
     expect(() => plan(held, 7, [{ ...first, used: 1 }])).toThrow(
       'Encounter Character resource usage is stale.'
     )
+  })
+})
+
+function halfOrcOutput(resourceUsage: readonly CharacterResourceUsage[] = []) {
+  return evaluateSrdCharacter({
+    race: 'Half-Orc',
+    classes: [{ label: 'Fighter', level: 1 }],
+    resourceUsage
+  }).output
+}
+
+function enduranceInterception(
+  resourceUsage?: readonly CharacterResourceUsage[]
+): HeldDamageInterception {
+  const [held] = characterHeldDamageInterceptions(halfOrcOutput(resourceUsage), [])
+  if (!held?.charge?.owner)
+    throw new Error('Expected Relentless Endurance to hold a charged interception.')
+  return held
+}
+
+describe('Relentless Endurance held by a race feature (SPELLS-32.T5)', () => {
+  it('holds the interception with no active effect and no save, once per long rest', () => {
+    const held = enduranceInterception()
+    expect(held).toMatchObject({
+      dropToHitPoints: 1,
+      negatesKill: false,
+      charge: { amount: 1, used: 0, cost: 1 }
+    })
+    expect(held).not.toHaveProperty('save')
+    const pool = halfOrcOutput().resources.find(
+      (resource) =>
+        resource.ownerKind === 'AUTHORED_SOURCE' && resource.chargeId === held.charge?.chargeId
+    )
+    expect(pool).toMatchObject({ state: 'RESOLVED', maximum: 1, resetKind: 'LONG_REST' })
+    expect(getRestRecoveryTriggers('SHORT').has('LONG_REST')).toBe(false)
+    expect(getRestRecoveryTriggers('LONG').has('LONG_REST')).toBe(true)
+  })
+
+  it('drops the Character to 1 without a save and writes the use to its Sheet', () => {
+    const held = enduranceInterception()
+    const poolId = createCharacterResourceOwnerKey(held.charge!.owner!)
+    const result = plan(held, undefined)
+    expect(result.characterUpdate?.character.state.hitpoints.current).toBe(1)
+    expect(result.receiptApplications).toMatchObject([
+      { interceptedBy: held.effectId, interceptionCharge: { poolId, beforeUsed: 0, afterUsed: 1 } }
+    ])
+    expect(result.characterUpdate?.sheetState?.resourceUsage).toMatchObject([
+      { characterId: CHARACTER_ID, owner: held.charge!.owner, used: 1 }
+    ])
+  })
+
+  it('holds nothing once its use is spent', () => {
+    const spent = plan(enduranceInterception(), undefined).characterUpdate!.sheetState!
+      .resourceUsage
+    expect(characterHeldDamageInterceptions(halfOrcOutput(spent), [])).toEqual([])
   })
 })

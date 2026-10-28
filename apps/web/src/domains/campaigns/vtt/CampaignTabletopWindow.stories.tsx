@@ -7,6 +7,7 @@ import {
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { activeGrantListingDtoSchema } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import {
   sceneFogAppendInputSchema,
   sceneFogPatchInputSchema
@@ -504,6 +505,30 @@ export const SelectingATokenShowsItsFacingArcs: Story = {
 
     await pressStage(stage, 'corner')
     await waitFor(() => expect(drawnArcs()).toEqual([]))
+  }
+}
+
+// VTT_UI-1.3: Ember's Wake marked the Warden; its status list names the marker.
+export const HoveringAMarkedTokenNamesItsMarker: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, markedFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor('OWNER', markedFixtures.gmEncounter)
+    const mark = presentation.statuses.find(({ id }) => id === `grant:${wardenMark.effectId}`)
+    await expect(mark?.label).toBe("Mark from Ember's Wake, 2 rounds left")
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    const focusItem = await within(sceneControls).findByRole('menuitem', {
+      name: `Focus ${wardenToken.label}`
+    })
+    await userEvent.hover(focusItem)
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(list).getByText(mark!.label)).toBeVisible()
   }
 }
 
@@ -1059,6 +1084,27 @@ const facingFixtures: TabletopFixtures = {
     currentActorId: tabletopGmEncounter.actors[0]!.id,
     facingArcs: [...facingArcs],
     facingStepDegrees: 90
+  }
+}
+
+// VTT_UI-1.3 journey data: Ember's Wake's melee attack marked the Warden (ATTACK-13), as the
+// Encounter projection lists it to the GM.
+const wardenMark = validated(activeGrantListingDtoSchema)({
+  effectId: '13131313-1313-4131-8131-131313131313',
+  label: 'Mark',
+  sourceHidden: false,
+  sourceActorId: tabletopGmEncounter.actors[0]!.id,
+  remainingTicks: 2,
+  expiresAtCampaignMinute: null,
+  polarity: 'HARMFUL'
+})
+const markedFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: presentedTokensFixtures.gmEncounter.actors.map((actor) =>
+      actor.id === wardenId ? { ...actor, activeGrants: [wardenMark] } : actor
+    )
   }
 }
 

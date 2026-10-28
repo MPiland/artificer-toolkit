@@ -142,12 +142,15 @@ function nullableLabel(value: unknown): string | null {
  * Encounter zone modules.
  */
 function zoneEntrySavingThrow(effect: CompiledEffectGroup) {
+  // A GM ruling beside the zone (D187a) resolves nothing, so it does not count as another entry.
+  const entries = effect.entries.filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION')
+  )
   // A cast-time pick between zones (D140) has one entry per option; the action resolves one save,
   // so every option must author the same one.
-  const picks =
-    effect.entries.length > 1 && effect.entries.every((entry) => entry.groupKind === 'CHOICE')
-  if (effect.entries.length !== 1 && !picks) return undefined
-  const saves = effect.entries.map((entry) => {
+  const picks = entries.length > 1 && entries.every((entry) => entry.groupKind === 'CHOICE')
+  if (entries.length !== 1 && !picks) return undefined
+  const saves = entries.map((entry) => {
     const outcome = 'outcome' in entry ? entry.outcome : null
     if (
       outcome?.effectKind !== 'MANIFEST' ||

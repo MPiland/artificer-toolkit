@@ -655,7 +655,7 @@ export async function revertLastEncounterAction(
         sourceDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
         sourceDegradation ||
         spend.sourceItemConsumption ||
-        spend.spellCastConsumption) &&
+        spend.spellCastConsumption?.owner.kind === 'CHARACTER') &&
       sourceCharacterId
     ) {
       if (spend.sourceCharacterStreamVersion === null)
@@ -667,7 +667,8 @@ export async function revertLastEncounterAction(
       if (sourceDraw?.kind === 'CHARACTER_ITEM_DRAW') inverse.drawn = sourceDraw
       inverse.degradation = sourceDegradation
       inverse.item = spend.sourceItemConsumption
-      if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
+      if (spend.spellCastConsumption?.owner.kind === 'CHARACTER')
+        inverse.spells.push(spend.spellCastConsumption)
     }
     // The conditions the source's ended effects released (Invisibility) come back with the effects.
     restoreReleasedConditions(
@@ -707,8 +708,21 @@ export async function revertLastEncounterAction(
     // So do the ones the retaliation's damage released from the attacker; the effects themselves
     // come back with the root's consumed grants, after the grants that damage made are deleted.
     restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
-    const feature = spend.featureResourceConsumption
-    if (feature) {
+    // A Creature's spell slot row is one of its feature charges.
+    const slot = spend.spellCastConsumption
+    for (const feature of [
+      spend.featureResourceConsumption,
+      slot?.owner.kind === 'CREATURE'
+        ? {
+            ownerActorId: slot.owner.actorId,
+            ownerFeatureId: slot.owner.featureId,
+            slotRowId: slot.slotKey,
+            beforeUsed: slot.beforeUsed,
+            afterUsed: slot.afterUsed
+          }
+        : null
+    ]) {
+      if (!feature) continue
       const owner = actorsById.get(feature.ownerActorId)
       if (!owner) revertUnavailable(FEATURE_CHARGES_CHANGED)
       updateActor(owner.id, { resources: returnSpentFeatureCharge(owner, feature).resources })
@@ -1110,12 +1124,17 @@ async function revertCheckAction(
 const FEATURE_CHARGES_CHANGED =
   "The actor's feature charges changed after this action; adjust manually."
 
-/** Gives a Creature feature's spent charges back, refusing if its charges changed since. */
+/**
+ * Gives a Creature feature's spent charges, or the spell slot its cast spent, back, refusing if they
+ * changed since.
+ */
 function returnSpentFeatureCharge(
   actor: EncounterRunActorState,
   feature: {
     ownerActorId: string
     ownerFeatureId: string
+    /** The slot row a spell cast spent; its use is counted under the row, not the Feature. */
+    slotRowId?: string
     beforeUsed: number
     afterUsed: number
   } | null
@@ -1123,11 +1142,12 @@ function returnSpentFeatureCharge(
   if (!feature) return actor
   if (feature.ownerActorId !== actor.id)
     throw new Error('Stored feature charge receipt is invalid.')
-  if (featureChargeUsed(actor, feature.ownerFeatureId) !== feature.afterUsed)
+  const chargeKey = feature.slotRowId ?? feature.ownerFeatureId
+  if (featureChargeUsed(actor, chargeKey) !== feature.afterUsed)
     revertUnavailable(FEATURE_CHARGES_CHANGED)
   return encounterRunActorStateSchema.parse({
     ...actor,
-    resources: withFeatureChargeUsed(actor, feature.ownerFeatureId, feature.beforeUsed)
+    resources: withFeatureChargeUsed(actor, chargeKey, feature.beforeUsed)
   })
 }
 

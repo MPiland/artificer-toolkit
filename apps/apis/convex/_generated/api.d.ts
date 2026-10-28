@@ -194,682 +194,647 @@ export declare const api: {
               sections: Array<{
                 id: string;
                 label: string;
-                nodes: Array<
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "TEXT";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "NUMBER";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "RICH_TEXT";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "TOGGLE";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      options: Array<{
-                        description?: string;
-                        disabled?: boolean;
-                        group?: string;
-                        label: string;
-                        metadata?: Record<string, any>;
-                        value: string;
-                      }>;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "SELECT_SINGLE";
-                      unknownOptions?: "PRESERVE" | "REFUSE";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      options: Array<{
-                        description?: string;
-                        disabled?: boolean;
-                        group?: string;
-                        label: string;
-                        metadata?: Record<string, any>;
-                        value: string;
-                      }>;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "SELECT_NUMBER";
-                      unknownOptions?: "PRESERVE" | "REFUSE";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: { exposure: "author" | "system" };
-                      clearPaths: Array<Array<string | number>>;
-                      constraints?: {
-                        maximum?: number;
-                        maximumLength?: number;
-                        minimum?: number;
-                      };
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "INPUT";
-                      label: string;
-                      options: Array<{
-                        description?: string;
-                        disabled?: boolean;
-                        group?: string;
-                        label: string;
-                        metadata?: Record<string, any>;
-                        value: string;
-                      }>;
-                      path: Array<string | number>;
-                      required: boolean;
-                      type: "SELECT_MULTI";
-                      unknownOptions?: "PRESERVE" | "REFUSE";
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: {
-                        actions: Array<
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.add";
-                            }
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.remove";
-                            }
-                        >;
-                        appearance?: {
-                          heading?: {
-                            compact?: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                            default: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                            wide?: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                          };
-                          surface?: {
-                            compact?: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                            default: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                            wide?: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                          };
-                        };
-                        emptyLabel?: string;
-                        exposure: "author" | "system";
-                      };
-                      childMapId: string;
-                      clearPaths: Array<Array<string | number>>;
-                      groupKind: "OBJECT";
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "GROUP";
-                      label: string;
-                      path: Array<string | number>;
-                      presentation: "inline" | "branch";
-                      required: boolean;
-                      visible: boolean;
-                    }
-                  | {
-                      authoring: {
-                        appearance?: {
-                          heading?: {
-                            compact?: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                            default: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                            wide?: {
-                              style:
-                                | "title"
-                                | "heading"
-                                | "body"
-                                | "label"
-                                | "supporting"
-                                | "value"
-                                | "caption";
-                              tone:
-                                | "primary"
-                                | "secondary"
-                                | "muted"
-                                | "accent"
-                                | "critical";
-                            };
-                          };
-                          surface?: {
-                            compact?: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                            default: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                            wide?: {
-                              role:
-                                | "transparent"
-                                | "panel"
-                                | "raised"
-                                | "recessed"
-                                | "selected";
-                            };
-                          };
-                        };
-                        collection: {
-                          actions: Array<
-                            | {
-                                label: string;
-                                presentation: {
-                                  compact?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  default:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  wide?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                };
-                                type: "collection.add";
-                              }
-                            | {
-                                label: string;
-                                presentation: {
-                                  compact?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  default:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  wide?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                };
-                                type: "collection.edit";
-                              }
-                            | {
-                                label: string;
-                                presentation: {
-                                  compact?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  default:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  wide?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                };
-                                type: "collection.duplicate";
-                              }
-                            | {
-                                label: string;
-                                presentation: {
-                                  compact?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  default:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                  wide?:
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "icon";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content";
-                                      }
-                                    | {
-                                        density: "compact" | "comfortable";
-                                        display: "text" | "button";
-                                        emphasis:
-                                          "primary" | "secondary" | "quiet";
-                                        width: "content" | "full";
-                                      };
-                                };
-                                type: "collection.remove";
-                              }
-                          >;
-                          emptyLabel?: string;
-                          itemLabel?: string;
-                          join?: "AND" | "OR";
-                          ordering:
-                            | { mode: "derived" }
-                            | {
-                                identityPath: Array<string>;
-                                mode: "manual";
-                                orderPath?: Array<string>;
-                              };
-                          rowExpansion?: "collapsible" | "expanded";
-                          rowLayout?: "default" | "card" | "flat" | "compact";
-                          rowSummary?:
-                            | "default"
-                            | "facet-context"
-                            | "facet-condition"
-                            | "modifier"
-                            | "effect"
-                            | "effect-path"
-                            | "outcome"
-                            | "speed";
-                          showHeading?: boolean;
-                        };
-                        exposure: "author" | "system";
-                      };
-                      childMapId: string;
-                      clearPaths: Array<Array<string | number>>;
-                      groupKind: "ARRAY";
-                      hiddenBehavior: "KEEP" | "CLEAR";
-                      id: string;
-                      kind: "GROUP";
-                      label: string;
-                      path: Array<string | number>;
-                      presentation:
-                        "inline" | "table" | "summary" | "branch" | "focused";
-                      required: boolean;
-                      visible: boolean;
-                    }
-                >;
+                nodes: Array<number>;
                 order: number;
               }>;
             }>;
           }>;
+          nodes: Array<
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                path: Array<string | number>;
+                required: boolean;
+                type: "TEXT";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                path: Array<string | number>;
+                required: boolean;
+                type: "NUMBER";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                path: Array<string | number>;
+                required: boolean;
+                type: "RICH_TEXT";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                path: Array<string | number>;
+                required: boolean;
+                type: "TOGGLE";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                options: Array<{
+                  description?: string;
+                  disabled?: boolean;
+                  group?: string;
+                  label: string;
+                  metadata?: Record<string, any>;
+                  value: string;
+                }>;
+                path: Array<string | number>;
+                required: boolean;
+                type: "SELECT_SINGLE";
+                unknownOptions?: "PRESERVE" | "REFUSE";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                options: Array<{
+                  description?: string;
+                  disabled?: boolean;
+                  group?: string;
+                  label: string;
+                  metadata?: Record<string, any>;
+                  value: string;
+                }>;
+                path: Array<string | number>;
+                required: boolean;
+                type: "SELECT_NUMBER";
+                unknownOptions?: "PRESERVE" | "REFUSE";
+                visible: boolean;
+              }
+            | {
+                authoring: { exposure: "author" | "system" };
+                clearPaths: Array<Array<string | number>>;
+                constraints?: {
+                  maximum?: number;
+                  maximumLength?: number;
+                  minimum?: number;
+                };
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "INPUT";
+                label: string;
+                options: Array<{
+                  description?: string;
+                  disabled?: boolean;
+                  group?: string;
+                  label: string;
+                  metadata?: Record<string, any>;
+                  value: string;
+                }>;
+                path: Array<string | number>;
+                required: boolean;
+                type: "SELECT_MULTI";
+                unknownOptions?: "PRESERVE" | "REFUSE";
+                visible: boolean;
+              }
+            | {
+                authoring: {
+                  actions: Array<
+                    | {
+                        label: string;
+                        presentation: {
+                          compact?:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                          default:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                          wide?:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                        };
+                        type: "collection.add";
+                      }
+                    | {
+                        label: string;
+                        presentation: {
+                          compact?:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                          default:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                          wide?:
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "icon";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content";
+                              }
+                            | {
+                                density: "compact" | "comfortable";
+                                display: "text" | "button";
+                                emphasis: "primary" | "secondary" | "quiet";
+                                width: "content" | "full";
+                              };
+                        };
+                        type: "collection.remove";
+                      }
+                  >;
+                  appearance?: {
+                    heading?: {
+                      compact?: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                      default: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                      wide?: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                    };
+                    surface?: {
+                      compact?: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                      default: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                      wide?: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                    };
+                  };
+                  emptyLabel?: string;
+                  exposure: "author" | "system";
+                };
+                childMapId: string;
+                clearPaths: Array<Array<string | number>>;
+                groupKind: "OBJECT";
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "GROUP";
+                label: string;
+                path: Array<string | number>;
+                presentation: "inline" | "branch";
+                required: boolean;
+                visible: boolean;
+              }
+            | {
+                authoring: {
+                  appearance?: {
+                    heading?: {
+                      compact?: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                      default: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                      wide?: {
+                        style:
+                          | "title"
+                          | "heading"
+                          | "body"
+                          | "label"
+                          | "supporting"
+                          | "value"
+                          | "caption";
+                        tone:
+                          | "primary"
+                          | "secondary"
+                          | "muted"
+                          | "accent"
+                          | "critical";
+                      };
+                    };
+                    surface?: {
+                      compact?: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                      default: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                      wide?: {
+                        role:
+                          | "transparent"
+                          | "panel"
+                          | "raised"
+                          | "recessed"
+                          | "selected";
+                      };
+                    };
+                  };
+                  collection: {
+                    actions: Array<
+                      | {
+                          label: string;
+                          presentation: {
+                            compact?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            default:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            wide?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                          };
+                          type: "collection.add";
+                        }
+                      | {
+                          label: string;
+                          presentation: {
+                            compact?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            default:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            wide?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                          };
+                          type: "collection.edit";
+                        }
+                      | {
+                          label: string;
+                          presentation: {
+                            compact?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            default:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            wide?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                          };
+                          type: "collection.duplicate";
+                        }
+                      | {
+                          label: string;
+                          presentation: {
+                            compact?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            default:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                            wide?:
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "icon";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content";
+                                }
+                              | {
+                                  density: "compact" | "comfortable";
+                                  display: "text" | "button";
+                                  emphasis: "primary" | "secondary" | "quiet";
+                                  width: "content" | "full";
+                                };
+                          };
+                          type: "collection.remove";
+                        }
+                    >;
+                    emptyLabel?: string;
+                    itemLabel?: string;
+                    join?: "AND" | "OR";
+                    ordering:
+                      | { mode: "derived" }
+                      | {
+                          identityPath: Array<string>;
+                          mode: "manual";
+                          orderPath?: Array<string>;
+                        };
+                    rowExpansion?: "collapsible" | "expanded";
+                    rowLayout?: "default" | "card" | "flat" | "compact";
+                    rowSummary?:
+                      | "default"
+                      | "facet-context"
+                      | "facet-condition"
+                      | "modifier"
+                      | "effect"
+                      | "effect-path"
+                      | "outcome"
+                      | "speed";
+                    showHeading?: boolean;
+                  };
+                  exposure: "author" | "system";
+                };
+                childMapId: string;
+                clearPaths: Array<Array<string | number>>;
+                groupKind: "ARRAY";
+                hiddenBehavior: "KEEP" | "CLEAR";
+                id: string;
+                kind: "GROUP";
+                label: string;
+                path: Array<string | number>;
+                presentation:
+                  "inline" | "table" | "summary" | "branch" | "focused";
+                required: boolean;
+                visible: boolean;
+              }
+          >;
           scopes: Array<{ modelIndex: number; path: Array<string | number> }>;
           steps: Array<{
             description?: string;
@@ -879,666 +844,7 @@ export declare const api: {
             sections: Array<{
               id: string;
               label: string;
-              nodes: Array<
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "TEXT";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "NUMBER";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "RICH_TEXT";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "TOGGLE";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    options: Array<{
-                      description?: string;
-                      disabled?: boolean;
-                      group?: string;
-                      label: string;
-                      metadata?: Record<string, any>;
-                      value: string;
-                    }>;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "SELECT_SINGLE";
-                    unknownOptions?: "PRESERVE" | "REFUSE";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    options: Array<{
-                      description?: string;
-                      disabled?: boolean;
-                      group?: string;
-                      label: string;
-                      metadata?: Record<string, any>;
-                      value: string;
-                    }>;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "SELECT_NUMBER";
-                    unknownOptions?: "PRESERVE" | "REFUSE";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: { exposure: "author" | "system" };
-                    clearPaths: Array<Array<string | number>>;
-                    constraints?: {
-                      maximum?: number;
-                      maximumLength?: number;
-                      minimum?: number;
-                    };
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "INPUT";
-                    label: string;
-                    options: Array<{
-                      description?: string;
-                      disabled?: boolean;
-                      group?: string;
-                      label: string;
-                      metadata?: Record<string, any>;
-                      value: string;
-                    }>;
-                    path: Array<string | number>;
-                    required: boolean;
-                    type: "SELECT_MULTI";
-                    unknownOptions?: "PRESERVE" | "REFUSE";
-                    visible: boolean;
-                  }
-                | {
-                    authoring: {
-                      actions: Array<
-                        | {
-                            label: string;
-                            presentation: {
-                              compact?:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                              default:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                              wide?:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                            };
-                            type: "collection.add";
-                          }
-                        | {
-                            label: string;
-                            presentation: {
-                              compact?:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                              default:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                              wide?:
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "icon";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content";
-                                  }
-                                | {
-                                    density: "compact" | "comfortable";
-                                    display: "text" | "button";
-                                    emphasis: "primary" | "secondary" | "quiet";
-                                    width: "content" | "full";
-                                  };
-                            };
-                            type: "collection.remove";
-                          }
-                      >;
-                      appearance?: {
-                        heading?: {
-                          compact?: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                          default: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                          wide?: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                        };
-                        surface?: {
-                          compact?: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                          default: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                          wide?: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                        };
-                      };
-                      emptyLabel?: string;
-                      exposure: "author" | "system";
-                    };
-                    childMapId: string;
-                    clearPaths: Array<Array<string | number>>;
-                    groupKind: "OBJECT";
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "GROUP";
-                    label: string;
-                    path: Array<string | number>;
-                    presentation: "inline" | "branch";
-                    required: boolean;
-                    visible: boolean;
-                  }
-                | {
-                    authoring: {
-                      appearance?: {
-                        heading?: {
-                          compact?: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                          default: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                          wide?: {
-                            style:
-                              | "title"
-                              | "heading"
-                              | "body"
-                              | "label"
-                              | "supporting"
-                              | "value"
-                              | "caption";
-                            tone:
-                              | "primary"
-                              | "secondary"
-                              | "muted"
-                              | "accent"
-                              | "critical";
-                          };
-                        };
-                        surface?: {
-                          compact?: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                          default: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                          wide?: {
-                            role:
-                              | "transparent"
-                              | "panel"
-                              | "raised"
-                              | "recessed"
-                              | "selected";
-                          };
-                        };
-                      };
-                      collection: {
-                        actions: Array<
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.add";
-                            }
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.edit";
-                            }
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.duplicate";
-                            }
-                          | {
-                              label: string;
-                              presentation: {
-                                compact?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                default:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                                wide?:
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "icon";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content";
-                                    }
-                                  | {
-                                      density: "compact" | "comfortable";
-                                      display: "text" | "button";
-                                      emphasis:
-                                        "primary" | "secondary" | "quiet";
-                                      width: "content" | "full";
-                                    };
-                              };
-                              type: "collection.remove";
-                            }
-                        >;
-                        emptyLabel?: string;
-                        itemLabel?: string;
-                        join?: "AND" | "OR";
-                        ordering:
-                          | { mode: "derived" }
-                          | {
-                              identityPath: Array<string>;
-                              mode: "manual";
-                              orderPath?: Array<string>;
-                            };
-                        rowExpansion?: "collapsible" | "expanded";
-                        rowLayout?: "default" | "card" | "flat" | "compact";
-                        rowSummary?:
-                          | "default"
-                          | "facet-context"
-                          | "facet-condition"
-                          | "modifier"
-                          | "effect"
-                          | "effect-path"
-                          | "outcome"
-                          | "speed";
-                        showHeading?: boolean;
-                      };
-                      exposure: "author" | "system";
-                    };
-                    childMapId: string;
-                    clearPaths: Array<Array<string | number>>;
-                    groupKind: "ARRAY";
-                    hiddenBehavior: "KEEP" | "CLEAR";
-                    id: string;
-                    kind: "GROUP";
-                    label: string;
-                    path: Array<string | number>;
-                    presentation:
-                      "inline" | "table" | "summary" | "branch" | "focused";
-                    required: boolean;
-                    visible: boolean;
-                  }
-              >;
+              nodes: Array<number>;
               order: number;
             }>;
           }>;
@@ -3603,6 +2909,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             armorClass: number;
@@ -18164,6 +17471,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             armorClass: number;
@@ -20284,6 +19592,7 @@ export declare const api: {
                   label: string | null;
                   polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                   remainingTicks: number | null;
+                  sourceActorId: string | null;
                   sourceHidden: boolean;
                 }>;
                 armorClass: number;
@@ -289669,6 +288978,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -289966,6 +289276,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -290958,6 +290269,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -291255,6 +290567,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -292071,6 +291384,7 @@ export declare const api: {
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
+                sourceActorId: string | null;
                 sourceHidden: boolean;
               }>;
               concealment?: {
@@ -292361,6 +291675,7 @@ export declare const api: {
                 label: string | null;
                 polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                 remainingTicks: number | null;
+                sourceActorId: string | null;
                 sourceHidden: boolean;
               }>;
               concentration?: {
@@ -292482,6 +291797,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concealment?: {
@@ -292779,6 +292095,7 @@ export declare const api: {
                     label: string | null;
                     polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
                     remainingTicks: number | null;
+                    sourceActorId: string | null;
                     sourceHidden: boolean;
                   }>;
                   concentration?: {
@@ -293251,6 +292568,7 @@ export declare const api: {
               label: string | null;
               polarity: "BENEFICIAL" | "HARMFUL" | "NEUTRAL";
               remainingTicks: number | null;
+              sourceActorId: string | null;
               sourceHidden: boolean;
             }>;
             concealment?: {

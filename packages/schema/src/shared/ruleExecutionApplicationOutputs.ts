@@ -34,7 +34,8 @@ import {
   characterItemConsumptionReceiptDtoSchema,
   characterItemDegradationReceiptDtoSchema,
   characterItemUseStateTransitionDtoSchema,
-  characterSpellSlotConsumptionReceiptDtoSchema,
+  spellSlotConsumptionReceiptDtoSchema,
+  spellSlotOwnedBySource,
   cleavingDamageApplicationOutputDtoSchema,
   concealmentCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
@@ -82,10 +83,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       sourceCharacterStreamVersion: z.nullable(aggregateVersionSchema),
       targetCharacterStreamVersion: z.nullable(aggregateVersionSchema),
       resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
-      spellCastConsumption: z._default(
-        z.nullable(characterSpellSlotConsumptionReceiptDtoSchema),
-        null
-      ),
+      spellCastConsumption: z._default(z.nullable(spellSlotConsumptionReceiptDtoSchema), null),
       featureResourceConsumption: z._default(
         z.nullable(encounterFeatureResourceReceiptDtoSchema),
         null
@@ -512,16 +510,13 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           draw?.kind === 'CHARACTER_ITEM_DRAW' ||
           sourceDegradation !== null ||
           consumption !== null ||
-          spell !== null ||
+          spell?.owner.kind === 'CHARACTER' ||
           sourceApplicationsChangeState(value.sourceApplications, value.sourceCharacterId)
-        if (
-          spell &&
-          (value.sourceCharacterId === null || spell.characterId !== value.sourceCharacterId)
-        )
+        if (spell && !spellSlotOwnedBySource(spell, value))
           context.addIssue({
             code: 'custom',
             path: ['spellCastConsumption'],
-            message: 'Spell slot consumption must match the source Character.'
+            message: 'Spell slot consumption must match the source.'
           })
         if (
           sourceDegradation &&
@@ -576,7 +571,10 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           reaction &&
           (reaction.reaction.reactorActorId !== value.targetActorId ||
             (reaction.spellCastConsumption &&
-              reaction.spellCastConsumption.characterId !== reaction.reaction.characterId))
+              !spellSlotOwnedBySource(reaction.spellCastConsumption, {
+                sourceActorId: reaction.reaction.reactorActorId,
+                sourceCharacterId: reaction.reaction.characterId
+              })))
         )
           context.addIssue({
             code: 'custom',

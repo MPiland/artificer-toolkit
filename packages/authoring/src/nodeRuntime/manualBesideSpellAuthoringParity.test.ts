@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { antipathySympathy } from '@artificer-toolkit/source-data/srd/spells/antipathy-sympathy.js'
 import { calmEmotions } from '@artificer-toolkit/source-data/srd/spells/calm-emotions.js'
 import { contagion } from '@artificer-toolkit/source-data/srd/spells/contagion.js'
+import { contingency } from '@artificer-toolkit/source-data/srd/spells/contingency.js'
 import { delayedBlastFireball } from '@artificer-toolkit/source-data/srd/spells/delayed-blast-fireball.js'
 import { glyphOfWarding } from '@artificer-toolkit/source-data/srd/spells/glyph-of-warding.js'
 import { feeblemind } from '@artificer-toolkit/source-data/srd/spells/feeblemind.js'
@@ -28,7 +30,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, SPELLS-4.T2m3, SPELLS-4.T2m2, SPELLS-4.T2q, SPELLS-4.T2s, D156)', () => {
+describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, SPELLS-4.T2m3, SPELLS-4.T2m2, SPELLS-4.T2q, SPELLS-4.T2s, SPELLS-4.T2r, D156)', () => {
   it.each([
     ['Feeblemind', feeblemind],
     ['Silent Image', silentImage],
@@ -52,7 +54,10 @@ describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-
     // SPELLS-4.T2s (D187a): possession, the bound service and the illusory double are GM rulings.
     ['Magic Jar', magicJar],
     ['Planar Binding', planarBinding],
-    ['Project Image', projectImage]
+    ['Project Image', projectImage],
+    // SPELLS-4.T2r (D187a): no creature-kind aura or stored spell exists, so each is a GM ruling.
+    ['Antipathy/Sympathy', antipathySympathy],
+    ['Contingency', contingency]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

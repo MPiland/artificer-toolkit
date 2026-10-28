@@ -188,6 +188,8 @@ function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = 
     authoredEffectChecksum: checksumRuleDocument(compiledEffect),
     compiledEffectChecksum: checksumRuleDocument(compiledEffect),
     featureResourceUse: null,
+    spellSlotUse: null,
+    spellSaveDc: null,
     equipmentBinding: null,
     attackMechanic: {
       rollDefinitionId: rugIds.attack,

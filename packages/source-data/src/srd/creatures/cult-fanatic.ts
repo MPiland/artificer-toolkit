@@ -53,6 +53,7 @@ export const cultFanatic: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         74,
         S.ABILITY_CODE.WISDOM,
+        11,
         [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
         [
           {

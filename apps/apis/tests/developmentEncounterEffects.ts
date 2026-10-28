@@ -374,10 +374,25 @@ export async function verifyEncounterEffects({
     )
     const beforePlayerSource = beforePlayerRun.actors.find((actor) => actor.id === source.id)
     const beforePlayerTarget = beforePlayerRun.actors.find((actor) => actor.id === target.id)
-    assert.ok(beforePlayerSource && beforePlayerTarget)
-    assert.equal(beforePlayerSource.public, true)
-    assert.equal(beforePlayerTarget.public, true)
-    assert.deepEqual(conditionIds(beforePlayerTarget.conditions), [])
+    if (sceneContext) {
+      // Convex never reads fog, so its player read fails closed and lists no bound creature the
+      // player does not control (D121); the player's map shows the target instead (assertTerminal).
+      assert.equal(beforePlayerSource, undefined)
+      assert.equal(beforePlayerTarget, undefined)
+      assert.deepEqual(
+        conditionIds(
+          encounterGmProjectionDtoSchema
+            .parse(beforeRun)
+            .actors.find((actor) => actor.id === target.id)?.conditions
+        ),
+        []
+      )
+    } else {
+      assert.ok(beforePlayerSource && beforePlayerTarget)
+      assert.equal(beforePlayerSource.public, true)
+      assert.equal(beforePlayerTarget.public, true)
+      assert.deepEqual(conditionIds(beforePlayerTarget.conditions), [])
+    }
     const verify = async (controls?: EncounterEffectsBrowserControls) => {
       const browserRoot = await controls?.resolveAction()
       if (browserRoot) {
@@ -441,9 +456,12 @@ export async function verifyEncounterEffects({
         await player.query(api.encounters.projectionReads.get, { encounterId: run.id })
       )
       const finalPlayerTarget = finalPlayerRun.actors.find((actor) => actor.id === target.id)
-      assert.ok(finalPlayerTarget)
-      assert.equal(finalPlayerTarget.public, true)
-      assert.deepEqual(conditionIds(finalPlayerTarget.conditions), expectedConditions)
+      if (sceneContext) assert.equal(finalPlayerTarget, undefined)
+      else {
+        assert.ok(finalPlayerTarget)
+        assert.equal(finalPlayerTarget.public, true)
+        assert.deepEqual(conditionIds(finalPlayerTarget.conditions), expectedConditions)
+      }
       const finalTarget = finalRun.actors.find((actor) => actor.id === target.id)
       if (!finalTarget) throw new Error('Action-effect target is absent after settlement.')
       assert.deepEqual(conditionIds(finalTarget.conditions), expectedConditions)

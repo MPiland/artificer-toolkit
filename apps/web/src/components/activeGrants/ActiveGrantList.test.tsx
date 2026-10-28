@@ -10,6 +10,7 @@ const grant = (overrides: Partial<ActiveGrantListingDto>): ActiveGrantListingDto
   effectId: '11111111-1111-4111-8111-111111111101',
   label: 'Aid',
   sourceHidden: false,
+  sourceActorId: null,
   remainingTicks: 3,
   expiresAtCampaignMinute: null,
   polarity: 'BENEFICIAL',

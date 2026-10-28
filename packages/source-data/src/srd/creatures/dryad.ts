@@ -60,6 +60,7 @@ export const dryad: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.DRUIDCRAFT],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             order: 0
           },
           ...([S.SPELL_IDS.ENTANGLE, S.SPELL_IDS.GOODBERRY] as const).map((spellId, index) => ({
@@ -71,6 +72,7 @@ export const dryad: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             charges: {
               id: S.actionId(90, 402 + index),
               limitKind: 'FIXED_AMOUNT' as const,
@@ -91,6 +93,7 @@ export const dryad: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 14,
             charges: {
               id: S.actionId(90, 404 + index),
               limitKind: 'FIXED_AMOUNT' as const,

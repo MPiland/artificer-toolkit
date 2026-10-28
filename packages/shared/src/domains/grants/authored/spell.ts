@@ -25,6 +25,8 @@ export type SpellGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sc
         grantKind: typeof GRANT_KIND.SPELL_GRANT
         castAtLevel?: number
         castingAbility?: string
+        /** The spell save DC the stat block states for these casts; a Creature's spell attack derives from it. */
+        spellSaveDc?: number
         attributes?: Exclude<SpellGrantAttribute, 'LIMITED_USE'>[]
         filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
       }
@@ -32,6 +34,8 @@ export type SpellGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sc
         grantKind: typeof GRANT_KIND.SPELL_GRANT
         castAtLevel?: number
         castingAbility?: string
+        /** The spell save DC the stat block states for these casts; a Creature's spell attack derives from it. */
+        spellSaveDc?: number
         charges?: ChargeAuthored<true>
         attributes?: SpellGrantAttribute[]
         filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
