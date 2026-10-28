@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider, queryOptions } from '@tanstack/react-
 import { useSelector } from '@tanstack/react-form'
 import { useMemo, type ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { NodeRuntimeCompactResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import type { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import { authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
@@ -38,7 +38,7 @@ vi.mock('#forms/guided/GuidedAuthoringFrame', () => ({
   )
 }))
 
-const parentResponse = {
+const parentResponse = compactNodeRuntimeResponse({
   mapId: 'class',
   steps: [
     {
@@ -70,9 +70,8 @@ const parentResponse = {
     }
   ],
   clearPaths: [],
-  scopes: [],
-  models: []
-} satisfies NodeRuntimeCompactResolveResponseDto
+  scopes: []
+})
 
 const onStateChange = vi.fn()
 
