@@ -13,6 +13,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { assassin } from '@artificer-toolkit/source-data/srd/creatures/assassin.js'
 import { berserker } from '@artificer-toolkit/source-data/srd/creatures/berserker.js'
+import { priest } from '@artificer-toolkit/source-data/srd/creatures/priest.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -21,7 +22,8 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
 /**
  * SPELLS-33.T5afp (D156, D187a): the Assassin's Evasion is the `INCOMING_DAMAGE` save-for-half
  * grant the Rogue's Evasion uses, and the Berserker's Reckless is a GM ruling, as the Barbarian's
- * Reckless Attack is, because its two grants end on different turn boundaries. Both are core
+ * Reckless Attack is, because its two grants end on different turn boundaries. The Priest's Divine
+ * Eminence is a GM ruling on its bonus action: a creature action cannot spend a spell slot. All are core
  * options a Builder author has on a creature feature, so each creature passes the creature node
  * map exactly as authored, as does a homebrew ward for another save.
  */
@@ -67,22 +69,29 @@ function incomingDamage(creature: CreatureAuthored) {
   }).incomingDamage
 }
 
-describe('creature Evasion and Reckless from core options (SPELLS-33.T5afp)', () => {
+describe('creature Evasion, Reckless and Divine Eminence from core options (SPELLS-33.T5afp)', () => {
   it('authors no closed rule on either feature', () => {
     expect(JSON.stringify(feature(assassin, 'Evasion'))).not.toContain('CLOSED_RULE')
     expect(JSON.stringify(feature(berserker, 'Reckless'))).not.toContain('CLOSED_RULE')
+    expect(JSON.stringify(feature(priest, 'Divine Eminence'))).not.toContain('CLOSED_RULE')
   })
 
-  it('authors Reckless as a GM ruling', () => {
-    const path = feature(berserker, 'Reckless').effects?.[0]?.paths[0]
+  it.each([
+    ['Reckless', berserker, 'PASSIVE'],
+    ['Divine Eminence', priest, 'ACTION']
+  ] as const)('authors %s as a GM ruling', (label, creature, invocationKind) => {
+    const effect = feature(creature, label).effects?.[0]
+    expect(effect?.invocation.kind).toBe(invocationKind)
+    const path = effect?.paths[0]
     expect(path?.selectionKind === 'FIXED' && path.resultBlock.outcomes).toEqual([
-      expect.objectContaining({ effectKind: 'MANUAL_ADJUDICATION', label: 'Reckless' })
+      expect.objectContaining({ effectKind: 'MANUAL_ADJUDICATION', label })
     ])
   })
 
   it.each([
     ['Assassin', assassin],
     ['Berserker', berserker],
+    ['Priest', priest],
     ['homebrew ward Assassin', stalwartAssassin()]
   ] as const)('keeps the %s exactly as authored', async (_label, creature) => {
     const result = await normalize(creature)
