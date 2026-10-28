@@ -221,7 +221,9 @@ export async function writeCharacterSheetSections(
     (stored?.sections ?? []).map((section) => [key(section), section.checksum])
   )
   const sections = values.map(({ viewer, section, value }) => {
-    const json = canonicalizeJson(withoutStreamVersion(section, value))
+    // Projection builds each section in a fixed key order, so plain serialisation is as stable
+    // as canonical JSON at a fraction of its cost; a checksum only compares derivations.
+    const json = JSON.stringify(withoutStreamVersion(section, value))
     return { viewer, section, checksum: sha256Hex(json), json }
   })
   for (const { json, ...identity } of sections) {

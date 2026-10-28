@@ -92,12 +92,10 @@ export async function storeCharacterSheetSections(
     if (campaign && campaignContext === ownerContext && facts.sheetState.partyVisibility.sheet)
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
   }
-  // Fingerprint the Character as stored, after every write this call made.
-  const { active } = await loadCharacterState(ctx, characterId)
-  if (!active) throw new Error('Written Character is unavailable for its Sheet sections.')
+  // The facts carry the Character row as this transaction wrote it.
   const fingerprint = await readCharacterSheetFingerprint(
     ctx,
-    { active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
+    { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
     authorityScope
   )
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
