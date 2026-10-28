@@ -1,18 +1,17 @@
-import type {
-  CharacterActionModelInput,
-  CharacterActionModelOutput
+import {
+  characterActionModelInputSchema,
+  characterActionModelOutputSchema,
+  type CharacterActionModelInput,
+  type CharacterActionModelOutput
 } from '@artificer-toolkit/schema/api/characterActionRules'
 
 import { resolveDnd5eActionMechanic } from './characterActionMechanics.js'
 
-/**
- * Pure D&D 5e (2014) Character-action policy over an already-resolved Character snapshot. The
- * Character policy builds its input from parsed facts and parses the output it returns, so neither
- * is parsed again here (RELIABILITY-21.16).
- */
+/** Pure D&D 5e (2014) Character-action policy over an already-resolved Character snapshot. */
 export function evaluateDnd5e2014CharacterActions(
-  parsedInput: CharacterActionModelInput
+  input: CharacterActionModelInput
 ): CharacterActionModelOutput {
+  const parsedInput = characterActionModelInputSchema.parse(input)
   const actionDecisions = parsedInput.candidates.map((candidate) => {
     const resourceUse = candidate.resourceUse
     const sourceActive = parsedInput.activeSourceIds.includes(candidate.sourceId)
@@ -222,5 +221,10 @@ export function evaluateDnd5e2014CharacterActions(
             : null
     }
   })
-  return { actionDecisions, spellCastMechanics, spellReferenceMechanics, spellCastDecisions }
+  return characterActionModelOutputSchema.parse({
+    actionDecisions,
+    spellCastMechanics,
+    spellReferenceMechanics,
+    spellCastDecisions
+  })
 }
