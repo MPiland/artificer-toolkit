@@ -86,7 +86,6 @@ export function runnerProofs(runnerScript) {
  */
 export const KNOWN_BUG_PROOFS = {
   'publication-class-browser': 'RELIABILITY-21.T1',
-  'campaign-custody-browser': 'RELIABILITY-21.T2',
   'builder-browser': 'RELIABILITY-21.T3',
   'character-sheet-browser': 'RELIABILITY-21.T3',
   'character-sheet-spells-browser': 'RELIABILITY-21.T3',

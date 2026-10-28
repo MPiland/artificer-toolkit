@@ -97,12 +97,30 @@ describe('native Campaign equipment definition options', () => {
         paginationOpts: { cursor: null, numItems: 8 }
       })
     ).rejects.toThrow('not found')
+    // The picker reads root catalogue facts alone (D163): a corrupt payload is never loaded, while
+    // facts bound to another checksum are rejected.
     await base.t.run((ctx) => corruptPublishedVersionPayload(ctx, definitions[1]!.id))
-    await expect(
-      base.first.caller.query(equipmentOptions, {
-        campaignId: campaign.id,
-        paginationOpts: { cursor: null, numItems: 8 }
-      })
-    ).rejects.toThrow('checksum mismatch')
+    const firstPage = {
+      campaignId: campaign.id,
+      paginationOpts: { cursor: null, numItems: 8 }
+    }
+    expect(
+      (await base.first.caller.query(equipmentOptions, firstPage)).page.length
+    ).toBeGreaterThan(0)
+    await base.t.run(async (ctx) => {
+      const [root, other] = await Promise.all(
+        [definitions[1]!.id, definitions[2]!.id].map((id) =>
+          ctx.db
+            .query('authoredRoots')
+            .withIndex('by_publicId', (q) => q.eq('id', id))
+            .unique()
+        )
+      )
+      if (!root?.catalogue || !other) throw new Error('Missing stale Equipment root')
+      await ctx.db.patch(root._id, { catalogue: { ...root.catalogue, checksum: other.checksum } })
+    })
+    await expect(base.first.caller.query(equipmentOptions, firstPage)).rejects.toThrow(
+      'catalogue facts are missing or stale'
+    )
   })
 })

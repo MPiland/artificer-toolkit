@@ -635,8 +635,8 @@ a missing or stale projection is rejected; there is no payload fallback. Spell s
 status is `DRAFT` (canonical documents carry no status and are active; publication always writes `ACTIVE`); every write that stores a version sets it (`rootCatalogueFacts.test.ts` walks import,
 replacement and publication). RACE, CLASS and BACKGROUND roots also hold `catalogue.race`, `.class` or
 `.background`: the picker facts `toContentSnapshotIndexEntry` derives once at publish; EQUIPMENT roots hold
-`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, commit and the
-held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
+`catalogue.equipment.quote`. Share and parent-chain authorization, the subclass and Spell witnesses, the party
+inventory Equipment picker (`equipmentOptionsReadBudget.test.ts`), commit and the held-item capture (`captureAcquiredEquipmentRules`, prose from the root label and catalogue) read these root rows
 alone, so commit loads no authored payload (`commitReadBudget.test.ts` makes every payload unreadable before it commits). `compilationMigration:run`
 backfills both on older roots.
 
