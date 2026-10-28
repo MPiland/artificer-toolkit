@@ -126,7 +126,6 @@ export const kraken: CreatureAuthored = {
             range: { id: S.actionId(180, 603), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          pathCode: S.PATH_CODE.ON_HIT,
           label: 'Siege Monster',
           reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
           instructions:
