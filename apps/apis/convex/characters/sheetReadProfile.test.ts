@@ -1,5 +1,5 @@
 import { Session } from 'node:inspector'
-import { it } from 'vitest'
+import { it, vi } from 'vitest'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { internal } from '../_generated/api'
@@ -8,7 +8,15 @@ import { fixture } from '../../tests/fixtures/characters'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { loadCharacterSheet } from './sheetPreparation'
 
+type ProfileNode = {
+  id: number
+  callFrame: { functionName: string; url: string; lineNumber: number }
+  children?: number[]
+}
+type Profile = { nodes: ProfileNode[]; samples: number[]; timeDeltas: number[] }
+
 it('profiles the Sheet read on the seeded SRD', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
   const base = await fixture()
   console.log('SEED', JSON.stringify(await base.t.action(internal.content.seed.seed, {})))
   if (cleric.category !== 'BASE') throw new Error('Expected a base Class.')
@@ -24,6 +32,7 @@ it('profiles the Sheet read on the seeded SRD', async () => {
     undefined,
     base
   )
+  await base.t.finishAllScheduledFunctions(vi.runAllTimers)
   for (let run = 0; run < 3; run++) {
     const totals = createDatabaseIoTotals()
     const started = performance.now()
@@ -39,8 +48,10 @@ it('profiles the Sheet read on the seeded SRD', async () => {
   const session = new Session()
   session.connect()
   const post = (method: string, params?: object) =>
-    new Promise<any>((resolve, reject) =>
-      session.post(method, params, (error, result) => (error ? reject(error) : resolve(result)))
+    new Promise<{ profile: Profile }>((resolve, reject) =>
+      session.post(method, params, (error, result) =>
+        error ? reject(error) : resolve(result as { profile: Profile })
+      )
     )
   await post('Profiler.enable')
   await post('Profiler.setSamplingInterval', { interval: 100 })
@@ -50,19 +61,19 @@ it('profiles the Sheet read on the seeded SRD', async () => {
       await loadCharacterSheet(ctx, sheet.owner.userId, sheet.character.id)
     })
   const { profile } = await post('Profiler.stop')
-  const nodes = new Map<number, any>(profile.nodes.map((node: any) => [node.id, node]))
+  const nodes = new Map(profile.nodes.map((node) => [node.id, node] as const))
   const parents = new Map<number, number>()
   for (const node of profile.nodes)
     for (const child of node.children ?? []) parents.set(child, node.id)
   const self = new Map<string, number>()
   const total = new Map<string, number>()
   const files = new Map<string, number>()
-  const label = (node: any) =>
+  const label = (node: ProfileNode) =>
     `${node.callFrame.functionName || '(anon)'} ${node.callFrame.url.replace(/^.*\/(apps|packages|node_modules)\//, '$1/')}:${node.callFrame.lineNumber + 1}`
   const deltas: number[] = profile.timeDeltas
-  profile.samples.forEach((id: number, index: number) => {
+  profile.samples.forEach((id, index) => {
     const dt = (deltas[index + 1] ?? 0) / 1000
-    const node = nodes.get(id)
+    const node = nodes.get(id)!
     self.set(label(node), (self.get(label(node)) ?? 0) + dt)
     const file =
       node.callFrame.url.replace(/^.*\/(apps|packages|node_modules)\//, '$1/') ||
@@ -74,7 +85,7 @@ it('profiles the Sheet read on the seeded SRD', async () => {
       current !== undefined;
       current = parents.get(current)
     ) {
-      const key = label(nodes.get(current))
+      const key = label(nodes.get(current)!)
       if (seen.has(key)) continue
       seen.add(key)
       total.set(key, (total.get(key) ?? 0) + dt)
