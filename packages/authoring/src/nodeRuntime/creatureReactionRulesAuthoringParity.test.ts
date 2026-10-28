@@ -86,7 +86,9 @@ describe('Creature reaction rules and Wing Attack (D187a)', () => {
     await expectAuthoringParity(creature)
   })
 
-  const dragons = srdCreatures.filter((creature) => /^(Adult|Ancient) w+ Dragon$/.test(creature.label))
+  const dragons = srdCreatures.filter((creature) =>
+    /^(Adult|Ancient) w+ Dragon$/.test(creature.label)
+  )
 
   it('finds every adult and ancient dragon', () => {
     expect(dragons).toHaveLength(20)
@@ -107,7 +109,9 @@ describe('Creature reaction rules and Wing Attack (D187a)', () => {
     const outcomes = resultBlocks(wingAttack?.effects).flatMap((block) => block.outcomes)
     // The fly is the dragon's own, once, so it is no outcome of a creature's failed save.
     expect(outcomes.map(({ effectKind }) => effectKind)).toEqual(['DAMAGE', 'CONDITION'])
-    expect(wingAttack?.description).toContain('The dragon can then fly up to half its flying speed.')
+    expect(wingAttack?.description).toContain(
+      'The dragon can then fly up to half its flying speed.'
+    )
     await expectAuthoringParity(dragon)
   })
 

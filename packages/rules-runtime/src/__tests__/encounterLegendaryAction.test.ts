@@ -486,6 +486,7 @@ describe('Legendary Action choices offered at the end of a turn', () => {
         outgoingActorId: actors[0]!.id,
         actors,
         deadCharacterIds: new Set(),
+        tokenBoundActorIds: new Set(),
         loadTargets: async (actorIds) => {
           loaded.push([...actorIds])
           return new Map(

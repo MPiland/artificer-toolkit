@@ -240,7 +240,7 @@ admissions changed:
 
 - A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
   `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
+  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
   its save. When its area is centered on its owner, the turn end delegates it to the area coordinator as its own
   rule-raised root (SPELLS-33.T4l3, D197; `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`).
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
