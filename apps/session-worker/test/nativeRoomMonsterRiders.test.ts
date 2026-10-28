@@ -114,15 +114,15 @@ describe('a Purple Worm’s Tail Stinger in the room (ATTACK-5.9)', () => {
 })
 
 describe('a Kraken’s Lightning Storm in the room (ATTACK-5.8)', () => {
-  const storm = async (saveFaces: [number, number]) => {
+  const storm = async (saveFaces: [number, number], second = 'Bandit Captain') => {
     // Both targets' Dexterity saves roll first; every later die falls to the minimum (4d10 is 4, half 2).
     const room = await monsterRoom({
       monster: 'Kraken',
       feature: 'Lightning Storm',
       target: 'Veteran',
       targetAt: { x: 1350, y: 150 },
-      // An Assassin's +6 Dexterity save can meet the DC 23 on a natural 20; a Veteran's cannot.
-      second: { creature: 'Assassin', at: { x: 1350, y: 350 } },
+      // A Bandit Captain's +5 or an Assassin's +6 Dexterity save can meet the DC 23 on a natural 20; a Veteran's cannot.
+      second: { creature: second, at: { x: 1350, y: 350 } },
       rolls: saveFaces
     })
     const before = [await hitPointsOf(room), await hitPointsOf(room, SECOND_TARGET_ID)]
@@ -140,5 +140,14 @@ describe('a Kraken’s Lightning Storm in the room (ATTACK-5.8)', () => {
 
   it('halves a bolt’s damage against a target that passes its save', async () => {
     expect(await storm([0, 19])).toEqual([4, 2])
+  })
+
+  // SPELLS-33.T5afp: the Assassin's Evasion takes none on a passed save for half and half on a failed one.
+  it('halves the bolt against an Assassin with Evasion that fails its save', async () => {
+    expect(await storm([0, 0], 'Assassin')).toEqual([4, 2])
+  })
+
+  it('spares an Assassin with Evasion that passes its save', async () => {
+    expect(await storm([0, 19], 'Assassin')).toEqual([4, 0])
   })
 })
