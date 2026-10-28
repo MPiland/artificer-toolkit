@@ -25,11 +25,8 @@ export const resolve = query({
     const identity = await requireIdentity(ctx)
     const input = nodeRuntimeResolveRequestDtoSchema.parse(args)
     const reader = await createSystemSourceReader(ctx, input.systemId, identity.userId)
-    const result = await resolveNodeRuntime(reader, input)
-    // Omit optional undefined properties before crossing the JSON-only product boundary.
-    return nodeRuntimeCompactResolveResponseDtoSchema.parse(
-      JSON.parse(JSON.stringify(compactNodeRuntimeResponse(result)))
-    )
+    // The compact transport is JSON-clean and checked by `returns`, so it crosses as built.
+    return compactNodeRuntimeResponse(await resolveNodeRuntime(reader, input))
   }
 })
 
