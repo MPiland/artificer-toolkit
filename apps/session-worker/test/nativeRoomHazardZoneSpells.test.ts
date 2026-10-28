@@ -303,9 +303,10 @@ describe('the SRD Guardian of Faith zone (SPELLS-4.T2r)', () => {
       anchorKind: 'FIXED',
       label: guardianOfFaith.label,
       triggerModes: ['ENTER', 'CROSS'],
-      turnTriggers: [],
       maxApplicationsPerTurn: 1
     })
+    // It acts on entry only, never at a turn's start or end.
+    expect(zone.placement).not.toHaveProperty('turnTriggers')
     expect(JSON.parse(zone.definitionJson)).toMatchObject({
       adapterFacts: {
         [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]:
