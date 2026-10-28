@@ -33,7 +33,7 @@ function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
   return {
     ...ctx,
     db,
-    runQuery: ((reference, args) => {
+    runQuery: ((reference, ...args) => {
       // Identity still reads the Better Auth component; only an app query is a second module graph.
       // `getFunctionName` names this app's functions and refuses component references.
       let appQuery: string | null = null
@@ -44,7 +44,7 @@ function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
       }
       if (appQuery !== null)
         throw new Error(`Party item pages read in the public query transaction, not ${appQuery}.`)
-      return ctx.runQuery(reference, args)
+      return ctx.runQuery(reference, ...args)
     }) satisfies QueryCtx['runQuery']
   } as QueryCtx
 }
