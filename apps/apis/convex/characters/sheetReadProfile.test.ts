@@ -26,13 +26,13 @@ it('profiles the Sheet read on the seeded SRD', async () => {
   for (let run = 0; run < 3; run++) {
     const totals = createDatabaseIoTotals()
     const started = performance.now()
-    await sheet.owner.caller.run(async (ctx) =>
-      loadCharacterSheet(
+    await sheet.owner.caller.run(async (ctx) => {
+      await loadCharacterSheet(
         { ...ctx, db: countDatabaseIo(ctx.db, totals) },
         sheet.owner.userId,
         sheet.character.id
       )
-    )
+    })
     console.log('PROFILE', Math.round(performance.now() - started), JSON.stringify(totals.reads))
   }
 }, 600_000)
