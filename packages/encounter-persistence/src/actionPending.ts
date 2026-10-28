@@ -505,7 +505,9 @@ export function projectNativeActionPending(
             rollMode: shown.rollMode,
             contributors: shown.contributors
           }),
-          ...(d20Policy ? encounterAutoFailRequest(reasons, d20Policy, context.rollerActorId) : {}),
+          ...(d20Policy && 'autoFailConditionIds' in d20Policy
+            ? encounterAutoFailRequest(reasons, d20Policy, context.rollerActorId)
+            : {}),
           ...addedDice
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
