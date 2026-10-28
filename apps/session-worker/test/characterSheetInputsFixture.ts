@@ -192,6 +192,7 @@ export async function characterSheetInputsFixture({
   characterId,
   ownerUserId,
   darkvision = false,
+  classFeatures,
   scene,
   actor,
   status,
@@ -201,6 +202,8 @@ export async function characterSheetInputsFixture({
   characterId: string
   ownerUserId: string
   darkvision?: boolean
+  /** Further Features the Character's Class carries. */
+  classFeatures?: readonly ClassFeature[]
   scene?: { sceneId: string; tokenId: string }
   /** How the Run's actor for this Character shows: hidden from players, and whose turn it is. */
   actor?: { public?: boolean; current?: boolean }
@@ -212,7 +215,8 @@ export async function characterSheetInputsFixture({
     campaignId,
     characterId,
     ownerUserId,
-    darkvision
+    darkvision,
+    classFeatures
   })
   const { encounterId, actorIds, documents, version } = await encounterRunFixture({
     campaignId,

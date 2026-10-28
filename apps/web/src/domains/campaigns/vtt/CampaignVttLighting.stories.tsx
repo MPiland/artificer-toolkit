@@ -891,6 +891,59 @@ export const TruesightSeesThroughMagicalDarkness: Story = {
   }
 }
 
+// A Warlock's Devil's Sight reaches the System's darkest level like truesight: the magical darkness
+// is cleared inside the range yet still marked on the map by its dotted outline.
+const devilsSight = senseOf(
+  'VISUAL',
+  'MAGICAL_DARKNESS',
+  20,
+  "Devil's Sight 20 ft.",
+  '66666666-6666-4666-8666-666666666605'
+)
+const inZoneToken = {
+  ...warden,
+  controlledByUserIds: [],
+  hidden: false,
+  id: '77777777-7777-4777-8777-777777777861',
+  position: { x: 400, y: 450 },
+  senses: [],
+  vision: null
+}
+const beyondRangeToken = {
+  ...inZoneToken,
+  id: '77777777-7777-4777-8777-777777777862',
+  position: { x: 900, y: 450 }
+}
+const devilsSightCave = validated(campaignSceneStateDtoSchema)({
+  ...caveSceneFor(seerWith([devilsSight])),
+  tokens: [seerWith([devilsSight]), inZoneToken, beyondRangeToken]
+})
+
+export const DevilsSightSeesTokensInMagicalDarknessWithoutColourLoss: Story = {
+  args: { samplePoints: cavePoints, scene: devilsSightCave, view: viewEmber },
+  play: async ({ canvasElement }) => {
+    const { lighting, samples, tokens } = await readLighting(canvasElement)
+    // The zone's ground and the ordinary darkness in range are clear, in full colour, where dim
+    // light is a visible tint; ground out of range or behind the wall keeps the darkness.
+    expect(samples.map((sample) => sample.alpha)).toEqual([
+      expect.closeTo(0, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(0, 1),
+      expect.closeTo(illuminationOverlayAlpha('DIM'), 1),
+      expect.closeTo(1, 1),
+      expect.closeTo(1, 1)
+    ])
+    expect(samples[2]!.alpha).toBeLessThan(samples[3]!.alpha)
+    expect(samples.every((sample) => !sample.greyscale)).toBe(true)
+    // Clearing it does not unmark it: the zone keeps its dotted arcane outline.
+    expect(lighting.darknessZones.magical).toBe(1)
+    expect(lighting.magicalDarknessOutlineCount).toBe(1)
+    const visible = (id: string) => tokens.find((token) => token.id === id)?.visible
+    expect(visible(inZoneToken.id)).toBe(true)
+    expect(visible(beyondRangeToken.id)).toBe(false)
+  }
+}
+
 const blindsightCave = caveSceneFor(seerWith([blindsight]))
 const blindsightPoints = [
   { x: 250, y: 450 },

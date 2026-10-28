@@ -11,27 +11,32 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { RoomCharacterInputs } from './roomInputsFixture.js'
 
-const darkvisionSeed = SRD_SENSE_DEFINITIONS.find(({ id }) => id === SRD_DARKVISION_SENSE_ID)!
-
-/** The platform Sense definition a room reads for the Darkvision `darkvision` grants. */
-export const darkvisionDefinition = liveRoomDefinitionSchema.parse({
-  id: darkvisionSeed.id,
-  sourceKind: 'PLATFORM',
-  definition: reusableDefinitionCurrentDtoSchema.parse({
-    id: darkvisionSeed.id,
-    gameSystemId: srdSystemRecord.id,
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitionFamilyKey: 'sense',
-    label: darkvisionSeed.label,
-    description: darkvisionSeed.description,
-    document: darkvisionSeed.document,
-    checksum: darkvisionSeed.checksum,
-    contractVersion: 1,
-    version: 1,
-    publishedAt: '2026-09-30T00:00:00.000Z',
-    publishedBy: crypto.randomUUID()
+/** The platform Sense definition a room reads for the SRD Sense `senseId` that Features grant. */
+export function srdSenseDefinition(senseId: string) {
+  const seed = SRD_SENSE_DEFINITIONS.find(({ id }) => id === senseId)
+  if (!seed) throw new Error('Missing SRD Sense definition.')
+  return liveRoomDefinitionSchema.parse({
+    id: seed.id,
+    sourceKind: 'PLATFORM',
+    definition: reusableDefinitionCurrentDtoSchema.parse({
+      id: seed.id,
+      gameSystemId: srdSystemRecord.id,
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitionFamilyKey: 'sense',
+      label: seed.label,
+      description: seed.description,
+      document: seed.document,
+      checksum: seed.checksum,
+      contractVersion: 1,
+      version: 1,
+      publishedAt: '2026-09-30T00:00:00.000Z',
+      publishedBy: crypto.randomUUID()
+    })
   })
-})
+}
+
+/** The Darkvision definition a room reads for the Race `darkvision` grants. */
+export const darkvisionDefinition = srdSenseDefinition(SRD_DARKVISION_SENSE_ID)
 
 /** The SRD System and its vocabulary snapshot as a room reads them for the Campaign. */
 export function srdSystemRoomInputs(campaignId: string): RoomCharacterInputs['system'] {
