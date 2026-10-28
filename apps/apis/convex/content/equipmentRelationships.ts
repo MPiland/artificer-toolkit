@@ -30,7 +30,8 @@ export async function assertEquipmentRelationshipsIndexed(ctx: QueryCtx, systemI
   }
 }
 
-export async function compileCurrentEquipment(
+/** The effective Equipment over its validated parents; read paths stop here and never compile (D163). */
+export async function resolveCurrentEquipment(
   ctx: QueryCtx,
   document: EquipmentAuthoredDto,
   userId: string | null,
@@ -57,10 +58,18 @@ export async function compileCurrentEquipment(
     document as EquipmentAuthored,
     (id) => ancestors.get(id) as EquipmentAuthored | undefined
   )
+  return { effective, documentsById: ancestors }
+}
+
+/** The resolved Equipment and its compilation, for the paths that store one. */
+export async function compileCurrentEquipment(...args: Parameters<typeof resolveCurrentEquipment>) {
+  const resolved = await resolveCurrentEquipment(...args)
   return {
-    effective,
-    documentsById: ancestors,
-    compilation: compilePublicationDocument({ subjectKind: 'EQUIPMENT', document }, effective)
+    ...resolved,
+    compilation: compilePublicationDocument(
+      { subjectKind: 'EQUIPMENT', document: args[1] },
+      resolved.effective
+    )
   }
 }
 

@@ -624,7 +624,9 @@ validator still admits `subject-compiler-v1` rows so the migration can read them
 Read paths never compile (PLATFORM-21.T1b, D163): Convex Builder and Sheet preparation, commit, the browser Builder
 (format 3 snapshot `compilations`) and the room hydrate the stored row, checked against the root checksum. Only
 publish, import, the seed and the migration call a subject compiler (`readPathCompilation.test.ts`), and publish
-compiles before it stores, so a compile failure stores no version or compilation.
+compiles before it stores, so a compile failure stores no version or compilation. That guard is per file, so a
+read path that needs only the effective Equipment calls `resolveCurrentEquipment`, never
+`compileCurrentEquipment` (party inventory pages, the snapshot builder projection, the search backfill check).
 
 **Equipment projection.** `authoredRoots.equipmentOptions.builder` is an optional checksum-bound projection of
 the Equipment selector fields. Builder reads preserve the complete authorized set and validate the parent graph;

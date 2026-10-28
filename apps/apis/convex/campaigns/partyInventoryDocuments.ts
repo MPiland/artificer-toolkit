@@ -23,7 +23,7 @@ import {
   readAuthoredVersion,
   readPublishedDocumentPayload
 } from '../content/documents'
-import { compileCurrentEquipment } from '../content/equipmentRelationships'
+import { resolveCurrentEquipment } from '../content/equipmentRelationships'
 import { readCampaignSharedActiveRoot, readCampaignSharedRootPublication } from './contentAccess'
 import { requireSystem } from '../content/systemDocuments'
 import { readCurrencySystem } from './currencySystemDocuments'
@@ -115,7 +115,7 @@ export async function readPartyEquipment(
   const source = await readPartyEquipmentSource(ctx, campaign, equipmentId)
   if (!source) throw new Error('Campaign Equipment is unavailable.')
   return (
-    await compileCurrentEquipment(
+    await resolveCurrentEquipment(
       ctx,
       source.document,
       null,
@@ -141,7 +141,7 @@ export async function readHeldPartyEquipment(
       const source = await readPartyEquipmentSource(ctx, campaign, item.equipmentId)
       return source
         ? (
-            await compileCurrentEquipment(
+            await resolveCurrentEquipment(
               ctx,
               source.document,
               null,

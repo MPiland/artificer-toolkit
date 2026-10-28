@@ -256,11 +256,15 @@ describe('native Campaign party inventory', () => {
     expect(stored.items).toHaveLength(2)
     const second = stored.items[1]!
     expect(second.retainedRulesJson).toBeTypeOf('string')
+    const resolve = vi.spyOn(equipmentRelationships, 'resolveCurrentEquipment')
     const compile = vi.spyOn(equipmentRelationships, 'compileCurrentEquipment')
     try {
       const page = await gm.caller.query(items, pageInput(campaign.id))
       expect(page.page).toHaveLength(2)
-      expect(compile).toHaveBeenCalledTimes(1)
+      expect(resolve).toHaveBeenCalledTimes(1)
+      // RELIABILITY-21.2: the page reads no subject compiler (D163); compiling each held item
+      // timed the page out at Convex's 1 s limit on CI.
+      expect(compile).not.toHaveBeenCalled()
       await t.run((ctx) => ctx.db.patch(second._id, { retainedRulesJson: '{}' }))
       await expect(gm.caller.query(items, pageInput(campaign.id))).rejects.toThrow()
       await t.run(async (ctx) => {
@@ -273,6 +277,7 @@ describe('native Campaign party inventory', () => {
         /checksum|identity/i
       )
     } finally {
+      resolve.mockRestore()
       compile.mockRestore()
     }
   })
