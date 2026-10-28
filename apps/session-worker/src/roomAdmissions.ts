@@ -71,11 +71,15 @@ export class RoomAdmissions {
     return this.#expiring.get(socket)
   }
 
-  /** Restores a surviving socket's admission from its attachment; a restore is not an admission event. */
+  /**
+   * Restores a surviving socket's admission from its attachment; a restore is not an admission event.
+   * It arms no expiry: the attachment cannot tell whether the socket was challenged before the room
+   * slept, so `reauthenticateExpiring` challenges it at its own lead time, even when the wake is that
+   * alarm.
+   */
   restore(socket: WebSocket, admission: Admission): void {
     this.#generations.set(socket, admission.generation)
     this.#admissions.set(socket, admission)
-    this.#trackExpiry(socket, admission.deadline)
   }
 
   /** A token already inside the re-authentication window is not challenged again; it runs to expiry. */
