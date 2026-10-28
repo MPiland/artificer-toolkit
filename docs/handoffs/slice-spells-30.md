@@ -5,14 +5,15 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 ## Resume here
 
 - T1 (closes AC SPELLS-30.1): D148 approved 2026-10-17 with three conditions (below). Merged in m95.
-- T2 (closes AC SPELLS-30.1): Blade Barrier, data-only (D187a, size 2). Branch `claude/spells-30-t2-2c3b2f`, pushed to `ci/spells-30-t2`. The cover clause waits on an orchestrator ruling (below).
+- T2 (closes AC SPELLS-30.1): Blade Barrier, data-only (D187a, size 2). Branch `claude/spells-30-t2-2c3b2f`, pushed to `ci/spells-30-t2`. The cover clause is a GM ruling (orchestrator ruling B, below).
 
 ## T2: Blade Barrier (D154 walls, D148 pick)
 
 ### Findings
 
-- `blade-barrier.ts` was already authored from core options: the Straight Wall (100 ft) or Ringed Wall (30 ft radius, hollow, 5 ft wall) pick, `ENTER_OR_PASS_THROUGH` plus `START_TURN_IN_SPACE` (ENTER, CROSS and START_OF_TURN), one application per turn, `movementCostMultiplier 2`, and a Dexterity save for 6d10 slashing, half on a success. No production change was needed.
-- **Cover gap (ruling requested 2026-10-27):** `blockingRules: ['THREE_QUARTERS_COVER']` compiles and is projected on the placed zone, but nothing applies it. `resolveEncounterCover` reads only the Scene's barriers, doors, tokens and the GM tier override. D154 assigned zone cover to SPELLS-14, which closed without it. The recommendation is a GM ruling through the SPELLS-14.2 override, with a future-enhancements entry.
+- `blade-barrier.ts` was already authored from core options: the Straight Wall (100 ft) or Ringed Wall (30 ft radius, hollow, 5 ft wall) pick, `ENTER_OR_PASS_THROUGH` plus `START_TURN_IN_SPACE` (ENTER, CROSS and START_OF_TURN), one application per turn, `movementCostMultiplier 2`, and a Dexterity save for 6d10 slashing, half on a success. No engine change was needed.
+- **Cover gap:** `blockingRules: ['THREE_QUARTERS_COVER']` compiles and is projected on the placed zone, but nothing applies it. `resolveEncounterCover` reads only the Scene's barriers, doors and tokens, plus the GM tier override. D154 assigned zone cover to SPELLS-14, which closed without it.
+- **Ruling B (orchestrator, 2026-10-27):** cover ships as a GM ruling through the SPELLS-14.2 tier override. The orchestrator logs zone cover as a cover source in future-enhancements, and no follow-up task is registered. The spell description now ends with a GM-ruling paragraph that tells the GM to give three-quarters cover with the token's cover override. An authored MANUAL_ADJUDICATION outcome placed beside the zone is not possible: `placedSpaceEntries` (`placedSpaceEntries.ts:38`) refuses any ON_USE companion other than one APPLY_GRANT. The projection is unchanged, and no proof claims that the cover is enforced. `semantic-ledger.json` `authoredSha256` is verified by no code, so it was not regenerated (as in SPELLS-7 and SPELLS-20).
 
 ### Proofs
 
