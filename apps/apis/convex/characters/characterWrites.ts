@@ -47,10 +47,24 @@ type CharacterRecordFields = Omit<
 /** JSON without `undefined` members, as the canonical stored form has none. */
 const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
 
+/** The stored head of a capture: its identity, without the clock, structure and hashes. */
+function characterHead(record: CharacterStoredRecord) {
+  const {
+    updatedAt: _updatedAt,
+    documentJson: _documentJson,
+    sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
+    ...head
+  } = record
+  return characterStoredHeadSchema.parse(head)
+}
+
 /**
  * The single writer of a Character. It splits complete inputs into typed operational records and
- * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the head's
- * `updatedAt`, the Builder's concurrency clock, advances only when the structure changes. It then
+ * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the build
+ * record's `updatedAt`, the Builder's concurrency clock, advances only when the structure changes,
+ * and the head is replaced only when its own identity fields change. It then
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
  * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
@@ -186,17 +200,16 @@ export async function writeCharacterRecord(
     : playChanged
       ? { ...playRecord, updatedAt }
       : playRecord
-  const {
-    documentJson: _documentJson,
-    sheetState: _sheetState,
-    checksum: _checksum,
-    sheetStateChecksum: _sheetStateChecksum,
-    ...headFields
-  } = nextRecord
-  const head = characterStoredHeadSchema.parse(headFields)
-  // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves.
+  const head = characterHead(nextRecord)
+  // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves. The clock
+  // advances on the build record, so a Sheet command leaves the head every Campaign read joins.
   if (structureChanged) await writeCharacterOperationalStructure(ctx, current, nextRecord)
-  if (current && structureChanged) await ctx.db.replace(current._id, head)
+  if (
+    current &&
+    checksumCanonicalJson(characterHead(characterStoredRecordSchema.parse(stored))) !==
+      checksumCanonicalJson(head)
+  )
+    await ctx.db.replace(current._id, head)
   const rowId = current ? current._id : await ctx.db.insert('characters', head)
   if (current && playChanged && !held) await ctx.db.replace(current.play._id, nextPlayRecord)
   const playId = current
@@ -246,8 +259,8 @@ export async function writeCharacterRecord(
 }
 
 /**
- * A note edit's focused write: changed note and group records, the build's counts, the head's
- * structure clock and, unless the live table holds the Character, the play version and clock. No
+ * A note edit's focused write: changed note and group records, the build's counts and structure
+ * clock and, unless the live table holds the Character, the play version and clock. No
  * other record is read or rewritten and nothing is evaluated, as notes change no mechanical fact.
  */
 export async function writeCharacterNoteRecords(
@@ -263,13 +276,12 @@ export async function writeCharacterNoteRecords(
   }
 ) {
   const { head, play, streamVersion, updatedAt } = input
-  const after = encodeCharacterNoteRecords(input.build, input.next)
+  const after = encodeCharacterNoteRecords(input.build, input.next, updatedAt)
   await writeCharacterOperationalRecords(
     ctx,
     { build: input.build, collections: input.records },
     after
   )
-  await ctx.db.patch(head._id, { updatedAt })
   if (await readCharacterLiveHold(ctx, head.id)) return
   const { _id, _creationTime, ...fields } = play
   await ctx.db.replace(

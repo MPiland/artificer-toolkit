@@ -196,7 +196,7 @@ a fallback persistence path for native Characters.
 flowchart LR
   Identity["Better Auth session / public owner UUID"] --> Draft["characters/drafts create / save / discard"]
   Binding["systems: verified System UUID + checksum"] --> Draft
-  Active["characters: active document + updatedAt"] -->|"read only"| Draft
+  Active["characters + characterBuildStates.updatedAt"] -->|"read only"| Draft
   Draft --> Work["characterDrafts: private payloadJson + checksum"]
   Draft --> Route["authoredRouteIds: CHARACTER UUID / compact alias"]
 ```
@@ -699,10 +699,10 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 
 | Record                 | Owner                                             | Holds                                                                                                                                                 | Concurrency clock |
 | ---------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `characters`           | Builder and structural Sheet writes               | Identity, portrait, complete structure checksums                                                                                                      | `updatedAt`       |
-| `characterBuildStates` | Builder and Sheet adjustments                     | Profile, intent, adjustments, movement preference, optional collection presence                                                                       | Head `updatedAt`  |
+| `characters`           | Builder identity and portrait writes              | Identity, portrait                                                                                                                                    | None              |
+| `characterBuildStates` | Builder and Sheet adjustments                     | Structure clock, profile, intent, adjustments, movement preference, optional collection presence                                                      | `updatedAt`       |
 | `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `speeds` (feet per speed type), identity                                                         | `streamVersion`   |
-| Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Head `updatedAt`  |
+| Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Build `updatedAt` |
 
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
   (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
@@ -722,8 +722,10 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
   `shared/character/sheetRest` value validator, never the complete Character mechanics barrel.
   Development data is reset and seeded with the local lifecycle; no compatibility reader is retained.
 - **One writer.** `writeCharacterRecord` splits the document and Sheet state it is given, diffs
-  individual owned records by ID and checksum, and advances the structure `updatedAt` only when
-  structure changes. All changes share the caller's transaction. A play write replaces only the
+  individual owned records by ID and checksum, and advances the build record's structure `updatedAt`
+  only when structure changes. It replaces the `characters` head only when identity or portrait
+  fields change, so a Sheet command leaves the head every Campaign read joins untouched
+  (ADR 0035 Amendment 12, RELIABILITY-21.16). All changes share the caller's transaction. A play write replaces only the
   small play record. The Encounter persistence port reaches this same function.
 - **Readers merge.** `readCharacterRow` assembles all indexed operational records; the Sheet projection, rules
   evaluation, Encounter facts and the live-session INPUTS capture (one joined `owner` row, from which
@@ -745,8 +747,8 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
 
 1. **Play commands** (Sheet commands, rests, GM adjustments, Encounter mechanics) check
    `expectedVersion` against `characterPlayStates.streamVersion` and advance it by one per
-   transaction. They do not read `characters.updatedAt` for concurrency.
-2. **Builder commits** check the draft's `baseActiveUpdatedAt` against `characters.updatedAt`. The
+   transaction. They do not read the structure `updatedAt` for concurrency.
+2. **Builder commits** check the draft's `baseActiveUpdatedAt` against `characterBuildStates.updatedAt`. The
    commit overlays the live play state onto the draft's candidate before preparation, so a Builder
    save preserves current HP, slots and resources spent while the draft was open. It advances the
    play stream only when the commit itself changes play content (a new Character, hit dice
@@ -757,7 +759,7 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
    equal to the new maximum. The comparison uses the Character-only maximum, so a Campaign hit point
    adjustment is not visible to the Builder; readers still clamp to the effective maximum.
 4. **Structure changes made by the Sheet** (inventory, currency, Sheet adjustments, spell
-   customizations, movement preference) advance `characters.updatedAt`, so a stale Builder draft
+   customizations, movement preference) advance `characterBuildStates.updatedAt`, so a stale Builder draft
    still conflicts with them.
 5. **Single-use items** (D102) are a play record overlay, `itemUsage`, not a structure edit. The
    effective quantity is the stored quantity minus `used`; `readCharacterRecord` returns it and hides

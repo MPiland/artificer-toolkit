@@ -19,7 +19,7 @@ import {
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
-import type { RoomInputs } from './roomInputs.js'
+import { characterHeadDocument, type RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 
 /** The Scene tokens the room draws for a member (ATTACK-17.3); null when the room cannot tell. */
@@ -186,8 +186,12 @@ export async function roomEncounterReadTransaction(input: {
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique()
       if (!part.inputs || !head) return null
-      // Every structural write advances the head's structure clock; callers check identity.
-      if (head.updatedAt !== part.inputs.owner.updatedAt)
+      // The head is restored with the inputs that carry it; a head from other inputs is stale.
+      const { _id: _headId, _creationTime: _headCreated, ...headFields } = head
+      if (
+        checksumCanonicalJson(headFields) !==
+        checksumCanonicalJson(characterHeadDocument(part.inputs.owner).fields)
+      )
         throw new Error('Room Character structure is stale.')
       const play = await db
         .query('characterPlayStates')

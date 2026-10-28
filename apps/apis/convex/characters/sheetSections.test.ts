@@ -256,4 +256,44 @@ describe('Stored Character Sheet sections (ADR 0040)', () => {
     expect(await readStored(characterSheetSection.slice('COMMON'))).not.toBeNull()
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
   }, 60_000)
+
+  it('leaves the Character head every Campaign read joins unchanged across Sheet commands', async () => {
+    const { t, player, character, visibility } = await setup()
+    const readRecords = () =>
+      t.run(async (ctx) => ({
+        head: await ctx.db
+          .query('characters')
+          .withIndex('by_publicId', (q) => q.eq('id', character.id))
+          .unique(),
+        build: await ctx.db
+          .query('characterBuildStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+      }))
+    const before = await readRecords()
+
+    // A Sheet adjustment changes the Sheet structure, so the structure clock advances.
+    const adjusted = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 1 }
+      }
+    })
+    await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: adjusted.streamVersion,
+        current: 1
+      }
+    })
+    const after = await readRecords()
+
+    expect(after.head).toEqual(before.head)
+    expect(Date.parse(after.build!.updatedAt)).toBeGreaterThan(Date.parse(before.build!.updatedAt))
+  }, 60_000)
 })
