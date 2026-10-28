@@ -219,9 +219,9 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       [{ conditionTypeId: conditionId('PRONE'), level: 2 }]
     ])
       await expect(setConditions(conditions, result.projection.version)).rejects.toThrow()
-    expect(
-      readStoredRunActor((await stored(base, run.id, customActor.id)).actor!).conditions
-    ).toEqual([{ conditionTypeId: exhaustion.id, level: 3 }])
+    expect(readStoredRunActor((await stored(base, run.id, customActor.id)).actor!)).toMatchObject({
+      conditions: [{ conditionTypeId: exhaustion.id, level: 3 }]
+    })
   }, 30000)
   it('bridges a Character Sheet command, retains max override, and replays its original Encounter result', async () => {
     const base = await setup()
