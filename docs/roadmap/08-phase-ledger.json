@@ -15544,7 +15544,7 @@
             },
             {
               "id": "SPELLS-31.T4l1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15554,7 +15554,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2o"]
               },
               "text": "Join SPELLS-4.T2l: Cunning Action, Fast Hands, Vanish, Ki disciplines. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/architecture/character.md"
+              "mergedAt": "2026-10-28T21:51:51Z",
+              "proof": "Tests 40768568172, Live backend 40768568221, Browser journeys 40768568113 on 8b886160a; cunningActionAndKiAuthoringParity.test.ts, nativeRoomCunningAction.test.ts; four closed kinds deleted, D188 standing offers wired for Characters.",
+              "note": " Merged in m530."
             },
             {
               "id": "SPELLS-31.T4l2",
@@ -16802,7 +16804,7 @@
             },
             {
               "id": "SPELLS-33.T4l3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16812,8 +16814,9 @@
                 "after": ["SPELLS-33.T4l2"]
               },
               "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated.",
-              "note": " Re-sized 3 to 5 (orchestrator ruling B 2026-10-28): the area option is delegated through the area coordinator with ADVANCE_TURN split around it; all 20 dragons get self sphere, damage and prone; the fly is a GM ruling.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": " Re-sized 3 to 5 (orchestrator ruling B 2026-10-28): the area option is delegated through the area coordinator with ADVANCE_TURN split around it; all 20 dragons get self sphere, damage and prone; the fly is a GM ruling. Merged in m530.",
+              "mergedAt": "2026-10-28T21:51:51Z",
+              "proof": "Tests 40768657624, Live backend 40768657562, Browser journeys 40768657404 on 556558fa4; D197 delegated self-centered Legendary area option through the area coordinator between ADVANCE_TURN halves; all 20 dragons author Wing Attack with authoring parity; golden flips 20 lines to TEST_OUTCOME. Deferred edge cases: HP zero inside the delegated root, voided root forgoes the option."
             },
             {
               "id": "SPELLS-33.T4m",
@@ -20285,9 +20288,10 @@
             {
               "id": "RELIABILITY-21.13",
               "text": "area-browser and account-deletion-browser pass without reruns while every proof runs: no Convex query or mutation on their paths (the area scene hydrate query, Encounter history verification, characters/sheetCommands:execute) exceeds the 1 s function limit on CI.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T13 (m522); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T13."
             },
             {
               "id": "RELIABILITY-21.14",
@@ -20521,7 +20525,7 @@
             },
             {
               "id": "RELIABILITY-21.T13",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.13"],
               "wsjf": {
                 "bv": 5,
@@ -20530,8 +20534,9 @@
                 "size": 3
               },
               "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths. Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54. Also owns effects-browser: encounters/activeReads:active ran 869-1,092 ms of compute on CI while reading 21-28 documents. Also owns publication-class-browser: authoring/nodeRuntime:resolve on the Class guided-copy edit page read 471 documents and ran 1,169 ms on CI (ci/reliability-21-t3 40688448460, twice), though it passed on ci/reliability-21-t2 40656550933 with RELIABILITY-21.T1 merged. Also owns disarm-browser: the same activeReads:active query timed out at 1,086 ms reading 36 documents (47 KB) on \"hydrate Disarm scene\" (ci/reliability-21-t3 40694271954, twice).",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun. Merged in m522.",
+              "mergedAt": "2026-10-28T16:58:15Z",
+              "proof": "Tests 40723362411, Live backend 40723362549, Browser journeys 40723362316 on 36b157728; activeReads bounded under the 1 s limit with lazy validators and root-fact pickers. Remaining campaign-custody and publication-class overruns moved to T18 and T19 (labels retargeted in m529)."
             },
             {
               "id": "RELIABILITY-21.T14",
