@@ -440,13 +440,25 @@ export async function persistEncounterTurnResources(
     if (!effectTarget)
       throw new Error('Live Session Legendary Action effect target is unavailable.')
     const settled = targetActorId === ownerId ? effectTarget : await readActor(ownerId)
-    if (featureChargeUsed(settled, feature.id) !== resource.beforeUsed)
+    // A spell the action casts from a slot spends that slot row too (SPELLS-33).
+    // A Legendary Action's owner is a Creature, so only its own slot row can pay.
+    const slot = application.spellCastConsumption
+    if (
+      featureChargeUsed(settled, feature.id) !== resource.beforeUsed ||
+      (slot &&
+        (slot.owner.kind !== 'CREATURE' ||
+          slot.owner.actorId !== ownerId ||
+          featureChargeUsed(settled, slot.slotKey) !== slot.beforeUsed))
+    )
       throw new Error('Live Session Legendary Action resource changed before settlement.')
+    const spentResources = withFeatureChargeUsed(settled, feature.id, resource.afterUsed)
     await writeActor(
       settled,
       encounterRunActorStateSchema.parse({
         ...settled,
-        resources: withFeatureChargeUsed(settled, feature.id, resource.afterUsed)
+        resources: slot
+          ? withFeatureChargeUsed({ resources: spentResources }, slot.slotKey, slot.afterUsed)
+          : spentResources
       })
     )
     // The action's dice post exactly as a direct action's do, each Legendary Action in its own scope.

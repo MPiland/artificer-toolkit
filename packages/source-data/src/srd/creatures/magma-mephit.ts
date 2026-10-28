@@ -71,6 +71,7 @@ export const magmaMephit: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.HEAT_METAL],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 10,
             charges: {
               id: S.actionId(188, 1302),
               limitKind: 'FIXED_AMOUNT',

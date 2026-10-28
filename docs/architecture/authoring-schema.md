@@ -223,8 +223,11 @@ resolution, and frontend contracts above are canonical.
 
 Phase 8.2's native `authoring/nodeRuntime.resolve` and `normalizeValues` are authenticated Convex
 queries using shared request/result schemas. Native resolution uses the lossless compact transport
-in `schema/api/nodeRuntimeTransport`: root metadata is unchanged, response-local `models` hold
-distinct resolved scope models, and `scopes` pair every absolute path with its `modelIndex`.
+in `schema/api/nodeRuntimeTransport`: a response-local `nodes` table holds each distinct resolved
+node once, root steps and the distinct scope `models` list node indexes in their sections, and
+`scopes` pair every absolute path with its `modelIndex`. `compactNodeRuntimeResponse` is the only
+producer and `expandNodeRuntimeResponse` the only consumer; response bytes are budgeted by the
+seeded-Fighter test in `apps/apis/convex/authoring/nodeRuntime.test.ts` (RELIABILITY-21.T1).
 The web query selector validates and expands these into the existing full renderer DTO; the
 subscription cache retains the compact response. No populated scope is omitted, and models are
 not cached across requests. At that intermediate point, the pure resolver and temporary SQL response

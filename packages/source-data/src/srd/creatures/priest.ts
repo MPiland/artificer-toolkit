@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 import * as S from './shared.js'
@@ -49,7 +50,8 @@ export const priest: CreatureAuthored = {
       description:
         'Divine Eminence. As a bonus action, the priest can expend a spell slot to cause its melee weapon attacks to magically deal an extra 10 (3d6) radiant damage to a target on a hit. This benefit lasts until the end of the turn. If the priest expends a spell slot of 2nd level or higher, the extra damage increases by 1d6 for each level above 1st.',
       effects: [
-        S.closedRuleEffect({
+        // A creature action cannot spend a spell slot, so the slot and the extra damage are a GM ruling (D187a).
+        S.manualAdjudicationEffect({
           id: S.bonusActionId(225, 501),
           invocation: {
             kind: 'ACTION',
@@ -58,7 +60,10 @@ export const priest: CreatureAuthored = {
             range: { id: S.bonusActionId(225, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PRIEST_DIVINE_EMINENCE
+          label: 'Divine Eminence',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The priest expends a spell slot. Until the end of the turn, its melee weapon attacks deal an extra 3d6 radiant damage on a hit, plus 1d6 for each slot level above 1st. The GM spends the slot and adds the damage.'
         })
       ],
       order: 1
@@ -71,6 +76,7 @@ export const priest: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         225,
         S.ABILITY_CODE.WISDOM,
+        13,
         [S.SPELL_IDS.LIGHT, S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
         [
           {

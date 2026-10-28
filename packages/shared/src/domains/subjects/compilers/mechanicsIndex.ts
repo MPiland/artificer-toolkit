@@ -379,6 +379,7 @@ function nodeDescriptor(
         field('range', value.range),
         field('castAtLevel', value.castAtLevel),
         field('castingAbility', value.castingAbility),
+        field('spellSaveDc', value.spellSaveDc),
         field('attributes', value.attributes),
         field('filters', value.filters),
         field('restrictions', value.restrictions)

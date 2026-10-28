@@ -708,7 +708,10 @@ sharing, and runtime rule execution remain separate Gate 2 cases.
 
 `authoring/nodeRuntime.resolve` and `normalizeValues` are authenticated, read-only Convex queries
 over shared node-runtime DTOs. Native resolution returns `NodeRuntimeCompactResolveResponseDto`:
-root metadata plus response-local distinct scope models and absolute-path/model-index pairs.
+a response-local `nodes` table of distinct resolved nodes, root steps and distinct scope models whose
+sections list node indexes, and absolute-path/model-index pairs. The output is JSON-clean and checked
+only by the function's `returns` validator (no second zod parse); its size drives the query's cost
+(RELIABILITY-21.T1: seeded Fighter 756 KB before node interning).
 The web selector validates and expands this lossless representation for the existing renderer;
 the native subscription remains a query. Normalization and the temporary SQL response are unchanged.
 `packages/authoring` owns the extracted resolver and

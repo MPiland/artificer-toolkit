@@ -79,6 +79,7 @@ export const spiritNaga: CreatureAuthored = {
             spellIds: [S.SPELL_IDS.MAGE_HAND, S.SPELL_IDS.MINOR_ILLUSION, S.SPELL_IDS.RAY_OF_FROST],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.PREPARED, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 14,
             order: 0
           },
           ...[
@@ -101,6 +102,7 @@ export const spiritNaga: CreatureAuthored = {
             ],
             castAtLevel: level as number,
             castingAbility: S.ABILITY_CODE.INTELLIGENCE,
+            spellSaveDc: 14,
             charges: {
               id: S.featureId(259, 230 + index),
               limitKind: 'FIXED_AMOUNT' as const,

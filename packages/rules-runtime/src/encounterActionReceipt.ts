@@ -196,7 +196,7 @@ export function buildEncounterActionStoredExecution(input: {
             settled.sourceItemDraw?.kind === 'CHARACTER_ITEM_DRAW' ||
             settled.sourceItemDegradation ||
             settled.itemConsumptionReceipt ||
-            settled.spellConsumptionReceipt ||
+            settled.spellConsumptionReceipt?.owner.kind === 'CHARACTER' ||
             settled.sourceApplications.length
               ? {
                   sourceCharacterId: actor.kind === 'CHARACTER' ? actor.sourceId : null

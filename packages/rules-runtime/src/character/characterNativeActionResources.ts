@@ -3,7 +3,7 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
-import type { CharacterSpellSlotConsumptionReceiptDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import type { CharacterSpellSlotConsumptionFieldsDto } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
@@ -80,7 +80,7 @@ export type NativeCharacterItemConsumption = {
   expectedStreamVersion: number
 }
 
-export type NativeCharacterSpellConsumption = CharacterSpellSlotConsumptionReceiptDto & {
+export type NativeCharacterSpellConsumption = CharacterSpellSlotConsumptionFieldsDto & {
   expectedStreamVersion: number
 }
 

@@ -84,12 +84,24 @@ export function buildVttTokenPresentations(input: {
     const statuses = actor
       ? [
           ...actorConditionStatuses(actor.conditions, input.conditionTypes),
-          ...actor.activeGrants.map((grant) => ({
-            category: grantCategories[grant.polarity],
-            id: `grant:${grant.effectId}`,
-            kind: 'EFFECT' as const,
-            label: `${activeGrantLabel(grant)}, ${activeGrantTimeLeft(grant)}`
-          })),
+          ...actor.activeGrants.map((grant) => {
+            // Another actor's grant (a mark) names who gave it.
+            const source =
+              grant.sourceActorId && grant.sourceActorId !== actor.id
+                ? actors.get(grant.sourceActorId)
+                : undefined
+            return {
+              category: grantCategories[grant.polarity],
+              id: `grant:${grant.effectId}`,
+              kind: 'EFFECT' as const,
+              label: [
+                source
+                  ? `${activeGrantLabel(grant)} from ${source.label}`
+                  : activeGrantLabel(grant),
+                activeGrantTimeLeft(grant)
+              ].join(', ')
+            }
+          }),
           ...(actor.concentration
             ? [
                 statusFromValues(

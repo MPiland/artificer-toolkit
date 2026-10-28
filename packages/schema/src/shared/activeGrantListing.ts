@@ -11,6 +11,11 @@ export const activeGrantListingDtoSchema = lazySchema(() =>
     effectId: z.guid(),
     label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
     sourceHidden: z.boolean(),
+    /**
+     * The Encounter actor whose action gave the grant (a mark's marker); null for a Character's own
+     * grant, and for a hidden source for anyone but the GM.
+     */
+    sourceActorId: z.nullable(z.guid()),
     /** Rounds left during a Run; null once the grant waits on the Campaign clock or has no end. */
     remainingTicks: z.nullable(
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS))

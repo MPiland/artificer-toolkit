@@ -86,6 +86,7 @@ export const mummyLord: CreatureAuthored = {
       grants: S.slottedSpellcastingGrants(
         202,
         S.ABILITY_CODE.WISDOM,
+        17,
         [S.SPELL_IDS.SACRED_FLAME, S.SPELL_IDS.THAUMATURGY],
         [
           {

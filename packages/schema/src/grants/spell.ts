@@ -32,6 +32,8 @@ export const spellGrantDtoSchema = lazySchema(() =>
       grantKind: z.literal('SPELL_GRANT'),
       castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
       castingAbility: z.optional(systemCoreCodeSchema),
+      /** The spell save DC its stat block states for this grant's casts; absent when it states none. */
+      spellSaveDc: z.optional(z.number().check(z.int()).check(z.positive())),
       attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
       filters: z.optional(spellFacetDtoSchema),
       charges: z.optional(chargeUseDtoSchema),

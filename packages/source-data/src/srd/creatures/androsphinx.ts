@@ -84,6 +84,7 @@ export const androsphinx: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.WISDOM,
+            spellSaveDc: 18,
             order: 0
           },
           ...[
@@ -111,6 +112,7 @@ export const androsphinx: CreatureAuthored = {
             ],
             castAtLevel: level as number,
             castingAbility: S.ABILITY_CODE.WISDOM,
+            spellSaveDc: 18,
             charges: {
               id: S.actionId(24, 320 + index),
               limitKind: 'FIXED_AMOUNT' as const,

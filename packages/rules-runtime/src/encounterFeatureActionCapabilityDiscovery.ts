@@ -46,6 +46,11 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   compiledEffectChecksum: string
   /** Exact owner-Feature charge binding for this action, when one is authored. */
   featureResourceUse: { chargeId: string; cost: number } | null
+  /**
+   * The slot table row a Spell cast spends, of the Feature whose table it is; null for an action
+   * that spends no slot. The row id keys its used count.
+   */
+  spellSlotUse: { ownerFeatureId: string; slotRowId: string; spellId: string } | null
   /** Exact held Equipment source backing this Feature action, when authored. */
   equipmentBinding?: {
     loadoutEntryId: string
@@ -56,15 +61,19 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   } | null
   /**
    * The Feature/option's one authored ATTACK roll for an attack-triggered action, else null. Its
-   * bonus and the damage bonus add what the loadout applies to the bound weapon (ATTACK-6.3).
+   * bonus and the damage bonus add what the loadout applies to the bound weapon (ATTACK-6.3). A
+   * Spell cast's attack is its caster's spell attack, which no Feature roll authors: its roll
+   * identity and checksum are null.
    */
   attackMechanic: {
-    rollDefinitionId: string
+    rollDefinitionId: string | null
     attackBonus: number
     damageBonus: number
     rollMode: string
-    definitionChecksum: string
+    definitionChecksum: string | null
   } | null
+  /** The caster's spell save DC a Spell cast's `SOURCE_SAVE_DC` save reads; null for other actions. */
+  spellSaveDc: number | null
   /** Exact immutable Feature/option label for sanitized choices. */
   label: string
   /** The grip of one variant of a versatile weapon attack; each grip is its own action. */
@@ -450,6 +459,162 @@ function actionId(
   return result
 }
 
+/** One Spell cast a Creature can make: directly from its grant, or through a Feature option. */
+interface CreatureSpellCastAction {
+  actionId: string
+  label: string
+  ownerFeature: FeatureDto
+  featureOption: FeatureOption | null
+  castLevel: number
+  compiledEffect: CompiledEffectGroup
+  featureResourceUse: EncounterFeatureActionCapabilityDescriptor['featureResourceUse']
+  spellSlotUse: EncounterFeatureActionCapabilityDescriptor['spellSlotUse']
+  attackMechanic: EncounterFeatureActionCapabilityDescriptor['attackMechanic']
+  spellSaveDc: number | null
+}
+
+/**
+ * The Spell casts a Creature can make from the Run's pinned Spells (D163): each cast of its grants,
+ * and each cast a Feature option's `grantedSpellCast` makes of a granted spell of that kind, which
+ * also pays the option's own cost and is never a reaction. A slot cast spends the row of its level.
+ * A spell attack rolls the caster's spell attack bonus and a spell save reads its spell save DC,
+ * both from the DC the grant states; a spell attack whose grant states none is listed unavailable.
+ */
+function creatureSpellCastActions(input: {
+  profile: AttackProfileCapabilityAdapter
+  actor: EncounterProjectionActorInput
+  features: readonly FeatureDto[]
+  spells: ReadonlyMap<string, CompiledSpell>
+}): readonly (CreatureSpellCastAction | EncounterFeatureActionUnavailable)[] {
+  const { profile, actor, features, spells } = input
+  // An empty pin map offers no casts (passive-only callers, and a Run with no pins).
+  if (spells.size === 0) return []
+  const casts = listCreatureSpellCasts({ actor, features, spellLevelsById: spells })
+  if (casts.length === 0) return []
+  const grantedCastEntries = features.flatMap((feature) =>
+    featureEffectEntries(feature, features).flatMap((entry) =>
+      entry.featureOption && entry.effect.grantedSpellCast
+        ? [
+            {
+              ...entry,
+              featureOption: entry.featureOption,
+              grantedSpellCast: entry.effect.grantedSpellCast
+            }
+          ]
+        : []
+    )
+  )
+  return casts.flatMap(({ ownerFeature, cast, spellSaveDc, slotRowId }) => {
+    const spell = spells.get(cast.spellId)!
+    const label = spellCastLabel(spell, cast)
+    const spellcasting = spellSaveDc === null ? null : profile.creatureSpellcasting({ spellSaveDc })
+    const spellSlotUse =
+      slotRowId === null
+        ? null
+        : { ownerFeatureId: ownerFeature.id, slotRowId, spellId: cast.spellId }
+    const spellKind = cast.spellLevel === 0 ? 'CANTRIP' : 'LEVELED'
+    const groups = castableEffectGroups(spell).map((compiledEffect, index) => ({
+      compiledEffect,
+      laterEffectId: index === 0 ? undefined : compiledEffect.id
+    }))
+    const castAction = (
+      action: Omit<
+        CreatureSpellCastAction,
+        'castLevel' | 'spellSlotUse' | 'attackMechanic' | 'spellSaveDc'
+      >
+    ) => {
+      const { invocation } = action.compiledEffect
+      const attackKind =
+        invocation.kind === 'ACTION' ? profile.attackKind(invocation.triggerCode) : null
+      if (attackKind !== null && spellcasting === null)
+        return {
+          actionId: action.actionId,
+          ownerFeatureId: action.ownerFeature.id,
+          label: action.label,
+          reason: 'A Creature spell attack needs the spell save DC its grant states.'
+        }
+      return {
+        ...action,
+        castLevel: cast.castLevel,
+        spellSlotUse,
+        attackMechanic:
+          attackKind === null || spellcasting === null
+            ? null
+            : {
+                rollDefinitionId: null,
+                attackBonus: spellcasting.attackBonus,
+                damageBonus: 0,
+                rollMode: 'NORMAL',
+                definitionChecksum: null
+              },
+        spellSaveDc: spellcasting?.saveDc ?? null
+      }
+    }
+    return [
+      ...groups.map(({ compiledEffect, laterEffectId }) =>
+        castAction({
+          actionId: spellCastActionId(cast.candidateId, laterEffectId),
+          label,
+          ownerFeature,
+          featureOption: null,
+          compiledEffect,
+          featureResourceUse: null
+        })
+      ),
+      ...grantedCastEntries
+        .filter((entry) => entry.grantedSpellCast.spellKind === spellKind)
+        .flatMap((entry) =>
+          groups
+            .filter(
+              ({ compiledEffect: { invocation } }) =>
+                !('activation' in invocation) || invocation.activation.code !== 'REACTION'
+            )
+            .map(({ compiledEffect, laterEffectId }) =>
+              castAction({
+                actionId: spellCastActionId(
+                  `${entry.featureOption.id}:${cast.candidateId}`,
+                  laterEffectId
+                ),
+                label: `${entry.featureOption.label}: ${label}`,
+                ownerFeature: entry.ownerFeature,
+                featureOption: entry.featureOption,
+                compiledEffect,
+                featureResourceUse: featureResourceUse(entry, compileEffect(entry.effect))
+              })
+            )
+        )
+    ]
+  })
+}
+
+/** What a Spell cast capability binds from the Creature snapshot and the Run's pins. */
+function spellCastBinding(
+  action: Pick<
+    EncounterFeatureActionCapabilityDescriptor,
+    | 'actionId'
+    | 'label'
+    | 'ownerFeatureId'
+    | 'featureOptionId'
+    | 'featureResourceUse'
+    | 'spellSlotUse'
+    | 'attackMechanic'
+    | 'spellSaveDc'
+  > & { castLevel: number | undefined; compiledEffectChecksum: string }
+): string {
+  return JSON.stringify([
+    action.actionId,
+    action.label,
+    action.ownerFeatureId,
+    action.featureOptionId,
+    action.castLevel,
+    action.compiledEffectChecksum,
+    action.featureResourceUse,
+    action.spellSlotUse,
+    action.attackMechanic,
+    action.spellSaveDc
+  ])
+}
+
 /**
  * Rechecks an issued Encounter-feature capability against the immutable
  * Creature snapshot locked by the Encounter command. This deliberately
@@ -459,6 +624,8 @@ function actionId(
 export function assertEncounterFeatureActionCapabilityCurrent(input: {
   actor: EncounterProjectionActorInput
   capability: EncounterFeatureActionCapabilityDescriptor
+  /** The Run's pinned Spells (D163), from which a Spell cast is rebuilt. */
+  spells: ReadonlyMap<string, CompiledSpell>
 }): void {
   const { actor, capability } = input
   const provenance = snapshotProvenance(actor)
@@ -478,12 +645,28 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!ownerFeature || capability.sourceId !== ownerFeature.id) {
     throw new Error('Encounter feature action capability owner Feature is stale.')
   }
+  const profile = attackProfileCapabilityRegistry.require(capability.gameSystemId)
   if (capability.spellCastLevel !== undefined) {
     // A Spell cast is built from the Run's pinned compilation (D163), not from a Feature Effect
-    // of the snapshot, so only its own compiled material is rechecked.
+    // of the snapshot, so it is rebuilt from the snapshot and the pins.
+    const current = creatureSpellCastActions({
+      profile,
+      actor,
+      features,
+      spells: input.spells
+    }).find((action) => action.actionId === capability.actionId)
     if (
+      !current ||
+      'reason' in current ||
       capability.authoredEffectChecksum !== capability.compiledEffectChecksum ||
-      capability.compiledEffectChecksum !== checksumRuleDocument(capability.compiledEffect)
+      capability.compiledEffectChecksum !== checksumRuleDocument(capability.compiledEffect) ||
+      spellCastBinding({ ...capability, castLevel: capability.spellCastLevel }) !==
+        spellCastBinding({
+          ...current,
+          ownerFeatureId: current.ownerFeature.id,
+          featureOptionId: current.featureOption?.id ?? null,
+          compiledEffectChecksum: checksumRuleDocument(current.compiledEffect)
+        })
     )
       throw new Error('Encounter feature action capability Spell cast is stale.')
     return
@@ -496,7 +679,6 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
   if (!entry || (entry.actionFeature?.id ?? null) !== capability.actionFeatureId)
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
-  const profile = attackProfileCapabilityRegistry.require(capability.gameSystemId)
   const compiledEffect = creatureActionEffect(profile, entry, features)
   if (
     capability.entryPointDefinitionId !== effect.id ||
@@ -721,6 +903,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
           ? null
           : requireCanonicalUuid(entry.featureOption.id, 'Creature feature option identity')
       const effect = entry.effect
+      // A granted spell cast is offered once per spell it can cast, with the pinned Spells below.
+      if (effect.grantedSpellCast) continue
       const effectId = requireCanonicalUuid(effect.id, 'Creature feature Effect identity')
       const passive = effect.invocation.kind === 'PASSIVE'
       const exactActionId = actionId(input.actor.id, ownerFeatureId, featureOptionId, effectId)
@@ -796,6 +980,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
           authoredEffectChecksum: checksumRuleDocument(effect),
           compiledEffectChecksum: checksumRuleDocument(compiledEffect),
           featureResourceUse: featureResourceUse(entry, compiledEffect),
+          spellSlotUse: null,
+          spellSaveDc: null,
           equipmentBinding,
           attackMechanic: featureAttackMechanic(
             profile,
@@ -817,58 +1003,61 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       }
     }
   }
-  const spells = input.spells
-  if (spells.size) {
-    const casts = listCreatureSpellCasts({
-      actor: input.actor,
-      features,
-      spellLevelsById: spells
-    })
-    for (const { ownerFeature, cast } of casts) {
-      const spell = spells.get(cast.spellId)!
-      for (const [index, compiledEffect] of castableEffectGroups(spell).entries()) {
-        const normalized = bindEffect(adapter, {
-          gameSystemId,
-          compiledEffect,
-          conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-          abilityDefinitions: input.abilityDefinitions ?? []
-        })
-        if (normalized === null) continue
-        available.push({
-          kind: 'ENCOUNTER_FEATURE',
-          gameSystemId,
-          authoredRootKind: 'effect',
-          entryPointDefinitionId: compiledEffect.id,
-          effectId: compiledEffect.id,
-          actionId: spellCastActionId(
-            cast.candidateId,
-            index === 0 ? undefined : compiledEffect.id
-          ),
-          label: spellCastLabel(spell, cast),
-          grip: null,
-          spellCast: { castLevel: cast.castLevel },
-          spellCastLevel: cast.castLevel,
-          sourceId: ownerFeature.id,
-          mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
-          conditionDefinitionIds:
-            normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
-          savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
-          compiledEffect,
-          encounterActorId: input.actor.id,
-          ownerFeatureId: ownerFeature.id,
-          featureOptionId: null,
-          actionFeatureId: null,
-          ownerRuleDefinitionIds: ownerFeature.ruleDefinitionIds ?? [],
-          optionRuleDefinitionIds: [],
-          authoredEffectChecksum: checksumRuleDocument(compiledEffect),
-          compiledEffectChecksum: checksumRuleDocument(compiledEffect),
-          featureResourceUse: null,
-          equipmentBinding: null,
-          attackMechanic: null,
-          ...provenance
-        })
-      }
+  for (const action of creatureSpellCastActions({
+    profile,
+    actor: input.actor,
+    features,
+    spells: input.spells
+  })) {
+    if (actionIds.has(action.actionId))
+      throw new Error(
+        'Encounter feature capability discovery produced a duplicate action identity.'
+      )
+    actionIds.add(action.actionId)
+    if ('reason' in action) {
+      unavailable.push(action)
+      continue
     }
+    const { compiledEffect, ownerFeature, featureOption } = action
+    const normalized = bindEffect(adapter, {
+      gameSystemId,
+      compiledEffect,
+      conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+      abilityDefinitions: input.abilityDefinitions ?? []
+    })
+    if (normalized === null) continue
+    available.push({
+      kind: 'ENCOUNTER_FEATURE',
+      gameSystemId,
+      authoredRootKind: 'effect',
+      entryPointDefinitionId: compiledEffect.id,
+      effectId: compiledEffect.id,
+      actionId: action.actionId,
+      label: action.label,
+      grip: null,
+      spellCast: { castLevel: action.castLevel },
+      spellCastLevel: action.castLevel,
+      sourceId: ownerFeature.id,
+      mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
+      conditionDefinitionIds:
+        normalized.conditionDefinitionIds ?? input.conditionDefinitionIds ?? [],
+      savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
+      compiledEffect,
+      encounterActorId: input.actor.id,
+      ownerFeatureId: ownerFeature.id,
+      featureOptionId: featureOption?.id ?? null,
+      actionFeatureId: null,
+      ownerRuleDefinitionIds: ownerFeature.ruleDefinitionIds ?? [],
+      optionRuleDefinitionIds: featureOption?.ruleDefinitionIds ?? [],
+      authoredEffectChecksum: checksumRuleDocument(compiledEffect),
+      compiledEffectChecksum: checksumRuleDocument(compiledEffect),
+      featureResourceUse: action.featureResourceUse,
+      spellSlotUse: action.spellSlotUse,
+      equipmentBinding: null,
+      attackMechanic: action.attackMechanic,
+      spellSaveDc: action.spellSaveDc,
+      ...provenance
+    })
   }
   return {
     available,
@@ -886,6 +1075,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
 export function featureActionMechanic(
   capability: EffectActionCapabilityDescriptor & {
     attackMechanic?: { attackBonus: number; damageBonus?: number; rollMode: string } | null
+    spellSaveDc?: number | null
     /** The dice a damage outcome resolves to, by outcome id, when a cast froze it (D166). */
     damageExpressions?: Readonly<Record<string, string>>
   }
@@ -895,14 +1085,15 @@ export function featureActionMechanic(
   const attackKind = attackProfileCapabilityRegistry
     .require(capability.gameSystemId)
     .attackKind(invocation.triggerCode)
+  const dc =
+    savingThrow?.dcMethod === 'FIXED_DC'
+      ? savingThrow.baseDc
+      : savingThrow?.dcMethod === 'SOURCE_SAVE_DC'
+        ? capability.spellSaveDc
+        : null
   const save =
-    savingThrow?.dcMethod === 'FIXED_DC' &&
-    Number.isSafeInteger(savingThrow.baseDc) &&
-    capability.savingThrowAbilityDefinitionId
-      ? {
-          abilityDefinitionId: capability.savingThrowAbilityDefinitionId,
-          dc: savingThrow.baseDc
-        }
+    Number.isSafeInteger(dc) && capability.savingThrowAbilityDefinitionId
+      ? { abilityDefinitionId: capability.savingThrowAbilityDefinitionId, dc }
       : null
   const firstDamageOutcome = capability.mechanicFacts.outcomes.find(
     (outcome) => outcome.kind === 'DAMAGE'

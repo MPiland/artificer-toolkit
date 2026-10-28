@@ -184,7 +184,7 @@ describe('room reaction to a hit (REACTION-4.4)', () => {
       selection: 'USE',
       adjustment: { defenseBefore: armorClass, defenseAfter: armorClass + SHIELD_BONUS },
       spellCastConsumption: {
-        characterId: CHARACTER_ID,
+        owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
         spellId: shield.id,
         slotKey: 'STANDARD:1',
         beforeUsed: 0,

@@ -69,6 +69,7 @@ export const djinni: CreatureAuthored = {
             ],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             order: 0
           },
           ...(
@@ -82,6 +83,7 @@ export const djinni: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             charges: {
               id: S.actionId(82, 402 + index),
               limitKind: 'FIXED_AMOUNT' as const,
@@ -109,6 +111,7 @@ export const djinni: CreatureAuthored = {
             spellIds: [spellId],
             attributes: [S.SPELL_GRANT_ATTRIBUTE.KNOWN, S.SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
             castingAbility: S.ABILITY_CODE.CHARISMA,
+            spellSaveDc: 17,
             charges: {
               id: S.actionId(82, 405 + index),
               limitKind: 'FIXED_AMOUNT' as const,

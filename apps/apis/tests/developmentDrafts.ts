@@ -5804,7 +5804,9 @@ try {
       publicClient.query(api.authoring.nodeRuntime.resolve, input),
       /Unauthenticated/
     )
-    const result = await author.client.query(api.authoring.nodeRuntime.resolve, input)
+    const result = expandNodeRuntimeResponse(
+      await author.client.query(api.authoring.nodeRuntime.resolve, input)
+    )
     const nodes = result.steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
     const skills = nodes.find((node) => node.id === 'skillIds')
     assert.ok(skills && 'options' in skills)
