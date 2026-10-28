@@ -31,7 +31,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { requireEncounterActorConditionLevels } from '@artificer-toolkit/rules-runtime/conditionLevels'
+import { requireEncounterActorConditionLevels } from '@artificer-toolkit/rules-runtime/encounterConditionLevels'
 import {
   requireEncounterActorControl,
   requireEncounterActorControllerCandidates

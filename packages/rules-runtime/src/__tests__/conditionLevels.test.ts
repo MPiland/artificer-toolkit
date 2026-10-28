@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  requireEncounterActorConditionLevels,
-  systemConditionMaximumLevel
-} from '../conditionLevels.js'
+import { systemConditionMaximumLevel } from '../conditionLevels.js'
+import { requireEncounterActorConditionLevels } from '../encounterConditionLevels.js'
 import { EncounterValidationError } from '../encounterErrors.js'
 import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import {
