@@ -34,6 +34,7 @@ import { CharacterSheetView } from '#domains/characters/sheet/core/CharacterShee
 import { CharacterSheetResourceStepper } from '#domains/characters/sheet/shared/CharacterSheetResourceStepper'
 import * as sharedStyles from '../campaigns.css'
 import * as encounterStyles from './encounter.css'
+import { EncounterActorConditionLevels } from './EncounterActorConditionLevels'
 import { EncounterActorControlFields } from './EncounterActorControlFields'
 import { EncounterEnemyStatBlock } from './EncounterEnemyStatBlock'
 import { healthDisplayLevelLabels, healthDisplayLevelOptions } from '../healthDisplay'
@@ -244,6 +245,14 @@ export function EncounterActorCard({
       ) : null}
       {shareHealth.error ? (
         <Alert color='red'>The health state couldn’t be shared. Try again.</Alert>
+      ) : null}
+      {campaign.role === 'OWNER' && actor.kind !== 'CHARACTER' ? (
+        <EncounterActorConditionLevels
+          actor={actor}
+          disabled={disabled}
+          gameSystemId={campaign.gameSystemId}
+          onCommand={onCommand}
+        />
       ) : null}
       {campaign.role === 'OWNER' ? (
         <EncounterActorControlFields

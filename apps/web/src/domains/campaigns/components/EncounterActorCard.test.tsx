@@ -1,6 +1,9 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useQueryClient } from '@tanstack/react-query'
+import { type ReactNode, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   encounterGmActorDtoSchema,
   type EncounterGmActorDto
@@ -8,6 +11,7 @@ import {
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   createTabletopCampaign,
+  seedTabletopSystem,
   tabletopGmEncounter
 } from '../vtt/CampaignTabletop.stories.fixtures'
 import { EncounterActorCard } from './EncounterActorCard'
@@ -123,5 +127,42 @@ describe('EncounterActorCard in-progress edits', () => {
 
     expect(screen.getByLabelText('Current HP')).toHaveValue('11')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+})
+
+const exhaustion = srdSystemRecord.conditionTypes.find(({ code }) => code === 'EXHAUSTION')!
+
+function SeededSystem({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
+  useState(() => seedTabletopSystem(queryClient, campaign))
+  return children
+}
+
+describe('EncounterActorCard condition levels', () => {
+  it('sets a Creature’s Exhaustion level from the System’s leveled condition', async () => {
+    const user = userEvent.setup()
+    const onCommand = vi.fn()
+    const exhausted = { ...enemy, conditions: [{ conditionTypeId: exhaustion.id, level: 2 }] }
+    renderWithAppProviders(<SeededSystem>{card(exhausted, onCommand)}</SeededSystem>)
+
+    const control = await screen.findByRole('group', { name: 'Exhaustion level' })
+    expect(control).toHaveTextContent('Level 2')
+    await user.click(screen.getByRole('button', { name: 'Increase Exhaustion level' }))
+
+    expect(onCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_ACTOR',
+      actorId: enemy.id,
+      conditions: [{ conditionTypeId: exhaustion.id, level: 3 }]
+    })
+  })
+
+  it('stops at the System’s maximum level', async () => {
+    const exhausted = {
+      ...enemy,
+      conditions: [{ conditionTypeId: exhaustion.id, level: exhaustion.maximumLevel! }]
+    }
+    renderWithAppProviders(<SeededSystem>{card(exhausted)}</SeededSystem>)
+
+    expect(await screen.findByRole('button', { name: 'Increase Exhaustion level' })).toBeDisabled()
   })
 })

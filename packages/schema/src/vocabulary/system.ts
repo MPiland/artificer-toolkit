@@ -42,12 +42,13 @@ const systemChallengeRatingDtoSchema = lazySchema(() =>
 )
 
 /**
- * A System condition. `levelled` marks a condition tracked as a level, not added or removed as a flag;
+ * A System condition. `maximumLevel` marks a condition tracked as a level from 1 to it (Exhaustion),
+ * not added or removed as a flag, and bounds every holder's level, Character or Creature;
  * `unseen` marks one that hides its holder from players who cannot perceive them (D131).
  */
 const systemConditionTypeDtoSchema = lazySchema(() =>
   z.extend(vocabularyDtoSchema, {
-    levelled: z.optional(z.boolean()),
+    maximumLevel: z.optional(z.number().check(z.int()).check(z.gte(2)).check(z.lte(20))),
     unseen: z.optional(z.boolean())
   })
 )

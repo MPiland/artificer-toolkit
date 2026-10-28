@@ -31,6 +31,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { requireEncounterActorConditionLevels } from '@artificer-toolkit/rules-runtime/conditionLevels'
 import {
   requireEncounterActorControl,
   requireEncounterActorControllerCandidates
@@ -395,6 +396,11 @@ async function recordEncounterToolCommand(
         input.conditions !== undefined)
     )
       throw new Error('Character HP must be changed through its Sheet command.')
+    if (input.type === 'UPDATE_ACTOR' && input.conditions !== undefined)
+      requireEncounterActorConditionLevels(
+        input.conditions,
+        (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
+      )
     if (input.type === 'UPDATE_ACTOR' && input.returnToInitiative && actor.absence === null)
       throw new Error('Only an absent actor can return to initiative.')
     if (
