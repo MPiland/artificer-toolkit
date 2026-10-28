@@ -20113,10 +20113,10 @@
             {
               "id": "RELIABILITY-21.2",
               "text": "campaigns/partyInventory:equipmentOptions stays under the 1 s query limit, and the campaign-custody journey passes.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T2 (m517); see each task's proof."],
               "origin": [],
-              "note": "Proof: campaign-custody."
+              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2."
             },
             {
               "id": "RELIABILITY-21.3",
@@ -20221,6 +20221,13 @@
               "status": "TODO",
               "proof": [],
               "origin": []
+            },
+            {
+              "id": "RELIABILITY-21.16",
+              "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
+              "status": "TODO",
+              "proof": [],
+              "origin": []
             }
           ],
           "tasks": [
@@ -20241,7 +20248,7 @@
             },
             {
               "id": "RELIABILITY-21.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.2"],
               "wsjf": {
                 "bv": 5,
@@ -20249,8 +20256,13 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit.",
-              "text": "Bound campaigns/partyInventory:equipmentOptions (equipmentOptions.ts:19-66) read work, with a read-budget regression test. campaign-custody gates again."
+              "note": "Registered 2026-10-27 (user yes: register all, known-bug proofs do not gate until their fix merges, VTT cold sample kept). Found by RELIABILITY-20.T3 (Browser journeys 40449857303 on 0befa9da3; reliability-20-t3-proof-results.md). Read-budget fixes make the read cheaper with a regression test; no bigger runners (free-tier rule). Each fix removes its proof from the known-bug list so it gates again. Sizes are estimates to re-score at seam audit. Merged in m517.",
+              "text": "Bound campaigns/partyInventory:equipmentOptions (equipmentOptions.ts:19-66) read work, with a read-budget regression test. campaign-custody gates again.",
+              "mergedAt": "2026-10-28T12:28:02Z",
+              "proof": [
+                "Tests 40656550960, Live backend 40656550823, Browser journeys 40656550933 green on a3b0dd076; reviewed (equipmentOptions reads catalogue facts per D163, party inventory resolves Equipment without compiling, item pages resolve binding once; corrupt-payload assertion accepted per D163; custody labelled T13); merged (run 40687895651).",
+                "Proofs: equipmentOptionsReadBudget, partyInventoryReadBudget, equipmentDefinitionOptions"
+              ]
             },
             {
               "id": "RELIABILITY-21.T3",
@@ -20408,7 +20420,7 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths. Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54.",
+              "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths. Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54. Also owns effects-browser: encounters/activeReads:active ran 869-1,092 ms of compute on CI while reading 21-28 documents.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun."
             },
             {
@@ -20436,6 +20448,19 @@
               },
               "text": "Find why the Session Worker sends AUTHENTICATION_REQUIRED to a live-session socket about 60 s before its token expires, right after an ENCOUNTER_SESSION fan-out, and make each socket's challenge follow its own token expiry, with a Worker regression test that fails before the fix; remove scene-live-browser from KNOWN_BUG_PROOFS.",
               "note": "Registered 2026-10-28 (user yes, D187 growth +3). Diagnosed by SPELLS-33.T3c2b from Browser journeys 40631628558 (stage \"refresh live session authentication\", nativeSceneLive.ts:121); also failed on ci/reliability-21-t2 40630257862 and vtt-ui-1-t2 40641473367."
+            },
+            {
+              "id": "RELIABILITY-21.T16",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.16"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 8,
+                "size": 8
+              },
+              "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge.",
+              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI."
             }
           ]
         }
