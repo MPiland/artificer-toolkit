@@ -7,7 +7,12 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleState'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { SRD_ABILITY_DEFINITION_IDS, SRD_CONDITION_TYPES, SRD_SYSTEM_ID } from './vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES,
+  SRD_SYSTEM_ID
+} from './vocabulary.js'
 
 export const SRD_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d2'
 export const SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d4'
@@ -230,7 +235,14 @@ const mechanicsByConditionCode: Readonly<
     })
   ],
   PARALYZED: helplessMechanics(true),
-  PETRIFIED: helplessMechanics(false),
+  PETRIFIED: [
+    ...helplessMechanics(false),
+    {
+      kind: 'DAMAGE_DEFENSE',
+      defense: 'RESISTANCE',
+      damageTypeIds: SRD_DAMAGE_TYPES.map(({ id }) => id).sort()
+    }
+  ],
   STUNNED: helplessMechanics(false),
   UNCONSCIOUS: helplessMechanics(true),
   EXHAUSTION: [

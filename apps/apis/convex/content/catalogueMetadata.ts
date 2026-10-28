@@ -20,12 +20,13 @@ function storedForm<Value>(value: Value): Value {
 
 /**
  * The facts share and parent authorization and commit read from the root alone (D163): ACTIVE
- * status, the picker facts of the one `toContentSnapshotIndexEntry` derivation, and an Equipment
- * root's quote, which a held item's pin keeps.
+ * status, the picker facts of the one `toContentSnapshotIndexEntry` derivation, an Equipment
+ * root's quote, which a held item's pin keeps, and a base Equipment root's container flag, which a
+ * held item's list row shows.
  */
 export function rootCatalogueFacts(
   subjectKind: AuthoredPublishDraftInput['subjectKind'],
-  document: { status?: string; quote?: string }
+  document: { status?: string; quote?: string; category?: string; capacity?: unknown }
 ) {
   // A canonical document carries no status and is active; publication always writes ACTIVE.
   const publishedActive = (document.status ?? 'ACTIVE') === 'ACTIVE'
@@ -33,7 +34,11 @@ export function rootCatalogueFacts(
     case 'EQUIPMENT':
       return {
         publishedActive,
-        equipment: document.quote === undefined ? {} : { quote: document.quote }
+        equipment: {
+          ...(document.quote === undefined ? {} : { quote: document.quote }),
+          // A variant's capacity is always its base's (`resolveEquipmentAuthored`).
+          ...(document.category === 'VARIANT' ? {} : { container: document.capacity !== undefined })
+        }
       }
     case 'RACE':
       return {
@@ -123,6 +128,22 @@ export async function catalogueMetadata(
   })
 }
 
+/** Whether stored facts hold every fact `rootCatalogueFacts` derives for this root's kind. */
+export function hasRootCatalogueFacts(
+  root: Doc<'authoredRoots'>,
+  metadata: AuthoredCatalogueMetadata
+) {
+  const baseEquipment = root.subjectKind === 'EQUIPMENT' && root.parentEquipmentId === null
+  return (
+    metadata.publishedActive !== undefined &&
+    (root.subjectKind === 'RACE') === (metadata.race !== undefined) &&
+    (root.subjectKind === 'CLASS') === (metadata.class !== undefined) &&
+    (root.subjectKind === 'BACKGROUND') === (metadata.background !== undefined) &&
+    (root.subjectKind === 'EQUIPMENT') === (metadata.equipment !== undefined) &&
+    baseEquipment === (metadata.equipment?.container !== undefined)
+  )
+}
+
 /**
  * A root's stored catalogue facts, which authorization and commit read instead of the payload
  * (D163). Facts that are absent or belong to another checksum are stale until
@@ -135,9 +156,7 @@ export function readRootCatalogue(root: Doc<'authoredRoots'>) {
     !metadata ||
     publishedActive === undefined ||
     metadata.checksum !== root.checksum ||
-    (root.subjectKind === 'RACE') !== (metadata.race !== undefined) ||
-    (root.subjectKind === 'CLASS') !== (metadata.class !== undefined) ||
-    (root.subjectKind === 'BACKGROUND') !== (metadata.background !== undefined)
+    !hasRootCatalogueFacts(root, metadata)
   )
     throw new Error(
       'Stored catalogue facts are missing or stale; run content/compilationMigration.'

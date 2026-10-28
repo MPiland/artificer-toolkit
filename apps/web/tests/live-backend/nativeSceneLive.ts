@@ -1,3 +1,4 @@
+import { LIVE_SESSION_REAUTHENTICATION_LEAD_MS } from '@artificer-toolkit/schema/api/liveSessionIdentity'
 import {
   liveSessionWebSocketClientMessageDtoSchema,
   liveSessionWebSocketServerMessageDtoSchema,
@@ -182,7 +183,9 @@ function refreshedAuthenticationEvidence(
   const challenge = connection.frames.findIndex(
     (frame) =>
       frame.direction === 'received' &&
-      frame.atMs >= initialExpiresAt &&
+      // The room challenges each socket at its own expiry minus the lead (ADR 0035 Amendment 23).
+      frame.atMs >= initialExpiresAt - LIVE_SESSION_REAUTHENTICATION_LEAD_MS &&
+      frame.atMs < initialExpiresAt &&
       serverMessageType(frame.payload) === 'AUTHENTICATION_REQUIRED'
   )
   if (challenge < 0) return undefined

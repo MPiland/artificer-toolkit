@@ -3164,6 +3164,26 @@ it('challenges a socket again after a wake when it was challenged before hiberna
   expect(base.messages.some((message) => message.type === 'TRANSIENT_READY')).toBe(false)
 })
 
+it('challenges a restored socket at its own lead time when that alarm wakes the room (A35-S10b)', async () => {
+  const base = await fixture()
+  await admitOwner(base)
+  await evictDurableObject(base.stub)
+  const deadline = (base.issuedAt + 3_600) * 1_000
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(deadline - ROOM_LIMITS.reauthenticationLeadMs)
+  try {
+    const frames = await runInDurableObject(base.stub, async (instance, state) => {
+      const socket = state.getWebSockets()[0]
+      if (!socket) throw new Error('Missing native server socket.')
+      const sent = vi.spyOn(socket, 'send')
+      await instance.alarm()
+      return serverFrames(sent)
+    })
+    expect(frames).toEqual([{ type: 'AUTHENTICATION_REQUIRED' }])
+  } finally {
+    clock.mockRestore()
+  }
+})
+
 it('challenges a socket whose token expired while the room slept', async () => {
   const base = await fixture(null, 120)
   await admitOwner(base)

@@ -41134,6 +41134,14 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -70332,6 +70340,14 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
                         order: number;
                       }
@@ -99545,6 +99561,14 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -128743,6 +128767,14 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
                         order: number;
                       }
@@ -157982,6 +158014,14 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -187183,6 +187223,14 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -216221,6 +216269,14 @@ export declare const api: {
                   | {
                       id: string;
                       kind: "APPROACH_SOURCE_FORBIDDEN";
+                      minimumLevel: number | null;
+                      order: number;
+                    }
+                  | {
+                      damageTypeIds: Array<string>;
+                      defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                      id: string;
+                      kind: "DAMAGE_DEFENSE";
                       minimumLevel: number | null;
                       order: number;
                     }
@@ -245290,6 +245346,14 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -274488,6 +274552,14 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "APPROACH_SOURCE_FORBIDDEN";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        damageTypeIds: Array<string>;
+                        defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
+                        id: string;
+                        kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
                         order: number;
                       }
