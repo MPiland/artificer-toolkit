@@ -76,6 +76,7 @@ export const antipathySympathy: SpellAuthored = {
             id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x215, index + 1),
             order: index + 1,
             label,
+            description: instructions,
             resultBlock: {
               id: spellChildId(SPELL_IDS.ANTIPATHY_SYMPATHY, 0x216, index + 1) + '__result',
               resultKind: 'SINGLE' as const,
