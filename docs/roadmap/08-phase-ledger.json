@@ -499,20 +499,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "Code-quality groundwork",
+              "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "Audit: built (planLiveSceneCommand, callLiveSessionRoute with LIVE_SESSION_ROUTE_PATHS, ed1faa3e6); stateHttp single factory and fixture consolidation still to verify.",
+              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21.",
               "origin": ["CP-S1"],
               "id": "PLATFORM-13.2"
-            },
-            {
-              "text": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: convex-test 0.0.60 done (6507a4678); per-file timings unrecorded and the parallelism trial not run (vitest.config still serial).",
-              "origin": ["TST-0"],
-              "id": "PLATFORM-13.3"
             },
             {
               "text": "Relocate the pure files (about 25) out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
@@ -658,7 +650,7 @@
               "id": "PLATFORM-13.T1",
               "text": "Test speed, per-file work: convex-test 0.0.60 upgrade (6507a4678), the import.test.ts 5 s timeout regression of PLATFORM-13.6 (reads definitions only), and the partial serial timing baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). The module-load prepareSrdImport() subsetting was tried and reverted: no measurable gain.",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -680,22 +672,10 @@
               }
             },
             {
-              "id": "PLATFORM-13.T3",
-              "text": "Code-quality groundwork.",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.2"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 1,
-                "rr": 3,
-                "size": 5
-              }
-            },
-            {
               "id": "PLATFORM-13.T4",
               "text": "CI parallelism trial (pulled forward 2026-10-18): Convex 2 and Worker 4 file workers per job, Convex shards balanced by recorded file duration, no added jobs; Convex 4 rejected (developmentCustody timeouts); three clean full dispatches, no timeout raised. Tests wall time 18.4-19.8 to 10.5-12.2 min (docs/validation/platform-13-t4-ci-parallelism-2026-10-18.md).",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -707,22 +687,9 @@
               "mergedAt": "2026-10-18T17:36:12-05:00"
             },
             {
-              "id": "PLATFORM-13.T4b",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.3"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 8,
-                "rr": 8,
-                "size": 2,
-                "finalSource": true
-              },
-              "text": "End of phase, on the final source: the full-suite timing record (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (one test there carries a 20 s timeout). Split from T4 when the CI parallelism trial landed early."
-            },
-            {
               "id": "PLATFORM-13.T14",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
@@ -737,7 +704,7 @@
             {
               "id": "PLATFORM-13.T15",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 5,
@@ -767,7 +734,7 @@
             {
               "id": "PLATFORM-13.T17",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
@@ -20852,7 +20819,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Range, target, path, aura and trap previews are shown.",
+              "text": "Range, target, path, aura and placed-zone (hazard and trap) previews are shown.",
               "status": "IN_PROGRESS",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
@@ -20867,7 +20834,7 @@
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › ActionRangeAndTargetPreview"
               ],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model.",
               "id": "VTT_UI-3.1",
               "journeys": ["vtt-browser"]
             },
@@ -20949,11 +20916,11 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
-                "size": 3,
+                "size": 2,
                 "after": ["VTT_UI-3.T1"]
               },
-              "text": "Trap preview, after a scope ruling: show placed fields/traps (SPELLS-17 placed zones) as map overlays and a preview while placing one; hidden-trap visibility and a distinct trap model are NOT in any contract. Recommend narrowing AC 3.1 to 'placed zone' and moving 'trap' semantics to future-enhancements. If narrowed this is a story+model test of an existing zone overlay (size 2); if a true trap model is required it needs a lane-1 contract task first (+5).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Placed-zone preview: show placed zones (SPELLS-17), including GM-placed hazards and traps, as map overlays and as a preview while placing one. Concealed zones follow MOVE-3 (decisions \"Hazards and traps\"): a zone with a spot DC is drawn only for the GM and for Characters it was revealed to. No new trap model.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm)."
             },
             {
               "id": "VTT_UI-3.T3",
@@ -21068,76 +21035,6 @@
             "size": 5
           },
           "mergedAt": "2026-10-14T07:42:19-05:00"
-        },
-        {
-          "id": "VTT_UI-6",
-          "title": "Conditional Creature senses apply only when their condition holds",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": [],
-          "note": "Registered 2026-10-13 at the VTT_UI-5 merge review. Structured Creature senses carry a display-only qualifier, so a printed condition is ignored: Grimlock blindsight 30 ft (10 ft while deafened) is always 30 ft, and Wererat darkvision (rat form only) applies in every form. The VTT_UI-5 report lists every SRD Creature with a mechanics-bearing qualifier.",
-          "acs": [
-            {
-              "text": "A Creature sense whose stat block limits it to a condition or form (deafened, a shape) applies only while that condition or form holds, for Scene vision and combat perception alike; every SRD Creature with such a qualifier is modeled, proved by tests that fail first.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "id": "VTT_UI-6.1",
-              "journeys": ["vtt-browser"]
-            }
-          ],
-          "journeyGap": "No journey yet. Next: a session-worker room test where a deafened Grimlock perceives at 10 ft, not 30 ft.",
-          "wsjf": {
-            "bv": 2,
-            "tc": 1,
-            "rr": 1,
-            "size": 5,
-            "after": ["VTT_UI-5"]
-          },
-          "tasks": [
-            {
-              "id": "VTT_UI-6.T1",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 5
-              },
-              "text": "Model conditional Creature senses generically: replace the display-only qualifier for mechanics-bearing cases with a structured, system-neutral activation (condition applies / replaces range while a condition holds, or applies only in a form) on the authored Creature sense in packages/schema and packages/shared, with the label derived from it. Migrate Grimlock (30 ft, 10 ft while deafened) and Wererat (darkvision in rat form only) with no feature-specific code; source-data audit test fails if any SRD sense qualifier that names a condition or form is left display-only. Pre-launch: delete the free-text qualifier for these, migrate dev data.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            },
-            {
-              "id": "VTT_UI-6.T2",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 3,
-                "after": ["VTT_UI-6.T1"]
-              },
-              "text": "Resolution: evaluate the activation against the actor's live conditions and form in actorSenses so Scene vision (roomSceneVision, scene senses projection refresh on condition/form change) and combat perception agree. Proof: rules-runtime tests that fail first, and the session-worker room journey the PBI names (a deafened Grimlock perceives at 10 ft, not 30 ft; a human-form Wererat has no darkvision, rat form has it), including recompute when Deafened is applied/removed mid-Encounter.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            },
-            {
-              "id": "VTT_UI-6.T3",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 3,
-                "after": ["VTT_UI-6.T1"]
-              },
-              "text": "Authoring: expose the activation on the Creature senses node map and form (apps/web creature authoring, packages/shared maps/creature.ts) with an authoring-parity proof that an authored Creature reproduces the Grimlock/Wererat behavior from core options. Could be folded into T1 if node-map work is small.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
         }
       ]
     },
@@ -21487,11 +21384,11 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
-                "size": 2,
+                "size": 3,
                 "after": ["PERF-3.T1", "PERF-1.T1"],
                 "finalSource": true
               },
-              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here.",
+              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here. Also record, from that full run on the final source, the full-suite timing (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (moved from PLATFORM-13.T4b, 2026-10-29).",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             }
           ]
@@ -22279,6 +22176,24 @@
       "id": "PLATFORM-10.2",
       "origin": ["R05.2"],
       "reason": "Only re-cited stages of RELEASE-2's final-source lifecycle run, which RELEASE-2 already requires; the removal itself is proved by PLATFORM-10.1.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "VTT_UI-6",
+      "origin": [],
+      "reason": "Conditional Creature senses need rules, authoring and live form state (the Wererat rat-form case has no actor form to check); moved whole to docs/roadmap/future-enhancements.md#conditional-creature-senses as a post-launch feature. Ruling packet: side-session-notes/vtt-ui-6-t1-ruling-packet.md in the VTT_UI-6.T1 session worktree.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.3",
+      "origin": ["TST-0"],
+      "reason": "Test speed work is done (convex-test upgrade, per-file timings, parallelism trial via PLATFORM-13.T1, T4, T14, T15, T17); the phase-end timing record (T4b) duplicated PERF-3.T2's full run and moved there.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.T3",
+      "origin": ["CP-S1"],
+      "reason": "Task text was only \"Code-quality groundwork.\" with no defined scope; PLATFORM-13.2 now means the native boundary audit, closed by PLATFORM-13.T21.",
       "decision": "Approved by the user on 2026-10-29."
     }
   ],
