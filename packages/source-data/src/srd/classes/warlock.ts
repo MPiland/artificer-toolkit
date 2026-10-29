@@ -11,6 +11,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -50,6 +51,7 @@ import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
   closedRuleEffect,
+  gmRulingEffect,
   selfActionEffect
 } from './mechanics.js'
 
@@ -2221,7 +2223,30 @@ export const warlock: ClassAuthored = {
       label: 'Eldritch Master',
       description:
         'At 20th level, you can draw on your inner reserve of mystical power while entreating your patron to regain expended spell slots. You can spend 1 minute entreating your patron for aid to regain all your expended spell slots from your Pact Magic feature. Once you regain spell slots with this feature, you must finish a long rest before you can do so again.',
-      effects: [selfClassRuleEffect(37, CLOSED_RULE_KIND.CLASS_WARLOCK_ELDRITCH_MASTER)],
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: classRowId(W, 0x6a, 37),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1
+      },
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(W, 0x60, 37),
+            range: classRowId(W, 0x69, 37),
+            path: classRowId(W, 0x80, 37),
+            result: classRowId(W, 0x81, 37),
+            outcome: classRowId(W, 0x82, 37)
+          },
+          label: 'Eldritch Master',
+          instructions:
+            'Spend 1 minute entreating your patron to regain all your expended Pact Magic spell slots. Restore them on the Sheet.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          resourceUse: { chargeId: classRowId(W, 0x6a, 37), cost: 1 }
+        })
+      ],
       availableAtLevel: 20,
       order: 16
     }

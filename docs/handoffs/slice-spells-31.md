@@ -426,6 +426,22 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **SPELLS-32.T5:** Halfling Lucky takes the same GM-ruling shape, so it no longer depends on a T5c reroll option.
   - **Proofs:** `classFeatureOptionsAuthoringParity.test.ts` (each conversion and a homebrew variant), `encounterActiveGrants.test.ts` (feature floor, proficiency gate, tie with Glibness), `apps/apis/convex/rollsFeatureCheckFloor.test.ts` (Sheet: full floors, half and none do not), `apps/session-worker/test/nativeRoomReliableTalent.test.ts` (room Hide check).
   - **Follow-up, not fixed:** Worker room chat rolls (`roomChatCommands`) use `resolveCharacterSheetRoll` without `carriedTestDice`, so they add no carried dice or floors; this predates T5c.
+- **T5j (2026-10-28), slot recovery and conversion:** five kinds are deleted (ruled option 2, size 5): `CLASS_WIZARD_ARCANE_RECOVERY`, `CLASS_CIRCLE_OF_THE_LAND_NATURAL_RECOVERY`, `CLASS_SORCERER_FLEXIBLE_CASTING`, `CLASS_SORCERER_SORCEROUS_RESTORATION` and `CLASS_WARLOCK_ELDRITCH_MASTER`. Design: `docs/architecture/rules-runtime.md`, "Spell slot exchange".
+  - **Arcane Recovery and Natural Recovery** are FREE self actions with a `RECOVER_SLOTS` outcome: half the class level rounded up, slot level 5 at most, and one long-rest charge.
+  - **Font of Magic (Flexible Casting)** is two Bonus Actions: `SLOT_TO_RESOURCE` and `RESOURCE_TO_SLOT`, the second with the SRD costs 2/3/5/6/7.
+  - **Sorcerous Restoration and Eldritch Master** are GM rulings. Eldritch Master has a 1/long-rest charge. `COMPLETE_REST` is unchanged.
+  - **Deferred edge cases:**
+    - A pool-mode action cannot also spend a charge of its own.
+    - `RECOVER_SLOTS` accepts any listed slot key, pact slots included (multiclass only).
+    - The recoveries can be used outside a short rest; the GM judges the timing.
+    - The Sheet's "use one charge" control can spend the Arcane Recovery charge without recovering slots.
+  - **Proofs:**
+    - `classFeatureOptionsAuthoringParity.test.ts`: the SRD records and homebrew variants.
+    - `effect-node-maps.test.ts`.
+    - `classFeatureCoreOptions.test.ts`: candidates, budgets, pools, and created slots in the slot table.
+    - `sheetCommandReducer.test.ts`: every mode and refusal.
+    - `CharacterSheetActions.test.tsx`: the slot picker.
+    - Room journey `nativeRoomSpellSlotExchange.test.ts`.
 
 ### One with Shadows resume (SPELLS-31.T5n2, size 3, after T5n)
 
