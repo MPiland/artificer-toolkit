@@ -298733,59 +298733,6 @@ export declare const internal: {
         null
       >;
     };
-    equipmentOptions: {
-      list: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            activeUpdatedAt: string;
-            castingTimeAmount?: number;
-            castingTimeUnit?: "ROUND" | "MINUTE" | "HOUR";
-            category?: string;
-            classIds?: Array<string>;
-            classLabels?: Array<string>;
-            description: string | null;
-            id: string;
-            label: string;
-            level?: number;
-            magicSchoolId?: string;
-            magicSchoolLabel?: string;
-            parentClassId?: string | null;
-            parentClassLabel?: string | null;
-            parentRaceId?: string | null;
-            parentRaceLabel?: string | null;
-            permissions: {
-              canCopy: boolean;
-              canDelete: boolean;
-              canEdit: boolean;
-              canView: boolean;
-            };
-            provenance: {
-              kind: "MASTER" | "OWNED";
-              ownerUserId: string | null;
-            };
-            publicId: string;
-            selectionMode?: "DIRECT" | "REQUIRES_SUBRACE";
-            status: "ACTIVE";
-            systemId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-    };
     inventoryTransferCommands: {
       transfer: FunctionReference<
         "mutation",

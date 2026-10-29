@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { CampaignPartyItemPage } from '@artificer-toolkit/schema/api/campaignInventoryPages'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
@@ -15,7 +16,7 @@ import {
 import { getFunctionName } from 'convex/server'
 import { api } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-import { items } from './partyInventory'
+import { equipmentOptions, items } from './partyInventory'
 
 // RELIABILITY-21.2: four concurrent item pages ran 815-937 ms on CI and starved the custody proof's
 // next mutation past Convex's 1 s limit. Each row re-resolved the Campaign's catalogue binding, so a
@@ -29,8 +30,6 @@ const ROWS = 48
 // row's item, root and content source.
 const PAGE_BUDGET_BYTES = 512 * 1024
 const PAGE_BUDGET_DOCUMENTS = 8 + 3 * ROWS
-
-type Handler = (ctx: QueryCtx, args: unknown) => Promise<CampaignPartyItemPage>
 
 // RELIABILITY-21.T18: the public query read the page through a `runQuery` hop into a second module
 // graph, which repeated validation, identity and authority; CI ran it at 909-991 ms. It reads in its
@@ -49,16 +48,20 @@ function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
         appQuery = null
       }
       if (appQuery !== null)
-        throw new Error(`Party item pages read in the public query transaction, not ${appQuery}.`)
+        throw new Error(
+          `Party inventory pages read in the public query transaction, not ${appQuery}.`
+        )
       return ctx.runQuery(reference, ...args)
     }) satisfies QueryCtx['runQuery']
   } as QueryCtx
 }
 
-function handlerOf(registered: object): Handler {
+function handlerOf<Result = CampaignPartyItemPage>(
+  registered: object
+): (ctx: QueryCtx, args: unknown) => Promise<Result> {
   if (!('_handler' in registered) || typeof registered._handler !== 'function')
     throw new Error('Missing registered query handler.')
-  return registered._handler as Handler
+  return registered._handler as (ctx: QueryCtx, args: unknown) => Promise<Result>
 }
 
 describe('party inventory items read budget', () => {
@@ -223,5 +226,34 @@ describe('party inventory items read budget', () => {
     await expect(
       base.first.caller.run((ctx) => handler(inOwnTransaction(ctx as unknown as QueryCtx), args))
     ).rejects.toThrow('catalogue facts are missing or stale')
+  }, 300_000)
+
+  it('lists Equipment options in the public query transaction', async () => {
+    const equipment = [backpack, arrows]
+    const base = await publicationFixture(
+      import.meta.glob('/apps/apis/convex/**/*.*s'),
+      import.meta.glob('../betterAuth/**/*.*s'),
+      [
+        equipment.map((entry) =>
+          importedSubject({ subjectKind: 'EQUIPMENT', ...entry, document: entry })
+        )
+      ]
+    )
+    const campaign = await base.first.caller.mutation(api.campaigns.create.create, {
+      name: 'Party Equipment options',
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD',
+      gameSystemId: srdSystemRecord.id,
+      primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    })
+    const handler = handlerOf<AuthoredCataloguePage>(equipmentOptions)
+    const result = await base.first.caller.run((ctx) =>
+      handler(inOwnTransaction(ctx as unknown as QueryCtx), {
+        campaignId: campaign.id,
+        paginationOpts: { cursor: null, numItems: 48 }
+      })
+    )
+    expect(result.page.map((row) => row.label).sort()).toEqual(['Arrows', 'Backpack'])
   }, 300_000)
 })

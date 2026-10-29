@@ -13,9 +13,9 @@ import {
   type CampaignPartyCurrencyPage
 } from '@artificer-toolkit/schema/api/campaignInventoryPages'
 import { query } from '../lib/queries'
-import { internal } from '../_generated/api'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
+import { readCampaignEquipmentOptions } from './equipmentOptions'
 import { readCampaignItemPage, readCampaignCurrencyPage } from './partyInventoryDocuments'
 
 // RELIABILITY-21.T18: page reads run in this query's transaction. A `runQuery` hop evaluated a
@@ -54,6 +54,8 @@ export const equipmentOptions = query({
   },
   handler: async (ctx, args): Promise<AuthoredCataloguePage> => {
     const input = campaignPartyInventoryListInputSchema.parse(args)
-    return ctx.runQuery(internal.campaigns.equipmentOptions.list, input)
+    const { userId } = await requireIdentity(ctx)
+    const { campaign } = await requireCampaignAuthority(ctx, input.campaignId, userId)
+    return readCampaignEquipmentOptions(ctx, campaign, userId, input.paginationOpts)
   }
 })
