@@ -48,7 +48,8 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { definition, descriptor, lifecycle } from '../../tests/fixtures/maintainedEffects'
 import { readFightingCharacters } from '../liveSessions/characterHolds'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction, encounterWriteTransaction } from './encounterPorts'
+import { encounterWriteTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 
 const getSettings = makeFunctionReference<'query', { campaignId: string }, CampaignPlaySettingsDto>(
   'campaigns/playSettings:get'

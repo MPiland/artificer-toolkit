@@ -15,7 +15,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery, query } from '../lib/queries'
 import { readRecipientContext } from '../scenes/recipientContext'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
 
 async function readBoundSceneScope(

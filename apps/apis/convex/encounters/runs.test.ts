@@ -23,7 +23,7 @@ import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(

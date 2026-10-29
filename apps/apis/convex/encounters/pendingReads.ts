@@ -11,7 +11,7 @@ import { readCampaignRunState } from '@artificer-toolkit/encounter-persistence/d
 import { readPendingRunDecision } from '@artificer-toolkit/encounter-persistence/pendingReads'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
 
 const pendingRuleOccurrenceDefinition = {

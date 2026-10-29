@@ -10,7 +10,7 @@ import {
   composeRunActorState
 } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { recordZoneApplications } from '@artificer-toolkit/shared/vtt'
+import { recordZoneApplications } from '@artificer-toolkit/shared/vtt/spatial'
 import {
   ensureSourceFacts,
   readStoredRunActor,

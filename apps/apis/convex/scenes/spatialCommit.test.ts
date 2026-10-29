@@ -9,7 +9,7 @@ import {
 import { seedSpatialTerminalFixture } from '../../tests/fixtures/spatialPreparation'
 import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { createSpatialRuleEffectStore } from '@artificer-toolkit/encounter-persistence/spatialEffectStore'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 

@@ -64,7 +64,7 @@ import {
   writePendingSnapshot
 } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import {
   attachFixtureRoom,
   checkpointLiveRoom,
