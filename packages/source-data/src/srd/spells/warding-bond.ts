@@ -74,7 +74,7 @@ export const wardingBond: SpellAuthored = {
             // Separation ends the whole bond (a Character's fold has no positions to restrict one grant);
             // recasting on either creature stays description-only.
             lifecycle: {
-              endOnTriggers: [
+              endTriggers: [
                 { event: 'INCAPACITATED' as const, of: 'SOURCE' as const },
                 { event: 'SEPARATED' as const, from: 'SOURCE' as const, beyondFeet: 60 }
               ]

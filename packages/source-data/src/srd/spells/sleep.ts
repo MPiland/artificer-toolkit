@@ -96,7 +96,7 @@ export const sleep: SpellAuthored = {
               amount: 1
             },
             lifecycle: {
-              endOnTriggers: [
+              endTriggers: [
                 { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const },
                 {
                   event: 'ACTION_USED_ON_HOLDER' as const,

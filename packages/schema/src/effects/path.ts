@@ -50,8 +50,6 @@ import {
   equipmentPropertyCodeSchema,
   pathCodeSchema,
   pathGroupTypeSchema,
-  pathLifecycleConsumeEventSchema,
-  pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
   pathLifecycleReturnsOnSchema,
   pathLifecycleExclusivitySchema,
@@ -158,11 +156,7 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
   z.object({
     recurringKind: z.optional(pathLifecycleRecurringKindSchema),
     turnAnchor: z.optional(pathLifecycleTurnAnchorDtoSchema),
-    consumeOnFirstEvents: z.optional(
-      authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
-    ),
-    endOnEvents: z.optional(authoredReferenceCollectionSchema(pathLifecycleEndEventSchema)),
-    endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema),
+    endTriggers: z.optional(pathLifecycleEndTriggersDtoSchema),
     /** Condition type ids; the effect ends early while its holder has any of them. */
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** See `PathLifecycleAuthored.returnsOn`. */

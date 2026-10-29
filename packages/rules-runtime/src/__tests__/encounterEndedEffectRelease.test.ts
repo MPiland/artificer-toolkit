@@ -218,15 +218,12 @@ describe('temporary hit points released with the effects that gave them (D156)',
 })
 
 describe('what an attack roll ends for its roller', () => {
-  const rollerEffect = (
-    id: string,
-    consumeOnFirstEvents: readonly 'ON_ATTACK_ROLL'[] | undefined
-  ) =>
+  const rollerEffect = (id: string, consumeEvents: readonly 'ON_ATTACK_ROLL'[] | undefined) =>
     activeEffect({
       id,
       owner,
       createdOrdinal: 1,
-      consumeOnFirstEvents,
+      endTriggers: consumeEvents?.map((code) => ({ event: 'LIFECYCLE', timing: 'CONSUME', code })),
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -306,14 +303,14 @@ describe('what an action ends on its target', () => {
 
   const sleeper = (
     id: string,
-    endOnTriggers: Parameters<typeof activeEffect>[0]['endOnTriggers'],
+    endTriggers: Parameters<typeof activeEffect>[0]['endTriggers'],
     createdOrdinal = 1
   ) =>
     activeEffect({
       id,
       owner,
       createdOrdinal,
-      endOnTriggers,
+      endTriggers,
       sourceActorId: SOURCE_ID,
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
@@ -398,13 +395,19 @@ describe('what an action ends on its target', () => {
   })
 
   describe('an attack roll against the holder (ON_ATTACKED, SPELLS-4.T2a3)', () => {
-    const marked = (consumeOnFirstEvents: readonly ('ON_ATTACKED' | 'ON_ATTACK_ROLL')[]) =>
+    const marked = (consumeEvents: readonly ('ON_ATTACKED' | 'ON_ATTACK_ROLL')[]) =>
       activeEffect({
         id: FIRST_ID,
         owner,
         createdOrdinal: 1,
-        consumeOnFirstEvents,
-        endOnTriggers: anyDamage,
+        endTriggers: [
+          ...anyDamage,
+          ...consumeEvents.map((code) => ({
+            event: 'LIFECYCLE' as const,
+            timing: 'CONSUME' as const,
+            code
+          }))
+        ],
         stateContributions: [
           { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
         ]
@@ -466,7 +469,7 @@ describe('what an action ends on its target', () => {
         id: FIRST_ID,
         owner,
         createdOrdinal: 1,
-        consumeOnFirstEvents: ['ON_ATTACKED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }],
         sourceActorId,
         stateContributions: [
           { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
@@ -544,7 +547,7 @@ describe('what another creature rousing the holder ends (SPELLS-27.T12)', () => 
       id,
       owner,
       createdOrdinal,
-      endOnTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }],
+      endTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds }],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -606,7 +609,10 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
       id,
       owner,
       createdOrdinal: 1,
-      endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL'],
+      endTriggers: [
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+      ],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -645,7 +651,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
       id: FIRST_ID,
       owner,
       createdOrdinal: 1,
-      consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -679,7 +685,7 @@ describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', ()
       id: FIRST_ID,
       owner,
       createdOrdinal: 1,
-      endOnTriggers: [trigger],
+      endTriggers: [trigger],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -737,7 +743,7 @@ describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', ()
 })
 
 describe('a condition-owning effect’s end events', () => {
-  const definitionEnding = (field: 'consumeOnFirstEvents' | 'endOnEvents', events: string[]) => {
+  const definitionEnding = (timing: 'CONSUME' | 'END', events: string[]) => {
     const { definition } = activeEffect({
       id: FIRST_ID,
       owner,
@@ -746,23 +752,29 @@ describe('a condition-owning effect’s end events', () => {
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
     })
-    return { ...definition, recurrence: { ...definition.recurrence, [field]: events } }
+    return {
+      ...definition,
+      recurrence: {
+        ...definition.recurrence,
+        endTriggers: events.map((code) => ({ event: 'LIFECYCLE' as const, timing, code }))
+      }
+    }
   }
 
   it('may end on an attack roll, whose consumer releases the condition', () => {
-    for (const field of ['consumeOnFirstEvents', 'endOnEvents'] as const)
+    for (const timing of ['CONSUME', 'END'] as const)
       expect(
-        activeRuleEffectDefinitionDtoSchema.safeParse(definitionEnding(field, ['ON_ATTACK_ROLL']))
+        activeRuleEffectDefinitionDtoSchema.safeParse(definitionEnding(timing, ['ON_ATTACK_ROLL']))
           .success
       ).toBe(true)
   })
 
   it.each([
-    ['consumeOnFirstEvents', 'ON_ABILITY_CHECK'],
-    ['endOnEvents', 'ON_HIT_POINTS_REGAINED'],
-    ['endOnEvents', 'ON_INCAPACITATED']
-  ] as const)('cannot list %s %s, whose consumer would strand the condition', (field, event) => {
-    const parsed = activeRuleEffectDefinitionDtoSchema.safeParse(definitionEnding(field, [event]))
+    ['CONSUME', 'ON_ABILITY_CHECK'],
+    ['END', 'ON_HIT_POINTS_REGAINED'],
+    ['END', 'ON_INCAPACITATED']
+  ] as const)('cannot list %s %s, whose consumer would strand the condition', (timing, event) => {
+    const parsed = activeRuleEffectDefinitionDtoSchema.safeParse(definitionEnding(timing, [event]))
     expect(parsed.success).toBe(false)
     expect(JSON.stringify(parsed.error?.issues)).toContain(
       `Condition-owning effects cannot end on ${event}`
@@ -771,12 +783,12 @@ describe('a condition-owning effect’s end events', () => {
 })
 
 describe('what taking an action or moving ends for the holder', () => {
-  const hiding = (id: string, endOnEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTION')[]) =>
+  const hiding = (id: string, endEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTION')[]) =>
     activeEffect({
       id,
       owner,
       createdOrdinal: 1,
-      endOnEvents,
+      endTriggers: endEvents.map((code) => ({ event: 'LIFECYCLE', timing: 'END', code })),
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
@@ -822,7 +834,13 @@ describe('what taking an action or moving ends for the holder', () => {
     expect(
       activeRuleEffectDefinitionDtoSchema.safeParse({
         ...definition,
-        recurrence: { ...definition.recurrence, endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] }
+        recurrence: {
+          ...definition.recurrence,
+          endTriggers: [
+            { event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' },
+            { event: 'LIFECYCLE', timing: 'END', code: 'ON_TAKE_ACTION' }
+          ]
+        }
       }).success
     ).toBe(true)
   })

@@ -54,7 +54,7 @@ import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
   activeEffectGraphNodeId,
   durationPublishedGraph,
-  isGrantConsumeEvent,
+  isGrantEndTrigger,
   maintenancePlan
 } from './effectActionLifetime.js'
 import {
@@ -444,9 +444,7 @@ function supportedRecurringPlan(
     !recurringScaling &&
     lifecycle &&
     recurringStage !== null &&
-    (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnTriggers?.length ?? 0) === 0 &&
+    (lifecycle.endTriggers?.length ?? 0) === 0 &&
     (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(action, entry)
   if (
@@ -999,9 +997,7 @@ function timedConditionPlan(
     return null
   const {
     turnAnchor,
-    consumeOnFirstEvents = [],
-    endOnEvents = [],
-    endOnTriggers = [],
+    endTriggers = [],
     turnEndGate,
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
@@ -1037,7 +1033,9 @@ function timedConditionPlan(
     : null
   if (
     (indefinite
-      ? !untilDispelled && !maintenance && endOnEvents.length === 0
+      ? !untilDispelled &&
+        !maintenance &&
+        !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
@@ -1052,11 +1050,7 @@ function timedConditionPlan(
     )
   )
     return null
-  const lifecycle = {
-    consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-    endOnEvents: [...new Set(endOnEvents)].sort(),
-    endOnTriggers: canonicalEndTriggers(endOnTriggers)
-  }
+  const lifecycle = { endTriggers: canonicalEndTriggers(endTriggers) }
   if (turnEndGate)
     return turnEndGatePlan({
       effectId: action.effectId,
@@ -1121,8 +1115,9 @@ function ownsTimedSaveCondition(
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
     (tier !== undefined ||
-      (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
-      (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
+      (entry.lifecycle?.endTriggers ?? []).some(
+        (trigger) => trigger.event !== 'LIFECYCLE' || trigger.timing === 'END'
+      ) ||
       (turns !== null && turns <= 1) ||
       // A removal from play (Banishment) is the early end: the held effect returns the creature
       // when it ends, by duration, Concentration or dismissal (D178).
@@ -1506,12 +1501,13 @@ function concealmentPlan(
   const entry = entries[0]
   if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
   if (entry.outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS') return null
-  const { consumeOnFirstEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
-  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
+  const { endTriggers = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     entry.duration?.durationKind !== 'UNTIL_DISPELLED' ||
-    grantConsumeEvents.length !== consumeEvents.length ||
+    !endTriggers.every(
+      (trigger) =>
+        trigger.event === 'LIFECYCLE' && trigger.timing === 'CONSUME' && isGrantEndTrigger(trigger)
+    ) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId)
   )
@@ -1525,7 +1521,7 @@ function concealmentPlan(
     initialRemaining: null,
     concealmentContribution: {
       observers: entry.outcome.observers,
-      consumeOnFirstEvents: grantConsumeEvents
+      endTriggers: canonicalEndTriggers(endTriggers)
     },
     adapterFacts: {},
     perceptionContributions: [],

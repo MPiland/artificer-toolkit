@@ -98,7 +98,7 @@ describe('a tracer approach check on the neutral d20 settlement (RULES-2.T12b)',
     const aspect = tracerActiveEffect({
       id: ASPECT_ID,
       holderActorId: ACTOR_ID,
-      consumeOnFirstEvents: ['INVOKED']
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'INVOKED' }]
     })
     expect(freezeForceful([aspect]).consumedGrants).toEqual([aspect])
   })
@@ -107,7 +107,10 @@ describe('a tracer approach check on the neutral d20 settlement (RULES-2.T12b)',
     const aspect = tracerActiveEffect({
       id: ASPECT_ID,
       holderActorId: ACTOR_ID,
-      endOnEvents: ['STRESSED', 'TAKEN_OUT']
+      endTriggers: [
+        { event: 'LIFECYCLE', timing: 'END', code: 'STRESSED' },
+        { event: 'LIFECYCLE', timing: 'END', code: 'TAKEN_OUT' }
+      ]
     })
     expect(freezeForceful([aspect]).consumedGrants).toEqual([])
   })
@@ -116,7 +119,7 @@ describe('a tracer approach check on the neutral d20 settlement (RULES-2.T12b)',
     const aspect = tracerActiveEffect({
       id: ASPECT_ID,
       holderActorId: ACTOR_ID,
-      consumeOnFirstEvents: ['ON_ATTACK_ROLL']
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
     })
     expect(() => freezeForceful([aspect])).toThrow(
       'The tracer event vocabulary has no lifecycle event "ON_ATTACK_ROLL".'

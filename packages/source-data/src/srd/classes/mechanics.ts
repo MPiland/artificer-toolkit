@@ -417,7 +417,9 @@ export function incomingDamageReactionEffect(
           duration: { id: ids.duration, durationKind: DURATION_KIND.ROUND, amount: 1 },
           lifecycle: {
             turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
-            consumeOnFirstEvents: ['ON_ATTACKED']
+            endTriggers: [
+              { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_ATTACKED' }
+            ]
           },
           outcomes: [
             {

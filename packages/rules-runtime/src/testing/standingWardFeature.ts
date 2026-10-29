@@ -41,7 +41,7 @@ export function standingWardFeature(returnsOn: PathLifecycleReturnsOn): FeatureA
               id: testUuid(0x5d5),
               resultKind: 'SINGLE',
               lifecycle: {
-                endOnTriggers: [
+                endTriggers: [
                   { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
                   { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
                 ],

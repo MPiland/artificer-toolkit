@@ -1558,7 +1558,12 @@ export const warlock: ClassAuthored = {
                 result: classRowId(W, 0x81, 18)
               },
               activation: ACTIVATION_CODE.ACTION,
-              lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+              lifecycle: {
+                endTriggers: [
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' },
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' }
+                ]
+              },
               outcome: {
                 id: classRowId(W, 0x82, 18),
                 effectKind: EFFECT_KIND.CONDITION,
