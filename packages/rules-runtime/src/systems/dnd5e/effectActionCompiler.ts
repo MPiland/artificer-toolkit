@@ -2864,7 +2864,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       const outcome: SpecializedOutcome =
         'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
           ? { kind: 'MODIFIER_GRANT' }
-          : specializedTestOutcome(entry)
+          : specializedTestOutcome(entry, input.facts)
       if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
         unsupported('D&D direct repeated save outcome is unavailable.')
       return fixedOutcomeGraphDefinition({

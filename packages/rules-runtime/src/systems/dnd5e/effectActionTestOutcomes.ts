@@ -19,8 +19,6 @@ import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/s
 export type SpecializedOutcome =
   | Outcome
   | { kind: 'DICE_DAMAGE'; damageTypeId: string }
-  /** A fixed amount its bonuses size, which the source's resolved expression states once bound. */
-  | { kind: 'RESOLVED_DAMAGE'; damageTypeId: string }
   | { kind: 'DICE_HEAL'; temporary: boolean }
   | {
       kind: 'DICE_SCALAR_REDUCTION'
@@ -60,8 +58,16 @@ export function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]
   return boundedOutcome(entry.outcome, killAdmitted)
 }
 
+/**
+ * The TEST phase's view of an outcome: a fixed amount its bonuses size is known only by kind, since
+ * the source's resolved expression that states it is bound in the outcome phase.
+ */
+export type TestPhaseOutcome =
+  | SpecializedOutcome
+  | { kind: 'RESOLVED_DAMAGE'; damageTypeId: string }
+
 /** The sibling damage outcome an outcome sized by the damage dealt reads, if it is one. */
-export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
+export function damageSourceOutcomeId(outcome: TestPhaseOutcome) {
   if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') return outcome.amountSource.damageOutcomeId
   return outcome.kind === 'DAMAGE_DERIVED_HEAL' ? outcome.damageOutcomeId : undefined
 }
@@ -75,8 +81,15 @@ export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
 export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number],
   /** The source's bound facts, which only the outcome phase has. */
+  facts: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
+): SpecializedOutcome
+export function specializedTestOutcome(
+  entry: CompiledEffectGroup['entries'][number]
+): TestPhaseOutcome
+export function specializedTestOutcome(
+  entry: CompiledEffectGroup['entries'][number],
   facts?: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
-): SpecializedOutcome {
+): TestPhaseOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED' && outcome.bonuses?.length) {
