@@ -1,3 +1,4 @@
+import { setImmediate as nextMacrotask } from 'node:timers/promises'
 import type { FunctionReference } from 'convex/server'
 import type { TestConvex } from 'convex-test'
 import { vi } from 'vitest'
@@ -12,19 +13,29 @@ import type schema from '../../convex/schema'
 /**
  * Runs scheduled work to completion on fake timers, so the staged account deletion's retry
  * watchdogs (ADR 0040) fire and retire instead of leaving the drain waiting on a real clock. It
- * advances one timer at a time: firing every timer at once starts a step's watchdog before the
- * step commits, and each lost race doubles the backoff, carrying the clock past session expiries.
+ * advances the clock only once nothing due now is outstanding: a step's first invocation loads its
+ * module with real I/O, and advancing meanwhile fires only the loaded watchdog, whose doubling
+ * backoff carries the clock past every session's expiry.
  */
 export async function drainScheduledWork(t: TestConvex<typeof schema>) {
   const realTimers = !vi.isFakeTimers()
   if (realTimers) vi.useFakeTimers({ now: Date.now() })
-  const DIAG_START = Date.now()
   try {
-    await t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer(), 1_000)
-    const DIAG_LATE = (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect()))
-      .filter((row) => row.scheduledTime > DIAG_START + 60_000)
-      .map((row) => `${row.name}@+${Math.round((row.scheduledTime - DIAG_START) / 60_000)}m:${row.state.kind}`)
-    console.warn(`DIAG drain advanced ${Math.round((Date.now() - DIAG_START) / 60_000)}m; late: ${DIAG_LATE.slice(0, 15).join(', ')}`)
+    for (let advances = 0; advances < 1_000; ) {
+      await t.finishInProgressScheduledFunctions()
+      const outstanding = (
+        await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+      ).filter((row) => row.state.kind === 'pending' || row.state.kind === 'inProgress')
+      if (!outstanding.length) return
+      if (outstanding.some((row) => row.scheduledTime <= Date.now())) {
+        vi.advanceTimersByTime(0)
+        await nextMacrotask()
+      } else {
+        vi.advanceTimersToNextTimer()
+        advances++
+      }
+    }
+    throw new Error('Scheduled work did not finish.')
   } finally {
     if (realTimers) vi.useRealTimers()
   }
