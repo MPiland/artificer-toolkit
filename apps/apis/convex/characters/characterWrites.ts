@@ -25,6 +25,7 @@ import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
+import type { storeCharacterSheetSections } from './sheetSectionDerivation'
 import { scheduleCharacterSheetSections } from './sheetSections'
 import {
   writeCharacterOperationalRecords,
@@ -67,8 +68,8 @@ function characterHead(record: CharacterStoredRecord) {
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
  * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
- * returned facts for its own Sheet response. It queues the derivation that stores the Sheet
- * sections Sheet queries serve (ADR 0041). Callers own authority, replay, receipts and advancing
+ * returned facts for its own Sheet response. From the same facts it stores the derived Sheet
+ * sections that Sheet queries serve (ADR 0041). Callers own authority, replay, receipts and advancing
  * the stream once per transaction.
  */
 export async function writeCharacterRecord(
@@ -86,6 +87,11 @@ export async function writeCharacterRecord(
       catalogScope?: 'active' | 'resolution'
       authorityScope?: CampaignInternalScope
     }
+    /**
+     * Stores the Sheet sections from this write's evaluation. Only the Sheet's own writers pass
+     * it, so other writers (content deletion among them) do not load Sheet projection.
+     */
+    storeSheetSections?: typeof storeCharacterSheetSections
   }
 ): Promise<{
   row: CharacterRecordRow
@@ -239,9 +245,17 @@ export async function writeCharacterRecord(
   const row = unchanged
     ? facts.active
     : { ...facts.active, play: { ...facts.active.play, ...stats } }
-  // The write stores no Sheet sections; one queued derivation per Character does (ADR 0041).
-  await scheduleCharacterSheetSections(ctx, record.id)
-  return { row, facts: { ...facts, active: row } }
+  const written = { row, facts: { ...facts, active: row } }
+  // Stored sections project the Sheet's own evaluation: active sources with their prose. Any
+  // other evaluation (resolution scope, commit's referenced content) queues that derivation.
+  if (
+    input.storeSheetSections &&
+    (reader.catalogScope ?? 'active') === 'active' &&
+    facts.prepared.context.presentation
+  )
+    await input.storeSheetSections(ctx, written.facts, reader.authorityScope)
+  else await scheduleCharacterSheetSections(ctx, record.id)
+  return written
 }
 
 /**

@@ -224,7 +224,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(await readCommon()).toEqual(common)
   }, 60_000)
 
-  it('queues one derivation per Character, which a newer Sheet command replaces', async () => {
+  it('queues one derivation per Character, which a newer queued write replaces', async () => {
     const { t, player, character, input, visibility } = await setup()
     const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
     const readStored = (section: string) =>
@@ -245,32 +245,28 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           (row) => row.scheduledId
         )
       }))
+    // A note write evaluates nothing, so it queues the derivation.
+    const createNote = (expectedVersion: number, title: string) =>
+      player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: character.id,
+        command: {
+          type: 'CREATE_NOTE',
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          title,
+          groupId: 'session-notes'
+        }
+      })
 
-    const adjusted = await player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: character.id,
-      command: {
-        type: 'UPSERT_SHEET_ADJUSTMENT',
-        commandId: crypto.randomUUID(),
-        expectedVersion: visibility.streamVersion,
-        adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 1 }
-      }
-    })
-    const first = await readQueue()
-    expect(first.scheduled).toHaveLength(1)
-    expect(first.pending).toEqual(first.scheduled)
-    const damaged = await player.caller.mutation(api.characters.sheetCommands.execute, {
-      id: character.id,
-      command: {
-        type: 'SET_HIT_POINTS',
-        commandId: crypto.randomUUID(),
-        expectedVersion: adjusted.streamVersion,
-        current: 1
-      }
-    })
-    const second = await readQueue()
-    expect(second.scheduled).toHaveLength(1)
-    expect(second.pending).toEqual(second.scheduled)
-    expect(second.scheduled).not.toEqual(first.scheduled)
+    const first = await createNote(visibility.streamVersion, 'Session one')
+    const firstQueue = await readQueue()
+    expect(firstQueue.scheduled).toHaveLength(1)
+    expect(firstQueue.pending).toEqual(firstQueue.scheduled)
+    const second = await createNote(first.streamVersion, 'Session two')
+    const secondQueue = await readQueue()
+    expect(secondQueue.scheduled).toHaveLength(1)
+    expect(secondQueue.pending).toEqual(secondQueue.scheduled)
+    expect(secondQueue.scheduled).not.toEqual(firstQueue.scheduled)
 
     // Until the queued derivation lands, every read derives live over the written Character.
     expect(await readStored(characterSheetSection.slice('COMMON'))).toBeNull()
@@ -285,7 +281,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         target: target!
       })
     }
-    expect(live.common?.data.meta.streamVersion).toBe(damaged.streamVersion)
+    expect(live.common?.data.meta.streamVersion).toBe(second.streamVersion)
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(await readQueue()).toEqual({ scheduled: [], pending: [] })
     expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(live.common)
@@ -293,6 +289,50 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(
       await player.caller.query(api.characters.panels.get, { id: character.id, target: target! })
     ).toEqual(live.panel)
+  }, 60_000)
+
+  it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {
+    const { t, player, character, input, visibility } = await setup()
+    const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
+    const readStored = (section: string) =>
+      t.run((ctx) =>
+        readStoredCharacterSheetSection(ctx, {
+          userId: player.userId,
+          lookupId: character.id,
+          campaignId: input.campaignId,
+          section
+        })
+      )
+    const note = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'CREATE_NOTE',
+        commandId: crypto.randomUUID(),
+        expectedVersion: visibility.streamVersion,
+        title: 'Session one',
+        groupId: 'session-notes'
+      }
+    })
+    expect(
+      await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())
+    ).toHaveLength(1)
+
+    const adjusted = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'UPSERT_SHEET_ADJUSTMENT',
+        commandId: crypto.randomUUID(),
+        expectedVersion: note.streamVersion,
+        adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 1 }
+      }
+    })
+    // The command's store supersedes the note's queued derivation, which would find it current.
+    const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+    expect(scheduled.filter((row) => row.state.kind === 'pending')).toEqual([])
+    expect(await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())).toEqual([])
+    const common = await readStored(characterSheetSection.slice('COMMON'))
+    expect(common?.data.meta.streamVersion).toBe(adjusted.streamVersion)
+    expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
   }, 60_000)
 
   it('queues no derivation for a Builder draft save', async () => {

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
@@ -16,13 +16,9 @@ const ENCOUNTER_DAMAGE_BYTES = 2500
 /** The Sheet's stored sections (ADR 0041): a COMMON slice measured 2026-10-28 at about 9.8 KB. */
 const SHEET_SECTION_BYTES_PER_VIEWER = 12_000
 
-const storedSheetTables = [
-  'characterSheetSections',
-  'characterSheetDerivations',
-  'characterSheetPendingStores'
-] as const
+const storedSheetTables = ['characterSheetSections', 'characterSheetDerivations'] as const
 
-/** Writes apart from the Sheet's stored sections and their queue, which ADR 0041 bounds separately. */
+/** Writes apart from the Sheet's stored sections, which ADR 0041 bounds separately. */
 function playWriteBytes(totals: ReturnType<typeof createDatabaseIoTotals>) {
   return storedSheetTables.reduce(
     (bytes, table) => bytes - (totals.writes.byTable[table]?.bytes ?? 0),
@@ -31,13 +27,9 @@ function playWriteBytes(totals: ReturnType<typeof createDatabaseIoTotals>) {
 }
 
 describe('Character play-state write budget', () => {
-  beforeEach(() => vi.useFakeTimers())
-  afterEach(() => vi.useRealTimers())
-
   it('writes only the small play record for a Sheet HP change and an Encounter damage', async () => {
     const fixture = await setupCharacterRun()
-    const { t, player, character, actor, run } = fixture
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const { player, character, actor, run } = fixture
     const sheet = await player.caller.query(api.characters.sheet.get, { id: character.id })
     if (!sheet) throw new Error('Expected Character Sheet.')
 
@@ -69,23 +61,18 @@ describe('Character play-state write budget', () => {
     )
     expect(sheetTotals.writes.byTable.replace.bytes).toBeLessThan(PLAY_RECORD_BYTES)
     expect(playWriteBytes(sheetTotals)).toBeLessThan(SHEET_HP_CHANGE_BYTES)
-    // The command only queues the derivation (ADR 0041); it stores no section itself.
-    expect(sheetTotals.writes.byTable.characterSheetSections).toBeUndefined()
-    expect(sheetTotals.writes.byTable.characterSheetDerivations).toBeUndefined()
-    expect(sheetTotals.writes.byTable.characterSheetPendingStores?.documents).toBe(1)
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
-    // The derivation rewrites only each viewer's COMMON slice; every other section is unchanged.
+    // An HP change rewrites only each viewer's COMMON slice; every other section is unchanged.
     const checksumsBefore = new Map(sectionsBefore.map((row) => [row._id, row.checksum]))
     const rewritten = (await readSections()).filter(
       (row) => checksumsBefore.get(row._id) !== row.checksum
     )
     const viewers = new Set(sectionsBefore.map((row) => row.viewer))
     expect(rewritten.map((row) => row.section)).toEqual([...viewers].map(() => 'SLICE:COMMON'))
-    const rewrittenBytes = rewritten.reduce(
-      (bytes, row) => bytes + new TextEncoder().encode(JSON.stringify(row)).byteLength,
-      0
+    expect(sheetTotals.writes.byTable.characterSheetSections?.documents).toBe(rewritten.length)
+    expect(sheetTotals.writes.byTable.characterSheetSections?.bytes).toBeLessThan(
+      viewers.size * SHEET_SECTION_BYTES_PER_VIEWER
     )
-    expect(rewrittenBytes).toBeLessThan(viewers.size * SHEET_SECTION_BYTES_PER_VIEWER)
+    expect(sheetTotals.writes.byTable.characterSheetDerivations?.documents).toBe(1)
 
     const after = await player.caller.query(api.characters.sheet.get, { id: character.id })
     if (!after) throw new Error('Expected Character Sheet.')

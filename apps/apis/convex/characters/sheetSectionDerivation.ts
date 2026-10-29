@@ -11,6 +11,7 @@ import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'
+import type { CampaignInternalScope } from '../campaigns/authority'
 import { internalMutation } from '../lib/mutations'
 import { loadCharacterState } from './documents'
 import { projectCharacterSheetPanel } from './panels'
@@ -45,13 +46,20 @@ function projectSlices(
 /**
  * Projects every stored Sheet section from the facts this write evaluated, for each viewer that
  * can read the Character: its owner, the GM of its Campaign and, while "Party can view" is on, the
- * party. Rule evaluation does not depend on the viewer, so the derivation evaluates once (ADR 0041).
+ * party. Rule evaluation does not depend on the viewer, so the write evaluates once (ADR 0041).
+ * A derivation still queued by an earlier write would only find these sections current.
  */
-async function storeCharacterSheetSections(
+export async function storeCharacterSheetSections(
   ctx: MutationCtx,
-  facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>
+  facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>,
+  authorityScope?: CampaignInternalScope
 ) {
   const characterId = facts.active.id
+  const pending = await readCharacterSheetPendingStore(ctx, characterId)
+  if (pending) {
+    await ctx.scheduler.cancel(pending.scheduledId)
+    await ctx.db.delete(pending._id)
+  }
   const campaign = facts.sourceContext.context.sourceAccess.campaign
   const ownerContext: CharacterSheetCampaignContext = {
     ...facts.campaignContext,
@@ -92,11 +100,12 @@ async function storeCharacterSheetSections(
     if (campaign && campaignContext === ownerContext && facts.sheetState.partyVisibility.sheet)
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
   }
-  const fingerprint = await readCharacterSheetFingerprint(ctx, {
-    active: facts.active,
-    hasDraft: facts.draft !== null,
-    publicId: facts.route.publicId
-  })
+  // The facts carry the Character row as this transaction wrote it.
+  const fingerprint = await readCharacterSheetFingerprint(
+    ctx,
+    { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
+    authorityScope
+  )
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }
 
