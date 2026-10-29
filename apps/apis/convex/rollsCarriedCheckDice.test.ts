@@ -3,15 +3,24 @@ import { describe, expect, it } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
+import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
+import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { equipAllCharacterItems, setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
+import { loadCharacterEncounterInitiative } from './characters/encounterInitiative'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
 
-type CarriedSpell = typeof guidance | typeof resistance | typeof glibness | typeof bless
+type CarriedSpell =
+  | typeof guidance
+  | typeof resistance
+  | typeof glibness
+  | typeof bless
+  | typeof divineFavor
+  | typeof passWithoutTrace
 
 /** The spell's one effect, its die limited to `ability` when given. */
 function carriedEffect(spell: CarriedSpell, ability?: 'DEXTERITY') {
@@ -107,8 +116,28 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
       source: { kind: 'ATTACK', label: `${label} attack` }
     })
   }
+  const damage = async () => {
+    const { label, mechanic } = await attackRow()
+    const outcome = mechanic.outcomes.find((each) => each.kind === 'DAMAGE')
+    if (outcome?.kind !== 'DAMAGE') throw new Error('The attack row deals no damage.')
+    return player.caller.mutation(api.rolls.execute, {
+      characterId: character.id,
+      expression: outcome.expression,
+      source: { kind: 'DAMAGE', label: `${label} damage` }
+    })
+  }
+  const initiativeSource = () =>
+    t.run((ctx) =>
+      loadCharacterEncounterInitiative(ctx, base.owner.userId, {
+        characterId: character.id,
+        campaignId: base.campaign.id,
+        systemId: base.campaign.gameSystemId
+      })
+    )
   const equipWeapons = () => equipAllCharacterItems(base)
   return {
+    damage,
+    initiativeSource,
     effectCount,
     abilityCheck,
     strengthCheck,
@@ -227,6 +256,35 @@ describe('an active attack-roll die on the Sheet', () => {
       expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
     }
     expect(await effectCount()).toBe(1)
+  })
+})
+
+/** SPELLS-8.6: a die an active grant adds to the Character's own damage (Divine Favor) joins its damage roll. */
+describe('an active damage die on the Sheet', () => {
+  it('adds the die the damage row shows to every damage roll, unspent', async () => {
+    const { equipWeapons, attackRow, damage, effectCount } = await characterCarrying(divineFavor)
+    await equipWeapons()
+    expect((await attackRow()).mechanic.damageAddedDice).toEqual([
+      expect.objectContaining({ label: divineFavor.label, count: 1, faces: 4, sign: 'ADD' })
+    ])
+    for (const record of [await damage(), await damage()]) {
+      expect(d4Terms(record).length).toBeGreaterThanOrEqual(1)
+      expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
+    }
+    expect(await effectCount()).toBe(1)
+  })
+})
+
+/** SPELLS-8.6: initiative reads the Character's active grants, as its Sheet does (Pass without Trace's Stealth). */
+describe('an active check bonus on initiative', () => {
+  it('counts a held Stealth bonus in the check totals declared-action initiative reads', async () => {
+    const plain = await characterCarrying(guidance)
+    const stealthy = await characterCarrying(passWithoutTrace)
+    const before = (await plain.initiativeSource()).initiativeActorFacts.checkTotals
+    const after = (await stealthy.initiativeSource()).initiativeActorFacts.checkTotals
+    const changed = Object.keys(after).filter((id) => after[id] !== before[id])
+    expect(changed).toHaveLength(1)
+    expect(after[changed[0]!]).toBe(before[changed[0]!]! + 10)
   })
 })
 

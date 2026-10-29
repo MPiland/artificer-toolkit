@@ -63,15 +63,18 @@ function projectOutcome(
   }
 }
 
+/** The effects whose dice join a Character's action rows. */
+export interface CharacterRuleRowEffects {
+  /** The Character's active effects; their attack and damage dice join the row as the room rolls them. */
+  active: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  /** Effects the Character placed; their dice join its damage only against their holders. */
+  placed: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+}
+
 export function projectCharacterRuleActionMechanic(
   mechanic: CharacterResolvedActionMechanic,
   references: CharacterRuleActionPresentationReferences,
-  effects: {
-    /** The Character's active effects; their attack and damage dice join the row as the room rolls them. */
-    active: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
-    /** Effects the Character placed; their dice join its damage only against their holders. */
-    placed: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
-  }
+  effects: CharacterRuleRowEffects
 ): CharacterSheetProjectedMechanic {
   const { attackDomain } = mechanic
   const attackAddedDice =

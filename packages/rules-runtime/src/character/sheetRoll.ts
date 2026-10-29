@@ -23,8 +23,11 @@ type ResolvedRoll = {
   abilityCode?: string
   /** Whether a skill check adds the Character's full proficiency bonus or more. */
   proficient?: boolean
-  /** The dice the Character's active grants add to an attack roll (Bless), as its Sheet row shows them. */
-  attackAddedDice?: D20AddedDieDto[] | undefined
+  /**
+   * The dice the Character's active grants add to an attack roll (Bless) or to its damage (Divine
+   * Favor), as its Sheet row shows them.
+   */
+  addedDice?: D20AddedDieDto[] | undefined
 }
 
 function withModifier(expression: string, modifier: number) {
@@ -33,11 +36,23 @@ function withModifier(expression: string, modifier: number) {
     : `${expression} ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`
 }
 
+function unconditionalDamageDice(
+  dice: NonNullable<
+    CharacterSheetResponseDto['actions']['items'][number]['mechanic']
+  >['damageAddedDice']
+): D20AddedDieDto[] | undefined {
+  const unconditional = (dice ?? []).flatMap(({ againstHolderOnly, label, count, faces, sign }) =>
+    againstHolderOnly ? [] : [{ label, count, faces, sign }]
+  )
+  return unconditional.length > 0 ? unconditional : undefined
+}
+
 function mechanicRolls(
   label: string,
   mechanic: NonNullable<CharacterSheetResponseDto['actions']['items'][number]['mechanic']>
 ): ResolvedRoll[] {
   const sourceLabel = label.slice(0, 80)
+  const firstDamageIndex = mechanic.outcomes.findIndex((outcome) => outcome.kind === 'DAMAGE')
   return [
     ...(mechanic.attackBonus == null
       ? []
@@ -46,15 +61,21 @@ function mechanicRolls(
             expression: withModifier('1d20', mechanic.attackBonus),
             rollMode: mechanic.attackRollMode,
             source: { kind: 'ATTACK' as const, label: `${sourceLabel} attack`.slice(0, 80) },
-            attackAddedDice: mechanic.attackAddedDice
+            addedDice: mechanic.attackAddedDice
           }
         ]),
-    ...mechanic.outcomes.flatMap((outcome): ResolvedRoll[] => {
+    ...mechanic.outcomes.flatMap((outcome, index): ResolvedRoll[] => {
       if (outcome.kind === 'DAMAGE') {
         return [
           {
             expression: outcome.expression,
-            source: { kind: 'DAMAGE', label: `${sourceLabel} damage`.slice(0, 80) }
+            source: { kind: 'DAMAGE', label: `${sourceLabel} damage`.slice(0, 80) },
+            // A hit adds each die once, with its first damage; a die against one creature only (a
+            // mark) waits for the room, which knows the target.
+            addedDice:
+              index === firstDamageIndex
+                ? unconditionalDamageDice(mechanic.damageAddedDice)
+                : undefined
           }
         ]
       }
@@ -179,8 +200,8 @@ export function resolveCharacterSheetRoll(
  * The dice the Character's carried effects add to a resolved ability check, skill check or saving
  * throw (Guidance, Resistance), the effects the test spends: those whose die applied to its
  * ability (D156), and the floor a check's d20 takes from those effects and the Character's own
- * features (Glibness, Reliable Talent). An attack adds the dice its Sheet row carries; any other
- * roll adds none.
+ * features (Glibness, Reliable Talent). An attack or damage roll adds the dice its Sheet row
+ * carries; any other roll adds none.
  */
 export function carriedTestDice(
   resolved: ResolvedRoll,
@@ -188,8 +209,7 @@ export function carriedTestDice(
   character: NonNullable<Parameters<typeof abilityCheckMinimumRoll>[0]['character']>
 ) {
   const { abilityCode } = resolved
-  if (resolved.attackAddedDice)
-    return { addedDice: resolved.attackAddedDice, spent: [], minimumRoll: null }
+  if (resolved.addedDice) return { addedDice: resolved.addedDice, spent: [], minimumRoll: null }
   if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
   if (resolved.source.kind === 'SAVING_THROW')
     return {

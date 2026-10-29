@@ -70,7 +70,8 @@ import type {
 } from './characterSheetRuleProjection.js'
 import {
   projectCharacterRuleActionMechanic,
-  type CharacterRuleActionPresentationReferences
+  type CharacterRuleActionPresentationReferences,
+  type CharacterRuleRowEffects
 } from './characterRuleActionProjection.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { createCharacterSheetMechanicPresentationSources } from './characterSheetMechanicPresentation.js'
@@ -478,7 +479,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
-  rowEffects: Parameters<typeof projectCharacterRuleActionMechanic>[2]
+  rowEffects: CharacterRuleRowEffects
   abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
