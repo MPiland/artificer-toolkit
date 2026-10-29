@@ -74,6 +74,10 @@ export type PredicatePayloadByCode = {
     { category?: EquipmentCategoryCode }
   >
   SOLE_WIELDED_WEAPON: EmptyObject
+  /** The item is bound by a live active effect of its holder authored as one of ffectIds (Pact of the Blade). */
+  BOUND_BY_EFFECT: {
+    effectIds: string[]
+  }
   ATTACK_ABILITY: {
     ability: string
   }
@@ -347,6 +351,14 @@ export const PREDICATE_REGISTRY = {
     code: 'SOLE_WIELDED_WEAPON',
     label: 'Only Weapon Wielded',
     description: 'Requires the item to be the only weapon wielded.',
+    subjects: ['EQUIPMENT']
+  },
+
+  BOUND_BY_EFFECT: {
+    code: 'BOUND_BY_EFFECT',
+    label: 'Bound By Effect',
+    description:
+      'Requires the item to be bound by one of the selected effects active on its holder.',
     subjects: ['EQUIPMENT']
   },
 

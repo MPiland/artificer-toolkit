@@ -160,6 +160,7 @@ import {
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
+  DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -4012,6 +4013,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as EnemyProximity | undefined
       const moveToward = sourceDerivedFacts.attackMoveToward as MoveToward | undefined
       const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
+      const itemBindings = sourceDerivedFacts.attackItemBindingEffectIds as
+        | readonly string[]
+        | undefined
       const criticalRules = attackCriticalRulesDtoSchema.parse(
         sourceDerivedFacts.attackCriticalRules ?? {
           threshold: DEFAULT_CRITICAL_HIT_THRESHOLD,
@@ -4038,6 +4042,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             ? { [DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]: JSON.stringify(moveToward) }
             : {}),
           ...(turnUses ? { [DND5E_ATTACK_TURN_USES_FACT_KEY]: JSON.stringify(turnUses) } : {}),
+          ...(itemBindings
+            ? { [DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY]: JSON.stringify(itemBindings) }
+            : {}),
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'

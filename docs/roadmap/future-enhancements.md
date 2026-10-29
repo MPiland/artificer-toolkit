@@ -446,6 +446,10 @@ Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM
 
 Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
 
+### Pact of the Blade leftovers (SPELLS-31.T4v, 2026-10-29)
+
+Pact of the Blade binds a melee weapon the Warlock already holds; conjuring a new weapon in a chosen form, the weapon vanishing 1 minute after it is more than 5 feet away, and the 1-hour ritual that bonds a magic weapon stay in the description. The bound proficiency and magical trait apply in the live room only, because the Sheet does not fold active-effect grants into its values (it also shows Shillelagh's base die). Folding every active grant into the Sheet's evaluation, the same fold the room uses (`withCharacterActiveGrants`), would fix both and change many Sheet values (Shield of Faith, Bless), so it is its own work item.
+
 ### Standing effects that never return or arm on obtain (SPELLS-31.2, 2026-10-25)
 
 SPELLS-31.2's standing effects come back only after a long rest or short rest, and a rest is what first turns them on, which fits Tranquility. Two cases need an arming step when the feature is gained, which crosses the Builder/Sheet seam (about size 2): a "never returns" cadence, and a standing effect expected before the first rest. More end conditions ("fails a save", "is hit") join the existing End On list when a feature needs them.

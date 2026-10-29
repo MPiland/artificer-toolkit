@@ -1035,7 +1035,10 @@ function createFacetPredicateNodeMap(
         groupArray(['effectIds'], 'Active Effects', () => EFFECT_ID_NODE_MAP, {
           order: 3,
           presentation: 'inline',
-          showIf: local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT')
+          showIf: or([
+            local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT'),
+            local.field(['predicateCode']).eq('BOUND_BY_EFFECT')
+          ])
         })
       )
       .set(

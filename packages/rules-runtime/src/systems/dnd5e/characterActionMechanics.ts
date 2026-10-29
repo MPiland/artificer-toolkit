@@ -404,7 +404,15 @@ export function resolveDnd5eActionMechanic(
     const abilities = applicable('ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
     if (abilities.length === 0) return null
     if (adjustment?.attackOverride != null) return adjustment.attackOverride
-    const proficiency =
+    /** A granted proficiency, such as one bound to a chosen weapon (Pact of the Blade). */
+    const grantedProficiency = input.modifierGroups
+      .filter((group) => group.domainKey === 'WEAPON_PROFICIENCY:ENABLE')
+      .flatMap((group) => group.contributions)
+      .some(
+        (contribution) =>
+          contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+      )
+    const listedProficiency =
       attackKind === 'UNARMED'
         ? 1
         : item === null
@@ -432,6 +440,7 @@ export function resolveDnd5eActionMechanic(
                   ),
                 0
               )
+    const proficiency = Math.max(listedProficiency, grantedProficiency ? 1 : 0)
     return (
       abilityTotal('ATTACK_ROLL') +
       Math.floor(input.proficiencyBonus * proficiency) +
