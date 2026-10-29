@@ -83,7 +83,8 @@ export async function fixture() {
           data: {
             userId: user._id,
             token: crypto.randomUUID(),
-            expiresAt: Date.now() + 60_000,
+            // Outlives a drained staged account deletion, whose retry watchdogs advance the fake clock.
+            expiresAt: Date.now() + 24 * 60 * 60_000,
             createdAt: Date.now(),
             updatedAt: Date.now()
           }

@@ -615,7 +615,7 @@ async function assertCommit(input: {
   expectedPersonal.characterPlayStates = expectedPersonal.characterPlayStates.map((row) =>
     matchesCharacter(row, input.characterId) ? { ...row, maximumHitPoints } : row
   )
-  // The same evaluation re-derives that Character's stored Sheet sections (ADR 0040); every other
+  // The same evaluation re-derives that Character's stored Sheet sections (ADR 0041); every other
   // Character's stay as they were.
   for (const table of ['characterSheetSections', 'characterSheetDerivations'])
     expectedPersonal[table] = [

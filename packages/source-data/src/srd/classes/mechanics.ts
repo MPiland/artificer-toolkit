@@ -36,13 +36,15 @@ type FixedResultBlock = Extract<
 >['resultBlock']
 
 /**
- * A self-targeted action with one outcome that lasts until an authored lifecycle event ends it
- * (Hide in Plain Sight, One with Shadows). The caller supplies every id so each feature keeps its own.
+ * A self-targeted action with one outcome: one that lasts until an authored lifecycle event ends it
+ * (Hide in Plain Sight, One with Shadows), or one that may spend the feature's charge (Arcane
+ * Recovery). The caller supplies every id so each feature keeps its own.
  */
 export function selfActionEffect(input: {
   ids: { effect: string; range: string; path: string; result: string }
-  activation: Exclude<ActivationCode, 'FREE'>
-  lifecycle: NonNullable<FixedResultBlock['lifecycle']>
+  activation: ActivationCode
+  resourceUse?: { chargeId: string; cost: number }
+  lifecycle?: NonNullable<FixedResultBlock['lifecycle']>
   outcome: FixedResultBlock['outcomes'][number]
 }): EffectAuthored {
   return {
@@ -51,7 +53,11 @@ export function selfActionEffect(input: {
     invocation: {
       kind: 'ACTION',
       triggerCode: TRIGGER.ACTIVATED,
-      activation: { code: input.activation, amount: 1 },
+      ...(input.resourceUse ? { resourceUse: input.resourceUse } : {}),
+      activation:
+        input.activation === ACTIVATION_CODE.FREE
+          ? { code: ACTIVATION_CODE.FREE }
+          : { code: input.activation, amount: 1 },
       range: { id: input.ids.range, rangeKind: RANGE_KIND.SELF },
       targeting: { selectionKind: 'SELF' }
     },
@@ -66,7 +72,7 @@ export function selfActionEffect(input: {
         resultBlock: {
           id: input.ids.result,
           resultKind: 'SINGLE',
-          lifecycle: input.lifecycle,
+          ...(input.lifecycle ? { lifecycle: input.lifecycle } : {}),
           outcomes: [input.outcome]
         }
       }

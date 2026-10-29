@@ -263,7 +263,8 @@ export function createAuthOptions(ctx: GenericCtx<DataModel>) {
                   })
                 throw error
               }
-              // Cookies expire only after the complete native mutation commits.
+              // Cookies expire once the request commits: sessions are revoked and the staged
+              // deletion is scheduled (ADR 0040); `null` means deletion scheduled.
               deleteSessionCookie(context)
               const jwt = context.context.createAuthCookie(JWT_COOKIE_NAME, { maxAge: 0 })
               context.setCookie(jwt.name, '', jwt.attributes)

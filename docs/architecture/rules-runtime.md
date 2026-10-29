@@ -240,8 +240,9 @@ admissions changed:
 
 - A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
   `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
-  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
-  its save.
+  check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
+  its save. When its area is centered on its owner, the turn end delegates it to the area coordinator as its own
+  rule-raised root (SPELLS-33.T4l3, D197; `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`).
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
   is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
   of one.
@@ -1370,7 +1371,7 @@ A defeated reactor (D63), a spent allowance, an Unconscious Character and a `REA
 grant (D99) all drop the offer through the same discovery as an action. Every eligible reaction is offered
 as a menu (a reactor has one reaction a round, so one choice), and a reaction taken as an action is refused (`REACTION_TRIGGER_ONLY`) on
 every action path (single-target and area) through `refuseActionOutsideItsWindow`, the one admission point it
-shares with `LEGENDARY_WINDOW_ONLY`. Resume admission accepts any option the offer carries
+shares with `LEGENDARY_WINDOW_ONLY` (which exempts the rule-raised root of a delegated Legendary area option, D197). Resume admission accepts any option the offer carries
 (`offeredDecisionOptionIds`) and refuses one it does not as stale. Settlement answers the reaction whose use
 option was chosen (`chosenEncounterReaction`; a decline answers the innermost), and the Worker re-discovers
 that reaction by its `actionId`, so a non-first offered reaction is the one settled. The pending summary lists every offered option (`REACTION_CHOICE.options`, 1 to 8) and the Decision drawer shows a
@@ -1836,6 +1837,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   not maximized. Known limit: Beacon of Hope's death-save advantage is description-only until a death-save target exists on the
   `SAVING_THROW_MODIFIER` filter (the encounter death save is a separate single-d20 graph).
 
+- **Healing dealt (SPELLS-31.T4n).** A `HEALING_DEALT` `BONUS` modifier adds hit points to every spell the holder casts that restores hit points
+  (Disciple of Life: 2 + the spell's level). `healingDealtBonus` in `characterActionMechanics.ts` folds the applied contributions into the
+  heal outcome's expression and into each per-level scaling entry at that entry's level; the `addsSpellLevel` domain param (part of the
+  `domainKey`) adds the cast level. A cantrip, a non-spell action and temporary hit points get nothing. The bonus is the caster's, so it is
+  resolved with the cast and not per target.
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -2140,6 +2147,7 @@ Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVIN
 - **Legal list and pick (server-derived):** `offerEndEffects` (`encounterEndedEffectRelease.ts`) lists the target's held effects the selectors match (`endEffectsCandidates`). `ONE_CHOSEN` resolves through `endEffectsChoice`: a sole match is auto-picked, a cast naming one of several carries it as `command.target.chosenEffectId` (an `ACTOR` target field), several with no legal pick are refused `TARGET_UNAVAILABLE`, and none raises the overridable warning `TARGET_NOTHING_TO_END` (D173; acknowledged like any other, the Action is then spent and nothing ends). There is no pause kind. The worker wiring is `apps/session-worker/src/nativeEndEffects.ts` (`planEndEffects`, `committedEndEffects`).
 - **Commit:** `selectedEndedEffects` returns the ended effects plus the condition releases. Linked dependents (D172 `withLinkedDependents`) end with their effect, and a condition leaves only when the ended effects were its sole owner (`endedEffectReleases`), all in the one transaction and receipt; undo restores both. The System reads its own outcome back through `ExecutionOutcomeCapabilityAdapter.endsEffects`, so the commit stays system-neutral.
 - **Origin selector (SPELLS-4.T2j2a):** `originCreatureTypeIds` narrows the candidates to effects whose origin creature (`definition.origin.sourceActorId`, kind `ENCOUNTER`) is one of the listed creature types; `actorCreatureTypeIdsOf` resolves the types from the encounter's actors and `planEndEffects` carries them to the commit. Proof: `endEffectsAuthoringParity.test.ts` and `encounterEndedEffectRelease.test.ts`.
+- **Same-effect selector (SPELLS-31.T5k):** an authored `SAME_EFFECT` selector (`{ kind: 'SAME_EFFECT' }`, no fields) matches the effects the outcome's own Effect made earlier, so a new use replaces the old one. `normalizeCharacterActionMechanicFacts` resolves it at compile time to `{ kind: 'SAME_EFFECT', effectId }` (the owning Effect's id), and `endEffectsCandidates` matches `definition.authoredEffectId`. Fiendish Resilience is authored from it: a free, once-between-rests action on its user that picks a damage type (a cast pick on a `SELF` target, whose choice target carries `choiceOptions`), ends its earlier grant and grants the resistance `UNTIL_DISPELLED`. `modifierGrantEntryPlan` holds an `UNTIL_DISPELLED` grant with no counted turns and no recurrence until an `END_EFFECTS` or the GM ends it. It matches the same Effect from any origin, and it runs only in the live room (the Sheet has no out-of-Encounter feature-action command). Proofs: `featureChoiceRulingsAuthoringParity.test.ts`, `encounterEndedEffectRelease.test.ts` and `apps/session-worker/test/nativeRoomFiendishResilience.test.ts`.
 - **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
 
@@ -2147,9 +2155,9 @@ Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVIN
 
 A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
 
-- **Standing offers (current, SPELLS-33.T4l1, D188):** a Creature trait whose PASSIVE effect carries an `APPLY_GRANT` result block with `lifecycle.grantedActions` and **no duration** offers its actions on every turn (Goblin Nimble Escape, Spy Cunning Action). `standingGrantedActions(snapshotFeatureDefinitions(actor))` reads them straight from the actor's snapshot and returns the same `HeldGrantedAction` shape, with the trait's effect id standing in for the held effect id. No row is stored, so the id form, the choice list (`actionChoiceReads`), `resolveGrantedAction`, the weapon-attack hold and the per-turn use keys are the held-effect path unchanged. An activated trait's grant is still timed and held. Conditions on an offer (Shadow Stealth's dim light, Aggressive's "toward a hostile creature") stay in the Feature text as GM rulings.
+- **Standing offers (current, SPELLS-33.T4l1, D188):** a Creature trait whose PASSIVE effect carries an `APPLY_GRANT` result block with `lifecycle.grantedActions` and **no duration** offers its actions on every turn (Goblin Nimble Escape, Spy Cunning Action). `standingGrantedActions(snapshotFeatureDefinitions(actor))` reads them straight from the actor's snapshot and returns the same `HeldGrantedAction` shape, with the trait's effect id standing in for the held effect id. A Character's passive feature does the same (SPELLS-31.T4l1: Cunning Action, Fast Hands, Vanish): `buildCharacterActionRuleFacts` collects its offers (`compiledStandingGrantedActions`) onto the server-only rule evaluation's `standingGrantedActions`, and `actorStandingGrantedActions(actor, ruleEvaluation)` is the one reader for both actor kinds. No row is stored, so the id form, the choice list (`actionChoiceReads`), `resolveGrantedAction`, the weapon-attack hold and the per-turn use keys are the held-effect path unchanged. An activated trait's grant is still timed and held. Conditions on an offer (Shadow Stealth's dim light, Aggressive's "toward a hostile creature") stay in the Feature text as GM rulings.
 - **Id form:** `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>` (`grantedActionId` / `parseGrantedActionId`). The basic-action prefix check still holds, so clients echo `choice.id` unchanged.
-- **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects plus this turn's spent keys) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
+- **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects, this turn's spent keys and, for a Character, its rule evaluation for standing offers) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
 - **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action, charged to the offer's use key when the offer is `FREE`, or to the offer's own allowance otherwise (`nextGrantedAttackCharge`; SPELLS-31.T5f4: Frenzy's `BONUS_ACTION` offer spends the Bonus Action, and is refused once that is spent).
 - **Ends with a held effect (SPELLS-31.T5f4, D172):** a held effect's lifecycle may name `endsWithHeldEffectId`, an authored effect id its holder must hold. `prepareRecurringActiveEffect` sets the new effect's `linkedEffectId` to that held effect (and refuses when the target holds none), so it ends whenever its parent ends: on event hooks and GM releases as before, and now also on grant-tick expiry (`planEncounterGrantTicks`) and the idle-turn check (`planIdleTurnCheck`, which keeps a dependent of an exempt effect: Frenzy stays with a Persistent Rage). The compiled activated action carries the `ON_USE` path's `holderRestrictions`, so Frenzy is offered only while Rage is held and Frenzy is not.
 - **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
@@ -2278,6 +2286,31 @@ Modules: `encounterInitiative*` (graph execution, score batches, tie and order r
 state settlement), `encounterTurn*`, `encounterRechargeLifecycle`. The room's ordering and delivery are in
 [live sessions](live-sessions.md).
 
+## Spell slot exchange (current, SPELLS-31.T5j)
+
+A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It
+has three modes:
+
+- `RECOVER_SLOTS` has a level budget scaled from the class level (`divisor` and `rounding`) and a
+  `maximumSlotLevel`. It is used by Arcane Recovery and Natural Recovery.
+- `SLOT_TO_RESOURCE` turns one slot into pool points equal to its level.
+- `RESOURCE_TO_SLOT` spends authored `costs` per slot level to create one slot. Font of Magic uses
+  both pool modes.
+
+`resolveSpellSlotExchange` (`systems/dnd5e/characterActionMechanics.ts`) resolves the outcome onto
+the action mechanic. The pool modes need exactly one RESOLVED pool matching the authored `chargeId`,
+or the outcome resolves to nothing.
+
+The Sheet and room command is `EXCHANGE_SPELL_SLOTS { actionId, selection }`. Its selection is
+`SLOTS { slotKeys }` or `SLOT_LEVEL { slotLevel }`. `planSpellSlotExchange` (`character/sheetSpellSlotExchange.ts`)
+is the one validator: the reducer applies its plan, and `getSheetCommandResourceUsageUpdate` writes
+its pool use. A recovery spends the action's own charge. A pool-mode action spends no charge of its
+own and no Bonus Action.
+
+A created slot is stored as `spellSlots[].created`. The slot table adds it to that level's total,
+and a long rest clears it. Sorcerous Restoration, Eldritch Master and the short-rest timing of the
+recoveries are GM rulings (D156).
+
 ## Effective maximum hit points
 
 Effective maximum hit points is one computation (`character/hitPointMaximumReductions`) that subtracts a
@@ -2355,7 +2388,10 @@ policy keys and contract versions are rejected.
 
 **Modifiers and combat math.** `systems/dnd5e/modifierApplicability` is the one scope rule: a `GLOBAL`
 modifier applies Character-wide, a `SOURCE` modifier only while its own source is evaluated, narrowed by
-Equipment and Spell facets. Restrictions the fold cannot evaluate fail closed. `systems/dnd5e/attackKind`
+Equipment and Spell facets. Restrictions the fold cannot evaluate fail closed. A Subclass context's
+`SUBCLASS_SPECIALIZATION` condition is decided from the class entry's stored `specializationId` (a Draconic
+Bloodline's dragon, SPELLS-31.T5k; `subclassSpecializationGrantFold.test.ts`); a Subclass context without one
+fails closed. `systems/dnd5e/attackKind`
 classifies `MELEE | RANGED | UNARMED | MELEE_SPELL | RANGED_SPELL`; `dnd5eAttackRollContributors` adds an
 action's own contributors to the Character-wide `rollContributorEvidence`. Armor class uses one
 calculation (best of worn armor, unarmored, or an authored formula; a shield and flat bonuses add).

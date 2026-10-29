@@ -69,7 +69,7 @@ function characterHead(record: CharacterStoredRecord) {
  * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
  * returned facts for its own Sheet response. From the same facts it stores the derived Sheet
- * sections that Sheet queries serve (ADR 0040). Callers own authority, replay, receipts and advancing
+ * sections that Sheet queries serve (ADR 0041). Callers own authority, replay, receipts and advancing
  * the stream once per transaction.
  */
 export async function writeCharacterRecord(

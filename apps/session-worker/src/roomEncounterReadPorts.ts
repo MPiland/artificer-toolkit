@@ -1,4 +1,5 @@
 import type {
+  EncounterCommandReadPorts,
   EncounterReadPorts,
   EncounterPersistenceTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
@@ -99,7 +100,7 @@ export async function roomEncounterReadTransaction(input: {
       throw new Error('Stored Campaign Character assignment mismatch.')
     return { id: row.id }
   }
-  const ports: EncounterReadPorts = {
+  const ports: EncounterCommandReadPorts = {
     requireIdentity: async () => ({ userId, role: 'user' }),
     requireActiveLiveAuthority: async (scope) => {
       if (scope.campaignId !== campaignId || scope.epoch !== epoch || store.epoch !== epoch)

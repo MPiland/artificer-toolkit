@@ -25,7 +25,7 @@ import {
   encounterConditionHitIsCritical,
   encounterConditionLevels,
   encounterConditionMechanicsInSourceSight,
-  encounterConditionSaveAutoFailAbilityIds,
+  encounterConditionSaveAutoFails,
   encounterConditionSources,
   encounterConditionSpeed,
   pinEncounterConditionDefinitions,
@@ -324,8 +324,10 @@ describe('encounter condition mechanics (D94)', () => {
   it('Paralyzed, Petrified, Stunned and Unconscious fail Strength and Dexterity saves and are attacked with advantage', async () => {
     for (const condition of [PARALYZED, PETRIFIED, STUNNED, UNCONSCIOUS]) {
       const mechanics = await mechanicsOf([condition])
-      expect(encounterConditionSaveAutoFailAbilityIds(mechanics)).toEqual(
-        [STRENGTH, DEXTERITY].sort()
+      expect(encounterConditionSaveAutoFails(mechanics)).toEqual(
+        [STRENGTH, DEXTERITY]
+          .sort()
+          .map((abilityDefinitionId) => ({ abilityDefinitionId, conditionDefinitionId: condition }))
       )
       expect(encounterConditionSpeed({ mechanics, speed: 30 })).toBe(0)
       expect(attackContributors({ target: mechanics, attack: RANGED })).toEqual([

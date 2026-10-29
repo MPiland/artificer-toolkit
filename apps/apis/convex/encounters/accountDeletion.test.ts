@@ -1,4 +1,4 @@
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
   CreateEncounterBlueprintInputDto,
@@ -6,6 +6,11 @@ import type {
   UpdateEncounterBlueprintInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  advanceAccountDeletion,
+  deleteAccountCompletely,
+  runAccountDeletionStep
+} from '../../tests/fixtures/accountDeletion'
 import { publicationFixture } from '../../tests/fixtures/publication'
 import { components, internal } from '../_generated/api'
 
@@ -59,12 +64,7 @@ describe('native Blueprint account deletion', () => {
     )
     if (!profile) throw new Error('Missing owner profile.')
     const before = await snapshot(t, profile.authUserId)
-    await t.run(async (ctx) =>
-      ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-        input: { model: 'user', where: [{ field: '_id', value: profile.authUserId }] },
-        onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-      })
-    )
+    await deleteAccountCompletely(t, profile.authUserId)
     const after = await snapshot(t, profile.authUserId)
     expect(after.user).toBeNull()
     expect(after.profiles).toEqual(before.profiles.filter((row) => row.userId !== first.userId))
@@ -77,7 +77,7 @@ describe('native Blueprint account deletion', () => {
     expect(after.runs).toEqual(before.runs)
   }, 30000)
 
-  it('rolls back the native user deletion when Blueprint usage synchronization fails', async () => {
+  it('rolls back the account deletion Blueprint step when usage synchronization fails', async () => {
     const { t, first } = await publicationFixture(modules, authModules, [])
     await first.caller.mutation(create, input())
     const profile = await t.run((ctx) =>
@@ -92,14 +92,12 @@ describe('native Blueprint account deletion', () => {
         entitlementUsage: { ...profile.entitlementUsage, savedEncounters: 0 }
       })
     )
+    await t.mutation(internal.accountDeletion.schedule, { authUserId: profile.authUserId })
+    await advanceAccountDeletion(t, first.userId, 'FINISH')
     const before = await snapshot(t, profile.authUserId)
+    expect(before.user).not.toBeNull()
     await expect(
-      t.run(async (ctx) =>
-        ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-          input: { model: 'user', where: [{ field: '_id', value: profile.authUserId }] },
-          onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-        })
-      )
+      runAccountDeletionStep(t, first.userId, internal.accountDeletionFinish.step)
     ).rejects.toThrow('Account usage counter underflow.')
     expect(await snapshot(t, profile.authUserId)).toEqual(before)
   }, 30000)

@@ -203,7 +203,9 @@ export function compileCharacterGrantFoldRuleFacts(params: {
       classes: snapshot.classes.map((entry) => ({
         classId: entry.classId,
         level: entry.level,
-        spellcasting: Boolean(registry.classes[entry.classId]?.spellcasting)
+        spellcasting: Boolean(registry.classes[entry.classId]?.spellcasting),
+        subclassId: entry.subclassId ?? null,
+        specializationId: entry.specializationId ?? null
       })),
       equipment
     },

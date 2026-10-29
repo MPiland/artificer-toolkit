@@ -18,7 +18,7 @@ import { readAuthorizedCharacterSheetState } from './sheetInputs'
 import { readCharacterSources } from './sourceReads'
 import type { CharacterRecordRow } from './stateDocuments'
 
-// ADR 0040: a Character write stores its derived Sheet per viewer and section; reads serve a stored
+// ADR 0041: a Character write stores its derived Sheet per viewer and section; reads serve a stored
 // section only while every input it was derived from is unchanged, and derive it otherwise.
 
 export const characterSheetSection = {

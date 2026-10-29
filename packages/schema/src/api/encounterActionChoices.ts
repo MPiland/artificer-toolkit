@@ -192,8 +192,11 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
      * area is as authored; the client converts it to the Scene's coordinates to preview it.
      */
     target: z.discriminatedUnion('kind', [
-      /** The action resolves on its user (Dash, Dodge): the client asks for nothing. */
-      z.strictObject({ kind: z.literal('SELF') }),
+      /**
+       * The action resolves on its user (Dash, Dodge): the client asks for nothing but the option
+       * it picks at use, for one that offers several (Fiendish Resilience's damage type, D148).
+       */
+      z.strictObject({ kind: z.literal('SELF'), choiceOptions: choiceOptionsSchema }),
       z.strictObject({
         kind: z.literal('ACTOR'),
         /** As authored: the client lists the user among the creatures unless it is `REFUSED` (Help, First Aid). */

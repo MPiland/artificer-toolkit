@@ -113,6 +113,7 @@ function applySupportedCommand(
     case 'SET_PREPARED_SPELLS':
     case 'USE_SPELL_SLOT':
     case 'RESTORE_SPELL_SLOT':
+    case 'EXCHANGE_SPELL_SLOTS':
     case 'USE_RESOURCE':
     case 'RESTORE_RESOURCE':
     case 'USE_SHEET_RESOURCE':

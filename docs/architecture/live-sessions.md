@@ -225,7 +225,10 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   answered from the room's command journal. The Run played on a Scene is the Campaign's ACTIVE Run when its binding names that
   Scene (`readActiveSceneEncounter`, shared by Convex and the room); a PREPARED Run bound to the same
   Scene never plays, and no lookup ranks Runs by recency.
-- `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused (`LEGENDARY_WINDOW_ONLY`).
+- `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused (`LEGENDARY_WINDOW_ONLY`),
+  except the rule-raised root of a delegated Legendary area option (D197). After a turn end that
+  delegates one, the room raises that root, then once nothing is pending the continuation
+  `ADVANCE_TURN`, whose turn start raises its own effects.
 - Steps play cannot continue without (initiative, saves, Recharge, Legendary dice, dice during a move)
   refuse a GM void with `DECISION_REQUIRES_ANSWER`. Other voids cancel the occurrence
   (`VOID_RULE_OCCURRENCE`).
@@ -475,6 +478,14 @@ CHARACTERS input scope) lose their actors, other unassigned Character actors are
 controllers are unlisted, via
 [reconcileRunActorDepartures](../../packages/encounter-persistence/src/actorDepartures.ts). A removal
 checkpoints before its receipt, then the room drops cached play and Scene and challenges every socket.
+A frozen actor is skipped by later reconciles, so a Character deleted after its departure froze the actor
+reaches the room through a CHARACTER `INVALIDATE_INPUTS` (D200): the account deletion's CHARACTERS step
+sends one to the live room of each Campaign the owner left, once the step's batch commits. With no socket
+connected, that notice reloads at once only while an open Run holds a frozen Character actor (otherwise it
+stays lazy, per Amendment 21), and the next reconcile also reads the open Runs' frozen
+Character actors whose assignment is gone
+([readFrozenUnassignedCharacterIds](../../apps/session-worker/src/roomActorReconcile.ts)); one that reads
+`DELETED` is removed, one that reads `UNASSIGNED` stays frozen, and when none is deleted nothing journals.
 `RoomInputs.evictCharacter` drops the departed Character's cached inputs. A failed step is logged and the
 next trigger retries it. Until the next checkpoint, Convex's own Run reads present a held Run's unassigned,
 unfrozen Character actor as frozen at its play record's values and leave out the actor of a deleted
@@ -688,7 +699,8 @@ read. The tracked mutation builders in `apps/apis/convex/lib/mutations.ts` colle
 - CAMPAIGN: any CAMPAIGN revision bump (Campaign, memberships, assignments, content shares);
 - PLAY: `campaignPlaySettings` writes. Encounter writes also bump PLAY but are not pushed; the room marks
   its Play section stale after its own Encounter commands and bindings;
-- CHARACTER: any CHARACTER revision bump, mapped to its Campaign through the assignment;
+- CHARACTER: any CHARACTER revision bump, mapped to its Campaign through the assignment, and a deleted
+  Character's former Campaigns (D200, see Departures);
 - PREFERENCES: an auto-roll change for each Campaign the user is an ACTIVE member of, and a change of
   the user's canonical username.
 

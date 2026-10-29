@@ -37,8 +37,7 @@
 00000000-0000-0000-c002-601100000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-601300000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-601400000000 CHARACTER:classes Superior Inspiration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c003-140100000000 CHARACTER:classes Disciple of Life | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c003-140200000000 CHARACTER:classes Channel Divinity: Preserve Life | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c003-140200000000 CHARACTER:classes Channel Divinity: Preserve Life | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c003-140300000000 CHARACTER:classes Blessed Healer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c003-140400000000 CHARACTER:classes Divine Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c003-140500000000 CHARACTER:classes Supreme Healing | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -83,7 +82,6 @@
 00000000-0000-0000-c006-140300000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140400000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-600200000000 CHARACTER:classes Martial Arts | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-600300000000 CHARACTER:classes Ki | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c006-600600000000 CHARACTER:classes Deflect Missiles | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c006-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600800000000 CHARACTER:classes Slow Fall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -99,6 +97,10 @@
 00000000-0000-0000-c006-601b00000000 CHARACTER:classes Perfect Self | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-700200000000 CHARACTER:classes Martial Arts | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-720200000000 CHARACTER:classes Martial Arts | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-a00100000000 CHARACTER:classes Ki | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
+00000000-0000-0000-c006-a00200000000 CHARACTER:classes Ki | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
+00000000-0000-0000-c006-a00300000000 CHARACTER:classes Ki | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
+00000000-0000-0000-c006-a60100000000 CHARACTER:classes Ki | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-140100000000 CHARACTER:classes Channel Divinity: Sacred Weapon | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c007-140200000000 CHARACTER:classes Channel Divinity: Turn the Unholy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-140300000000 CHARACTER:classes Aura of Devotion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -128,30 +130,19 @@
 00000000-0000-0000-c008-140a00000000 CHARACTER:classes Uncanny Dodge | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c008-140b00000000 CHARACTER:classes Colossus Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-140c00000000 CHARACTER:classes Horde Breaker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-600100000000 CHARACTER:classes Favored Enemy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c008-600900000000 CHARACTER:classes Favored Enemy Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-600d00000000 CHARACTER:classes Hide in Plain Sight | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000000-0000-0000-c008-601000000000 CHARACTER:classes Vanish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c008-601500000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c008-601000000000 CHARACTER:classes Vanish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-601700000000 CHARACTER:classes Land's Stride | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602b00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c008-608300000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608400000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608600000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608700000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608800000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608b00000000 CHARACTER:classes Vanish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c008-608d00000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608e00000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c009-140100000000 CHARACTER:classes Fast Hands | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c009-140100000000 CHARACTER:classes Fast Hands | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-140200000000 CHARACTER:classes Second-Story Work | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-140500000000 CHARACTER:classes Thief's Reflexes | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600200000000 CHARACTER:classes Sneak Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c009-600400000000 CHARACTER:classes Cunning Action | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c009-600400000000 CHARACTER:classes Cunning Action | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600700000000 CHARACTER:classes Uncanny Dodge | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c009-601600000000 CHARACTER:classes Stroke of Luck | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c009-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -161,11 +152,11 @@
 00000000-0000-0000-c009-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-602d00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-608100000000 CHARACTER:classes Sneak Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c00a-140100000000 CHARACTER:classes Dragon Ancestor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-140300000000 CHARACTER:classes Elemental Affinity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c00a-140400000000 CHARACTER:classes Dragon Wings | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000000-0000-0000-c00a-140400000000 CHARACTER:classes Dragon Wings | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c00a-140500000000 CHARACTER:classes Draconic Presence | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00a-600400000000 CHARACTER:classes Font of Magic | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c00a-600500000000 CHARACTER:classes Font of Magic | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c00a-600f00000000 CHARACTER:classes Sorcerous Restoration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-601400000000 CHARACTER:classes Careful Spell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-601500000000 CHARACTER:classes Distant Spell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -182,7 +173,7 @@
 00000000-0000-0000-c00a-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-140200000000 CHARACTER:classes Dark One's Blessing | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-140300000000 CHARACTER:classes Dark One's Own Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c00b-140400000000 CHARACTER:classes Fiendish Resilience | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c00b-140400000000 CHARACTER:classes Fiendish Resilience | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000000-0000-0000-c00b-140500000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-140600000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-140700000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -195,7 +186,7 @@
 00000000-0000-0000-c00b-601500000000 CHARACTER:classes Voice of the Chain Master | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-601700000000 CHARACTER:classes Pact of the Chain | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-601800000000 CHARACTER:classes Pact of the Blade | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c00b-602500000000 CHARACTER:classes Eldritch Master | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c00b-602500000000 CHARACTER:classes Eldritch Master | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-602900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-602a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -206,7 +197,7 @@
 00000000-0000-0000-c00c-140300000000 CHARACTER:classes Potent Cantrip | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00c-140400000000 CHARACTER:classes Empowered Evocation | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00c-140500000000 CHARACTER:classes Overchannel | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c00c-600200000000 CHARACTER:classes Arcane Recovery | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c00c-600200000000 CHARACTER:classes Arcane Recovery | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c00c-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00c-602900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00c-602a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -408,7 +399,7 @@
 00000000-0002-0001-0070-1f0f00000000 CREATURE Bite | TEST_OUTCOME test=6d6ac0a32e62546a34d5dd9de8b5845b4598a736254273698c22bc297ba81c83 nodes=3 outputs=5 outcomes=[ON_CRIT=1e8d78e03254f59562dcd6fde54d0b30190f85c713c521a308e50a6b349fb38a,ON_HIT=1e8d78e03254f59562dcd6fde54d0b30190f85c713c521a308e50a6b349fb38a]
 00000000-0002-0001-0070-1f7000000000 CREATURE Bite | TEST_OUTCOME test=571012467078bdfdd65657b3fdb5b46c5ed44b3656502404fef4f1be3b2fa798 nodes=3 outputs=5 outcomes=[ON_CRIT=e1b5b7d20a836e89b2a50582e413112ef91c6b36d67a5a42659beea81e01c7b4,ON_HIT=e1b5b7d20a836e89b2a50582e413112ef91c6b36d67a5a42659beea81e01c7b4]
 00000000-0002-0001-0070-21b100000000 CREATURE Greatsword | TEST_OUTCOME test=b15a27131d667dda9f193c01f55f1dfd4eb32d6d4a0ec19c79be2ca375e73cba nodes=3 outputs=5 outcomes=[ON_CRIT=7c1daaa287d83a8aec80e06c6ec8f7f3a92f4e0ec50f5129cf4fdcaaf0410763,ON_HIT=7c1daaa287d83a8aec80e06c6ec8f7f3a92f4e0ec50f5129cf4fdcaaf0410763]
-00000000-0002-0001-0070-232900000000 CREATURE Tentacle | TEST_OUTCOME test=7e00e2558eb9059f69b3242928c12a86eb8e1117b1e188f0db0522683adbe07c nodes=3 outputs=5 outcomes=[ON_CRIT=a7476f9090f236c3235a696f66bd333e5f837781c9c142f6da837c45e77f0f95,ON_HIT=a7476f9090f236c3235a696f66bd333e5f837781c9c142f6da837c45e77f0f95]
+00000000-0002-0001-0070-232900000000 CREATURE Tentacle | TEST_OUTCOME test=7e00e2558eb9059f69b3242928c12a86eb8e1117b1e188f0db0522683adbe07c nodes=3 outputs=5 outcomes=[ON_CRIT=6ab6331509b0145ae177f4310d8c2e594633cdf7182f168030df8c14575e3dde,ON_HIT=6ab6331509b0145ae177f4310d8c2e594633cdf7182f168030df8c14575e3dde]
 00000000-0002-0001-0070-23b500000000 CREATURE Bite | TEST_OUTCOME test=f3b4fcd2cbc75305f11372cf400803b5b88100eed12f987ceb5681af5dc37583 nodes=3 outputs=5 outcomes=[ON_CRIT=f37c3321d29aee4bc34c29cf0eddbbee81535b860d4238e9dd0fad34e976e40e,ON_HIT=f37c3321d29aee4bc34c29cf0eddbbee81535b860d4238e9dd0fad34e976e40e]
 00000000-0002-0001-0070-253100000000 CREATURE Deadly Leap | TEST_OUTCOME test=5d640de30a15c2f69bcef986c9504e9cf2b77f0a0f353b1c0f588ad3b8e9e261 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=029a5367a5b6147833719972bcf03dc91d286a114515a43fff1ca1cb8bb05294,ON_SAVE_SUCCESS=efbfdc5c2cbaaaef8f166bdd0460c12f3cd0617c6f06d47705eb6d5215dcfec2]
 00000000-0002-0001-0070-264b00000000 CREATURE Longsword | TEST_OUTCOME test=21a83c15acfabf2984bbae02f6502ecba4adb95ca368e3efc7cf663b30e14630 nodes=3 outputs=5 outcomes=[ON_CRIT=2572f763677ff691b3f4e0cac44fc8f5377888376ae6edeaadc6fe0a6089fa85,ON_HIT=2572f763677ff691b3f4e0cac44fc8f5377888376ae6edeaadc6fe0a6089fa85]
@@ -511,7 +502,7 @@
 00000000-0002-0005-0070-1ba000000000 CREATURE Tendril | TEST_OUTCOME test=ee3616d8832e716ba6b69a26411ce975e64acba371d57806e0535ec3d33d99b5 nodes=3 outputs=5 outcomes=[ON_CRIT=a99158ae178977cf0f3211ae8d0a734647c77b9112b676b728abf7c44718efa3,ON_HIT=a99158ae178977cf0f3211ae8d0a734647c77b9112b676b728abf7c44718efa3]
 00000000-0002-0005-0070-1c8f00000000 CREATURE Tail | TEST_OUTCOME test=bd51009b04ef9d251734836d8e5838196388350ae7f9b82c44954e1122e75027 nodes=3 outputs=5 outcomes=[ON_CRIT=e77755443597a0c80e6d1512c8536f4d01fce18fe3d4959392b13edcda504c0e,ON_HIT=e77755443597a0c80e6d1512c8536f4d01fce18fe3d4959392b13edcda504c0e]
 00000000-0002-0005-0070-1f0f00000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=6d014250faf6dd3222396199e2727c9e6817705d0c84f6ba22a7d918ae2ab37b nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=f69742b1ff4dc478c254c8a420ee39309349d2b0f5ca72b4523522fb3ae7e69c,ON_SAVE_SUCCESS=2598c3209e7e042513b63529b94cd06996ee96091c2fc79421322aa180a73829]
-00000000-0002-0005-0070-232900000000 CREATURE Bite | TEST_OUTCOME test=9d5f7d8b5236031348755ba42af85819c95661faa9649994dfa04012b60f9503 nodes=3 outputs=5 outcomes=[ON_CRIT=48f1623e27485f1316e2df551784603e72568a529feba5ae3c4a6e92d9aa6f1d,ON_HIT=48f1623e27485f1316e2df551784603e72568a529feba5ae3c4a6e92d9aa6f1d]
+00000000-0002-0005-0070-232900000000 CREATURE Bite | TEST_OUTCOME test=9d5f7d8b5236031348755ba42af85819c95661faa9649994dfa04012b60f9503 nodes=3 outputs=5 outcomes=[ON_CRIT=2b19cb2f294c71db90edbdcf71d32a15885ca1a35c8bba5456d59165fb461255,ON_HIT=2b19cb2f294c71db90edbdcf71d32a15885ca1a35c8bba5456d59165fb461255]
 00000000-0002-0005-0070-23b500000000 CREATURE Tail | TEST_OUTCOME test=44b35158d18217577135bce0553a65118c24f04fc73bff3ec192223d63e78258 nodes=3 outputs=5 outcomes=[ON_CRIT=88802d136bbf8614973950224e6093641154aee02e7f3bd9c882f90b5b5f08e5,ON_HIT=88802d136bbf8614973950224e6093641154aee02e7f3bd9c882f90b5b5f08e5]
 00000000-0002-0006-0070-001d00000000 CREATURE Shortsword | TEST_OUTCOME test=2c4864fbba4a9a9584222fc6ce7afbb44c3a74d0b8151026fbf5dd14538886fd nodes=3 outputs=5 outcomes=[ON_CRIT=5021a9a5589bcf9d69c09352fababa5981da7416c30ad01892ecbe8736395322,ON_HIT=5021a9a5589bcf9d69c09352fababa5981da7416c30ad01892ecbe8736395322]
 00000000-0002-0006-0070-002e00000000 CREATURE Acid Breath (Recharge 5-6) | TEST_OUTCOME test=2a8acfc0927f03d49b22f78ae33e61366ec1502be7181843540f08643827142a nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=88c0e265a4bfbc1c294e2d7443e370c59fb99e21e73488e4d9e7b63b070fecc0,ON_SAVE_SUCCESS=416be64a754b76e3485ced6133d4f9e1331e6507c6538cc46121e353cd78c886]
@@ -832,7 +823,6 @@
 00000000-0002-00ca-0070-008000000000 CREATURE Underwater Camouflage | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-008800000000 CREATURE Standing Leap | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-009200000000 CREATURE Scimitar | TEST_OUTCOME test=d9c4eeb738bb1674d665f1da43cecd085028f56fdb3bbe3942034d3f0749ff5e nodes=3 outputs=5 outcomes=[ON_CRIT=e43b781ca17aaaf22e486c838c9935a3eecdd78be205dc7e9dc3ec73a9cbef46,ON_HIT=e43b781ca17aaaf22e486c838c9935a3eecdd78be205dc7e9dc3ec73a9cbef46]
-00000000-0002-00ca-0070-00a200000000 CREATURE Stench | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-00fc00000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010000000000 CREATURE Divine Awareness | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010f00000000 CREATURE Siege Monster | NOT_A_DISCOVERED_ACTION
@@ -947,7 +937,6 @@
 00000000-0002-01f5-0070-00ce00000000 CREATURE Rapier | TEST_OUTCOME test=338bb788a60dc1eab63d47400e5594d3b8292171a82625025b89e24b98db2cb9 nodes=3 outputs=5 outcomes=[ON_CRIT=946d1bf17ad709ab8fdf7dc65a80425d458da8d7d35efcd467257a035250de34,ON_HIT=946d1bf17ad709ab8fdf7dc65a80425d458da8d7d35efcd467257a035250de34]
 00000000-0002-01f5-0070-00d300000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00d400000000 CREATURE Greataxe | TEST_OUTCOME test=2ab97bdb6ea1e6b06cbe1713e46f86216aa274af8c1495b64e2b7745841ef06e nodes=3 outputs=5 outcomes=[ON_CRIT=66b3c2e7d437267f3ac0c039ca08f1b337d4dbdc7d4149293a003b5dc0c4ac5c,ON_HIT=66b3c2e7d437267f3ac0c039ca08f1b337d4dbdc7d4149293a003b5dc0c4ac5c]
-00000000-0002-01f5-0070-00db00000000 CREATURE Fear Aura | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00e100000000 CREATURE Mace | TEST_OUTCOME test=013abb79d999712290360daf8ce038281b330cdcf3cc606cb4f176aad50b6e07 nodes=3 outputs=5 outcomes=[ON_CRIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912,ON_HIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912]
 00000000-0002-01f5-0070-00e400000000 CREATURE Shapechanger | SINGLE_GRAPH 48beb8b6824f31afb1eec6e726c12dd67d14fb2a9e7f0a3ba65819bd50f28d84 nodes=1 outputs=1
 00000000-0002-01f5-0070-00eb00000000 CREATURE Heated Body | NOT_A_DISCOVERED_ACTION
@@ -965,7 +954,6 @@
 00000000-0002-01f6-0070-00d300000000 CREATURE Change Shape | SINGLE_GRAPH 37f2c6d96a4b4bf525512f44c3d48c118cbe8c040401f19742f0acfa87858928 nodes=1 outputs=1
 00000000-0002-01f6-0070-00d400000000 CREATURE Javelin | TEST_OUTCOME test=d22bd20ff44608944283f49fb3fc7b2edbd5b5586763787b28d6849b5fccfd81 nodes=3 outputs=5 outcomes=[ON_CRIT=cfe9d9bc2bf879312a86898505cbea3e7c7457a96cd3bb5cf71cebf86eb4d2f2,ON_HIT=cfe9d9bc2bf879312a86898505cbea3e7c7457a96cd3bb5cf71cebf86eb4d2f2]
 00000000-0002-01f6-0070-00eb00000000 CREATURE Swallow | TEST_OUTCOME test=b178f2c0247b0453c1b9dc75b63f555e2116a2a147f5f0cba45631b7a5b0d372 nodes=3 outputs=5 outcomes=[ON_CRIT=4154b08afdb0f271928968ad73c75c616c8ffa0b810992d30e84806048eff8b5,ON_HIT=4154b08afdb0f271928968ad73c75c616c8ffa0b810992d30e84806048eff8b5]
-00000000-0002-01f6-0070-00f800000000 CREATURE Horrific Appearance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00fa00000000 CREATURE Shadow Stealth | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00fb00000000 CREATURE Engulf | SINGLE_GRAPH f11b15480c75f690168df9b924ef1d6a9584df1785ac176614d2fbf1da129cda nodes=1 outputs=1
 00000000-0002-01f7-0070-00b200000000 CREATURE Greatsword | TEST_OUTCOME test=cae9397419e8076e8565cfa154bad37bcb2d6f0e0d25101a6cea34e066be378f nodes=3 outputs=5 outcomes=[ON_CRIT=3e5b0abaf6c4dc25e48c0a55b94bbce88527b3e33f7e62a14c2631bddbe09600,ON_HIT=3e5b0abaf6c4dc25e48c0a55b94bbce88527b3e33f7e62a14c2631bddbe09600]
@@ -1003,7 +991,10 @@
 00000000-0002-01fc-0070-00db00000000 CREATURE Tail | TEST_OUTCOME test=a619573a1f0c8150e89a267efac9a786e8934777087eff83b861f783a153bc28 nodes=3 outputs=5 outcomes=[ON_CRIT=84a0e3f4bd8b7be9f9e524cb4c65181d1bb1fa7f186f3a23616903276f8a86df,ON_HIT=84a0e3f4bd8b7be9f9e524cb4c65181d1bb1fa7f186f3a23616903276f8a86df]
 00000000-0002-0200-0070-00d400000000 CREATURE Javelin | TEST_OUTCOME test=2cd19b739ea97f0dd416c2eb0ef23042d410413e1a142b6f67678307602a570b nodes=3 outputs=5 outcomes=[ON_CRIT=7623f127aca011e124112f9d36a857fb981ea2156744e2b4c39505a82217457c,ON_HIT=7623f127aca011e124112f9d36a857fb981ea2156744e2b4c39505a82217457c]
 00000000-0002-0203-0070-00c400000000 CREATURE Harpoon | TEST_OUTCOME test=524ec829350084c0cb02d89c7cb95d431c2bd25984e4f66a282886d588f5aa24 nodes=3 outputs=5 outcomes=[ON_CRIT=0344d70111fa093c3c5bae62e40a9e0b2bc020c10bd564559befade2c388505f,ON_HIT=0344d70111fa093c3c5bae62e40a9e0b2bc020c10bd564559befade2c388505f]
+00000000-0002-02bc-0070-00db00000000 CREATURE Fear Aura | NOT_A_DISCOVERED_ACTION
 00000000-0002-0325-0070-005700000000 CREATURE Longsword | TEST_OUTCOME test=17b04f318eab1bfe69c3dba2a43c2f5e762daa6146dabd1835caef43d4e6443f nodes=3 outputs=5 outcomes=[ON_CRIT=109afe1f24f26ce71039b3b7ef448d71ef410e52bbb591490a607f261f1180e4,ON_HIT=109afe1f24f26ce71039b3b7ef448d71ef410e52bbb591490a607f261f1180e4]
+00000000-0002-0514-0070-00a200000000 CREATURE Stench | NOT_A_DISCOVERED_ACTION
+00000000-0002-0514-0070-00f800000000 CREATURE Horrific Appearance | NOT_A_DISCOVERED_ACTION
 00000000-0002-07d0-0070-000300000000 CREATURE Frightful Presence | TEST_OUTCOME test=95a81c79a0956c32b9585e9139596e357b7cc18c4c9b276199e2123093464b2c nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=2876d8340c657ed182a82ff7956ad011c675b44d68586d1863a382a72fc8c5a7]
 00000000-0002-07d0-0070-000400000000 CREATURE Frightful Presence | TEST_OUTCOME test=948fa8125cd88a44da64ff15de8f35ddfea58e1ad9c971c526394ecbcbfd58f9 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=a62398de3a81fee36e2a333e9786bc81659cc5b0cb68213541684d723a16c79b]
 00000000-0002-07d0-0070-000500000000 CREATURE Frightful Presence | TEST_OUTCOME test=b1c6a4369917a2815d5c9e3ad2bd49983c940f2c5d2f8cbdc98b1f291411a2ca nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=c6f8b130bb4779305c869547a216cc7c8f913314951469aeebef45e8e3d9fbcb]
@@ -1037,26 +1028,26 @@
 00000000-0004-01f5-0070-00ce00000000 CREATURE Parry | SINGLE_GRAPH e40cefaf242529ddd5ebd44b4ba474b3d9758668ca6dbaf38795213205ca4359 nodes=1 outputs=1
 00000000-0005-0006-0070-011400000000 CREATURE Shimmering Shield (Costs 2 Actions) | SINGLE_GRAPH ddfe7c95e1ad73d433073beabb7c90e689045aed714e815b3cbc5b55cf6c8142 nodes=1 outputs=1
 00000000-0005-0009-0070-011400000000 CREATURE Heal Self (Costs 3 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-001c-0070-000300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000900000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000a00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000c00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000e00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001d-0070-001000000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001d-0070-151f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001d-0070-164e00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0005-001c-0070-000300000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=b269a8b08678c87f8e79be5d543932c3ad516152d295b83ab54bbbc92faef519 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=a97d11ab157b619438c026e02b4ccb8a6542cfeb66665936c83090cb4e151db5]
+00000000-0005-001c-0070-000400000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=8597887a8a659136d3135da86ac2f25f5180cfbae8ffd9cac03283387b99ba24 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=64b9a9ff5f9347ab2a06a368c66a121f893cd62b288ea512dfe77d951bd40731]
+00000000-0005-001c-0070-000500000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=b97c60b83bb20de0f38ac73acd618fb017ee6a3bf328292058274ad5609c39d6 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=82094284bf0030752fbefede4ef40d83209c16aa33a30308128db01b973b0ff7]
+00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=4126417b2a7ec6d21a7ec94bf4b83758833ec56fe3cc405e4d2a8e74a52c3a09 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=38356584fe57893c7f4d415dd9aa0743b6a40a705d722afda630a193c4d8d15a]
+00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=9c95143ba48c4afc98a3eab229ae92d0fd57545b3e1b6e9b421768593e883ba1 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e27470592204eee1237ed1bacfe4ab0a5cd4984e0c22a7f0129b64b5bfea952d]
+00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=0ea28ab145900631abf560f60ed25424fb2929d2efff347cfac3d38be28afc27 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=4d1a89b99895cd56cec8f1dcab411991e1f95ef20dac2b3979b61fd028309d99]
+00000000-0005-001c-0070-000900000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=22c14f95f0ea55b89be47967e0eb1d9e26e82f9f6be705557f828494ab97a082 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=543c0e0c28aacdba691c1a60047b6eba26228bb10e0b56c20773344bc7468946]
+00000000-0005-001c-0070-000a00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=292f0432e04b51b3775b2409c96b6dff2464c63d3cf4aa5e17c8829e1cbb3c1c nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=5f2de80db0ced145ec56cec58ce76e15d21b32037ffb195d82231345a97f0159]
+00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=3aa7a8c2151ba7270e80b88258b6b91c3d8b9fe4953f0a1f367490d934f2e8fe nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=2bcfd2dd068c5b7de5796c84bda428650f681f94555cbbf9f7d6ceb213c6013e]
+00000000-0005-001c-0070-000c00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=a3b16f6311d932e91e0e1e85609f3b879523fa013f63955c9d295ddf3d6a0f80 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=620805760b92957b5cb8550ceaa58ec2a0750a0534d22127ea88187bb6a311fe]
+00000000-0005-001c-0070-000e00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=3eacfbfe177e50874ff261e5bd6ed319a0c9cce08c4dd53a1ba34e1dae3cb65b nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=de8d30697d981140ae72df80fccb04ce3a4cc6a43802a07d0c227f1049acaef3]
+00000000-0005-001c-0070-000f00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=9078af9e4880cffae720a32fdaa9efb6af2f698059d5215728869ec81abac03a nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=adec3ddc95af03799bdc2c93ee010e12dd0f10d9772a016e034286d8ee88e658]
+00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=61c6a40a7c3a7879972f8123a86a643a1c1c6de591b6d6e947d585436eb7c5c8 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=ed5df6230362f9ac86d7313391dde53efa67b5468a90d91345d48ea62eae2886]
+00000000-0005-001c-0070-001400000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=11e0af902b6f510a9276e2a735258fe44b6e039e5959b9a97c6acaba0d492eff nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=ddc1024d846d0737cd1705418e1ebc712362979b774b8b5aec251867e1baa1b9]
+00000000-0005-001c-0070-001500000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=9e960550fedfadef47bf02ed4a60845b5b78ca5e098d1474a3d8ae47e0ddb4fe nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=b50cf16652bf7941bb8e7817f5b6c31f7e38784ee96464b6b4860dc33dd3bb00]
+00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=e11d6a0ac0789bc9e531bd0a60060a4d9bfd554a20b9ecc803095c9456dfbc54 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=28da1013a8c67356730a89a664aa468e32a76d4d301c429a8dfb1385e3810ef3]
+00000000-0005-001c-0070-001700000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=ecca6f2ae820e3fd4db5b45f11ac2c1c5d234ab9a410cf2ee44cf99deedcfb91 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=c3400f0677420a33f42230f2697bf3064dc7a1b5f95017154d2ad36e3d92d515]
+00000000-0005-001d-0070-001000000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=1488639fced3084ec3247c62daef60d5a8fa8bbc32eeb4d2fd00e407d7143e55 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=b59164660ff7e99dca23a8ea034c3500cd543ce03c79ee706cf39ee986bef42b]
+00000000-0005-001d-0070-151f00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=561be2f43f9eef71453faa74b41c7c8f49ac00fdd47caadd5279a3e049eec2c7 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=9de172b4c3749aa906ffbb5d923349c6d9e0a7b2c7aed66eb7e060f25ef0adee]
+00000000-0005-001d-0070-164e00000000 CREATURE Wing Attack (Costs 2 Actions) | TEST_OUTCOME test=a720a939747b44373df66708a05484b34ec9963a02555966d704a6dc3b83d4d3 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=3368370c982dba1f83fc5727df310e2f1155382a2b7246d84a68567db34cd0ab]
 00000000-0005-0067-0070-001800000000 CREATURE Teleport (Costs 2 Actions) | SINGLE_GRAPH 52f0251e1b32b4f41fbedaaa87b6ef36fc6d1ede48881cfaa1335fb59d1ba5a4 nodes=1 outputs=1
 00000000-0005-00d2-0070-009d00000000 CREATURE Teleport (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0005-00d6-0070-009d00000000 CREATURE Cast a Spell (Costs 3 Actions) | NOT_A_DISCOVERED_ACTION

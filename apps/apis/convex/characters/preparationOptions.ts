@@ -70,7 +70,7 @@ export async function projectCharacterPreparationOptions(
 
 /**
  * The stored preparation options while they are current. Snapshot builds finish without a
- * Character write, so an owner's manifest is read from the current heads (ADR 0040).
+ * Character write, so an owner's manifest is read from the current heads (ADR 0041).
  */
 export async function readStoredCharacterPreparationOptions(
   ctx: QueryCtx,

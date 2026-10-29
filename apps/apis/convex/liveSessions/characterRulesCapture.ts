@@ -1,17 +1,11 @@
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import {
-  readCampaignCharacterState,
-  requireCampaignCharacterAuthority
-} from '../campaigns/characterState'
-import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
-import { readCharacterSheetState } from '../characters/sheetStateDocuments'
+import { requireCampaignCharacterAuthority } from '../campaigns/characterState'
 import {
   joinCharacterPlay,
   loadCharacterState,
   readCharacterHead,
-  readVerifiedCharacterBuild,
-  type CharacterRow
+  readVerifiedCharacterBuild
 } from '../characters/stateDocuments'
 import { readVisibleAuthoredRouteId } from '../content/routeIds'
 
@@ -72,27 +66,4 @@ export async function readAssignedActiveCharacter(
   if (draft && draft.userId !== active.userId)
     throw new Error('Stored Character draft ownership mismatch.')
   return active
-}
-
-/**
- * An admitted Character's stored rules inputs; the room's Character read returns the same. Both
- * callers have already refused an archived Campaign, so the result states `ACTIVE`.
- */
-export async function readStoredCharacterInputs(
-  ctx: QueryCtx,
-  active: CharacterRow,
-  campaign: Doc<'campaigns'>
-) {
-  return {
-    owner: active,
-    sheetState: readCharacterSheetState(active),
-    campaign: {
-      id: campaign.id,
-      status: 'ACTIVE' as const,
-      contentMaturity: campaign.contentMaturity,
-      attunementSlotOverride: campaign.attunementSlotOverride,
-      state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,
-      currencyOptions: await readCampaignCurrencyOptions(ctx, campaign)
-    }
-  }
 }

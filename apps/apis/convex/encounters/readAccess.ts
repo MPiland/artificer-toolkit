@@ -2,7 +2,7 @@ import { canMemberReadRun } from '@artificer-toolkit/encounter-persistence/sessi
 import type { QueryCtx } from '../_generated/server'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 
 /**
  * The one gate for reading an Encounter by ID (D87): the caller's Campaign authority over the Run,

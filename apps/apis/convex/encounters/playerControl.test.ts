@@ -35,7 +35,7 @@ import {
   RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 
 const leaveCampaign = makeFunctionReference<
   'mutation',

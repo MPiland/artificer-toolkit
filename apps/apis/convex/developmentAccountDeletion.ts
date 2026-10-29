@@ -439,7 +439,13 @@ export const inspect = internalQuery({
         authUser.email !== input.email
       )
         throw new Error('Subject profile/provider identity mismatch.')
-      await validateKnownBefore(ctx, input.subjectUserId, input.known ?? emptyKnown())
+      // A staged deletion (ADR 0040) removes owned rows before the account itself.
+      const deleting = await ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', input.subjectUserId))
+        .unique()
+      if (!deleting)
+        await validateKnownBefore(ctx, input.subjectUserId, input.known ?? emptyKnown())
     } else {
       requireKnown(input.known)
     }

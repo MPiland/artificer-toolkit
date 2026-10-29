@@ -99,7 +99,11 @@ export function modifierGrantEntryPlan(input: {
   const modifiers = (grants.modifiers ?? []).map((modifier) =>
     spellCastLevel === undefined ? modifier : amountAtCastLevel(modifier, spellCastLevel)
   )
-  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  // Until dispelled, the grant lasts until an END_EFFECTS outcome or the GM ends it (Fiendish
+  // Resilience, replaced by its next use).
+  const untilDispelled = entry.duration?.durationKind === 'UNTIL_DISPELLED'
+  const initialRemaining =
+    entry.duration && !untilDispelled ? conditionDurationTurns(entry.duration) : null
   const {
     turnAnchor,
     consumeOnFirstEvents = [],
@@ -162,7 +166,9 @@ export function modifierGrantEntryPlan(input: {
           : endEvents.length) === 0 ||
         turnAnchor !== undefined ||
         activeOnlyOnFinalAnchorTurn
-      : initialRemaining === null) ||
+      : untilDispelled
+        ? turnAnchor !== undefined || activeOnlyOnFinalAnchorTurn
+        : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
@@ -178,7 +184,10 @@ export function modifierGrantEntryPlan(input: {
       lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
     }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: untilEndEvent || standing ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
+    recurrenceStage:
+      untilEndEvent || standing || untilDispelled
+        ? 'NONE'
+        : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
     ...(endsWithHeldEffectId !== undefined && { endsWithHeldEffectId }),
     tickAnchor: planTickAnchor(turnAnchor),

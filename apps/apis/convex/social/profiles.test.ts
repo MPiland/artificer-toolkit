@@ -4,6 +4,11 @@ import type {
   SocialEligibilityDto,
   UpdateSocialContentPreferenceInput
 } from '@artificer-toolkit/schema/api/socialHub'
+import {
+  advanceAccountDeletionToProvider,
+  drainScheduledWork,
+  scheduledSince
+} from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/characters'
 import { internal } from '../_generated/api'
 
@@ -182,12 +187,14 @@ describe('native private Social eligibility and preferences', () => {
         .unique()
     )
     if (!account) throw new Error('Missing account.')
+    const before = await advanceAccountDeletionToProvider(t, account.authUserId, owner.userId)
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: account.authUserId } })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
-    expect(await t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(4))).toEqual([
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } })
+    await drainScheduledWork(t)
+    expect(await scheduledSince(t, before)).toEqual([
+      { name: 'accountDeletionFinish:purge', state: 'success' },
+      { name: 'notifications/delivery:purgeRecipient', state: 'success' },
+      { name: 'media/assets:purgeAccount', state: 'success' },
+      { name: 'social/accountCleanup:run', state: 'success' }
     ])
     expect(
       await t.run((ctx) =>

@@ -58,6 +58,7 @@ import { RoomSceneCache } from './roomSceneCache.js'
 import { RoomStorageAuthority } from './roomStorageAuthority.js'
 import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
 import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
+import { readFrozenCharacterIds } from './roomActorReconcile.js'
 import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import { RoomSceneFogUploads } from './roomSceneFogUploads.js'
@@ -115,6 +116,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   readonly #checkpoints: RoomCheckpoints
   #aggregateNeedsReload = false
   #reloadQueued = false
+  /** A `CHARACTER` notice arrived: the next departure reconcile re-reads frozen actors (D200). */
+  #recheckFrozenCharacters = false
   readonly #authority: RoomStorageAuthority
   readonly #admissions: RoomAdmissions
   readonly #sceneCache: RoomSceneCache
@@ -469,12 +472,20 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         return Response.json({ closed })
       }
       if (parsed.data.operation.type === 'INVALIDATE_INPUTS') {
+        const { scopes } = parsed.data.operation
         this.#authorization.invalidate()
+        if (scopes.includes('CHARACTER')) this.#recheckFrozenCharacters = true
         // With a socket connected every input reloads now (Amendment 21). With none, membership
-        // still reloads now since it can end sockets, and other inputs reload before their next use.
+        // still reloads now since it can end sockets, and so does a Character notice while an open
+        // Run holds a frozen actor, whose Character it may name deleted (D200); other inputs reload
+        // before their next use.
         if (this.ctx.getWebSockets().some((socket) => this.#admissions.liveAdmission(socket)))
           this.#queueEagerReload()
-        else if (parsed.data.operation.scopes.includes('CAMPAIGN'))
+        else if (
+          scopes.includes('CAMPAIGN') ||
+          (scopes.includes('CHARACTER') &&
+            (await readFrozenCharacterIds(this.#roomStore)).length > 0)
+        )
           this.ctx.waitUntil(this.#queueMembershipReload())
         return Response.json({ invalidated: true })
       }
@@ -851,7 +862,17 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
    */
   async #reconcileCurrentActorDepartures(): Promise<void> {
     const current = this.#journal.readCurrent()
-    if (current?.status === 'ACTIVE') await reconcileActorDepartures(this.#host, current)
+    // Without a current authorization the reconcile skips, so the pending re-read waits for it.
+    if (current?.status !== 'ACTIVE' || !this.#authorization.current(current.authorityEpoch)) return
+    const recheckFrozenCharacters = this.#recheckFrozenCharacters
+    this.#recheckFrozenCharacters = false
+    try {
+      await reconcileActorDepartures(this.#host, current, recheckFrozenCharacters)
+    } catch (error) {
+      // A failed reconcile keeps the pending re-read for the next trigger.
+      this.#recheckFrozenCharacters ||= recheckFrozenCharacters
+      throw error
+    }
   }
 
   /**
@@ -1149,10 +1170,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     this.#postCommitQueued = true
     this.#commandChain = this.#commandChain.then(async () => {
       this.#postCommitQueued = false
-      const current = this.#journal.readCurrent()
-      if (!current || current.status !== 'ACTIVE') return
+      if (this.#journal.readCurrent()?.status !== 'ACTIVE') return
       try {
-        await reconcileActorDepartures(this.#host, current)
+        await this.#reconcileCurrentActorDepartures()
       } catch (error) {
         console.error('Live Session actor reconcile failed.', error)
       }

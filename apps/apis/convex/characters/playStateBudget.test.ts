@@ -13,12 +13,12 @@ import { executeCharacterSheetCommand } from './sheetCommands'
 const PLAY_RECORD_BYTES = 800
 const SHEET_HP_CHANGE_BYTES = 2400
 const ENCOUNTER_DAMAGE_BYTES = 2500
-/** The Sheet's stored sections (ADR 0040): a COMMON slice measured 2026-10-28 at about 9.8 KB. */
+/** The Sheet's stored sections (ADR 0041): a COMMON slice measured 2026-10-28 at about 9.8 KB. */
 const SHEET_SECTION_BYTES_PER_VIEWER = 12_000
 
 const storedSheetTables = ['characterSheetSections', 'characterSheetDerivations'] as const
 
-/** Writes apart from the Sheet's stored sections, which ADR 0040 bounds separately. */
+/** Writes apart from the Sheet's stored sections, which ADR 0041 bounds separately. */
 function playWriteBytes(totals: ReturnType<typeof createDatabaseIoTotals>) {
   return storedSheetTables.reduce(
     (bytes, table) => bytes - (totals.writes.byTable[table]?.bytes ?? 0),

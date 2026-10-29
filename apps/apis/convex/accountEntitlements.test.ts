@@ -5,6 +5,7 @@ import {
   ENTITLEMENT_PRICING
 } from '@artificer-toolkit/shared/account/entitlements'
 import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountUsage'
+import { deleteAccountCompletely } from '../tests/fixtures/accountDeletion'
 import { fixture, input } from '../tests/fixtures/characters'
 import { api, internal } from './_generated/api'
 import { setTier } from './accountEntitlements'
@@ -137,8 +138,7 @@ describe('manual account entitlement assignment', () => {
     await expect(
       t.mutation(internal.accountUsage.purgeRecipient, { userId: owner.userId })
     ).rejects.toThrow('Cannot purge an active account')
-    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: profile.authUserId } })
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    await deleteAccountCompletely(t, profile.authUserId)
     expect(await t.run((ctx) => ctx.db.query('accountUsageEntries').collect())).toEqual([
       expect.objectContaining({ ownerUserId: other.userId })
     ])

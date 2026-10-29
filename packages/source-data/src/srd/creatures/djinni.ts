@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const djinni: CreatureAuthored = {
@@ -288,8 +289,11 @@ export const djinni: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(82, 212),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_DJINNI_CREATE_WHIRLWIND
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Create Whirlwind',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'The whirlwind lasts while the djinni concentrates, up to 1 hour, and ends if the djinni loses sight of it. As an action the djinni can move it up to 60 feet in a straight line, carrying every restrained creature in it, and it ends if it leaves the djinni’s range.'
                   }
                 ]
               }

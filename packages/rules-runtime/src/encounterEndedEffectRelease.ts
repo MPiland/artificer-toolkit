@@ -306,6 +306,7 @@ export function actionUsedOnHolderEndedEffects(input: {
 type EndEffectsSelectors = readonly (
   | { kind: 'CONDITION'; conditionIds: readonly string[] }
   | { kind: 'SPELL_LEVEL'; limit: 'SLOT_LEVEL' | 'FIXED'; level?: number }
+  | { kind: 'SAME_EFFECT'; effectId: string }
 )[]
 
 /** The creature type of each Encounter actor that has one, by actor id. */
@@ -377,8 +378,9 @@ export function levelCheckEntries(
 }
 
 /**
- * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names, or
- * made by a spell cast at or below a level a selector admits, from an origin creature of the
+ * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names, made
+ * by the Effect a `SAME_EFFECT` selector names, or made by a spell cast at or below a level a
+ * selector admits, from an origin creature of the
  * outcome's types when it names any. `castLevel` is the level the ending action is cast at, which a
  * `SLOT_LEVEL` limit reads (null when it is no cast, so it admits nothing). An effect made by no
  * spell (null `originLevel`) never matches a spell-level selector.
@@ -397,6 +399,7 @@ export function endEffectsCandidates(
             contribution.kind === 'CONDITION_OWNERSHIP' &&
             selector.conditionIds.includes(contribution.conditionId)
         )
+      if (selector.kind === 'SAME_EFFECT') return definition.authoredEffectId === selector.effectId
       const limit = selector.limit === 'SLOT_LEVEL' ? context.castLevel : (selector.level ?? null)
       return limit !== null && definition.originLevel !== null && definition.originLevel <= limit
     })

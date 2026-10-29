@@ -1,16 +1,10 @@
-import { createFunctionHandle } from 'convex/server'
 import { describe, expect, it } from 'vitest'
+import {
+  deleteAccountCompletely,
+  runAccountDeletionStep
+} from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { api, components, internal } from '../_generated/api'
-
-async function deleteAccount(base: Awaited<ReturnType<typeof fixture>>, authUserId: string) {
-  return base.t.run(async (ctx) =>
-    ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-      input: { model: 'user', where: [{ field: '_id', value: authUserId }] },
-      onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-    })
-  )
-}
 
 async function applicantAccount(base: Awaited<ReturnType<typeof fixture>>) {
   const account = await base.t.run((ctx) =>
@@ -45,7 +39,7 @@ describe('account deletion retains Social application and report history', () =>
     })
     const account = await applicantAccount(base)
 
-    await deleteAccount(base, account.authUserId)
+    await deleteAccountCompletely(base.t, account.authUserId)
 
     const retained = await base.t.run(async (ctx) => ({
       account: await ctx.db.get(account._id),
@@ -110,7 +104,7 @@ describe('account deletion retains Social application and report history', () =>
     ).rejects.toThrow('Unauthenticated')
   })
 
-  it('rolls back the complete native deletion when its parent transaction fails after Social preparation', async () => {
+  it('rolls back the Social deletion step when its parent transaction fails after Social preparation', async () => {
     const base = await fixture()
     const application = await base.other.caller.mutation(api.social.applications.submit, {
       listingPublicId: base.listing.listingPublicId,
@@ -133,18 +127,34 @@ describe('account deletion retains Social application and report history', () =>
         jobs: await ctx.db.system.query('_scheduled_functions').collect()
       }))
     const before = await snapshot()
+    await base.t.mutation(internal.accountDeletion.schedule, { authUserId: account.authUserId })
+    await runAccountDeletionStep(
+      base.t,
+      base.other.userId,
+      internal.campaigns.accountDeparture.step
+    )
+    const atSocial = await snapshot()
+    expect(atSocial.applications).toEqual(before.applications)
+    const job = await base.t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', base.other.userId))
+        .unique()
+    )
+    expect(job).toMatchObject({ step: 'SOCIAL' })
+    if (!job) throw new Error('Missing account deletion job.')
 
     await expect(
       base.t.run(async (ctx) => {
-        await ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-          input: { model: 'user', where: [{ field: '_id', value: account.authUserId }] },
-          onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
+        await ctx.runMutation(internal.social.accountCleanup.prepareAccountDeletion, {
+          jobId: job._id,
+          token: job.token
         })
         throw new Error('Injected parent transaction failure')
       })
     ).rejects.toThrow('Injected parent transaction failure')
 
-    expect(await snapshot()).toEqual(before)
+    expect(await snapshot()).toEqual(atSocial)
     const beforeApplication = before.applications.find(
       (row) => row.id === application.applicationPublicId
     )

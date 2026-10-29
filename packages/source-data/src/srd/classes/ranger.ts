@@ -14,22 +14,20 @@ import {
   MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  PATH_CODE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TARGET_DISPOSITION_KIND,
-  TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
@@ -77,29 +75,16 @@ const RA = 8 // Ranger class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
   return closedRuleEffect({
     id: classRowId(RA, 0x60, entry),
     ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
   })
 }
 
@@ -638,7 +623,7 @@ export const ranger: ClassAuthored = {
       label: 'Favored Enemy',
       description:
         'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.\n\nChoose a type of favored enemy: aberrations, beasts, celestials, constructs, dragons, elementals, fey, fiends, giants, monstrosities, oozes, plants, or undead. Alternatively, you can select two races of humanoid (such as gnolls and orcs) as favored enemies.\n\nYou have advantage on Wisdom (Survival) checks to track your favored enemies, as well as on Intelligence checks to recall information about them.\n\nWhen you gain this feature, you also learn one language of your choice that is spoken by your favored enemies, if they speak one at all.\n\nYou choose one additional favored enemy, as well as an associated language, at 6th and 14th level. As you gain levels, your choices should reflect the types of monsters you have encountered on your adventures.',
-      effects: [selfClassRuleEffect(1, CLOSED_RULE_KIND.CLASS_RANGER_FAVORED_ENEMY)],
+      // Description-only (GM ruling, D187a): the engine has no tracking or recall context.
       availableAtLevel: 1,
       order: 0
     },
@@ -828,7 +813,7 @@ export const ranger: ClassAuthored = {
       label: 'Favored Enemy Improvement',
       description:
         'Beginning at 1st level, you have significant experience studying, tracking, hunting, and even talking to a certain type of enemy.\n\nChoose a type of favored enemy: aberrations, beasts, celestials, constructs, dragons, elementals, fey, fiends, giants, monstrosities, oozes, plants, or undead. Alternatively, you can select two races of humanoid (such as gnolls and orcs) as favored enemies.\n\nYou have advantage on Wisdom (Survival) checks to track your favored enemies, as well as on Intelligence checks to recall information about them.\n\nWhen you gain this feature, you also learn one language of your choice that is spoken by your favored enemies, if they speak one at all.\n\nYou choose one additional favored enemy, as well as an associated language, at 6th and 14th level. As you gain levels, your choices should reflect the types of monsters you have encountered on your adventures.',
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_RANGER_FAVORED_ENEMY)],
+      // Description-only (GM ruling, D187a).
       availableAtLevel: 6,
       order: 8
     },
@@ -956,8 +941,21 @@ export const ranger: ClassAuthored = {
       description:
         "Starting at 14th level, you can use the Hide action as a bonus action on your turn. Also, you can't be tracked by nonmagical means, unless you choose to leave a trail.",
       effects: [
-        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_RANGER_VANISH, ACTIVATION_CODE.BONUS_ACTION),
-        selfClassRuleEffect(0x8b, CLOSED_RULE_KIND.CLASS_RANGER_VANISH)
+        standingGrantedActionsEffect({
+          id: classRowId(RA, 0x60, 16),
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(RA, 0x69, 16), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: 'SELF' }
+          },
+          grantedActions: [
+            {
+              activation: ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [SRD_BASIC_ACTION_IDS.HIDE]
+            }
+          ]
+        })
       ],
       availableAtLevel: 14,
       order: 16
@@ -1015,120 +1013,7 @@ export const ranger: ClassAuthored = {
       label: 'Foe Slayer',
       description:
         'At 20th level, you become an unparalleled hunter of your enemies. Once on each of your turns, you can add your Wisdom modifier to the attack roll or the damage roll of an attack you make against one of your favored enemies. You can choose to use this feature before or after the roll, but before any effects of the roll are applied.',
-      effects: [
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 21),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 21), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x83),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x84),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x8d),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x8d), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x86),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x86), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x87),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x87), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x88),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x88), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x8e),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FOE_SLAYER,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x8e), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        })
-      ],
+      // Description-only (GM ruling, D187a): a favored enemy is not a stored choice.
       availableAtLevel: 20,
       order: 21
     }

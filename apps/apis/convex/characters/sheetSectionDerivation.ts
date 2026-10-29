@@ -44,7 +44,7 @@ function projectSlices(
 /**
  * Projects every stored Sheet section from the facts this write evaluated, for each viewer that
  * can read the Character: its owner, the GM of its Campaign and, while "Party can view" is on, the
- * party. Rule evaluation does not depend on the viewer, so the write evaluates once (ADR 0040).
+ * party. Rule evaluation does not depend on the viewer, so the write evaluates once (ADR 0041).
  */
 export async function storeCharacterSheetSections(
   ctx: MutationCtx,

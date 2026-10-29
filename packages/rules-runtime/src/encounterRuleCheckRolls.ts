@@ -178,6 +178,8 @@ export function actionD20RollRecord(input: {
   ruleset: RollRecordDto['ruleset']
   createdAt: string
   reader: 'PLAYER' | 'GM'
+  /** Labels of the conditions that made this save fail automatically, when `d20` carries any. */
+  autoFailLabels?: readonly string[]
 }): RollRecordDto {
   const { d20 } = input
   const faces = [...d20.rawFaces]
@@ -245,7 +247,9 @@ export function actionD20RollRecord(input: {
             caption: input.reader === 'GM' ? adjustment.gmReason : adjustment.playerCaption
           }
         }
-      : {})
+      : input.autoFailLabels?.length
+        ? { ruleCheck: { kind: 'SAVE_AUTO_FAIL', labels: [...input.autoFailLabels] } }
+        : {})
   })
 }
 

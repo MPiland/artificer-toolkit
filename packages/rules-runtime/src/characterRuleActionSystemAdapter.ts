@@ -701,13 +701,19 @@ export interface CharacterRuleActionSaveSuccessReplacement {
   }
 }
 
+/** A saving throw of one ability that a condition fails without counting the roll (D94). */
+export type CharacterRuleActionSaveAutoFail = {
+  abilityDefinitionId: string
+  conditionDefinitionId: string
+}
+
 /**
  * Test-outcome rules a target's condition mechanics apply (D94): a hit against it is a critical
  * hit, and its saving throws of these abilities fail without counting the roll.
  */
 export type CharacterRuleActionConditionOutcomeRules = {
   hitIsCritical: boolean
-  saveAutoFailAbilityIds: readonly string[]
+  saveAutoFails: readonly CharacterRuleActionSaveAutoFail[]
 }
 
 export interface CharacterRuleActionSystemAdapter {
@@ -925,6 +931,8 @@ export interface CharacterRuleActionSystemAdapter {
       foldedBonuses?: readonly D20FoldedBonusDto[]
       /** The ability a saving throw is made with; absent on an attack roll. */
       savingThrowAbilityDefinitionId?: string
+      /** The conditions that fail this saving throw unrolled, sorted; absent when none does. */
+      autoFailConditionIds?: readonly string[]
     }
   }
   /**

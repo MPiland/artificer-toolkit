@@ -55,6 +55,7 @@ import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 
 type BuildInput = Parameters<typeof buildCharacterSpellCastActions>[0]
+type EvaluateInput = Parameters<typeof evaluateDnd5e2014CharacterActions>[0]
 type SpellCastCandidate = BuildInput['spellCastCandidates'][number]
 type Mechanic = CharacterRulePolicyOutput['spellCastMechanics'][number]['mechanics'][number]
 
@@ -406,7 +407,7 @@ const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
   ]
 } as SpellAuthored
 
-/** Protection from Energy cast on its caster alone, so its pick has no chosen creature to go with. */
+/** Protection from Energy cast on its caster alone, so its pick goes with the caster. */
 const PROTECTION_FROM_ENERGY_ON_SELF = {
   ...PROTECTION_FROM_ENERGY,
   id: testUuid(0x3200),
@@ -1559,9 +1560,17 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
     })
   })
 
-  it('stays manual when its pick has no chosen creature to travel with', () => {
-    expect(compiledCastEntry(PROTECTION_FROM_ENERGY)?.compilation.choice).not.toBeNull()
-    expect(compiledCastEntry(PROTECTION_FROM_ENERGY_ON_SELF)).toBeNull()
+  // SPELLS-31.T5k: a cast at its user carries its pick too (Fiendish Resilience).
+  it('carries the same pick on a cast at its user', () => {
+    const labels = (authored: SpellAuthored) =>
+      compiledCastEntry(authored)?.compilation.choice?.options.map(({ label }) => label)
+    expect(labels(PROTECTION_FROM_ENERGY_ON_SELF)).toEqual([
+      'Acid',
+      'Cold',
+      'Fire',
+      'Lightning',
+      'Thunder'
+    ])
   })
 })
 
@@ -3216,5 +3225,80 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       entry: { initialRemaining: 10, maintenance: null }
     })
     expect(cast?.summonPlacement?.statBlock).not.toHaveProperty('hitPoints')
+  })
+})
+
+describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPELLS-31.T4n)', () => {
+  const discipleOfLife = (addsSpellLevel: boolean) => ({
+    domainKey: `HEALING_DEALT:BONUS${addsSpellLevel ? '|addsSpellLevel=true' : ''}`,
+    contributions: [
+      {
+        sourceId: 'disciple-of-life',
+        value: 2,
+        ability: null,
+        state: 'APPLIED' as const,
+        scope: 'GLOBAL' as const,
+        deferredRequirements: [],
+        scopeSpellIds: []
+      }
+    ]
+  })
+
+  /** The heal expression and per-level scaling of a spell cast at the given levels. */
+  function healOf(
+    authored: SpellAuthored,
+    levels: readonly number[],
+    modifierGroups: EvaluateInput['modifierGroups']
+  ) {
+    const casts = levels.map((level, sequence) => candidate(authored, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [authored.id],
+      spells: [compileSpell(authored)]
+    })
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 5, saveDc: 13, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups,
+      totalLevel: 3,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+    return evaluated.spellCastMechanics.map(({ mechanics }) =>
+      mechanics.flatMap(({ outcomes }) =>
+        outcomes.flatMap((outcome) => (outcome.kind === 'HEAL' ? [outcome.expression] : []))
+      )
+    )
+  }
+  const tail = (expression: string) => Number(/\+ (\d+)$/.exec(expression)?.[1] ?? 0)
+
+  it('adds its amount and the cast level to a leveled heal, each cast at its own level', () => {
+    const base = healOf(CURE_WOUNDS, [1, 3], [])
+    const boosted = healOf(CURE_WOUNDS, [1, 3], [discipleOfLife(true)])
+    expect(boosted.map(([expression]) => tail(expression!))).toEqual(
+      base.map(([expression], index) => tail(expression!) + 2 + [1, 3][index]!)
+    )
+  })
+
+  it('adds the amount alone when the bonus does not add the cast level', () => {
+    const base = healOf(CURE_WOUNDS, [2], [])
+    const boosted = healOf(CURE_WOUNDS, [2], [discipleOfLife(false)])
+    expect(tail(boosted[0]![0]!)).toBe(tail(base[0]![0]!) + 2)
+  })
+
+  it('leaves the heal at its dice and spellcasting modifier without the bonus', () => {
+    expect(healOf(CURE_WOUNDS, [1], [])).toEqual([['1d8 + 3']])
   })
 })

@@ -56,6 +56,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
   /** Server-only always-on effects of the Character's passive features, which a rest turns back on. */
   standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
+  /** Server-only basic actions the Character's passive features offer on every turn (D188). */
+  standingGrantedActions: ReturnType<typeof buildCharacterActionRuleFacts>['standingGrantedActions']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -163,7 +165,12 @@ export function composeCharacterRulePolicyFacts(
       if (pool) return { kind: 'POOL' as const, poolCode: pool.code, rawUsed: slot.used }
       const match = /^STANDARD:([1-9])$/.exec(slot.slotKey)
       if (!match) throw new Error(`Unsupported spell slot usage key: ${slot.slotKey}`)
-      return { kind: 'STANDARD' as const, spellLevel: Number(match[1]), rawUsed: slot.used }
+      return {
+        kind: 'STANDARD' as const,
+        spellLevel: Number(match[1]),
+        rawUsed: slot.used,
+        ...(slot.created ? { created: slot.created } : {})
+      }
     }),
     ...resourceFacts,
     actionCandidates: actionFacts.actionCandidates,
@@ -190,6 +197,7 @@ export function composeCharacterRulePolicyFacts(
     actionEntryPoints: actionFacts.entryPoints,
     passiveZoneSources: actionFacts.passiveZones,
     initiativeRestoreSources: actionFacts.initiativeRestores,
-    standingEffectSources: actionFacts.standingEffects
+    standingEffectSources: actionFacts.standingEffects,
+    standingGrantedActions: actionFacts.standingGrantedActions
   }
 }

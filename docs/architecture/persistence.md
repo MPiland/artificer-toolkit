@@ -194,8 +194,13 @@ them has moved since.
 `packages/encounter-persistence` holds the Encounter code that reads and writes Run state, so Convex and the
 room run the same code. It depends on `packages/schema`, `packages/shared` and `packages/rules-runtime` and
 only takes the `IndexRange` type from `convex`. Its README documents the store surface. Convex binds it
-through `encounters/encounterPorts.ts` and `lib/convexEncounterStore.ts`; the room store is `RoomEncounterStore`
-(`apps/session-worker/src/roomEncounterStore.ts`).
+through `lib/convexEncounterStore.ts`, `encounters/encounterReadPorts.ts` (queries) and
+`encounters/encounterPorts.ts` (mutations); the room store is `RoomEncounterStore`
+(`apps/session-worker/src/roomEncounterStore.ts`). Reads only commands make (authored sources, a
+Character's initiative, optional-combat policies to pin) are `EncounterCommandReadPorts`, so a query
+file never reaches the Sheet or authored-source graphs. Self-hosted Convex evaluates a query's whole
+module graph on every run; `encounters/readModuleBoundary.test.ts` keeps command-only modules out of the
+re-running subscriptions (RELIABILITY-21).
 Document derivations (Zod parse plus checksum verification) go through `deriveOnce` (`transactionReads.ts`).
 A Convex query caches them per transaction through `memoizeTransactionReads`. The room's in-memory store is
 created with `sharedReads`: it serves its stored documents deeply frozen instead of copying them, and never
@@ -543,7 +548,7 @@ changes one collection never rewrites an aggregate hash on the head.
 | `characterCreatureInstances`, `characterVehicleInstances`                       | One Creature or Vehicle instance with its state and equipment links                                                                     |
 | `characterNotes`, `characterNoteGroups`                                         | One note or group, preserving owner privacy and order                                                                                   |
 | `characterCommandReceipts`                                                      | Private Character command receipt headers (bodies are in ledgers)                                                                       |
-| `characterSheetDerivations`, `characterSheetSections`                           | Derived Sheet sections per viewer and their input fingerprint (ADR 0040); rewritten by Character writes                                 |
+| `characterSheetDerivations`, `characterSheetSections`                           | Derived Sheet sections per viewer and their input fingerprint (ADR 0041); rewritten by Character writes                                 |
 
 Campaign adjustments and conditions stay Campaign-scoped (`campaignCharacterStates`). Authored versions, drafts,
 snapshots and capture artifacts may keep validated checksummed JSON; normalization does not apply to authored
@@ -991,12 +996,17 @@ and drafts, owned Blueprints and immutable Social invalidation events remain.
 
 ### Account deletion
 
-The HTTP handler passes only its server-derived session token to the private mutation; the mutation rechecks the
-session, user, profile, email and password, then the SDK `deleteUser` runs inside one transaction with the app
-hook (`lib/authTriggers.helper.ts`): media and Social retention, Campaign departure, private Characters, authored
-sources, user-keyed rate-limit counters, usage and bounded scheduled purges. A late failure rolls everything back,
-and cookies expire only after commit. An owned ACTIVE or ARCHIVED Campaign blocks deletion until it is
-transferred or deleted. Shared Campaign messages, rolls, Sessions and history remain with the author shown as
+Account deletion is staged ([ADR 0040](../adr/0040-staged-account-deletion.md); D199, option 1, departure
+first). The HTTP handler passes only its server-derived session token to the private mutation. The mutation
+rechecks the session, user, profile, email and password, then commits in one transaction: it revokes every session
+and credential and creates an `accountDeletionJobs` row. Cookies expire after that commit, and the request answers
+"deletion scheduled". Bounded, idempotent steps then run through `ctx.scheduler`, each in its owning module:
+Campaign departure (one membership per invocation, through the existing departure code), Social preparation, media
+retention, private Characters, authored content, sources, then Blueprints and user-keyed rows. The last step calls
+`deleteUser`; its `auth:onDelete` hook (`lib/authTriggers.helper.ts`) atomically rechecks the gates, deletes the
+profile, Social profile and job, and schedules the purges that need the profile gone. A failed step commits
+nothing and is retried with backoff; privacy completion is eventual, not one rollback-able transaction. An owned
+ACTIVE or ARCHIVED Campaign blocks deletion until it is transferred or deleted. Shared Campaign messages, rolls, Sessions and history remain with the author shown as
 `Deleted user` (`readCampaignAuthorLabels`), and retained history grants no access. Account deletion removes the
 account's Character actors from ongoing Encounters, retaining past turns and history; audit attribution is the
 deleting user, except Runs a live room holds (D74), where removal receipts name the Campaign owner. Under

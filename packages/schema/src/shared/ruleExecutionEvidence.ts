@@ -118,6 +118,14 @@ export const frozenCheckD20DtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * The conditions whose authored mechanics make a saving throw fail without counting the roll
+ * (D94), sorted and unique. Absent when none does.
+ */
+export const autoFailConditionIdsSchema = lazySchema(() =>
+  z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(32))
+)
+
 /** Server-only policy for one frozen d20 evidence node. */
 export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
   z
@@ -136,7 +144,8 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
       /** Labelled bonuses already folded into `modifier` and `dc` (cover). */
       foldedBonuses: z.optional(d20FoldedBonusesDtoSchema),
       /** The ability a saving throw is made with; absent on every other test. */
-      savingThrowAbilityDefinitionId: z.optional(uuidSchema)
+      savingThrowAbilityDefinitionId: z.optional(uuidSchema),
+      autoFailConditionIds: z.optional(autoFailConditionIdsSchema)
     })
     .check(
       z.superRefine((value, context) => {
@@ -275,7 +284,8 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
      * The ability a saving throw was made with, which narrows the dice its holder's effects
      * spend (D156); absent on every other test.
      */
-    savingThrowAbilityDefinitionId: z.optional(uuidSchema)
+    savingThrowAbilityDefinitionId: z.optional(uuidSchema),
+    autoFailConditionIds: z.optional(autoFailConditionIdsSchema)
   })
 )
 
@@ -376,6 +386,7 @@ export type ServerRuleExecutionD20EvidenceDto = {
   addedDice?: D20RolledAddedDieDto[]
   foldedBonuses?: D20FoldedBonusDto[]
   savingThrowAbilityDefinitionId?: string
+  autoFailConditionIds?: string[]
 }
 export type ServerRuleExecutionNestedD20EvidenceDto = ServerRuleExecutionD20EvidenceDto & {
   requestNodeId: string

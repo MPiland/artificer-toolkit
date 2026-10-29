@@ -86,8 +86,13 @@ function requireDistinct(fixture: DevelopmentAccountDeletionRollbackFixture) {
   if (fixture.auditorUserId === fixture.subjectUserId)
     throw new Error('Account rollback requires a distinct fixture auditor.')
 }
-function assertImmediateCleanup(
-  before: Awaited<ReturnType<typeof capture>>,
+/**
+ * The request's own commit (ADR 0040): every session and credential is gone and a deletion job is
+ * scheduled, while the provider user and profile stay until the job's ACCOUNT step. The browser
+ * proof polls for the job's complete cleanup.
+ */
+async function assertDeletionScheduled(
+  ctx: MutationCtx,
   after: Awaited<ReturnType<typeof capture>>,
   subjectUserId: string
 ) {
@@ -97,71 +102,18 @@ function assertImmediateCleanup(
       tables[name] = [
         ...new Map([...(tables[name] ?? []), ...rows].map((row) => [row._id, row])).values()
       ]
-  for (const name of [
-    'providerUsers',
-    'providerAccounts',
-    'providerSessions',
-    'userProfiles',
-    'characters',
-    'characterPlayStates',
-    'characterDrafts',
-    'characterDraftPayloads',
-    'authoredRoots',
-    'authoredImportRefs',
-    'contentSources',
-    'reusableDefinitions',
-    'reusableDefinitionDrafts',
-    'encounterBlueprints',
-    'encounterBlueprintUpdates',
-    'characterCommandReceipts',
-    'characterActiveRuleEffects',
-    'userRollHistory',
-    'accountEntitlements',
-    'socialProfiles',
-    'notificationFeedItems'
-  ]) {
+  for (const name of ['providerSessions', 'providerAccounts']) {
     if (!tables[name]) throw new Error('Required cleanup catalogue is missing: ' + name)
-    if (tables[name].length)
-      throw new Error('Native account deletion retains immediate private state: ' + name)
+    if (tables[name].length) throw new Error('Account deletion request retains access: ' + name)
   }
-  if (tables.authoredDrafts?.some((row) => row.userId === subjectUserId))
-    throw new Error('Native account deletion retains owned authored drafts.')
-  const privateSubjectIds = new Set([
-    ...before.known.characterIds,
-    ...before.known.rootReferences.map((reference) => reference.id)
-  ])
-  if (
-    tables.authoredRouteIds?.some(
-      (row) => typeof row.subjectId === 'string' && privateSubjectIds.has(row.subjectId)
-    )
-  )
-    throw new Error('Native account deletion retains private route identities.')
-  const sources = new Set(before.known.sourceIds)
-  if (
-    tables.authoredVersions?.some(
-      (row) => typeof row.contentSourceId === 'string' && sources.has(row.contentSourceId)
-    )
-  )
-    throw new Error('Native account deletion retains owned authored versions.')
-  const prior = Object.assign(
-    {},
-    ...before.inspections.map((result) => catalogue(result.stateJson))
-  ) as Record<string, Row[]>
-  for (const name of ['authoredDependentRoots', 'authoredDrafts', 'authoredVersions']) {
-    const protectedRows = (prior[name] ?? []).filter(
-      (row) =>
-        name === 'authoredDependentRoots' ||
-        (name === 'authoredDrafts'
-          ? row.userId !== subjectUserId
-          : typeof row.contentSourceId === 'string' && !sources.has(row.contentSourceId))
-    )
-    const retainedIds = new Set((tables[name] ?? []).map((row) => row._id))
-    if (protectedRows.some((row) => !retainedIds.has(row._id)))
-      throw new Error('Native account deletion removes protected shared state: ' + name)
-  }
-  // Deferred media, Social, delivery, usage and copy rows keep their existing cleanup fences.
+  if (!tables.providerUsers?.length || !tables.userProfiles?.length)
+    throw new Error('Account deletion request removed the account before its staged steps.')
+  const job = await ctx.db
+    .query('accountDeletionJobs')
+    .withIndex('by_userId', (q) => q.eq('userId', subjectUserId))
+    .unique()
+  if (job?.step !== 'CAMPAIGNS') throw new Error('Account deletion request scheduled no job.')
 }
-
 export const forceRollback = internalMutation({
   args: zodToConvex(developmentAccountDeletionRollbackInputSchema),
   returns: v.null(),
@@ -185,7 +137,7 @@ export const forceRollback = internalMutation({
       command: input.command
     })
     const after = await capture(ctx, { ...input.fixture, known: before.known })
-    assertImmediateCleanup(before, after, input.fixture.subjectUserId)
+    await assertDeletionScheduled(ctx, after, input.fixture.subjectUserId)
     throw new ConvexError(MARKER)
   }
 })

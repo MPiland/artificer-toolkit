@@ -1,19 +1,10 @@
-import { createFunctionHandle } from 'convex/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { api, components, internal } from '../_generated/api'
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
-
-async function deleteAccount(base: Awaited<ReturnType<typeof fixture>>, authUserId: string) {
-  return base.t.run(async (ctx) =>
-    ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-      input: { model: 'user', where: [{ field: '_id', value: authUserId }] },
-      onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-    })
-  )
-}
 
 describe('Social account cascade guards', () => {
   it.each(['ACTIVE', 'ARCHIVED'] as const)(
@@ -57,9 +48,11 @@ describe('Social account cascade guards', () => {
             .unique()
         }
       })
-      await expect(deleteAccount(base, before.account.authUserId)).rejects.toThrow(
-        'Account deletion is restricted by owned Campaigns.'
-      )
+      await expect(
+        base.t.mutation(internal.accountDeletion.schedule, {
+          authUserId: before.account.authUserId
+        })
+      ).rejects.toThrow('Account deletion is restricted by owned Campaigns.')
       expect(
         await base.t.run(async (ctx) => ({
           authUser: await ctx.runQuery(components.betterAuth.adapter.findOne, {
@@ -140,7 +133,7 @@ describe('Social account cascade guards', () => {
       })
     ).resolves.toMatchObject({ status: 'EXPIRED' })
 
-    await deleteAccount(base, beforeDeletion.account.authUserId)
+    await deleteAccountCompletely(base.t, beforeDeletion.account.authUserId)
 
     await expect(
       recipient.caller.query(api.social.invitationReads.getReceived, {
@@ -156,7 +149,6 @@ describe('Social account cascade guards', () => {
       })
     ).rejects.toThrow('Social invitation not found.')
 
-    await base.t.finishAllScheduledFunctions(vi.runAllTimers)
     expect(
       await base.t.run(async (ctx) => ({
         invitation: await ctx.db

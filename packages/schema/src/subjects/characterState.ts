@@ -194,7 +194,9 @@ const characterResourceUsageStateDtoSchemaRaw = lazySchema(() =>
 const characterSpellSlotUsageStateDtoSchemaRaw = lazySchema(() =>
   z.object({
     slotKey: z.string(),
-    used: z.number().check(z.int()).check(z.gte(0))
+    used: z.number().check(z.int()).check(z.gte(0)),
+    /** Extra slots of this key a feature created; a long rest removes them with the usage. */
+    created: z.optional(z.number().check(z.int()).check(z.gte(1)))
   })
 )
 const characterConditionStateDtoSchemaRaw = lazySchema(() =>

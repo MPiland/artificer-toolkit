@@ -55,7 +55,7 @@ export function characterSheetAdjustmentMatchesPanelTarget(
 
 /**
  * Every panel the Sheet itself links to, without a cast level or passive entry: the panels a write
- * stores (ADR 0040). PROFICIENCIES reads the resolution catalogue, so it is always derived live.
+ * stores (ADR 0041). PROFICIENCIES reads the resolution catalogue, so it is always derived live.
  */
 export function listCharacterSheetPanelTargets(
   sheet: CharacterSheetResponseDto

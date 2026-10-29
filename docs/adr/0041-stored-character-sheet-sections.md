@@ -1,4 +1,4 @@
-# ADR 0040: Stored Character Sheet sections
+# ADR 0041: Stored Character Sheet sections
 
 - **Status:** decision (RELIABILITY-21.T16, AC RELIABILITY-21.16 and 21.3)
 - **Date:** 2026-10-28

@@ -129,6 +129,62 @@ describe('CampaignChatHistory', () => {
     expect(screen.getByText(/vs DC 10/)).toBeInTheDocument()
   })
 
+  it('shows the rolled d20 of an automatically failed save with the condition that failed it', () => {
+    const roll = campaignChatEntryDtoSchema.parse({
+      ...entry,
+      kind: 'ROLL',
+      mode: null,
+      body: null,
+      authorUsername: ruleCheckAuthorLabel,
+      characterId: null,
+      characterLabel: 'Mira',
+      roll: {
+        id: '0c0b0a09-0807-4605-8403-020100fffefe',
+        normalizedExpression: '1d20+2',
+        evidence: {
+          terms: [{ count: 1, die: 20, rolls: [20], subtotal: 20 }],
+          modifier: 2,
+          mode: 'NORMAL',
+          keep: 'FIRST',
+          subtotal: 22,
+          transform: { kind: 'NONE' },
+          total: 22
+        },
+        characterId: null,
+        characterLabel: 'Mira',
+        source: { kind: 'SAVING_THROW', label: 'Acid Spray save' },
+        ruleset: { systemId: 'system', code: 'dnd5e', version: '2014' },
+        createdAt: '2026-09-18T12:00:00.000Z',
+        ruleCheck: { kind: 'SAVE_AUTO_FAIL', labels: ['Paralyzed'] }
+      }
+    })
+    render(
+      <MantineProvider>
+        <CampaignChatHistory
+          chatLog={{ current: null }}
+          conversationLabel='Table'
+          currentUserId='different-user'
+          directUserId={undefined}
+          encounterEntries={undefined}
+          entries={[roll]}
+          hasNextPage={false}
+          isHistoryLoading={false}
+          isLoadingOlderMessages={false}
+          isPrivateRollsError={false}
+          isPrivateRollsPending={false}
+          privateRolls={undefined}
+          rollView={null}
+          room='TABLE'
+          onEntryAction={vi.fn()}
+          onLoadOlderMessages={vi.fn()}
+          onRevealRoll={vi.fn()}
+        />
+      </MantineProvider>
+    )
+
+    expect(screen.getByText('Fails automatically: Paralyzed')).toBeInTheDocument()
+  })
+
   it('shows every die of a mode-adjusted d20 with the cancelled die and the caption', () => {
     const roll = campaignChatEntryDtoSchema.parse({
       ...entry,

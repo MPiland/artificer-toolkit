@@ -25,7 +25,10 @@ import {
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
 import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
-import { characterActionReasonCodeSchema } from './characterActionRules.js'
+import {
+  characterActionReasonCodeSchema,
+  resolvedSpellSlotExchangeSchema
+} from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
@@ -262,7 +265,8 @@ export const characterSheetOutcomeDtoSchema = lazySchema(() =>
       kind: z.literal('EFFECT'),
       pathCode: stringSchema,
       effectKind: stringSchema,
-      label: z.optional(stringSchema)
+      label: z.optional(stringSchema),
+      spellSlotExchange: z.optional(resolvedSpellSlotExchangeSchema)
     })
   ])
 )

@@ -13,7 +13,7 @@ import { getAuthenticatedProfile } from '../lib/identity'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { postCampaignChatEntry } from '../campaigns/chat'
 import { presentEncounterRun } from '@artificer-toolkit/encounter-persistence/sessionReads'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 
 const descriptiveStateLabels: Record<HealthDescriptiveStateDto, string> = {
   UNHURT: 'unhurt',

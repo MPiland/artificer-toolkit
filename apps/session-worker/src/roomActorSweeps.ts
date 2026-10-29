@@ -3,7 +3,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { DurableCommandJournal } from './durableCommandJournal.js'
 import { send } from './roomSocket.js'
 import { endRoomBrokenRelationships, roomHasBrokenRelationships } from './roomRelationshipEnds.js'
-import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
+import {
+  readFrozenUnassignedCharacterIds,
+  readRoomActorDepartures,
+  reconcileRoomActorDepartures
+} from './roomActorReconcile.js'
 import { admitsRoomMember } from './roomAuthorization.js'
 import type { RoomCommandHost } from './roomCommandHost.js'
 
@@ -25,24 +29,32 @@ export type RoomActorSweepHost = Pick<
 >
 
 /**
- * One journaled transaction, only when an open Run names a departure. Convex reads whether an
- * unassigned Character still exists only then; a deleted one's actor is removed, which Convex
- * must ingest before the receipt, so the room checkpoints first (D74).
+ * One journaled transaction, only when an open Run names a departure or, on a Character notice, a
+ * frozen actor's Character is gone (D200). Convex reads whether an unassigned Character still
+ * exists only then; a deleted one's actor is removed, which Convex must ingest before the receipt,
+ * so the room checkpoints first (D74).
  */
 export async function reconcileActorDepartures(
   host: RoomActorSweepHost,
-  current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>
+  current: NonNullable<ReturnType<DurableCommandJournal['readCurrent']>>,
+  recheckFrozenCharacters = false
 ): Promise<void> {
   const authorization = host.authorization.current(current.authorityEpoch)
   if (!authorization) return
   if (host.aggregateNeedsReload()) await host.flushOutbox('RELOAD')
   const departures = await readRoomActorDepartures(host.store, host.inputs, authorization)
-  if (!departures) return
+  const frozenCharacterIds = recheckFrozenCharacters
+    ? await readFrozenUnassignedCharacterIds(host.store, authorization)
+    : []
+  if (!departures && !frozenCharacterIds.length) return
   const campaignId = host.roomCampaignId()
   if (!campaignId) throw new Error('Live Session Campaign is unavailable.')
-  const deletedCharacterIds = departures.unassignedCharacterIds.length
-    ? await host.inputs.deletedCharacterIds(departures.unassignedCharacterIds)
+  const candidates = [...(departures?.unassignedCharacterIds ?? []), ...frozenCharacterIds]
+  const deletedCharacterIds = candidates.length
+    ? await host.inputs.deletedCharacterIds(candidates)
     : new Set<string>()
+  // A frozen actor whose Character still exists stays frozen; nothing to journal.
+  if (!departures && !deletedCharacterIds.size) return
   const commandId = crypto.randomUUID()
   const sequence = current.sequence + 1
   const receipt = liveSessionWebSocketServerMessageDtoSchema.parse({

@@ -1,7 +1,10 @@
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
 import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
-import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import {
+  parseGrantedActionId,
+  type StandingGrantedActionCharacterRules
+} from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -174,7 +177,8 @@ async function loadActionSource(
   tx: EncounterTurnReadTransaction,
   campaign: Campaign,
   state: EncounterRunState,
-  input: EncounterActionSourceRequest
+  input: EncounterActionSourceRequest,
+  characterRules: StandingGrantedActionCharacterRules | null | undefined
 ): Promise<NativeEncounterActionSource> {
   if (input.actor.systemId !== input.gameSystemId)
     throw new Error('Encounter action source does not match the Encounter Game System.')
@@ -197,7 +201,8 @@ async function loadActionSource(
     input.actor.kind !== 'CUSTOM' && parseGrantedActionId(input.actionId)
       ? {
           heldEffects: await listActiveRuleEffects(tx, turnEffectOwner(input.actor, state.id)),
-          spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
+          spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id }),
+          characterRules
         }
       : undefined
   // A repeat offer resolves against every holder's effects: its carrier is on the creature it repeats
@@ -380,7 +385,14 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
         observersSeeing
       })
     },
-    loadSource: (sourceInput) => loadActionSource(tx, input.campaign, state, sourceInput),
+    loadSource: (sourceInput) =>
+      loadActionSource(
+        tx,
+        input.campaign,
+        state,
+        sourceInput,
+        movementTargets.get(sourceInput.actor.id)?.characterFacts?.ruleEvaluation
+      ),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)
 }

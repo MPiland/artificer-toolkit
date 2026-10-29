@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { projectionChecksumSchema } from './identity.js'
 
-/** The viewer a stored Sheet section was projected for (ADR 0040). */
+/** The viewer a stored Sheet section was projected for (ADR 0041). */
 const characterSheetSectionViewerSchema = lazySchema(() =>
   z.enum(['CHARACTER_OWNER', 'CAMPAIGN_OWNER', 'PARTY_MEMBER'])
 )

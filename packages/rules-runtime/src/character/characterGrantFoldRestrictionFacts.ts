@@ -331,8 +331,32 @@ function normalizeItemContext(
 }
 
 /**
+ * A Subclass context is decided against the holder's class entries: only the stored
+ * specialization is foldable, so a context without one fails closed.
+ */
+function normalizeSubclassContext(
+  context: Extract<FacetContextAuthored, { subject: 'SUBCLASS' }>
+): RestrictionCondition[] {
+  const subclassIds = context.authoringModeKind === 'SELECTED' ? [...context.subclassIds] : []
+  const conditions = context.conditions ?? []
+  if (conditions.length === 0)
+    return [baseCondition({ id: context.id, constraint: 'INCLUDE' }, 'UNSUPPORTED')]
+  return conditions.map((condition) =>
+    condition.kind === 'PREDICATE' && condition.predicateCode === 'SUBCLASS_SPECIALIZATION'
+      ? {
+          ...baseCondition(condition, 'SUBCLASS_SPECIALIZATION'),
+          requiredIds: subclassIds,
+          secondaryRequiredIds:
+            condition.authoringModeKind === 'SELECTED' ? [...condition.specializationIds] : []
+        }
+      : baseCondition(condition, 'UNSUPPORTED')
+  )
+}
+
+/**
  * Character contexts become fold conditions and Equipment contexts become attacking-item
- * conditions; a Character or Creature context also requires the holder to be of that kind. Spell and Resource contexts are read by their own consumers (spell-scoped modifiers
+ * conditions; a Character or Creature context also requires the holder to be of that kind, and a
+ * Subclass context reads the stored specialization. Spell and Resource contexts are read by their own consumers (spell-scoped modifiers
  * and charge resets); any other subject cannot be evaluated here and fails closed.
  */
 export function normalizeCharacterGrantRestrictions(
@@ -360,6 +384,8 @@ export function normalizeCharacterGrantRestrictions(
             ...conditions.map(normalizeCreatureCondition)
           ]
         }
+        case 'SUBCLASS':
+          return normalizeSubclassContext(context)
         case 'SPELL':
         case 'RESOURCE':
           return []

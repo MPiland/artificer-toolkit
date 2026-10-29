@@ -1,4 +1,4 @@
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it, vi } from 'vitest'
 import * as nodeRuntime from '@artificer-toolkit/authoring/nodeRuntime'
 import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/classes/champion.js'
@@ -27,7 +27,8 @@ import { classAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/class
 import type { AuthoredCatalogueSearchBackfillResult } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import { compileSubjectWithMechanicsIndex } from '@artificer-toolkit/shared/subjects/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { api, components, internal } from '../_generated/api'
+import { api, internal } from '../_generated/api'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
 import {
   classDerivedArgs,
   importedSubject,
@@ -664,15 +665,7 @@ describe('native Class publication', () => {
         .unique()
     )
     if (!profile) throw new Error('Missing deleting author profile.')
-    await t.run(async (ctx) =>
-      ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-        input: {
-          model: 'user',
-          where: [{ field: '_id', value: profile.authUserId }]
-        },
-        onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-      })
-    )
+    await deleteAccountCompletely(t, profile.authUserId)
     expect(
       await t.run((ctx) =>
         ctx.db

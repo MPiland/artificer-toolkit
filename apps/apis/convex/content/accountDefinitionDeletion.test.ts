@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateReusableDefinitionInputDto,
   PublishReusableDefinitionDraftInputDto,
@@ -17,8 +17,47 @@ import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.
 import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
-import { api } from '../_generated/api'
-import { removeAccountContentSources } from './accountDefinitionDeletion'
+import { api, internal } from '../_generated/api'
+import { runAccountDeletionStep } from '../../tests/fixtures/accountDeletion'
+import { startAccountDeletion } from '../accountDeletionJobs'
+
+afterEach(() => vi.useRealTimers())
+
+type Fixture = Awaited<ReturnType<typeof publicationFixture>>
+
+/** Puts the account's deletion job at the SOURCES step so this suite exercises that step alone. */
+async function holdAtSources({ t }: Fixture, userId: string) {
+  // Fake timers keep the scheduler from running the job's steps behind the test.
+  vi.useFakeTimers()
+  await t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('userProfiles')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .unique()
+    if (!profile) throw new Error('Missing deleting account profile.')
+    await startAccountDeletion(ctx, profile.authUserId, userId)
+    const job = await ctx.db
+      .query('accountDeletionJobs')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .unique()
+    if (!job) throw new Error('Missing account deletion job.')
+    await ctx.db.patch(job._id, { step: 'SOURCES' })
+  })
+}
+
+/** Runs the SOURCES step until the job moves on, as the scheduler would. */
+async function removeSources({ t }: Fixture, userId: string) {
+  for (;;) {
+    await runAccountDeletionStep(t, userId, internal.content.accountDefinitionDeletion.step)
+    const job = await t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .unique()
+    )
+    if (job?.step !== 'SOURCES') return
+  }
+}
 
 const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
 const authModules = import.meta.glob('/apps/apis/convex/betterAuth/**/*.*s')
@@ -92,7 +131,8 @@ async function snapshot(t: Awaited<ReturnType<typeof publicationFixture>>['t']) 
 
 describe('account content-source cleanup', () => {
   it('removes owned published, draft, unpublished, and empty sources while preserving unrelated data', async () => {
-    const { t, first, second } = await publicationFixture(modules, authModules, [])
+    const fixture = await publicationFixture(modules, authModules, [])
+    const { t, first, second } = fixture
     const published = await first.caller.mutation(create, createDefinition())
     await first.caller.mutation(saveDraft, {
       definitionId: published.id,
@@ -136,8 +176,9 @@ describe('account content-source cleanup', () => {
         count: 0
       })
     )
+    await holdAtSources(fixture, first.userId)
     const before = await snapshot(t)
-    await t.run((ctx) => removeAccountContentSources(ctx, first.userId))
+    await removeSources(fixture, first.userId)
     const after = await snapshot(t)
     expect(after.sources).toEqual(before.sources.filter((row) => row.ownerUserId !== first.userId))
     expect(after.definitions).toEqual(
@@ -156,9 +197,10 @@ describe('account content-source cleanup', () => {
   }, 30000)
 
   it('refuses retained roots and rolls back definition removal when a later catalogue guard fails', async () => {
-    const { t, first } = await publicationFixture(modules, authModules, [
+    const fixture = await publicationFixture(modules, authModules, [
       [importedSubject({ ...acolyte, subjectKind: 'BACKGROUND', document: acolyte })]
     ])
+    const { t, first } = fixture
     const created = await first.caller.mutation(create, createDefinition())
     const source = await sourceFor(t, created.id)
     const draft = await first.caller.mutation(api.content.drafts.duplicate, {
@@ -171,8 +213,9 @@ describe('account content-source cleanup', () => {
       subjectId: draft.subjectId,
       expectedDraftUpdatedAt: draft.updatedAt
     })
+    await holdAtSources(fixture, first.userId)
     const withRoot = await snapshot(t)
-    await expect(t.run((ctx) => removeAccountContentSources(ctx, first.userId))).rejects.toThrow(
+    await expect(removeSources(fixture, first.userId)).rejects.toThrow(
       'still contains authored roots'
     )
     expect(await snapshot(t)).toEqual(withRoot)
@@ -188,7 +231,7 @@ describe('account content-source cleanup', () => {
       })
     })
     const beforeCatalogueFailure = await snapshot(t)
-    await expect(t.run((ctx) => removeAccountContentSources(ctx, first.userId))).rejects.toThrow(
+    await expect(removeSources(fixture, first.userId)).rejects.toThrow(
       'retained by a rules catalogue'
     )
     expect(await snapshot(t)).toEqual(beforeCatalogueFailure)

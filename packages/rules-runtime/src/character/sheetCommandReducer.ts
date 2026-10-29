@@ -46,6 +46,7 @@ import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
 import { buildSheetSpellSummon, withoutConcentrationSummons } from './sheetSpellSummon.js'
+import { applySpellSlotExchange, planSpellSlotExchange } from './sheetSpellSlotExchange.js'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
@@ -288,17 +289,18 @@ export function updateSpellSlotUsage(
   updater: (used: number) => number
 ): CharacterAuthored {
   const existing = character.state.spellSlots ?? []
-  const next = new Map(existing.map((slot) => [slot.slotKey, slot.used]))
-  const used = Math.max(updater(next.get(slotKey) ?? 0), 0)
-  next.set(slotKey, used)
+  const current = existing.find((slot) => slot.slotKey === slotKey)
+  const used = Math.max(updater(current?.used ?? 0), 0)
+  const updated = { ...current, slotKey, used }
 
   return clearEmptyStateArrays({
     ...character,
     state: {
       ...character.state,
-      spellSlots: [...next.entries()]
-        .filter(([, amount]) => amount > 0)
-        .map(([key, amount]) => ({ slotKey: key, used: amount }))
+      spellSlots: (current
+        ? existing.map((slot) => (slot === current ? updated : slot))
+        : [...existing, updated]
+      ).filter((slot) => slot.used > 0 || slot.created)
     }
   })
 }
@@ -990,6 +992,9 @@ export function applyCharacterSheetCommand(
       return updateSpellSlotUsage(next, command.slotKey, (used) => (command.all ? 0 : used - 1))
     }
 
+    case 'EXCHANGE_SPELL_SLOTS':
+      return applySpellSlotExchange(next, planSpellSlotExchange(sheet, command))
+
     case 'CAST_SPELL': {
       const cast = resolveAvailableSpellCast(sheet, command)
       if (cast.slotKey) ensureSpellSlot(sheet, cast.slotKey)
@@ -1532,6 +1537,8 @@ export function summarizeCharacterSheetCommand(
       const slotLabel = findSpellSlotLabel(sheet, command.slotKey)
       return slotLabel ? `${slotLabel} spell slot restored` : 'Spell slot restored'
     }
+    case 'EXCHANGE_SPELL_SLOTS':
+      return `${sheet?.actions.items.find((action) => action.id === command.actionId)?.label ?? 'Spell slot exchange'} used`
     case 'CAST_SPELL':
       return `${sheet?.spells.spells.find((spell) => spell.id === command.spellId)?.label ?? 'Spell'} cast`
     case 'SET_PREPARED_SPELLS':

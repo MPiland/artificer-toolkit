@@ -20,7 +20,7 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { presentEncounterRun } from '@artificer-toolkit/encounter-persistence/sessionReads'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readRunSummaries } from './projectionReads'
 
 /**

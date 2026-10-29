@@ -91,7 +91,7 @@ async function setup() {
   return { t, player, gm, party, campaign, character, input, visibility, forgetDerivation }
 }
 
-describe('Stored Character Sheet sections (ADR 0040)', () => {
+describe('Stored Character Sheet sections (ADR 0041)', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 

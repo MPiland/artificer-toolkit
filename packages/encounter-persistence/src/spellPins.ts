@@ -6,7 +6,7 @@ import { snapshotFeatureDefinitions } from '@artificer-toolkit/rules-runtime/enc
 import { hydrateStoredCompilation } from '@artificer-toolkit/rules-runtime/authoredPublicationHydrate'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { deriveOnce } from './transactionReads.js'
-import type { EncounterReadPorts } from './ports.js'
+import type { EncounterCommandReadPorts } from './ports.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 /** The Spell IDs a Creature snapshot's Feature spell grants name, each once. */
@@ -60,7 +60,7 @@ export function hydrateSpellPins(rows: readonly SpellPinRow[]): ReadonlyMap<stri
  */
 export async function ensureEncounterSpellPins(
   ctx: EncounterWriteContext,
-  readSource: EncounterReadPorts['readEncounterSource'],
+  readSource: EncounterCommandReadPorts['readEncounterSource'],
   input: {
     encounterId: string
     userId: string

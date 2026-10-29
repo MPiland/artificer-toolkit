@@ -13,6 +13,7 @@ import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { higherLevelCheckDtoSchema, reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { spellSlotExchangeDtoSchema } from '../effects/spellSlotExchange.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -226,6 +227,49 @@ const actionHealBonusSchema = lazySchema(() =>
   ])
 )
 
+const spellSlotLevelSchema = lazySchema(() => integerSchema.check(z.gte(1)).check(z.lte(9)))
+
+/** A SPELL_SLOT_EXCHANGE outcome with its class-level budget and charge pool resolved for the Sheet. */
+export const resolvedSpellSlotExchangeSchema = lazySchema(() =>
+  z.discriminatedUnion('mode', [
+    z.strictObject({
+      mode: z.literal('RECOVER_SLOTS'),
+      levelBudget: integerSchema.check(z.gte(0)),
+      maximumSlotLevel: spellSlotLevelSchema
+    }),
+    z.strictObject({
+      mode: z.literal('SLOT_TO_RESOURCE'),
+      resourcePoolId: characterResourcePoolIdentitySchema,
+      maximumSlotLevel: z.nullable(spellSlotLevelSchema)
+    }),
+    z.strictObject({
+      mode: z.literal('RESOURCE_TO_SLOT'),
+      resourcePoolId: characterResourcePoolIdentitySchema,
+      costs: z
+        .array(
+          z.strictObject({
+            slotLevel: spellSlotLevelSchema,
+            cost: integerSchema.check(z.gte(1))
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(9))
+    })
+  ])
+)
+
+export type ResolvedSpellSlotExchange = z.infer<typeof resolvedSpellSlotExchangeSchema>
+
+/** A SPELL_SLOT_EXCHANGE outcome as authored; its budget and pool resolve against the Character. */
+const actionSpellSlotExchangeFactSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('SPELL_SLOT_EXCHANGE'),
+    pathCode: identitySchema,
+    exchange: spellSlotExchangeDtoSchema,
+    label: z.nullable(stringSchema)
+  })
+)
+
 /** An outcome the action resolves that has no dedicated fact; the resolved mechanics repeat the fact's shape. */
 const actionEffectFactSchema = lazySchema(() =>
   z.strictObject({
@@ -254,7 +298,9 @@ const actionEffectFactSchema = lazySchema(() =>
                 kind: z.literal('SPELL_LEVEL'),
                 limit: z.enum(['SLOT_LEVEL', 'FIXED']),
                 level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9)))
-              })
+              }),
+              /** An authored `SAME_EFFECT` selector, resolved to the Effect that owns the outcome. */
+              z.strictObject({ kind: z.literal('SAME_EFFECT'), effectId: identitySchema })
             ])
           )
           .check(z.minLength(1))
@@ -361,7 +407,8 @@ const characterActionMechanicFactSchema = lazySchema(() =>
             pathCode: identitySchema,
             conditionId: canonicalConditionDefinitionIdSchema
           }),
-          actionEffectFactSchema
+          actionEffectFactSchema,
+          actionSpellSlotExchangeFactSchema
         ])
       )
       .check(z.maxLength(1_000))
@@ -467,7 +514,10 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
             pathCode: identitySchema,
             conditionId: identitySchema
           }),
-          actionEffectFactSchema
+          z.extend(actionEffectFactSchema, {
+            /** Set on a SPELL_SLOT_EXCHANGE outcome whose budget and pool resolved. */
+            spellSlotExchange: z.optional(resolvedSpellSlotExchangeSchema)
+          })
         ])
       )
       .check(z.maxLength(1_000))

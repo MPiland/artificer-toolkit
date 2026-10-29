@@ -36,7 +36,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterSheetLiveCommands'
 import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
-import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { readCharacterLiveHold, readLiveCampaignAuthority } from '../liveSessions/authorityGuard'
 
 /** Private notes require current ownership, assignment and route authority, without source reads. */

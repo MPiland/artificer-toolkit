@@ -348,7 +348,8 @@
               "status": "TODO",
               "proof": [],
               "origin": ["R02.2"],
-              "id": "PLATFORM-7.2"
+              "id": "PLATFORM-7.2",
+              "journeys": ["auth-browser", "scene-live-browser"]
             }
           ],
           "wsjf": {
@@ -507,7 +508,8 @@
               "status": "IN_PROGRESS",
               "proof": [],
               "origin": ["R05.2"],
-              "id": "PLATFORM-10.2"
+              "id": "PLATFORM-10.2",
+              "journeys": ["auth-browser"]
             }
           ],
           "wsjf": {
@@ -12805,7 +12807,8 @@
               "proof": [],
               "origin": [],
               "note": "Registered from SPELLS-5 refinement (D99); SPELLS-5 proves the grant pipeline through items and Creature actions. Aid's maximum hit point bonus scales with the slot level (SPELL_SLOT_LEVEL); modifierGrantPlan leaves slot-scaled grants manual until casting resolves the amount. Heroism's per-turn temporary hit point entry is not linked to Concentration yet: link it once one cast carries both Heroism entries under one maintenance policy (prepareEncounterActionMaintenance refuses two).",
-              "id": "SPELLS-8.3"
+              "id": "SPELLS-8.3",
+              "journeys": ["player-browser"]
             },
             {
               "text": "A Character wizard casts SRD Fireball at a point in the room: each caught creature saves against the wizard's spell save DC, a 3rd-level cast rolls 8d6 and a 4th-level cast 9d6, once for the whole area, and the slot is spent and restored by GM undo.",
@@ -13115,10 +13118,10 @@
             },
             {
               "text": "A roll that a condition makes an automatic failure shows that it fails and why before and after the roll.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["actionCommands.test.ts"],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): the d20 is still prompted and rolled, and the result path is the failure.",
+              "note": "Registered from SPELLS-2 (D94): the d20 is still prompted and rolled, and the result path is the failure. Closed 2026-10-29 by SPELLS-10.T3.",
               "id": "SPELLS-10.4"
             },
             {
@@ -13203,16 +13206,18 @@
             },
             {
               "id": "SPELLS-10.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-10.4"],
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 3
+                "size": 5
               },
               "text": "Automatic failure shown with reason before and after the roll.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 3 to 5 (orchestrator ruling 2026-10-28): optional autoFail reasons {conditionId,label} on the d20 policy, D20_EVIDENCE request and evidence; Encounter direct-action and repeat saves; concentration stays in T4. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:20Z",
+              "proof": "Tests 40809596493, Live backend 40809596464, Browser journeys 40809596592 on fcc19629b; batch ci/merge-m539 green. Save requests carry autoFail [{conditionId,label}] from System condition types; roll card and decision drawer show the reason; actionCommands.test.ts round trip (Paralyzed Dexterity save, natural 20 still fails); nested-save resultPath regression test."
             },
             {
               "id": "SPELLS-10.T4",
@@ -13529,7 +13534,8 @@
               "proof": [],
               "origin": [],
               "note": "Split from SPELLS-7 on 2026-10-10. D51 deferred area options to area targeting. Depends on SPELLS-7 and SPELLS-13.",
-              "id": "SPELLS-15.1"
+              "id": "SPELLS-15.1",
+              "journeys": ["area-browser"]
             }
           ],
           "wsjf": {
@@ -13582,7 +13588,8 @@
               "proof": [],
               "origin": [],
               "note": "Registered 2026-10-10 from the user's SPELLS-7 ruling: things like the Evocation subclass let the wizard choose. Depends on SPELLS-7.",
-              "id": "SPELLS-16.1"
+              "id": "SPELLS-16.1",
+              "journeys": ["area-browser"]
             }
           ],
           "wsjf": {
@@ -14777,7 +14784,8 @@
                 "T2b (Legendary window, movement opportunity attack and Disarm release the condition with its grant; the three ownsCondition fences removed): apps/session-worker/test/nativeRoomLegendary.test.ts, nativeRoomGrantEnds.test.ts, nativeRoomDisarm.test.ts, packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts and encounterDisarmSettlement.test.ts, packages/schema/src/__tests__/contested-action-application-output.test.ts; red: Tests 38887125785 on 2ff927eeb fails the new release cases; green: CI Tests 38889745325 and Live backend 38889745343 on 018e58dfc"
               ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads.",
+              "journeys": ["effects-browser"]
             },
             {
               "id": "SPELLS-27.2",
@@ -15301,7 +15309,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -15331,7 +15339,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -15344,7 +15352,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
+              "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -15419,7 +15428,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2f"]
               },
-              "text": "Join SPELLS-4.T2f: Stillness of Mind, Cleansing Touch, Lay on Hands (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2f: Stillness of Mind, Cleansing Touch, Lay on Hands (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T4i",
@@ -15433,7 +15443,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2d", "SPELLS-4.T2t"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T4j",
@@ -15544,7 +15554,7 @@
             },
             {
               "id": "SPELLS-31.T4l1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15554,7 +15564,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2l", "SPELLS-4.T2o"]
               },
               "text": "Join SPELLS-4.T2l: Cunning Action, Fast Hands, Vanish, Ki disciplines. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/architecture/character.md"
+              "mergedAt": "2026-10-28T21:51:51Z",
+              "proof": "Tests 40768568172, Live backend 40768568221, Browser journeys 40768568113 on 8b886160a; cunningActionAndKiAuthoringParity.test.ts, nativeRoomCunningAction.test.ts; four closed kinds deleted, D188 standing offers wired for Characters.",
+              "note": " Merged in m530."
             },
             {
               "id": "SPELLS-31.T4l2",
@@ -15585,7 +15597,7 @@
             },
             {
               "id": "SPELLS-31.T4n",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15595,7 +15607,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m535.",
+              "mergedAt": "2026-10-29T02:33:20Z",
+              "proof": "Tests 40795105396, Live backend 40795105393, Browser journeys 40795105425 on 6dee114cf; batch ci/merge-m535 green. Disciple of Life authored through the new generic HEALING_DEALT BONUS value domain (addsSpellLevel); characterSpellCastActions.test.ts asserts 2 + cast level per cast level; classHealingDealtAuthoringParity.test.ts runs SRD and homebrew through the class node map; Preserve Life, Blessed Healer, Supreme Healing and Song of Rest are GM rulings; five closed-rule kinds deleted."
             },
             {
               "id": "SPELLS-31.T4o",
@@ -15663,7 +15677,7 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T5a",
@@ -15844,25 +15858,27 @@
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T5j",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Re-sized 3 to 5 (orchestrator ruling 2026-10-28): one SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and a shared EXCHANGE_SPELL_SLOTS play command; Sorcerous Restoration and Eldritch Master ship as GM rulings. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:18Z",
+              "proof": "Tests 40807494906, Live backend 40807494924, Browser journeys 40807494968 on 7c777d138; batch ci/merge-m539 green. One SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and one EXCHANGE_SPELL_SLOTS command; Arcane Recovery, Natural Recovery and Flexible Casting authored; Sorcerous Restoration and Eldritch Master GM rulings; five closed-rule kinds deleted. sheetCommandReducer.test.ts, nativeRoomSpellSlotExchange.test.ts, CharacterSheetActions.test.tsx, classFeatureOptionsAuthoringParity.test.ts. Deferred limits in future-enhancements.md."
             },
             {
               "id": "SPELLS-31.T5k",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15872,7 +15888,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:22Z",
+              "proof": "Tests 40816243449, Live backend 40816243457, Browser journeys 40816243442 on 46c4a9baa; batch ci/merge-m539 green. Fiendish Resilience as SAME_EFFECT END_EFFECTS options; Dragon Ancestor via the stored specializationId in the grant fold; Favored Enemy and Foe Slayer description-only; four closed-rule kinds deleted; nothingToEndWarnings only when ending is the whole action. subclassSpecializationGrantFold.test.ts, featureChoiceRulingsAuthoringParity.test.ts, nativeRoomFiendishResilience.test.ts."
             },
             {
               "id": "SPELLS-31.T5l",
@@ -16022,7 +16040,7 @@
                 "after": ["SPELLS-31.T5ra", "RULES-2.T6b"]
               },
               "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape.",
-              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted."
+              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -16802,7 +16820,7 @@
             },
             {
               "id": "SPELLS-33.T4l3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16812,8 +16830,9 @@
                 "after": ["SPELLS-33.T4l2"]
               },
               "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated.",
-              "note": " Re-sized 3 to 5 (orchestrator ruling B 2026-10-28): the area option is delegated through the area coordinator with ADVANCE_TURN split around it; all 20 dragons get self sphere, damage and prone; the fly is a GM ruling.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": " Re-sized 3 to 5 (orchestrator ruling B 2026-10-28): the area option is delegated through the area coordinator with ADVANCE_TURN split around it; all 20 dragons get self sphere, damage and prone; the fly is a GM ruling. Merged in m530.",
+              "mergedAt": "2026-10-28T21:51:51Z",
+              "proof": "Tests 40768657624, Live backend 40768657562, Browser journeys 40768657404 on 556558fa4; D197 delegated self-centered Legendary area option through the area coordinator between ADVANCE_TURN halves; all 20 dragons author Wing Attack with authoring parity; golden flips 20 lines to TEST_OUTCOME. Deferred edge cases: HP zero inside the delegated root, voided root forgoes the option."
             },
             {
               "id": "SPELLS-33.T4m",
@@ -16865,7 +16884,7 @@
             },
             {
               "id": "SPELLS-33.T4pr",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16874,7 +16893,10 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2p", "SPELLS-4.T2r"]
               },
-              "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "mergedAt": "2026-10-29T02:33:29Z",
+              "proof": "Tests 40801479245, Live backend 40801479213, Browser journeys 40801479163 on a241e24a2; batch ci/merge-m535 green. Fear Aura, Stench and Horrific Appearance authored as passive start-of-turn save zones through one data helper (turnAura.ts), darkness auras and Siege Monster/Web Walker as GM rulings; closed-rule kinds deleted; SRD compile golden refreshed.",
+              "note": " Merged in m535."
             },
             {
               "id": "SPELLS-33.T4s1",
@@ -16936,7 +16958,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
             },
             {
               "id": "SPELLS-33.T5afp",
@@ -17732,7 +17754,8 @@
               "proof": [],
               "origin": [],
               "note": "User decision 2026-10-23 (D190, approved scope growth).",
-              "id": "SPELLS-34.1"
+              "id": "SPELLS-34.1",
+              "journeys": ["character-sheet-spells-browser"]
             },
             {
               "text": "A summon cast in an Encounter appears in the owner's Extras with its live HP from the owned Run actor; the actor remains the only record.",
@@ -17740,7 +17763,8 @@
               "proof": [],
               "origin": [],
               "note": "User decision 2026-10-23 (D190, approved scope growth).",
-              "id": "SPELLS-34.2"
+              "id": "SPELLS-34.2",
+              "journeys": ["character-sheet-browser", "vtt-browser"]
             },
             {
               "text": "A summon leaves Extras when Concentration ends, when it is dismissed, or at 0 HP; outside the VTT a timed summon stays until dismissed or a long rest.",
@@ -17748,7 +17772,8 @@
               "proof": [],
               "origin": [],
               "note": "User decision 2026-10-23 (D190, approved scope growth).",
-              "id": "SPELLS-34.3"
+              "id": "SPELLS-34.3",
+              "journeys": ["character-sheet-browser"]
             },
             {
               "text": "Sheet and Encounter summons are built through the same rules-runtime summon plan, proved by a test that runs both paths from one spell.",
@@ -19523,7 +19548,8 @@
               "proof": [],
               "origin": [],
               "note": "OQ-1 option 1 (product owner, 2026-10-13). Sequenced after RELIABILITY-8.1. Replaces AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) fed by FormRenderer.tsx:441-459 updateAuthoringFormState/updateAuthoringFormActions effects, the 17-field AuthoringLayoutProvider, and the 16-field CharacterSheetRollContext controller. forms/layout/AuthoringFormContext.ts:19 imports a builder type (forms -> domains inversion) and goes too.",
-              "id": "RELIABILITY-10.1"
+              "id": "RELIABILITY-10.1",
+              "journeys": ["publication-browser"]
             },
             {
               "text": "Typing into one authoring field re-renders only that field and the components whose displayed flag changed: no component subscribes to all values or all field meta, node resolution reads values through a debounced store subscription outside render, and step status and progress come from narrow selectors.",
@@ -19531,7 +19557,8 @@
               "proof": [],
               "origin": [],
               "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090).",
-              "id": "RELIABILITY-10.2"
+              "id": "RELIABILITY-10.2",
+              "journeys": ["publication-browser"]
             },
             {
               "text": "The character builder's submit, finalize and saving state each come from one source, so a pending save is never shown as idle.",
@@ -19539,7 +19566,8 @@
               "proof": [],
               "origin": [],
               "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag.",
-              "id": "RELIABILITY-10.3"
+              "id": "RELIABILITY-10.3",
+              "journeys": ["builder-browser"]
             }
           ],
           "wsjf": {
@@ -20186,18 +20214,21 @@
             {
               "id": "RELIABILITY-21.1",
               "text": "authoring/nodeRuntime:resolve stays under the 1 s query limit, and the publication-class journey loads the authoring tools.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": ["nodeRuntime.test.ts"],
               "origin": [],
-              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1. Reopened 2026-10-28: publication-class-browser still fails on CI (resolve over the 1 s limit); owned by T19."
+              "note": "Proof: publication-class. Closed 2026-10-28 by RELIABILITY-21.T1. Reopened 2026-10-28: publication-class-browser still fails on CI (resolve over the 1 s limit); owned by T19. Closed 2026-10-28 by RELIABILITY-21.T1, RELIABILITY-21.T19."
             },
             {
               "id": "RELIABILITY-21.2",
               "text": "campaigns/partyInventory:equipmentOptions stays under the 1 s query limit, and the campaign-custody journey passes.",
-              "status": "TODO",
-              "proof": ["Closed by RELIABILITY-21.T2 (m517); see each task's proof."],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-21.T2 (m517), RELIABILITY-21.T18 (m539); see each task's proof."
+              ],
               "origin": [],
-              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2. Reopened 2026-10-28: campaign-custody-browser still fails on CI (partyInventory:items); owned by T18."
+              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2. Reopened 2026-10-28: campaign-custody-browser still fails on CI (partyInventory:items); owned by T18. Closed 2026-10-29 by RELIABILITY-21.T2, RELIABILITY-21.T18.",
+              "journeys": ["campaign-custody-browser"]
             },
             {
               "id": "RELIABILITY-21.3",
@@ -20205,7 +20236,8 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Proof: builder, character-sheet."
+              "note": "Proof: builder, character-sheet.",
+              "journeys": ["builder-browser", "character-sheet-browser"]
             },
             {
               "id": "RELIABILITY-21.4",
@@ -20285,9 +20317,10 @@
             {
               "id": "RELIABILITY-21.13",
               "text": "area-browser and account-deletion-browser pass without reruns while every proof runs: no Convex query or mutation on their paths (the area scene hydrate query, Encounter history verification, characters/sheetCommands:execute) exceeds the 1 s function limit on CI.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T13 (m522); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T13."
             },
             {
               "id": "RELIABILITY-21.14",
@@ -20310,7 +20343,8 @@
               "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
               "status": "TODO",
               "proof": [],
-              "origin": []
+              "origin": [],
+              "journeys": ["builder-browser"]
             },
             {
               "id": "RELIABILITY-21.17",
@@ -20323,16 +20357,18 @@
             {
               "id": "RELIABILITY-21.18",
               "text": "A full Browser journeys run uses about 6 duration-balanced runner jobs instead of one per proof; every CI proof still runs and gates, known-bug proofs stay non-gating per proof in their own shard, single-proof dispatch is unchanged, and before/after slot and runner-minute measurements are recorded.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T20 (m531); see each task's proof."],
+              "origin": [],
+              "note": "Closed 2026-10-28 by RELIABILITY-21.T20."
             },
             {
               "id": "RELIABILITY-21.19",
               "text": "Slices gate on Tests, Live backend and the browser journeys their acceptance criteria name; merge batches run every journey in shards; a journey that fails only on a merge batch is traced to the slice that broke it; recurring flaky proofs (account-deletion fixture cleanup timeout, disarm, effects) are fixed or labelled first.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["heldAccountDeletion.test.ts"],
+              "origin": [],
+              "note": "Closed 2026-10-29 by RELIABILITY-21.T21, RELIABILITY-21.T22, RELIABILITY-21.T23, RELIABILITY-21.T24."
             }
           ],
           "tasks": [
@@ -20521,7 +20557,7 @@
             },
             {
               "id": "RELIABILITY-21.T13",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.13"],
               "wsjf": {
                 "bv": 5,
@@ -20530,8 +20566,9 @@
                 "size": 3
               },
               "text": "Find why the area scene hydrate query, Encounter history verification and characters/sheetCommands:execute intermittently exceed the 1 s Convex function limit on CI, and bound their read or compute work at the source with a read-budget regression test; no bigger runners and no retries that hide cost. If RELIABILITY-21.T3 fixes sheetCommands:execute, this task keeps the area paths. Also owns campaign-custody-browser (RELIABILITY-21.T2 bounded its reads; partyInventory:items still ran 944 ms on CI against about 50 ms in convex-test) and the per-row payload read in vehicleOptions.ts:48-54. Also owns effects-browser: encounters/activeReads:active ran 869-1,092 ms of compute on CI while reading 21-28 documents. Also owns publication-class-browser: authoring/nodeRuntime:resolve on the Class guided-copy edit page read 471 documents and ran 1,169 ms on CI (ci/reliability-21-t3 40688448460, twice), though it passed on ci/reliability-21-t2 40656550933 with RELIABILITY-21.T1 merged. Also owns disarm-browser: the same activeReads:active query timed out at 1,086 ms reading 36 documents (47 KB) on \"hydrate Disarm scene\" (ci/reliability-21-t3 40694271954, twice).",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun.",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +3). 1 s timeouts: area-browser in spells-30-t2 Browser journeys 40620672092 attempt 1 (hydrate area scene) and reliability-21-t7 40618214227 attempt 1 (verify Encounter history); account-deletion-browser in reliability-21-t6 40617342652 attempts 1 and 2 (sheetCommands:execute). Each passed on rerun. Merged in m522.",
+              "mergedAt": "2026-10-28T16:58:15Z",
+              "proof": "Tests 40723362411, Live backend 40723362549, Browser journeys 40723362316 on 36b157728; activeReads bounded under the 1 s limit with lazy validators and root-fact pickers. Remaining campaign-custody and publication-class overruns moved to T18 and T19 (labels retargeted in m529)."
             },
             {
               "id": "RELIABILITY-21.T14",
@@ -20594,7 +20631,7 @@
             },
             {
               "id": "RELIABILITY-21.T18",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.2"],
               "wsjf": {
                 "bv": 5,
@@ -20603,11 +20640,13 @@
                 "size": 3
               },
               "text": "Bound campaigns/partyInventory:items under the 1 s limit: drop the public to internal runQuery hop, make args/returns lazy getters, and use one variant signal (category or parentEquipmentId) for root catalogue facts; remove campaign-custody-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13). Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:18Z",
+              "proof": "Tests 40806857924, Live backend 40806858162, Browser journeys 40806857901 on ca4efea6c; batch ci/merge-m539 green (Tests 40821391572, Live 40821391567, Browser journeys 40821391602). partyInventory reads under 1 s."
             },
             {
               "id": "RELIABILITY-21.T19",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.1"],
               "wsjf": {
                 "bv": 5,
@@ -20616,11 +20655,13 @@
                 "size": 3
               },
               "text": "Bound authoring/nodeRuntime:resolve handler and returns-validation cost under the 1 s limit (the T1 options); remove publication-class-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.1 after T13). Merged in m532.",
+              "mergedAt": "2026-10-28T22:51:47Z",
+              "proof": "Tests 40779600161, Live backend 40779600040, Browser journeys 40779599882 on f9221b72a; publication-class-browser gates green with its label removed. Per-request scope memo shares 62 models across 1,283 scopes (reader calls 335 to 26, caller.query 444-579 to 297-331 ms locally); nodeRuntime.test.ts asserts reader calls under 60 and per-scope parity."
             },
             {
               "id": "RELIABILITY-21.T20",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.18"],
               "wsjf": {
                 "bv": 5,
@@ -20629,12 +20670,13 @@
                 "size": 3
               },
               "text": "Shard Browser journeys into about 6 duration-balanced jobs with one stack each, every proof run and reported even after a failure, known-bug proofs in their own non-gating shard, shard membership derived from the proof list and recorded durations, and a reversed-order independence run. Per-proof selection (about 6 percent saving) and built-output hashing (0 of 32 pushes) were measured and rejected.",
-              "note": "Registered 2026-10-28 (user yes).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (user yes). Merged in m531.",
+              "mergedAt": "2026-10-28T22:42:46Z",
+              "proof": "Tests 40778344969, Live backend 40778344930, Browser journeys 40778344933 on 61fa878e7; shardProofs packs gating proofs onto 5 duration-balanced stacks plus one non-gating known-bug shard (affectedBrowserJourneys.test.mjs); reversed run 40753154902 passed all 20 gating proofs; full run 6 proof jobs instead of 25 (73% fewer slots, about 51% less runner time), measurements in ci-validation.md#shards."
             },
             {
               "id": "RELIABILITY-21.T21",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.19"],
               "wsjf": {
                 "bv": 5,
@@ -20644,7 +20686,54 @@
                 "after": ["RELIABILITY-21.T20"]
               },
               "text": "Slice gate policy: ci/<slice> pushes run only the journeys their ACs name, merge batches run every journey in shards, merge-slice traces a merge-only journey failure to its slice; fix or label the recurring flaky proofs first.",
-              "note": "Registered 2026-10-28 (user yes)."
+              "note": "Registered 2026-10-28 (user yes). Merged in m534.",
+              "mergedAt": "2026-10-29T02:25:02Z",
+              "proof": "Tests 40792646073, Live backend 40792646096, Browser journeys 40792646069 on cedb58b3a; batch ci/merge-m534 green. ACs carry journeys: [<ci proof>] validated by acJourneyProblems in acceptanceProgress.mjs; a slice gates only on the journeys of the ACs its tasks close; merge batches run every journey; scripts/traceJourneyFailure.mjs maps a failed proof back to its ACs."
+            },
+            {
+              "id": "RELIABILITY-21.T22",
+              "status": "DONE",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound auth:onDelete (account deletion) under the 1 s Convex limit on the CI runner, for example by scheduling the per-table deletes in bounded batches; remove the account-deletion-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). D199 (user 2026-10-28): staged deletion plus onCreate/onUpdate moved out of auth.ts; new ADR and persistence.md; size re-scored at push. D200 (2026-10-28): a held Character deleted after departure is removed from the Run on the deletion invalidate. Merged in m540.",
+              "mergedAt": "2026-10-29T08:06:07Z",
+              "proof": "Tests 40836205101, Live backend 40838640813, Browser journeys 40836205115 on 117dbe80a; merge-slice 40839643098. Staged account deletion (D199): onDelete commits the gate, profile delete and job row; per-module bounded idempotent steps with token-guarded retry (accountDeletionJobs.ts); onCreate/onUpdate out of auth.ts. D200: a CHARACTER notice makes the room remove a frozen actor whose Character is DELETED. account-deletion-browser passed in 213 s and gates again; heldAccountDeletion.test.ts, owner-deletes-after-leaving regression, worker UNASSIGNED-stays-frozen unit test."
+            },
+            {
+              "id": "RELIABILITY-21.T23",
+              "status": "DONE",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound the owner d20 evidence submission mutation (effects-browser \"submit owner d20 evidence\") under the 1 s Convex limit on the CI runner; remove the effects-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). Merged in m538.",
+              "mergedAt": "2026-10-29T04:11:19Z",
+              "proof": "Tests 40808859158, Live backend 40813580818, Browser journeys 40808859171 on 94214c8fd. Owner d20 evidence reads under 1 s; effects-browser gates again (known-bug label removed)."
+            },
+            {
+              "id": "RELIABILITY-21.T24",
+              "status": "DONE",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound authoring/nodeRuntime:resolve under the 1 s Convex limit on the CI runner after T19 (publication-class-browser still times out at 1.006-1.221 s on T18, T23 and T4n runs); find whether module-graph evaluation (D199, T22/T23 finding) or per-scope work is the residue; remove the publication-class-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19). Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:19Z",
+              "proof": "Tests 40819499214, Live backend 40819499130, Browser journeys 40819499127 on 913be9a86; batch ci/merge-m539 green. readCurrentSourceDefinitionChoices reads only {id,label} under the shared definition guards; Fighter-copy resolve 199-251 ms uncontended, 573 ms max contended (was 1006-1221 ms). publication-class-browser gates again."
             }
           ]
         }
@@ -20765,7 +20854,8 @@
               "proof": [],
               "origin": ["G4-SYSTEM-STATE"],
               "note": "Morale/Injuries are foundation-only; presentation needs a case.",
-              "id": "VTT_UI-2.1"
+              "id": "VTT_UI-2.1",
+              "journeys": ["vtt-browser"]
             }
           ],
           "wsjf": {
@@ -20829,7 +20919,8 @@
               ],
               "origin": ["G4-PREVIEWS"],
               "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
-              "id": "VTT_UI-3.1"
+              "id": "VTT_UI-3.1",
+              "journeys": ["vtt-browser"]
             },
             {
               "text": "Light and map colour are rendered from the Scene: the ambient illumination sets the base (BRIGHT as authored, DIM visibly darkened, DARK black beyond light and senses); each light shows a full-brightness bright radius and a darkened dim radius, both tinted by its colour without washing out the map art; magical darkness stays black inside light except to senses that pierce it; obscurement draws as its own layer; the GM sees everything and can preview a chosen token's view.",
@@ -20863,11 +20954,12 @@
             },
             {
               "text": "The warlock's Devil's Sight is its own sense, not darkvision: within its range the warlock sees normally in both ordinary and magical darkness (full colour, no greyscale) but does not see invisible creatures; combat perception treats creatures it reaches there as seen, and the view reveals the token's own and other tokens there while magical darkness stays visibly marked (its dotted outline and a faint tint distinct from dim light), as it does for truesight; beyond its range darkness hides as before.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["nativeTransientFanout.test.ts"],
               "origin": ["G4-PERCEPTION"],
-              "note": "Registered 2026-10-13 by the product owner, corrected the same day: Devil's Sight is not darkvision. Today the SRD invocation grants 120 ft darkvision (ORDINARY_DARKNESS access) and CLASS_WARLOCK_DEVILS_SIGHT is declared but never applied, so magical darkness blinds the warlock in combat perception and on the map, and ordinary darkness shows greyscale; truesight erases magical darkness entirely inside its reach. Candidate model: an SRD Devil's Sight sense definition (VISUAL, PRECISE, MAGICAL_DARKNESS access, no invisible) granted at 120 ft in place of darkvision, the closed rule kind deleted. The monster trait (imp, devils: magical darkness doesn't impede their darkvision) is darkvision-based and lands with VTT_UI-5 stat-block senses. Depends on lane 3's ruling 3 (no null sense range).",
-              "id": "VTT_UI-3.5"
+              "note": "Registered 2026-10-13 by the product owner, corrected the same day: Devil's Sight is not darkvision. Today the SRD invocation grants 120 ft darkvision (ORDINARY_DARKNESS access) and CLASS_WARLOCK_DEVILS_SIGHT is declared but never applied, so magical darkness blinds the warlock in combat perception and on the map, and ordinary darkness shows greyscale; truesight erases magical darkness entirely inside its reach. Candidate model: an SRD Devil's Sight sense definition (VISUAL, PRECISE, MAGICAL_DARKNESS access, no invisible) granted at 120 ft in place of darkvision, the closed rule kind deleted. The monster trait (imp, devils: magical darkness doesn't impede their darkvision) is darkvision-based and lands with VTT_UI-5 stat-block senses. Depends on lane 3's ruling 3 (no null sense range). Closed 2026-10-29 by VTT_UI-3.T3.",
+              "id": "VTT_UI-3.5",
+              "journeys": ["vtt-browser"]
             },
             {
               "text": "Footprints, large tokens, dragging and rotation behave correctly.",
@@ -20916,7 +21008,7 @@
             },
             {
               "id": "VTT_UI-3.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-3.5"],
               "wsjf": {
                 "bv": 5,
@@ -20925,7 +21017,9 @@
                 "size": 3
               },
               "text": "Devil's Sight in the view: prove the Scene vision projection (Session Worker roomSceneVision / roomSceneSensesProjection) hands the warlock token a Devil's Sight sense with MAGICAL_DARKNESS access (full colour, no greyscale, not seeing invisible) and the web renders magical darkness with its dotted outline and a tint distinct from dim, revealing tokens inside the range. Likely mostly proof (the generic sense pipeline exists), plus a fix if the greyscale/colour or marked-magical-darkness requirement fails. Proof: room test with a real warlock Character with the invocation (fails first if projection ignores the sense), window story pixel-sampling the overlay like the existing lighting stories.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m533.",
+              "mergedAt": "2026-10-29T01:00:48Z",
+              "proof": "Tests 40791414961, Browser journeys 40791415018 on 88ed74a2c; nativeTransientFanout.test.ts proves Devil's Sight in the room's Scene vision, and the CampaignVttLighting story asserts the magical-darkness outline through the zone style model."
             },
             {
               "id": "VTT_UI-3.T4",
@@ -21040,7 +21134,8 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "id": "VTT_UI-6.1"
+              "id": "VTT_UI-6.1",
+              "journeys": ["vtt-browser"]
             }
           ],
           "journeyGap": "No journey yet. Next: a session-worker room test where a deafened Grimlock perceives at 10 ft, not 30 ft.",

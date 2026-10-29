@@ -5,7 +5,7 @@ import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { requireCampaignAuthority } from '../campaigns/authority'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readActiveRun } from './projectionReads'
 
 /**

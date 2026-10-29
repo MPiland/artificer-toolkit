@@ -36,6 +36,16 @@ function outcomesOf(
   return [...own, ...Object.values(value).flatMap((entry) => outcomesOf(entry, effectKind))]
 }
 
+/** A dragon's Frightful Presence; its other conditions (Wing Attack's prone) record no source. */
+function frightfulPresence(creature: unknown) {
+  const features: unknown = getValueAtPath(creature, ['features'])
+  return Array.isArray(features)
+    ? features.find(
+        (feature: unknown) => getValueAtPath(feature, ['label']) === 'Frightful Presence'
+      )
+    : undefined
+}
+
 /** Equipment authoring the given effects: the effect list every owner shares. */
 function equipmentWith(effects: unknown): EquipmentAuthored {
   return { ...structuredClone(caltropsBagOf20), effects } as EquipmentAuthored
@@ -61,14 +71,18 @@ describe('a condition that records its source through the effect node map (SPELL
   })
 
   it("keeps a dragon's Frightful Presence recording the dragon", async () => {
-    expect(outcomesOf(adultRedDragon, 'CONDITION').map((outcome) => outcome.recordsSource)).toEqual(
-      [true]
-    )
+    expect(
+      outcomesOf(frightfulPresence(adultRedDragon), 'CONDITION').map(
+        (outcome) => outcome.recordsSource
+      )
+    ).toEqual([true])
     const result = await normalize('creature', adultRedDragon)
     expect(result.clearedPaths).toEqual([])
-    expect(outcomesOf(result.values, 'CONDITION').map((outcome) => outcome.recordsSource)).toEqual([
-      true
-    ])
+    expect(
+      outcomesOf(frightfulPresence(result.values), 'CONDITION').map(
+        (outcome) => outcome.recordsSource
+      )
+    ).toEqual([true])
   })
 
   it('lets an author record the source of any condition, so a homebrew fear builds what the SRD does', async () => {
@@ -118,9 +132,11 @@ describe('a condition whose holder flees its source through the effect node map 
   })
 
   it("leaves a dragon's Frightful Presence from fleeing", () => {
-    expect(outcomesOf(adultRedDragon, 'CONDITION').map((outcome) => outcome.fleesSource)).toEqual([
-      undefined
-    ])
+    expect(
+      outcomesOf(frightfulPresence(adultRedDragon), 'CONDITION').map(
+        (outcome) => outcome.fleesSource
+      )
+    ).toEqual([undefined])
   })
 
   it('lets an author make any sourced condition flee, so a homebrew Panicked builds what Fear does', async () => {

@@ -857,7 +857,7 @@ and writes remain transitional; this list integration is not Campaign or release
 flowchart LR
   Request["characters/sheetSlices:get — UUID or alias, optional Campaign, slice"] --> Owner["Current viewer + active Character + route checks"]
   Owner --> Notes["NOTES: play version, Build notebook, note/group records"]
-  Owner --> Stored{"Stored section current? (ADR 0040)"}
+  Owner --> Stored{"Stored section current? (ADR 0041)"}
   Stored -- yes --> Result
   Stored -- no --> Current["Mechanical slices: current published sources + complete active state"]
   Current --> Prepare["Shared structural repair + readiness, read-only"]
@@ -871,7 +871,7 @@ The queries read committed Character state. A working draft contributes only its
 flag, never proposed structure, play state or private notes. UUID and route-alias lookups share the
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
 anonymous callers are denied. Every Character write derives the Sheet once and stores its slices,
-listed panels and preparation options per viewer ([ADR 0040](../adr/0040-stored-character-sheet-sections.md)):
+listed panels and preparation options per viewer ([ADR 0041](../adr/0041-stored-character-sheet-sections.md)):
 inline when one of the Sheet's own writers (Sheet commands, the GM overlay refresh, the Encounter
 port) evaluated the Sheet itself, otherwise (Builder commit, resolution-scope commands, focused
 preference and note writes, other Character writers) through the queued

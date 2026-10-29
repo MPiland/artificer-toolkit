@@ -23,8 +23,9 @@ import {
   initiativeRestoreSources,
   type InitiativeRestoreSource
 } from './characterInitiativeRestores.js'
+import type { HeldGrantedAction } from '../encounterGrantedActions.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
-import { standingEffectReturnsOn } from '../standingEffects.js'
+import { compiledStandingGrantedActions, standingEffectReturnsOn } from '../standingEffects.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
@@ -101,6 +102,8 @@ interface CharacterActionRuleFacts {
    * rest turns back on; candidates no one takes, never policy facts.
    */
   standingEffects: CharacterActionSources
+  /** The basic actions the Character's passive features offer on every turn (D188); never policy facts. */
+  standingGrantedActions: HeldGrantedAction[]
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -422,6 +425,15 @@ export function normalizeCharacterActionMechanicFacts(
       })
       continue
     }
+    if (outcome.effectKind === 'SPELL_SLOT_EXCHANGE') {
+      outcomes.push({
+        kind: 'SPELL_SLOT_EXCHANGE',
+        pathCode: entry.pathCode,
+        exchange: outcome,
+        label: nullableLabel(entry.label)
+      })
+      continue
+    }
     outcomes.push({
       kind: 'EFFECT',
       pathCode: entry.pathCode,
@@ -432,11 +444,13 @@ export function normalizeCharacterActionMechanicFacts(
         ? {
             endEffects: {
               scope: outcome.scope,
-              selectors: outcome.selectors.map((selector) =>
-                selector.kind === 'CONDITION'
-                  ? { ...selector, conditionIds: [...selector.conditionIds] }
-                  : { ...selector }
-              ),
+              selectors: outcome.selectors.map((selector) => {
+                if (selector.kind === 'CONDITION')
+                  return { ...selector, conditionIds: [...selector.conditionIds] }
+                if (selector.kind === 'SAME_EFFECT')
+                  return { kind: selector.kind, effectId: effect.id }
+                return { ...selector }
+              }),
               ...(outcome.originCreatureTypeIds?.length
                 ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
                 : {}),
@@ -529,6 +543,8 @@ function appendActions(params: {
   initiativeRestores?: InitiativeRestoreSource[]
   /** Where this source's standing effects go; absent for a source that keeps none. */
   standingEffects?: CharacterActionSources
+  /** Where this source's standing offers go; absent for a source that keeps none. */
+  standingGrantedActions?: HeldGrantedAction[]
   /** The weapons a Feature attack with the wielded weapons is made with; absent for an item. */
   wieldedWeaponAttacks?: WieldedWeaponAttacks
 }): void {
@@ -614,6 +630,13 @@ function appendActions(params: {
         continue
       }
     }
+    if (params.standingGrantedActions) {
+      const offers = compiledStandingGrantedActions(authoredEffect)
+      if (offers.length > 0) {
+        params.standingGrantedActions.push(...offers)
+        continue
+      }
+    }
     const standing = standingEffectReturnsOn(authoredEffect) !== null
     const sink = standing
       ? params.standingEffects
@@ -671,6 +694,7 @@ export function buildCharacterActionRuleFacts(params: {
   const passiveZones: CharacterActionSources = { candidates: [], entryPoints: [] }
   const initiativeRestores: InitiativeRestoreSource[] = []
   const standingEffects: CharacterActionSources = { candidates: [], entryPoints: [] }
+  const standingGrantedActions: HeldGrantedAction[] = []
   // Feature actions are appended once every rider is known, since an attack a Feature makes with
   // a wielded weapon carries them (D156).
   const featureActions: Pick<
@@ -768,6 +792,7 @@ export function buildCharacterActionRuleFacts(params: {
       passiveZones,
       initiativeRestores,
       standingEffects,
+      standingGrantedActions,
       wieldedWeaponAttacks
     })
 
@@ -815,7 +840,14 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  return { actionCandidates, entryPoints, passiveZones, initiativeRestores, standingEffects }
+  return {
+    actionCandidates,
+    entryPoints,
+    passiveZones,
+    initiativeRestores,
+    standingEffects,
+    standingGrantedActions
+  }
 }
 
 type CompiledOutcome = CompiledEffectEntry['outcome']

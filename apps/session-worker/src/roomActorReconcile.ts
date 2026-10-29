@@ -58,6 +58,27 @@ export async function readRoomActorDepartures(
     : null
 }
 
+/** The Characters whose actors an open Run holds frozen at departure (D74). */
+export async function readFrozenCharacterIds(store: RoomEncounterStore): Promise<string[]> {
+  const frozen = new Set<string>()
+  for await (const state of openRuns(store))
+    for (const actor of await readRunActors({ db: store.store }, state))
+      if (actor.kind === 'CHARACTER' && actor.frozenState) frozen.add(actor.sourceId)
+  return [...frozen]
+}
+
+/**
+ * The frozen Character actors of open Runs whose assignment is gone. A Character deletion's
+ * `CHARACTER` notice re-reads them, since a departure froze them before the deletion landed (D200).
+ */
+export async function readFrozenUnassignedCharacterIds(
+  store: RoomEncounterStore,
+  authorization: LiveSessionRoomAuthorization
+): Promise<string[]> {
+  const { archived, isUnassigned } = departures(authorization)
+  return archived ? [] : (await readFrozenCharacterIds(store)).filter(isUnassigned)
+}
+
 /**
  * Runs inside the caller's room transaction; the caller journals it. Actors of Characters that no
  * longer exist are removed last, as account deletion removes them in Convex: the removal projects

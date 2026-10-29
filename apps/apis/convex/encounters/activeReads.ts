@@ -17,7 +17,7 @@ import {
   readEncounterSessionState
 } from '@artificer-toolkit/encounter-persistence/sessionReads'
 import { readActiveRun } from './projectionReads'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
 
 /** One authenticated snapshot keeps the tabletop's active Campaign Run and pending decision in sync. */
