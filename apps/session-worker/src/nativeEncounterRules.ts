@@ -40,11 +40,10 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  decoyStrikeEffects,
   type EncounterAttackDecoy,
   prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
-import { repeatCarrierUseSpend } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
+import { settledCountedUseSpend } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
@@ -1366,11 +1365,11 @@ export async function planNativeLiveEncounterAction(
     ),
     resultPath: execution.d20?.resultPath
   })
-  // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
-  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
-  // A repeat spends one of its carrier's counted uses; the last one ends the carrier.
-  const carrierUse = repeatCarrierUseSpend(
-    prepared.source.kind === 'REPEAT_PATH' ? prepared.source.capability : null,
+  // A hit on a decoy destroys it, and a repeat spends one of its carrier's counted uses; the last
+  // decoy or use ends its effect.
+  const useSpend = settledCountedUseSpend(
+    prepared,
+    execution.d20?.resultPath,
     activeEffectsByActorId
   )
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
@@ -1684,7 +1683,7 @@ export async function planNativeLiveEncounterAction(
     spellCheck,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants: [...decoyStrike.spentUseGrants, ...carrierUse.spentUseGrants],
+    spentUseGrants: useSpend.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1692,8 +1691,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
-      ...decoyStrike.endedGrants,
-      ...carrierUse.endedGrants,
+      ...useSpend.endedGrants,
       ...damageEnded.endedEffects,
       ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])
