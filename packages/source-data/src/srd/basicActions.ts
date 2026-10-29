@@ -268,7 +268,10 @@ function helpEffect(actionId: string) {
       },
       lifecycle: {
         turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
-        consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+        endTriggers: [
+          { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_ABILITY_CHECK' },
+          { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_ATTACK_ROLL' }
+        ]
       }
     },
     {
@@ -620,7 +623,11 @@ export const SRD_BASIC_ACTION_DEFINITIONS = [
             id: basicActionChildId(SRD_BASIC_ACTION_IDS.HIDE, 0x215, 1),
             durationKind: 'UNTIL_DISPELLED'
           },
-          lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+          lifecycle: {
+            endTriggers: [
+              { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_ATTACK_ROLL' }
+            ]
+          }
         }
       )
     ]

@@ -72,6 +72,8 @@ export const shownScene = validated(campaignSceneShowingDtoSchema)({
 export type TabletopFixtures = {
   /** The auras the server lists for the rendered viewer (it omits a source the viewer cannot see). */
   auras?: EncounterSessionStateDto['auras']
+  /** The placed zones the server lists for the rendered viewer (it omits one concealed from them). */
+  placedZones?: EncounterSessionStateDto['placedZones']
   gmEncounter: EncounterGmProjectionDto
   liveScene: CampaignSceneStateDto
   playerEncounter: EncounterPlayerProjectionDto
@@ -165,7 +167,7 @@ export function renderWindow(
     halfSpeedFields: [],
     auras: fixtures.auras ?? [],
     movementCostZones: [],
-    placedZones: [],
+    placedZones: fixtures.placedZones ?? [],
     pendingZoneSightings: []
   }
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {

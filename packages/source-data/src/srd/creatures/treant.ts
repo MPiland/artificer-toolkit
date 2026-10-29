@@ -80,9 +80,9 @@ export const treant: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        {
+        // The GM adds the animated trees with REINFORCE (D198).
+        S.manualAdjudicationEffect({
           id: S.actionId(271, 205),
-          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
@@ -92,44 +92,13 @@ export const treant: CreatureAuthored = {
               rangeKind: S.RANGE_KIND.DISTANCE,
               amount: 60,
               unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          paths: [
-            {
-              id: S.actionId(271, 207),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(271, 208),
-                resultKind: 'SEQUENCE',
-                duration: {
-                  id: S.actionId(271, 209),
-                  durationKind: 'DAY',
-                  amount: 1
-                },
-                outcomes: [
-                  {
-                    id: S.actionId(271, 210),
-                    effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: 'CREATURE'
-                  },
-                  {
-                    id: S.actionId(271, 211),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_TREANT_ANIMATE_TREES
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          label: 'Animate Trees',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The GM adds one or two animated trees within 60 feet of the treant to the encounter as its allies, each with the treant’s statistics except Intelligence and Charisma 1, no speech and only the Slam action. A tree reverts after 1 day, when it dies, when the treant dies or is more than 120 feet from it, or when the treant turns it back as a bonus action; the GM then removes it.'
+        })
       ],
       order: 3
     },

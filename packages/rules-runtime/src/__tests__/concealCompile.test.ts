@@ -113,7 +113,7 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
     expect(plans).toHaveLength(1)
     expect(plans?.[0]?.concealmentContribution).toEqual({
       observers: 'NON_ALLIES',
-      consumeOnFirstEvents: ['ON_ATTACK_ROLL']
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
     })
     expect(plans?.[0]?.initialRemaining).toBeNull()
     expect(plans?.[0]?.modifierGrantContribution ?? null).toBeNull()
@@ -129,7 +129,12 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
           ...path,
           resultBlock: {
             ...path.resultBlock,
-            lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'] }
+            lifecycle: {
+              endTriggers: [
+                { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+                { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
+              ]
+            }
           }
         }
       })
@@ -138,9 +143,9 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
     const published = compile(effect)
     const [plan] =
       dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans?.({ action, published }) ?? []
-    expect(plan?.concealmentContribution?.consumeOnFirstEvents).toEqual([
-      'ON_ABILITY_CHECK',
-      'ON_ATTACK_ROLL'
+    expect(plan?.concealmentContribution?.endTriggers).toEqual([
+      { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+      { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
     ])
     const stored = prepareEncounterConcealmentEffect({
       encounterId: testUuid(0xc330),
@@ -154,9 +159,9 @@ describe('the SRD Hide and Search actions compile through core options (ATTACK-1
       concealment: { concealmentTotal: 15, observerActorIds: [testUuid(0xc334)] },
       published: published as ServerPublishedRuleDefinitionDto
     })
-    expect(stored?.definition.recurrence.consumeOnFirstEvents).toEqual([
-      'ON_ABILITY_CHECK',
-      'ON_ATTACK_ROLL'
+    expect(stored?.definition.recurrence.endTriggers).toEqual([
+      { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+      { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
     ])
   })
 })

@@ -4,7 +4,7 @@ import { srdBaselineContent } from './index.js'
 /**
  * SPELLS-27.T5 (D122 amendments of 2026-10-16). Printed text that ends an effect when its holder is
  * harmed, damaged, attacks or casts a spell must be authored as an end event on the record's effects
- * (`endOnTriggers` / `endOnEvents`), or the record must be listed here under the category that covers
+ * (an `endTriggers` entry that is not used up, or `endOnConditionIds`), or the record must be listed here under the category that covers
  * it. A listing never excuses a record that authors the event: that would let the authoring and the
  * list drift apart. A closed rule creates no effect, so it is `GM_ADJUDICATED`, never "covered".
  * AC 27.2 closes when no entry is `REGISTERED_FOLLOW_UP`.
@@ -61,7 +61,20 @@ const HOLDER_ACTS =
   /\buntil\b[^.,]{0,40}\b(?:attacks?|casts? a spell)\b|\bends (?:if|for)\b[^.]*\b(?:attacks?|casts? a spell)\b|\bdoing so ends\b/i
 /** "Until the spell ends, your attacks…" names the duration, not an early end. */
 const SPELL_DURATION = /\b(?:until|before) (?:the|this) (?:spell|effect) ends\b/gi
-const AUTHORED_END = /"(?:endOnTriggers|endOnEvents|endOnConditionIds)"/
+/** Whether an effect authors an end: a trigger that ends it (a use-up is not an end) or end conditions. */
+function authorsEnd(node: unknown): boolean {
+  if (Array.isArray(node)) return node.some(authorsEnd)
+  if (typeof node !== 'object' || node === null) return false
+  const record = node as Record<string, unknown>
+  if ('endOnConditionIds' in record) return true
+  const { endTriggers } = record
+  if (
+    Array.isArray(endTriggers) &&
+    endTriggers.some((trigger: { timing?: string }) => trigger.timing !== 'CONSUME')
+  )
+    return true
+  return Object.values(record).some(authorsEnd)
+}
 
 function sentencesOf(description: string) {
   return description
@@ -99,7 +112,7 @@ function endEventHits(node: unknown, path: readonly string[], found: Hit[]): Hit
   )
     found.push({
       key: here.join(' > '),
-      authored: AUTHORED_END.test(JSON.stringify(record.effects ?? []))
+      authored: authorsEnd(record.effects ?? [])
     })
   for (const child of Object.values(record)) endEventHits(child, here, found)
   return found

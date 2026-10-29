@@ -1181,9 +1181,7 @@ describe('rules runtime contracts', () => {
         recurrence: {
           recurrenceStage: 'START_OF_TURN',
           anchor: 'HOLDER',
-          consumeOnFirstEvents: [],
-          endOnEvents: ['ON_ATTACK_ROLL'],
-          endOnTriggers: [],
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }],
           endOnConditionIds: [],
           holderEnd: null,
           expiration: {
@@ -1297,7 +1295,10 @@ describe('rules runtime contracts', () => {
           ...activeState.definition,
           recurrence: {
             ...activeState.definition.recurrence,
-            endOnEvents: ['ON_ATTACK_ROLL', 'ON_ATTACK_ROLL']
+            endTriggers: [
+              { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+              { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }
+            ]
           }
         }
       })
@@ -1329,14 +1330,14 @@ describe('rules runtime contracts', () => {
     ).toMatchObject({ anchor: 'SOURCE', expiration: { kind: 'TICKS' } })
 
     const withTriggers = (
-      endOnTriggers: unknown,
+      endTriggers: unknown,
       origin: unknown = activeState.definition.origin
     ) => ({
       ...activeState,
       definition: {
         ...activeState.definition,
         origin,
-        recurrence: { ...activeState.definition.recurrence, endOnTriggers }
+        recurrence: { ...activeState.definition.recurrence, endTriggers }
       }
     })
     const encounterOrigin = {
@@ -1354,13 +1355,13 @@ describe('rules runtime contracts', () => {
     }
     expect(
       activeRuleEffectStateDtoSchema.parse(withTriggers([anyone, sourceSide], encounterOrigin))
-        .definition.recurrence.endOnTriggers
+        .definition.recurrence.endTriggers
     ).toEqual([anyone, sourceSide])
     const attacksEnemy = { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' }
     const castsAtEnemy = { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
     expect(
       activeRuleEffectStateDtoSchema.parse(withTriggers([attacksEnemy, castsAtEnemy, anyone]))
-        .definition.recurrence.endOnTriggers
+        .definition.recurrence.endTriggers
     ).toEqual([attacksEnemy, castsAtEnemy, anyone])
     expect(() =>
       activeRuleEffectStateDtoSchema.parse(withTriggers([castsAtEnemy, attacksEnemy]))

@@ -28,7 +28,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function hiddenWolfMoves(endOnEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTION')[]) {
+async function hiddenWolfMoves(endEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTION')[]) {
   const room = await movementRoom({
     actors: [
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
@@ -40,7 +40,7 @@ async function hiddenWolfMoves(endOnEvents: readonly ('ON_MOVE' | 'ON_TAKE_ACTIO
       effectId: EFFECT_ID,
       holderActorId: WOLF_ID,
       sourceActorId: WOLF_ID,
-      endOnEvents
+      triggers: endEvents.map((code) => ({ event: 'LIFECYCLE', timing: 'END', code }))
     })
   })
   const moved = await room.move([WOLF_START, { x: 550, y: 450 }])

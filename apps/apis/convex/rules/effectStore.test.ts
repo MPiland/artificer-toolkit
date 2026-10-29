@@ -90,9 +90,7 @@ function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'OWNER',

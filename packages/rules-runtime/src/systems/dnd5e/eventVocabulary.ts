@@ -32,9 +32,13 @@ const ZONE_TURN_SUBSCRIPTIONS: Readonly<
   START_OF_SOURCE_TURN: 'START_OF_SOURCE_TURN'
 }
 
-function lifecycleSubscription(code: string): EncounterEventSubscription {
+function lifecycleSubscription(
+  timing: 'CONSUME' | 'END',
+  code: string
+): EncounterEventSubscription {
   const row = LIFECYCLE_EVENTS.find((candidate) => candidate.code === code)
-  if (!row) throw new Error(`The 5e event vocabulary has no lifecycle event "${code}".`)
+  if (!row?.[timing === 'CONSUME' ? 'consume' : 'end'])
+    throw new Error(`The 5e event vocabulary has no ${timing} lifecycle event "${code}".`)
   return row.subscription
 }
 
@@ -47,12 +51,12 @@ function actionTraitFact(trait: string) {
 export const dnd5eEventVocabularyCapabilityAdapter: EventVocabularyCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
   effectHooks(recurrence) {
-    const ends: EncounterEventSubscription[] = [
-      ...recurrence.consumeOnFirstEvents,
-      ...recurrence.endOnEvents
-    ].map(lifecycleSubscription)
-    for (const trigger of recurrence.endOnTriggers)
+    const ends: EncounterEventSubscription[] = []
+    for (const trigger of recurrence.endTriggers)
       switch (trigger.event) {
+        case 'LIFECYCLE':
+          ends.push(lifecycleSubscription(trigger.timing, trigger.code))
+          break
         case 'DAMAGE_TAKEN':
           ends.push({ event: 'DAMAGED', by: trigger.by, damageTypeIds: trigger.damageTypeIds })
           break

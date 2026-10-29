@@ -39,7 +39,7 @@ export const failureMarginRiderDtoSchema = lazySchema(() =>
     outcomes: authoredNestedCollectionSchema(conditionDtoSchema).check(z.minLength(1)),
     endsWithOutcomeId: z.optional(authoredIdentifierSchema),
     lifecycle: z.strictObject({
-      endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema)
+      endTriggers: z.optional(pathLifecycleEndTriggersDtoSchema)
     })
   })
 )

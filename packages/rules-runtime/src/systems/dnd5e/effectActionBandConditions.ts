@@ -2,7 +2,10 @@ import type {
   FailureMarginRiderAuthored,
   PathLifecycleAuthored
 } from '@artificer-toolkit/shared/authored'
-import type { ActiveEffectEndTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import {
+  canonicalActiveEffectEndTriggers,
+  type ActiveEffectEndTrigger
+} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { UUID, unsupported } from './effectActionContracts.js'
 import { conditionDurationTurns, type FollowUpSaveOutcome } from './effectActionFollowUp.js'
@@ -89,7 +92,7 @@ export function timedBandConditions(
           fleesSource: condition.fleesSource === true
         }
       ],
-      lifecycle: { endOnTriggers: [] }
+      lifecycle: { endTriggers: [] }
     }))
   }
 }
@@ -100,9 +103,11 @@ const riderGraphNodeId = (index: number) =>
 
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
 export function canonicalEndTriggers(
-  triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
+  triggers: NonNullable<PathLifecycleAuthored['endTriggers']>
 ): ActiveEffectEndTrigger[] {
   const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
+    if (trigger.event === 'LIFECYCLE')
+      return { event: trigger.event, timing: trigger.timing, code: trigger.code }
     if (trigger.event === 'ACTION_USED_ON_HOLDER')
       return {
         event: trigger.event,
@@ -116,8 +121,7 @@ export function canonicalEndTriggers(
       damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
     }
   })
-  const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
-  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
+  return canonicalActiveEffectEndTriggers(compiled)
 }
 
 /**
@@ -142,6 +146,6 @@ export function marginRiderPlan(
       recordsSource: outcome.recordsSource === true,
       fleesSource: outcome.fleesSource === true
     })),
-    lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
+    lifecycle: { endTriggers: canonicalEndTriggers(rider.lifecycle.endTriggers ?? []) }
   }
 }

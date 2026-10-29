@@ -238,7 +238,7 @@ export const knight: CreatureAuthored = {
                   amount: 1
                 },
                 lifecycle: {
-                  endOnTriggers: [{ event: 'INCAPACITATED' as const, of: 'SOURCE' as const }]
+                  endTriggers: [{ event: 'INCAPACITATED' as const, of: 'SOURCE' as const }]
                 },
                 outcomes: [
                   {

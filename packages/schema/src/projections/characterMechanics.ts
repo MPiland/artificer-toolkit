@@ -59,9 +59,7 @@ import {
 import { compiledEffectOffersSchema } from '../effects/storedEffectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import {
-  activeEffectConsumeEventsSchema,
   activeEffectOnEndSchema,
-  activeEffectEndEventsSchema,
   activeEffectEndTriggersSchema,
   activeEffectRepeatTriggersSchema,
   activeGrantEndConditionIdsSchema,
@@ -261,12 +259,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     ),
     lifecycle: z._default(
       z.strictObject({
-        consumeOnFirstEvents: z._default(activeEffectConsumeEventsSchema, []),
-        endOnEvents: z._default(activeEffectEndEventsSchema, []),
-        endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
+        endTriggers: activeEffectEndTriggersSchema,
         repeatTriggers: z.optional(activeEffectRepeatTriggersSchema)
       }),
-      { consumeOnFirstEvents: [], endOnEvents: [], endOnTriggers: [] }
+      { endTriggers: [] }
     ),
     modifierGrantContribution: z._default(
       z.nullable(
@@ -277,8 +273,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             includesCurrentTurn: z.boolean(),
             countedByTurnEffects: z.optional(z.boolean()),
-            consumeOnFirstEvents: activeEffectConsumeEventsSchema,
-            endOnEvents: activeEffectEndEventsSchema,
+            endTriggers: activeEffectEndTriggersSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),
@@ -490,7 +485,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             .check(z.minLength(1))
             .check(z.maxLength(8)),
           lifecycle: z.strictObject({
-            endOnTriggers: activeEffectEndTriggersSchema
+            endTriggers: activeEffectEndTriggersSchema
           })
         })
       )
@@ -587,8 +582,8 @@ const zoneComponentShape = lazySchemaParts(() => ({
       applyGrantOutcomeId: serverUuidIdentityDtoSchema,
       modifiers: z.array(modifierOperationSchema).check(z.maxLength(200)),
       senses: z.array(senseOperationSchema).check(z.maxLength(200)),
-      /** The events whose first occurrence ends the grant (a heal ends a speed penalty). */
-      endOnEvents: activeEffectEndEventsSchema
+      /** The triggers whose first occurrence ends the grant (a heal ends a speed penalty). */
+      endTriggers: activeEffectEndTriggersSchema
     })
   )
 }))

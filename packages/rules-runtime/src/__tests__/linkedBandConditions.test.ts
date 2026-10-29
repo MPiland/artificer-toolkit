@@ -241,7 +241,9 @@ describe('ending an effect ends the effects linked to it (SPELLS-33 T4i3e)', () 
       owner,
       createdOrdinal,
       linkedEffectId,
-      endOnEvents: linkedEffectId ? [] : ['ON_ATTACK_ROLL'],
+      endTriggers: linkedEffectId
+        ? []
+        : [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: POISONED, baselinePresent: false }
       ]

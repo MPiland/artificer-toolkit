@@ -100,8 +100,7 @@ export function tracerCreatureActor(input: {
 export function tracerActiveEffect(input: {
   id: string
   holderActorId: string
-  consumeOnFirstEvents?: readonly string[]
-  endOnEvents?: readonly string[]
+  endTriggers?: Parameters<typeof activeEffect>[0]['endTriggers']
 }): ActiveRuleEffectRecord {
   const effect = activeEffect({
     id: input.id,
@@ -111,8 +110,7 @@ export function tracerActiveEffect(input: {
       targetActorId: input.holderActorId
     },
     createdOrdinal: 1,
-    ...(input.consumeOnFirstEvents && { consumeOnFirstEvents: input.consumeOnFirstEvents }),
-    ...(input.endOnEvents && { endOnEvents: input.endOnEvents }),
+    endTriggers: input.endTriggers,
     stateContributions: [
       {
         kind: 'MODIFIER_GRANT',

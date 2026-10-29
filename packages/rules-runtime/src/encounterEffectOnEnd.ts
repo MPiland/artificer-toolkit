@@ -37,7 +37,7 @@ export function onEndGrantEffect(
     onEnd,
     grantedActions: _grantedActions,
     effectOffers: _effectOffers,
-    endOnEvents: _endOnEvents,
+    endTriggers: _endTriggers,
     ...grant
   } = template
   return {
@@ -57,9 +57,7 @@ export function onEndGrantEffect(
       recurrence: {
         recurrenceStage: 'NONE',
         anchor: 'HOLDER',
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
-        endOnTriggers: [],
+        endTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         // Held for the Run it ends in: a Character's does not outlast it.

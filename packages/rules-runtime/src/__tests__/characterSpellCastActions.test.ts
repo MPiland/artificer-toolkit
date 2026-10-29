@@ -221,7 +221,8 @@ const SCORCHED_INVISIBILITY = (() => {
   const path = authored.effects?.[0]?.paths?.[0]
   if (!path || !('resultBlock' in path) || !path.resultBlock.lifecycle)
     throw new Error('Invisibility ends through its authored lifecycle.')
-  path.resultBlock.lifecycle.endOnTriggers = [
+  path.resultBlock.lifecycle.endTriggers = [
+    ...(path.resultBlock.lifecycle.endTriggers ?? []),
     { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
     { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID, FIRE_TYPE_ID] },
     { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
@@ -306,7 +307,7 @@ const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
             resultKind: 'SINGLE',
             duration: { id: testUuid(0x3106), durationKind: 'MINUTE', amount: 1 },
             lifecycle: {
-              endOnTriggers: [
+              endTriggers: [
                 { event: 'DAMAGE_TAKEN', by: 'ANYONE' },
                 {
                   event: 'ACTION_USED_ON_HOLDER',
@@ -384,7 +385,9 @@ const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
           resultBlock: {
             id: testUuid(0x3305),
             resultKind: 'SEQUENCE',
-            lifecycle: { endOnEvents: ['ON_LONG_REST'] },
+            lifecycle: {
+              endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
+            },
             outcomes: [
               {
                 id: testUuid(0x3306),
@@ -1027,8 +1030,10 @@ describe('the timed condition a cast owns with no save', () => {
       initialRemaining: 600,
       conditionContributions: [{ conditionId: invisibleId }],
       lifecycle: {
-        consumeOnFirstEvents: [],
-        endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+          { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+        ]
       }
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
@@ -1036,11 +1041,13 @@ describe('the timed condition a cast owns with no save', () => {
 
   it('carries authored end triggers with explicit filters, unique and in canonical order', () => {
     const plan = compiledCast(SCORCHED_INVISIBILITY)?.activeEffectPlan
-    expect(plan?.lifecycle?.endOnTriggers).toEqual([
+    expect(plan?.lifecycle?.endTriggers).toEqual([
       { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
       { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
       { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null },
-      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] }
+      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
+      { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+      { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
     ])
   })
 })
@@ -1052,7 +1059,7 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
       initialRemaining: 600,
       conditionContributions: [{ conditionId: charmedId }],
       lifecycle: {
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+        endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
       }
     })
   })
@@ -1061,7 +1068,7 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
       initialRemaining: 14_400,
       conditionContributions: [{ conditionId: conditionId('CHARMED') }],
       lifecycle: {
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+        endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
       }
     })
   })
@@ -1084,11 +1091,10 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
       ],
       modifierGrantContribution: {
         countedByTurnEffects: true,
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
+        endTriggers: [],
         modifiers: [{ valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' }]
       },
-      lifecycle: { endOnTriggers: ROUSE_OR_DAMAGE }
+      lifecycle: { endTriggers: ROUSE_OR_DAMAGE }
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
@@ -1458,7 +1464,9 @@ describe('a save its caster makes, whose failure holds a condition until a long 
     initialRemaining: null,
     tickAnchor: 'HOLDER',
     conditionContributions: [{ conditionId: conditionId('INCAPACITATED') }],
-    lifecycle: { consumeOnFirstEvents: [], endOnEvents: ['ON_LONG_REST'], endOnTriggers: [] },
+    lifecycle: {
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
+    },
     maintenance: null
   }
 
@@ -1484,7 +1492,7 @@ describe('a save its caster makes, whose failure holds a condition until a long 
       lifetimeScope: 'OWNER'
     })
     expect(definition.recurrence).toMatchObject({
-      endOnEvents: ['ON_LONG_REST'],
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }],
       expiration: { kind: 'INDEFINITE' }
     })
     expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
@@ -2039,7 +2047,7 @@ describe('the timed condition a hit-point pool cast owns (SPELLS-27.T8)', () => 
       initialRemaining: 10,
       conditionContributions: [{ conditionId: conditionId('UNCONSCIOUS') }],
       lifecycle: {
-        endOnTriggers: [
+        endTriggers: [
           { event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] },
           { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
         ]
@@ -2163,7 +2171,9 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
       initialRemaining: 1,
       recurrenceStage: 'END_OF_TURN',
       tickAnchor: 'SOURCE',
-      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
+      modifierGrantContribution: {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }]
+      }
     })
     expect(
       plan?.modifierGrantContribution?.modifiers.map((modifier) => ({
@@ -2361,7 +2371,7 @@ describe('a condition until dispelled that damage ends, beside a GM ruling (SPEL
     expect(entry?.compilation.activeEffectPlan).toMatchObject({
       initialRemaining: null,
       conditionContributions: [{ conditionId: conditionId('INVISIBLE') }],
-      lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
+      lifecycle: { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
       maintenance: null
     })
     const plan = entry?.compilation.executionPlan
@@ -2468,7 +2478,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       },
       modifierGrantContribution: {
-        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }],
         modifiers: [
           {
             valueDomainCode: 'ATTACK_ROLL',
@@ -2515,7 +2525,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       })
       // The weapon stays magic when it is dropped: no release ends the spell.
-      expect(plan?.modifierGrantContribution?.endOnEvents).toEqual([])
+      expect(plan?.modifierGrantContribution?.endTriggers).toEqual([])
       expect(
         plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, scope, payload }) => [
           valueDomainCode,
@@ -2584,7 +2594,9 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
           resultKind: 'SINGLE',
           duration: { id: testUuid(0x3712), durationKind: 'MINUTE', amount: 1 },
           // The grant ends when the target lets go of the item it is bound to.
-          lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }]
+          },
           outcomes: [
             {
               id: testUuid(0x3713),
@@ -2691,7 +2703,7 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
       initialRemaining: 1,
       tickAnchor: 'SOURCE',
       modifierGrantContribution: {
-        consumeOnFirstEvents: ['ON_ATTACKED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }],
         fromSourceOnly: true,
         activeOnlyOnFinalAnchorTurn: true
       }
