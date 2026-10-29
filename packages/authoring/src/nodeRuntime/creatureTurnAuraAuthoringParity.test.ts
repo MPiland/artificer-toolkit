@@ -151,9 +151,9 @@ describe('Creature start-of-turn auras and the rulings around them (D156)', () =
     const { zone, component } = auraZone(authored, 'Stench')
     if (zone.shape?.shapeKind !== 'SPHERE') throw new Error('Stench must author a sphere.')
     zone.shape = { ...zone.shape, radius: { amount: 15, unit: 'FEET' } }
-    const behavior = component.behaviors?.[0]
-    if (!behavior?.invocation.savingThrow) throw new Error('Stench must author a save.')
-    behavior.invocation.savingThrow = { ...behavior.invocation.savingThrow, baseDc: 17 }
+    const invocation = component.behaviors?.[0]?.invocation
+    if (invocation?.triggerCode !== 'SAVING_THROW') throw new Error('Stench must author a save.')
+    invocation.savingThrow = { ...invocation.savingThrow, baseDc: 17 }
     await expectAuthoringParity(authored)
   })
 
