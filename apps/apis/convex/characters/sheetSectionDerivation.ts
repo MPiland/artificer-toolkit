@@ -20,6 +20,7 @@ import { loadCharacterSheetFacts } from './sheetFacts'
 import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
   characterSheetSection,
+  isStoredCharacterSheetCurrent,
   readCharacterSheetFingerprint,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
@@ -109,6 +110,8 @@ export const store = internalMutation({
     const { active } = await loadCharacterState(ctx, characterId)
     // A deleted Character, or one that needs Builder repair, has no Sheet to store.
     if (active?.status !== 'ACTIVE') return null
+    // A later write may already have stored the Sheet over the same inputs.
+    if (await isStoredCharacterSheetCurrent(ctx, active.userId, characterId)) return null
     const facts = await loadCharacterSheetFacts(ctx, active.userId, characterId)
     if (facts) await storeCharacterSheetSections(ctx, facts)
     return null

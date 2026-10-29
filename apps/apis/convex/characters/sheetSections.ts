@@ -207,6 +207,25 @@ export async function readStoredCharacterSheetSection(
   return value
 }
 
+/** Whether the stored derivation was made from the Character's current inputs. */
+export async function isStoredCharacterSheetCurrent(
+  ctx: QueryCtx,
+  userId: string,
+  characterId: string
+) {
+  const authorized = await readAuthorizedCharacterSheetState(ctx, userId, characterId)
+  if (!authorized) return false
+  const [derivation, fingerprint] = await Promise.all([
+    readDerivationRow(ctx, characterId),
+    readCharacterSheetFingerprint(ctx, {
+      active: authorized.active,
+      hasDraft: authorized.draft !== null,
+      publicId: authorized.route.publicId
+    })
+  ])
+  return derivation?.fingerprint === fingerprint
+}
+
 /** Replaces the Character's stored sections, writing only those whose checksum changed. */
 export async function writeCharacterSheetSections(
   ctx: MutationCtx,

@@ -11,7 +11,7 @@ import { characterSheetSliceSchema } from '@artificer-toolkit/schema/api/charact
 import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -295,5 +295,33 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
 
     expect(after.head).toEqual(before.head)
     expect(Date.parse(after.build!.updatedAt)).toBeGreaterThan(Date.parse(before.build!.updatedAt))
+  }, 60_000)
+
+  it('skips a queued derivation once a write has stored the same inputs', async () => {
+    const { t, character } = await setup()
+    // A marker a re-derivation would overwrite: any derivation rewrites the section checksums.
+    const readDerivation = () =>
+      t.run((ctx) =>
+        ctx.db
+          .query('characterSheetDerivations')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+      )
+    const derivation = await readDerivation()
+    const sections = derivation!.sections.map((section, index) =>
+      index === 0 ? { ...section, checksum: 'marker' } : section
+    )
+    await t.run((ctx) => ctx.db.patch(derivation!._id, { sections }))
+
+    await t.mutation(internal.characters.sheetSectionDerivation.store, {
+      characterId: character.id
+    })
+    expect((await readDerivation())!.sections).toEqual(sections)
+
+    await t.run((ctx) => ctx.db.patch(derivation!._id, { fingerprint: 'stale' }))
+    await t.mutation(internal.characters.sheetSectionDerivation.store, {
+      characterId: character.id
+    })
+    expect((await readDerivation())!.sections).toEqual(derivation!.sections)
   }, 60_000)
 })
