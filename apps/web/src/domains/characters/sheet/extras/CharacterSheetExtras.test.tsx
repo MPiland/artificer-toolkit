@@ -249,4 +249,63 @@ describe('CharacterSheetExtras spell summons (D190)', () => {
     ).not.toBeInTheDocument()
     expect(within(summons).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
   })
+
+  it('reads an Encounter summon live from its Run actor, with its attacks, and never edits it (SPELLS-34.1, .2)', () => {
+    const actorId = '00000000-0000-4000-8000-000000000a03'
+    render(
+      <MantineProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <CharacterSheetExtras
+            pending={false}
+            sheet={{
+              ...characterSheetFixture,
+              extras: {
+                ...characterSheetFixture.extras,
+                items: [
+                  {
+                    kind: 'SPELL_SUMMON',
+                    kindLabel: 'Spell Summon',
+                    id: actorId,
+                    encounterActorId: actorId,
+                    spellId: 'arcane-hand',
+                    originKind: 'SUMMONED',
+                    originLabel: 'Summoned',
+                    authoredName: 'Arcane Hand',
+                    displayName: 'Arcane Hand',
+                    isActive: true,
+                    concentration: true,
+                    armorClass: 20,
+                    speedLabel: 'Fly 60 ft.',
+                    hitPoints: { current: 31, maximum: 40, temp: 0 },
+                    actions: [
+                      {
+                        id: 'clenched-fist',
+                        label: 'Melee Spell Attack',
+                        description: 'Bonus Action'
+                      }
+                    ],
+                    features: [],
+                    equipmentItemIds: []
+                  }
+                ]
+              }
+            }}
+            submitCommand={vi.fn(async () => true)}
+          />
+        </QueryClientProvider>
+      </MantineProvider>
+    )
+    const summons = screen.getByRole('region', { name: 'Summons' })
+    expect(within(summons).getByText('HP / 40')).toBeInTheDocument()
+    expect(within(summons).getByText('31')).toBeInTheDocument()
+    expect(
+      within(within(summons).getByRole('list', { name: 'Arcane Hand attacks' })).getByText(
+        'Melee Spell Attack · Bonus Action'
+      )
+    ).toBeInTheDocument()
+    expect(
+      within(summons).queryByRole('textbox', { name: 'Arcane Hand current hit points' })
+    ).not.toBeInTheDocument()
+    expect(within(summons).queryByRole('button', { name: 'Dismiss' })).not.toBeInTheDocument()
+  })
 })

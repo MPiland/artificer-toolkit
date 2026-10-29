@@ -1,12 +1,14 @@
-import {
-  CREATURE_ORIGIN_KIND_REGISTRY,
-  evaluateNumericExpr,
-  type NumericExpr
-} from '@artificer-toolkit/shared/core'
+import { CREATURE_ORIGIN_KIND_REGISTRY } from '@artificer-toolkit/shared/core'
+import type { SpellSummonStatBlockValues } from '@artificer-toolkit/shared/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
-import type { CharacterSpellSummonStateDto } from '@artificer-toolkit/schema/subjects/characterState'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import {
+  spellSummonStatBlockValuesDtoSchema,
+  type CharacterSpellSummonStateDto
+} from '@artificer-toolkit/schema/subjects/characterState'
+import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
@@ -55,31 +57,10 @@ export function buildSheetSpellSummon(input: {
   id: string
   castAt: string
 }): CharacterSpellSummonStateDto {
-  const { placement } = input
-  const { statBlock } = placement
-  const maximumHitPoints = summonHitPoints(statBlock, input.casterHitPointMaximum)
-  const resolve = (expr: unknown) =>
-    expr === undefined
-      ? null
-      : evaluateNumericExpr(expr as NumericExpr, { hitPointMaximum: input.casterHitPointMaximum })
-  const abilityScores = Object.fromEntries(
-    Object.entries(statBlock.abilityScores ?? {}).flatMap(([ability, expr]) => {
-      const score = resolve(expr)
-      return score === null ? [] : [[ability, score]]
-    })
-  )
-  const passivePerception = resolve(statBlock.passivePerception)
+  const maximumHitPoints = summonHitPoints(input.placement.statBlock, input.casterHitPointMaximum)
   return {
     id: input.id,
-    spellId: input.spellId,
-    summonOutcomeId: placement.summonOutcomeId,
-    label: placement.label ?? input.label,
-    concentration: placement.entry.maintenance !== null,
-    ...(statBlock.size ? { size: statBlock.size } : {}),
-    armorClass: resolve(statBlock.armorClass),
-    ...(Object.keys(abilityScores).length ? { abilityScores } : {}),
-    ...(statBlock.speeds?.length ? { speeds: statBlock.speeds } : {}),
-    ...(passivePerception === null ? {} : { passivePerception }),
+    ...resolveSpellSummonStatBlock(input),
     ...(maximumHitPoints > 0 ? { maximumHitPoints, currentHitPoints: maximumHitPoints } : {}),
     castAt: input.castAt
   }
@@ -92,25 +73,51 @@ export function withoutConcentrationSummons(
   return summons?.filter((summon) => !summon.concentration)
 }
 
-/** The Extras entry a Sheet summon reads as. */
-export function sheetSpellSummonExtra(
-  summon: CharacterSpellSummonStateDto,
-  speedLabel: string | undefined
-): Extract<CharacterSheetResponseDto['extras']['items'][number], { kind: 'SPELL_SUMMON' }> {
+type SpellSummonExtra = Extract<
+  CharacterSheetResponseDto['extras']['items'][number],
+  { kind: 'SPELL_SUMMON' }
+>
+
+/** The Extras entry a summon reads as, on either path: its resolved values plus where it lives. */
+function spellSummonExtra(
+  summon: SpellSummonStatBlockValues,
+  record: Pick<
+    SpellSummonExtra,
+    'id' | 'customName' | 'notes' | 'hitPoints' | 'speedLabel' | 'encounterActorId'
+  >
+): SpellSummonExtra {
   return {
     kind: 'SPELL_SUMMON',
     kindLabel: 'Spell Summon',
-    id: summon.id,
+    ...record,
     spellId: summon.spellId,
     originKind: 'SUMMONED',
     originLabel: CREATURE_ORIGIN_KIND_REGISTRY.SUMMONED.label,
     authoredName: summon.label,
-    displayName: summon.customName ?? summon.label,
-    ...(summon.customName ? { customName: summon.customName } : {}),
-    ...(summon.notes ? { notes: summon.notes } : {}),
+    displayName: record.customName ?? summon.label,
     isActive: true,
     concentration: summon.concentration,
     armorClass: summon.armorClass,
+    ...(summon.size ? { size: summon.size } : {}),
+    ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
+    ...(summon.passivePerception === undefined
+      ? {}
+      : { passivePerception: summon.passivePerception }),
+    actions: summon.actions ?? [],
+    features: [],
+    equipmentItemIds: []
+  }
+}
+
+/** The Extras entry a Sheet summon reads as. */
+export function sheetSpellSummonExtra(
+  summon: CharacterSpellSummonStateDto,
+  speedLabel: string | undefined
+): SpellSummonExtra {
+  return spellSummonExtra(summon, {
+    id: summon.id,
+    ...(summon.customName ? { customName: summon.customName } : {}),
+    ...(summon.notes ? { notes: summon.notes } : {}),
     ...(speedLabel ? { speedLabel } : {}),
     ...(summon.maximumHitPoints === undefined || summon.currentHitPoints === undefined
       ? {}
@@ -120,17 +127,59 @@ export function sheetSpellSummonExtra(
             maximum: summon.maximumHitPoints,
             temp: summon.tempHitPoints ?? 0
           }
-        }),
-    ...(summon.size ? { size: summon.size } : {}),
-    ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
-    ...(summon.passivePerception === undefined
-      ? {}
-      : { passivePerception: summon.passivePerception }),
-    // A summon's attacks are actions its spell authors (SPELLS-34.T2).
-    actions: [],
-    features: [],
-    equipmentItemIds: []
-  }
+        })
+  })
+}
+
+/** An Encounter summon the owner's Sheet reads: the Run actor its cast created, and its values. */
+export interface EncounterSpellSummon {
+  actor: Pick<
+    Exclude<EncounterRunActorState, { kind: 'CHARACTER' }>,
+    'id' | 'currentHitPoints' | 'maxHitPoints' | 'tempHitPoints'
+  >
+  summon: SpellSummonStatBlockValues
+}
+
+/**
+ * The summons a Character's Run actor owns that its Sheet lists (D190): live actors a summon cast
+ * created. The actor stays the only record, so a summon leaves with it, and at 0 hit points, when
+ * the Run marks it defeated.
+ */
+export function ownedEncounterSpellSummons(
+  actors: readonly EncounterRunActorState[],
+  ownerActorId: string
+): EncounterSpellSummon[] {
+  return actors.flatMap((actor) => {
+    if (actor.kind === 'CHARACTER' || actor.owner?.ownerActorId !== ownerActorId || actor.defeated)
+      return []
+    const { snapshot } = actor
+    const stored =
+      typeof snapshot === 'object' && snapshot !== null && 'summon' in snapshot
+        ? spellSummonStatBlockValuesDtoSchema.safeParse(snapshot.summon)
+        : null
+    return stored?.success ? [{ actor, summon: stored.data }] : []
+  })
+}
+
+/** The Extras entry an Encounter summon reads as: read-only, with the Run actor's live hit points. */
+export function encounterSpellSummonExtra(
+  { actor, summon }: EncounterSpellSummon,
+  speedLabel: string | undefined
+): SpellSummonExtra {
+  return spellSummonExtra(summon, {
+    id: actor.id,
+    encounterActorId: actor.id,
+    ...(speedLabel ? { speedLabel } : {}),
+    ...(actor.maxHitPoints > 0
+      ? {
+          hitPoints: {
+            current: actor.currentHitPoints,
+            maximum: actor.maxHitPoints,
+            temp: actor.tempHitPoints
+          }
+        }
+      : {})
+  })
 }
 
 /** The Concentration a Sheet summon holds, shown when no Run carried one. */
