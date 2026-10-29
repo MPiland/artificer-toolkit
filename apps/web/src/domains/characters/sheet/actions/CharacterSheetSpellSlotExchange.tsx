@@ -24,7 +24,9 @@ export function CharacterSheetSpellSlotExchange({
   sheet: Pick<CharacterSheetActionsDto, 'meta' | 'resources' | 'spells'>
   submitCommand: SubmitSheetCommand
 }) {
-  const [recoverCounts, setRecoverCounts] = useState<Record<string, number>>({})
+  // The inputs' own values, so a cleared field stays empty while the player types.
+  const [recoverCounts, setRecoverCounts] = useState<Record<string, number | string>>({})
+  const recoverCount = (slotKey: string) => Number(recoverCounts[slotKey] ?? 0) || 0
   const [failed, setFailed] = useState(false)
   const disabled = pending || !available
   const exchangeSlots = async (
@@ -55,7 +57,7 @@ export function CharacterSheetSpellSlotExchange({
           (slot) => slot.level <= exchange.maximumSlotLevel && slot.used > 0
         )
         const chosenLevels = recoverable.reduce(
-          (total, slot) => total + slot.level * (recoverCounts[slot.slotKey] ?? 0),
+          (total, slot) => total + slot.level * recoverCount(slot.slotKey),
           0
         )
         if (!recoverable.length) return <Text size='xs'>No expended slots can be recovered.</Text>
@@ -74,7 +76,7 @@ export function CharacterSheetSpellSlotExchange({
                 size='xs'
                 value={recoverCounts[slot.slotKey] ?? 0}
                 onChange={(value) =>
-                  setRecoverCounts((counts) => ({ ...counts, [slot.slotKey]: Number(value) || 0 }))
+                  setRecoverCounts((counts) => ({ ...counts, [slot.slotKey]: value }))
                 }
               />
             ))}
@@ -89,7 +91,7 @@ export function CharacterSheetSpellSlotExchange({
                 void exchangeSlots({
                   kind: 'SLOTS',
                   slotKeys: recoverable.flatMap((slot) =>
-                    Array.from({ length: recoverCounts[slot.slotKey] ?? 0 }, () => slot.slotKey)
+                    Array.from({ length: recoverCount(slot.slotKey) }, () => slot.slotKey)
                   )
                 })
               }

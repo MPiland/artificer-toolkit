@@ -127,6 +127,48 @@ function warlockSpellIdsAtLevel(level: number): string[] {
     .map((spell) => spell.id)
 }
 
+/** One Mystic Arcanum feature: a chosen warlock spell of `spellLevel`, cast once per long rest. */
+function mysticArcanum(input: {
+  spellLevel: number
+  entry: number
+  availableAtLevel: number
+  order: number
+}): NonNullable<ClassAuthored['features']>[number] {
+  const grantEntry = 2 * (input.spellLevel - 5)
+  return {
+    id: classRowId(W, 3, input.entry),
+    label: `Mystic Arcanum (${input.spellLevel}th Level)`,
+    description:
+      'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
+    grants: {
+      spells: [
+        {
+          id: classRowId(W, 0x53, grantEntry - 1),
+          grantKind: GRANT_KIND.SPELL_GRANT,
+          selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
+          count: 1,
+          selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
+          scalingKind: SCALING.NONE,
+          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+          spellIds: warlockSpellIdsAtLevel(input.spellLevel),
+          attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
+          castAtLevel: input.spellLevel,
+          charges: {
+            id: classRowId(W, 0x53, grantEntry),
+            limitKind: 'FIXED_AMOUNT',
+            scalingKind: SCALING.NONE,
+            resetKind: 'LONG_REST',
+            amount: 1
+          },
+          order: 0
+        }
+      ]
+    },
+    availableAtLevel: input.availableAtLevel,
+    order: input.order
+  }
+}
+
 // Pact Magic charge (Warlock spell slots) — resets on short OR long rest
 const pactMagicCharge = {
   id: classRowId(W, 1, 1),
@@ -2031,70 +2073,8 @@ export const warlock: ClassAuthored = {
       availableAtLevel: 10,
       order: 7
     },
-    {
-      id: classRowId(W, 3, 30),
-      label: 'Mystic Arcanum (6th Level)',
-      description:
-        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
-      grants: {
-        spells: [
-          {
-            id: classRowId(W, 0x53, 1),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-            count: 1,
-            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: warlockSpellIdsAtLevel(6),
-            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
-            castAtLevel: 6,
-            charges: {
-              id: classRowId(W, 0x53, 2),
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: SCALING.NONE,
-              resetKind: 'LONG_REST',
-              amount: 1
-            },
-            order: 0
-          }
-        ]
-      },
-      availableAtLevel: 11,
-      order: 8
-    },
-    {
-      id: classRowId(W, 3, 31),
-      label: 'Mystic Arcanum (7th Level)',
-      description:
-        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
-      grants: {
-        spells: [
-          {
-            id: classRowId(W, 0x53, 3),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-            count: 1,
-            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: warlockSpellIdsAtLevel(7),
-            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
-            castAtLevel: 7,
-            charges: {
-              id: classRowId(W, 0x53, 4),
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: SCALING.NONE,
-              resetKind: 'LONG_REST',
-              amount: 1
-            },
-            order: 0
-          }
-        ]
-      },
-      availableAtLevel: 13,
-      order: 9
-    },
+    mysticArcanum({ spellLevel: 6, entry: 30, availableAtLevel: 11, order: 8 }),
+    mysticArcanum({ spellLevel: 7, entry: 31, availableAtLevel: 13, order: 9 }),
     {
       id: classRowId(W, 3, 38),
       label: 'Ability Score Improvement',
@@ -2119,38 +2099,7 @@ export const warlock: ClassAuthored = {
       availableAtLevel: 14,
       order: 11
     },
-    {
-      id: classRowId(W, 3, 33),
-      label: 'Mystic Arcanum (8th Level)',
-      description:
-        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
-      grants: {
-        spells: [
-          {
-            id: classRowId(W, 0x53, 5),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-            count: 1,
-            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: warlockSpellIdsAtLevel(8),
-            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
-            castAtLevel: 8,
-            charges: {
-              id: classRowId(W, 0x53, 6),
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: SCALING.NONE,
-              resetKind: 'LONG_REST',
-              amount: 1
-            },
-            order: 0
-          }
-        ]
-      },
-      availableAtLevel: 15,
-      order: 12
-    },
+    mysticArcanum({ spellLevel: 8, entry: 33, availableAtLevel: 15, order: 12 }),
     // L16 — Ability Score Improvement
     {
       id: classRowId(W, 3, 34),
@@ -2168,38 +2117,7 @@ export const warlock: ClassAuthored = {
         selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
       ]
     },
-    {
-      id: classRowId(W, 3, 35),
-      label: 'Mystic Arcanum (9th Level)',
-      description:
-        'At 11th level, your patron bestows upon you a magical secret called an arcanum. Choose one 6th-level spell from the warlock spell list as this arcanum.\n\nYou can cast your arcanum spell once without expending a spell slot. You must finish a long rest before you can do so again.\n\nAt higher levels, you gain more warlock spells of your choice that can be cast in this way: one 7th-level spell at 13th level, one 8th-level spell at 15th level, and one 9th-level spell at 17th level. You regain all uses of your Mystic Arcanum when you finish a long rest.',
-      grants: {
-        spells: [
-          {
-            id: classRowId(W, 0x53, 7),
-            grantKind: GRANT_KIND.SPELL_GRANT,
-            selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-            count: 1,
-            selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-            scalingKind: SCALING.NONE,
-            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-            spellIds: warlockSpellIdsAtLevel(9),
-            attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE, SPELL_GRANT_ATTRIBUTE.CAST_AT_LEVEL],
-            castAtLevel: 9,
-            charges: {
-              id: classRowId(W, 0x53, 8),
-              limitKind: 'FIXED_AMOUNT',
-              scalingKind: SCALING.NONE,
-              resetKind: 'LONG_REST',
-              amount: 1
-            },
-            order: 0
-          }
-        ]
-      },
-      availableAtLevel: 17,
-      order: 14
-    },
+    mysticArcanum({ spellLevel: 9, entry: 35, availableAtLevel: 17, order: 14 }),
     // L19 — Ability Score Improvement
     {
       id: classRowId(W, 3, 36),
