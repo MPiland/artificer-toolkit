@@ -301535,13 +301535,13 @@ export declare const internal: {
           }>;
           ownerUserId: string;
           systemVocabularies: Array<{
-            currencies: Array<{ code: string; id: string; label: string }>;
             damageTypes: Array<{ code: string; id: string; label: string }>;
-            heritages: Array<{ code: string; id: string; label: string }>;
+            dwarvenHeritageId?: string;
+            goldCurrencyId?: string;
             rarities: Array<{ code: string; id: string; label: string }>;
-            skills: Array<{ code: string; id: string; label: string }>;
-            speeds: Array<{ code: string; id: string; label: string }>;
+            stealthSkillId?: string;
             systemId: string;
+            walkSpeedId?: string;
           }>;
         }
       >;
@@ -301649,13 +301649,13 @@ export declare const internal: {
           }>;
           ownerUserId: string;
           systemVocabularies: Array<{
-            currencies: Array<{ code: string; id: string; label: string }>;
             damageTypes: Array<{ code: string; id: string; label: string }>;
-            heritages: Array<{ code: string; id: string; label: string }>;
+            dwarvenHeritageId?: string;
+            goldCurrencyId?: string;
             rarities: Array<{ code: string; id: string; label: string }>;
-            skills: Array<{ code: string; id: string; label: string }>;
-            speeds: Array<{ code: string; id: string; label: string }>;
+            stealthSkillId?: string;
             systemId: string;
+            walkSpeedId?: string;
           }>;
         }
       >;
