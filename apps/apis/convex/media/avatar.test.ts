@@ -32,6 +32,9 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
   vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
   vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3221')
+  // The account deletion's ACCOUNT step deletes the provider user through the configured auth.
+  vi.stubEnv('SITE_URL', 'http://localhost:3000')
+  vi.stubEnv('BETTER_AUTH_SECRET', 'avatar-account-deletion-test-secret-with-sufficient-length')
   vi.stubEnv('LOCAL_R2_ENDPOINT', server.endpoint)
   t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('../betterAuth/**/*.*s'))
@@ -391,6 +394,22 @@ it('converges identically when every deferred account cleanup reruns', async () 
     owner.identity.userId
   )
   await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
+  const scheduledSinceProvider = async (before: ReadonlySet<string>) =>
+    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).filter(
+      (job) => !before.has(job._id)
+    )
+  // The provider delete schedules only the purge, which schedules the per-module account cleanups.
+  const [purge, ...unexpected] = await scheduledSinceProvider(scheduledBefore)
+  expect(unexpected).toEqual([])
+  expect(purge?.name).toBe('accountDeletionFinish:purge')
+  const scheduledBeforePurge = new Set([...scheduledBefore, purge!._id])
+  await t.mutation(internal.accountDeletionFinish.purge, purge!.args[0])
+  const cleanups = await scheduledSinceProvider(scheduledBeforePurge)
+  expect(cleanups.map((job) => job.name).sort()).toEqual([
+    'media/assets:purgeAccount',
+    'notifications/delivery:purgeRecipient',
+    'social/accountCleanup:run'
+  ])
   const converged = async () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     return {
@@ -409,17 +428,7 @@ it('converges identically when every deferred account cleanup reruns', async () 
   }
   const first = await converged()
   expect(first.app.mediaAssets).toEqual([])
-  // The provider delete schedules the purge, which schedules the per-module account cleanups.
-  const deferred = (
-    await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
-  ).filter((job) => !scheduledBefore.has(job._id))
-  expect(deferred.map((job) => job.name).sort()).toEqual([
-    'accountDeletionFinish:purge',
-    'media/assets:purgeAccount',
-    'notifications/delivery:purgeRecipient',
-    'social/accountCleanup:run'
-  ])
-  for (const job of deferred)
+  for (const job of [purge!, ...cleanups])
     await t.mutation(
       makeFunctionReference<'mutation', Record<string, unknown>, null>(job.name),
       job.args[0]
