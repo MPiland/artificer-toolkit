@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const treant: CreatureAuthored = {
   id: S.CREATURE_IDS.TREANT,
@@ -49,7 +50,7 @@ export const treant: CreatureAuthored = {
       label: 'Siege Monster',
       description: 'Siege Monster. The treant deals double damage to objects and structures.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(271, 202),
           invocation: {
             kind: 'PASSIVE',
@@ -57,7 +58,10 @@ export const treant: CreatureAuthored = {
             range: { id: S.actionId(271, 203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+          label: 'Siege Monster',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The treant deals double damage to objects and structures: the GM doubles the damage its attacks deal to an object or structure.'
         })
       ],
       order: 2

@@ -2,6 +2,7 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
+import { startOfTurnSaveAuraEffect } from './turnAura.js'
 
 export const pitFiend: CreatureAuthored = {
   id: S.CREATURE_IDS.PIT_FIEND,
@@ -53,30 +54,15 @@ export const pitFiend: CreatureAuthored = {
       description:
         "Fear Aura. Any creature hostile to the pit fiend that starts its turn within 20 feet of the pit fiend must make a DC 21 Wisdom saving throw, unless the pit fiend is incapacitated. On a failed save, the creature is frightened until the start of its next turn. If a creature's saving throw is successful, the creature is immune to the pit fiend's Fear Aura for the next 24 hours.",
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(219, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(219, 601),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 21
-            },
-            range: {
-              id: S.actionId(219, 602),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 20,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PIT_FIEND_FEAR_AURA
+        startOfTurnSaveAuraEffect(219, {
+          localIndex: 700,
+          label: 'Fear Aura',
+          componentLabel: 'A creature starts its turn near the pit fiend',
+          radiusFeet: 20,
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+          dc: 21,
+          condition: 'FRIGHTENED',
+          duration: { kind: 'UNTIL_NEXT_TURN_START' }
         })
       ],
       order: 1

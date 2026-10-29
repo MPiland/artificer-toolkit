@@ -7,25 +7,33 @@
 // merges --no-ff onto the phase tip, the merge must differ from the slice tree in docs/ only (not at all
 // when the slice contains the phase tip), and after the phase push the merge commit goes to
 // <batch-prefix><N> as the full-run backstop. Otherwise the phase tip merges into the slice, goes to
-// <batch-prefix><N>, and reaches the phase branch only once Tests and Live are green there: a fast-forward,
-// or a --no-ff merge when the phase branch has moved by docs/ only meanwhile. Browser journeys gate a
-// tip only where they ran (WHEN_RAN); they are never dispatched.
+// <batch-prefix><N>, and reaches the phase branch only once Tests, Live and every browser journey are green
+// there: a fast-forward, or a --no-ff merge when the phase branch has moved by docs/ only meanwhile. A
+// batch whose journeys go red names the run and slices for scripts/traceJourneyFailure.mjs. On a slice tip
+// Browser journeys gate only where they ran (WHEN_RAN), since a slice runs the journeys its criteria name.
 // A merge whose only conflict is scripts/fileSizeBudget.json takes the lower cap per entry, lowers a cap
 // further to a module's merged size when the merge left it smaller, and commits once the merged tree
 // passes the source ratchets.
 import { spawnSync } from 'node:child_process'
-import { writeFileSync } from 'node:fs'
+import { appendFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { ratchetProblems, shrunkCaps, SIZE_BUDGET } from './sourceRatchets.mjs'
 
-export const WORKFLOWS = { Tests: 'tests.yml', 'Live backend': 'live-backend.yml' }
-// Gates a tip only when it ran there, and then every run counts: a push runs the journeys its change
-// reaches and a dispatch one named proof, so a newer run does not supersede an older one.
+export const WORKFLOWS = {
+  Tests: 'tests.yml',
+  'Live backend': 'live-backend.yml',
+  'Browser journeys': 'browser-journeys.yml'
+}
+// A slice tip needs Tests and Live; a batch needs every workflow, and an unnamed journeys dispatch runs
+// every CI proof (RELIABILITY-21.19).
+export const SLICE_WORKFLOWS = ['Tests', 'Live backend']
+// Gates a slice tip only when it ran there, and then every run counts: a push runs the journeys its
+// change reaches and a dispatch the proofs it names, so a newer run does not supersede an older one.
 export const WHEN_RAN = ['Browser journeys']
 const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
-const POLL_MS = 60_000
-// Overall wait for one set of runs; the workflow's own timeout is 120 minutes.
+export const POLL_MS = 60_000
+// Overall wait for one set of runs; the workflow's own timeout is 150 minutes.
 const WAIT_MS = 90 * 60_000
 const DISPATCH_SKEW_MS = 60_000
 const LISTING_TRIES = 4
@@ -36,7 +44,13 @@ const READ_RETRY_MS = 30_000
 const TRANSIENT_GH_ERROR =
   /HTTP 5\d\d|timed? ?out|timeout|connection reset|ECONNRESET|unexpected EOF/i
 
-export class MergeRefused extends Error {}
+export class MergeRefused extends Error {
+  // A red merge batch journeys run, with the slices merged into it, for scripts/traceJourneyFailure.mjs.
+  constructor(message, { cause, trace = null } = {}) {
+    super(message, { cause })
+    this.trace = trace
+  }
+}
 
 // One more than the highest <prefix><N> branch; refs are full `refs/heads/…` names.
 export function nextMergeNumber(refs, prefix) {
@@ -48,10 +62,10 @@ export function nextMergeNumber(refs, prefix) {
 }
 
 // The newest run per required workflow on one commit (a re-dispatch supersedes an older run), plus
-// every run of a WHEN_RAN workflow there. 'green' needs every counted run completed with success; any
+// every run of a WHEN_RAN workflow that is not required there. 'green' needs every counted run completed with success; any
 // other completed conclusion is 'red'. A cancelled run is a duplicate superseded by a push or dispatch,
 // so it only counts when the workflow has no other run on the commit.
-export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
+export function runsVerdict(runs, workflows = SLICE_WORKFLOWS) {
   const newestFirst = (name) =>
     runs
       .filter((run) => run.workflowName === name)
@@ -61,7 +75,7 @@ export function runsVerdict(runs, workflows = Object.keys(WORKFLOWS)) {
     return byNewest.find((run) => run.conclusion !== 'cancelled') ?? byNewest[0]
   })
   const missing = workflows.filter((_, index) => !latest[index])
-  const whenRan = WHEN_RAN.flatMap((name) => {
+  const whenRan = WHEN_RAN.filter((name) => !workflows.includes(name)).flatMap((name) => {
     const byNewest = newestFirst(name)
     const uncancelled = byNewest.filter((run) => run.conclusion !== 'cancelled')
     return uncancelled.length > 0 ? uncancelled : byNewest.slice(0, 1)
@@ -145,7 +159,7 @@ const gh = (tools, ...args) => {
 
 // Reads only (list, view): repeating them is harmless. Writes (dispatch) use `gh` and never retry. A 4xx
 // or any other failure throws at once.
-async function ghRead(tools, ...args) {
+export async function ghRead(tools, ...args) {
   for (let attempt = 1; ; attempt += 1) {
     const result = tools.run('gh', args)
     if (result.status === 0) return result.stdout.trim()
@@ -164,7 +178,7 @@ const lines = (text) => text.split('\n').filter(Boolean)
 const remoteSha = (tools, branch) =>
   git(tools, 'ls-remote', 'origin', `refs/heads/${branch}`).split('\t')[0] || null
 
-const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
+export const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
 
 // GitHub's filtered run listings (`--commit`, `--branch`) intermittently return nothing for runs that
 // exist (3 of 10 back-to-back calls in a measurement), so an empty listing is unknown, not missing:
@@ -182,14 +196,14 @@ const runsOn = (tools, sha) => listRuns(tools, '--commit', sha, '--limit', '50')
 // `gh workflow run` prints the created run's URL when GitHub returns it. Without a URL, the run is
 // found by a branch-and-workflow listing (not the commit filter, which lagged past 5 minutes) among
 // runs created after the dispatch.
-const dispatchRun = (tools, branch, name) => {
+export const dispatchRun = (tools, branch, name, fields = []) => {
   const startedAt = tools.now()
-  const output = gh(tools, 'workflow', 'run', WORKFLOWS[name], '--ref', branch)
-  tools.log(`Dispatched ${name} on ${branch}.`)
+  const output = gh(tools, 'workflow', 'run', WORKFLOWS[name], '--ref', branch, ...fields)
+  tools.log(`Dispatched ${name}${fields.length > 0 ? ` (${fields.join(' ')})` : ''} on ${branch}.`)
   return { startedAt, id: output.match(/\/actions\/runs\/(\d+)/)?.[1] ?? null }
 }
 
-async function findDispatchedId(tools, branch, name, startedAt) {
+export async function findDispatchedId(tools, branch, name, startedAt) {
   const listed = await listRuns(
     tools,
     '--workflow',
@@ -208,11 +222,12 @@ async function findDispatchedId(tools, branch, name, startedAt) {
   return created[0] ? String(created[0].databaseId) : null
 }
 
-// Waits for Tests and Live, and any Browser journeys run, to finish on `sha`. A required workflow with no
-// run is dispatched on `branch` once (Live is path-filtered, and a GITHUB_TOKEN push triggers nothing) and
-// that run is then polled by its id; workflows the script did not dispatch are read from the commit
-// listing. The caller has checked that `branch` points at `sha`.
-async function waitForGreen(tools, sha, branch) {
+// Waits for the required `workflows`, and any Browser journeys run, to finish on `sha`. A required
+// workflow with no run is dispatched on `branch` once (Live is path-filtered, and a GITHUB_TOKEN push
+// triggers nothing) and that run is then polled by its id; workflows the script did not dispatch are read
+// from the commit listing. The caller has checked that `branch` points at `sha`. A red refusal carries the
+// red journeys run, if any.
+async function waitForGreen(tools, sha, branch, workflows = SLICE_WORKFLOWS) {
   const dispatched = new Map()
   const deadline = tools.now() + WAIT_MS
   for (;;) {
@@ -226,9 +241,20 @@ async function waitForGreen(tools, sha, branch) {
         )
     )
     const listedRuns = (await runsOn(tools, sha)).filter((run) => !dispatched.has(run.workflowName))
-    const verdict = runsVerdict([...listedRuns, ...dispatchedRuns])
+    const runs = [...listedRuns, ...dispatchedRuns]
+    const verdict = runsVerdict(runs, workflows)
     if (verdict.state === 'green') return tools.log(`Green on ${sha}: ${verdict.detail}.`)
-    if (verdict.state === 'red') throw new MergeRefused(`Not green on ${sha}: ${verdict.detail}.`)
+    if (verdict.state === 'red') {
+      const journeys = runs.find(
+        (run) =>
+          run.workflowName === 'Browser journeys' &&
+          run.status === 'completed' &&
+          run.conclusion !== 'success'
+      )
+      throw new MergeRefused(`Not green on ${sha}: ${verdict.detail}.`, {
+        trace: journeys ? { run: String(journeys.databaseId) } : null
+      })
+    }
     if (tools.now() > deadline)
       throw new MergeRefused(
         `The runs on ${sha} did not finish within ${WAIT_MS / 60_000} minutes.`
@@ -370,6 +396,19 @@ export async function mergeSlice(
   const number = nextBatchNumber(tools, batchPrefix)
   const batchBranch = `${batchPrefix}${number}`
   const message = `${title.trim()} (m${number})`
+  // The batch waits for every workflow; red journeys there name the slices merged into it to trace.
+  const waitForBatch = async (merge) => {
+    try {
+      await waitForGreen(tools, merge, batchBranch, Object.keys(WORKFLOWS))
+    } catch (error) {
+      if (error instanceof MergeRefused && error.trace)
+        throw new MergeRefused(error.message, {
+          cause: error,
+          trace: { ...error.trace, slices: names }
+        })
+      throw error
+    }
+  }
 
   if (slices.length > 1) {
     git(tools, 'checkout', '--quiet', '--detach', phaseTip)
@@ -386,7 +425,7 @@ export async function mergeSlice(
     }
     const merge = git(tools, 'rev-parse', 'HEAD')
     push(tools, merge, batchBranch)
-    await waitForGreen(tools, merge, batchBranch)
+    await waitForBatch(merge)
     return landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
   }
 
@@ -406,14 +445,14 @@ export async function mergeSlice(
     push(tools, merge, batchBranch)
     for (const name of Object.keys(WORKFLOWS)) dispatchRun(tools, batchBranch, name)
     return tools.log(
-      `Fast path: ${only} merged into ${target} as ${merge}; full-run backstop on ${batchBranch}.`
+      `Fast path: ${only} merged into ${target} as ${merge}; full-run backstop on ${batchBranch} (trace a red journeys run with scripts/traceJourneyFailure.mjs --slices ${only}).`
     )
   }
 
   git(tools, 'checkout', '--quiet', '--detach', tip)
   const merge = commitMerge(tools, phaseTip, message)
   push(tools, merge, batchBranch)
-  await waitForGreen(tools, merge, batchBranch)
+  await waitForBatch(merge)
   landBatch(tools, { merge, batch: batchBranch, phaseTip, target, number })
 }
 
@@ -438,6 +477,13 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
     console.error(
       error instanceof MergeRefused ? `Refused, nothing more pushed: ${error.message}` : error
     )
+    if (error instanceof MergeRefused && error.trace && process.env.GITHUB_OUTPUT)
+      appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        `trace_run=${error.trace.run}
+trace_slices=${error.trace.slices.join(' ')}
+`
+      )
     process.exitCode = 1
   })
 }

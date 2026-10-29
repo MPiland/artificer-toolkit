@@ -339,6 +339,7 @@ export function openCommandRoom(options: {
       pending.size === 0 &&
       pendingReads.size === 0 &&
       sessionReads.size === 0 &&
+      readyWaiters.length === 0 &&
       !failure &&
       !options.holdOpen
     )
@@ -704,12 +705,14 @@ export function openCommandRoom(options: {
     )
   }
 
-  const whenReady = () =>
-    failure
-      ? Promise.reject(failure)
-      : synced
-        ? Promise.resolve()
-        : new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject }))
+  const whenReady = () => {
+    if (failure) return Promise.reject(failure)
+    if (synced) return Promise.resolve()
+    // A caller waiting out a re-authentication still uses the room, so the idle close must not end it.
+    if (idleTimer) clearTimeout(idleTimer)
+    idleTimer = null
+    return new Promise<void>((resolve, reject) => readyWaiters.push({ resolve, reject }))
+  }
 
   const readEncounter = async (read: EncounterReadDto): Promise<EncounterReadResultDto> => {
     await whenReady()

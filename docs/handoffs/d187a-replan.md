@@ -20,6 +20,22 @@ Status: current (2026-10-23). This is the source for the re-sized SPELLS-4, SPEL
 - SPELLS-33.T6a1: includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries. Swallow, engulf (T6a2), curse (T6b1), lycanthropy (T6b2), disease (T6b3) and healing-block wounds (T6m2) are GM rulings beside the damage.
 - SPELLS-4.T2g2 (Raise Dead) and T2lb2b1 (Eyebite, Break Enchantment) are description; see their task text.
 
+## Rubric pass (D198, 2026-10-28)
+
+These rows override the audit tables below wherever the two disagree.
+
+- **SPELLS-31.T4c1p:** Peerless Skill is description-only. The task keeps only the feature-option discovery and the feature-charge payment, and only if Cutting Words (T4c3) needs them; if it doesn't, close the task as a data edit. Either way, remove the Peerless proofs.
+- **SPELLS-31.T4c1b:** Dark One's Own Luck is description-only, so drop its proof and journey. The saves window at every commit site stays, and so does the Legendary Resistance fold, because Bardic Inspiration needs them.
+- **SPELLS-31.T4c1c:** build the Sheet-path window for Bardic Inspiration only, with no Peerless or Dark One's Own Luck proofs.
+- **SPELLS-31.T4i:** Survivor and Quivering Palm are description-only. Build Colossus Slayer and Dark One's Blessing.
+- **SPELLS-31.T4f:** build Cleansing Touch. This overrides the earlier description-only row.
+- **SPELLS-31.T4v:** build Lifedrinker. Voice of the Chain Master stays description-only.
+- **SPELLS-31.T5i:** build Eldritch Spear and Potent Cantrip, which overrides the earlier description-only rows.
+- **SPELLS-31.T5rb:** build Hurl Through Hell, because there is no manual remove-from-play tool.
+- **SPELLS-33.T4w:** Animate Trees and Children of the Night are description-only; the GM adds the creatures with REINFORCE. Build Animate Chains and Create Specter.
+- **Kept automated although they qualify:** Turn the Unholy (SPELLS-31.T4m) and Primal Champion (SPELLS-31.T5q). They share pieces that are built anyway.
+- **Confirmed description-only:** the Heroes' Feast rider (SPELLS-4.T2n3), Retaliation (SPELLS-31.T4l2) and Overchannel (SPELLS-31.T5h).
+
 ## Audit table: SPELLS-4, SPELLS-8, SPELLS-27, SPELLS-30, SPELLS-32
 
 The "proposed" column is the size before overrides; the ledger holds the final size.
