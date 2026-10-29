@@ -1367,11 +1367,7 @@ export async function planNativeLiveEncounterAction(
   })
   // A hit on a decoy destroys it, and a repeat spends one of its carrier's counted uses; the last
   // decoy or use ends its effect.
-  const useSpend = settledCountedUseSpend(
-    prepared,
-    execution.d20?.resultPath,
-    activeEffectsByActorId
-  )
+  const uses = settledCountedUseSpend(prepared, execution.d20?.resultPath, activeEffectsByActorId)
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = heldOnTarget.filter(
@@ -1683,7 +1679,7 @@ export async function planNativeLiveEncounterAction(
     spellCheck,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants: useSpend.spentUseGrants,
+    spentUseGrants: uses.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1691,7 +1687,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
-      ...useSpend.endedGrants,
+      ...uses.endedGrants,
       ...damageEnded.endedEffects,
       ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])
