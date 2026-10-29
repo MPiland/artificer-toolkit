@@ -208,6 +208,12 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'addsSpellLevel',
+        toggle(['addsSpellLevel'], 'Also Adds The Spell’s Cast Level', {
+          showIf: parent.field(['valueDomainCode']).eq('HEALING_DEALT')
+        })
+      )
+      .set(
         'senseDefinitionId',
         selectSingle(
           ['senseDefinitionId'],
@@ -1370,7 +1376,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('SPEED'),
             local.field(['valueDomainCode']).eq('SENSE_RANGE'),
             local.field(['valueDomainCode']).eq('DAMAGE'),
-            local.field(['valueDomainCode']).eq('SPELL_SLOT_COUNT')
+            local.field(['valueDomainCode']).eq('SPELL_SLOT_COUNT'),
+            local.field(['valueDomainCode']).eq('HEALING_DEALT')
           ])
           // Note: CONDITION_IMMUNITY uses payload conditionTypeId only — no domain params needed
         })
