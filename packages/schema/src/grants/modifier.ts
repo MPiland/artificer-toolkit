@@ -134,6 +134,12 @@ const senseParamDtoSchema = lazySchema(() =>
   })
 )
 
+const healingDealtParamDtoSchema = lazySchema(() =>
+  z.object({
+    addsSpellLevel: z.optional(z.boolean())
+  })
+)
+
 const spellLevelParamDtoSchema = lazySchema(() =>
   z.object({
     spellLevel: z.number().check(z.int())
@@ -575,7 +581,8 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
       ...senseParamDtoSchema.shape,
-      ...spellLevelParamDtoSchema.shape
+      ...spellLevelParamDtoSchema.shape,
+      ...healingDealtParamDtoSchema.shape
     })
   )
 )
@@ -873,6 +880,12 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant('FREE_OPPORTUNITY_REACTION', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('HEALING_RECEIVED', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'HEALING_DEALT',
+      'BONUS',
+      healingDealtParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'ATTACK_DECOYS',

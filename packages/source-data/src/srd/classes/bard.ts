@@ -836,18 +836,18 @@ export const bard: ClassAuthored = {
       availableAtLevel: 2,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 0x60, 4),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_SONG_OF_REST,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(BD, 0x69, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'WILLING'
-            }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(BD, 0x60, 4),
+            range: classRowId(BD, 0x69, 4),
+            path: classRowId(BD, 0x80, 4),
+            result: classRowId(BD, 0x81, 4),
+            outcome: classRowId(BD, 0x82, 4)
+          },
+          label: 'Song of Rest',
+          instructions:
+            'When you or any friendly creature who can hear your performance regains hit points at the end of a short rest by spending one or more Hit Dice, that creature regains an extra 1d6 hit points, increasing to 1d8 at 9th level, 1d10 at 13th level and 1d12 at 17th level. The GM applies the extra hit points.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     },

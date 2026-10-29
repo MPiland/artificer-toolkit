@@ -427,6 +427,27 @@ export function resolveDnd5eActionMechanic(
       })
     }
   }
+  /**
+   * The hit points a spell cast at `castLevel` restores beyond its own amount (Disciple of Life's
+   * 2 + the spell's level). A cantrip, or any action that is not a spell, adds none.
+   */
+  const healingDealtBonus = (castLevel: number | null): number => {
+    if (context.spellId === null || castLevel === null || castLevel < 1) return 0
+    return input.modifierGroups
+      .filter((group) => group.domainKey.startsWith('HEALING_DEALT:BONUS'))
+      .reduce((sum, group) => {
+        const perLevel = group.domainKey.endsWith('|addsSpellLevel=true') ? castLevel : 0
+        return (
+          sum +
+          group.contributions
+            .filter(
+              (contribution) =>
+                contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+            )
+            .reduce((total, contribution) => total + contribution.value + perLevel, 0)
+        )
+      }, 0)
+  }
   const resolveOutcome = (outcome: RawOutcome): ResolvedOutcome => {
     if (outcome.kind === 'CONDITION' || outcome.kind === 'EFFECT') return outcome
     const level =
@@ -458,7 +479,9 @@ export function resolveDnd5eActionMechanic(
       },
       outcome.kind === 'DAMAGE'
         ? context.spellDamageBonus + (outcome === firstDamageOutcome ? attackDamageBonus : 0)
-        : 0
+        : outcome.temporary
+          ? 0
+          : healingDealtBonus(context.spellCastLevel)
     )
     const scaling: OutcomeScaling = []
     if (
@@ -470,7 +493,11 @@ export function resolveDnd5eActionMechanic(
         if (entry.level === null) continue
         const scalingValue = resolveOutcomeValue(outcome, entry.level)
         if (scalingValue === null) throw new Error('Action outcome scaling value is unresolved.')
-        const scalingExpression = formatExpression(scalingValue, bonus)
+        const scalingExpression = formatExpression(
+          scalingValue,
+          bonus +
+            (outcome.kind === 'HEAL' && !outcome.temporary ? healingDealtBonus(entry.level) : 0)
+        )
         scaling.push({
           level: entry.level,
           expression:
