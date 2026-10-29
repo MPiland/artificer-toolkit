@@ -991,12 +991,13 @@ describe('native Convex authoring resolver', () => {
       )
     })
     const request = { mapId: 'feature', systemId: srdSystemRecord.id, values: {} }
-    const choices = () =>
-      caller.query(resolve, request).then((compact) =>
-        expandNodeRuntimeResponse(compact)
-          .steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
-          .find((node) => node.id === 'ruleDefinitionIds')
-      )
+    const choices = async () => {
+      const node = expandNodeRuntimeResponse(await caller.query(resolve, request))
+        .steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
+        .find((item) => item.id === 'ruleDefinitionIds')
+      if (!node || !('options' in node)) throw new Error('Expected definition options')
+      return node.options
+    }
     const full = await t.run(async (ctx) =>
       readCurrentSourceDefinitions(
         ctx,
@@ -1006,7 +1007,7 @@ describe('native Convex authoring resolver', () => {
     )
     expect(full.length).toBe(SRD_REUSABLE_DEFINITIONS.length)
     const listed = await choices()
-    expect(listed?.options?.map(({ value, label }) => ({ value, label }))).toEqual(
+    expect(listed.map(({ value, label }) => ({ value, label }))).toEqual(
       full
         .map(({ id, label }) => ({ value: id, label }))
         .sort(
