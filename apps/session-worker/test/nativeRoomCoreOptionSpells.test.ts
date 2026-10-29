@@ -17,7 +17,9 @@ import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longswor
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
 import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
+import { goodberry } from '@artificer-toolkit/source-data/srd/spells/goodberry.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
+import { heroesFeast } from '@artificer-toolkit/source-data/srd/spells/heroes-feast.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
@@ -1135,5 +1137,161 @@ describe('room True Strike (SPELLS-4.T2k1)', () => {
     const ended = await endConcentrationAtSheet(fixture.room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await markedWolfEffects(fixture)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2n3: Goodberry leaves a carrier on the caster that holds ten berries. On a later turn
+ * the caster's Action feeds one to a creature it touches, which regains 1 hit point; the last berry
+ * ends the carrier.
+ */
+describe('room Goodberry (SPELLS-4.T2n3)', () => {
+  /** The Character, who prepares `spell`, then a friendly Wolf down to 1 hit point. */
+  const goodberryRoom = (spell = goodberry) =>
+    actionRoom({
+      actors: [
+        casterActor(),
+        srdCreatureActor({
+          id: FIRST_ALLY_ID,
+          creature: biteWolf('ATTACK'),
+          currentHitPoints: 1,
+          disposition: 'FRIENDLY'
+        })
+      ],
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterAction: (action) => action.label.startsWith(spell.label)
+    })
+
+  const berriesLeft = async (room: ActionRoom) =>
+    (await readRoomHistory(room.room.base.stub)).characterEffects.map(
+      ({ lifecycle }) => lifecycle.remainingUses
+    )
+
+  const allyHitPoints = async (room: ActionRoom) =>
+    readActorHitPoints(await readRoomHistory(room.room.base.stub), FIRST_ALLY_ID)
+
+  /** Casts the spell, then on the caster's next turn feeds the Wolf one berry. */
+  async function castAndFeed(room: ActionRoom) {
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    await room.advanceTurn()
+
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({
+      kind: 'REPEAT_SOURCE_PATH',
+      holderActorId: CHARACTER_ACTOR_ID,
+      activation: 'ACTION',
+      target: 'INVOCATION'
+    })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const feed = await room.startAction(FIRST_ALLY_ID, RANGE, null, null, offer.actionId)
+    expect(feed.answer.type, JSON.stringify(feed.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+  }
+
+  it('holds ten berries; each one fed heals the creature 1 hit point', async () => {
+    const room = await goodberryRoom()
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await berriesLeft(room)).toEqual([10])
+
+    const fed = await goodberryRoom()
+    await castAndFeed(fed)
+    expect(await allyHitPoints(fed)).toBe(2)
+    expect(await berriesLeft(fed)).toEqual([9])
+  }, 120000)
+
+  it('gives the berry back when the feeding is undone', async () => {
+    const room = await goodberryRoom()
+    await castAndFeed(room)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await allyHitPoints(room)).toBe(1)
+    expect(await berriesLeft(room)).toEqual([10])
+  }, 120000)
+
+  it('ends when its last berry is fed', async () => {
+    const oneBerry = structuredClone(goodberry)
+    const path = oneBerry.effects?.[0]?.paths?.[0]
+    const lifecycle = path?.selectionKind === 'FIXED' ? path.resultBlock.lifecycle : undefined
+    if (!lifecycle) throw new Error('Goodberry must count its berries.')
+    lifecycle.uses = 1
+    const room = await goodberryRoom(oneBerry)
+    await castAndFeed(room)
+
+    expect(await allyHitPoints(room)).toBe(2)
+    expect(await berriesLeft(room)).toEqual([])
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2n3: Heroes' Feast grants each creature that partakes immunity to poison damage and to
+ * being poisoned or frightened, and advantage on Wisdom saves, for 24 hours. The cure and the hit
+ * point increase are a GM ruling (D181).
+ */
+describe("room Heroes' Feast (SPELLS-4.T2n3)", () => {
+  /**
+   * The Character, a friendly Wolf and a hostile Wolf whose Bite deals 3 poison damage on a failed
+   * Dexterity save; every die shows its minimum, so each save fails.
+   */
+  async function feastRoom() {
+    const poisonWolf = biteWolf('SAVE', {
+      damage: 3,
+      save: { ability: 'DEXTERITY', damageTypeCode: 'POISON' }
+    })
+    const enemy = srdCreatureActor({ id: WOLF_ID, creature: poisonWolf })
+    const room = await actionRoom({
+      fallbackRoll: 0,
+      actors: [
+        casterActor(),
+        srdCreatureActor({
+          id: FIRST_ALLY_ID,
+          creature: biteWolf('ATTACK'),
+          disposition: 'FRIENDLY'
+        }),
+        enemy
+      ],
+      // A 6th-level spell needs an 11th-level caster.
+      characterPlay: { classLevel: 11 },
+      characterSpellcasting: { spells: [heroesFeast], prepared: [heroesFeast.id] },
+      characterAction: (action) => action.label.startsWith(heroesFeast.label)
+    })
+    return {
+      room,
+      biteActionId: room.featureActionId(enemy, creatureFeature(poisonWolf, 'Bite').id)
+    }
+  }
+
+  /** On the hostile Wolf's turn, the hit points its poison Bite leaves the friendly Wolf. */
+  async function allyHitPointsAfterBite({
+    room,
+    biteActionId
+  }: Awaited<ReturnType<typeof feastRoom>>) {
+    await room.advanceTurn()
+    await room.advanceTurn()
+    const bite = await room.startAction(FIRST_ALLY_ID, [], null, null, biteActionId, WOLF_ID)
+    expect(bite.answer.type, JSON.stringify(bite.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    return readActorHitPoints(await readRoomHistory(room.room.base.stub), FIRST_ALLY_ID)
+  }
+
+  it('makes a creature that partakes immune to poison damage', async () => {
+    const unfed = await feastRoom()
+    const full = readActorHitPoints(await readRoomHistory(unfed.room.room.base.stub), FIRST_ALLY_ID)
+    expect(await allyHitPointsAfterBite(unfed)).toBe(full - 3)
+
+    const fed = await feastRoom()
+    const cast = await fed.room.startActorsAction([FIRST_ALLY_ID])
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(fed.room)
+    expect(await allyHitPointsAfterBite(fed)).toBe(full)
   }, 120000)
 })

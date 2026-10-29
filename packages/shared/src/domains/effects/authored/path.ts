@@ -92,7 +92,8 @@ export type PathLifecycleAuthored = {
   exclusivity?: PathLifecycleExclusivity
   /**
    * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
-   * duplicates). The runtime counts them down in `remainingUses`.
+   * duplicates), and so does each use of its repeat offer (Goodberry's berries). The runtime counts
+   * them down in `remainingUses`.
    */
   uses?: number
   /**

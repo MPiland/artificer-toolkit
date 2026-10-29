@@ -44,6 +44,7 @@ import {
   type EncounterAttackDecoy,
   prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
+import { repeatCarrierUseSpend } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
@@ -1367,6 +1368,11 @@ export async function planNativeLiveEncounterAction(
   })
   // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
   const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
+  // A repeat spends one of its carrier's counted uses; the last one ends the carrier.
+  const carrierUse = repeatCarrierUseSpend(
+    prepared.source.kind === 'REPEAT_PATH' ? prepared.source.capability : null,
+    activeEffectsByActorId
+  )
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = heldOnTarget.filter(
@@ -1678,7 +1684,7 @@ export async function planNativeLiveEncounterAction(
     spellCheck,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants: decoyStrike.spentUseGrants,
+    spentUseGrants: [...decoyStrike.spentUseGrants, ...carrierUse.spentUseGrants],
     failedSpends,
     forcedMovements,
     revisions,
@@ -1687,6 +1693,7 @@ export async function planNativeLiveEncounterAction(
       ...consumedGrants,
       ...hitEnded.consumedGrants,
       ...decoyStrike.endedGrants,
+      ...carrierUse.endedGrants,
       ...damageEnded.endedEffects,
       ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])

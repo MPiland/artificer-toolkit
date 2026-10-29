@@ -1,4 +1,5 @@
 import type { RepeatOfferOrigin } from '@artificer-toolkit/schema/effects/effectOffer'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -94,6 +95,30 @@ export function encounterActionOriginActorId(input: {
   })
   if (originActorId === null) throw new Error('The selected repeat action is stale.')
   return originActorId
+}
+
+/**
+ * What a settled repeat spends of a carrier that counts uses (`lifecycle.uses`, Goodberry's
+ * berries): one use, or the carrier itself when the use was its last. A carrier with no count, and
+ * any action that is not a repeat, spends nothing.
+ */
+export function repeatCarrierUseSpend(
+  capability: Pick<
+    EncounterRepeatPathCapabilityDescriptor,
+    'carrierEffectId' | 'holderActorId'
+  > | null,
+  effectsByHolder: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+): { spentUseGrants: ActiveRuleEffectRecord[]; endedGrants: ActiveRuleEffectRecord[] } {
+  const carrier = capability
+    ? effectsByHolder
+        .get(capability.holderActorId)
+        ?.find(({ id }) => id === capability.carrierEffectId)
+    : undefined
+  const remaining = carrier?.lifecycle.remainingUses
+  if (!carrier || remaining === undefined) return { spentUseGrants: [], endedGrants: [] }
+  return remaining <= 1
+    ? { spentUseGrants: [], endedGrants: [carrier] }
+    : { spentUseGrants: [carrier], endedGrants: [] }
 }
 
 /**
