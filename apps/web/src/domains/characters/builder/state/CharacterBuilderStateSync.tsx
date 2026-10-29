@@ -21,15 +21,16 @@ export function CharacterBuilderStateSync({
   subjectLabel: string
   updateAuthoringFormState: (patch: AuthoringFormStatePatch) => void
 }) {
-  const ready = payload?.view.review.ready ?? false
+  const canFinalize = canSubmit && (payload?.view.review.ready ?? false)
+  // The one writer of the builder's submit, finalize and saving flags.
   const statePatch = useMemo<AuthoringFormStatePatch>(
     () => ({
       activateLabel: 'Activate',
-      canFinalize: ready,
+      canFinalize,
       canResetForm: hasChanges,
       canDelete: true,
       canSaveDraft: true,
-      canSubmit: canSubmit && ready,
+      canSubmit: canFinalize,
       hasActiveDraft: session.hasActiveDraft,
       hasChanges,
       isDraft: session.isDraft,
@@ -43,10 +44,9 @@ export function CharacterBuilderStateSync({
       systemId: session.draft.systemId
     }),
     [
-      canSubmit,
+      canFinalize,
       hasChanges,
       isSubmitting,
-      ready,
       session.hasActiveDraft,
       session.isDraft,
       session.mode,
