@@ -1975,6 +1975,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   weapon a `BONUS_ACTION` melee attack gated by the `ATTACK_ACTION_OTHER_WEAPON` requirement and split its melee damage ability
   modifier into an Action grant (`ATTACK_ACTIVATION` EXCLUDE) and a `max: 0` bonus-action grant (INCLUDE). Item attack choices carry
   `actionCost`, so the offer names which activation each attack uses.
+- **Spell-scoped modifiers (SPELLS-31.T5i1)**: a grant's `SPELL` facet context folds into deferred conditions read against the
+  cast spell, like an `EQUIPMENT` context against the attacking item: `SPELL_IDENTITY` (`SELECTED` spell ids), `SPELL_SCHOOL`
+  (`MAGIC_SCHOOL`), `SPELL_LEVEL` and `SPELL_DAMAGE_TYPE` (`DAMAGE_TYPE`); any other predicate is `UNSUPPORTED` and fails closed.
+  `dnd5eActionRequirementsMet` decides them from `Dnd5eModifierTarget.spell` (id, level, school and the damage type being modified),
+  which is null Character-wide, so a spell-scoped modifier never applies there. Spell action facts carry the spell's level and
+  school; a spell's own action (no cast) reads them from those facts. A spell's `DAMAGE` modifiers (attack domain `SPELL`) apply to
+  attack and save spells alike: each adds once per path, to that path's first damage roll of a type it applies to, so a save
+  success's half damage halves it too (Empowered Evocation, Elemental Affinity). Weapon attacks keep the first-damage-roll rule.
 - **Rage (ATTACK-9.T1, D113)** is authored data on the compiled path, with no Barbarian executor: a bonus action that spends the
   `rageCharge` binding and applies a 1-minute SELF grant. Four generic shapes carry it. (1) An attack records the ability it used
   (`usedAttackAbility`: the highest ability modifier of the attacking item's own `SOURCE`-scoped modifiers, so a finesse weapon records
@@ -2519,7 +2527,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 **Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
-identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
+identity, through the same `dnd5eActionRequirementsMet` the Rage restrictions use) against the attacking item and
 leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining

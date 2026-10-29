@@ -57,7 +57,12 @@ describe('character grant fold modifier facts', () => {
         scope: 'SOURCE',
         domain: { attackDomain: 'MELEE' },
         payload: { ability: 'STRENGTH' },
-        scopeSpellIds: ['shillelagh'],
+        // The spell context folds to a condition on the cast spell.
+        restrictions: [
+          {
+            conditions: [{ kind: 'SPELL_IDENTITY', mode: 'SELECTED', requiredIds: ['shillelagh'] }]
+          }
+        ],
         scopeResourceIds: []
       },
       {
@@ -67,7 +72,12 @@ describe('character grant fold modifier facts', () => {
         scope: 'SOURCE',
         domain: { attackDomain: 'MELEE' },
         payload: { ability: 'STRENGTH' },
-        scopeSpellIds: ['shillelagh'],
+        // The spell context folds to a condition on the cast spell.
+        restrictions: [
+          {
+            conditions: [{ kind: 'SPELL_IDENTITY', mode: 'SELECTED', requiredIds: ['shillelagh'] }]
+          }
+        ],
         scopeResourceIds: []
       }
     ])

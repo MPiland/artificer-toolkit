@@ -178,15 +178,6 @@ export function buildCharacterGrantFoldModifierFacts(
       grant.restrictions,
       normalizeProficiencyTarget
     ),
-    scopeSpellIds: (grant.restrictions?.groups ?? [])
-      .flatMap((group) => group.contexts)
-      .flatMap((context) =>
-        context.subject === 'SPELL' &&
-        context.authoringModeKind === 'SELECTED' &&
-        context.spellIds.length > 0
-          ? [...context.spellIds]
-          : []
-      ),
     scopeResourceIds: (grant.restrictions?.groups ?? [])
       .flatMap((group) => group.contexts)
       .flatMap((context) =>
