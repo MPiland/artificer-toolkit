@@ -441,6 +441,38 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(dialog).toBeInTheDocument()
   })
 
+  it('keeps a pending finalize preview shown as saving while the builder re-renders (RELIABILITY-10 journey)', async () => {
+    const user = userEvent.setup()
+    const previewing = deferred<typeof characterPreviewFixture>()
+    mocks.preview.mockReturnValueOnce(previewing.promise)
+    renderWithAppProviders(
+      <AuthoringLayout
+        data={editData(characterBuilderPayloadFixture)}
+        kind='character-builder'
+        mode='edit'
+      />
+    )
+    await user.click(await screen.findByRole('link', { name: 'Basics' }))
+    const activate = screen.getByRole('button', { name: 'Activate' })
+    await waitFor(() => expect(activate).toBeEnabled())
+    await user.click(activate)
+    await waitFor(() => expect(mocks.preview).toHaveBeenCalledTimes(1))
+    expect(activate).toHaveAttribute('data-loading', 'true')
+
+    // An edit re-renders the builder's progress; the pending preview is still a save in flight.
+    const name = screen.getByRole('textbox', { name: /character name/i })
+    await user.type(name, 'x')
+    expect(name).toHaveValue(`${characterBuilderPayloadFixture.character.label}x`)
+    expect(activate).toHaveAttribute('data-loading', 'true')
+
+    await act(async () => {
+      previewing.resolve(characterPreviewFixture)
+      await previewing.promise
+    })
+    expect(await screen.findByRole('dialog', { name: 'Finalize Character' })).toBeInTheDocument()
+    expect(activate).not.toHaveAttribute('data-loading')
+  })
+
   it('shows that published content is still updating', async () => {
     mocks.manifest.mockReturnValue({
       ...builtManifest,
