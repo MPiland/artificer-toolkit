@@ -1,5 +1,8 @@
 import type { ResolvedSpellSlotExchange } from '@artificer-toolkit/schema/api/characterActionRules'
-import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type {
+  D20AddedDieDto,
+  DamageAddedDieDto
+} from '@artificer-toolkit/schema/shared/d20AddedDice'
 
 export type CharacterSheetProjectedOutcome =
   | {
@@ -46,6 +49,7 @@ export interface CharacterSheetProjectedMechanic {
   rangeLabel?: string
   attackBonus?: number
   attackAddedDice?: D20AddedDieDto[]
+  damageAddedDice?: (DamageAddedDieDto & { againstHolderOnly: boolean })[]
   attackRollMode?: string
   save?: {
     ability: string

@@ -259,6 +259,8 @@ export async function prepareFixtureSheet(input: {
   campaignCurrencyOptions?: readonly CharacterSheetCurrencyOptionDto[]
   /** The Character's active effects, as the Sheet reads them from its store. */
   activeEffects?: readonly ActiveRuleEffectRecord[]
+  /** The effects the Character's Concentration keeps alive, as the Sheet reads them. */
+  concentrationEffects?: readonly ActiveRuleEffectRecord[]
 }) {
   const { character } = input
   const context = await prepareFixtureContext(character, input.documents, input.gameSystem)
@@ -307,7 +309,7 @@ export async function prepareFixtureSheet(input: {
       vocabularySnapshot: prepared.prepared.context.vocabularySnapshot
     }),
     activeEffects: input.activeEffects ?? [],
-    concentration: null
+    concentrationEffects: input.concentrationEffects ?? null
   })
   return { ...prepared, sheet, ruleProjection, sheetState }
 }

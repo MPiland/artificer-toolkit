@@ -1,5 +1,4 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
@@ -13,8 +12,11 @@ type RoomCharacterSheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacte
 export function projectRoomCharacterSheet(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
-  /** Only the Sheet a client reads names the Concentration; the numbers other readers take never depend on it. */
-  concentration: ConcentrationListingDto | null = null
+  /**
+   * Only the Sheet a client reads names the Concentration and the damage dice its effects add
+   * against their holders; the numbers other readers take never depend on it.
+   */
+  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null
 ) {
   return projectCharacterSheetBundle({
     character: facts.prepared.character,
@@ -32,7 +34,7 @@ export function projectRoomCharacterSheet(
       vocabularySnapshot: facts.prepared.context.vocabularySnapshot
     }),
     activeEffects,
-    concentration
+    concentrationEffects
   }).sheet
 }
 
@@ -44,9 +46,9 @@ export function projectRoomCharacterSheetForViewer(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
   viewer: CharacterSheetResponseDto['meta']['viewer'] = facts.campaignContext.viewer,
-  concentration: ConcentrationListingDto | null = null
+  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null
 ): CharacterSheetResponseDto {
-  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentration)
+  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentrationEffects)
   return projectCharacterSheetForViewer(
     {
       ...sheet,

@@ -34,8 +34,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import { listActiveGrantListings } from '../activeGrantListings.js'
+import { heldConcentration, listActiveGrantListings } from '../activeGrantListings.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
@@ -478,7 +477,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
-  activeEffects: ProjectCharacterSheetBundleParams['activeEffects']
+  rowEffects: Parameters<typeof projectCharacterRuleActionMechanic>[2]
   abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
@@ -516,11 +515,7 @@ function buildActiveSpellGroups(params: {
           )
         }
         const projectedMechanics = policyCastMechanics.mechanics.map((mechanic) =>
-          projectCharacterRuleActionMechanic(
-            mechanic,
-            params.actionReferences,
-            params.activeEffects
-          )
+          projectCharacterRuleActionMechanic(mechanic, params.actionReferences, params.rowEffects)
         )
         const displayName = source.customName ?? spell.label
         const primaryEffect = getSpellPrimaryEffect(projectedMechanics, castLevel)
@@ -712,8 +707,12 @@ interface ProjectCharacterSheetBundleParams {
     ActiveRuleEffectRecord,
     'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
   >[]
-  /** The Concentration this Character maintains, live in a Run or carried over from one (SPELLS-5.11). */
-  concentration: ConcentrationListingDto | null
+  /**
+   * The effects the Concentration this Character maintains keeps alive, live in a Run or carried
+   * over from one (SPELLS-5.11); null when it maintains none. They name the Concentration, and the
+   * damage dice they grant against their holders join the Character's rows (SPELLS-8.6).
+   */
+  concentrationEffects: ProjectCharacterSheetBundleParams['activeEffects'] | null
 }
 
 interface CharacterSheetProjectionBundle {
@@ -750,6 +749,7 @@ export function projectCharacterSheetBundle(
     ])
   )
   const proficiencyBonus = ruleProjection.derivedStats.proficiencyBonus
+  const rowEffects = { active: params.activeEffects, placed: params.concentrationEffects ?? [] }
   const hitPointMaximumReductions = listHitPointMaximumReductions(params.activeEffects)
   const maxHitPoints = effectiveHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(ruleProjection.derivedStats.maxHitPoints),
@@ -1105,7 +1105,7 @@ export function projectCharacterSheetBundle(
     const mechanic = projectCharacterRuleActionMechanic(
       decision.mechanic,
       mechanicPresentation.actionReferences,
-      params.activeEffects
+      rowEffects
     )
     const sourceFeatureId =
       decision.mechanicsOwner.kind === 'FEATURE_OPTION'
@@ -1236,7 +1236,7 @@ export function projectCharacterSheetBundle(
         projectCharacterRuleActionMechanic(
           mechanic,
           mechanicPresentation.actionReferences,
-          params.activeEffects
+          rowEffects
         )
       )
       const sources = (spellSourcesBySpellId.get(spell.id) ?? []).map((source) => {
@@ -1298,7 +1298,7 @@ export function projectCharacterSheetBundle(
       ruleEvaluation.output.spellReferenceMechanics
     ),
     actionReferences: mechanicPresentation.actionReferences,
-    activeEffects: params.activeEffects,
+    rowEffects,
     abilityByCode
   })
   const displayedProficiencyKeys = new Set<string>()
@@ -1401,8 +1401,9 @@ export function projectCharacterSheetBundle(
         })
       ),
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
-      concentration:
-        params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
+      concentration: params.concentrationEffects
+        ? heldConcentration(params.concentrationEffects)
+        : sheetSpellSummonConcentration(character.state.spellSummons),
       consequences: character.state.consequences ?? [],
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,

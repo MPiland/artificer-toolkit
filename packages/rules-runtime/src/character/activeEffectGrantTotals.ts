@@ -183,36 +183,43 @@ export function activeDamageDice(input: {
   targetEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
   attackDomain: string | null
 }): DamageAddedDieDto[] {
-  const dice = (
-    effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-    recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER'
-  ) =>
-    activeRolledDieGrants(
-      effects,
-      'DAMAGE',
-      (domain) => domain.attackDomain === undefined || domain.attackDomain === input.attackDomain
-    ).flatMap(({ label, payload }) =>
-      'recipient' in payload && payload.recipient === recipient
-        ? [
-            {
-              label,
-              count: payload.count,
-              faces: payload.faces,
-              sign: payload.sign,
-              damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
-            }
-          ]
-        : []
-    )
   const placedByDealer = input.targetEffects.filter(
     ({ definition }) =>
       definition.origin.kind === 'ENCOUNTER' &&
       definition.origin.sourceActorId === input.dealerActorId
   )
   return [
-    ...dice(input.dealerEffects, 'HOLDER_DEALS'),
-    ...dice(placedByDealer, 'SOURCE_DEALS_TO_HOLDER')
+    ...activeDamageDiceTo(input.dealerEffects, 'HOLDER_DEALS', input.attackDomain),
+    ...activeDamageDiceTo(placedByDealer, 'SOURCE_DEALS_TO_HOLDER', input.attackDomain)
   ]
+}
+
+/**
+ * The damage dice `effects` grant to one recipient: their holder's own damage (`HOLDER_DEALS`), or
+ * their source's damage to that holder (`SOURCE_DEALS_TO_HOLDER`). See `activeDamageDice`.
+ */
+export function activeDamageDiceTo(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER',
+  attackDomain: string | null
+): DamageAddedDieDto[] {
+  return activeRolledDieGrants(
+    effects,
+    'DAMAGE',
+    (domain) => domain.attackDomain === undefined || domain.attackDomain === attackDomain
+  ).flatMap(({ label, payload }) =>
+    'recipient' in payload && payload.recipient === recipient
+      ? [
+          {
+            label,
+            count: payload.count,
+            faces: payload.faces,
+            sign: payload.sign,
+            damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
+          }
+        ]
+      : []
+  )
 }
 
 /**

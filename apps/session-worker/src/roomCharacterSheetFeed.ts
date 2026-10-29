@@ -2,7 +2,7 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
-import { readRoomCharacterConcentration } from './roomCharacterConcentration.js'
+import { readRoomCharacterConcentrationEffects } from './roomCharacterConcentration.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
@@ -159,7 +159,7 @@ export class RoomCharacterSheetFeed {
           { ownerVerified: true }
         ),
         facts.campaignContext.viewer,
-        await readRoomCharacterConcentration(store, scope.campaignId, characterId)
+        await readRoomCharacterConcentrationEffects(store, scope.campaignId, characterId)
       )
       const streamVersion = facts.active.play.streamVersion
       for (const socket of sockets) {

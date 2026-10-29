@@ -5,6 +5,7 @@ import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/m
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { equipAllCharacterItems, setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
@@ -226,5 +227,55 @@ describe('an active attack-roll die on the Sheet', () => {
       expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
     }
     expect(await effectCount()).toBe(1)
+  })
+})
+
+/**
+ * SPELLS-8.6: a mark the Character's carried Concentration keeps on another creature shows on its
+ * attack rows as the die it adds against that creature only (the Convex fill of the placed effects).
+ */
+describe("a carried mark on the Sheet's attack rows", () => {
+  it('lists the die the mark adds to damage against the marked creature', async () => {
+    const base = await setupCharacterRun()
+    const { t, run, actor, character, player } = base
+    await equipAllCharacterItems(base)
+    const damageDice = async () =>
+      (await player.caller.query(api.characters.sheet.get, {
+        id: character.id
+      }))!.actions.items.find((action) => action.mechanic?.attackBonus != null)?.mechanic
+        ?.damageAddedDice
+    expect(await damageDice()).toBeUndefined()
+    await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: actor.id,
+          holderActorId: crypto.randomUUID(),
+          lifecycle: {},
+          effect: huntersMark.effects![0]!,
+          sourceLabel: huntersMark.label,
+          rounds: 600,
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          concentrationCasterCharacterId: character.id,
+          expiresAtCampaignMinute: 60
+        }
+      })
+    )
+    expect(await damageDice()).toEqual([
+      {
+        label: huntersMark.label,
+        count: 1,
+        faces: 6,
+        sign: 'ADD',
+        damageTypeId: null,
+        againstHolderOnly: true
+      }
+    ])
   })
 })

@@ -1,7 +1,6 @@
 import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { formatEnumLabel } from '#components/AuthoredDetail'
 import {
-  formatAttackAddedDice,
   summarizeCharacterSheetMechanics,
   type CharacterSheetMechanic
 } from '../shared/characterSheetMechanics.utils'
@@ -170,12 +169,7 @@ function toPlayableActionFacts(
       ? mechanic.save?.dc == null
         ? undefined
         : `${mechanic.save.ability.slice(0, 3)} ${mechanic.save.dc}`
-      : [
-          `${mechanic.attackBonus >= 0 ? '+' : ''}${mechanic.attackBonus}`,
-          formatAttackAddedDice(mechanic, false)
-        ]
-          .filter(Boolean)
-          .join(' ')
+      : `${mechanic.attackBonus >= 0 ? '+' : ''}${mechanic.attackBonus}`
 
   return {
     activation,
@@ -203,6 +197,55 @@ function toResourceAction(resource: SheetResource): CharacterSheetPlayableAction
     limitedUseOnly: true,
     availability: { status: 'AVAILABLE' }
   }
+}
+
+/** One die an active effect adds to an action's attack or damage, as its bonus badge lists it. */
+export type CharacterSheetActiveBonus = {
+  source: string
+  die: string
+  appliesTo: 'Attack rolls' | 'Damage'
+  condition?: string
+}
+
+/**
+ * The dice active effects add to an action's attack and damage rolls (SPELLS-8.6): one entry per
+ * source and die, however many of the action's mechanics carry it.
+ */
+export function listActiveBonuses(
+  mechanics: readonly CharacterSheetMechanic[] | undefined
+): CharacterSheetActiveBonus[] {
+  const die = ({
+    count,
+    faces,
+    sign
+  }: {
+    count: number
+    faces: number
+    sign: 'ADD' | 'SUBTRACT'
+  }) => `${sign === 'ADD' ? '+' : '−'}${count}d${faces}`
+  const bonuses = (mechanics ?? []).flatMap((mechanic): CharacterSheetActiveBonus[] => [
+    ...(mechanic.attackAddedDice ?? []).map((added) => ({
+      source: added.label,
+      die: die(added),
+      appliesTo: 'Attack rolls' as const
+    })),
+    ...(mechanic.damageAddedDice ?? []).map((added) => ({
+      source: added.label,
+      die: die(added),
+      appliesTo: 'Damage' as const,
+      ...(added.againstHolderOnly ? { condition: 'Only against the creature it affects' } : {})
+    }))
+  ])
+  return bonuses.filter(
+    (bonus, index) =>
+      bonuses.findIndex(
+        (other) =>
+          other.source === bonus.source &&
+          other.die === bonus.die &&
+          other.appliesTo === bonus.appliesTo &&
+          other.condition === bonus.condition
+      ) === index
+  )
 }
 
 export function formatActionUnavailableReason(

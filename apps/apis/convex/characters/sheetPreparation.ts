@@ -58,7 +58,7 @@ export function projectCharacterSheetFacts(
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation,
     activeEffects: facts.activeEffects,
-    concentration: facts.concentration
+    concentrationEffects: facts.concentrationEffects
   })
   return {
     active: facts.active,

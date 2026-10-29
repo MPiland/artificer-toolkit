@@ -357,8 +357,16 @@ describe('Character Sheet actions', () => {
     expect(screen.queryByRole('heading', { name: /^limited use$/i })).not.toBeInTheDocument()
   })
 
-  it('shows the dice active grants add to an attack beside its bonus (SPELLS-8.6)', () => {
+  it('counts the dice active effects add to a row in one badge that lists them (SPELLS-8.6)', async () => {
+    const user = userEvent.setup()
     const sheet = createSheet()
+    const clubDamage = {
+      kind: 'DAMAGE' as const,
+      pathCode: 'ON_HIT',
+      expression: '1d8 + 3',
+      damageTypeId: 'bludgeoning',
+      damageTypeLabel: 'Bludgeoning'
+    }
     sheet.actions.items = [
       {
         id: 'action-club',
@@ -371,15 +379,30 @@ describe('Character Sheet actions', () => {
           activation: { kind: 'ACTION', amount: 1 },
           attackBonus: 5,
           attackAddedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD' }],
-          outcomes: [
+          damageAddedDice: [
             {
-              kind: 'DAMAGE',
-              pathCode: 'ON_HIT',
-              expression: '1d8 + 3',
-              damageTypeId: 'bludgeoning',
-              damageTypeLabel: 'Bludgeoning'
+              label: "Hunter's Mark",
+              count: 1,
+              faces: 6,
+              sign: 'ADD',
+              damageTypeId: null,
+              againstHolderOnly: true
             }
-          ]
+          ],
+          outcomes: [clubDamage]
+        }
+      },
+      {
+        id: 'action-dagger',
+        label: 'Dagger',
+        kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
+        mechanic: {
+          effectId: 'dagger-effect',
+          trigger: 'MELEE_WEAPON_ATTACK',
+          activation: { kind: 'ACTION', amount: 1 },
+          attackBonus: 4,
+          outcomes: [{ ...clubDamage, expression: '1d4 + 2' }]
         }
       }
     ]
@@ -388,7 +411,26 @@ describe('Character Sheet actions', () => {
       <CharacterSheetActions pending={false} sheet={sheet} submitCommand={vi.fn()} />
     )
 
-    expect(screen.getByLabelText('Hit or DC +5 +1d4')).toBeInTheDocument()
+    const club = screen.getByRole('group', { name: 'Club' })
+    expect(within(club).getByLabelText('Hit or DC +5')).toBeInTheDocument()
+    expect(within(club).getByLabelText('Damage 1d8 + 3 Bludgeoning')).toBeInTheDocument()
+    const badge = within(club).getByRole('button', { name: '2 active bonuses' })
+    expect(badge).toHaveTextContent('2')
+    expect(
+      within(screen.getByRole('group', { name: 'Dagger' })).queryByRole('button', {
+        name: /active bonus/
+      })
+    ).not.toBeInTheDocument()
+
+    badge.focus()
+    expect(badge).toHaveFocus()
+    await user.keyboard('{Enter}')
+    const list = await screen.findByRole('list', { name: '2 active bonuses' })
+    const items = within(list).getAllByRole('listitem')
+    expect(items.map((item) => item.textContent)).toEqual([
+      'Bless+1d4 · Attack rolls',
+      "Hunter's Mark+1d6 · DamageOnly against the creature it affects"
+    ])
   })
 
   it('shows a resource-backed recovery feature only as its charge row', () => {

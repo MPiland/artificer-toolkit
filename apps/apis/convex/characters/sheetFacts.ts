@@ -1,4 +1,3 @@
-import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { prepareCharacterSheetFromContext } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
 import {
@@ -53,12 +52,10 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
       { kind: 'CHARACTER', characterId: loaded.active.id },
       { ownerVerified: true }
     ),
-    concentration: carriedConcentration(
-      await listCarriedActiveRuleEffects(
-        { db: createConvexEncounterStoreReader(ctx) },
-        loaded.active.id
-      )
-    ),
+    concentrationEffects: await listCarriedActiveRuleEffects(
+      { db: createConvexEncounterStoreReader(ctx) },
+      loaded.active.id
+    ).then((carried) => (carried.length === 0 ? null : carried)),
     sourceContext: {
       ...loaded.sourceContext,
       sourcePreparation: evaluated.prepared.sourcePreparation

@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 
 import { buildMovementTarget, type CharacterMovementFacts } from '../encounterMovementTargets.js'
+import type { CharacterSheetCampaignContext } from '../character/campaignCharacterSheet.js'
 import { projectCharacterTurnActions } from '../character/turnFacts.js'
 import { prepareFixtureSheet, readyFighterFixture } from '../testing/characterContextFixtures.js'
 import {
@@ -21,6 +23,8 @@ import { blessEffect, plannedGrantEffect } from './antitoxinEffectFixture.js'
 const HOLDER_ID = testUuid(0x8f01)
 const SHILLELAGH_ID = testUuid(0x8f02)
 const BLESS_ID = testUuid(0x8f03)
+const MARK_ID = testUuid(0x8f04)
+const MARKED_ID = testUuid(0x8f05)
 const CLUB_ITEM_ID = 'held-club'
 
 /** Shillelagh as the real compiler plans it, bound to the Fighter's held Club. */
@@ -51,8 +55,14 @@ function shillelaghOnClub(): ActiveRuleEffectRecord {
   }
 }
 
-/** A Fighter holding a Club, with `activeEffects`: its Sheet, and the room's turn actions over it. */
-async function fighterWithClub(activeEffects: ActiveRuleEffectRecord[]) {
+/**
+ * A Fighter holding a Club, with `activeEffects` and the `concentrationEffects` it keeps alive: its
+ * Sheet, and the room's turn actions over it.
+ */
+async function fighterWithClub(
+  activeEffects: ActiveRuleEffectRecord[],
+  concentrationEffects?: ActiveRuleEffectRecord[]
+) {
   const fixture = readyFighterFixture()
   const character = {
     ...fixture.character,
@@ -68,15 +78,27 @@ async function fighterWithClub(activeEffects: ActiveRuleEffectRecord[]) {
   const sheet = await prepareFixtureSheet({
     character,
     documents: fixture.documents,
-    activeEffects
+    activeEffects,
+    concentrationEffects
   })
-  const characterFacts: CharacterMovementFacts = {
+  const campaignContext: CharacterSheetCampaignContext = {
+    viewer: 'CHARACTER_OWNER',
+    isCampaignOwner: false,
+    campaignId: null,
+    campaignStatus: null,
+    contentMaturity: null,
+    attunementSlotOverride: null,
+    adjustments: [],
+    secretAdjustmentIds: new Set(),
+    conditions: []
+  }
+  const characterFacts = {
     active: { id: character.id, checksum: 'a'.repeat(64), play: { streamVersion: 1 } },
     character: sheet.prepared.character,
-    campaignContext: { conditions: [], adjustments: [], attunementSlotOverride: null },
+    campaignContext,
     prepared: sheet.prepared,
     ruleEvaluation: sheet.ruleEvaluation
-  }
+  } satisfies CharacterMovementFacts
   const target = buildMovementTarget({
     actor: characterActor({ id: HOLDER_ID, characterId: character.id }),
     activeEffects,
@@ -123,5 +145,27 @@ describe('Sheet attack rows under active grants (SPELLS-8.6)', () => {
   it('matches the room row for row with no active grant', async () => {
     const plain = await fighterWithClub([])
     expect(plain.sheet).toEqual(plain.room)
+  })
+
+  it("lists the d6 the Fighter's mark adds to its damage against the marked creature only", async () => {
+    const mark = plannedGrantEffect({
+      id: MARK_ID,
+      holderActorId: MARKED_ID,
+      sourceActorId: HOLDER_ID,
+      effect: huntersMark.effects?.[0],
+      sourceLabel: huntersMark.label
+    })
+    const marking = await fighterWithClub([], [mark])
+    expect(marking.sheet.damageAddedDice).toEqual([
+      {
+        label: huntersMark.label,
+        count: 1,
+        faces: 6,
+        sign: 'ADD',
+        damageTypeId: null,
+        againstHolderOnly: true
+      }
+    ])
+    expect((await fighterWithClub([])).sheet.damageAddedDice).toBeUndefined()
   })
 })
