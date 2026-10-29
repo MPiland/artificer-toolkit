@@ -1,6 +1,7 @@
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetCampaignContext } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
+import type { CharacterSheetBuilderPreparation } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import {
@@ -33,6 +34,7 @@ export type CharacterSheetSourceContext = {
   ownerUserId: string
   context: CharacterSourceContext
   sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
+  builderPreparation?: CharacterSheetBuilderPreparation<CharacterSourceContext>
 }
 
 /**
@@ -158,6 +160,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
       reusableSources = {
         ...sourceContext,
         sourcePreparation: undefined,
+        builderPreparation: undefined,
         context: {
           ...context,
           currentSpellsById,
