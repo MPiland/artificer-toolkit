@@ -1019,6 +1019,44 @@ describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)
   })
 })
 
+describe('effects a SAME_EFFECT END_EFFECTS selector ends (SPELLS-31.T5k)', () => {
+  const OWN_EFFECT_ID = '00000000-0000-4000-8000-00000000f5a1'
+  const madeBy = (id: string, authoredEffectId: string) => {
+    const effect = activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      stateContributions: [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' }]
+    })
+    return { ...effect, definition: { ...effect.definition, authoredEffectId } }
+  }
+  const held = [
+    madeBy(FIRST_ID, OWN_EFFECT_ID),
+    madeBy(SECOND_ID, '00000000-0000-4000-8000-00000000f5a2')
+  ]
+
+  it('ends only the effects the named Effect made earlier, so a new use replaces the old one', () => {
+    const { endedEffects } = selectedEndedEffects({
+      holderActorId: HOLDER_ID,
+      held,
+      selectors: [{ kind: 'SAME_EFFECT', effectId: OWN_EFFECT_ID }],
+      castLevel: null,
+      actorCreatureTypeIds: new Map(),
+      scope: 'ALL'
+    })
+    expect(endedEffects.map(({ id }) => id)).toEqual([FIRST_ID])
+  })
+
+  it('matches nothing when the Effect holds nothing on the target yet', () => {
+    expect(
+      endEffectsCandidates([held[1]!], [{ kind: 'SAME_EFFECT', effectId: OWN_EFFECT_ID }], {
+        castLevel: null,
+        actorCreatureTypeIds: new Map()
+      })
+    ).toEqual([])
+  })
+})
+
 describe('the checks a spell cast owes for higher-level effects (SPELLS-4.T2f1b2, D182a)', () => {
   const THIRD_ID = '00000000-0000-4000-8000-00000000f2a3'
   const staged = (id: string, originLevel: number | null, createdOrdinal: number) =>

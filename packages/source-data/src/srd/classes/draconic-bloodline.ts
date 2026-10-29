@@ -135,19 +135,9 @@ export const draconicBloodlineOrigin: ClassAuthored = {
             order: 0
           }
         ]
-      },
-      effects: [
-        closedRuleEffect({
-          id: classRowId(S, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(S, 21, 1), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_DRAGON_ANCESTOR
-        })
-      ]
+      }
+      // The ancestor is the subclass specialization the Builder stores. The doubled proficiency
+      // when dealing with dragons stays in the description (GM ruling, D187a).
     },
     {
       id: classRowId(S, 11, 2),

@@ -208,6 +208,14 @@ export function evaluateDnd5e2014CharacterGrantFold(
           someSelected(condition.requiredIds, parsedInput.base.featureIds) &&
           someSelected(condition.secondaryRequiredIds, parsedInput.base.optionIds)
         )
+      case 'SUBCLASS_SPECIALIZATION':
+        return parsedInput.base.classes.some(
+          ({ subclassId, specializationId }) =>
+            subclassId !== null &&
+            (condition.requiredIds.length === 0 || condition.requiredIds.includes(subclassId)) &&
+            specializationId !== null &&
+            (condition.mode === 'ALL' || condition.secondaryRequiredIds.includes(specializationId))
+        )
       case 'SPELL_OBTAINED':
         return someSelected(condition.requiredIds, [
           ...parsedInput.upstreamSpellIds,

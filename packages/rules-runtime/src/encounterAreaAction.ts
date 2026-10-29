@@ -349,7 +349,7 @@ export function encounterActionChoiceTarget(
   if (area) return { kind: 'POINT', area }
   const directedArea = policy ? authoredDirectedArea(policy) : null
   if (directedArea) return { kind: 'DIRECTED', area: directedArea }
-  if (targeting?.selectionKind === 'SELF') return { kind: 'SELF' }
+  if (targeting?.selectionKind === 'SELF') return { kind: 'SELF', ...choiceOptions }
   const single = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting : undefined
   return {
     kind: 'ACTOR',

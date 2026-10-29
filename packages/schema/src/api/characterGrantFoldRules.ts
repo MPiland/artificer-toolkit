@@ -68,6 +68,11 @@ const restrictionConditionSchema = lazySchema(() =>
       'FEAT_OBTAINED',
       'FEATURE_OBTAINED',
       'OPTION_OBTAINED',
+      /**
+       * A class entry's subclass is in `requiredIds` (any subclass when empty) and its stored
+       * specialization is in `secondaryRequiredIds` (any specialization in ALL mode).
+       */
+      'SUBCLASS_SPECIALIZATION',
       'SPELL_OBTAINED',
       'CAN_CAST_SPELL',
       /** Holder-state conditions are decided live in an Encounter, never by the fold. */
@@ -319,7 +324,10 @@ export const characterGrantFoldInputSchema = lazySchema(() =>
             z.strictObject({
               classId: identitySchema,
               level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
-              spellcasting: z.boolean()
+              spellcasting: z.boolean(),
+              subclassId: z.nullable(identitySchema),
+              /** The subclass specialization the Builder stored (a Draconic Bloodline's dragon). */
+              specializationId: z.nullable(identitySchema)
             })
           )
           .check(z.maxLength(20)),

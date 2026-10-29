@@ -285747,7 +285747,10 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "SELF" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "SELF";
+                }
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;
@@ -287505,7 +287508,10 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "SELF" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "SELF";
+                }
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;

@@ -442,6 +442,13 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - `sheetCommandReducer.test.ts`: every mode and refusal.
     - `CharacterSheetActions.test.tsx`: the slot picker.
     - Room journey `nativeRoomSpellSlotExchange.test.ts`.
+- **T5k (2026-10-28), a stored feature choice:** the four kinds are deleted (`CLASS_RANGER_FAVORED_ENEMY`, `CLASS_RANGER_FOE_SLAYER`, `CLASS_DRACONIC_BLOODLINE_DRAGON_ANCESTOR`, `CLASS_FIEND_FIENDISH_RESILIENCE`).
+  - **Favored Enemy (and its improvement) and Foe Slayer** are description-only (GM ruling, D187a): a favored enemy is not a stored choice, and the engine has no tracking or recall context.
+  - **Dragon Ancestor:** the ancestor is the subclass specialization the Builder already requires and stores (`specializationId`, `builderResolution.ts` SPECIALIZATION_REQUIRED), so no new feature-choice option is built. The doubled proficiency with dragons stays in the description. Per the orchestrator ruling, the Character grant fold now decides a `SUBCLASS` context's `SUBCLASS_SPECIALIZATION` condition from the stored `specializationId`, beside OPTION_OBTAINED (`subclassSpecializationGrantFold.test.ts`, INCLUDE and EXCLUDE). T5i reads the ancestry that way. No new predicate, node map or persisted change.
+  - **Fiendish Resilience** is a free, once-between-rests (SHORT_REST charge) action on its user that picks one of the SRD damage types. Each option is a SEQUENCE: `END_EFFECTS` with the new `SAME_EFFECT` selector (ends what this Effect granted before), then an `UNTIL_DISPELLED` DAMAGE_RESISTANCE grant that magical and silvered weapons bypass. "When you finish a rest" becomes "once between rests, at any time" (GM ruling, DOC rider).
+  - **Engine pieces (generic):** `SAME_EFFECT` resolves at compile time to the owning Effect id and matches `authoredEffectId`; `modifierGrantEntryPlan` accepts an `UNTIL_DISPELLED` grant (no counted turns, no recurrence); a `SELF` target may carry a cast pick (`choiceOptions` on the SELF choice target; the command stays an ACTOR target on the user). See rules-runtime "Same-effect selector".
+  - **Proofs:** `featureChoiceRulingsAuthoringParity.test.ts` (kinds gone, rulings, a homebrew ward through the class node map, SRD and homebrew compile alike), `encounterEndedEffectRelease.test.ts` (SAME_EFFECT selection), `nativeRoomFiendishResilience.test.ts` (offer on SELF, resistance held, next use replaces it, undo).
+  - **Limits:** live room only (the Sheet has no out-of-Encounter feature-action command); `SAME_EFFECT` matches the same Effect from any origin.
 
 ### One with Shadows resume (SPELLS-31.T5n2, size 3, after T5n)
 

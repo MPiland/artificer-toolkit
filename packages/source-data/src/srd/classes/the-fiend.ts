@@ -4,17 +4,24 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
+  DURATION_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  PATH_GROUP_TYPE,
   RANGE_KIND,
   SCALING,
   SPELL_GRANT_ACCESS,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -127,17 +134,86 @@ export const theFiend: ClassAuthored = {
         'Starting at 10th level, you can choose one damage type when you finish a short or long rest. You gain resistance to that damage type until you choose a different one with this feature. Damage from magical weapons or silver weapons ignores this resistance.',
       availableAtLevel: 10,
       order: 3,
+      // The choice is made once between rests at any time rather than as a rest ends (a GM ruling):
+      // the engine has no rest-end prompt. A new choice ends the earlier one.
+      attributes: ['LIMITED_USE'],
+      charges: {
+        id: classRowId(W, 22, 3),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 1
+      },
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(W, 20, 4),
+          order: 1,
           invocation: {
-            kind: 'PASSIVE',
+            kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(W, 22, 3), cost: 1 },
+            activation: { code: ACTIVATION_CODE.FREE },
             range: { id: classRowId(W, 21, 4), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_FIENDISH_RESILIENCE
-        })
+          paths: [
+            {
+              id: classRowId(W, 24, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.CHOICE,
+              originKind: 'SOURCE',
+              selectionKind: 'CHOICE',
+              options: SRD_DAMAGE_TYPES.map(({ id: damageTypeId, label }, index) => ({
+                id: classRowId(W, 25, index + 1),
+                order: index + 1,
+                label,
+                description: `Resistance to ${label.toLowerCase()} damage until you choose a different one; magical and silvered weapons ignore it.`,
+                resultBlock: {
+                  id: `${classRowId(W, 26, index + 1)}__result`,
+                  resultKind: 'SEQUENCE',
+                  duration: {
+                    id: classRowId(W, 27, index + 1),
+                    durationKind: DURATION_KIND.UNTIL_DISPELLED
+                  },
+                  outcomes: [
+                    {
+                      id: classRowId(W, 28, index + 1),
+                      effectKind: EFFECT_KIND.END_EFFECTS,
+                      scope: 'ALL',
+                      selectors: [{ kind: 'SAME_EFFECT' }]
+                    },
+                    {
+                      id: classRowId(W, 29, index + 1),
+                      effectKind: EFFECT_KIND.APPLY_GRANT,
+                      grants: {
+                        modifiers: [
+                          {
+                            id: classRowId(W, 30, index + 1),
+                            grantKind: GRANT_KIND.MODIFIER_GRANT,
+                            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+                            domain: {},
+                            modifierKind: MODIFIER_KIND.ADD_OPTION,
+                            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                            payload: {
+                              damageTypeId,
+                              bypassedBy: [
+                                DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL,
+                                DAMAGE_DEFENSE_BYPASS_CODE.SILVERED
+                              ]
+                            },
+                            order: 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }))
+            }
+          ]
+        }
       ]
     },
     {
