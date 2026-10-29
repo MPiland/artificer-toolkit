@@ -11,13 +11,15 @@ import type schema from '../../convex/schema'
 
 /**
  * Runs scheduled work to completion on fake timers, so the staged account deletion's retry
- * watchdogs (ADR 0040) fire and retire instead of leaving the drain waiting on a real clock.
+ * watchdogs (ADR 0040) fire and retire instead of leaving the drain waiting on a real clock. It
+ * advances one timer at a time: firing every timer at once starts a step's watchdog before the
+ * step commits, and each lost race doubles the backoff, carrying the clock past session expiries.
  */
 export async function drainScheduledWork(t: TestConvex<typeof schema>) {
   const realTimers = !vi.isFakeTimers()
   if (realTimers) vi.useFakeTimers({ now: Date.now() })
   try {
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    await t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer(), 1_000)
   } finally {
     if (realTimers) vi.useRealTimers()
   }
