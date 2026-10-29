@@ -30,6 +30,7 @@ import {
 import { EFFECT_ID_NODE_MAP } from './effectId.js'
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
+import { createFacetScopedNodeMap } from './facetScoped.js'
 import {
   LOGIC_CONDITION_AUTHORING,
   LOGIC_CONTEXT_AUTHORING,
@@ -40,19 +41,16 @@ const CODE_COLUMNS = ['id', 'label', 'description'] as const
 
 const facetBodyGroupNode = buildNodeMap<FacetBodyGroupAuthored>()
 
-export const FACET_BODY_GROUP_NODE_MAP = facetBodyGroupNode.define(
-  'facetBodyGroup',
-  ({ map, nodes }) => {
-    const { groupArray } = nodes
-    map.set(
-      'conditions',
-      groupArray(['conditions'], 'Conditions', () => FACET_BODY_CONDITION_NODE_MAP, {
-        presentation: 'inline',
-        ...LOGIC_CONDITION_AUTHORING
-      })
-    )
-  }
-)
+const FACET_BODY_GROUP_NODE_MAP = facetBodyGroupNode.define('facetBodyGroup', ({ map, nodes }) => {
+  const { groupArray } = nodes
+  map.set(
+    'conditions',
+    groupArray(['conditions'], 'Conditions', () => FACET_BODY_CONDITION_NODE_MAP, {
+      presentation: 'inline',
+      ...LOGIC_CONDITION_AUTHORING
+    })
+  )
+})
 
 const facetBodyNode = buildNodeMap<FacetBodyAuthored>()
 
@@ -223,6 +221,8 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
       )
   }
 )
+
+export const FACET_SCOPED_NODE_MAP = createFacetScopedNodeMap(FACET_BODY_GROUP_NODE_MAP)
 
 const FACET_EXISTS_NODE_MAP = createFacetExistsNodeMap('facetExists', 'PARENT', FACET_BODY_NODE_MAP)
 const FACET_BODY_EXISTS_NODE_MAP = createFacetExistsNodeMap(
