@@ -11,10 +11,7 @@ import {
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import {
-  preparedCastsSpell,
-  preparedSpellCastLevel
-} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { CommittedExecutionTrace } from '@artificer-toolkit/rules-runtime/executionOutcomeCapability'
 import {
   encounterBasicActionCheckPendingSnapshot,
@@ -46,20 +43,21 @@ export function planEndEffects(
   }[],
   held: readonly ActiveRuleEffectRecord[],
   target: { kind: string; chosenEffectId?: string },
-  prepared: Parameters<typeof preparedSpellCastLevel>[0] & {
-    actors: Parameters<typeof actorCreatureTypeIdsOf>[0]
-  }
+  {
+    castLevel,
+    actors
+  }: { castLevel: number | null; actors: Parameters<typeof actorCreatureTypeIdsOf>[0] }
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
-  const actorCreatureTypeIds = actorCreatureTypeIdsOf(prepared.actors)
+  const actorCreatureTypeIds = actorCreatureTypeIdsOf(actors)
   const offer = offerEndEffects({
     endEffects,
     held,
     actorCreatureTypeIds,
     chosenEffectId: target.chosenEffectId,
-    castLevel: preparedSpellCastLevel(prepared)
+    castLevel
   })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
