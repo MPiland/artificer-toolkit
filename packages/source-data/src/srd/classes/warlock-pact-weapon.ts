@@ -55,7 +55,9 @@ export function pactOfTheBladeEffect(rowId: RowId): EffectAuthored {
           id: `${rowId(0x81)}__result`,
           resultKind: 'SEQUENCE',
           duration: { id: rowId(0x83), durationKind: DURATION_KIND.UNTIL_DISPELLED },
-          lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }]
+          },
           outcomes: [
             {
               id: rowId(0x82),
