@@ -1098,12 +1098,10 @@ export const PlayerSeesOnlyWhatTheyMay: Story = {
     await expect(description).toContain('Poisoned')
     await expect(description).not.toContain('Wounded')
     await expect(description).not.toContain('Fled')
-    await expect(description).toContain(
-      `${emberToken.label}. Character. Friendly. Reaction available`
-    )
+    // The harness binds no actor to Ember's token; its reaction is keyed by the token.
     const scene = projectScene('PLAYER', fledWardenFixtures.liveScene)
     const emberPresentation = buildTabletopPresentations({
-      actorIdByTokenId: new Map([[emberToken.id, emberActorId]]),
+      actorIdByTokenId: new Map(),
       boundTokenControl: new Map(),
       currentUserId: tabletopCurrentUserId,
       encounter: fledWardenFixtures.playerEncounter,
@@ -1111,6 +1109,10 @@ export const PlayerSeesOnlyWhatTheyMay: Story = {
       scene
     })[emberToken.id]!
     await expect(emberPresentation.halo?.label).toBe('Reaction available')
+    await expect(emberPresentation.accessibleDescription).toContain(
+      `${emberToken.label}. Scene token. Reaction available`
+    )
+    await expect(description).toContain(emberPresentation.accessibleDescription)
     const renderer = await latestStageRenderer()
     await waitFor(async () =>
       expectDrawnPresentation(
