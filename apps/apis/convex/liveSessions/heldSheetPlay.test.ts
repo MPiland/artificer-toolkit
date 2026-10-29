@@ -247,9 +247,9 @@ describe('Sheet play on a held Character', () => {
       expect(totals.reads.byTable[table], table).toBeUndefined()
       expect(totals.writes.byTable[table], table).toBeUndefined()
     }
-    // The room keeps play: only the build counts and the head's structure clock are rewritten.
+    // The room keeps play: only the build counts and its structure clock are rewritten.
     expect(totals.writes.byTable.replace?.documents).toBe(1)
-    expect(totals.writes.byTable.patch?.documents).toBe(1)
+    expect(totals.writes.byTable.patch).toBeUndefined()
     const noted = await base.storage()
     expect(noted.character!.play).toEqual(play.character!.play)
     // The built-in Session Notes group is materialized as the one written group row.

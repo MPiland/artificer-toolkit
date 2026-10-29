@@ -11,6 +11,15 @@ import {
 } from './campaignCharacterSheet.js'
 import { getPreparedAndKnownSpellIds } from './sheetSpellIds.js'
 
+/**
+ * A Builder preparation keyed by the Character document it reconciled. Preparation reads only that
+ * document and its context, so an evaluation over the same document and context object reuses it.
+ */
+export type CharacterSheetBuilderPreparation<TContext extends CharacterBuilderContext> = {
+  document: string
+  prepared: Awaited<ReturnType<typeof prepareCharacterBuilderFromContext<TContext>>>
+}
+
 /** Evaluates already-authorized current inputs without accessing persistence. */
 export async function prepareCharacterSheetFromContext<
   TContext extends CharacterBuilderContext & {
@@ -23,15 +32,22 @@ export async function prepareCharacterSheetFromContext<
   campaignContext: CharacterSheetCampaignContext
   sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
   referenceSpellIds?: readonly string[]
+  /** An earlier preparation in this transaction, reused while its document and context match. */
+  builderPreparation?: CharacterSheetBuilderPreparation<TContext>
 }) {
   const { character, context, sheetState, campaignContext } = input
-  const prepared = await prepareCharacterBuilderFromContext({
-    character,
-    current: character,
-    mode: 'edit',
-    context,
-    sourcePreparation: input.sourcePreparation
-  })
+  const document = JSON.stringify(character)
+  const reusable = input.builderPreparation
+  const prepared =
+    reusable?.document === document && reusable.prepared.context === context
+      ? reusable.prepared
+      : await prepareCharacterBuilderFromContext({
+          character,
+          current: character,
+          mode: 'edit',
+          context,
+          sourcePreparation: input.sourcePreparation
+        })
   if (!prepared.resolution.readiness.ready)
     throw new Error('Character requires Builder repair before the Sheet can be read.')
   const adjustments = mergeCampaignSheetAdjustments(
@@ -62,6 +78,7 @@ export async function prepareCharacterSheetFromContext<
     prepared,
     adjustments,
     evaluationInput: { ...evaluationInput, referenceSpellIds: [...referenceSpellIds] },
-    ruleEvaluation
+    ruleEvaluation,
+    builderPreparation: { document, prepared }
   }
 }

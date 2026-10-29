@@ -13,7 +13,9 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
+import { readCharacterSources } from './sourceReads'
 import type { QueryCtx } from '../_generated/server'
 
 export async function projectCharacterPreparationOptions(
@@ -66,12 +68,44 @@ export async function projectCharacterPreparationOptions(
   )
 }
 
+/**
+ * The stored preparation options while they are current. Snapshot builds finish without a
+ * Character write, so an owner's manifest is read from the current heads (ADR 0041).
+ */
+export async function readStoredCharacterPreparationOptions(
+  ctx: QueryCtx,
+  input: { userId: string; lookupId: string; campaignId?: string }
+) {
+  const stored = await readStoredCharacterSheetSection(ctx, {
+    ...input,
+    section: characterSheetSection.preparation
+  })
+  if (stored === undefined) return undefined
+  const options = characterPreparationOptionsResponseDtoSchema.parse(stored)
+  if (options.catalogue.kind !== 'SNAPSHOTS') return options
+  const { systemId } = options.catalogue.manifest
+  const access = await readCharacterSources(
+    ctx,
+    { id: options.characterId, systemId, userId: input.userId },
+    input.userId
+  )
+  return {
+    ...options,
+    catalogue: {
+      ...options.catalogue,
+      manifest: await readContentSnapshotManifest(ctx, systemId, access)
+    }
+  }
+}
+
 export const get = query({
   args: zodToConvexFields(characterSheetReadInputSchema.shape),
   returns: v.union(v.null(), zodToConvex(characterPreparationOptionsResponseDtoSchema)),
   handler: async (ctx, args): Promise<CharacterPreparationOptionsResponseDto | null> => {
     const { userId } = await requireIdentity(ctx)
     const { id } = characterSheetReadInputSchema.parse(args)
+    const stored = await readStoredCharacterPreparationOptions(ctx, { userId, lookupId: id })
+    if (stored) return stored
     const current = await loadCharacterSheet(ctx, userId, id)
     if (!current) return null
     return projectCharacterPreparationOptions(ctx, current)

@@ -33,6 +33,8 @@ export const characterOptionalStateKeySchema = lazySchema(() =>
 export const characterStoredBuildStateSchema = lazySchema(() =>
   z.strictObject({
     characterId: postgresUuidSchema,
+    /** The structure clock: it advances only when the document or the Sheet structure changes. */
+    updatedAt: z.iso.datetime(),
     description: z.optional(z.string()),
     profile: characterProfileAuthoredDtoSchema,
     intent: characterIntentDtoSchema,
