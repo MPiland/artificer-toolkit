@@ -2566,7 +2566,7 @@ export declare const api: {
                 damageAddedDice?: Array<{
                   againstHolderOnly: boolean;
                   count: number;
-                  damageTypeId: null | string;
+                  damageTypeId: string | null;
                   faces: 4 | 6 | 8 | 10 | 12;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
@@ -3298,7 +3298,7 @@ export declare const api: {
                   damageAddedDice?: Array<{
                     againstHolderOnly: boolean;
                     count: number;
-                    damageTypeId: null | string;
+                    damageTypeId: string | null;
                     faces: 4 | 6 | 8 | 10 | 12;
                     label: string;
                     sign: "ADD" | "SUBTRACT";
@@ -3441,7 +3441,7 @@ export declare const api: {
                 damageAddedDice?: Array<{
                   againstHolderOnly: boolean;
                   count: number;
-                  damageTypeId: null | string;
+                  damageTypeId: string | null;
                   faces: 4 | 6 | 8 | 10 | 12;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
@@ -17253,7 +17253,7 @@ export declare const api: {
                 damageAddedDice?: Array<{
                   againstHolderOnly: boolean;
                   count: number;
-                  damageTypeId: null | string;
+                  damageTypeId: string | null;
                   faces: 4 | 6 | 8 | 10 | 12;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
@@ -17985,7 +17985,7 @@ export declare const api: {
                   damageAddedDice?: Array<{
                     againstHolderOnly: boolean;
                     count: number;
-                    damageTypeId: null | string;
+                    damageTypeId: string | null;
                     faces: 4 | 6 | 8 | 10 | 12;
                     label: string;
                     sign: "ADD" | "SUBTRACT";
@@ -18128,7 +18128,7 @@ export declare const api: {
                 damageAddedDice?: Array<{
                   againstHolderOnly: boolean;
                   count: number;
-                  damageTypeId: null | string;
+                  damageTypeId: string | null;
                   faces: 4 | 6 | 8 | 10 | 12;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
@@ -19980,7 +19980,7 @@ export declare const api: {
                     damageAddedDice?: Array<{
                       againstHolderOnly: boolean;
                       count: number;
-                      damageTypeId: null | string;
+                      damageTypeId: string | null;
                       faces: 4 | 6 | 8 | 10 | 12;
                       label: string;
                       sign: "ADD" | "SUBTRACT";
@@ -20262,7 +20262,7 @@ export declare const api: {
                       damageAddedDice?: Array<{
                         againstHolderOnly: boolean;
                         count: number;
-                        damageTypeId: null | string;
+                        damageTypeId: string | null;
                         faces: 4 | 6 | 8 | 10 | 12;
                         label: string;
                         sign: "ADD" | "SUBTRACT";
@@ -20405,7 +20405,7 @@ export declare const api: {
                     damageAddedDice?: Array<{
                       againstHolderOnly: boolean;
                       count: number;
-                      damageTypeId: null | string;
+                      damageTypeId: string | null;
                       faces: 4 | 6 | 8 | 10 | 12;
                       label: string;
                       sign: "ADD" | "SUBTRACT";
@@ -20711,7 +20711,7 @@ export declare const api: {
                       damageAddedDice?: Array<{
                         againstHolderOnly: boolean;
                         count: number;
-                        damageTypeId: null | string;
+                        damageTypeId: string | null;
                         faces: 4 | 6 | 8 | 10 | 12;
                         label: string;
                         sign: "ADD" | "SUBTRACT";
@@ -20863,7 +20863,7 @@ export declare const api: {
                     damageAddedDice?: Array<{
                       againstHolderOnly: boolean;
                       count: number;
-                      damageTypeId: null | string;
+                      damageTypeId: string | null;
                       faces: 4 | 6 | 8 | 10 | 12;
                       label: string;
                       sign: "ADD" | "SUBTRACT";
