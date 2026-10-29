@@ -2501,7 +2501,8 @@ export declare const api: {
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: { code: string; label: string };
               }
-            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+            | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -6505,7 +6506,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -6609,7 +6611,8 @@ export declare const api: {
                     kind: "D20_MODE_ADJUSTED";
                     rolledMode: { code: string; label: string };
                   }
-                | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+                | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+                | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -6718,7 +6721,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -6815,7 +6819,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9630,7 +9635,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9743,7 +9749,8 @@ export declare const api: {
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: { code: string; label: string };
               }
-            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+            | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -9837,7 +9844,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -289492,6 +289500,7 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  autoFail?: Array<{ conditionId: string; label: string }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   keep: "FIRST" | "HIGHER" | "LOWER";
@@ -289579,6 +289588,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -289958,6 +289968,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -290049,6 +290060,7 @@ export declare const api: {
                         label: string;
                         sign: "ADD" | "SUBTRACT";
                       }>;
+                      autoFail?: Array<{ conditionId: string; label: string }>;
                       derivedRollModeReasons: Array<string>;
                       heldD20?: {
                         caption: string | null;
@@ -290786,7 +290798,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -291036,7 +291049,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -291078,6 +291092,7 @@ export declare const api: {
                 label: string;
                 sign: "ADD" | "SUBTRACT";
               }>;
+              autoFail?: Array<{ conditionId: string; label: string }>;
               derivedRollModeReasons: Array<string>;
               heldD20?: { caption: string | null; faces: Array<number> };
               keep: "FIRST" | "HIGHER" | "LOWER";
@@ -291162,6 +291177,7 @@ export declare const api: {
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
+                autoFail?: Array<{ conditionId: string; label: string }>;
                 derivedRollModeReasons: Array<string>;
                 heldD20?: { caption: string | null; faces: Array<number> };
                 keep: "FIRST" | "HIGHER" | "LOWER";
@@ -292276,6 +292292,7 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  autoFail?: Array<{ conditionId: string; label: string }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   keep: "FIRST" | "HIGHER" | "LOWER";
@@ -292363,6 +292380,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -294249,7 +294267,8 @@ export declare const api: {
               kind: "D20_MODE_ADJUSTED";
               rolledMode: { code: string; label: string };
             }
-          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -294368,7 +294387,8 @@ export declare const api: {
               kind: "D20_MODE_ADJUSTED";
               rolledMode: { code: string; label: string };
             }
-          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
