@@ -582,7 +582,11 @@ describe.each(HELD_ZONES)('the SRD $spell.label zone (SPELLS-4.T1e)', (subject) 
     const [held, ...others] = await heldEffectsOf(zoneRoomed)
     expect(others).toEqual([])
     expect(held?.definition).toMatchObject({
-      recurrence: { endOnEvents: endsOnLeavingArea ? ['ON_LEAVING_AREA'] : [] },
+      recurrence: {
+        endTriggers: endsOnLeavingArea
+          ? [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
+          : []
+      },
       stateContributions: [
         {
           kind: 'CONDITION_OWNERSHIP',

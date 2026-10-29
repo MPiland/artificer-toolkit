@@ -34,14 +34,13 @@ import {
   type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import { conditionTypeId, skillId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
 import { creatureTypeId } from '../spells/shared.js'
 import {
   SRD_CURRENCIES,
   SRD_DEVILS_SIGHT_SENSE_ID,
-  SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
   ABILITY_CODE
@@ -56,13 +55,6 @@ import {
 } from './mechanics.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function skillId(code: string): string {
-  const entry = SRD_SKILLS.find((s) => s.code === code)
-  if (!entry)
-    throw new Error(`SRD skill vocabulary entry for ${code} required for class source data.`)
-  return entry.id
-}
 
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
 if (!goldCurrencyId)
@@ -1558,7 +1550,12 @@ export const warlock: ClassAuthored = {
                 result: classRowId(W, 0x81, 18)
               },
               activation: ACTIVATION_CODE.ACTION,
-              lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+              lifecycle: {
+                endTriggers: [
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' },
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' }
+                ]
+              },
               outcome: {
                 id: classRowId(W, 0x82, 18),
                 effectKind: EFFECT_KIND.CONDITION,

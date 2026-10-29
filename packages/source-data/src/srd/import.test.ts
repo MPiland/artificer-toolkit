@@ -179,7 +179,10 @@ describe('canonical Convex import preparation', () => {
     expect(helpBlocks.map((block) => block.lifecycle)).toEqual([
       {
         turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
-        consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
+        ]
       }
     ])
     expect(helpAction?.effects[0]?.invocation.targeting).toEqual({

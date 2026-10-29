@@ -363,6 +363,7 @@ describe('native Campaign custody deletion', () => {
   it.each(['ACTIVE', 'ARCHIVED'] as const)(
     'removes populated party and unavailable Vehicle custody from a %s Campaign while preserving personal and unrelated Campaign state',
     async (status) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       const base = await readySheetFixture()
       await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -391,6 +392,10 @@ describe('native Campaign custody deletion', () => {
           campaignId: target.id,
           expectedVersion: current.version
         })
+      // Character writes queue the Sheet's derivation (ADR 0041); work due within the snapshot
+      // build delay settles before the baseline, and the build stays pending.
+      await vi.advanceTimersByTimeAsync(1_000)
+      await base.t.finishInProgressScheduledFunctions()
       const before = await snapshot(base.t)
       assertPopulated(before, target.id)
       assertPopulated(before, unrelated.id)
@@ -453,6 +458,7 @@ describe('native Campaign custody deletion', () => {
   it.each(['ACTIVE', 'ARCHIVED'] as const)(
     'rolls back a failed cleanup page for populated %s Campaign custody and retries',
     async (status) => {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
       const base = await readySheetFixture()
       await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
@@ -476,6 +482,10 @@ describe('native Campaign custody deletion', () => {
           campaignId: target.id,
           expectedVersion: current.version
         })
+      // Character writes queue the Sheet's derivation (ADR 0041); work due within the snapshot
+      // build delay settles before the baseline, and the build stays pending.
+      await vi.advanceTimersByTimeAsync(1_000)
+      await base.t.finishInProgressScheduledFunctions()
       const before = await snapshot(base.t)
       assertPopulated(before, target.id)
       const command = {
@@ -549,8 +559,8 @@ describe('native Campaign custody deletion', () => {
   ] as const)(
     'runs the real public custody producers before deleting a $status Campaign$suffix',
     async ({ status, buildTiming }) => {
-      const base = await readySheetFixture()
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+      const base = await readySheetFixture()
       await importSeededSubjects(base.t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,
         subjects: [

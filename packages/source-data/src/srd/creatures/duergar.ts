@@ -337,7 +337,10 @@ export const duergar: CreatureAuthored = {
                   amount: 1
                 },
                 lifecycle: {
-                  endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+                  endTriggers: [
+                    { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' },
+                    { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_CAST_SPELL' }
+                  ]
                 },
                 outcomes: [
                   {

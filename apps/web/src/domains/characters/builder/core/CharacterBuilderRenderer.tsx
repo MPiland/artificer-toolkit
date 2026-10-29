@@ -44,10 +44,6 @@ export const CharacterBuilderRenderer = withForm({
     const deferredResolutionFingerprint = useSelector(form.store, (state) =>
       getCharacterBuilderDeferredResolutionFingerprint(state.values)
     )
-    const submitState = useSelector(form.store, (state) => ({
-      canSubmit: state.canSubmit,
-      isSubmitting: state.isSubmitting
-    }))
     const activeStep = getCharacterBuilderStep(
       authoring.activeStepId ?? payload.resolution.recommendedSectionId
     )
@@ -132,19 +128,10 @@ export const CharacterBuilderRenderer = withForm({
       })
     }, [activeStep.id])
 
-    const statePatch = useMemo(
-      () => ({
-        ...progressState,
-        canFinalize: submitState.canSubmit && payload.view.review.ready,
-        canSubmit: submitState.canSubmit && payload.view.review.ready,
-        isSubmitting: submitState.isSubmitting
-      }),
-      [progressState, payload.view.review.ready, submitState.canSubmit, submitState.isSubmitting]
-    )
-
+    // Submit, finalize and saving flags have one writer, CharacterBuilderStateSync.
     useEffect(() => {
-      updateAuthoringFormState(statePatch)
-    }, [statePatch, updateAuthoringFormState])
+      updateAuthoringFormState(progressState)
+    }, [progressState, updateAuthoringFormState])
 
     return (
       <div ref={markBuilderShellReady} className={styles.builderRoot}>

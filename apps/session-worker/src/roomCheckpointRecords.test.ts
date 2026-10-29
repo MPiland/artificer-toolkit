@@ -880,8 +880,7 @@ describe('room checkpoint records', () => {
         label: 'Character',
         status: 'ACTIVE',
         portraitAssetId: uuid(6),
-        createdAt: timestamp,
-        updatedAt: timestamp
+        createdAt: timestamp
       }
     }
     expect(

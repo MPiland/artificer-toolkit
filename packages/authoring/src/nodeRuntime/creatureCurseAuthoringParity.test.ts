@@ -67,7 +67,7 @@ describe('a creature’s ally die that ends with its source through the creature
   it('keeps the Knight’s Leadership exactly as authored, with no closed rule', async () => {
     const feature = knight.features?.find(({ label }) => label.startsWith('Leadership'))
     expect(JSON.stringify(feature)).not.toContain('CLOSED_RULE')
-    expect(leadershipBlock(knight).lifecycle?.endOnTriggers).toEqual([
+    expect(leadershipBlock(knight).lifecycle?.endTriggers).toEqual([
       { event: 'INCAPACITATED', of: 'SOURCE' }
     ])
     const result = await normalize(knight)

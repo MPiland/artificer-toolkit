@@ -104,7 +104,10 @@ function reactionRoom(
     seed: seedModifierGrant({
       sourceActorId: MOVER_ID,
       holderActorId: REACTOR_ID,
-      lifecycle: options.endsOn === 'CAST' ? {} : { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      lifecycle:
+        options.endsOn === 'CAST'
+          ? {}
+          : { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }] },
       ownedConditionId: options.reactorInvisible ? INVISIBLE_ID : undefined,
       ...(options.endsOn === 'CAST' && { endsOnCast: true as const })
     })

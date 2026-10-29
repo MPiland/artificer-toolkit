@@ -43,13 +43,15 @@ export function repeatCarrierPlan(
   )
     unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
   const { grants } = entry.outcome
-  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
+  const { endTriggers = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     grants.modifiers?.length ||
     grants.senses?.length ||
     grants.proficiencies?.length ||
-    endOnEvents.length !== 1 ||
-    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
+    endTriggers.length !== 1 ||
+    endTriggers[0]?.event !== 'LIFECYCLE' ||
+    endTriggers[0].timing !== 'END' ||
+    endTriggers[0].code !== 'ON_CHOSEN_ITEM_RELEASED' ||
     Object.values(otherLifecycle).some((value) => value !== undefined)
   )
     unsupported(

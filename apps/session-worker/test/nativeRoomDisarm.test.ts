@@ -222,7 +222,9 @@ describe('room Disarm contests', () => {
       seed: seedModifierGrant({
         sourceActorId: TARGET_ID,
         holderActorId: SOURCE_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+        }
       })
     })
     expect((await readRoomHistory(disarming.room.room.base.stub)).activeEffects).toHaveLength(1)
@@ -240,7 +242,9 @@ describe('room Disarm contests', () => {
       seed: seedModifierGrant({
         sourceActorId: TARGET_ID,
         holderActorId: SOURCE_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+        },
         ownedConditionId: INVISIBLE_ID
       })
     })

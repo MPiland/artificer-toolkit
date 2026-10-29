@@ -5,6 +5,7 @@ import type {
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   activeRuleEffectDefinitionDtoSchema,
+  canonicalActiveEffectEndTriggers,
   type ActiveRuleEffectDefinitionDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { serverPublishedRuleDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
@@ -16,10 +17,6 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
-import type {
-  ActiveEffectConsumeEvent,
-  ActiveEffectEndEvent
-} from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { RulesRuntimeService } from '../rulesRuntimeService.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -84,9 +81,7 @@ export type TurnSaveDamageEffectInput = {
   sourceActorId?: string | null
   maintainedEffectStateId?: string | null
   conditionOwnership?: readonly { conditionId: string; baselinePresent: boolean }[]
-  /** The events whose first occurrence ends the effect early; the turn kernel still counts it down. */
-  endOnEvents?: readonly ActiveEffectEndEvent[]
-  endOnTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endOnTriggers'][number][]
+  endTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endTriggers'][number][]
   currentEffects?: readonly ActiveRuleEffectRecord[]
   /** The earlier effect this one ends with (D172); none by default. */
   linkedEffectId?: string | null
@@ -209,9 +204,7 @@ export async function turnSaveDamageEffect(
     recurrence: {
       recurrenceStage: stage,
       anchor: input.anchor ?? 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [...(input.endOnEvents ?? [])],
-      endOnTriggers: [...(input.endOnTriggers ?? [])],
+      endTriggers: canonicalActiveEffectEndTriggers(input.endTriggers ?? []),
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
@@ -251,9 +244,7 @@ export function activeEffect(input: {
   owner: ActiveRuleEffectOwner
   createdOrdinal: number
   version?: number
-  consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
-  endOnEvents?: readonly ActiveEffectEndEvent[]
-  endOnTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endOnTriggers'][number][]
+  endTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endTriggers'][number][]
   endOnConditionIds?: readonly string[]
   holderEnd?: ActiveRuleEffectDefinitionDto['recurrence']['holderEnd']
   /** The Encounter actor that applied the effect; none by default. */
@@ -299,9 +290,7 @@ export function activeEffect(input: {
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
-      endOnEvents: [...(input.endOnEvents ?? [])],
-      endOnTriggers: [...(input.endOnTriggers ?? [])],
+      endTriggers: canonicalActiveEffectEndTriggers(input.endTriggers ?? []),
       endOnConditionIds: [...(input.endOnConditionIds ?? [])],
       holderEnd: input.holderEnd ?? null,
       lifetimeScope: 'OWNER',

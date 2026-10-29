@@ -74,7 +74,11 @@ export const contactOtherPlane: SpellAuthored = {
             // Insane until a long rest: no actions (incapacitated). Not understanding, reading or
             // speaking stays with the description, and so do the answers to a made save: a GM ruling
             // cannot follow a saving throw.
-            lifecycle: { endOnEvents: ['ON_LONG_REST' as const] },
+            lifecycle: {
+              endTriggers: [
+                { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_LONG_REST' }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONTACT_OTHER_PLANE, 0x216, 1),

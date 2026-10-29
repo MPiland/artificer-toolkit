@@ -78,7 +78,7 @@ describe('placed-space zone compilation from real SRD Caltrops', () => {
     })
     expect(zone.grant).toMatchObject({
       modifiers: [expect.objectContaining({ modifierKind: 'PENALTY' })],
-      endOnEvents: ['ON_HIT_POINTS_REGAINED']
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
     })
     expect(zone.grant?.modifiers[0]).toMatchObject({
       payload: { amount: 10, unit: 'FEET' }
@@ -170,12 +170,12 @@ describe('the zone an area action leaves at its chosen point', () => {
     expect(definition).toMatchObject({
       schemaVersion: 2,
       origin: { kind: 'ENCOUNTER', sourceAggregateId: ENCOUNTER_ID, sourceActorId: SOURCE_ID },
-      recurrence: { endOnEvents: [], expiration: { kind: 'INDEFINITE' } },
+      recurrence: { endTriggers: [], expiration: { kind: 'INDEFINITE' } },
       stateContributions: [
         {
           kind: 'MODIFIER_GRANT',
           sourceLabel: 'Caltrop field',
-          endOnEvents: ['ON_HIT_POINTS_REGAINED']
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
         }
       ]
     })
@@ -196,7 +196,9 @@ describe('a creature that fails the zone’s entry save', () => {
     const grant = plannedEntryGrant({ resultPath: 'ON_SAVE_FAIL' })
     expect(grant?.definition).toMatchObject({
       origin: { sourceAggregateId: ENCOUNTER_ID, rootCommandId: MOVE_COMMAND_ID },
-      recurrence: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] }
+      recurrence: {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
+      }
     })
   })
 
@@ -209,7 +211,7 @@ describe('a creature that fails the zone’s entry save', () => {
     expect(grant?.definition.schemaVersion).toBe(2)
     expect(
       grant?.definition.stateContributions.every(
-        (contribution) => contribution.kind !== 'MODIFIER_GRANT' || !('endOnEvents' in contribution)
+        (contribution) => contribution.kind !== 'MODIFIER_GRANT' || !('endTriggers' in contribution)
       )
     ).toBe(true)
   })
@@ -426,7 +428,7 @@ describe('a zone authored with another save DC and a circle shape', () => {
       shape: { shapeKind: 'CIRCLE', radius: { amount: 10, unit: 'FEET' } },
       triggerModes: srd.triggerModes,
       bypassAtHalfSpeed: srd.bypassAtHalfSpeed,
-      grant: { endOnEvents: srd.grant?.endOnEvents }
+      grant: { endTriggers: srd.grant?.endTriggers }
     })
     expect(zone.entry.adapterFacts).toMatchObject({ [DND5E_SAVE_DC_FACT_KEY]: 13 })
     expect(zone.entry.frozenGraph.definition.nodes.map((node) => node.id)).toEqual(
@@ -503,7 +505,7 @@ describe('a zone whose failed entry save deals dice damage (D133)', () => {
     expect(zonePlacementOf(authored)).toMatchObject({
       label: zonePlacementOf().label,
       triggerModes: zonePlacementOf().triggerModes,
-      grant: { endOnEvents: zonePlacementOf().grant?.endOnEvents }
+      grant: { endTriggers: zonePlacementOf().grant?.endTriggers }
     })
   })
 
@@ -799,13 +801,18 @@ describe('a zone failure composed from core outcomes (D141, D142)', () => {
     [
       'a lifecycle on a condition the zone does not hold',
       startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
-        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_LEAVING_AREA'] }
+        savePath.resultBlock.lifecycle = {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
+        }
       })
     ],
     [
       'a zone-held condition that ends on another event',
       startOfTurnZone(failedSaveOnly(conditionOutcome()), ({ savePath }) => {
-        savePath.resultBlock.lifecycle = { heldBySource: true, endOnEvents: ['ON_ATTACK_ROLL'] }
+        savePath.resultBlock.lifecycle = {
+          heldBySource: true,
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }]
+        }
       })
     ],
     [
@@ -1236,13 +1243,17 @@ describe('a zone the System cannot honor in full stays manual', () => {
     [
       'a grant that ends on an attack roll, which the Encounter never reads for a grant',
       ({ savePath }) => {
-        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_ATTACK_ROLL'] }
+        savePath.resultBlock.lifecycle = {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }]
+        }
       }
     ],
     [
       'a grant that ends on casting a spell, which the Encounter never reads for a grant',
       ({ savePath }) => {
-        savePath.resultBlock.lifecycle = { endOnEvents: ['ON_CAST_SPELL'] }
+        savePath.resultBlock.lifecycle = {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }]
+        }
       }
     ],
     [

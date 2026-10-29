@@ -830,8 +830,10 @@ describe('effect compiler', () => {
             resultKind: 'SEQUENCE' as const,
             lifecycle: {
               recurringKind: 'NONE',
-              consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
-              endOnEvents: ['ON_CAST_SPELL']
+              endTriggers: [
+                { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' },
+                { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+              ]
             },
             outcomes: [
               {
@@ -854,8 +856,10 @@ describe('effect compiler', () => {
       pathCode: PATH_CODE.ON_SAVE_FAIL,
       lifecycle: {
         recurringKind: 'NONE',
-        consumeOnFirstEvents: ['ON_ATTACK_ROLL'],
-        endOnEvents: ['ON_CAST_SPELL']
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' },
+          { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+        ]
       },
       outcome: {
         effectKind: EFFECT_KIND.FORCED_MOVEMENT,

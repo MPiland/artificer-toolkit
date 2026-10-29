@@ -88,8 +88,9 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
         initialRemaining: null,
         conditionContributions: [{ conditionId: INVISIBLE }],
         lifecycle: {
-          consumeOnFirstEvents: [],
-          endOnEvents: [...events].sort()
+          endTriggers: [...events]
+            .sort()
+            .map((code) => ({ event: 'LIFECYCLE', timing: 'END', code }))
         }
       })
       expect(activeEffectPlan?.maintenance?.definitionId).toBe(
@@ -201,7 +202,9 @@ describe('a Creature trait that turns it invisible with no duration (SPELLS-27.T
                 id: testUuid(0x2103),
                 resultKind: 'SINGLE',
                 maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
-                lifecycle: { endOnEvents: ['ON_ATTACK_ROLL'] },
+                lifecycle: {
+                  endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }]
+                },
                 outcomes: [{ id: pathId, effectKind: 'CONDITION', conditionId: INVISIBLE }]
               }
             }

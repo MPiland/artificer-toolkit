@@ -60,9 +60,7 @@ function definition(
     recurrence: {
       recurrenceStage: 'END_OF_TURN',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: encounter ? 'ENCOUNTER' : 'OWNER',

@@ -91,7 +91,7 @@ function draftHead(draft: Doc<'characterDrafts'>) {
 
 async function saveDraft(input: {
   ctx: MutationCtx
-  active: Doc<'characters'>
+  active: CharacterRow
   draft: Doc<'characterDrafts'> | null
   character: CharacterAuthored
   builderIntent?: unknown
