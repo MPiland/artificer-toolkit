@@ -921,6 +921,19 @@
                 "size": 2
               },
               "text": "Bug: node scripts/auditNativeBoundaries.mjs fails at 591b93e65 with 4 violations: packages/authoring/package.json depends on @artificer-toolkit/source-data and @artificer-toolkit/rules-runtime (layering), and scripts/phase8/buildPhaseLedger.mjs trips the GoRules and tRPC removal rules with PBI titles (false positives). Fix the layering, scope the removal rules away from ledger tooling without weakening them, and run the audit in CI (tests.yml) so it cannot drift again."
+            },
+            {
+              "status": "TODO",
+              "id": "PLATFORM-13.T22",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path.",
+              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
             }
           ]
         },
@@ -12934,6 +12947,20 @@
                 "size": 3
               },
               "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-8.T16",
+              "closes": ["SPELLS-8.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-8.T4"]
+              },
+              "text": "Bug: a SEQUENTIAL result's later outcomes see its earlier HIT_POINTS_MAX grants when clamping healing, on the creature path and the Character/Sheet path, so Aid raises current hit points by 5 per slot level above 1st. Seams: encounterActionMechanicsPreparation.ts:982, encounterMechanicsBatchPlan.ts:213/770/794, nativeAreaCommitPlan.ts:220, and the Sheet maximum clamp. Unit and room proofs; the Aid HP assertion lives here.",
+              "note": "Bug split from SPELLS-8.T4 (orchestrator ruling B, 2026-10-29); handoff note from the T4 session."
             }
           ]
         },
@@ -16003,6 +16030,20 @@
               },
               "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
               "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-31.T4v2",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4v", "SPELLS-34.T3"]
+              },
+              "text": "Delegated attack: a generic caster grant \"forgo one attack of the Attack action; a creature you summoned with one of effectIds attacks with its reaction\" (owner link). The caster's command carries the delegate actor, resolves the delegate's own creature attack, charges the caster's attack and the delegate's reaction, and undoes as one command (replay and checksum pins). The web action menu can pick the familiar's attack. Pact of the Chain authored with it; deletes CLASS_WARLOCK_PACT_OF_CHAIN (D156). No Warlock names in code; authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced."
             }
           ]
         },
@@ -16882,7 +16923,7 @@
             },
             {
               "id": "SPELLS-33.T4w",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16892,7 +16933,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m542 (9dc8b49b3)."
             },
             {
               "id": "SPELLS-33.T5afp",
@@ -17754,6 +17795,19 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1", "SPELLS-4.T2v2a3d", "SPELLS-4.T2v2b"]
               }
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-34.T3",
+              "closes": ["SPELLS-34.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Bug: Find Familiar compiles REFUSED (MANIFEST CREATURE with no form, find-familiar.ts:68-72; srdEffectCompile.golden.txt:1164), so no familiar appears in the room. Make it a SUMMON with a choice of SRD corpus creature form and a creature-type override, linked to its caster (owner actor and source effect), on both the Sheet and room paths. Generic: no spell names in code; authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md)."
             }
           ]
         }
@@ -19472,7 +19526,7 @@
         {
           "id": "RELIABILITY-10",
           "title": "Authoring forms have one state owner and re-render only what changed",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -19497,10 +19551,10 @@
             },
             {
               "text": "The character builder's submit, finalize and saving state each come from one source, so a pending save is never shown as idle.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-10.T1a (m543); see each task's proof."],
               "origin": [],
-              "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag.",
+              "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag. Closed 2026-10-29 by RELIABILITY-10.T1a.",
               "id": "RELIABILITY-10.3",
               "journeys": ["builder-browser"]
             }
@@ -19514,7 +19568,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-10.T1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-10.3"],
               "wsjf": {
                 "bv": 3,
@@ -19524,7 +19578,7 @@
                 "after": ["RELIABILITY-8.T1"]
               },
               "text": "Builder submit, finalize and saving flags have one writer (CharacterBuilderStateSync); the Renderer publishes only progress; red-first regression test plus a builder journey through the real AuthoringLayout.",
-              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29. Merged in m543 (63b0de152)."
             },
             {
               "id": "RELIABILITY-10.T1b",
@@ -20334,6 +20388,14 @@
               "proof": ["heldAccountDeletion.test.ts"],
               "origin": [],
               "note": "Closed 2026-10-29 by RELIABILITY-21.T21, RELIABILITY-21.T22, RELIABILITY-21.T23, RELIABILITY-21.T24."
+            },
+            {
+              "id": "RELIABILITY-21.20",
+              "text": "A Sheet derivation trusts publication and System documents whose stored checksum it verifies instead of re-parsing them on every write; schema validation of those documents happens once, at publish and seed, and a tampered or stale document is still refused by its checksum.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI)."
             }
           ],
           "tasks": [
@@ -20699,6 +20761,20 @@
               "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19). Merged in m539.",
               "mergedAt": "2026-10-29T05:05:19Z",
               "proof": "Tests 40819499214, Live backend 40819499130, Browser journeys 40819499127 on 913be9a86; batch ci/merge-m539 green. readCurrentSourceDefinitionChoices reads only {id,label} under the shared definition guards; Fighter-copy resolve 199-251 ms uncontended, 573 ms max contended (was 1006-1221 ms). publication-class-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T25",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.20"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["RELIABILITY-21.T16"]
+              },
+              "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes.",
+              "note": "Approved by the user on 2026-10-29."
             }
           ]
         }
