@@ -16,8 +16,10 @@ import { readRoomHistory } from './roomHistoryReads.js'
 
 const WARLOCK_ACTOR_ID = testUuid(0x9f0)
 const WARLOCK_ID = testUuid(0x9f1)
-const FIENDISH_RESILIENCE = theFiend.features?.find(({ label }) => label === 'Fiendish Resilience')
-if (!FIENDISH_RESILIENCE) throw new Error('The SRD Fiend authors Fiendish Resilience.')
+const found = theFiend.features?.find(({ label }) => label === 'Fiendish Resilience')
+if (!found) throw new Error('The SRD Fiend authors Fiendish Resilience.')
+// The room's Character is 1st level, so it gains the 10th-level Feature at 1st.
+const FIENDISH_RESILIENCE = { ...found, availableAtLevel: 1 }
 const damageTypeId = (label: string) => SRD_DAMAGE_TYPES.find((each) => each.label === label)!.id
 // Its one use between rests is spent by the first pick, so the second is the GM's override.
 const AGAIN: EncounterRuleWarningCodeDto[] = ['RESOURCE_UNAVAILABLE']

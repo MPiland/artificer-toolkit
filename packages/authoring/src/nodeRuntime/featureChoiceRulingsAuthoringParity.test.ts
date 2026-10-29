@@ -137,6 +137,8 @@ function compiledOptions(homebrew: FeatureAuthored, effectId: string) {
   const character = evaluateSrdCharacter({
     classes: [{ label: 'Warlock', level: 10, subclass: 'The Fiend' }],
     extraFeatures: [homebrew],
+    // Both actions spend a charge, so the Character holds its pools.
+    resourceUsage: [],
     features: [
       srdFeature({
         owner: 'SUBCLASS',

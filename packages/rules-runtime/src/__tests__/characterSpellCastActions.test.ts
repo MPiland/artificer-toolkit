@@ -406,7 +406,7 @@ const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
   ]
 } as SpellAuthored
 
-/** Protection from Energy cast on its caster alone, so its pick has no chosen creature to go with. */
+/** Protection from Energy cast on its caster alone, so its pick goes with the caster. */
 const PROTECTION_FROM_ENERGY_ON_SELF = {
   ...PROTECTION_FROM_ENERGY,
   id: testUuid(0x3200),
@@ -1559,9 +1559,17 @@ describe('a cast that picks what it does to its targets (SPELLS-30.T1, D148)', (
     })
   })
 
-  it('stays manual when its pick has no chosen creature to travel with', () => {
-    expect(compiledCastEntry(PROTECTION_FROM_ENERGY)?.compilation.choice).not.toBeNull()
-    expect(compiledCastEntry(PROTECTION_FROM_ENERGY_ON_SELF)).toBeNull()
+  // SPELLS-31.T5k: a cast at its user carries its pick too (Fiendish Resilience).
+  it('carries the same pick on a cast at its user', () => {
+    const labels = (authored: SpellAuthored) =>
+      compiledCastEntry(authored)?.compilation.choice?.options.map(({ label }) => label)
+    expect(labels(PROTECTION_FROM_ENERGY_ON_SELF)).toEqual([
+      'Acid',
+      'Cold',
+      'Fire',
+      'Lightning',
+      'Thunder'
+    ])
   })
 })
 
