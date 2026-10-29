@@ -1666,7 +1666,7 @@ function repeatingDirectFollowUpSavePlan(
     ...(lead.effectKind !== 'CONDITION' &&
       leadEntry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(leadEntry.pathCode) }),
     ...(save.repeatTriggers?.length && {
-      lifecycle: { repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
+      lifecycle: { endTriggers: [], repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
     }),
     adapterFacts: repeatSave.adapterFacts,
     ...(save.attempts.kind === 'THRESHOLDS' && {

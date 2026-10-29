@@ -118,7 +118,7 @@ export interface CharacterRuleActionActiveEffectPlan {
   /** The events that use up or end the effect owning conditions, once for all of them. */
   lifecycle?: {
     /** The events that use the effect up or end it, unique and in canonical order. */
-    endTriggers?: readonly ActiveEffectEndTrigger[]
+    endTriggers: readonly ActiveEffectEndTrigger[]
     /** The structured events that repeat the effect's save, unique and in canonical order. */
     repeatTriggers?: readonly ActiveEffectRepeatTrigger[]
   }

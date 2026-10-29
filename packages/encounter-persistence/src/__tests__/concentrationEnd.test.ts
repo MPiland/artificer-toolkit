@@ -352,7 +352,11 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
     [
       'a holder that can act',
       ableToAct,
-      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] }
+      {
+        endTriggers: [
+          { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_INCAPACITATED' as const }
+        ]
+      }
     ],
     ['a grant that does not end on incapacitation', paralyzed, {}]
   ])('refuses to end the grant of %s', async (_name, actorInput, lifecycle) => {

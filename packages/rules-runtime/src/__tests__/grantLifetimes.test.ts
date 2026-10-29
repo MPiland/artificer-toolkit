@@ -1785,7 +1785,9 @@ describe('discoverEncounterEventHooks on an end event', () => {
         ...consuming.definition,
         recurrence: {
           ...consuming.definition.recurrence,
-          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }]
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' as const }
+          ]
         }
       }
     }
@@ -1806,8 +1808,12 @@ describe('discoverEncounterEventHooks on an end event', () => {
         recurrence: {
           ...attacking.definition.recurrence,
           endTriggers: [
-            { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
-            { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+            {
+              event: 'LIFECYCLE' as const,
+              timing: 'END' as const,
+              code: 'ON_ATTACK_ROLL' as const
+            },
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_CAST_SPELL' as const }
           ]
         }
       }

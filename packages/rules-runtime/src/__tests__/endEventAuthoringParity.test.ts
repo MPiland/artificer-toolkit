@@ -61,8 +61,8 @@ describe('Hide in Plain Sight is authorable from core options (D156, SPELLS-31.T
   it('keeps no closed rule kind and ends on a move or any action', () => {
     expect(JSON.stringify(srd)).not.toContain('CLOSED_RULE')
     expect(plannedAction(srd.effects)?.modifierGrantContribution?.endTriggers).toEqual([
-      { event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' },
-      { event: 'LIFECYCLE', timing: 'END', code: 'ON_TAKE_ACTION' }
+      { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+      { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' as const }
     ])
   })
 
@@ -91,8 +91,12 @@ describe('Hide in Plain Sight is authorable from core options (D156, SPELLS-31.T
               resultKind: 'SINGLE' as const,
               lifecycle: {
                 endTriggers: [
-                  { event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' },
-                  { event: 'LIFECYCLE', timing: 'END', code: 'ON_TAKE_ACTION' }
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+                  {
+                    event: 'LIFECYCLE' as const,
+                    timing: 'END' as const,
+                    code: 'ON_TAKE_ACTION' as const
+                  }
                 ]
               },
               outcomes: [
@@ -252,8 +256,12 @@ describe('One with Shadows is authorable from core options (D156, SPELLS-31.T5n)
             resultKind: 'SINGLE' as const,
             lifecycle: {
               endTriggers: [
-                { event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' },
-                { event: 'LIFECYCLE', timing: 'END', code: 'ON_TAKE_ACTION' }
+                { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+                {
+                  event: 'LIFECYCLE' as const,
+                  timing: 'END' as const,
+                  code: 'ON_TAKE_ACTION' as const
+                }
               ]
             },
             outcomes: [

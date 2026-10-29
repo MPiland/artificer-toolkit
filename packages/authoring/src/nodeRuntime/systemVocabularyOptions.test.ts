@@ -10,6 +10,7 @@ import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
 import {
   normalizeIngressValues,
   normalizeNodeRuntimeValues,
+  readsOnlyCoreCodes,
   resolveNodeRuntime
 } from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
@@ -207,7 +208,7 @@ describe('System core codes at authoring ingress', () => {
   const refusal = (path: string, value: string) =>
     `The Game System does not define "${value}" at ${path}.`
 
-  it('reads every core-code select from its table directly, so ingress refuses its unknown codes', () => {
+  it('reads every core-code select only from core-code tables, so ingress refuses its unknown codes', () => {
     const coreCodeSources = listRuntimeNodeMapIds()
       .flatMap((mapId) => collectDataSources(getRuntimeNodeMap(mapId).nodes))
       .filter(({ relationship }) =>
@@ -217,7 +218,9 @@ describe('System core codes at authoring ingress', () => {
       )
 
     expect(coreCodeSources.length).toBeGreaterThan(30)
-    for (const { relationship } of coreCodeSources) expect(relationship.kind).toBe('TABLE')
+    for (const { relationship } of coreCodeSources)
+      expect(readsOnlyCoreCodes(relationship)).toBe(true)
+    expect(coreCodeSources.some(({ relationship }) => relationship.kind === 'CONDITION')).toBe(true)
   })
 
   it('accepts the SRD sizes', async () => {
