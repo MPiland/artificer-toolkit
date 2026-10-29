@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
-import { api, internal } from '../_generated/api'
+import { api } from '../_generated/api'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
 import { playerControlFixture, setActorControllers } from '../../tests/fixtures/playerControl'
 import {
   executeInRoom,
@@ -82,7 +83,7 @@ describe('deleted member Campaign history', () => {
       if (!profile) throw new Error('Missing departing profile.')
       return profile.authUserId
     })
-    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
+    await deleteAccountCompletely(t, authUserId)
 
     // Every retained record keeps the opaque account id; no current member or profile resolves it,
     // so the deleted author's username is replaced while current members stay named.

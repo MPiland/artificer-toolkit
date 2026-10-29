@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -7,10 +7,43 @@ import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
+import { runAccountDeletionStep } from '../../tests/fixtures/accountDeletion'
+import { startAccountDeletion } from '../accountDeletionJobs'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import * as reconciliation from './contentShareRemoval'
-import { removeAccountCampaignMemberships } from './accountDeparture.helper'
+import { departAccountCampaignMembership } from './accountDeparture'
+
+afterEach(() => vi.useRealTimers())
+
+type Fixture = Pick<Awaited<ReturnType<typeof setupCharacterRun>>, 't'>
+
+/** Puts the account in a scheduled deletion job, at the CAMPAIGNS step. */
+async function startDeletion(base: Fixture, userId: string) {
+  // Fake timers keep the scheduler from running the job's steps behind the test.
+  vi.useFakeTimers()
+  await base.t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('userProfiles')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .unique()
+    await startAccountDeletion(ctx, profile?.authUserId ?? crypto.randomUUID(), userId)
+  })
+}
+
+/** Runs the CAMPAIGNS step until the job moves on, as the scheduler would. */
+async function departAccount(base: Fixture, userId: string) {
+  for (;;) {
+    await runAccountDeletionStep(base.t, userId, internal.campaigns.accountDeparture.step)
+    const job = await base.t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .unique()
+    )
+    if (job?.step !== 'CAMPAIGNS') return null
+  }
+}
 
 async function setup() {
   const base = await setupCharacterRun()
@@ -89,8 +122,8 @@ async function setup() {
       profiles: await ctx.db.query('userProfiles').collect(),
       scheduled: await ctx.db.system.query('_scheduled_functions').collect()
     }))
-  const depart = () =>
-    base.t.run((ctx) => removeAccountCampaignMemberships(ctx, base.player.userId))
+  await startDeletion(base, base.player.userId)
+  const depart = () => departAccount(base, base.player.userId)
   return { ...base, campaign, vehicle, publication, snapshot, depart }
 }
 
@@ -173,7 +206,18 @@ describe('native account Campaign departure', () => {
 
     const before = await base.snapshot()
 
-    await expect(base.depart()).resolves.toBeNull()
+    await expect(
+      base.t.run(async (ctx) => {
+        const left = await ctx.db
+          .query('campaignMemberships')
+          .withIndex('by_userId_status_joinedAt', (q) =>
+            q.eq('userId', base.player.userId).eq('status', 'LEFT')
+          )
+          .unique()
+        if (!left) throw new Error('Missing retained LEFT membership.')
+        return departAccountCampaignMembership(ctx, base.player.userId, left)
+      })
+    ).resolves.toBeNull()
 
     expect(await base.snapshot()).toEqual(before)
   })
@@ -198,16 +242,15 @@ describe('native account Campaign departure', () => {
         profiles: await ctx.db.query('userProfiles').collect(),
         scheduled: await ctx.db.system.query('_scheduled_functions').collect()
       }))
+    const missingProfile = crypto.randomUUID()
+    await startDeletion(owner, owner.owner.userId)
+    await startDeletion(owner, missingProfile)
+    await startDeletion(owner, owner.other.userId)
     const beforeOwner = await snapshot()
-    await expect(
-      owner.t.run((ctx) => removeAccountCampaignMemberships(ctx, owner.owner.userId))
-    ).rejects.toThrow('Campaign ownership')
+    await expect(departAccount(owner, owner.owner.userId)).rejects.toThrow('Campaign ownership')
     expect(await snapshot()).toEqual(beforeOwner)
 
-    const missingProfile = crypto.randomUUID()
-    await expect(
-      owner.t.run((ctx) => removeAccountCampaignMemberships(ctx, missingProfile))
-    ).rejects.toThrow('profile is missing')
+    await expect(departAccount(owner, missingProfile)).rejects.toThrow('profile is missing')
     expect(await snapshot()).toEqual(beforeOwner)
 
     await owner.t.run(async (ctx) => {
@@ -222,9 +265,7 @@ describe('native account Campaign departure', () => {
       })
     })
     const beforeForeign = await snapshot()
-    await expect(
-      owner.t.run((ctx) => removeAccountCampaignMemberships(ctx, owner.other.userId))
-    ).rejects.toThrow('has no Campaign')
+    await expect(departAccount(owner, owner.other.userId)).rejects.toThrow('has no Campaign')
     expect(await snapshot()).toEqual(beforeForeign)
 
     const scoped = await setup()

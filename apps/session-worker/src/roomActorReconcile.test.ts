@@ -5,7 +5,11 @@ import { liveSessionRoomWriteSetSchema } from '@artificer-toolkit/schema/api/liv
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
 import { RoomInputs } from './roomInputs.js'
-import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
+import {
+  readFrozenUnassignedCharacterIds,
+  readRoomActorDepartures,
+  reconcileRoomActorDepartures
+} from './roomActorReconcile.js'
 import { characterPageFixtureFor } from './testing/characterPageFixture.js'
 import { encounterRunFixture } from './testing/encounterRunFixture.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
@@ -242,6 +246,38 @@ describe('readRoomActorDepartures', () => {
     await expect(readRoomActorDepartures(store, inputs, authorization)).resolves.toEqual({
       unassignedCharacterIds: []
     })
+  })
+})
+
+describe('frozen Character actors on a Character notice (D200)', () => {
+  it('names only the frozen Character actors whose assignment is gone', async () => {
+    const { store, authorization, reconcile } = await heldRoom({
+      assigned: [CHARACTER_A, CHARACTER_C]
+    })
+    await expect(readFrozenUnassignedCharacterIds(store, authorization)).resolves.toEqual([])
+    await reconcile(new Set())
+    await expect(readFrozenUnassignedCharacterIds(store, authorization)).resolves.toEqual([
+      CHARACTER_B
+    ])
+  })
+
+  it('keeps a frozen actor whose Character still reads unassigned', async () => {
+    const { actors, reconcile } = await heldRoom({ assigned: [CHARACTER_A, CHARACTER_C] })
+    await reconcile(new Set())
+    const frozen = await actors()
+    expect(frozen[CHARACTER_B]).toMatchObject({ frozenState: { currentHitPoints: 11 } })
+    await reconcile(new Set())
+    expect(await actors()).toEqual(frozen)
+  })
+
+  it('removes a frozen actor once its Character reads deleted', async () => {
+    // A's Character is gone from storage, so the first reconcile removes it as it freezes B.
+    const { actors, reconcile } = await heldRoom({ assigned: [CHARACTER_C] })
+    await reconcile(new Set([CHARACTER_A]))
+    const frozen = await actors()
+    expect(frozen[CHARACTER_B]).toMatchObject({ frozenState: { currentHitPoints: 11 } })
+    await reconcile(new Set([CHARACTER_B]))
+    expect(await actors()).toEqual({ [CHARACTER_C]: frozen[CHARACTER_C] })
   })
 })
 

@@ -4,17 +4,17 @@ import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { readCharacterSheetState } from './sheetStateDocuments'
 import type { TableNames } from '../_generated/dataModel'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
+import { runAccountDeletionStep } from '../../tests/fixtures/accountDeletion'
+import * as deletionJobs from '../accountDeletionJobs'
 import schema from '../schema'
 import { ensureAuthoredRouteId } from '../content/routeIds'
-import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import {
   seedTurnSaveEffect,
   turnCharacterEffectFixture
 } from '../../tests/fixtures/turnActiveEffectFixtures'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
-import { removeAccountPrivateCharacters } from './accountDeletion'
 import { closeRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 
 const tableNames = Object.keys(schema.tables) as TableNames[]
@@ -34,6 +34,27 @@ async function fullSnapshot(t: Awaited<ReturnType<typeof turnCharacterEffectFixt
   }))
 }
 
+type Step = Parameters<typeof runAccountDeletionStep>[2]
+
+/** Runs a job step until the job moves to another step, as the scheduler would. */
+async function runStepToCompletion(
+  t: Awaited<ReturnType<typeof turnCharacterEffectFixture>>['t'],
+  userId: string,
+  name: 'CAMPAIGNS' | 'CHARACTERS',
+  step: Step
+) {
+  for (;;) {
+    await runAccountDeletionStep(t, userId, step)
+    const job = await t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .unique()
+    )
+    if (job?.step !== name) return
+  }
+}
+
 async function prepare() {
   const base = await turnCharacterEffectFixture()
   // The fixture's command ran in the real room, which holds the Run until it closes (D85). Closing
@@ -49,7 +70,29 @@ async function prepare() {
   if (deletingEffect.owner.kind !== 'CHARACTER')
     throw new Error('Expected a Character-owned active effect fixture.')
 
-  await base.t.run((ctx) => removeAccountCampaignMemberships(ctx, base.player.userId))
+  const jobId = await base.t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('userProfiles')
+      .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+      .unique()
+    if (!profile) throw new Error('Missing deleting account profile.')
+    await deletionJobs.startAccountDeletion(ctx, profile.authUserId, base.player.userId)
+    const job = await ctx.db
+      .query('accountDeletionJobs')
+      .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+      .unique()
+    if (!job) throw new Error('Missing account deletion job.')
+    return job._id
+  })
+  await runStepToCompletion(
+    base.t,
+    base.player.userId,
+    'CAMPAIGNS',
+    internal.campaigns.accountDeparture.step
+  )
+  // The job is held at CHARACTERS so this suite exercises that step alone, without the account
+  // commit the intervening steps would run.
+  await base.t.run((ctx) => ctx.db.patch(jobId, { step: 'CHARACTERS' }))
 
   const active = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
   if (!active) throw new Error('Missing deleting Character.')
@@ -166,13 +209,22 @@ describe('trusted private Character account cleanup', () => {
 
       const before = await fullSnapshot(base.t)
       const remove = () =>
-        base.t.run(async (ctx) => {
-          await removeAccountPrivateCharacters(ctx, base.player.userId)
-          if (outcome === 'LATE_ROLLBACK') throw new Error('Abort after private Character cleanup.')
-        })
+        runStepToCompletion(
+          base.t,
+          base.player.userId,
+          'CHARACTERS',
+          internal.characters.accountDeletion.step
+        )
 
       if (outcome === 'LATE_ROLLBACK') {
-        await expect(remove()).rejects.toThrow('Abort after private Character cleanup.')
+        const abort = vi
+          .spyOn(deletionJobs, 'continueAccountDeletion')
+          .mockRejectedValueOnce(new Error('Abort after private Character cleanup.'))
+        try {
+          await expect(remove()).rejects.toThrow('Abort after private Character cleanup.')
+        } finally {
+          abort.mockRestore()
+        }
         expect(await fullSnapshot(base.t)).toEqual(before)
         return
       }

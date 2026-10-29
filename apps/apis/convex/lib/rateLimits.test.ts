@@ -5,6 +5,10 @@ import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountU
 import { internal } from '../_generated/api'
 import schema from '../schema'
 import { readSocialRateLimits } from '../../tests/fixtures/socialRateLimits'
+import {
+  advanceAccountDeletionToProvider,
+  scheduledSince
+} from '../../tests/fixtures/accountDeletion'
 import { consumeSocialRateLimit, consumeUserRateLimit, socialRateLimits } from './rateLimits'
 
 const modules = import.meta.glob('/apps/apis/convex/**/*.*s')
@@ -171,12 +175,14 @@ describe('account deletion', () => {
     for (let count = 0; count < 10; count++)
       await t.run((ctx) => consumeUserRateLimit(ctx, 'liveSessionTicket', userId))
     const otherBefore = await readSocialRateLimits(t, otherId, 'BLOCK')
+    const before = await advanceAccountDeletionToProvider(t, 'deleted-auth-user', userId)
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: 'deleted-auth-user' } })
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    expect(await t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(4))).toEqual([
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } })
+    expect(await scheduledSince(t, before)).toEqual([
+      { name: 'accountDeletionFinish:purge', state: 'success' },
+      { name: 'notifications/delivery:purgeRecipient', state: 'success' },
+      { name: 'media/assets:purgeAccount', state: 'success' },
+      { name: 'social/accountCleanup:run', state: 'success' }
     ])
     for (const action of ['APPLICATION', 'INVITE', 'REPORT', 'BLOCK'] as const)
       expect(await readSocialRateLimits(t, userId, action)).toEqual(unused(action))

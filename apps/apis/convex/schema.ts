@@ -37,6 +37,24 @@ export default defineSchema({
     userId: v.string(),
     tier: zodToConvex(entitlementTierDtoSchema)
   }).index('by_userId', ['userId']),
+  /** Staged account deletion (ADR 0040): `accountDeletionJobs.ts` drives one bounded step at a time. */
+  accountDeletionJobs: defineTable({
+    authUserId: v.string(),
+    userId: v.string(),
+    step: v.union(
+      v.literal('CAMPAIGNS'),
+      v.literal('SOCIAL'),
+      v.literal('MEDIA'),
+      v.literal('CHARACTERS'),
+      v.literal('AUTHORED'),
+      v.literal('SOURCES'),
+      v.literal('FINISH'),
+      v.literal('ACCOUNT')
+    ),
+    cursor: v.union(v.null(), v.string()),
+    token: v.string(),
+    attempt: v.number()
+  }).index('by_userId', ['userId']),
   userProfiles: defineTable({
     userId: v.string(),
     authUserId: v.string(),

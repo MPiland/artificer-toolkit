@@ -186,7 +186,7 @@ node scripts/traceJourneyFailure.mjs --run <Browser journeys run id> --slices "c
 **Flaky proofs (RELIABILITY-21.T21, run 40753133858, a selector-only change that failed three gating proofs).**
 
 - `disarm-browser` failed with "The Session room connection is closed." The proof driver's idle close (`apps/apis/tests/developmentHttpClient.ts`) fired while a caller waited for the room to admit it again. That was a fixture race. A waiting caller now holds the room open, and `apps/apis/convex/liveSessions/developmentCommandRoom.test.ts` proves it.
-- `account-deletion-browser` failed when the product's `auth:onDelete` cleanup exceeded Convex's 1-second mutation limit on the runner. It is labelled known-bug until RELIABILITY-21.T22 fixes it.
+- `account-deletion-browser` failed when the product's `auth:onDelete` cleanup exceeded Convex's 1-second mutation limit on the runner. RELIABILITY-21.T22 staged the deletion into bounded steps (ADR 0040), and the proof gates again.
 - `effects-browser` failed when the owner's d20 evidence submit exceeded the same limit. It is labelled known-bug until RELIABILITY-21.T23 fixes it.
 
 **Measured and modeled (RELIABILITY-21.T21, the same 32 push runs and the 14 merges in that window).**

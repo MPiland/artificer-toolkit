@@ -1027,20 +1027,19 @@ async function cleanup() {
             null
           )
         }
-        cleanupStep = 'run native account deletion'
-        await cli('auth:onDelete', { model: 'user', doc: { _id: userId } }, false)
-        cleanupStep = 'delete and verify auth account'
-        await cli('adapter:deleteOne', {
-          input: { model: 'user', where: [{ field: '_id', value: userId }] }
-        })
-        assert.equal(
-          await cli('adapter:findOne', {
+        cleanupStep = 'schedule native account deletion'
+        await cli('accountDeletion:schedule', { authUserId: userId }, false)
+        cleanupStep = 'verify staged deletion removed the auth account'
+        for (let attempt = 0; ; attempt += 1) {
+          const remaining = await cli('adapter:findOne', {
             model: 'user',
             where: [{ field: 'email', value: fixture.email }],
             select: ['_id']
-          }),
-          null
-        )
+          })
+          if (remaining === null) break
+          assert.ok(attempt < 120, 'Staged account deletion did not finish.')
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
       }
       cleanupStep = 'delete invitation verification'
       await deleteAllAuthRecords(
@@ -5223,7 +5222,7 @@ try {
       }
       return tables
     }
-    const assertImmediatePrivateCleanup = (captured: DeletionCapture) => {
+    const assertPrivateCleanup = (captured: DeletionCapture) => {
       const tables = catalogue(captured)
       for (const name of [
         'providerUsers',
@@ -5231,7 +5230,9 @@ try {
         'providerSessions',
         'userProfiles',
         'characters',
+        'characterPlayStates',
         'characterDrafts',
+        'characterDraftPayloads',
         'authoredRoots',
         'authoredImportRefs',
         'contentSources',
@@ -5255,6 +5256,42 @@ try {
         false,
         'Native account deletion retains an owned authored draft.'
       )
+      const privateSubjectIds = new Set([
+        ...fixture.known.characterIds,
+        ...fixture.known.rootReferences.map((reference) => reference.id)
+      ])
+      assert.equal(
+        tables.authoredRouteIds?.some(
+          (row) => typeof row.subjectId === 'string' && privateSubjectIds.has(row.subjectId)
+        ) ?? false,
+        false,
+        'Native account deletion retains private route identities.'
+      )
+      const sources = new Set(fixture.known.sourceIds)
+      assert.equal(
+        tables.authoredVersions?.some(
+          (row) => typeof row.contentSourceId === 'string' && sources.has(row.contentSourceId)
+        ) ?? false,
+        false,
+        'Native account deletion retains owned authored versions.'
+      )
+      assert.ok(baseline)
+      const prior = catalogue(baseline)
+      for (const name of ['authoredDependentRoots', 'authoredDrafts', 'authoredVersions']) {
+        const retainedIds = new Set((tables[name] ?? []).map((row) => row._id))
+        const protectedRows = (prior[name] ?? []).filter(
+          (row) =>
+            name === 'authoredDependentRoots' ||
+            (name === 'authoredDrafts'
+              ? row.userId !== fixture.subject.identity.userId
+              : typeof row.contentSourceId === 'string' && !sources.has(row.contentSourceId))
+        )
+        assert.equal(
+          protectedRows.every((row) => retainedIds.has(row._id)),
+          true,
+          'Native account deletion removes protected shared state: ' + name
+        )
+      }
     }
     const assertFinalDeferredCleanup = (captured: DeletionCapture) => {
       const finalTables = catalogue(captured)
@@ -5358,7 +5395,7 @@ try {
           )
         },
         verifyState: async (stage) => {
-          const current = await captureDeletionState()
+          let current = await captureDeletionState()
           if (stage === 'READY') {
             baseline = current
             historicalChat = campaignChatPageDtoSchema.parse(
@@ -5386,7 +5423,20 @@ try {
             assert.deepEqual(current, baseline)
             return
           }
-          assertImmediatePrivateCleanup(current)
+          if (stage === 'DELETED') {
+            // The request signs the subject out and schedules a staged deletion (ADR 0040): poll,
+            // with a bound, until its steps have removed the account and every owned row.
+            for (let pass = 0; pass < 120; pass += 1) {
+              try {
+                assertPrivateCleanup(current)
+                break
+              } catch {
+                await new Promise((resolveDelay) => setTimeout(resolveDelay, 500))
+                current = await captureDeletionState()
+              }
+            }
+          }
+          assertPrivateCleanup(current)
           if (stage === 'DELETED') {
             const beforeChat = campaignChatPageDtoSchema.parse(historicalChat)
             const afterChat = campaignChatPageDtoSchema.parse(

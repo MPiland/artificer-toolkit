@@ -26,8 +26,8 @@ import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encou
 import type { TableNames } from '../_generated/dataModel'
 import { api, internal } from '../_generated/api'
 import schema from '../schema'
-import { removeAccountCampaignMemberships } from '../campaigns/accountDeparture.helper'
-import { removeAccountPrivateCharacters } from '../characters/accountDeletion'
+import { runAccountDeletionStep } from '../../tests/fixtures/accountDeletion'
+import * as deletionJobs from '../accountDeletionJobs'
 import { readCharacterRecord, readCharacterRow } from '../characters/stateDocuments'
 import {
   attachRoomWorker,
@@ -40,6 +40,7 @@ import {
 
 useLocalRoomWorker()
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllEnvs()
 })
 
@@ -105,6 +106,27 @@ const creature = {
           }))
         }
   )
+}
+
+/** Runs one step of the account's deletion job until the job moves to another step. */
+async function runStepToCompletion(
+  base: Awaited<ReturnType<typeof setup>>,
+  step:
+    | typeof internal.campaigns.accountDeparture.step
+    | typeof internal.characters.accountDeletion.step
+) {
+  const readJob = () =>
+    base.t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+        .unique()
+    )
+  const started = await readJob()
+  for (;;) {
+    await runAccountDeletionStep(base.t, base.player.userId, step)
+    if ((await readJob())?.step !== started?.step) return
+  }
 }
 
 function command(input: {
@@ -458,7 +480,6 @@ describe('native Creature actions against Character targets', () => {
         ),
         schedules: await ctx.db.system.query('_scheduled_functions').collect()
       }))
-    const beforeCleanup = await snapshot()
     const preservedOwner = await base.t.run(async (ctx) => ({
       profile: await ctx.db
         .query('userProfiles')
@@ -469,18 +490,38 @@ describe('native Creature actions against Character targets', () => {
         .withIndex('by_publicId', (q) => q.eq('id', base.run.campaignId))
         .unique()
     }))
-    await expect(
-      base.t.run(async (ctx) => {
-        await removeAccountCampaignMemberships(ctx, base.player.userId)
-        await removeAccountPrivateCharacters(ctx, base.player.userId)
-        throw new Error('Injected Character receipt cleanup rollback')
-      })
-    ).rejects.toThrow('Injected Character receipt cleanup rollback')
-    expect(await snapshot()).toEqual(beforeCleanup)
-    await base.t.run(async (ctx) => {
-      await removeAccountCampaignMemberships(ctx, base.player.userId)
-      await removeAccountPrivateCharacters(ctx, base.player.userId)
+    // Fake timers keep the scheduler from running the job's steps behind the test.
+    vi.useFakeTimers()
+    const deletionJob = await base.t.run(async (ctx) => {
+      const profile = await ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+        .unique()
+      if (!profile) throw new Error('Missing deleting account profile.')
+      await deletionJobs.startAccountDeletion(ctx, profile.authUserId, base.player.userId)
+      const job = await ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', base.player.userId))
+        .unique()
+      if (!job) throw new Error('Missing account deletion job.')
+      return job
     })
+    const beforeCleanup = await snapshot()
+    const abort = vi
+      .spyOn(deletionJobs, 'continueAccountDeletion')
+      .mockRejectedValueOnce(new Error('Injected Character receipt cleanup rollback'))
+    try {
+      await expect(
+        runAccountDeletionStep(base.t, base.player.userId, internal.campaigns.accountDeparture.step)
+      ).rejects.toThrow('Injected Character receipt cleanup rollback')
+    } finally {
+      abort.mockRestore()
+    }
+    expect(await snapshot()).toEqual(beforeCleanup)
+    await runStepToCompletion(base, internal.campaigns.accountDeparture.step)
+    // Held at CHARACTERS so only the Character cleanup runs, without the account commit.
+    await base.t.run((ctx) => ctx.db.patch(deletionJob._id, { step: 'CHARACTERS' }))
+    await runStepToCompletion(base, internal.characters.accountDeletion.step)
     await expect(
       base.t.run((ctx) =>
         ctx.db

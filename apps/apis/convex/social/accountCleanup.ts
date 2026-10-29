@@ -1,25 +1,19 @@
 import { v } from 'convex/values'
 import { internal } from '../_generated/api'
 import type { MutationCtx } from '../_generated/server'
+import {
+  accountDeletionStepArgs,
+  continueAccountDeletion,
+  readAccountDeletionStep
+} from '../accountDeletionJobs'
 import { internalMutation } from '../lib/mutations'
 import { cancelNotification } from '../notifications/intents'
 import { socialStoredApplicationSchema } from '@artificer-toolkit/schema/projections/socialPersistence'
 import { readAdmissionListing } from './admissionDocuments'
 
 const PAGE_SIZE = 8
-/** Trusted native lifecycle producer; caller keeps the profile until this completes. */
-export async function prepareSocialAccountDeletion(
-  ctx: MutationCtx,
-  userId: string,
-  profileId: string | null
-) {
-  if (!profileId) return
-  const profile = await ctx.db
-    .query('socialProfiles')
-    .withIndex('by_publicId', (q) => q.eq('id', profileId))
-    .unique()
-  if (!profile || profile.userId !== userId)
-    throw new Error('Social account deletion profile mismatch.')
+/** Withdraws the applicant's submissions while the Social profile still exists. */
+async function prepareSocialAccountDeletion(ctx: MutationCtx, profileId: string) {
   const rows = await ctx.db
     .query('socialApplications')
     .withIndex('by_applicantProfileId_status_submittedAt_id', (q) =>
@@ -57,6 +51,22 @@ export async function prepareSocialAccountDeletion(
     } else await ctx.db.patch(row._id, { applicantDeletedAt: now })
   }
 }
+
+export const prepareAccountDeletion = internalMutation({
+  args: accountDeletionStepArgs,
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const job = await readAccountDeletionStep(ctx, args, 'SOCIAL')
+    if (!job) return null
+    const profile = await ctx.db
+      .query('socialProfiles')
+      .withIndex('by_userId', (q) => q.eq('userId', job.userId))
+      .unique()
+    if (profile) await prepareSocialAccountDeletion(ctx, profile.id)
+    await continueAccountDeletion(ctx, job, false)
+    return null
+  }
+})
 
 export const run = internalMutation({
   args: { userId: v.string(), profileId: v.union(v.null(), v.string()) },

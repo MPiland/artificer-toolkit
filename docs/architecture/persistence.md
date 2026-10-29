@@ -995,12 +995,17 @@ and drafts, owned Blueprints and immutable Social invalidation events remain.
 
 ### Account deletion
 
-The HTTP handler passes only its server-derived session token to the private mutation; the mutation rechecks the
-session, user, profile, email and password, then the SDK `deleteUser` runs inside one transaction with the app
-hook (`lib/authTriggers.helper.ts`): media and Social retention, Campaign departure, private Characters, authored
-sources, user-keyed rate-limit counters, usage and bounded scheduled purges. A late failure rolls everything back,
-and cookies expire only after commit. An owned ACTIVE or ARCHIVED Campaign blocks deletion until it is
-transferred or deleted. Shared Campaign messages, rolls, Sessions and history remain with the author shown as
+Account deletion is staged ([ADR 0040](../adr/0040-staged-account-deletion.md); D199, option 1, departure
+first). The HTTP handler passes only its server-derived session token to the private mutation. The mutation
+rechecks the session, user, profile, email and password, then commits in one transaction: it revokes every session
+and credential and creates an `accountDeletionJobs` row. Cookies expire after that commit, and the request answers
+"deletion scheduled". Bounded, idempotent steps then run through `ctx.scheduler`, each in its owning module:
+Campaign departure (one membership per invocation, through the existing departure code), Social preparation, media
+retention, private Characters, authored content, sources, then Blueprints and user-keyed rows. The last step calls
+`deleteUser`; its `auth:onDelete` hook (`lib/authTriggers.helper.ts`) atomically rechecks the gates, deletes the
+profile, Social profile and job, and schedules the purges that need the profile gone. A failed step commits
+nothing and is retried with backoff; privacy completion is eventual, not one rollback-able transaction. An owned
+ACTIVE or ARCHIVED Campaign blocks deletion until it is transferred or deleted. Shared Campaign messages, rolls, Sessions and history remain with the author shown as
 `Deleted user` (`readCampaignAuthorLabels`), and retained history grants no access. Account deletion removes the
 account's Character actors from ongoing Encounters, retaining past turns and history; audit attribution is the
 deleting user, except Runs a live room holds (D74), where removal receipts name the Campaign owner. Under

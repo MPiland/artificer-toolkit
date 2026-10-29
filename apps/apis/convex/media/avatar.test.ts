@@ -11,6 +11,11 @@ import schema from '../schema'
 import type { TableNames } from '../_generated/dataModel'
 import authSchema from '../betterAuth/schema'
 import { api, components, internal } from '../_generated/api'
+import {
+  advanceAccountDeletionToProvider,
+  assertAccountDeletionRetired,
+  drainScheduledWork
+} from '../../tests/fixtures/accountDeletion'
 import { startLocalR2 } from '../../tests/localR2'
 
 let t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
@@ -28,6 +33,9 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout'] })
   vi.stubEnv('MEDIA_STORAGE_MODE', 'local')
   vi.stubEnv('CONVEX_SITE_URL', 'http://127.0.0.1:3221')
+  // The account deletion's ACCOUNT step deletes the provider user through the configured auth.
+  vi.stubEnv('SITE_URL', 'http://localhost:3000')
+  vi.stubEnv('BETTER_AUTH_SECRET', 'avatar-account-deletion-test-secret-with-sufficient-length')
   vi.stubEnv('LOCAL_R2_ENDPOINT', server.endpoint)
   t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
   t.registerComponent('betterAuth', authSchema, import.meta.glob('../betterAuth/**/*.*s'))
@@ -348,10 +356,11 @@ it('cleans pending and ready keys after account deletion, without touching anoth
     assetId: foreignIntent.assetId,
     crop
   })
-  await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
-  // An already issued PUT may arrive after deletion; its exact key is retained by cleanup.
+  await t.mutation(internal.accountDeletion.schedule, { authUserId: owner.user._id })
+  // An already issued PUT may arrive after deletion starts; its exact key is retained by cleanup.
   await put(pending.url, image)
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await drainScheduledWork(t)
+  await assertAccountDeletionRetired(t, owner.user._id)
   expect(
     await t.run((ctx) =>
       ctx.db
@@ -381,16 +390,24 @@ it('converges identically when every deferred account cleanup reruns', async () 
     upload(image.byteLength)
   )
   await put(pending.url, image)
-  const scheduledBefore = new Set(
-    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).map(
-      (job) => job._id
-    )
+  const scheduledBefore = await advanceAccountDeletionToProvider(
+    t,
+    owner.user._id,
+    owner.identity.userId
   )
   await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
-  const deferred = (
-    await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
-  ).filter((job) => !scheduledBefore.has(job._id))
-  expect(deferred.map((job) => job.name).sort()).toEqual([
+  const scheduledSinceProvider = async (before: ReadonlySet<string>) =>
+    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).filter(
+      (job) => !before.has(job._id)
+    )
+  // The provider delete schedules only the purge, which schedules the per-module account cleanups.
+  const [purge, ...unexpected] = await scheduledSinceProvider(scheduledBefore)
+  expect(unexpected).toEqual([])
+  expect(purge?.name).toBe('accountDeletionFinish:purge')
+  const scheduledBeforePurge = new Set([...scheduledBefore, purge!._id])
+  await t.mutation(internal.accountDeletionFinish.purge, purge!.args[0])
+  const cleanups = await scheduledSinceProvider(scheduledBeforePurge)
+  expect(cleanups.map((job) => job.name).sort()).toEqual([
     'media/assets:purgeAccount',
     'notifications/delivery:purgeRecipient',
     'social/accountCleanup:run'
@@ -413,7 +430,7 @@ it('converges identically when every deferred account cleanup reruns', async () 
   }
   const first = await converged()
   expect(first.app.mediaAssets).toEqual([])
-  for (const job of deferred)
+  for (const job of [purge!, ...cleanups])
     await t.mutation(
       makeFunctionReference<'mutation', Record<string, unknown>, null>(job.name),
       job.args[0]

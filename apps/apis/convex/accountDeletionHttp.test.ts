@@ -2,8 +2,13 @@ import { createFunctionHandle, type PaginationResult } from 'convex/server'
 import { JWT_COOKIE_NAME } from '@convex-dev/better-auth/plugins'
 import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AccountDeleteInput } from '@artificer-toolkit/schema/api/account'
+import {
+  advanceAccountDeletion,
+  drainScheduledWork,
+  runAccountDeletionStep
+} from '../tests/fixtures/accountDeletion'
 import type { Doc, TableNames } from './_generated/dataModel'
 import { components, internal } from './_generated/api'
 import { createAuth } from './authFactory.helper'
@@ -130,11 +135,17 @@ async function fixture() {
 }
 
 describe('account deletion HTTP endpoint', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('deletes only the signed-in account and expires exact session and Convex JWT cookies after commit', async () => {
     const base = await fixture()
     const before = await base.snapshot()
     for (const catalogue of [before.users, before.accounts, before.sessions])
       expect(catalogue.isDone).toBe(true)
+    // The staged steps (ADR 0040) wait on the fake clock until the drain below runs them.
+    vi.useFakeTimers({ now: Date.now() })
     const response = await base.request({
       email: base.owner.user.email,
       currentPassword: base.password
@@ -145,6 +156,12 @@ describe('account deletion HTTP endpoint', () => {
       const expired = cookies.find((value) => value.startsWith(`${name}=`))
       expect(expired, 'Missing expired auth cookie: ' + name).toContain('Max-Age=0')
     }
+    // The request signs the account out at once, before any staged step runs.
+    expect((await base.snapshot()).sessions).toEqual({
+      ...before.sessions,
+      page: before.sessions.page.filter((row) => row.userId !== base.owner.user._id)
+    })
+    await drainScheduledWork(base.t)
     const after = await base.snapshot()
     expect(after.users).toEqual({
       ...before.users,
@@ -210,14 +227,14 @@ describe('account deletion HTTP endpoint', () => {
     })
   }, 30_000)
 
-  it('rolls back provider, app, schedules, and cookies when late native cleanup fails', async () => {
+  it('rolls back only the failing late deletion step and keeps the job for retry', async () => {
     const base = await fixture()
-    await base.t.run(async (ctx) => {
+    const userId = await base.t.run(async (ctx) => {
       const profile = await ctx.db
         .query('userProfiles')
         .withIndex('by_authUserId', (q) => q.eq('authUserId', base.owner.user._id))
         .unique()
-      // One row beyond the latest-25 feed bound makes the late native cleanup fail.
+      // One row beyond the latest-25 feed bound makes the late FINISH step fail.
       for (let index = 0; index < 26; index++) {
         const occurredAt = new Date(Date.UTC(2026, 8, 4, 0, 0, index)).toISOString()
         const sourcePublicId = crypto.randomUUID()
@@ -241,15 +258,26 @@ describe('account deletion HTTP endpoint', () => {
           readAt: null
         })
       }
+      return profile!.userId
     })
-    const before = await base.snapshot()
+    // Scheduled steps stay pending on the fake clock, so the test drives each one itself.
+    vi.useFakeTimers({ now: Date.now() })
     const response = await base.request({
       email: base.owner.user.email,
       currentPassword: base.password
     })
-    expect(response.status).toBeGreaterThanOrEqual(500)
-    expect(response.headers.getSetCookie().join('; ')).not.toContain('Max-Age=0')
+    expect(response.status).toBe(200)
+    expect(response.headers.getSetCookie().join('; ')).toContain('Max-Age=0')
+    await advanceAccountDeletion(base.t, userId, 'FINISH')
+    const before = await base.snapshot()
+    await expect(
+      runAccountDeletionStep(base.t, userId, internal.accountDeletionFinish.step)
+    ).rejects.toThrow('Notification retention limit exceeded.')
     expect(await base.snapshot()).toEqual(before)
+    expect(
+      before.users.page.some((row) => row._id === base.owner.user._id),
+      'The provider account outlives a failed step.'
+    ).toBe(true)
   }, 30_000)
   it('rejects invalid, stale, foreign-origin, and client-supplied identity requests without writes', async () => {
     const base = await fixture()

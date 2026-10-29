@@ -1,12 +1,18 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { convexTest } from '../tests/convexTest'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { AccountDeleteInput } from '@artificer-toolkit/schema/api/account'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { TableNames } from './_generated/dataModel'
 import { publicationFixture, importedSubject } from '../tests/fixtures/publication'
+import {
+  advanceAccountDeletion,
+  deleteAccountCompletely,
+  drainScheduledWork,
+  runAccountDeletionStep
+} from '../tests/fixtures/accountDeletion'
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { api, components, internal } from './_generated/api'
 import { createAuth } from './authFactory.helper'
@@ -400,6 +406,12 @@ describe('installed native account deletion cascade', () => {
     await expect(
       base.t.mutation(execute, { sessionToken: base.session.token, command: base.input })
     ).resolves.toBeNull()
+    // The request signs the account out everywhere at once; the staged job removes the rest.
+    const scheduled = await base.snapshot()
+    expect(scheduled.user).toEqual(before.user)
+    expect(scheduled.credentials.page).toEqual([])
+    expect(scheduled.sessions.page).toEqual([])
+    await drainScheduledWork(base.t)
     const after = await base.snapshot()
     expect(after.user).toBeNull()
     expect(after.credentials.isDone).toBe(true)
@@ -447,7 +459,7 @@ describe('installed native account deletion cascade', () => {
     await expect(foreignCaller.query(api.account.identity, {})).resolves.toHaveProperty('userId')
   }, 30_000)
 
-  it('rolls back provider user, every credential/session and app state when the native deletion trigger fails late', async () => {
+  it('retries a failed deletion step, which commits nothing, until it succeeds', async () => {
     const base = await fixture()
     const identity = await base.caller.query(api.account.identity, {})
     if (!identity) throw new Error('Missing fixture identity.')
@@ -477,22 +489,51 @@ describe('installed native account deletion cascade', () => {
         })
       }
     })
-    const before = await base.globalSnapshot()
-    expect(before.users.isDone && before.accounts.isDone && before.sessions.isDone).toBe(true)
     const feedBefore = await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())
     expect(feedBefore).toHaveLength(26)
-    await expect(
-      base.t.mutation(execute, { sessionToken: base.session.token, command: base.input })
-    ).rejects.toThrow('Notification retention limit exceeded.')
-    expect(await base.globalSnapshot()).toEqual(before)
-    expect(await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())).toEqual(
-      feedBefore
-    )
-    await expect(base.caller.query(api.account.identity, {})).resolves.toHaveProperty(
-      'userId',
-      identity.userId
-    )
-    await expect(base.caller.mutation(confirmCredentials, base.input)).resolves.toBeNull()
+    const job = () =>
+      base.t.run((ctx) =>
+        ctx.db
+          .query('accountDeletionJobs')
+          .withIndex('by_userId', (q) => q.eq('userId', identity.userId))
+          .unique()
+      )
+    vi.useFakeTimers({ now: Date.now() })
+    try {
+      await expect(
+        base.t.mutation(execute, { sessionToken: base.session.token, command: base.input })
+      ).resolves.toBeNull()
+      await expect(base.caller.query(api.account.identity, {})).rejects.toThrow('Unauthenticated')
+      // Run scheduled work one timer at a time until the FINISH step has failed and been retried.
+      for (let tick = 0; tick < 200; tick++) {
+        const current = await job()
+        if (current?.step === 'FINISH' && current.attempt > 0) break
+        vi.advanceTimersToNextTimer()
+        await base.t.finishInProgressScheduledFunctions()
+      }
+      const failing = await job()
+      expect(failing).toMatchObject({ step: 'FINISH' })
+      expect(failing?.attempt).toBeGreaterThan(0)
+      // The failed step committed nothing: the feed and the job's position are intact.
+      expect(await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())).toEqual(
+        feedBefore
+      )
+      // The provider account is removed last, so it survives a failed earlier step.
+      expect((await base.snapshot()).user).not.toBeNull()
+
+      await base.t.run(async (ctx) => {
+        const oldest = feedBefore.reduce((left, right) =>
+          left.occurredAt < right.occurredAt ? left : right
+        )
+        await ctx.db.delete(oldest._id)
+      })
+      await drainScheduledWork(base.t)
+      expect(await job()).toBeNull()
+      expect((await base.snapshot()).user).toBeNull()
+      expect(await base.t.run((ctx) => ctx.db.query('notificationFeedItems').collect())).toEqual([])
+    } finally {
+      vi.useRealTimers()
+    }
   }, 30_000)
 })
 
@@ -571,6 +612,11 @@ describe('installed native account deletion Campaign ownership restriction', () 
         })
       ).rejects.toThrow('Account deletion is restricted by owned Campaigns.')
       expect(await snapshot()).toEqual(before)
+      // The request refuses an owner before it revokes anything or schedules a job.
+      await expect(
+        t.mutation(internal.accountDeletion.schedule, { authUserId: profile.authUserId })
+      ).rejects.toThrow('Account deletion is restricted by owned Campaigns.')
+      expect(await snapshot()).toEqual(before)
       await expect(first.caller.query(api.account.identity, {})).resolves.toHaveProperty(
         'userId',
         first.userId
@@ -581,6 +627,71 @@ describe('installed native account deletion Campaign ownership restriction', () 
     },
     30_000
   )
+})
+describe('installed native account commit gates', () => {
+  it('refuses a provider delete without a scheduled job, and with an ACTIVE membership at the account step', async () => {
+    const { t, first, second } = await publicationFixture(
+      import.meta.glob('./**/*.*s'),
+      import.meta.glob('./betterAuth/**/*.*s'),
+      []
+    )
+    const campaign = await second.caller.mutation(api.campaigns.create.create, {
+      name: 'Joined after departure',
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD',
+      gameSystemId: srdSystemRecord.id,
+      primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    })
+    const profile = await t.run((ctx) =>
+      ctx.db
+        .query('userProfiles')
+        .withIndex('by_userId', (q) => q.eq('userId', first.userId))
+        .unique()
+    )
+    if (!profile) throw new Error('Missing deleting account profile.')
+    const snapshot = () =>
+      t.run(async (ctx) => ({
+        profile: await ctx.db.get(profile._id),
+        job: await ctx.db
+          .query('accountDeletionJobs')
+          .withIndex('by_userId', (q) => q.eq('userId', first.userId))
+          .unique(),
+        user: await ctx.runQuery(components.betterAuth.adapter.findOne, {
+          model: 'user',
+          where: [{ field: '_id', value: profile.authUserId }]
+        })
+      }))
+    const deleteProvider = () =>
+      t.run(async (ctx) => {
+        await (await createAuth(ctx).$context).internalAdapter.deleteUser(profile.authUserId)
+      })
+
+    const unscheduled = await snapshot()
+    await expect(deleteProvider()).rejects.toThrow('Account deletion is not scheduled.')
+    expect(await snapshot()).toEqual(unscheduled)
+
+    await t.mutation(internal.accountDeletion.schedule, { authUserId: profile.authUserId })
+    await advanceAccountDeletion(t, first.userId, 'ACCOUNT')
+    await t.run((ctx) =>
+      ctx.db.insert('campaignMemberships', {
+        campaignId: campaign.id,
+        userId: first.userId,
+        role: 'PLAYER',
+        status: 'ACTIVE',
+        accessStartedAt: campaign.createdAt,
+        joinedAt: campaign.createdAt,
+        leftAt: null
+      })
+    )
+    const atAccount = await snapshot()
+    expect(atAccount.job).toMatchObject({ step: 'ACCOUNT' })
+    expect(atAccount.user).not.toBeNull()
+    await expect(
+      runAccountDeletionStep(t, first.userId, internal.accountDeletion.deleteAccount)
+    ).rejects.toThrow('Account deletion requires Campaign departure first.')
+    expect(await snapshot()).toEqual(atAccount)
+  })
 })
 describe('installed native owned authored cleanup', () => {
   it.each(['SUCCESS', 'LATE_ROLLBACK'] as const)(
@@ -668,21 +779,35 @@ describe('installed native owned authored cleanup', () => {
       )
       if (!profile) throw new Error('Missing deleting account profile.')
       expect(before.users.isDone && before.accounts.isDone && before.sessions.isDone).toBe(true)
-      const deleteUser = () =>
-        t.run(async (ctx) => {
-          await (await createAuth(ctx).$context).internalAdapter.deleteUser(profile.authUserId)
-          if (outcome === 'LATE_ROLLBACK')
-            throw new Error('Abort after complete native authored cleanup.')
-        })
       if (outcome === 'LATE_ROLLBACK') {
-        await expect(deleteUser()).rejects.toThrow('Abort after complete native authored cleanup.')
-        expect(await snapshot()).toEqual(before)
-        await expect(first.caller.query(api.account.identity, {})).resolves.toHaveProperty(
-          'userId',
-          first.userId
-        )
+        // Drive the real job to its AUTHORED step, then abort that step after its cleanup ran.
+        await t.mutation(internal.accountDeletion.schedule, { authUserId: profile.authUserId })
+        const steps = [
+          internal.campaigns.accountDeparture.step,
+          internal.social.accountCleanup.prepareAccountDeletion,
+          internal.media.accountRetention.step,
+          internal.characters.accountDeletion.step
+        ]
+        for (const step of steps) await runAccountDeletionStep(t, first.userId, step)
+        const atAuthored = await snapshot()
+        expect(atAuthored.app.accountDeletionJobs).toEqual([
+          expect.objectContaining({ userId: first.userId, step: 'AUTHORED' })
+        ])
+        const job = atAuthored.app.accountDeletionJobs[0]
+        await expect(
+          t.run(async (ctx) => {
+            await ctx.runMutation(internal.content.deletion.accountDeletionStep, {
+              jobId: job._id,
+              token: job.token
+            })
+            throw new Error('Abort after complete native authored cleanup.')
+          })
+        ).rejects.toThrow('Abort after complete native authored cleanup.')
+        expect(await snapshot()).toEqual(atAuthored)
+        expect(atAuthored.app.authoredRoots).toEqual(before.app.authoredRoots)
+        expect(atAuthored.app.authoredDrafts).toEqual(before.app.authoredDrafts)
       } else {
-        await deleteUser()
+        await deleteAccountCompletely(t, profile.authUserId)
         const remaining = await t.run(async (ctx) => ({
           roots: await ctx.db.query('authoredRoots').collect(),
           drafts: await ctx.db.query('authoredDrafts').collect(),

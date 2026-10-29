@@ -34,6 +34,8 @@ Shared Campaign messages, rolls and Session history remain readable with the aut
 `Deleted user`; private Characters and personal account data are removed.
 
 Strict input validation, integrity checks, privacy, replay and atomic rollback remain required.
+**Amended (ADR 0040, 2026-10-28):** account deletion is a staged job of bounded steps. Each step is
+atomic and retried; the whole deletion completes eventually rather than in one transaction.
 Malformed persisted data is a functional defect, not an approved deletion restriction. An owner still
 explicitly transfers or deletes owned ACTIVE/ARCHIVED Campaigns before deleting their account.
 Public Encounter editing and ordinary authored publication keep their separate constraints.
@@ -49,5 +51,6 @@ The final-source release lifecycle remains R08 work.
 The [persistence guide](../architecture/persistence.md#account-deletion)
 owns lifecycle invariants. The implementation is centered in
 [`accountDeletion.ts`](../../apps/apis/convex/accountDeletion.ts),
-[`accountDeparture.helper.ts`](../../apps/apis/convex/campaigns/accountDeparture.helper.ts) and
+[`accountDeletionJobs.ts`](../../apps/apis/convex/accountDeletionJobs.ts),
+[`accountDeparture.ts`](../../apps/apis/convex/campaigns/accountDeparture.ts) and
 [`content/deletion.ts`](../../apps/apis/convex/content/deletion.ts).
