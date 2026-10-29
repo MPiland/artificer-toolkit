@@ -1,8 +1,21 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import {
+  DURATION_KIND,
+  MANIFEST_KIND,
+  SHAPE_KIND,
+  type CreatureAuthored
+} from '@artificer-toolkit/shared'
+import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../concentration.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
+/** The 15-foot sphere of magical darkness around the darkmantle. */
+const darknessAuraShape = (offset: number) => ({
+  id: S.actionId(6527, offset),
+  shapeKind: SHAPE_KIND.SPHERE,
+  radius: { amount: 15, unit: S.MEASUREMENT_UNIT_CODE.FEET }
+})
+
 export const darkmantle: CreatureAuthored = {
   id: S.CREATURE_IDS.DARKMANTLE,
   label: 'Darkmantle',
@@ -183,6 +196,14 @@ export const darkmantle: CreatureAuthored = {
       label: 'Darkness Aura (1/Day)',
       description:
         "Darkness Aura (1/Day). A 15-foot radius of magical darkness extends out from the darkmantle, moves with it, and spreads around corners. The darkness lasts as long as the darkmantle maintains concentration, up to 10 minutes (as if concentrating on a spell). Darkvision can't penetrate this darkness, and no natural light can illuminate it. If any of the darkness overlaps with an area of light created by a spell of 2nd level or lower, the spell creating the light is dispelled.",
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(6527, 10),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.LONG_REST,
+        amount: 1
+      },
       effects: [
         {
           id: S.actionId(6527, 7),
@@ -194,9 +215,11 @@ export const darkmantle: CreatureAuthored = {
               code: S.ACTIVATION_CODE.BONUS_ACTION,
               amount: 1
             },
-            range: {
-              id: S.actionId(6527, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
+            range: { id: S.actionId(6527, 8), rangeKind: S.RANGE_KIND.SELF },
+            shape: darknessAuraShape(11),
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
@@ -210,11 +233,20 @@ export const darkmantle: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(6527, 9) + '__result',
                 resultKind: 'SINGLE' as const,
+                duration: {
+                  id: S.actionId(6527, 12),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 10
+                },
+                maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
                 outcomes: [
                   {
-                    id: S.actionId(6527, 9),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DARKMANTLE_DARKNESS_AURA
+                    id: S.actionId(6527, 13),
+                    effectKind: S.EFFECT_KIND.MANIFEST,
+                    manifestKind: MANIFEST_KIND.ZONE,
+                    attachmentKind: 'SOURCE' as const,
+                    label: 'Darkness Aura',
+                    shape: darknessAuraShape(14)
                   }
                 ]
               }
