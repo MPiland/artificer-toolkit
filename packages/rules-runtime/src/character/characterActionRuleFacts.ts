@@ -425,6 +425,15 @@ export function normalizeCharacterActionMechanicFacts(
       })
       continue
     }
+    if (outcome.effectKind === 'SPELL_SLOT_EXCHANGE') {
+      outcomes.push({
+        kind: 'SPELL_SLOT_EXCHANGE',
+        pathCode: entry.pathCode,
+        exchange: outcome,
+        label: nullableLabel(entry.label)
+      })
+      continue
+    }
     outcomes.push({
       kind: 'EFFECT',
       pathCode: entry.pathCode,
@@ -435,11 +444,13 @@ export function normalizeCharacterActionMechanicFacts(
         ? {
             endEffects: {
               scope: outcome.scope,
-              selectors: outcome.selectors.map((selector) =>
-                selector.kind === 'CONDITION'
-                  ? { ...selector, conditionIds: [...selector.conditionIds] }
-                  : { ...selector }
-              ),
+              selectors: outcome.selectors.map((selector) => {
+                if (selector.kind === 'CONDITION')
+                  return { ...selector, conditionIds: [...selector.conditionIds] }
+                if (selector.kind === 'SAME_EFFECT')
+                  return { kind: selector.kind, effectId: effect.id }
+                return { ...selector }
+              }),
               ...(outcome.originCreatureTypeIds?.length
                 ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
                 : {}),

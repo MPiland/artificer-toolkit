@@ -38,6 +38,7 @@ import {
   type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
+  type ManifestBehaviorAuthored,
   type ModifierGrantAuthored,
   type MovementPassageOption
 } from '@artificer-toolkit/shared'
@@ -819,7 +820,7 @@ export function grappledOutcome(
 export function saveImmunityPath(
   creatureIndex: number,
   localIndex: number
-): EffectAuthored['paths'][number] {
+): ManifestBehaviorAuthored['paths'][number] {
   const id = (offset: number) => actionId(creatureIndex, localIndex + offset)
   return {
     id: id(0),

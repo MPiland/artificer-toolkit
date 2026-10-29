@@ -1,10 +1,12 @@
 import {
+  ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
@@ -29,7 +31,7 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions, closedRuleEffect, selfActionEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -622,7 +624,33 @@ export const wizard: ClassAuthored = {
       label: 'Arcane Recovery',
       description:
         "You have learned to regain some of your magical energy by studying your spellbook. Once per day when you finish a short rest, you can choose expended spell slots to recover. The spell slots can have a combined level that is equal to or less than half your wizard level (rounded up), and none of the slots can be 6th level or higher.\n\nFor example, if you're a 4th-level wizard, you can recover up to two levels worth of spell slots. You can recover either a 2nd-level spell slot or two 1st-level spell slots.",
-      effects: [selfClassRuleEffect(2, CLOSED_RULE_KIND.CLASS_WIZARD_ARCANE_RECOVERY)],
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: classRowId(WZ, 0x6a, 2),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        amount: 1
+      },
+      effects: [
+        selfActionEffect({
+          ids: {
+            effect: classRowId(WZ, 0x60, 2),
+            range: classRowId(WZ, 0x69, 2),
+            path: classRowId(WZ, 0x80, 2),
+            result: classRowId(WZ, 0x81, 2)
+          },
+          activation: ACTIVATION_CODE.FREE,
+          resourceUse: { chargeId: classRowId(WZ, 0x6a, 2), cost: 1 },
+          outcome: {
+            id: classRowId(WZ, 0x82, 2),
+            effectKind: EFFECT_KIND.SPELL_SLOT_EXCHANGE,
+            mode: 'RECOVER_SLOTS',
+            levelBudget: { classId: CLASS_IDS.WIZARD, divisor: 2, rounding: 'UP' },
+            maximumSlotLevel: 5
+          }
+        })
+      ],
       availableAtLevel: 1,
       order: 1
     },

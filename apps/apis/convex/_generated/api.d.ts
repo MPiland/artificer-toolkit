@@ -2194,6 +2194,15 @@ export declare const api: {
                 type: "RESTORE_SPELL_SLOT";
               }
             | {
+                actionId: string;
+                commandId: string;
+                expectedVersion: number;
+                selection:
+                  | { kind: "SLOTS"; slotKeys: Array<string> }
+                  | { kind: "SLOT_LEVEL"; slotLevel: number };
+                type: "EXCHANGE_SPELL_SLOTS";
+              }
+            | {
                 commandId: string;
                 expectedVersion: number;
                 slotKey?: string;
@@ -2501,7 +2510,8 @@ export declare const api: {
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: { code: string; label: string };
               }
-            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+            | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -2575,6 +2585,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -3277,6 +3303,22 @@ export declare const api: {
                         kind: "EFFECT";
                         label?: string;
                         pathCode: string;
+                        spellSlotExchange?:
+                          | {
+                              levelBudget: number;
+                              maximumSlotLevel: number;
+                              mode: "RECOVER_SLOTS";
+                            }
+                          | {
+                              maximumSlotLevel: number | null;
+                              mode: "SLOT_TO_RESOURCE";
+                              resourcePoolId: string;
+                            }
+                          | {
+                              costs: Array<{ cost: number; slotLevel: number }>;
+                              mode: "RESOURCE_TO_SLOT";
+                              resourcePoolId: string;
+                            };
                       }
                   >;
                   rangeLabel?: string;
@@ -3390,6 +3432,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -6505,7 +6563,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -6609,7 +6668,8 @@ export declare const api: {
                     kind: "D20_MODE_ADJUSTED";
                     rolledMode: { code: string; label: string };
                   }
-                | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+                | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+                | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
               ruleset: { code: string; systemId: string; version: string };
               source: {
                 kind:
@@ -6718,7 +6778,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -6815,7 +6876,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9630,7 +9692,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -9743,7 +9806,8 @@ export declare const api: {
                 kind: "D20_MODE_ADJUSTED";
                 rolledMode: { code: string; label: string };
               }
-            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+            | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+            | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
           ruleset: { code: string; systemId: string; version: string };
           source: {
             kind:
@@ -9837,7 +9901,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -11011,7 +11076,11 @@ export declare const api: {
               updatedAt: string;
             }>;
             resources?: Array<{ resourceGrantId: string; used: number }>;
-            spellSlots?: Array<{ slotKey: string; used: number }>;
+            spellSlots?: Array<{
+              created?: number;
+              slotKey: string;
+              used: number;
+            }>;
             spellSummons?: Array<{
               abilityScores?: Record<string, number>;
               armorClass: number | null;
@@ -11398,7 +11467,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -11784,7 +11857,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -12361,7 +12438,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -12946,7 +13027,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -13534,7 +13619,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -14105,7 +14194,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -17137,6 +17230,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -17839,6 +17948,22 @@ export declare const api: {
                         kind: "EFFECT";
                         label?: string;
                         pathCode: string;
+                        spellSlotExchange?:
+                          | {
+                              levelBudget: number;
+                              maximumSlotLevel: number;
+                              mode: "RECOVER_SLOTS";
+                            }
+                          | {
+                              maximumSlotLevel: number | null;
+                              mode: "SLOT_TO_RESOURCE";
+                              resourcePoolId: string;
+                            }
+                          | {
+                              costs: Array<{ cost: number; slotLevel: number }>;
+                              mode: "RESOURCE_TO_SLOT";
+                              resourcePoolId: string;
+                            };
                       }
                   >;
                   rangeLabel?: string;
@@ -17952,6 +18077,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -19293,6 +19434,15 @@ export declare const api: {
                 type: "RESTORE_SPELL_SLOT";
               }
             | {
+                actionId: string;
+                commandId: string;
+                expectedVersion: number;
+                selection:
+                  | { kind: "SLOTS"; slotKeys: Array<string> }
+                  | { kind: "SLOT_LEVEL"; slotLevel: number };
+                type: "EXCHANGE_SPELL_SLOTS";
+              }
+            | {
                 commandId: string;
                 expectedVersion: number;
                 slotKey?: string;
@@ -19771,6 +19921,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;
@@ -20020,6 +20189,25 @@ export declare const api: {
                             kind: "EFFECT";
                             label?: string;
                             pathCode: string;
+                            spellSlotExchange?:
+                              | {
+                                  levelBudget: number;
+                                  maximumSlotLevel: number;
+                                  mode: "RECOVER_SLOTS";
+                                }
+                              | {
+                                  maximumSlotLevel: number | null;
+                                  mode: "SLOT_TO_RESOURCE";
+                                  resourcePoolId: string;
+                                }
+                              | {
+                                  costs: Array<{
+                                    cost: number;
+                                    slotLevel: number;
+                                  }>;
+                                  mode: "RESOURCE_TO_SLOT";
+                                  resourcePoolId: string;
+                                };
                           }
                       >;
                       rangeLabel?: string;
@@ -20068,6 +20256,14 @@ export declare const api: {
                   }>;
                   label: string;
                   level: number;
+                }>;
+                slots: Array<{
+                  label: string;
+                  level: number | null;
+                  max: number;
+                  remaining: number;
+                  slotKey: string;
+                  used: number;
                 }>;
                 spells: Array<{
                   attributes?: Array<
@@ -20122,6 +20318,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;
@@ -20395,6 +20610,25 @@ export declare const api: {
                             kind: "EFFECT";
                             label?: string;
                             pathCode: string;
+                            spellSlotExchange?:
+                              | {
+                                  levelBudget: number;
+                                  maximumSlotLevel: number;
+                                  mode: "RECOVER_SLOTS";
+                                }
+                              | {
+                                  maximumSlotLevel: number | null;
+                                  mode: "SLOT_TO_RESOURCE";
+                                  resourcePoolId: string;
+                                }
+                              | {
+                                  costs: Array<{
+                                    cost: number;
+                                    slotLevel: number;
+                                  }>;
+                                  mode: "RESOURCE_TO_SLOT";
+                                  resourcePoolId: string;
+                                };
                           }
                       >;
                       rangeLabel?: string;
@@ -20514,6 +20748,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;
@@ -285494,7 +285747,10 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "SELF" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "SELF";
+                }
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;
@@ -287252,7 +287508,10 @@ export declare const api: {
             rulesText?: string;
             sourceLabel?: string;
             target:
-              | { kind: "SELF" }
+              | {
+                  choiceOptions?: Array<{ id: string; label: string }>;
+                  kind: "SELF";
+                }
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
                   choosesItem?: true;
@@ -289492,6 +289751,7 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  autoFail?: Array<{ conditionId: string; label: string }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   keep: "FIRST" | "HIGHER" | "LOWER";
@@ -289579,6 +289839,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -289958,6 +290219,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -290049,6 +290311,7 @@ export declare const api: {
                         label: string;
                         sign: "ADD" | "SUBTRACT";
                       }>;
+                      autoFail?: Array<{ conditionId: string; label: string }>;
                       derivedRollModeReasons: Array<string>;
                       heldD20?: {
                         caption: string | null;
@@ -290786,7 +291049,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -291036,7 +291300,8 @@ export declare const api: {
                   kind: "D20_MODE_ADJUSTED";
                   rolledMode: { code: string; label: string };
                 }
-              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+              | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+              | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
             ruleset: { code: string; systemId: string; version: string };
             source: {
               kind:
@@ -291078,6 +291343,7 @@ export declare const api: {
                 label: string;
                 sign: "ADD" | "SUBTRACT";
               }>;
+              autoFail?: Array<{ conditionId: string; label: string }>;
               derivedRollModeReasons: Array<string>;
               heldD20?: { caption: string | null; faces: Array<number> };
               keep: "FIRST" | "HIGHER" | "LOWER";
@@ -291162,6 +291428,7 @@ export declare const api: {
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
+                autoFail?: Array<{ conditionId: string; label: string }>;
                 derivedRollModeReasons: Array<string>;
                 heldD20?: { caption: string | null; faces: Array<number> };
                 keep: "FIRST" | "HIGHER" | "LOWER";
@@ -292276,6 +292543,7 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  autoFail?: Array<{ conditionId: string; label: string }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
                   keep: "FIRST" | "HIGHER" | "LOWER";
@@ -292363,6 +292631,7 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    autoFail?: Array<{ conditionId: string; label: string }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
                     keep: "FIRST" | "HIGHER" | "LOWER";
@@ -294249,7 +294518,8 @@ export declare const api: {
               kind: "D20_MODE_ADJUSTED";
               rolledMode: { code: string; label: string };
             }
-          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -294368,7 +294638,8 @@ export declare const api: {
               kind: "D20_MODE_ADJUSTED";
               rolledMode: { code: string; label: string };
             }
-          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
         ruleset: { code: string; systemId: string; version: string };
         source: {
           kind:
@@ -298775,59 +299046,6 @@ export declare const internal: {
         null
       >;
     };
-    equipmentOptions: {
-      list: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            activeUpdatedAt: string;
-            castingTimeAmount?: number;
-            castingTimeUnit?: "ROUND" | "MINUTE" | "HOUR";
-            category?: string;
-            classIds?: Array<string>;
-            classLabels?: Array<string>;
-            description: string | null;
-            id: string;
-            label: string;
-            level?: number;
-            magicSchoolId?: string;
-            magicSchoolLabel?: string;
-            parentClassId?: string | null;
-            parentClassLabel?: string | null;
-            parentRaceId?: string | null;
-            parentRaceLabel?: string | null;
-            permissions: {
-              canCopy: boolean;
-              canDelete: boolean;
-              canEdit: boolean;
-              canView: boolean;
-            };
-            provenance: {
-              kind: "MASTER" | "OWNED";
-              ownerUserId: string | null;
-            };
-            publicId: string;
-            selectionMode?: "DIRECT" | "REQUIRES_SUBRACE";
-            status: "ACTIVE";
-            systemId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-    };
     inventoryTransferCommands: {
       transfer: FunctionReference<
         "mutation",
@@ -298871,92 +299089,6 @@ export declare const internal: {
               };
         },
         { eventId: string }
-      >;
-    };
-    partyInventoryPages: {
-      currencies: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          owner:
-            | { characterId: string; kind: "CHARACTER" }
-            | { campaignId: string; kind: "CAMPAIGN" }
-            | { kind: "VEHICLE"; vehicleId: string };
-          page: Array<{
-            abbreviation: string;
-            amount: number;
-            campaignCurrencySystemId?: string;
-            containerId: string | null;
-            denominationId: string;
-            kind: "RULESET" | "CAMPAIGN";
-            label: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          pendingCleanup?: Array<
-            | { jobId: string; kind: "CARGO"; status: "RUNNING" | "FAILED" }
-            | {
-                campaignCurrencySystemId: string | null;
-                denominationId: string;
-                jobId: string;
-                kind: "CURRENCY";
-                status: "RUNNING" | "FAILED";
-              }
-          >;
-          splitCursor?: string | null;
-          version: number;
-        }
-      >;
-      items: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          owner:
-            | { characterId: string; kind: "CHARACTER" }
-            | { campaignId: string; kind: "CAMPAIGN" }
-            | { kind: "VEHICLE"; vehicleId: string };
-          page: Array<{
-            containerId: string | null;
-            id: string;
-            isContainer: boolean;
-            label: string;
-            quantity: number;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          pendingCleanup?: Array<
-            | { jobId: string; kind: "CARGO"; status: "RUNNING" | "FAILED" }
-            | {
-                campaignCurrencySystemId: string | null;
-                denominationId: string;
-                jobId: string;
-                kind: "CURRENCY";
-                status: "RUNNING" | "FAILED";
-              }
-          >;
-          splitCursor?: string | null;
-          version: number;
-        }
       >;
     };
     playMigrations: {

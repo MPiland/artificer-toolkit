@@ -32,7 +32,7 @@ import { maintenanceDefinitionFixture } from '../../tests/fixtures/maintenanceDe
 import { api, internal } from '../_generated/api'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { sourceImportBatches } from '../content/importBatches'

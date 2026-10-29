@@ -158,10 +158,9 @@ function projectHitPoints<Sheet extends Pick<CharacterSheetResponseDto, 'overvie
   }
 }
 
-function projectSpellSlots<Sheet extends Pick<CharacterSheetResponseDto, 'spells'>>(
-  sheet: Sheet,
-  command: CharacterSheetCommandInputDto
-): Sheet {
+function projectSpellSlots<
+  Sheet extends { spells: Pick<CharacterSheetResponseDto['spells'], 'slots'> }
+>(sheet: Sheet, command: CharacterSheetCommandInputDto): Sheet {
   const slotKey =
     command.type === 'CAST_SPELL'
       ? command.slotKey
@@ -522,7 +521,10 @@ export function projectOptimisticCharacterSheetSlice(
     case 'ACTIONS':
       return {
         ...response,
-        data: projectSpellSources(projectResources(response.data, command), command)
+        data: projectSpellSlots(
+          projectSpellSources(projectResources(response.data, command), command),
+          command
+        )
       }
     case 'SPELLS':
       return {
@@ -903,6 +905,7 @@ export function projectOptimisticCharacterSheetPanel(
     case 'RESTORE_RESOURCE':
     case 'USE_SPELL_SLOT':
     case 'RESTORE_SPELL_SLOT':
+    case 'EXCHANGE_SPELL_SLOTS':
     case 'CAST_SPELL':
     case 'SET_PREPARED_SPELLS':
     case 'SET_KNOWN_SPELLS':

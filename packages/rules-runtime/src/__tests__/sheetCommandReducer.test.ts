@@ -20,6 +20,7 @@ import {
   assertCampaignGmSheetCommandAllowed,
   assertGmOnlySheetCommandAllowed
 } from '../character/sheetCommandValidation.js'
+import { getSheetCommandResourceUsageUpdate } from '../character/sheetResourceUsage.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -1167,5 +1168,219 @@ describe('Character Sheet held items (SHEET-8)', () => {
         commandId: '50000000-0000-4000-8000-00000000000d'
       })
     ).not.toThrow()
+  })
+})
+
+describe('exchanging spell slots (SPELLS-31.T5j)', () => {
+  type SheetAction = CharacterSheetResponseDto['actions']['items'][number]
+  type Exchange = Extract<
+    NonNullable<SheetAction['mechanic']>['outcomes'][number],
+    { kind: 'EFFECT' }
+  >['spellSlotExchange']
+
+  const pool = {
+    id: 'sorcery-points',
+    owner: {
+      kind: 'AUTHORED_GRANT',
+      resourceGrantId: 'sorcery-points',
+      source: {
+        kind: 'AUTHORED',
+        sourceKind: 'CLASS',
+        definitionId: ids.equipment,
+        sourceInstanceId: 'sorcerer'
+      }
+    },
+    label: 'Sorcery Points',
+    sourceLabel: 'Sorcerer',
+    used: 2,
+    max: 5,
+    remaining: 3,
+    recoveries: []
+  } satisfies CharacterSheetResponseDto['resources']['items'][number]
+
+  function exchangeSheet(
+    spellSlotExchange: Exchange,
+    charge?: { resourceGrantId: string; resourceCost: number }
+  ) {
+    const action: SheetAction = {
+      id: 'exchange',
+      label: 'Exchange',
+      kind: 'ACTION',
+      availability: { status: 'AVAILABLE' },
+      ...charge,
+      mechanic: {
+        effectId: 'exchange-effect',
+        trigger: 'ACTIVATION',
+        outcomes: [
+          {
+            kind: 'EFFECT',
+            pathCode: 'ON_USE',
+            effectKind: 'SPELL_SLOT_EXCHANGE',
+            spellSlotExchange
+          }
+        ]
+      }
+    }
+    const recovery = { ...pool, id: 'recovery', label: 'Recovery', used: 0, max: 1, remaining: 1 }
+    const empty = sheet()
+    return {
+      ...empty,
+      actions: { items: [action] },
+      resources: { ...empty.resources, items: [pool, recovery] },
+      spells: {
+        ...empty.spells,
+        slots: [
+          { slotKey: 'STANDARD:1', label: 'Level 1', level: 1, used: 3, max: 4, remaining: 1 },
+          { slotKey: 'STANDARD:2', label: 'Level 2', level: 2, used: 1, max: 3, remaining: 2 },
+          { slotKey: 'STANDARD:3', label: 'Level 3', level: 3, used: 2, max: 2, remaining: 0 }
+        ]
+      }
+    }
+  }
+
+  const spent = character({
+    spellSlots: [
+      { slotKey: 'STANDARD:1', used: 3 },
+      { slotKey: 'STANDARD:2', used: 1 },
+      { slotKey: 'STANDARD:3', used: 2 }
+    ]
+  })
+
+  type Selection = Extract<Command, { type: 'EXCHANGE_SPELL_SLOTS' }>['selection']
+
+  function exchange(selection: Selection) {
+    return { ...base, type: 'EXCHANGE_SPELL_SLOTS', actionId: 'exchange', selection } as const
+  }
+
+  function usageAfter(from: CharacterSheetResponseDto, command: Command) {
+    const update = getSheetCommandResourceUsageUpdate({
+      sheet: from,
+      resourceUsage: [],
+      command: { ...command, commandId: '50000000-0000-4000-8000-0000000000e1' }
+    })
+    return update && { resourceId: update.resource.id, used: update.used }
+  }
+
+  const recover = exchangeSheet(
+    { mode: 'RECOVER_SLOTS', levelBudget: 3, maximumSlotLevel: 2 },
+    { resourceGrantId: 'recovery', resourceCost: 1 }
+  )
+
+  it('recovers expended slots within the level budget and spends the action’s charge', () => {
+    const command = exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:1', 'STANDARD:2'] })
+    expect(apply(spent, command, { sheet: recover }).state.spellSlots).toEqual([
+      { slotKey: 'STANDARD:1', used: 2 },
+      { slotKey: 'STANDARD:3', used: 2 }
+    ])
+    expect(usageAfter(recover, command)).toEqual({ resourceId: 'recovery', used: 1 })
+    expect(summarizeCharacterSheetCommand(command, recover)).toBe('Exchange used')
+  })
+
+  it.each([
+    [['STANDARD:2', 'STANDARD:2'], /Only expended Level 2 slots/],
+    [['STANDARD:1', 'STANDARD:1', 'STANDARD:2'], /total 4 levels; at most 3/],
+    [['STANDARD:3'], /above level 2 cannot be recovered/],
+    [['STANDARD:9'], /not available/]
+  ])('refuses to recover %j', (slotKeys, message) => {
+    expect(() => apply(spent, exchange({ kind: 'SLOTS', slotKeys }), { sheet: recover })).toThrow(
+      message
+    )
+  })
+
+  it('refuses a recovery once the action’s charge is spent', () => {
+    const exhausted = {
+      ...recover,
+      resources: {
+        ...recover.resources,
+        items: recover.resources.items.map((item) =>
+          item.id === 'recovery' ? { ...item, used: 1, remaining: 0 } : item
+        )
+      }
+    }
+    expect(() =>
+      apply(spent, exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:1'] }), { sheet: exhausted })
+    ).toThrow(/no uses remaining/)
+  })
+
+  const toPool = exchangeSheet({
+    mode: 'SLOT_TO_RESOURCE',
+    resourcePoolId: 'sorcery-points',
+    maximumSlotLevel: null
+  })
+
+  it('expends one slot and refills the pool by its level', () => {
+    const command = exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:2'] })
+    expect(apply(spent, command, { sheet: toPool }).state.spellSlots).toEqual([
+      { slotKey: 'STANDARD:1', used: 3 },
+      { slotKey: 'STANDARD:2', used: 2 },
+      { slotKey: 'STANDARD:3', used: 2 }
+    ])
+    expect(usageAfter(toPool, command)).toEqual({ resourceId: 'sorcery-points', used: 0 })
+  })
+
+  it.each([
+    [['STANDARD:3'], /no uses remaining/],
+    [['STANDARD:1', 'STANDARD:2'], /Choose one spell slot/]
+  ])('refuses to convert %j', (slotKeys, message) => {
+    expect(() => apply(spent, exchange({ kind: 'SLOTS', slotKeys }), { sheet: toPool })).toThrow(
+      message
+    )
+  })
+
+  it('refuses a conversion into a full pool or an action that also spends a charge', () => {
+    const full = {
+      ...toPool,
+      resources: {
+        ...toPool.resources,
+        items: [{ ...pool, used: 0, remaining: 5 }, ...toPool.resources.items.slice(1)]
+      }
+    }
+    const command = exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:1'] })
+    expect(() => apply(spent, command, { sheet: full })).toThrow(/already full/)
+    const charged = exchangeSheet(
+      { mode: 'SLOT_TO_RESOURCE', resourcePoolId: 'sorcery-points', maximumSlotLevel: null },
+      { resourceGrantId: 'recovery', resourceCost: 1 }
+    )
+    expect(() => apply(spent, command, { sheet: charged })).toThrow(/cannot spend a charge/)
+  })
+
+  const toSlot = exchangeSheet({
+    mode: 'RESOURCE_TO_SLOT',
+    resourcePoolId: 'sorcery-points',
+    costs: [
+      { slotLevel: 1, cost: 2 },
+      { slotLevel: 2, cost: 3 },
+      { slotLevel: 3, cost: 5 }
+    ]
+  })
+
+  it('spends the pool for a created slot that adds to its level', () => {
+    const command = exchange({ kind: 'SLOT_LEVEL', slotLevel: 2 })
+    const once = apply(spent, command, { sheet: toSlot })
+    expect(once.state.spellSlots).toEqual([
+      { slotKey: 'STANDARD:1', used: 3 },
+      { slotKey: 'STANDARD:2', used: 1, created: 1 },
+      { slotKey: 'STANDARD:3', used: 2 }
+    ])
+    expect(usageAfter(toSlot, command)).toEqual({ resourceId: 'sorcery-points', used: 5 })
+    // A level the caster has no slots of yet gets a usage row holding only its created slot.
+    expect(
+      apply(character(), exchange({ kind: 'SLOT_LEVEL', slotLevel: 1 }), { sheet: toSlot }).state
+        .spellSlots
+    ).toEqual([{ slotKey: 'STANDARD:1', used: 0, created: 1 }])
+  })
+
+  it.each<[Selection, RegExp]>([
+    [{ kind: 'SLOT_LEVEL', slotLevel: 3 }, /only has 3 of the 5 needed/],
+    [{ kind: 'SLOT_LEVEL', slotLevel: 4 }, /level 4 spell slot cannot be created/],
+    [{ kind: 'SLOTS', slotKeys: ['STANDARD:1'] }, /Choose the spell slot level/]
+  ])('refuses to create %j', (selection, message) => {
+    expect(() => apply(spent, exchange(selection), { sheet: toSlot })).toThrow(message)
+  })
+
+  it('refuses an action the Sheet does not list', () => {
+    expect(() =>
+      apply(spent, exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:1'] }), { sheet: sheet() })
+    ).toThrow(CharacterSheetCommandError)
   })
 })

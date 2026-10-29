@@ -21,6 +21,7 @@ export const EFFECT_KIND = {
   REVIVE: 'REVIVE',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   RESTORE_RESOURCE: 'RESTORE_RESOURCE',
+  SPELL_SLOT_EXCHANGE: 'SPELL_SLOT_EXCHANGE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
   PLANT_PORTAL: 'PLANT_PORTAL',
   TREE_STRIDE: 'TREE_STRIDE',
@@ -139,6 +140,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.RESTORE_RESOURCE,
     label: 'Restore Resource',
     description: 'Raises a feature charge to a minimum number of remaining uses when it is empty.'
+  },
+  [EFFECT_KIND.SPELL_SLOT_EXCHANGE]: {
+    code: EFFECT_KIND.SPELL_SLOT_EXCHANGE,
+    label: 'Spell Slot Exchange',
+    description:
+      'Recovers expended spell slots, or converts between spell slots and a feature charge pool.'
   },
   [EFFECT_KIND.TELEPATHIC_LINK]: {
     code: EFFECT_KIND.TELEPATHIC_LINK,

@@ -5,19 +5,16 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
   SPELL_GRANT_ATTRIBUTE,
   SUBCLASS_ATTRIBUTE,
-  TARGET_SELECTION_KIND,
-  TRIGGER,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
@@ -27,7 +24,7 @@ import { srdSpells } from '../spells/index.js'
 import { creatureTypeId } from '../spells/shared.js'
 import { againstCreatureTypes } from '../spells/protection-from-evil-and-good.js'
 import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
-import { closedRuleEffect, gmRulingEffect, landsStrideRuling } from './mechanics.js'
+import { gmRulingEffect, landsStrideRuling, selfActionEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -257,17 +254,22 @@ export const circleOfTheLand: ClassAuthored = {
         amount: 1
       },
       effects: [
-        closedRuleEffect({
-          id: classRowId(D, 20, 1),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            resourceUse: { chargeId: classRowId(D, 22, 1), cost: 1 },
-            activation: { code: ACTIVATION_CODE.FREE },
-            range: { id: classRowId(D, 21, 1), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        selfActionEffect({
+          ids: {
+            effect: classRowId(D, 20, 1),
+            range: classRowId(D, 21, 1),
+            path: classRowId(D, 23, 1),
+            result: classRowId(D, 24, 1)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURAL_RECOVERY
+          activation: ACTIVATION_CODE.FREE,
+          resourceUse: { chargeId: classRowId(D, 22, 1), cost: 1 },
+          outcome: {
+            id: classRowId(D, 25, 1),
+            effectKind: EFFECT_KIND.SPELL_SLOT_EXCHANGE,
+            mode: 'RECOVER_SLOTS',
+            levelBudget: { classId: CLASS_IDS.DRUID, divisor: 2, rounding: 'UP' },
+            maximumSlotLevel: 5
+          }
         })
       ]
     },

@@ -260,3 +260,23 @@ globalStyle(`${actionDescriptionText} p`, {
     }
   }
 })
+
+export const actionSpellSlotExchange = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'flex-end',
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '6px 8px',
+      minWidth: 0
+    }
+  }
+})
+
+export const actionSpellSlotCount = style({
+  '@layer': {
+    [app]: {
+      width: '5.5rem'
+    }
+  }
+})

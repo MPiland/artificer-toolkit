@@ -110,6 +110,75 @@ function classLevel(input: CharacterActionModelInput, classId: string | null): n
     : (input.classLevels.find((entry) => entry.classId === classId)?.level ?? null)
 }
 
+/** A class level divided by the authored divisor, rounded as authored. */
+function dividedClassLevel(
+  level: number,
+  divisor: number,
+  rounding: 'UP' | 'DOWN' | 'NEAREST'
+): number {
+  const quotient = level / divisor
+  return rounding === 'UP'
+    ? Math.ceil(quotient)
+    : rounding === 'DOWN'
+      ? Math.floor(quotient)
+      : Math.round(quotient)
+}
+
+/**
+ * A spell slot exchange with its class-level budget and charge pool resolved. The pool modes need
+ * exactly one resolved pool carrying the charge; otherwise the outcome stays a plain effect the
+ * Sheet cannot run.
+ */
+function resolveSpellSlotExchange(
+  input: CharacterActionModelInput,
+  outcome: Extract<RawOutcome, { readonly kind: 'SPELL_SLOT_EXCHANGE' }>
+): ResolvedOutcome {
+  const effect = {
+    kind: 'EFFECT' as const,
+    pathCode: outcome.pathCode,
+    effectKind: outcome.exchange.effectKind,
+    label: outcome.label
+  }
+  const { exchange } = outcome
+  if (exchange.mode === 'RECOVER_SLOTS') {
+    const level = classLevel(input, exchange.levelBudget.classId)
+    return level === null
+      ? effect
+      : {
+          ...effect,
+          spellSlotExchange: {
+            mode: exchange.mode,
+            levelBudget: dividedClassLevel(
+              level,
+              exchange.levelBudget.divisor,
+              exchange.levelBudget.rounding
+            ),
+            maximumSlotLevel: exchange.maximumSlotLevel
+          }
+        }
+  }
+  const pools = input.resources.filter(
+    (resource) => resource.chargeId === exchange.chargeId && resource.state === 'RESOLVED'
+  )
+  const [pool] = pools
+  if (pools.length !== 1 || !pool) return effect
+  return {
+    ...effect,
+    spellSlotExchange:
+      exchange.mode === 'SLOT_TO_RESOURCE'
+        ? {
+            mode: exchange.mode,
+            resourcePoolId: pool.poolId,
+            maximumSlotLevel: exchange.maximumSlotLevel ?? null
+          }
+        : {
+            mode: exchange.mode,
+            resourcePoolId: pool.poolId,
+            costs: exchange.costs.map((entry) => ({ ...entry }))
+          }
+  }
+}
+
 function targetLevel(
   input: CharacterActionModelInput,
   source: DamageOrHealOutcome['scalingSource'],
@@ -427,8 +496,30 @@ export function resolveDnd5eActionMechanic(
       })
     }
   }
+  /**
+   * The hit points a spell cast at `castLevel` restores beyond its own amount (Disciple of Life's
+   * 2 + the spell's level). A cantrip, or any action that is not a spell, adds none.
+   */
+  const healingDealtBonus = (castLevel: number | null): number => {
+    if (context.spellId === null || castLevel === null || castLevel < 1) return 0
+    return input.modifierGroups
+      .filter((group) => group.domainKey.startsWith('HEALING_DEALT:BONUS'))
+      .reduce((sum, group) => {
+        const perLevel = group.domainKey.endsWith('|addsSpellLevel=true') ? castLevel : 0
+        return (
+          sum +
+          group.contributions
+            .filter(
+              (contribution) =>
+                contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+            )
+            .reduce((total, contribution) => total + contribution.value + perLevel, 0)
+        )
+      }, 0)
+  }
   const resolveOutcome = (outcome: RawOutcome): ResolvedOutcome => {
     if (outcome.kind === 'CONDITION' || outcome.kind === 'EFFECT') return outcome
+    if (outcome.kind === 'SPELL_SLOT_EXCHANGE') return resolveSpellSlotExchange(input, outcome)
     const level =
       outcome.scalingKind === 'NONE'
         ? null
@@ -458,7 +549,9 @@ export function resolveDnd5eActionMechanic(
       },
       outcome.kind === 'DAMAGE'
         ? context.spellDamageBonus + (outcome === firstDamageOutcome ? attackDamageBonus : 0)
-        : 0
+        : outcome.temporary
+          ? 0
+          : healingDealtBonus(context.spellCastLevel)
     )
     const scaling: OutcomeScaling = []
     if (
@@ -470,7 +563,11 @@ export function resolveDnd5eActionMechanic(
         if (entry.level === null) continue
         const scalingValue = resolveOutcomeValue(outcome, entry.level)
         if (scalingValue === null) throw new Error('Action outcome scaling value is unresolved.')
-        const scalingExpression = formatExpression(scalingValue, bonus)
+        const scalingExpression = formatExpression(
+          scalingValue,
+          bonus +
+            (outcome.kind === 'HEAL' && !outcome.temporary ? healingDealtBonus(entry.level) : 0)
+        )
         scaling.push({
           level: entry.level,
           expression:

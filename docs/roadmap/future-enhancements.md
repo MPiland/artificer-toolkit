@@ -100,6 +100,21 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Pool division among chosen creatures (SPELLS-31.T4n):** Preserve Life (5 x cleric level, each creature healed to at most half its hit point maximum, no undead or construct) and Mass Heal's 700-point pool are GM rulings or uncompiled, because no engine piece divides a hit-point pool among a chosen set of targets with a per-creature cap. A pool-division engine piece (the caster splits the pool at cast time, the engine clamps each share to the cap and the target exclusions) would author both from core options; see `rules-2-t6e-refusal-classification.md:131` for Mass Heal. Rare: a Life Cleric uses Channel Divinity on it a few times a day and the GM can apply the split by hand.
+
+- **Creature start-of-turn auras spare no ally and no non-humanoid (SPELLS-33.T4pr):** Fear Aura, Stench and Horrific Appearance are passive source zones that catch every occupant at the start of its turn. The pit fiend's hostile-only wording, its incapacitated switch-off, the sea hag's humanoid-only and avert-your-eyes wording, the darkmantle's dispelling of low-level light, and the Whirlwind's carry and end rules stay in the Feature descriptions and GM rulings. Siege Monster and Web Walker are GM rulings, since the engine has no object-damage multiplier or zone movement exemption by source. Revisit if tables report allies frightened by a pit fiend.
+- **Spell slot exchange limits (SPELLS-31.T5j):** the engine does not enforce four limits.
+  - A pool-mode action cannot also spend a charge of its own.
+  - `RECOVER_SLOTS` accepts pact slots too, which matters only for multiclass characters.
+  - Arcane and Natural Recovery are not restricted to a short rest.
+  - The Sheet's "use one charge" control can spend the Arcane Recovery charge without recovering slots.
+
+  The GM judges or corrects each by hand. The fixes:
+  - a slot-kind filter on the outcome;
+  - a rest-window gate on the action;
+  - hiding the plain charge control for exchange actions.
+
+- **Fiendish Resilience outside a room (SPELLS-31.T5k):** the pick runs only in a live room, because the Sheet has no out-of-Encounter action for it. `SAME_EFFECT` also ends that Effect from any origin, not just this Character's. Both are rare. The fix is a Sheet path for self END_EFFECTS outcomes.
 - **Condition held on entering an immunity aura (SPELLS-31.T4r):** an occupant condition-immunity aura (Aura of Courage, Aura of Devotion) refuses new applications of its conditions but does not suppress one the creature already holds when it enters, or when the source wakes. In SRD play the frightened or charmed creature is usually already beside the paladin, and the GM can end the condition by hand. The fix is to suppress held conditions while the aura holds the creature, through the condition-mechanics fold.
 - **Dislodged climber with no free square (MOVE-4.T3a):** a dislodge that wins when no free square lies 5 feet from the target leaves the climber where it was. Its space then overlaps a target it no longer clings to. This is rare and the GM can move the token by hand. The fix is to fall back to the nearest free square.
 
@@ -576,6 +591,20 @@ Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 ## Deferred rules pieces (D187a, 2026-10-23)
 
 These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
+
+- **Description-only class and creature features (D198 rubric, 2026-10-28; automate after release):** each one ships as a GM ruling.
+
+  | Feature                                 | What the GM does now                                           | What would automate it                                               |
+  | --------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------- |
+  | Peerless Skill                          | Spends Bardic Inspiration and adds the die by hand             | Feature-option discovery and charge payment in the D168 check window |
+  | Dark One's Own Luck                     | Spends the use and adds a d10 by hand                          | Same as Peerless Skill                                               |
+  | Survivor                                | Heals 5 + Con at the start of the holder's turn while bloodied | A start-of-turn passive heal gated on HP at or below half            |
+  | Quivering Palm                          | Spends ki, then applies 10d10 or sets HP to 0                  | A ki-paid delayed save-or-drop outcome                               |
+  | Retaliation                             | Has the holder make a reaction attack and applies its damage   | A reaction attack triggered by damage taken                          |
+  | Overchannel                             | Applies maximum damage, then the escalating self-damage        | Maximized damage dice and a per-rest escalation counter              |
+  | Heroes' Feast HP-maximum rider          | Raises the HP maximum and heals by hand                        | A shared roll applied to HP maximum and healing                      |
+  | Animate Trees and Children of the Night | Adds the creatures with REINFORCE                              | A creature-summon outcome                                            |
+  | Voice of the Chain Master               | Nothing; the effect is narrative                               | Not needed                                                           |
 
 - **Total application cap on an action:** Oil Flask's "Ignite the coating" is authored with `maxApplicationsTotal: 1` (`oil-flask.ts:102`), but no runtime reads the field. The engine piece counts an action's applications across its effect's life and refuses one past the cap. Deferred by the user on 2026-10-28.
 - **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).

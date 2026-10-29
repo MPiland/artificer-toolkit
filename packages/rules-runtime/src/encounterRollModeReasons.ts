@@ -103,3 +103,33 @@ export function labelEncounterRollModeReasons(
     )
   ]
 }
+
+/** The influence an auto-failing condition's contributor carries, which no rolled mode shares. */
+const AUTO_FAIL_INFLUENCE = 'AUTO_FAIL'
+
+/**
+ * A save request's `autoFail`: the conditions that fail the save unrolled, each with the label
+ * `reasons` reads for it (D94). A condition with no label is left out, and the field is absent
+ * when none is named. `holderActorId` is the saver, whose hidden conditions read generically.
+ */
+export function encounterAutoFailRequest(
+  reasons: EncounterRollModeReasons,
+  policy: { autoFailConditionIds?: readonly string[] },
+  holderActorId: string | null
+): { autoFail?: { conditionId: string; label: string }[] } {
+  const autoFail = (policy.autoFailConditionIds ?? []).flatMap((conditionId) => {
+    const [label] = reasons({
+      rollMode: AUTO_FAIL_INFLUENCE,
+      contributors: [
+        {
+          sourceId: `condition:${conditionId}`,
+          domainKey: `condition:${holderActorId ?? ''}`,
+          influence: AUTO_FAIL_INFLUENCE,
+          source: { kind: 'CONDITION', id: conditionId, holderActorId }
+        }
+      ]
+    })
+    return label ? [{ conditionId, label }] : []
+  })
+  return autoFail.length ? { autoFail } : {}
+}

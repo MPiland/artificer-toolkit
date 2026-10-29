@@ -42,7 +42,7 @@ import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
-import { encounterConditionSaveAutoFailAbilityIds } from './encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from './encounterConditionMechanics.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
@@ -191,7 +191,7 @@ export function activeEffectTargetFacts(
     sourceSaves: target.sourceSaves,
     conditionOutcomeRules: {
       hitIsCritical: false,
-      saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(target.conditionMechanics)
+      saveAutoFails: encounterConditionSaveAutoFails(target.conditionMechanics)
     }
   }
 }

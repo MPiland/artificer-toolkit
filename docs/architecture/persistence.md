@@ -194,8 +194,13 @@ them has moved since.
 `packages/encounter-persistence` holds the Encounter code that reads and writes Run state, so Convex and the
 room run the same code. It depends on `packages/schema`, `packages/shared` and `packages/rules-runtime` and
 only takes the `IndexRange` type from `convex`. Its README documents the store surface. Convex binds it
-through `encounters/encounterPorts.ts` and `lib/convexEncounterStore.ts`; the room store is `RoomEncounterStore`
-(`apps/session-worker/src/roomEncounterStore.ts`).
+through `lib/convexEncounterStore.ts`, `encounters/encounterReadPorts.ts` (queries) and
+`encounters/encounterPorts.ts` (mutations); the room store is `RoomEncounterStore`
+(`apps/session-worker/src/roomEncounterStore.ts`). Reads only commands make (authored sources, a
+Character's initiative, optional-combat policies to pin) are `EncounterCommandReadPorts`, so a query
+file never reaches the Sheet or authored-source graphs. Self-hosted Convex evaluates a query's whole
+module graph on every run; `encounters/readModuleBoundary.test.ts` keeps command-only modules out of the
+re-running subscriptions (RELIABILITY-21).
 Document derivations (Zod parse plus checksum verification) go through `deriveOnce` (`transactionReads.ts`).
 A Convex query caches them per transaction through `memoizeTransactionReads`. The room's in-memory store is
 created with `sharedReads`: it serves its stored documents deeply frozen instead of copying them, and never

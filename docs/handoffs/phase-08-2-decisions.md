@@ -1851,3 +1851,86 @@ A Legendary Action option whose area its owner centers on itself (the SRD dragon
 Admission: the delegated root is accepted only while the marker names its parent, holder and action, at the Run's current version, and its parent is the `ADVANCE_TURN`. A holder that is defeated or has no token by then forgoes the option and the continuation runs. `refuseActionOutsideItsWindow` exempts that root from `LEGENDARY_WINDOW_ONLY`. Aimed Legendary areas (a point, a direction, chosen creatures) are still not offered. Nothing here is dragon-specific: any authored option with a self-centered area takes this path.
 
 The dragon's fly after Wing Attack is an owner-level GM ruling: the GM moves the token. Deferred edge cases: HP-zero passives for creatures the delegated root drops are not raised, because a rule-raised root does not raise further effects. A GM void of the root's pending decision forgoes the option.
+
+### D198: description-only rubric for SPELLS features (user ruling, 2026-10-28)
+
+A feature ships description-only (GM ruling, kind deleted) only if all of the following hold:
+
+- **A (required):** the GM resolves it in one manual action with existing tools.
+- **At least two of B, C and D:**
+  - **B:** it is gained at level 11 or higher.
+  - **C:** one subclass or one or two SRD creatures have it.
+  - **D:** it triggers once per rest or less.
+
+Two more rules apply:
+
+- Anything that fails A is built, and so is any engine piece a built feature needs.
+- Prismatic Spray and Prismatic Wall are always fully built.
+
+**Applied 2026-10-28.** Per-task changes are in [d187a-replan.md](d187a-replan.md#rubric-pass-d198-2026-10-28).
+
+- **Newly description-only:**
+  - Dark One's Own Luck
+  - Survivor
+  - Animate Trees
+  - Children of the Night (REINFORCE counts as an A tool)
+- **Description-only already, confirmed by the rubric:**
+  - Heroes' Feast rider
+  - Peerless Skill
+  - Quivering Palm
+  - Retaliation
+  - Overchannel
+  - Voice of the Chain Master
+- **Built again, because each fails the rubric:**
+  - Cleansing Touch
+  - Eldritch Spear
+  - Potent Cantrip
+  - Lifedrinker
+  - Hurl Through Hell (there is no remove-from-play tool)
+- **Kept built although they qualify, because they share engine pieces built anyway:**
+  - Turn the Unholy
+  - Primal Champion
+
+Every description-only feature is logged for post-release automation under [Deferred rules pieces](../roadmap/future-enhancements.md#deferred-rules-pieces-d187a-2026-10-23).
+
+### D199: account deletion is staged (user ruling, 2026-10-28, RELIABILITY-21.T22)
+
+`auth:onDelete` overran the 1 s limit. The cause was evaluating its 6.4 MB module graph, not deleting rows.
+
+**New onDelete.** One commit does four things:
+
+- applies the owned-Campaign gate;
+- deletes the profile and the social profile;
+- records a durable deletion job;
+- schedules a cleanup mutation for each module.
+
+**Cleanup.** Each cleanup mutation deletes in bounded batches and reschedules itself until no owned rows remain. The mutations are idempotent.
+
+**Sign-up.** `onCreate` and `onUpdate` move out of `auth.ts`, so sign-up and username changes stop loading the deletion graph.
+
+**What this replaces.** Deletion used to be one rollback-able transaction. Now it is eventually complete: the profile is removed atomically, and the owned rows follow through the job. The ADR and `persistence.md` record the new contract.
+
+**Order of deletion (orchestrator ruling, 2026-10-28).** Campaign departure comes first, because members must never see a Campaign whose member's profile is gone.
+
+1. The deletion request revokes the user's sessions.
+2. It schedules one idempotent departure step per membership. Each step uses the existing departure code.
+3. The last step calls `deleteUser`.
+4. `onDelete` then refuses while any membership is still ACTIVE.
+
+The request returns once deletion is scheduled.
+
+## D200: a held Character deleted after departure leaves the Run (orchestrator ruling, 2026-10-28)
+
+**Problem.** Under staged deletion (D199), the departure step evicts the user before the CHARACTERS step deletes their held Character. The room then reads that Character as UNASSIGNED and freezes its actor, and the later deletion is never seen, because reconcile skips frozen actors. The same happens when an owner deletes a Character after leaving a Campaign.
+
+**Ruling.** Option 1 restores D74 ("actors of Characters that no longer exist are removed") whenever the deletion lands:
+
+- A Character deletion sends the room an invalidate, reusing an existing control scope where one fits.
+- On that invalidate, reconcile re-reads its frozen CHARACTER actors and removes those whose Character reads DELETED. An UNASSIGNED Character's actor stays frozen.
+- The CHARACTERS cleanup step sends this once per affected Run after its batch commits, and stays idempotent.
+
+**Rejected.**
+
+- Deleting in the departure transaction: it risks the 1 s limit.
+- Delaying the departure notice: it forks the departure code.
+- Leaving the actor frozen: it breaks D74.

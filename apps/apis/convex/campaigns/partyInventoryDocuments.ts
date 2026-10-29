@@ -16,7 +16,7 @@ import { presentCampaignPlainText } from '@artificer-toolkit/shared/campaign/tex
 import { readAcquiredEquipmentRules } from '@artificer-toolkit/rules-runtime/character/acquiredEquipmentRules'
 import type { QueryCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
+import { requireRulesCatalogueSources } from '../content/catalogueBinding'
 import { createContentMemo } from '@artificer-toolkit/shared/contentMemo'
 import {
   canReadAuthoredRoot,
@@ -54,8 +54,9 @@ import {
 // The Equipment DTO parse of a verified stored document, by its exact JSON (every command re-reads it).
 const publishedEquipment = createContentMemo<EquipmentAuthoredDto>()
 
+/** Party custody needs only source authority, not the 34 KB System document (RELIABILITY-21.T18). */
 async function readPartySourceIds(ctx: QueryCtx, campaign: Doc<'campaigns'>) {
-  const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
+  const { sourceIds } = await requireRulesCatalogueSources(ctx, {
     systemId: campaign.gameSystemId,
     primaryRulesCatalogueId: campaign.primaryRulesCatalogueId,
     additionalRulesCatalogueIds: campaign.additionalRulesCatalogueIds
@@ -476,7 +477,9 @@ export async function readCampaignItemPage(
     )
     .paginate({
       ...paginationOpts,
-      maximumRowsRead: 8,
+      // RELIABILITY-21.T18: one page per client request (48). At 8 rows, one write re-ran every
+      // 8-row page of every client together and starved the backend past the 1 s limit.
+      maximumRowsRead: 48,
       maximumBytesRead: 1024 * 1024
     })
   const pendingCleanup = new Map<string, CampaignInventoryCleanupScope>()

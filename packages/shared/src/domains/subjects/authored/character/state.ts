@@ -103,6 +103,8 @@ export interface CharacterResourceUsageState {
 export interface CharacterSpellSlotUsageState {
   slotKey: string
   used: number
+  /** Extra slots of this key a feature created; a long rest removes them with the usage. */
+  created?: number
 }
 
 export interface CharacterConditionState {

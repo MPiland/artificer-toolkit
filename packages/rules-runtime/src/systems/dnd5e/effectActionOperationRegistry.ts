@@ -930,7 +930,43 @@ export function dnd5eSaveOutcomeRule(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
   abilityDefinitionId: string
 ): Dnd5eTestOutcomeRule {
-  return rules?.saveAutoFailAbilityIds.includes(abilityDefinitionId) ? 'SAVE_AUTO_FAIL' : 'NONE'
+  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
+    ? 'SAVE_AUTO_FAIL'
+    : 'NONE'
+}
+
+/** The save outcome rule as the bound fact of a TEST phase. */
+export function saveOutcomeFact(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+) {
+  return { [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(rules, abilityDefinitionId) }
+}
+
+/** A save's audited ability, naming the conditions that fail it unrolled only when one does. */
+export function saveAudit(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+) {
+  const autoFailConditionIds = dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId)
+  return {
+    savingThrowAbilityDefinitionId: abilityDefinitionId,
+    ...(autoFailConditionIds.length ? { autoFailConditionIds } : {})
+  }
+}
+
+/** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */
+export function dnd5eSaveAutoFailConditionIds(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+): string[] {
+  return [
+    ...new Set(
+      (rules?.saveAutoFails ?? [])
+        .filter((failure) => failure.abilityDefinitionId === abilityDefinitionId)
+        .map(({ conditionDefinitionId }) => conditionDefinitionId)
+    )
+  ].sort()
 }
 
 /**

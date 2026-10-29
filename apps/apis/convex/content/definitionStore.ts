@@ -21,22 +21,10 @@ export async function readCurrentSourceDefinitions(
   actorUserId: string
 ): Promise<ReusableDefinitionCurrentDto[]> {
   const current: ReusableDefinitionCurrentDto[] = []
-  for (const source of sources) {
-    const definitions = await ctx.db
-      .query('reusableDefinitions')
-      .withIndex('by_contentSourceId_version', (q) =>
-        q.eq('contentSourceId', source.id).gt('version', 0)
-      )
-      .take(501 - current.length)
-    // ponytail: complete inline options retain the existing 500-definition ceiling;
-    // larger catalogues need paginated search, never silently truncated choices.
-    if (current.length + definitions.length > 500)
-      throw new Error('Definition options require paginated search.')
-    for (const definition of definitions) {
-      const root = readStoredDefinitionRoot(definition, source, actorUserId)
-      if (!root.current) throw new Error('Definition is not published.')
-      current.push(root.current)
-    }
+  for (const [definition, source] of await readPublishedSourceDefinitions(ctx, sources)) {
+    const root = readStoredDefinitionRoot(definition, source, actorUserId)
+    if (!root.current) throw new Error('Definition is not published.')
+    current.push(root.current)
   }
   return current.sort(
     (left, right) =>
@@ -44,6 +32,43 @@ export async function readCurrentSourceDefinitions(
       left.label.localeCompare(right.label) ||
       left.id.localeCompare(right.id)
   )
+}
+
+/**
+ * The published definitions an author may choose, as the stored identity and label only. Each row
+ * passes the same source, ownership and publication checks as a full read, but its document is
+ * not decoded: a choice never reads it, and decoding every document overran resolve's 1 s budget.
+ */
+export async function readCurrentSourceDefinitionChoices(
+  ctx: QueryCtx,
+  sources: readonly Doc<'contentSources'>[],
+  actorUserId: string
+): Promise<{ id: string; label: string }[]> {
+  return (await readPublishedSourceDefinitions(ctx, sources)).map(([definition, source]) => {
+    assertStoredDefinitionRecord(definition, source, actorUserId)
+    return { id: definition.id, label: definition.label }
+  })
+}
+
+async function readPublishedSourceDefinitions(
+  ctx: QueryCtx,
+  sources: readonly Doc<'contentSources'>[]
+): Promise<[Doc<'reusableDefinitions'>, Doc<'contentSources'>][]> {
+  const published: [Doc<'reusableDefinitions'>, Doc<'contentSources'>][] = []
+  for (const source of sources) {
+    const definitions = await ctx.db
+      .query('reusableDefinitions')
+      .withIndex('by_contentSourceId_version', (q) =>
+        q.eq('contentSourceId', source.id).gt('version', 0)
+      )
+      .take(501 - published.length)
+    // ponytail: complete inline options retain the existing 500-definition ceiling;
+    // larger catalogues need paginated search, never silently truncated choices.
+    if (published.length + definitions.length > 500)
+      throw new Error('Definition options require paginated search.')
+    for (const definition of definitions) published.push([definition, source])
+  }
+  return published
 }
 
 export async function readDefinitionRoot(
@@ -71,35 +96,7 @@ export function readStoredDefinitionRoot(
   source: Doc<'contentSources'>,
   actorUserId: string | null
 ): ReusableDefinitionRootRecord & { _id: Id<'reusableDefinitions'> } {
-  if (source.id !== record.contentSourceId || source.gameSystemId !== record.gameSystemId)
-    throw new Error('Reusable definition unavailable.')
-  const owner = source.kind === 'USER' ? source.ownerUserId : null
-  if (
-    (source.kind === 'PLATFORM' &&
-      (record.ownerUserId !== undefined || source.ownerUserId !== null)) ||
-    (source.kind === 'USER' && (!owner || record.ownerUserId !== owner || owner !== actorUserId))
-  )
-    throw new Error('Reusable definition unavailable.')
-  const metadataAbsent =
-    record.contractVersion === undefined &&
-    record.publishedAt === undefined &&
-    record.publishedBy === undefined
-  if (
-    !Number.isInteger(record.version) ||
-    record.version < 0 ||
-    (record.draftVersion !== undefined &&
-      (!Number.isInteger(record.draftVersion) || record.draftVersion < 0)) ||
-    (record.version === 0 &&
-      (record.documentJson !== undefined || record.checksum !== undefined || !metadataAbsent))
-  )
-    throw new Error('Reusable definition integrity mismatch.')
-  if (
-    record.version > 0 &&
-    (record.contractVersion === undefined ||
-      record.publishedAt === undefined ||
-      record.publishedBy === undefined)
-  )
-    throw new Error('Reusable definition integrity mismatch.')
+  const owner = assertStoredDefinitionRecord(record, source, actorUserId)
   const current =
     record.version === 0
       ? null
@@ -138,6 +135,44 @@ export function readStoredDefinitionRoot(
     sourceOwnerUserId: owner,
     current
   }
+}
+
+/** The stored row's source, ownership and version metadata checks; returns the source owner. */
+function assertStoredDefinitionRecord(
+  record: Doc<'reusableDefinitions'>,
+  source: Doc<'contentSources'>,
+  actorUserId: string | null
+): string | null {
+  if (source.id !== record.contentSourceId || source.gameSystemId !== record.gameSystemId)
+    throw new Error('Reusable definition unavailable.')
+  const owner = source.kind === 'USER' ? source.ownerUserId : null
+  if (
+    (source.kind === 'PLATFORM' &&
+      (record.ownerUserId !== undefined || source.ownerUserId !== null)) ||
+    (source.kind === 'USER' && (!owner || record.ownerUserId !== owner || owner !== actorUserId))
+  )
+    throw new Error('Reusable definition unavailable.')
+  const metadataAbsent =
+    record.contractVersion === undefined &&
+    record.publishedAt === undefined &&
+    record.publishedBy === undefined
+  if (
+    !Number.isInteger(record.version) ||
+    record.version < 0 ||
+    (record.draftVersion !== undefined &&
+      (!Number.isInteger(record.draftVersion) || record.draftVersion < 0)) ||
+    (record.version === 0 &&
+      (record.documentJson !== undefined || record.checksum !== undefined || !metadataAbsent))
+  )
+    throw new Error('Reusable definition integrity mismatch.')
+  if (
+    record.version > 0 &&
+    (record.contractVersion === undefined ||
+      record.publishedAt === undefined ||
+      record.publishedBy === undefined)
+  )
+    throw new Error('Reusable definition integrity mismatch.')
+  return owner
 }
 
 export async function readSystemOwner(ctx: Context, gameSystemId: string) {

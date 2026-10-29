@@ -66,12 +66,6 @@ export interface EncounterReadPorts {
   requireSystem(systemId: string): Promise<SystemAuthoredDto>
   /** The label of authored content or a reusable definition with this ID. */
   readContentLabel(id: string): Promise<string | null>
-  readEncounterSource(
-    userId: string,
-    systemId: string,
-    id: string,
-    kind: 'CREATURE' | 'EQUIPMENT' | 'SPELL'
-  ): Promise<EncounterAuthoredSource>
   readCharacterRecord(row: EncounterCharacterRow): EncounterCharacterDocument
   /** Complete Character assembly belongs to the Character domain, outside the Encounter store. */
   readCharacterRow(characterId: string): Promise<EncounterCharacterRow | null>
@@ -111,6 +105,20 @@ export interface EncounterReadPorts {
   isRoomHeldRun(run: Pick<EncounterRunState, 'campaignId' | 'status'>): Promise<boolean>
   /** Whether the app profile of this user still exists (it goes last in account deletion). */
   hasAccountProfile(userId: string): Promise<boolean>
+}
+
+/**
+ * Reads only commands make: authored sources, a Character's initiative and the optional-combat
+ * policies to pin. A projection never needs them, so query transactions leave them out and their
+ * module graphs stay small (RELIABILITY-21).
+ */
+export interface EncounterCommandReadPorts extends EncounterReadPorts {
+  readEncounterSource(
+    userId: string,
+    systemId: string,
+    id: string,
+    kind: 'CREATURE' | 'EQUIPMENT' | 'SPELL'
+  ): Promise<EncounterAuthoredSource>
   /** One actor's initiative roll as made: its expression and the Character's roll mode. */
   readActorInitiativeRoll(
     state: EncounterRunState,
@@ -159,7 +167,7 @@ export interface EncounterTurnReadPorts<
  * The writes the Encounter code makes outside the Encounter store. `CharacterSources` is the
  * caller's already-loaded Character rule sources, which a Character write may reuse.
  */
-export interface EncounterWritePorts<CharacterSources = never> extends EncounterReadPorts {
+export interface EncounterWritePorts<CharacterSources = never> extends EncounterCommandReadPorts {
   /** Reads the Scene a GM command places into, such as an environmental zone's grid. */
   readonly sceneReaders: Pick<EncounterActionSceneReaders, 'readScene'>
   /** Posts an already-evaluated roll to the Campaign's table log, once per client nonce. */
@@ -274,14 +282,14 @@ export interface EncounterProjectionTransaction extends EncounterReadContext {
 
 /** A write transaction over the Encounter store and the ports it uses beside it. */
 export interface EncounterPersistenceTransaction extends EncounterWriteContext {
-  readonly ports: EncounterReadPorts
+  readonly ports: EncounterCommandReadPorts
 }
 
 /** Commands that also write Character or communication state through the owning domains. */
 export interface EncounterCharacterWriteTransaction<
   CharacterSources = never
 > extends EncounterPersistenceTransaction {
-  readonly ports: EncounterReadPorts &
+  readonly ports: EncounterCommandReadPorts &
     Pick<
       EncounterWritePorts<CharacterSources>,
       | 'writeCharacterRecord'

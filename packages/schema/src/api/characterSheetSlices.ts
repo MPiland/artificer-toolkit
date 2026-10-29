@@ -42,7 +42,8 @@ export const characterSheetActionsDtoSchema = lazySchema(() =>
     resources: z.pick(characterSheetResponseDtoSchema.shape.resources, { items: true }),
     spells: z.pick(characterSheetResponseDtoSchema.shape.spells, {
       activeGroups: true,
-      spells: true
+      spells: true,
+      slots: true
     })
   })
 )

@@ -296,6 +296,21 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         all: z.optional(booleanSchema)
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
+        /** Runs an action's SPELL_SLOT_EXCHANGE outcome with the slots or slot level chosen. */
+        type: z.literal('EXCHANGE_SPELL_SLOTS'),
+        actionId: stringSchema.check(z.minLength(1)),
+        selection: z.discriminatedUnion('kind', [
+          z.object({
+            kind: z.literal('SLOTS'),
+            slotKeys: z.array(stringSchema).check(z.minLength(1)).check(z.maxLength(20))
+          }),
+          z.object({
+            kind: z.literal('SLOT_LEVEL'),
+            slotLevel: integerSchema.check(z.gte(1)).check(z.lte(9))
+          })
+        ])
+      }),
+      z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('CAST_SPELL'),
         spellId: stringSchema,
         sourceId: z.optional(stringSchema),

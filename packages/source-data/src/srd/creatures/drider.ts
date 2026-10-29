@@ -133,7 +133,7 @@ export const drider: CreatureAuthored = {
       label: 'Web Walker',
       description: 'Web Walker. The drider ignores movement restrictions caused by webbing.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(87, 205),
           invocation: {
             kind: 'PASSIVE',
@@ -141,7 +141,10 @@ export const drider: CreatureAuthored = {
             range: { id: S.actionId(87, 1205), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEB_WALKER
+          label: 'Web Walker',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The drider ignores movement restrictions caused by webbing: the GM lets it move through a Web spell or similar webbing without the extra movement cost or the restrained condition.'
         })
       ],
       order: 5

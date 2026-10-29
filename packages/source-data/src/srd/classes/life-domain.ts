@@ -3,10 +3,11 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   GRANT_KIND,
-  MEASUREMENT_UNIT_CODE,
+  MANUAL_ADJUDICATION_REASON,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PATH_USAGE,
@@ -19,13 +20,14 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { damageTypeId } from '../equipment/shared.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -169,21 +171,21 @@ export const lifeDomainCleric: ClassAuthored = {
         "Also starting at 1st level, your healing spells are more effective. Whenever you use a spell of 1st level or higher to restore hit points to a creature, the creature regains additional hit points equal to 2 + the spell's level.",
       availableAtLevel: 1,
       order: 2,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(C, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(C, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_DISCIPLE_OF_LIFE
-        })
-      ]
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(C, 11, 12),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.HEALING_DEALT,
+            domain: { addsSpellLevel: true },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'FIXED', amount: 2 },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: classRowId(C, 11, 4),
@@ -193,24 +195,19 @@ export const lifeDomainCleric: ClassAuthored = {
       availableAtLevel: 2,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(C, 20, 2),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(C, 21, 2),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(C, 20, 2),
+            range: classRowId(C, 21, 2),
+            path: classRowId(C, 0xd0, 2),
+            result: classRowId(C, 0xd1, 2),
+            outcome: classRowId(C, 0xd2, 2)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_PRESERVE_LIFE
+          label: 'Preserve Life',
+          instructions:
+            'Restore up to five times your cleric level in hit points, divided as you choose among creatures within 30 feet of you, none above half its hit point maximum. This does not work on an undead or a construct. The GM applies the division and the cap.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          activationCode: ACTIVATION_CODE.ACTION
         })
       ]
     },
@@ -222,15 +219,18 @@ export const lifeDomainCleric: ClassAuthored = {
       availableAtLevel: 6,
       order: 4,
       effects: [
-        closedRuleEffect({
-          id: classRowId(C, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(C, 21, 3), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(C, 20, 3),
+            range: classRowId(C, 21, 3),
+            path: classRowId(C, 0xd0, 3),
+            result: classRowId(C, 0xd1, 3),
+            outcome: classRowId(C, 0xd2, 3)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_BLESSED_HEALER
+          label: 'Blessed Healer',
+          instructions:
+            "When you cast a spell of 1st level or higher that restores hit points to a creature other than you, you regain hit points equal to 2 + the spell's level. The GM applies the self-healing.",
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     },
@@ -251,18 +251,18 @@ export const lifeDomainCleric: ClassAuthored = {
       availableAtLevel: 17,
       order: 6,
       effects: [
-        closedRuleEffect({
-          id: classRowId(C, 20, 5),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(C, 21, 5), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(C, 20, 5),
+            range: classRowId(C, 21, 5),
+            path: classRowId(C, 0xd0, 5),
+            result: classRowId(C, 0xd1, 5),
+            outcome: classRowId(C, 0xd2, 5)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_LIFE_DOMAIN_SUPREME_HEALING
+          label: 'Supreme Healing',
+          instructions:
+            'When you would roll dice to restore hit points with a spell, you instead use the highest number possible for each die. The GM applies the maximum.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     }

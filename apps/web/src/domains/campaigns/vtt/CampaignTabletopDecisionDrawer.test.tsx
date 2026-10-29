@@ -780,6 +780,37 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     ).toBeVisible()
   })
 
+  it('says before the roll that a save fails automatically, and names the conditions', async () => {
+    const user = userEvent.setup()
+    const autoFailPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      ...d20Pending,
+      rollerActorId: tabletopGmEncounter.actors[1]!.id,
+      request: {
+        ...d20Pending.request,
+        autoFail: [
+          { conditionId: '77777777-7777-4777-8777-777777777801', label: 'Paralyzed' },
+          { conditionId: '77777777-7777-4777-8777-777777777802', label: 'Stunned' }
+        ]
+      }
+    })
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={autoFailPending}
+        submitting={false}
+        onResolve={vi.fn()}
+      />
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Fails automatically: Paralyzed, Stunned')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Roll dice' })).toBeEnabled()
+  })
+
   it('recommends the derived mode, rolls without settling and settles by the latest roll id', async () => {
     const user = userEvent.setup()
     const onResolve = rollingResolver([appRoll(1, [4, 17]), appRoll(2, [12, 9])])

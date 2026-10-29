@@ -1,28 +1,42 @@
 import type { QueryCtx } from '../_generated/server'
 import { requireSystem } from './systemDocuments'
 
+type RulesCatalogueBindingInput = {
+  systemId: string
+  primaryRulesCatalogueId: string
+  additionalRulesCatalogueIds?: readonly string[]
+}
+
 export async function requireRulesCatalogueBinding(
   ctx: QueryCtx,
-  input: {
-    systemId: string
-    primaryRulesCatalogueId: string
-    additionalRulesCatalogueIds?: readonly string[]
-  }
+  input: RulesCatalogueBindingInput
+) {
+  const [system, binding] = await Promise.all([
+    requireSystem(ctx, input.systemId),
+    requireRulesCatalogueSources(ctx, input)
+  ])
+  return { system, ...binding }
+}
+
+/**
+ * The binding's validated content sources without the System document, for readers that need
+ * only source authority; each catalogue and source is still checked against `systemId`.
+ */
+export async function requireRulesCatalogueSources(
+  ctx: QueryCtx,
+  input: RulesCatalogueBindingInput
 ) {
   const catalogueIds = [input.primaryRulesCatalogueId, ...(input.additionalRulesCatalogueIds ?? [])]
   if (new Set(catalogueIds).size !== catalogueIds.length)
     throw new Error('Rules Catalogues must be unique.')
-  const [system, catalogues] = await Promise.all([
-    requireSystem(ctx, input.systemId),
-    Promise.all(
-      catalogueIds.map((id) =>
-        ctx.db
-          .query('rulesCatalogues')
-          .withIndex('by_publicId', (q) => q.eq('id', id))
-          .unique()
-      )
+  const catalogues = await Promise.all(
+    catalogueIds.map((id) =>
+      ctx.db
+        .query('rulesCatalogues')
+        .withIndex('by_publicId', (q) => q.eq('id', id))
+        .unique()
     )
-  ])
+  )
   const sourceIds = new Set<string>()
   for (const [index, catalogue] of catalogues.entries()) {
     if (!catalogue || catalogue.gameSystemId !== input.systemId) {
@@ -57,5 +71,5 @@ export async function requireRulesCatalogueBinding(
       return source
     })
   )
-  return { system, sourceIds, sources }
+  return { sourceIds, sources }
 }

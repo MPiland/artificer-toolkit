@@ -23,7 +23,11 @@ import {
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import { savingThrowAbility, type EncounterD20RollMode } from './encounterEvidenceAnswer.js'
+import {
+  autoFailConditions,
+  savingThrowAbility,
+  type EncounterD20RollMode
+} from './encounterEvidenceAnswer.js'
 
 export interface PreparedEncounterMovementReactionAction {
   adapter: CharacterRuleActionSystemAdapter
@@ -101,8 +105,10 @@ export function deriveEncounterActionD20Policy(input: {
 export function policyAuditDice(audit: {
   addedDice: readonly D20AddedDieDto[]
   foldedBonuses?: readonly D20FoldedBonusDto[]
+  autoFailConditionIds?: readonly string[]
 }) {
   return {
+    ...autoFailConditions(audit),
     ...(audit.addedDice.length > 0 ? { addedDice: [...audit.addedDice] } : {}),
     ...policyFoldedBonuses(audit.foldedBonuses)
   }
@@ -189,6 +195,7 @@ export function buildEncounterActionD20Evidence(input: {
     defenseOrDc: input.policy.dc,
     resultPath,
     ...savingThrowAbility(input.policy),
+    ...autoFailConditions(input.policy),
     ...(input.modeAdjustment ? { modeAdjustment: input.modeAdjustment } : {}),
     ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {}),
     ...policyFoldedBonuses(input.policy.foldedBonuses)
@@ -219,8 +226,12 @@ export function buildEncounterSaveD20Evidence(input: {
     modifier: input.policy.modifier,
     total,
     defenseOrDc: input.policy.dc,
-    resultPath: total >= input.policy.dc ? 'ON_SAVE_SUCCESS' : 'ON_SAVE_FAIL',
+    resultPath:
+      !input.policy.autoFailConditionIds?.length && total >= input.policy.dc
+        ? 'ON_SAVE_SUCCESS'
+        : 'ON_SAVE_FAIL',
     ...savingThrowAbility(input.policy),
+    ...autoFailConditions(input.policy),
     ...(input.addedDice.length > 0 ? { addedDice: [...input.addedDice] } : {})
   })
 }
@@ -238,6 +249,8 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
     checksumRuleDocument(input.evidence.contributors) !== input.policy.contributorChecksum ||
     input.evidence.modifier !== input.policy.modifier ||
     input.evidence.defenseOrDc !== input.policy.dc ||
+    checksumRuleDocument(autoFailConditions(input.evidence)) !==
+      checksumRuleDocument(autoFailConditions(input.policy)) ||
     checksumRuleDocument(
       (input.evidence.addedDice ?? []).map(({ rolledFaces: _rolledFaces, ...die }) => die)
     ) !== checksumRuleDocument(input.policy.addedDice ?? [])

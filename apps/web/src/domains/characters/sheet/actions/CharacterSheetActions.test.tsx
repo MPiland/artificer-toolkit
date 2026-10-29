@@ -1,3 +1,4 @@
+import type { ResolvedSpellSlotExchange } from '@artificer-toolkit/schema/api/characterActionRules'
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
@@ -505,5 +506,115 @@ describe('Character Sheet actions', () => {
     expect(screen.getByRole('group', { name: 'Fire Bolt' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Magic Missile' })).not.toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Shield' })).not.toBeInTheDocument()
+  })
+
+  it('sends the spell slots each exchange mode works on', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const sheet = createSheet()
+    const pool = {
+      ...sheet.resources.items[0]!,
+      label: 'Sorcery Points',
+      used: 1,
+      max: 4,
+      remaining: 3
+    }
+    sheet.resources.items = [pool]
+    sheet.spells.slots = [
+      { slotKey: 'STANDARD:1', label: 'Level 1', level: 1, used: 2, max: 4, remaining: 2 },
+      { slotKey: 'STANDARD:2', label: 'Level 2', level: 2, used: 1, max: 2, remaining: 1 },
+      { slotKey: 'STANDARD:3', label: 'Level 3', level: 3, used: 1, max: 1, remaining: 0 }
+    ]
+    const exchangeAction = (
+      id: string,
+      label: string,
+      spellSlotExchange: ResolvedSpellSlotExchange
+    ): (typeof sheet.actions.items)[number] => ({
+      id,
+      label,
+      kind: 'ACTION',
+      availability: { status: 'AVAILABLE' },
+      sourceLabel: 'Class Feature',
+      mechanic: {
+        effectId: `${id}-effect`,
+        trigger: 'ACTIVATION',
+        outcomes: [
+          {
+            kind: 'EFFECT',
+            pathCode: 'ON_USE',
+            effectKind: 'SPELL_SLOT_EXCHANGE',
+            spellSlotExchange
+          }
+        ]
+      }
+    })
+    sheet.actions.items = [
+      exchangeAction('recovery', 'Recovery', {
+        mode: 'RECOVER_SLOTS',
+        levelBudget: 3,
+        maximumSlotLevel: 2
+      }),
+      exchangeAction('slot-to-points', 'Slot to Points', {
+        mode: 'SLOT_TO_RESOURCE',
+        resourcePoolId: pool.id,
+        maximumSlotLevel: null
+      }),
+      exchangeAction('points-to-slot', 'Points to Slot', {
+        mode: 'RESOURCE_TO_SLOT',
+        resourcePoolId: pool.id,
+        costs: [
+          { slotLevel: 1, cost: 2 },
+          { slotLevel: 2, cost: 4 }
+        ]
+      })
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetActions pending={false} sheet={sheet} submitCommand={submitCommand} />
+    )
+
+    const recovery = screen.getByRole('group', { name: 'Recovery spell slots' })
+    expect(within(recovery).queryByLabelText(/level 3 slots to recover/i)).not.toBeInTheDocument()
+    const recover = within(recovery).getByRole('button', { name: 'Recover slots' })
+    expect(recover).toBeDisabled()
+    await user.type(within(recovery).getByLabelText('Level 1 slots to recover'), '{backspace}2')
+    await user.type(within(recovery).getByLabelText('Level 2 slots to recover'), '{backspace}1')
+    expect(within(recovery).getByText('4 of 3 slot levels')).toBeInTheDocument()
+    expect(recover).toBeDisabled()
+    await user.type(within(recovery).getByLabelText('Level 1 slots to recover'), '{backspace}1')
+    expect(recover).toBeEnabled()
+    await user.click(recover)
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'EXCHANGE_SPELL_SLOTS',
+      actionId: 'recovery',
+      selection: { kind: 'SLOTS', slotKeys: ['STANDARD:1', 'STANDARD:2'] },
+      expectedVersion: 4
+    })
+
+    const toPoints = screen.getByRole('group', { name: 'Slot to Points spell slots' })
+    expect(within(toPoints).queryByRole('button', { name: /level 3/i })).not.toBeInTheDocument()
+    await user.click(
+      within(toPoints).getByRole('button', { name: 'Convert Level 2 slot to 2 Sorcery Points' })
+    )
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'EXCHANGE_SPELL_SLOTS',
+      actionId: 'slot-to-points',
+      selection: { kind: 'SLOTS', slotKeys: ['STANDARD:2'] },
+      expectedVersion: 4
+    })
+
+    const toSlot = screen.getByRole('group', { name: 'Points to Slot spell slots' })
+    expect(
+      within(toSlot).getByRole('button', { name: 'Create level 2 slot for 4 Sorcery Points' })
+    ).toBeDisabled()
+    await user.click(
+      within(toSlot).getByRole('button', { name: 'Create level 1 slot for 2 Sorcery Points' })
+    )
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'EXCHANGE_SPELL_SLOTS',
+      actionId: 'points-to-slot',
+      selection: { kind: 'SLOT_LEVEL', slotLevel: 1 },
+      expectedVersion: 4
+    })
   })
 })

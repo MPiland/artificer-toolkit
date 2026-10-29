@@ -16,6 +16,7 @@ import type {
   OptionalOnHitAuthored,
   ArmorClassFloorAuthored,
   RestoreResourceAuthored,
+  SpellSlotExchangeAuthored,
   HitPointMaximumReductionAuthored,
   ScalarReductionAuthored,
   TelepathicLinkAuthored,
@@ -260,6 +261,7 @@ export type CompiledEffectOutcome =
   | import('#authored').HitPointsToZeroAuthored
   | ArmorClassFloorAuthored
   | RestoreResourceAuthored
+  | SpellSlotExchangeAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored
@@ -380,6 +382,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.REVIVE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:
+    case EFFECT_KIND.SPELL_SLOT_EXCHANGE:
     case EFFECT_KIND.TELEPATHIC_LINK:
     case EFFECT_KIND.PLANT_PORTAL:
     case EFFECT_KIND.TREE_STRIDE:

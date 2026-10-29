@@ -6,10 +6,12 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -19,7 +21,6 @@ import {
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored
@@ -33,7 +34,12 @@ import {
   ABILITY_CODE
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  closedRuleEffect,
+  gmRulingEffect,
+  selfActionEffect
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -61,29 +67,16 @@ const S = 10 // Sorcerer class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(S, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
   return closedRuleEffect({
     id: classRowId(S, 0x60, entry),
     ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(S, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
   })
 }
 
@@ -693,11 +686,46 @@ export const sorcerer: ClassAuthored = {
       description:
         "At 2nd level, you tap into a deep wellspring of magic within yourself. This wellspring is represented by sorcery points, which allow you to create a variety of magical effects.\n\nSorcery Points\n\nYou have 2 sorcery points, and you gain more as you reach higher levels, as shown in the Sorcery Points column of the Sorcerer table. You can never have more sorcery points than shown on the table for your level. You regain all spent sorcery points when you finish a long rest.\n\nFlexible Casting\n\nYou can use your sorcery points to gain additional spell slots, or sacrifice spell slots to gain additional sorcery points. You learn other ways to use your sorcery points as you reach higher levels.\n\nCreating Spell Slots. You can transform unexpended sorcery points into one spell slot as a bonus action on your turn. The Creating Spell Slots table shows the cost of creating a spell slot of a given level. You can create spell slots no higher in level than 5th.\n\nAny spell slot you create with this feature vanishes when you finish a long rest.\n\nConverting a Spell Slot to Sorcery Points. As a bonus action on your turn, you can expend one spell slot and gain a number of sorcery points equal to the slot's level.",
       effects: [
-        selfClassRuleEffect(
-          4,
-          CLOSED_RULE_KIND.CLASS_SORCERER_FLEXIBLE_CASTING,
-          ACTIVATION_CODE.BONUS_ACTION
-        )
+        selfActionEffect({
+          ids: {
+            effect: classRowId(S, 0x60, 4),
+            range: classRowId(S, 0x69, 4),
+            path: classRowId(S, 0x80, 4),
+            result: classRowId(S, 0x81, 4)
+          },
+          activation: ACTIVATION_CODE.BONUS_ACTION,
+          outcome: {
+            id: classRowId(S, 0x82, 4),
+            effectKind: EFFECT_KIND.SPELL_SLOT_EXCHANGE,
+            mode: 'SLOT_TO_RESOURCE',
+            chargeId: sorceryPointsCharge.id
+          }
+        }),
+        {
+          ...selfActionEffect({
+            ids: {
+              effect: classRowId(S, 0x60, 5),
+              range: classRowId(S, 0x69, 5),
+              path: classRowId(S, 0x80, 5),
+              result: classRowId(S, 0x81, 5)
+            },
+            activation: ACTIVATION_CODE.BONUS_ACTION,
+            outcome: {
+              id: classRowId(S, 0x82, 5),
+              effectKind: EFFECT_KIND.SPELL_SLOT_EXCHANGE,
+              mode: 'RESOURCE_TO_SLOT',
+              chargeId: sorceryPointsCharge.id,
+              costs: [
+                { slotLevel: 1, cost: 2 },
+                { slotLevel: 2, cost: 3 },
+                { slotLevel: 3, cost: 5 },
+                { slotLevel: 4, cost: 6 },
+                { slotLevel: 5, cost: 7 }
+              ]
+            }
+          }),
+          order: 2
+        }
       ],
       availableAtLevel: 2,
       order: 3
@@ -932,7 +960,21 @@ export const sorcerer: ClassAuthored = {
       label: 'Sorcerous Restoration',
       description:
         'At 20th level, you regain 4 expended sorcery points whenever you finish a short rest.',
-      effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_SORCERER_SORCEROUS_RESTORATION)],
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(S, 0x60, 15),
+            range: classRowId(S, 0x69, 15),
+            path: classRowId(S, 0x80, 15),
+            result: classRowId(S, 0x81, 15),
+            outcome: classRowId(S, 0x82, 15)
+          },
+          label: 'Sorcerous Restoration',
+          instructions:
+            'Whenever you finish a short rest, you regain 4 expended sorcery points. Restore them on the Sheet.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
+        })
+      ],
       availableAtLevel: 20,
       order: 14
     }

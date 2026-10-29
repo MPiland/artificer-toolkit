@@ -1,3 +1,4 @@
+import { TARGET_NOTHING_TO_END_WARNING } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   characterActor,
   srdCreatureActor
@@ -8,6 +9,7 @@ import { lesserRestoration } from '@artificer-toolkit/source-data/srd/spells/les
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { nothingToEndWarnings } from '../src/nativeEndEffects.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -144,6 +146,27 @@ describe('Lesser Restoration cast in the room (SPELLS-4.T2f)', () => {
     })
     expect(overridden.type, JSON.stringify(overridden)).toBe('COMMAND_COMMITTED')
     expect(await heldState(room)).toEqual(before)
+  })
+})
+
+/**
+ * SPELLS-31.T5k: nothing to end breaks a rule only when ending is all the action does. An action
+ * that ends its own earlier grant and grants anew (Fiendish Resilience) has nothing to replace yet.
+ */
+describe('the nothing-to-end warning (SPELLS-31.T5k)', () => {
+  const plan = (outcomes: Parameters<typeof nothingToEndWarnings>[0]) =>
+    nothingToEndWarnings(outcomes, { candidates: [], checks: [] })
+  const ends = {
+    kind: 'EFFECT',
+    endEffects: { scope: 'ALL', selectors: [{ kind: 'SAME_EFFECT', effectId: WOLF_ID }] }
+  } as const
+
+  it('warns when an action only ends effects and the target holds none', () => {
+    expect(plan([ends])).toEqual([TARGET_NOTHING_TO_END_WARNING])
+  })
+
+  it('does not warn when the action also grants and the target holds nothing to replace', () => {
+    expect(plan([ends, { kind: 'EFFECT' }])).toEqual([])
   })
 })
 

@@ -23,7 +23,7 @@ import { encounterSummaryOf } from '../../tests/fixtures/encounterSummaries'
 import { activateFixtureRun, updateFixtureRunActors } from '../../tests/fixtures/activeInitiative'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE

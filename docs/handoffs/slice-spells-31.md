@@ -426,6 +426,29 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **SPELLS-32.T5:** Halfling Lucky takes the same GM-ruling shape, so it no longer depends on a T5c reroll option.
   - **Proofs:** `classFeatureOptionsAuthoringParity.test.ts` (each conversion and a homebrew variant), `encounterActiveGrants.test.ts` (feature floor, proficiency gate, tie with Glibness), `apps/apis/convex/rollsFeatureCheckFloor.test.ts` (Sheet: full floors, half and none do not), `apps/session-worker/test/nativeRoomReliableTalent.test.ts` (room Hide check).
   - **Follow-up, not fixed:** Worker room chat rolls (`roomChatCommands`) use `resolveCharacterSheetRoll` without `carriedTestDice`, so they add no carried dice or floors; this predates T5c.
+- **T5j (2026-10-28), slot recovery and conversion:** five kinds are deleted (ruled option 2, size 5): `CLASS_WIZARD_ARCANE_RECOVERY`, `CLASS_CIRCLE_OF_THE_LAND_NATURAL_RECOVERY`, `CLASS_SORCERER_FLEXIBLE_CASTING`, `CLASS_SORCERER_SORCEROUS_RESTORATION` and `CLASS_WARLOCK_ELDRITCH_MASTER`. Design: `docs/architecture/rules-runtime.md`, "Spell slot exchange".
+  - **Arcane Recovery and Natural Recovery** are FREE self actions with a `RECOVER_SLOTS` outcome: half the class level rounded up, slot level 5 at most, and one long-rest charge.
+  - **Font of Magic (Flexible Casting)** is two Bonus Actions: `SLOT_TO_RESOURCE` and `RESOURCE_TO_SLOT`, the second with the SRD costs 2/3/5/6/7.
+  - **Sorcerous Restoration and Eldritch Master** are GM rulings. Eldritch Master has a 1/long-rest charge. `COMPLETE_REST` is unchanged.
+  - **Deferred edge cases:**
+    - A pool-mode action cannot also spend a charge of its own.
+    - `RECOVER_SLOTS` accepts any listed slot key, pact slots included (multiclass only).
+    - The recoveries can be used outside a short rest; the GM judges the timing.
+    - The Sheet's "use one charge" control can spend the Arcane Recovery charge without recovering slots.
+  - **Proofs:**
+    - `classFeatureOptionsAuthoringParity.test.ts`: the SRD records and homebrew variants.
+    - `effect-node-maps.test.ts`.
+    - `classFeatureCoreOptions.test.ts`: candidates, budgets, pools, and created slots in the slot table.
+    - `sheetCommandReducer.test.ts`: every mode and refusal.
+    - `CharacterSheetActions.test.tsx`: the slot picker.
+    - Room journey `nativeRoomSpellSlotExchange.test.ts`.
+- **T5k (2026-10-28), a stored feature choice:** the four kinds are deleted (`CLASS_RANGER_FAVORED_ENEMY`, `CLASS_RANGER_FOE_SLAYER`, `CLASS_DRACONIC_BLOODLINE_DRAGON_ANCESTOR`, `CLASS_FIEND_FIENDISH_RESILIENCE`).
+  - **Favored Enemy (and its improvement) and Foe Slayer** are description-only (GM ruling, D187a): a favored enemy is not a stored choice, and the engine has no tracking or recall context.
+  - **Dragon Ancestor:** the ancestor is the subclass specialization the Builder already requires and stores (`specializationId`, `builderResolution.ts` SPECIALIZATION_REQUIRED), so no new feature-choice option is built. The doubled proficiency with dragons stays in the description. Per the orchestrator ruling, the Character grant fold now decides a `SUBCLASS` context's `SUBCLASS_SPECIALIZATION` condition from the stored `specializationId`, beside OPTION_OBTAINED (`subclassSpecializationGrantFold.test.ts`, INCLUDE and EXCLUDE). T5i reads the ancestry that way. No new predicate, node map or persisted change.
+  - **Fiendish Resilience** is a free, once-between-rests (SHORT_REST charge) action on its user that picks one of the SRD damage types. Each option is a SEQUENCE: `END_EFFECTS` with the new `SAME_EFFECT` selector (ends what this Effect granted before), then an `UNTIL_DISPELLED` DAMAGE_RESISTANCE grant that magical and silvered weapons bypass. "When you finish a rest" becomes "once between rests, at any time" (GM ruling, DOC rider).
+  - **Engine pieces (generic):** `SAME_EFFECT` resolves at compile time to the owning Effect id and matches `authoredEffectId`; `modifierGrantEntryPlan` accepts an `UNTIL_DISPELLED` grant (no counted turns, no recurrence); a `SELF` target may carry a cast pick (`choiceOptions` on the SELF choice target; the command stays an ACTOR target on the user). See rules-runtime "Same-effect selector".
+  - **Proofs:** `featureChoiceRulingsAuthoringParity.test.ts` (kinds gone, rulings, a homebrew ward through the class node map, SRD and homebrew compile alike), `encounterEndedEffectRelease.test.ts` (SAME_EFFECT selection), `nativeRoomFiendishResilience.test.ts` (offer on SELF, resistance held, next use replaces it, undo).
+  - **Limits:** live room only (the Sheet has no out-of-Encounter feature-action command); `SAME_EFFECT` matches the same Effect from any origin.
 
 ### One with Shadows resume (SPELLS-31.T5n2, size 3, after T5n)
 
