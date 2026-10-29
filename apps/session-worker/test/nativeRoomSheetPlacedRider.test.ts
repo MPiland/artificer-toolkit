@@ -148,7 +148,11 @@ describe("a die the Character adds to all its damage on the room's Sheet roll (S
           (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
           message.commandId === rollId
       )
-      if (reply?.type !== 'COMMAND_COMMITTED' || reply.delta?.scope !== 'CAMPAIGN_CHAT')
+      if (
+        reply?.type !== 'COMMAND_COMMITTED' ||
+        reply.delta?.scope !== 'CAMPAIGN_CHAT' ||
+        !reply.delta.entry
+      )
         throw new Error(JSON.stringify(reply ?? null))
       return reply.delta.entry.roll
     })
