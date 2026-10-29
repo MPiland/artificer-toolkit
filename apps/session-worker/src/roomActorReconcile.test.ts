@@ -4,7 +4,7 @@ import { liveRoomCharacterPartSchema } from '@artificer-toolkit/schema/api/liveR
 import { liveSessionRoomWriteSetSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointRecords'
 import { liveSessionRoomAuthorizationSchema } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import { RoomEncounterStore, type RoomDocument } from './roomEncounterStore.js'
-import { RoomInputs } from './roomInputs.js'
+import { characterHeadDocument, RoomInputs } from './roomInputs.js'
 import { readRoomActorDepartures, reconcileRoomActorDepartures } from './roomActorReconcile.js'
 import { characterPageFixtureFor } from './testing/characterPageFixture.js'
 import { encounterRunFixture } from './testing/encounterRunFixture.js'
@@ -102,23 +102,10 @@ async function heldRoom({
       characterPageFixtureFor({ characterId, userId: PLAYER_OF[characterId], campaignId: CAMPAIGN })
     )
     if (page.status !== 'ASSIGNED' || !page.inputs) throw new Error('Missing Character fixture.')
-    const {
-      _creationTime,
-      documentJson: _document,
-      sheetState: _sheet,
-      checksum: _checksum,
-      sheetStateChecksum: _sheetChecksum,
-      play,
-      ...head
-    } = { ...page.inputs.owner, systemId: SYSTEM }
-    const { _id: _playId, _creationTime: playCreationTime, ...playFields } = play
+    const owner = { ...page.inputs.owner, systemId: SYSTEM }
+    const { _id: _playId, _creationTime: playCreationTime, ...playFields } = owner.play
     return [
-      {
-        table: 'characters',
-        id: `fixture:${characterId}`,
-        creationTime: _creationTime,
-        fields: head
-      },
+      { ...characterHeadDocument(owner), id: `fixture:${characterId}` },
       {
         table: 'characterPlayStates',
         id: `fixture:play:${characterId}`,
