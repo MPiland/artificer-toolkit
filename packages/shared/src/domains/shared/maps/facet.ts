@@ -1117,18 +1117,27 @@ function createFacetPredicateNodeMap(
           'Magic Schools',
           {
             kind: 'DATA',
-            relationship: chain((s) =>
-              s
-                .input('spells', {
-                  whereColumn: 'id',
-                  valueColumn: 'magic_school_id',
-                  input: p.id(['spellIds'])
-                })
-                .mapValues('magic_schools', {
-                  whereColumn: 'id',
-                  valueColumn: 'id',
-                  selectColumns: CODE_COLUMNS
-                })
+            // Any spell can be of any school; selected spells offer only their own schools.
+            relationship: condition((c) =>
+              c
+                .if(p.scope(['spellIds']).all)
+                .then((o) => o.table('magic_schools', { selectColumns: CODE_COLUMNS }))
+                .else((o) =>
+                  o.chain((s) =>
+                    s
+                      .input('spells', {
+                        whereColumn: 'id',
+                        valueColumn: 'magic_school_id',
+                        input: p.id(['spellIds'])
+                      })
+                      .mapValues('magic_schools', {
+                        whereColumn: 'id',
+                        valueColumn: 'id',
+                        selectColumns: CODE_COLUMNS
+                      })
+                      .end()
+                  )
+                )
                 .end()
             )
           },
@@ -1822,114 +1831,123 @@ function createFacetPredicateNodeMap(
           'Damage Types',
           {
             kind: 'DATA',
-            relationship: chain((s) =>
-              s
-                .condition((c) =>
-                  c
-                    .if(
-                      or([
-                        p.field(['subject']).eq('FEATURE'),
-                        p.field(['relationCode']).eq('FEATURE')
-                      ])
-                    )
-                    .then((o) =>
-                      o.mapValues('feature_effects', {
-                        whereColumn: 'feature_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['featureIds'])
+            // Any spell can deal any type; selected sources offer only the types they deal.
+            relationship: condition((c) =>
+              c
+                .if(and([p.field(['subject']).eq('SPELL'), p.scope(['spellIds']).all]))
+                .then((o) => o.table('damage_types', { selectColumns: CODE_COLUMNS }))
+                .else((o) =>
+                  o.chain((s) =>
+                    s
+                      .condition((c) =>
+                        c
+                          .if(
+                            or([
+                              p.field(['subject']).eq('FEATURE'),
+                              p.field(['relationCode']).eq('FEATURE')
+                            ])
+                          )
+                          .then((o) =>
+                            o.mapValues('feature_effects', {
+                              whereColumn: 'feature_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['featureIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('FEAT'))
+                          .then((o) =>
+                            o.mapValues('feat_effects', {
+                              whereColumn: 'feat_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['featIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('SPELL'))
+                          .then((o) =>
+                            o.mapValues('spell_effects', {
+                              whereColumn: 'spell_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['spellIds'])
+                            })
+                          )
+                          .elseIf(
+                            or([
+                              p.field(['subject']).eq('OPTION'),
+                              p.field(['relationCode']).eq('OPTION')
+                            ])
+                          )
+                          .then((o) =>
+                            o.mapValues('option_effects', {
+                              whereColumn: 'option_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['optionIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('EQUIPMENT'))
+                          .then((o) =>
+                            o.mapValues('equipment_effects', {
+                              whereColumn: 'equipment_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['equipmentIds'])
+                            })
+                          )
+                          .end()
+                      )
+                      .union((u) =>
+                        u
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'id'
+                              })
+                              .mapValues('effect_path_choice_options', {
+                                whereColumn: 'path_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'id'
+                              })
+                              .mapValues('effect_path_roll_table_rows', {
+                                whereColumn: 'path_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .end()
+                      )
+                      .mapValues('damages', {
+                        whereColumn: 'id',
+                        valueColumn: 'damage_type_id'
                       })
-                    )
-                    .elseIf(p.field(['subject']).eq('FEAT'))
-                    .then((o) =>
-                      o.mapValues('feat_effects', {
-                        whereColumn: 'feat_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['featIds'])
-                      })
-                    )
-                    .elseIf(p.field(['subject']).eq('SPELL'))
-                    .then((o) =>
-                      o.mapValues('spell_effects', {
-                        whereColumn: 'spell_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['spellIds'])
-                      })
-                    )
-                    .elseIf(
-                      or([
-                        p.field(['subject']).eq('OPTION'),
-                        p.field(['relationCode']).eq('OPTION')
-                      ])
-                    )
-                    .then((o) =>
-                      o.mapValues('option_effects', {
-                        whereColumn: 'option_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['optionIds'])
-                      })
-                    )
-                    .elseIf(p.field(['subject']).eq('EQUIPMENT'))
-                    .then((o) =>
-                      o.mapValues('equipment_effects', {
-                        whereColumn: 'equipment_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['equipmentIds'])
-                      })
-                    )
-                    .end()
+                      .end()
+                  )
                 )
-                .union((u) =>
-                  u
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'id'
-                        })
-                        .mapValues('effect_path_choice_options', {
-                          whereColumn: 'path_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'id'
-                        })
-                        .mapValues('effect_path_roll_table_rows', {
-                          whereColumn: 'path_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .end()
-                )
-                .mapValues('damages', {
-                  whereColumn: 'id',
-                  valueColumn: 'damage_type_id'
-                })
                 .end()
             )
           },

@@ -457,6 +457,7 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
     - **Bug fixed:** an ALL spell context with a school condition folded to no spell ids and applied to every spell and Character-wide (regression test in `dnd5eCombatMath.test.ts`).
     - SPELL-domain DAMAGE bonuses now reach save spells as well as attack spells. Each adds once per damage path, to that path's first damage roll of a type it applies to, and a half-on-save success halves it with the dice (`half of 8d6 + 4`).
     - Spell action facts carry the spell's `level` and `magicSchoolId`.
+    - **Authoring gap fixed:** the facet node map offered a SPELL context's `MAGIC_SCHOOL` and `DAMAGE_TYPE` options only from its selected spells, so an ALL spell context had none and its value was cleared. An ALL spell context now offers every school and damage type.
   - **Proofs:** `spellScopedModifiersAuthoringParity.test.ts` (kinds gone; SRD records and a homebrew cold focus pass the class node map unchanged; SRD Wizard 10 and Sorcerer 6 spell damage through the real policy; the Elemental Affinity action's options and sorcery-point pool), `dnd5eCombatMath.test.ts` (spell conditions, EXCLUDE, the regression, damage per path).
   - **Limits:** see future-enhancements "Spell-scoped damage modifiers". Stored rows with `scopeSpellIds` need the usual local reset and reseed after merge (D196).
 
