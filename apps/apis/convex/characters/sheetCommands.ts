@@ -359,7 +359,8 @@ export async function executeCharacterSheetCommand(
     )
       throw new CharacterSheetCommandError('New Equipment copies require current source access.')
   }
-  // The active Sheet lists the Character's own Equipment; the entry being added is read on its own.
+  // The active Sheet lists the Character's own Equipment, even after its source access ends; the
+  // entry being added is read on its own and is offered only while the owner can still read it.
   let commandSheet = initial.sheet
   if (command.type === 'ADD_INVENTORY_ITEM') {
     const { sourceAccess, sourceIdentities } = initial.sourceContext.context
@@ -381,17 +382,18 @@ export async function executeCharacterSheetCommand(
             )
           ).entries
         : []
-    if (entry)
-      commandSheet = {
-        ...initial.sheet,
-        reference: {
-          ...initial.sheet.reference,
-          equipmentOptions: [
-            ...initial.sheet.reference.equipmentOptions.filter((option) => option.id !== entry.id),
-            projectCharacterSheetEquipmentOption(entry)
-          ]
-        }
+    commandSheet = {
+      ...initial.sheet,
+      reference: {
+        ...initial.sheet.reference,
+        equipmentOptions: [
+          ...initial.sheet.reference.equipmentOptions.filter(
+            (option) => option.id !== command.equipmentId
+          ),
+          ...(entry ? [projectCharacterSheetEquipmentOption(entry)] : [])
+        ]
       }
+    }
   }
   const updated = characterAuthoredDtoSchema.parse(
     completedRest?.character ??
