@@ -18,8 +18,13 @@ import type schema from '../../convex/schema'
 export async function drainScheduledWork(t: TestConvex<typeof schema>) {
   const realTimers = !vi.isFakeTimers()
   if (realTimers) vi.useFakeTimers({ now: Date.now() })
+  const DIAG_START = Date.now()
   try {
     await t.finishAllScheduledFunctions(() => vi.advanceTimersToNextTimer(), 1_000)
+    const DIAG_LATE = (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect()))
+      .filter((row) => row.scheduledTime > DIAG_START + 60_000)
+      .map((row) => `${row.name}@+${Math.round((row.scheduledTime - DIAG_START) / 60_000)}m:${row.state.kind}`)
+    console.warn(`DIAG drain advanced ${Math.round((Date.now() - DIAG_START) / 60_000)}m; late: ${DIAG_LATE.slice(0, 15).join(', ')}`)
   } finally {
     if (realTimers) vi.useRealTimers()
   }
