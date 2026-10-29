@@ -14709,13 +14709,12 @@
             {
               "id": "SPELLS-27.1",
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425",
-                "T2b (Legendary window, movement opportunity attack and Disarm release the condition with its grant; the three ownsCondition fences removed): apps/session-worker/test/nativeRoomLegendary.test.ts, nativeRoomGrantEnds.test.ts, nativeRoomDisarm.test.ts, packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts and encounterDisarmSettlement.test.ts, packages/schema/src/__tests__/contested-action-application-output.test.ts; red: Tests 38887125785 on 2ff927eeb fails the new release cases; green: CI Tests 38889745325 and Live backend 38889745343 on 018e58dfc"
+                "Closed by SPELLS-27.T1undefined), SPELLS-27.T2aundefined), SPELLS-27.T2bundefined), SPELLS-27.T3undefined), SPELLS-27.T3bundefined), SPELLS-27.T6 (m546); see each task's proof."
               ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads.",
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads. Closed 2026-10-29 by SPELLS-27.T1, SPELLS-27.T2a, SPELLS-27.T2b, SPELLS-27.T3, SPELLS-27.T3b, SPELLS-27.T6.",
               "journeys": ["effects-browser"]
             },
             {
@@ -14920,7 +14919,7 @@
             {
               "id": "SPELLS-27.T6",
               "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -14928,7 +14927,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T3", "REACTION-4.T3"]
-              }
+              },
+              "note": "Merged in m546 (69cc19633)."
             }
           ]
         },
@@ -20266,10 +20266,10 @@
             {
               "id": "RELIABILITY-21.3",
               "text": "characters/sheetSlices:get stays under the 1 s query limit, and the builder and character-sheet journeys settle and pass.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["sheetReadBudget.test.ts"],
               "origin": [],
-              "note": "Proof: builder, character-sheet.",
+              "note": "Proof: builder, character-sheet. Closed 2026-10-29 by RELIABILITY-21.T3, RELIABILITY-21.T16.",
               "journeys": ["builder-browser", "character-sheet-browser"]
             },
             {
@@ -20374,10 +20374,11 @@
             {
               "id": "RELIABILITY-21.16",
               "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T16 (m549); see each task's proof."],
               "origin": [],
-              "journeys": ["builder-browser"]
+              "journeys": ["builder-browser"],
+              "note": "Closed 2026-10-29 by RELIABILITY-21.T16."
             },
             {
               "id": "RELIABILITY-21.17",
@@ -20643,7 +20644,7 @@
             },
             {
               "id": "RELIABILITY-21.T16",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.16", "RELIABILITY-21.3"],
               "wsjf": {
                 "bv": 8,
@@ -20652,8 +20653,7 @@
                 "size": 8
               },
               "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge. Riders (orchestrator rulings 2026-10-28, description-only): also remove character-sheet-browser (T14) and vtt-browser (T9) from KNOWN_BUG_PROOFS; bring vtt-browser rule convergence (Sheet Max HP edit, measured 1.27-1.45 s) within budget, fix its first-edit non-convergence flake, and decide with evidence whether rule samples belong in the authoritative bucket.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI.",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI. Merged in m549 (ce8baa2f4)."
             },
             {
               "id": "RELIABILITY-21.T17",
@@ -20787,7 +20787,7 @@
                 "size": 3,
                 "after": ["RELIABILITY-21.T16"]
               },
-              "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes.",
+              "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes. Also give the queued post-commit Builder store margin on CI: its max under 700 ms on the builder journey (T16 measured 1038/1160 ms, one store timing out and falling back to a live read), by trimming its read volume (765 KB to 1.05 MB across 128 to 378 documents) as well as the parse.",
               "note": "Approved by the user on 2026-10-29."
             }
           ]
@@ -20898,7 +20898,7 @@
         {
           "id": "VTT_UI-2",
           "title": "Tokens show system state",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -20922,7 +20922,7 @@
           "tasks": [
             {
               "id": "VTT_UI-2.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-2.1"],
               "wsjf": {
                 "bv": 3,
@@ -20931,7 +20931,7 @@
                 "size": 3
               },
               "text": "Morale and reaction state on tokens: add a morale outcome status (fled/surrendered) to the token presentation model from the actor's morale record, with the existing GM-vs-player visibility split (players must not see GM-only facts; decide with the same rule as GM health band), listed on hover/focus/selection and in the canvas description. Reaction state keeps its current proof and gains a presentation story/test naming it. Proof: model test over real Encounter data, window journey stories GmSeesMoraleOutcome / PlayerSeesOnlyWhatTheyMay.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m547 (1ec96d6d3)."
             },
             {
               "id": "VTT_UI-2.T2",
@@ -20959,21 +20959,10 @@
           "acs": [
             {
               "text": "Range, target, path, aura and placed-zone (hazard and trap) previews are shown.",
-              "status": "IN_PROGRESS",
-              "proof": [
-                "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
-                "packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts",
-                "apps/apis/convex/encounters/shieldStow.test.ts",
-                "apps/apis/convex/encounters/actionChoices.test.ts",
-                "packages/shared/src/__tests__/vtt-scene-range.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts",
-                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › action preview overlays",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › range and target preview (VTT_UI-3.1)",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx › PreviewRangeAndTarget",
-                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › ActionRangeAndTargetPreview"
-              ],
+              "status": "DONE",
+              "proof": ["Closed by VTT_UI-3.T1 (m526), VTT_UI-3.T2 (m547); see each task's proof."],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model.",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model. Closed 2026-10-29 by VTT_UI-3.T1, VTT_UI-3.T2.",
               "id": "VTT_UI-3.1",
               "journeys": ["vtt-browser"]
             },
@@ -21049,7 +21038,7 @@
             },
             {
               "id": "VTT_UI-3.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-3.1"],
               "wsjf": {
                 "bv": 5,
@@ -21059,7 +21048,7 @@
                 "after": ["VTT_UI-3.T1"]
               },
               "text": "Placed-zone preview: show placed zones (SPELLS-17), including GM-placed hazards and traps, as map overlays and as a preview while placing one. Concealed zones follow MOVE-3 (decisions \"Hazards and traps\"): a zone with a spot DC is drawn only for the GM and for Characters it was revealed to. No new trap model.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm). Merged in m547 (1ec96d6d3)."
             },
             {
               "id": "VTT_UI-3.T3",
