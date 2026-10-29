@@ -935,13 +935,16 @@ export function dnd5eSaveOutcomeRule(
     : 'NONE'
 }
 
-/** A save's audit names the conditions that fail it unrolled only when one does. */
-export function autoFailAudit(
+/** A save's audited ability, naming the conditions that fail it unrolled only when one does. */
+export function saveAudit(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
   abilityDefinitionId: string
 ) {
   const autoFailConditionIds = dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId)
-  return autoFailConditionIds.length ? { autoFailConditionIds } : {}
+  return {
+    savingThrowAbilityDefinitionId: abilityDefinitionId,
+    ...(autoFailConditionIds.length ? { autoFailConditionIds } : {})
+  }
 }
 
 /** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */

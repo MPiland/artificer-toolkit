@@ -794,7 +794,8 @@ describe('SRD Creature hits that force a saving throw', () => {
     const failed = await attackOgre({
       attacker: 'Mastiff',
       feature: 'Bite',
-      rolls: [9, 2, 19],
+      // Advantage on the Bite (two d20s), a critical hit (two d6s), then the save d20.
+      rolls: [9, 9, 2, 2, 19],
       targetConditionIds: [paralyzed]
     })
     expect(failed.execution.nestedD20).toMatchObject({
