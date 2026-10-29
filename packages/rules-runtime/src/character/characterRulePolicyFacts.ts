@@ -63,6 +63,25 @@ interface CharacterRulePolicyFactsPreparation {
   spellFacts: ReturnType<typeof buildCharacterSpellRuleFacts>
 }
 
+/**
+ * Parsed facts per loaded context, keyed by the facts before parsing. A transaction evaluates one
+ * Character several times over the same context (Builder reconciliation, the Sheet, then the write
+ * after a command), and parsing is deterministic, so unchanged facts are parsed once. The same parsed
+ * object comes back, which lets the policy output be reused too (`evaluateCharacterRules`).
+ */
+const parsedFactsByContext = new WeakMap<object, Map<string, CharacterRulePolicyInput>>()
+
+function parseCharacterRulePolicyFacts(context: object, unparsed: unknown) {
+  let parsed = parsedFactsByContext.get(context)
+  if (!parsed) parsedFactsByContext.set(context, (parsed = new Map()))
+  const key = JSON.stringify(unparsed)
+  const cached = parsed.get(key)
+  if (cached) return cached
+  const facts = characterRulePolicyInputSchema.parse(unparsed)
+  parsed.set(key, facts)
+  return facts
+}
+
 function totalHitDice(character: CharacterRulePolicyFactsInput['character']): number {
   return character.state.hitpoints.hitDice.reduce((total, entry) => total + entry.total, 0)
 }
@@ -113,7 +132,7 @@ export function composeCharacterRulePolicyFacts(
   })
   const abilityDefinitions =
     context.vocabularySnapshot?.document.abilities.map(({ id, code }) => ({ id, code })) ?? []
-  const facts = characterRulePolicyInputSchema.parse({
+  const facts = parseCharacterRulePolicyFacts(context, {
     contractVersion: 4,
     abilityDefinitions,
     grantFoldFacts,
