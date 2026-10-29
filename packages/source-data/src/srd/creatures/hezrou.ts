@@ -1,7 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { startOfTurnSaveAuraEffect } from './turnAura.js'
 export const hezrou: CreatureAuthored = {
   id: S.CREATURE_IDS.HEZROU,
   label: 'Hezrou',
@@ -59,53 +59,16 @@ export const hezrou: CreatureAuthored = {
       description:
         "Stench. Any creature that starts its turn within 10 feet of the hezrou must succeed on a DC 14 Constitution saving throw or be poisoned until the start of its next turn. On a successful saving throw, the creature is immune to the hezrou's stench for 24 hours.",
       effects: [
-        {
-          id: S.actionId(162, 202),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(162, 1202),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
-              baseDc: 14
-            },
-            range: {
-              id: S.actionId(162, 1203),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(162, 203),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(162, 204),
-                resultKind: 'SEQUENCE',
-                duration: { id: S.actionId(162, 205), durationKind: 'ROUND', amount: 1 },
-                outcomes: [
-                  {
-                    id: S.actionId(162, 206),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('POISONED')
-                  },
-                  {
-                    id: S.actionId(162, 207),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_HEZROU_STENCH
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        startOfTurnSaveAuraEffect(162, {
+          localIndex: 1300,
+          label: 'Stench',
+          componentLabel: 'A creature starts its turn in the stench',
+          radiusFeet: 10,
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+          dc: 14,
+          condition: 'POISONED',
+          duration: { kind: 'UNTIL_NEXT_TURN_START' }
+        })
       ],
       order: 2
     },

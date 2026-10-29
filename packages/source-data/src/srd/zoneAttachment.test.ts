@@ -47,9 +47,13 @@ describe('SRD zones state where they are placed (ADR 0038)', () => {
       'Balor',
       'Black Pudding',
       'Chain Devil',
+      'Darkmantle',
       'Fire Shield',
+      'Hezrou',
       'Oath of Devotion',
       'Paladin',
+      'Pit Fiend',
+      'Sea Hag',
       'Spirit Guardians'
     ])
     expect(ownersOf('PRIMARY_TARGET')).toEqual(['Resilient Sphere'])

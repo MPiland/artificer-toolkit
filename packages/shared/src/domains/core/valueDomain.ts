@@ -28,6 +28,7 @@ export const VALUE_DOMAIN_CODE = {
   INCOMING_DAMAGE: 'INCOMING_DAMAGE',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   HEALING_RECEIVED: 'HEALING_RECEIVED',
+  HEALING_DEALT: 'HEALING_DEALT',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -210,6 +211,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.HEALING_RECEIVED,
     label: 'Healing Received',
     description: 'Enabled, every die of healing the holder receives takes its maximum value.'
+  },
+
+  [VALUE_DOMAIN_CODE.HEALING_DEALT]: {
+    code: VALUE_DOMAIN_CODE.HEALING_DEALT,
+    label: 'Healing Dealt',
+    description:
+      'Bonus hit points the holder’s spells restore, optionally plus the level the spell is cast at (a cantrip adds nothing).'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -533,6 +541,9 @@ export type ValueDomainParamByCode = {
 
   // Healing the holder receives is maximized (Beacon of Hope).
   HEALING_RECEIVED: EmptyObject
+
+  // Healing the holder’s spells restore; `addsSpellLevel` also adds the level the spell is cast at.
+  HEALING_DEALT: { addsSpellLevel?: boolean }
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: string }

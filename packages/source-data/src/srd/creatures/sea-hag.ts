@@ -3,6 +3,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { startOfTurnSaveAuraEffect } from './turnAura.js'
 export const seaHag: CreatureAuthored = {
   id: S.CREATURE_IDS.SEA_HAG,
   label: 'Sea Hag',
@@ -52,57 +53,28 @@ export const seaHag: CreatureAuthored = {
       description:
         "Horrific Appearance. Any humanoid that starts its turn within 30 feet of the hag and can see the hag's true form must make a DC 11 Wisdom saving throw. On a failed save, the creature is frightened for 1 minute. A creature can repeat the saving throw at the end of each of its turns, with disadvantage if the hag is within line of sight, ending the effect on itself on a success. If a creature's saving throw is successful or the effect ends for it, the creature is immune to the hag's Horrific Appearance for the next 24 hours. Unless the target is surprised or the revelation of the hag's true form is sudden, the target can avert its eyes and avoid making the initial saving throw. Until the start of its next turn, a creature that averts its eyes has disadvantage on attack rolls against the hag.",
       effects: [
-        {
-          id: S.actionId(248, 502),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(248, 602),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 11
-            },
-            range: {
-              id: S.actionId(248, 603),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(248, 802),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(248, 802) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(248, 920),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('FRIGHTENED'),
-                    recordsSource: true
-                  },
-                  {
-                    id: S.actionId(248, 928),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_HORRIFIC_APPEARANCE
-                  }
-                ]
+        startOfTurnSaveAuraEffect(248, {
+          localIndex: 1300,
+          label: 'Horrific Appearance',
+          componentLabel: "A creature starts its turn in view of the hag's true form",
+          radiusFeet: 30,
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+          dc: 11,
+          condition: 'FRIGHTENED',
+          duration: {
+            kind: 'MINUTE',
+            repeatRollInfluence: {
+              influence: 'DISADVANTAGE',
+              when: {
+                kind: 'PERCEPTION',
+                observer: 'TARGET',
+                subject: 'SOURCE',
+                requirement: 'SEE'
               }
             }
-          ]
-        }
+          },
+          requiredSight: ['OCCUPANT_SEES_SOURCE']
+        })
       ],
       order: 2
     },
