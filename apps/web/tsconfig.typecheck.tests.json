@@ -8,7 +8,6 @@
       "vite/client",
       "node",
       "vitest/globals",
-      "vitest/browser",
       "@testing-library/jest-dom"
     ]
   },
