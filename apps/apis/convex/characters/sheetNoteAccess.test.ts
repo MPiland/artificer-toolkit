@@ -93,12 +93,12 @@ describe('Character note command access', () => {
     expect(totals.reads.byTable.characterBuildStates?.distinct).toBe(1)
     expect(totals.reads.byTable.characterPlayStates?.distinct).toBe(1)
     expect(totals.reads.byTable.characters?.distinct).toBe(1)
-    // One new note row and the default group, then the build counts, the head's structure clock and
-    // the play clock; nothing else is rewritten.
+    // One new note row and the default group, then the build counts with its structure clock and
+    // the play clock; the head and everything else stay unwritten.
     expect(totals.writes.byTable.characterNotes?.documents).toBe(1)
     expect(totals.writes.byTable.characterNoteGroups?.documents).toBe(1)
     expect(totals.writes.byTable.replace?.documents).toBe(2)
-    expect(totals.writes.byTable.patch?.documents).toBe(1)
+    expect(totals.writes.byTable.patch).toBeUndefined()
     expect(totals.writes.byTable.delete).toBeUndefined()
     const after = await readState()
     const written = readCharacterRecord(after.character!)

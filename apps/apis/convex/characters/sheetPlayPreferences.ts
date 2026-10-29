@@ -44,17 +44,13 @@ export async function executeCharacterPlayPreferenceCommand(
   }
   await assertConvexOwnsCharacterPlay(ctx, head.id)
   const campaign = await readCharacterCampaign(ctx, head, head.userId)
-  const [draft, route, storedPlay, build] = await Promise.all([
+  const [draft, route, storedPlay] = await Promise.all([
     ctx.db
       .query('characterDrafts')
       .withIndex('by_characterId', (q) => q.eq('characterId', head.id))
       .unique(),
     readVisibleAuthoredRouteId(ctx, { subjectId: head.id }),
-    readCharacterPlayRow(ctx, head.id),
-    ctx.db
-      .query('characterBuildStates')
-      .withIndex('by_characterId', (q) => q.eq('characterId', head.id))
-      .unique()
+    readCharacterPlayRow(ctx, head.id)
   ])
   if (draft && draft.userId !== head.userId)
     throw new Error('Stored Character draft ownership mismatch.')
@@ -62,7 +58,6 @@ export async function executeCharacterPlayPreferenceCommand(
     throw new Error('Stored Character route identity mismatch.')
   if (head.status !== 'ACTIVE')
     throw new Error('Character requires Builder repair before the Sheet can be read.')
-  if (!build) throw new Error('Stored Character build state is unavailable.')
   const { _id: playId, _creationTime: _playCreationTime, ...playFields } = storedPlay
   const play = characterStoredPlayStateSchema.parse(playFields)
   if (play.characterId !== head.id || play.userId !== head.userId)
@@ -84,9 +79,8 @@ export async function executeCharacterPlayPreferenceCommand(
     if (command.inspired) state.inspiration = true
     else delete state.inspiration
   } else state.partyVisibility = command.visibility
-  const occurredAt = new Date(
-    Math.max(Date.now(), Date.parse(build.updatedAt) + 1, Date.parse(play.updatedAt) + 1)
-  ).toISOString()
+  // A preference changes play only, so only the play clock orders it.
+  const occurredAt = new Date(Math.max(Date.now(), Date.parse(play.updatedAt) + 1)).toISOString()
   const streamVersion = play.streamVersion + 1
   await ctx.db.replace(
     playId,

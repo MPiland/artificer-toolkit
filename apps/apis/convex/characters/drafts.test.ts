@@ -17,6 +17,7 @@ import { ensureAuthoredRouteId } from '../content/routeIds'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { deleteCharacterDraftPayloadByHead, insertCharacterDraftPayload } from './documents'
+import { writeCharacterOperationalStructure } from './operationalWrites'
 import { readCharacterRow } from './stateDocuments'
 
 const create = makeFunctionReference<
@@ -349,11 +350,7 @@ describe('native Character working drafts', () => {
         updatedAt
       })
       // The structure clock lives on the build record.
-      const build = await ctx.db
-        .query('characterBuildStates')
-        .withIndex('by_characterId', (q) => q.eq('characterId', request.id))
-        .unique()
-      await ctx.db.patch(build!._id, { updatedAt })
+      await writeCharacterOperationalStructure(ctx, active, { ...encoded, updatedAt })
       await ctx.db.patch(active.play._id, {
         state: encoded.play.state,
         checksum: encoded.play.checksum,

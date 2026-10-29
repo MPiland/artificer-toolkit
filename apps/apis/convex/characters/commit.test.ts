@@ -3,6 +3,7 @@ import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
+import { writeCharacterOperationalStructure } from './operationalWrites'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 
@@ -195,6 +196,14 @@ describe('native Character commit', () => {
     )
     if (!active) throw new Error('Missing active row')
     // The structure clock lives on the build record.
+    await t.run(async (ctx) => {
+      const row = await readCharacterRow(ctx, first.character.id)
+      if (!row) throw new Error('Missing active record')
+      await writeCharacterOperationalStructure(ctx, row, {
+        ...row,
+        updatedAt: new Date(Date.parse(row.updatedAt) + 1000).toISOString()
+      })
+    })
     const build = await t.run((ctx) =>
       ctx.db
         .query('characterBuildStates')
@@ -202,11 +211,6 @@ describe('native Character commit', () => {
         .unique()
     )
     if (!build) throw new Error('Missing build row')
-    await t.run((ctx) =>
-      ctx.db.patch(build._id, {
-        updatedAt: new Date(Date.parse(build.updatedAt) + 1000).toISOString()
-      })
-    )
     const unchanged = await t.run((ctx) => ctx.db.get(active._id))
     if (!unchanged) throw new Error('Missing unchanged active row')
     const unchangedBuild = await t.run((ctx) => ctx.db.get(build._id))

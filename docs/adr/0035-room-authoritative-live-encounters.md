@@ -162,7 +162,8 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
     - Character play state lives in small, hot per-Character documents, separate from the large Character document.
       The structure clock (`updatedAt`) lives on the build record (`characterBuildStates`), not the
       `characters` head, so a Sheet command never replaces the head that every Campaign read joins
-      and those reads are not invalidated by play (RELIABILITY-21.16, 2026-10-28).
+      and those reads are not invalidated by play. A build-record write advances the Character's room
+      input revision, as a head write did (RELIABILITY-21.16, 2026-10-28).
     - Command history payloads reach Convex packed once per checkpoint. Small indexed receipt
       headers remain per command and point into the checksummed ledger; they preserve replay,
       duplicate-command checks, public UUIDs and timeline pagination without repeating history payloads.
