@@ -3,10 +3,6 @@
   "builder-browser": "RELIABILITY-21.T16",
   "campaign-custody-browser": "RELIABILITY-21.T18",
   "character-sheet-browser": "RELIABILITY-21.T16",
-<<<<<<< HEAD
   "publication-class-browser": "RELIABILITY-21.T24",
-=======
-  "effects-browser": "RELIABILITY-21.T23",
->>>>>>> origin/codex/phase-08-2-convex-cutover
   "vtt-browser": "RELIABILITY-21.T16"
 }
