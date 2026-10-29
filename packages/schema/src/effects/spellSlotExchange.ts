@@ -3,10 +3,9 @@ import { z, lazySchema } from '../zod.js'
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { roundingCodeSchema } from '../shared/enums.js'
 
-const spellSlotLevelSchema = z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))
-
-export const spellSlotExchangeDtoSchema = lazySchema(() =>
-  z.intersection(
+export const spellSlotExchangeDtoSchema = lazySchema(() => {
+  const spellSlotLevelSchema = z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))
+  return z.intersection(
     z.object({
       id: authoredIdentifierSchema,
       effectKind: z.literal('SPELL_SLOT_EXCHANGE')
@@ -40,6 +39,6 @@ export const spellSlotExchangeDtoSchema = lazySchema(() =>
       })
     ])
   )
-)
+})
 
 export type SpellSlotExchangeDto = z.infer<typeof spellSlotExchangeDtoSchema>

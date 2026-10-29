@@ -160,10 +160,7 @@ function projectHitPoints<Sheet extends Pick<CharacterSheetResponseDto, 'overvie
 
 function projectSpellSlots<
   Sheet extends { spells: Pick<CharacterSheetResponseDto['spells'], 'slots'> }
->(
-  sheet: Sheet,
-  command: CharacterSheetCommandInputDto
-): Sheet {
+>(sheet: Sheet, command: CharacterSheetCommandInputDto): Sheet {
   const slotKey =
     command.type === 'CAST_SPELL'
       ? command.slotKey

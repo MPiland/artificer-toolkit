@@ -1246,12 +1246,18 @@ describe('exchanging spell slots (SPELLS-31.T5j)', () => {
     ]
   })
 
-  function exchange(selection: Extract<Command, { type: 'EXCHANGE_SPELL_SLOTS' }>['selection']) {
+  type Selection = Extract<Command, { type: 'EXCHANGE_SPELL_SLOTS' }>['selection']
+
+  function exchange(selection: Selection) {
     return { ...base, type: 'EXCHANGE_SPELL_SLOTS', actionId: 'exchange', selection } as const
   }
 
   function usageAfter(from: CharacterSheetResponseDto, command: Command) {
-    const update = getSheetCommandResourceUsageUpdate({ sheet: from, resourceUsage: [], command })
+    const update = getSheetCommandResourceUsageUpdate({
+      sheet: from,
+      resourceUsage: [],
+      command: { ...command, commandId: '50000000-0000-4000-8000-0000000000e1' }
+    })
     return update && { resourceId: update.resource.id, used: update.used }
   }
 
@@ -1364,10 +1370,10 @@ describe('exchanging spell slots (SPELLS-31.T5j)', () => {
     ).toEqual([{ slotKey: 'STANDARD:1', used: 0, created: 1 }])
   })
 
-  it.each([
-    [{ kind: 'SLOT_LEVEL', slotLevel: 3 } as const, /only has 3 of the 5 needed/],
-    [{ kind: 'SLOT_LEVEL', slotLevel: 4 } as const, /level 4 spell slot cannot be created/],
-    [{ kind: 'SLOTS', slotKeys: ['STANDARD:1'] } as const, /Choose the spell slot level/]
+  it.each<[Selection, RegExp]>([
+    [{ kind: 'SLOT_LEVEL', slotLevel: 3 }, /only has 3 of the 5 needed/],
+    [{ kind: 'SLOT_LEVEL', slotLevel: 4 }, /level 4 spell slot cannot be created/],
+    [{ kind: 'SLOTS', slotKeys: ['STANDARD:1'] }, /Choose the spell slot level/]
   ])('refuses to create %j', (selection, message) => {
     expect(() => apply(spent, exchange(selection), { sheet: toSlot })).toThrow(message)
   })

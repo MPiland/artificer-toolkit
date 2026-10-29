@@ -57,10 +57,7 @@ const SPELL_SLOT_COST_NODE_MAP = slotCost.define('spellSlotCost', ({ map, nodes 
         requiredIf: true
       })
     )
-    .set(
-      'cost',
-      number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true })
-    )
+    .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
 })
 
 /**

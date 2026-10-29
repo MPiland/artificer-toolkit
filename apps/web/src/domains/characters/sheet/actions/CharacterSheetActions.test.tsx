@@ -512,7 +512,13 @@ describe('Character Sheet actions', () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(true)
     const sheet = createSheet()
-    const pool = { ...sheet.resources.items[0]!, label: 'Sorcery Points', used: 1, max: 4, remaining: 3 }
+    const pool = {
+      ...sheet.resources.items[0]!,
+      label: 'Sorcery Points',
+      used: 1,
+      max: 4,
+      remaining: 3
+    }
     sheet.resources.items = [pool]
     sheet.spells.slots = [
       { slotKey: 'STANDARD:1', label: 'Level 1', level: 1, used: 2, max: 4, remaining: 2 },
@@ -533,7 +539,12 @@ describe('Character Sheet actions', () => {
         effectId: `${id}-effect`,
         trigger: 'ACTIVATION',
         outcomes: [
-          { kind: 'EFFECT', pathCode: 'ON_USE', effectKind: 'SPELL_SLOT_EXCHANGE', spellSlotExchange }
+          {
+            kind: 'EFFECT',
+            pathCode: 'ON_USE',
+            effectKind: 'SPELL_SLOT_EXCHANGE',
+            spellSlotExchange
+          }
         ]
       }
     })

@@ -3,6 +3,7 @@ import { characterActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSr
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -13,6 +14,8 @@ import { movementRoom } from './movementRoomFixture.js'
 /**
  * SPELLS-31.T5j: the EXCHANGE_SPELL_SLOTS Sheet command in the real local room. A level 5 Wizard's
  * player recovers expended slots with Arcane Recovery, read back from the Character's stored play.
+ * Preparing a spell gives the Wizard the fixture slot table: two 1st-level slots and one of each
+ * level from 2nd to 5th.
  */
 
 const ACTOR_ID = testUuid(0x5a0)
@@ -26,11 +29,12 @@ function wizardRoom() {
     moverActorId: ACTOR_ID,
     positions: { [ACTOR_ID]: { x: 150, y: 150 } },
     characterClassFeatures: [srdByLabel(wizard.features ?? [], 'Arcane Recovery')],
+    characterSpellcasting: { spells: [shield], prepared: [shield.id] },
     characterPlay: {
       characterClass: wizard,
       classLevel: 5,
       spellSlots: [
-        { slotKey: 'STANDARD:1', used: 3 },
+        { slotKey: 'STANDARD:1', used: 2 },
         { slotKey: 'STANDARD:2', used: 1 }
       ]
     }
@@ -62,6 +66,7 @@ async function playerSheet(room: Room) {
   })
   const recovery = sheet.actions.items.find(({ label }) => label === 'Arcane Recovery')
   if (!recovery) throw new Error('The Sheet lists no Arcane Recovery action.')
+  const actionId = recovery.id
   async function send(slotKeys: string[]) {
     const commandId = crypto.randomUUID()
     const { streamVersion } = await storedPlay(room)
@@ -77,7 +82,7 @@ async function playerSheet(room: Room) {
             type: 'EXCHANGE_SPELL_SLOTS',
             commandId,
             expectedVersion: streamVersion,
-            actionId: recovery.id,
+            actionId,
             selection: { kind: 'SLOTS', slotKeys }
           }
         }
@@ -90,7 +95,7 @@ async function playerSheet(room: Room) {
           message.commandId === commandId
       )
       if (!answer) throw new Error('The room has not answered.')
-      return answer.type
+      return answer
     })
   }
   return { sheet, recovery, send }
@@ -106,10 +111,11 @@ describe('a player exchanging spell slots in the room (SPELLS-31.T5j)', () => {
       })
     ])
 
-    expect(await send(['STANDARD:1', 'STANDARD:2'])).toBe('COMMAND_COMMITTED')
+    const answer = await send(['STANDARD:1', 'STANDARD:2'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 
     const { play } = await storedPlay(room)
-    expect(play.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 2 }])
+    expect(play.spellSlots).toEqual([{ slotKey: 'STANDARD:1', used: 1 }])
     expect(play.resourceUsage.map(({ used }) => used)).toEqual([1])
   })
 
@@ -118,7 +124,10 @@ describe('a player exchanging spell slots in the room (SPELLS-31.T5j)', () => {
     const { send } = await playerSheet(room)
     const before = await storedPlay(room)
 
-    expect(await send(['STANDARD:1', 'STANDARD:1', 'STANDARD:2'])).toBe('COMMAND_REJECTED')
+    expect(await send(['STANDARD:1', 'STANDARD:1', 'STANDARD:2'])).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      message: expect.stringMatching(/total 4 levels; at most 3 can be recovered/)
+    })
 
     expect(await storedPlay(room)).toEqual(before)
   })

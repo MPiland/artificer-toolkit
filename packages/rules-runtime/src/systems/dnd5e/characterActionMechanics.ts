@@ -111,7 +111,11 @@ function classLevel(input: CharacterActionModelInput, classId: string | null): n
 }
 
 /** A class level divided by the authored divisor, rounded as authored. */
-function dividedClassLevel(level: number, divisor: number, rounding: 'UP' | 'DOWN' | 'NEAREST'): number {
+function dividedClassLevel(
+  level: number,
+  divisor: number,
+  rounding: 'UP' | 'DOWN' | 'NEAREST'
+): number {
   const quotient = level / divisor
   return rounding === 'UP'
     ? Math.ceil(quotient)
