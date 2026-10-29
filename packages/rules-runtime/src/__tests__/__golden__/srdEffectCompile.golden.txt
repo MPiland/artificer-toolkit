@@ -1054,7 +1054,8 @@
 00000000-0005-01f5-0070-00b700000000 CREATURE Cantrip | NOT_A_DISCOVERED_ACTION
 00000020-0000-0210-0001-000000000001 CHARACTER:spells Acid Arrow | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000020-0000-0210-0002-000000000001 CHARACTER:spells Acid Splash | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=203ef4049720c40dc6f787e7bf2bc3cfe984d0cdd2e18994185946629e7626a9]
-00000020-0000-0210-0003-000000000001 CHARACTER:spells Aid | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
+00000020-0000-0210-0003-000000000001 CHARACTER:spells Aid | SINGLE_GRAPH 55dc6dbc5e4b346eb5702a210cd551b8ae364bbf92dcda31338028292f442881 nodes=1 outputs=2
+00000020-0000-0210-0003-000000000001 @U9 | SINGLE_GRAPH ffb549b23eec17459e64a694a1d9ea769304d5e6a99d920b4b28e9d730c6e855 nodes=1 outputs=2
 00000020-0000-0210-0004-000000000001 CHARACTER:spells Alarm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0005-000000000001 CHARACTER:spells Alter Self | SINGLE_GRAPH 59473cf28468aaaa1a6949da88bee624160af16dcc6b85be3adc857bfb6b18de nodes=2 outputs=1
 00000020-0000-0210-0006-000000000001 CHARACTER:spells Animal Friendship | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=7ff20222b182f998f3be5c482e2506e92a5d289a5e3e0e404b5a2a43f73cd915]

@@ -83,6 +83,8 @@ import {
   damageSourceOutcomeId,
   hasLifecycleOverride,
   specializedTestOutcome,
+  fixedHealAmount,
+  healDiceConfiguration,
   positiveFixedAmount,
   validateHealBonuses,
   type SpecializedOutcome
@@ -1799,57 +1801,6 @@ function authoredHealingDiceTerm(published: ServerPublishedRuleDefinitionDto): {
       'D&D dice healing compiled graph has inconsistent authored dice sizes.'
     )
   return { count: dieNodes.size, die }
-}
-
-/**
- * The dice a heal rolls: its one authored value, or the row the spell's cast level reaches. A
- * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
- */
-function healDiceConfiguration(
-  outcome: Partial<Record<'scalingKind' | 'diceConfig' | 'scalingSource' | 'levels', unknown>>,
-  spellCastLevel: number | undefined
-): string {
-  if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
-    return outcome.diceConfig
-  if (
-    outcome.scalingKind !== 'PER_LEVEL' ||
-    outcome.scalingSource !== 'SPELL_CAST_LEVEL' ||
-    !Array.isArray(outcome.levels)
-  )
-    unsupported('D&D dice healing requires one authored dice value or spell cast level rows.')
-  if (spellCastLevel === undefined) unsupported('D&D dice healing scaling facts are unavailable.')
-  const row = selectScalingRow(outcome.levels as readonly Record<string, unknown>[], spellCastLevel)
-  if (!row || typeof row.diceConfig !== 'string')
-    unsupported('D&D dice healing scaling does not select an authored value.')
-  return row.diceConfig
-}
-
-/**
- * The hit points a fixed heal gives: its one authored amount, or the row the spell's cast level
- * reaches (Aid). Like a heal's dice, the amount is a literal of the graph, so the cast level is a
- * compile input.
- */
-function fixedHealAmount(
-  outcome: AuthoredOutcomeOf<'HEAL'>,
-  spellCastLevel: number | undefined
-): number {
-  const scaled: Partial<Record<'scalingKind' | 'scalingSource' | 'levels', unknown>> = outcome
-  if (scaled.scalingKind !== 'PER_LEVEL' || scaled.scalingSource !== 'SPELL_CAST_LEVEL')
-    return positiveFixedAmount(outcome)
-  if (spellCastLevel === undefined) unsupported('D&D fixed healing scaling facts are unavailable.')
-  const row = Array.isArray(scaled.levels)
-    ? selectScalingRow(scaled.levels as readonly Record<string, unknown>[], spellCastLevel)
-    : null
-  const amount = row?.amount
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.bonuses?.length ||
-    typeof amount !== 'number' ||
-    !Number.isSafeInteger(amount) ||
-    amount <= 0
-  )
-    unsupported('D&D fixed healing scaling does not select a positive authored amount.')
-  return amount
 }
 
 /**
