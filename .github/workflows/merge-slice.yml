@@ -6,7 +6,9 @@
 # Several slices merge as one batch: pass -f slices='ci/<a>@<tip> ci/<b>@<tip>' instead of branch and sha.
 # It refuses, pushing nothing, when the tip moved, Tests, Live or a Browser journeys run there is not
 # green on that SHA, or the merge
-# conflicts; a batch that goes red leaves only its ci/merge-m<N> branch. Plain pushes only, never main.
+# conflicts; a batch that goes red leaves only its ci/merge-m<N> branch. A batch also runs every browser
+# journey, and red journeys there are traced to the slice that broke them
+# (scripts/traceJourneyFailure.mjs). Plain pushes only, never main.
 name: Merge slice
 
 on:
@@ -49,8 +51,8 @@ jobs:
     name: Merge ${{ inputs.slices || inputs.branch }} into ${{ inputs.target }}
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # A batch waits for a full Tests run and a Live run.
-    timeout-minutes: 120
+    # A batch waits for a full Tests run, a Live run and every browser journey, then a red journey's trace.
+    timeout-minutes: 150
     permissions:
       contents: write
       actions: write
@@ -71,6 +73,7 @@ jobs:
       - name: Install
         run: corepack enable && yarn install --immutable
       - name: Merge
+        id: merge
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -86,3 +89,11 @@ jobs:
           node scripts/mergeSlice.mjs --branch "$BRANCH" --sha "$SHA" --slices "$SLICES" --title "$TITLE" \
             --target "$TARGET" --batch-prefix "$BATCH_PREFIX" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"
+      - name: Trace the red browser journeys to a slice
+        if: failure() && steps.merge.outputs.trace_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN: ${{ steps.merge.outputs.trace_run }}
+          SLICES: ${{ steps.merge.outputs.trace_slices }}
+        run: node scripts/traceJourneyFailure.mjs --run "$RUN" --slices "$SLICES" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
