@@ -20687,6 +20687,19 @@
               },
               "text": "Bound the owner d20 evidence submission mutation (effects-browser \"submit owner d20 evidence\") under the 1 s Convex limit on the CI runner; remove the effects-browser known-bug label.",
               "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21)."
+            },
+            {
+              "id": "RELIABILITY-21.T24",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.19"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 5,
+                "size": 2
+              },
+              "text": "Bound authoring/nodeRuntime:resolve under the 1 s Convex limit on the CI runner after T19 (publication-class-browser still times out at 1.006-1.221 s on T18, T23 and T4n runs); find whether module-graph evaluation (D199, T22/T23 finding) or per-scope work is the residue; remove the publication-class-browser known-bug label.",
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19)."
             }
           ]
         }
