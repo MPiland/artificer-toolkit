@@ -624,10 +624,7 @@ export function CampaignVttStage({
       controlledScene && campaign.role === 'OWNER' && gmPreviewUserId
         ? projectSceneForViewer(
             controlledScene,
-            {
-              role: 'PLAYER',
-              userId: gmPreviewUserId
-            },
+            { role: 'PLAYER', userId: gmPreviewUserId },
             boundTokenControl
           )
         : controlledScene,

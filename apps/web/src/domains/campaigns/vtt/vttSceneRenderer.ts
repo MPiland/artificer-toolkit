@@ -1752,11 +1752,8 @@ export async function createVttSceneRenderer(
     return visual
   }
 
-  /** What a Graphics actually holds: each fill or stroke instruction's colour and polygon paths. */
-  function drawnStyles(
-    graphic: Container | null,
-    action: 'fill' | 'stroke'
-  ): { alpha: number; color: number; paths: ScenePoint[][] }[] {
+  /** What a Graphics actually holds: each fill or stroke instruction's colour, circles and polygon paths. */
+  function drawnStyles(graphic: Container | null, action: 'fill' | 'stroke') {
     if (!(graphic instanceof pixi.Graphics)) return []
     return graphic.context.instructions.flatMap((instruction) => {
       if (instruction.action !== 'fill' && instruction.action !== 'stroke') return []
@@ -1764,6 +1761,11 @@ export async function createVttSceneRenderer(
       return [
         {
           alpha: instruction.data.style.alpha,
+          circles: instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
+            shape instanceof pixi.Circle
+              ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
+              : []
+          ),
           color: instruction.data.style.color,
           paths: instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
             shape instanceof pixi.Polygon
@@ -1782,21 +1784,11 @@ export async function createVttSceneRenderer(
 
   /** A drawn overlay graphic read back: its label, stroked circles and stroke colours. */
   function drawnOverlay(child: Container) {
+    const strokes = drawnStyles(child, 'stroke')
     return {
-      circles:
-        child instanceof pixi.Graphics
-          ? child.context.instructions.flatMap((instruction) =>
-              instruction.action === 'stroke'
-                ? instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
-                    shape instanceof pixi.Circle
-                      ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
-                      : []
-                  )
-                : []
-            )
-          : [],
+      circles: strokes.flatMap((stroke) => stroke.circles),
       label: child.label,
-      strokeColors: drawnStyles(child, 'stroke').map((stroke) => stroke.color)
+      strokeColors: strokes.map((stroke) => stroke.color)
     }
   }
 
