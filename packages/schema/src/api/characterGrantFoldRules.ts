@@ -120,6 +120,15 @@ const restrictionConditionSchema = lazySchema(() =>
       'ITEM_ATTACK_ABILITY',
       /** The attack is made with an activation in `requiredIds` (the bonus action of an off-hand attack). */
       'ITEM_ACTIVATION',
+      /**
+       * Spell conditions are evaluated against the spell an action casts, never Character-wide:
+       * its identity (`requiredIds`), school (`requiredIds`, any in ALL mode), level (`min`..`max`)
+       * and the damage type of the damage being modified (`requiredIds`, any in ALL mode).
+       */
+      'SPELL_IDENTITY',
+      'SPELL_SCHOOL',
+      'SPELL_LEVEL',
+      'SPELL_DAMAGE_TYPE',
       'UNAVAILABLE',
       'UNSUPPORTED'
     ]),
@@ -206,7 +215,6 @@ export const modifierOperationSchema = lazySchema(() =>
     grantId: identitySchema,
     ...foldModifierShape(),
     restrictions: characterGrantFoldRestrictionSchema,
-    scopeSpellIds: z.array(identitySchema).check(z.maxLength(500)),
     /** The class resources a RESOURCE-scoped modifier (a charge reset) applies to; empty is all. */
     scopeResourceIds: z.array(identitySchema).check(z.maxLength(500))
   })
@@ -394,11 +402,10 @@ export const characterGrantFoldModifierSchema = lazySchema(() =>
     /** The item a SOURCE-scoped modifier is bound to, evaluated in place of its source. */
     boundSourceId: z.optional(identitySchema),
     source: characterMechanicSourceSchema,
-    scopeSpellIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     scopeResourceIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     /**
      * Conditions still to be met where they are known, as OR-of-AND groups: the attacking item's,
-     * or the holder's state in the Encounter. Empty means the modifier is unconditional; a
+     * the cast spell's, or the holder's state in the Encounter. Empty means the modifier is unconditional; a
      * Character-wide value never satisfies a non-empty requirement.
      */
     deferredRequirements: characterGrantFoldRestrictionSchema

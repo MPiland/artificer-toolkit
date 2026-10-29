@@ -416,7 +416,6 @@ describe('D&D 5e armor class', () => {
           domain: {},
           payload: { valueKind: 'FIXED', amount: 2 },
           restrictions: [],
-          scopeSpellIds: [],
           scopeResourceIds: []
         }
       ],
@@ -1015,7 +1014,7 @@ describe('D&D 5e modifier scope', () => {
   }
 
   it('GLOBAL applies Character-wide; SOURCE applies only while its source is evaluated', () => {
-    const modifier = { sourceId: 'item', deferredRequirements: [], scopeSpellIds: [] }
+    const modifier = { sourceId: 'item', deferredRequirements: [] }
     expect(
       dnd5eModifierApplies({ ...modifier, scope: 'GLOBAL' }, DND5E_CHARACTER_WIDE_TARGET)
     ).toBe(true)
@@ -1025,13 +1024,13 @@ describe('D&D 5e modifier scope', () => {
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['item'], item: sword, spellId: null, attackAbility: null, activation: null }
+        { sourceIds: ['item'], item: sword, spell: null, attackAbility: null, activation: null }
       )
     ).toBe(true)
     expect(
       dnd5eModifierApplies(
         { ...modifier, scope: 'SOURCE' },
-        { sourceIds: ['other'], item: sword, spellId: null, attackAbility: null, activation: null }
+        { sourceIds: ['other'], item: sword, spell: null, attackAbility: null, activation: null }
       )
     ).toBe(false)
   })
@@ -1040,15 +1039,14 @@ describe('D&D 5e modifier scope', () => {
     const dueling = {
       sourceId: 'dueling',
       scope: 'GLOBAL' as const,
-      deferredRequirements: requirement('EXCLUDE', 'TWO_HANDED'),
-      scopeSpellIds: []
+      deferredRequirements: requirement('EXCLUDE', 'TWO_HANDED')
     }
     expect(dnd5eModifierApplies(dueling, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
     expect(
       dnd5eModifierApplies(dueling, {
         sourceIds: [],
         item: sword,
-        spellId: null,
+        spell: null,
         attackAbility: null,
         activation: null
       })
@@ -1057,39 +1055,118 @@ describe('D&D 5e modifier scope', () => {
       dnd5eModifierApplies(dueling, {
         sourceIds: [],
         item: { ...sword, grip: 'TWO_HANDED' },
-        spellId: null,
+        spell: null,
         attackAbility: null,
         activation: null
       })
     ).toBe(false)
   })
 
+  const spellModifier = (context: Record<string, unknown>) => ({
+    sourceId: 'feature',
+    scope: 'GLOBAL' as const,
+    deferredRequirements: normalizeCharacterGrantRestrictions({
+      id: 'facet',
+      groups: [
+        {
+          id: 'group',
+          order: 0,
+          contexts: [{ id: 'context', order: 0, subject: 'SPELL', ...context }]
+        }
+      ]
+    } as FacetAuthored)
+  })
+  const cast = (spell: {
+    id: string
+    level: number | null
+    magicSchoolId: string | null
+    damageTypeId: string | null
+  }) => ({ sourceIds: [], item: null, spell, attackAbility: null, activation: null })
+  const predicate = (fields: Record<string, unknown>) => ({
+    id: 'predicate',
+    order: 0,
+    kind: 'PREDICATE',
+    constraint: 'INCLUDE',
+    ...fields
+  })
+  const eldritchBlast = {
+    id: 'eldritch-blast',
+    level: 0,
+    magicSchoolId: 'evocation',
+    damageTypeId: null
+  }
+  const fireBolt = { id: 'fire-bolt', level: 0, magicSchoolId: 'evocation', damageTypeId: null }
+  const fireball = { id: 'fireball', level: 3, magicSchoolId: 'evocation', damageTypeId: null }
+  const sleep = { id: 'sleep', level: 1, magicSchoolId: 'enchantment', damageTypeId: null }
+
   it('spell facets apply only to the named spell', () => {
-    const agonizing = {
-      sourceId: 'invocation',
-      scope: 'GLOBAL' as const,
-      deferredRequirements: [],
-      scopeSpellIds: ['eldritch-blast']
-    }
+    const agonizing = spellModifier({ authoringModeKind: 'SELECTED', spellIds: ['eldritch-blast'] })
     expect(dnd5eModifierApplies(agonizing, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
-    expect(
-      dnd5eModifierApplies(agonizing, {
-        sourceIds: [],
-        item: null,
-        spellId: 'eldritch-blast',
-        attackAbility: null,
-        activation: null
-      })
-    ).toBe(true)
-    expect(
-      dnd5eModifierApplies(agonizing, {
-        sourceIds: [],
-        item: null,
-        spellId: 'fire-bolt',
-        attackAbility: null,
-        activation: null
-      })
-    ).toBe(false)
+    expect(dnd5eModifierApplies(agonizing, cast(eldritchBlast))).toBe(true)
+    expect(dnd5eModifierApplies(agonizing, cast(fireBolt))).toBe(false)
+  })
+
+  // Regression (SPELLS-31.T5i1): an ALL spell context with a school condition used to fold to no
+  // spell ids, so it applied to every spell and Character-wide.
+  it('a school condition on any spell applies only to spells of that school', () => {
+    const evocation = spellModifier({
+      authoringModeKind: 'ALL',
+      conditions: [
+        predicate({
+          predicateCode: 'MAGIC_SCHOOL',
+          authoringModeKind: 'SELECTED',
+          magicSchoolIds: ['evocation']
+        })
+      ]
+    })
+    expect(dnd5eModifierApplies(evocation, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+    expect(dnd5eModifierApplies(evocation, cast(fireball))).toBe(true)
+    expect(dnd5eModifierApplies(evocation, cast(sleep))).toBe(false)
+    // A spell whose school is unknown meets no school condition.
+    expect(dnd5eModifierApplies(evocation, cast({ ...fireball, magicSchoolId: null }))).toBe(false)
+  })
+
+  it('level and damage type conditions read the cast spell and the damage being modified', () => {
+    const cantrips = spellModifier({
+      authoringModeKind: 'ALL',
+      conditions: [predicate({ predicateCode: 'SPELL_LEVEL', min: 0, max: 0 })]
+    })
+    expect(dnd5eModifierApplies(cantrips, cast(fireBolt))).toBe(true)
+    expect(dnd5eModifierApplies(cantrips, cast(fireball))).toBe(false)
+    expect(dnd5eModifierApplies(cantrips, cast({ ...fireBolt, level: null }))).toBe(false)
+    const fire = spellModifier({
+      authoringModeKind: 'ALL',
+      conditions: [
+        predicate({
+          predicateCode: 'DAMAGE_TYPE',
+          authoringModeKind: 'SELECTED',
+          damageTypeIds: ['fire']
+        })
+      ]
+    })
+    expect(dnd5eModifierApplies(fire, cast({ ...fireball, damageTypeId: 'fire' }))).toBe(true)
+    expect(dnd5eModifierApplies(fire, cast({ ...fireball, damageTypeId: 'cold' }))).toBe(false)
+    // Before any damage is chosen, a damage type condition is not met.
+    expect(dnd5eModifierApplies(fire, cast(fireball))).toBe(false)
+    expect(dnd5eModifierApplies(fire, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+  })
+
+  it('an EXCLUDE spell condition applies to every other cast spell, never Character-wide', () => {
+    const notEvocation = spellModifier({
+      authoringModeKind: 'ALL',
+      conditions: [
+        {
+          ...predicate({
+            predicateCode: 'MAGIC_SCHOOL',
+            authoringModeKind: 'SELECTED',
+            magicSchoolIds: ['evocation']
+          }),
+          constraint: 'EXCLUDE'
+        }
+      ]
+    })
+    expect(dnd5eModifierApplies(notEvocation, cast(sleep))).toBe(true)
+    expect(dnd5eModifierApplies(notEvocation, cast(fireball))).toBe(false)
   })
 })
 
@@ -1138,7 +1215,6 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
           domain: {},
           payload: { valueKind: 'FIXED', amount: 5 },
           restrictions: [group!],
-          scopeSpellIds: [],
           scopeResourceIds: []
         }
       ],
@@ -1216,7 +1292,6 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       domain: {},
       payload: { valueKind: 'FIXED', amount: 5 },
       restrictions,
-      scopeSpellIds: [],
       scopeResourceIds: []
     })
     type Restrictions = ReturnType<typeof normalizeCharacterGrantRestrictions>
@@ -1335,8 +1410,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     const modifier = {
       sourceId: 'dueling',
       scope: 'GLOBAL' as const,
-      deferredRequirements: [group!],
-      scopeSpellIds: []
+      deferredRequirements: [group!]
     }
     const item = {
       equipmentIds: ['longsword'],
@@ -1347,7 +1421,7 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     const target = (otherWeaponEquipped: boolean) => ({
       sourceIds: [],
       item: { ...item, otherWeaponEquipped },
-      spellId: null,
+      spell: null,
       attackAbility: null,
       activation: null
     })
@@ -1357,78 +1431,89 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
     expect(dnd5eModifierApplies(modifier, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
   })
 
-  it('a spell-scoped damage modifier (Agonizing Blast) adds only to that spell', () => {
-    const effect = (spellId: string) => ({
-      spellId,
-      readsCastLevel: false,
-      effects: [
-        {
-          effectId: spellId === 'eldritch-blast' ? EB_EFFECT : FB_EFFECT,
-          mechanicFacts: {
-            invocation: {
-              triggerCode: 'RANGED_SPELL_ATTACK',
-              activation: null,
-              range: {
-                rangeKind: 'DISTANCE',
-                amount: 120,
-                longAmount: null,
-                unit: 'FEET' as const
-              },
-              savingThrow: null,
-              reactionTrigger: null
-            },
-            outcomes: [
-              {
-                kind: 'DAMAGE' as const,
-                pathCode: 'ON_HIT',
-                label: null,
-                damageTypeId: 'force',
-                valueKind: 'DICE' as const,
-                scalingKind: 'NONE' as const,
-                scalingSource: null,
-                classId: null,
-                amountKind: null,
-                amountMultiplier: null,
-                values: [
-                  {
-                    level: null,
-                    order: 0,
-                    amount: null,
-                    dice: '1d10',
-                    halfHitPointsDice: null,
-                    multiplier: null,
-                    minimum: null,
-                    maximum: null
-                  }
-                ],
-                bonuses: []
-              }
-            ]
-          }
+  const damageOutcome = (
+    pathCode: string,
+    damageTypeId: string,
+    dice: string,
+    amountKind: 'HALF' | null = null
+  ) => ({
+    kind: 'DAMAGE' as const,
+    pathCode,
+    label: null,
+    damageTypeId,
+    valueKind: 'DICE' as const,
+    scalingKind: 'NONE' as const,
+    scalingSource: null,
+    classId: null,
+    amountKind,
+    amountMultiplier: null,
+    values: [
+      {
+        level: null,
+        order: 0,
+        amount: null,
+        dice,
+        halfHitPointsDice: null,
+        multiplier: null,
+        minimum: null,
+        maximum: null
+      }
+    ],
+    bonuses: []
+  })
+  const spellEffect = (
+    spellId: string,
+    spell: { level: number; magicSchoolId: string; triggerCode: string },
+    outcomes: ReturnType<typeof damageOutcome>[]
+  ) => ({
+    spellId,
+    level: spell.level,
+    magicSchoolId: spell.magicSchoolId,
+    readsCastLevel: false,
+    effects: [
+      {
+        effectId: spellId === 'eldritch-blast' ? EB_EFFECT : FB_EFFECT,
+        mechanicFacts: {
+          invocation: {
+            triggerCode: spell.triggerCode,
+            activation: null,
+            range: { rangeKind: 'DISTANCE', amount: 120, longAmount: null, unit: 'FEET' as const },
+            savingThrow: null,
+            reactionTrigger: null
+          },
+          outcomes
         }
-      ]
+      }
+    ]
+  })
+  /** A spell DAMAGE bonus restricted by one authored SPELL context, folded by the real normalizer. */
+  const spellDamageBonus = (
+    sourceId: string,
+    value: number,
+    context: Extract<FacetAuthored['groups'][number]['contexts'][number], { subject: 'SPELL' }>
+  ) => ({
+    sourceId,
+    value,
+    ability: null,
+    state: 'APPLIED' as const,
+    scope: 'GLOBAL' as const,
+    deferredRequirements: normalizeCharacterGrantRestrictions({
+      id: `${sourceId}:facet`,
+      groups: [{ id: `${sourceId}:group`, order: 0, contexts: [context] }]
     })
+  })
+  const spellDamage = (
+    spellEffects: ReturnType<typeof spellEffect>[],
+    contributions: ReturnType<typeof spellDamageBonus>[]
+  ) => {
     const output = evaluateDnd5e2014CharacterActions({
       ...noActionSources,
-      spellEffects: [effect('eldritch-blast'), effect('fire-bolt')],
+      spellEffects,
       activeSourceIds: [],
       activeEquipmentInstanceIds: [],
       resources: [],
       modifierGroups: [
-        {
-          domainKey: 'DAMAGE:ABILITY_MODIFIER_BONUS|attackDomain=SPELL',
-          contributions: [
-            {
-              sourceId: 'agonizing-blast',
-              value: 3,
-              ability: null,
-              state: 'APPLIED',
-              scope: 'GLOBAL',
-              deferredRequirements: [],
-              scopeSpellIds: ['eldritch-blast']
-            }
-          ]
-        }
+        { domainKey: 'DAMAGE:ABILITY_MODIFIER_BONUS|attackDomain=SPELL', contributions }
       ],
       totalLevel: 1,
       classLevels: [],
@@ -1437,17 +1522,136 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       skills: [],
       spellcasting: { saveDc: 13, attackBonus: 5 }
     })
-    const damage = (spellId: string) =>
-      damageExpression({
-        mechanic: output.spellReferenceMechanics.find((entry) => entry.spellId === spellId)!
-          .mechanics[0]!
-      })
-    expect(damage('eldritch-blast')).toBe('1d10 + 3')
-    expect(damage('fire-bolt')).toBe('1d10')
-    expect(
-      output.spellReferenceMechanics.find((entry) => entry.spellId === 'eldritch-blast')!
-        .mechanics[0]!.attackKind
-    ).toBe('RANGED_SPELL')
+    return (spellId: string) => {
+      const mechanic = output.spellReferenceMechanics.find((entry) => entry.spellId === spellId)!
+        .mechanics[0]!
+      return {
+        attackKind: mechanic.attackKind,
+        damage: mechanic.outcomes.flatMap((outcome) =>
+          outcome.kind === 'DAMAGE' ? [`${outcome.pathCode} ${outcome.expression}`] : []
+        )
+      }
+    }
+  }
+  const evocationOnly = {
+    id: 'evocation',
+    order: 0,
+    subject: 'SPELL' as const,
+    authoringModeKind: 'ALL' as const,
+    conditions: [
+      {
+        id: 'school',
+        order: 0,
+        kind: 'PREDICATE' as const,
+        constraint: 'INCLUDE' as const,
+        predicateCode: 'MAGIC_SCHOOL' as const,
+        authoringModeKind: 'SELECTED' as const,
+        magicSchoolIds: ['evocation']
+      }
+    ]
+  }
+  const fireOnly = {
+    id: 'fire',
+    order: 0,
+    subject: 'SPELL' as const,
+    authoringModeKind: 'ALL' as const,
+    conditions: [
+      {
+        id: 'damage-type',
+        order: 0,
+        kind: 'PREDICATE' as const,
+        constraint: 'INCLUDE' as const,
+        predicateCode: 'DAMAGE_TYPE' as const,
+        authoringModeKind: 'SELECTED' as const,
+        damageTypeIds: ['fire']
+      }
+    ]
+  }
+  const fireball = spellEffect(
+    'fireball',
+    { level: 3, magicSchoolId: 'evocation', triggerCode: 'SAVING_THROW' },
+    [
+      damageOutcome('ON_SAVE_FAIL', 'fire', '8d6'),
+      damageOutcome('ON_SAVE_SUCCESS', 'fire', '8d6', 'HALF')
+    ]
+  )
+
+  it('a spell-scoped damage modifier (Agonizing Blast) adds only to that spell', () => {
+    const cantrip = (spellId: string) =>
+      spellEffect(
+        spellId,
+        { level: 0, magicSchoolId: 'evocation', triggerCode: 'RANGED_SPELL_ATTACK' },
+        [damageOutcome('ON_HIT', 'force', '1d10')]
+      )
+    const damage = spellDamage(
+      [cantrip('eldritch-blast'), cantrip('fire-bolt')],
+      [
+        spellDamageBonus('agonizing-blast', 3, {
+          id: 'eldritch-blast',
+          order: 0,
+          subject: 'SPELL',
+          authoringModeKind: 'SELECTED',
+          spellIds: ['eldritch-blast']
+        })
+      ]
+    )
+    expect(damage('eldritch-blast')).toEqual({
+      attackKind: 'RANGED_SPELL',
+      damage: ['ON_HIT 1d10 + 3']
+    })
+    expect(damage('fire-bolt').damage).toEqual(['ON_HIT 1d10'])
+  })
+
+  it('a school-scoped bonus (Empowered Evocation) adds to a save spell, halved with it on a success', () => {
+    const sleepyBolt = spellEffect(
+      'sleepy-bolt',
+      { level: 1, magicSchoolId: 'enchantment', triggerCode: 'SAVING_THROW' },
+      [damageOutcome('ON_SAVE_FAIL', 'psychic', '3d6')]
+    )
+    const damage = spellDamage(
+      [fireball, sleepyBolt],
+      [spellDamageBonus('empowered-evocation', 4, evocationOnly)]
+    )
+    expect(damage('fireball').damage).toEqual([
+      'ON_SAVE_FAIL 8d6 + 4',
+      'ON_SAVE_SUCCESS half of 8d6 + 4'
+    ])
+    expect(damage('sleepy-bolt').damage).toEqual(['ON_SAVE_FAIL 3d6'])
+  })
+
+  it('a typed bonus (Elemental Affinity) adds once to the first roll of its type on each path', () => {
+    const flameArrow = spellEffect(
+      'flame-arrow',
+      { level: 1, magicSchoolId: 'conjuration', triggerCode: 'RANGED_SPELL_ATTACK' },
+      [
+        damageOutcome('ON_HIT', 'piercing', '1d10'),
+        damageOutcome('ON_HIT', 'fire', '2d6'),
+        damageOutcome('ON_HIT', 'fire', '1d4')
+      ]
+    )
+    const coldSnap = spellEffect(
+      'cold-snap',
+      { level: 1, magicSchoolId: 'evocation', triggerCode: 'SAVING_THROW' },
+      [damageOutcome('ON_SAVE_FAIL', 'cold', '2d8')]
+    )
+    const damage = spellDamage(
+      [flameArrow, fireball, coldSnap],
+      [
+        spellDamageBonus('elemental-affinity', 3, fireOnly),
+        { ...spellDamageBonus('untyped', 2, fireOnly), deferredRequirements: [] }
+      ]
+    )
+    // The untyped bonus rides the path's first damage roll; the fire bonus its first fire roll.
+    expect(damage('flame-arrow').damage).toEqual([
+      'ON_HIT 1d10 + 2',
+      'ON_HIT 2d6 + 3',
+      'ON_HIT 1d4'
+    ])
+    expect(damage('fireball').damage).toEqual([
+      'ON_SAVE_FAIL 8d6 + 5',
+      'ON_SAVE_SUCCESS half of 8d6 + 5'
+    ])
+    expect(damage('cold-snap').damage).toEqual(['ON_SAVE_FAIL 2d8 + 2'])
   })
 })
 
@@ -1458,6 +1662,8 @@ describe('D&D 5e healing', () => {
       spellEffects: [
         {
           spellId: 'mending-touch',
+          level: 3,
+          magicSchoolId: 'evocation',
           readsCastLevel: false,
           effects: [
             {

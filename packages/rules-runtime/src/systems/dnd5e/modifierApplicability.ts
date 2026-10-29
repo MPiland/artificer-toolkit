@@ -10,17 +10,28 @@ import type { CharacterAttack } from '../../attackProfileCapability.js'
 import type { ModifierScopeCapabilityAdapter } from '../../modifierScopeCapability.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
-type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
-type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
+type ActionCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
+type ActionFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation' | 'spell'>
 
-/** The conditions read from the attacking item; any other deferred condition is the encounter's. */
-export const DND5E_ITEM_CONDITION_KINDS: ReadonlySet<ItemCondition['kind']> = new Set([
+const SPELL_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
+  'SPELL_IDENTITY',
+  'SPELL_SCHOOL',
+  'SPELL_LEVEL',
+  'SPELL_DAMAGE_TYPE'
+])
+
+/**
+ * The conditions read from the action itself (its attacking item, attack and cast spell); any
+ * other deferred condition is the encounter's.
+ */
+export const DND5E_ACTION_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
   'ITEM_IDENTITY',
   'ITEM_CATEGORY',
   'ITEM_PROPERTY',
   'ITEM_SOLE_WEAPON',
   'ITEM_ATTACK_ABILITY',
-  'ITEM_ACTIVATION'
+  'ITEM_ACTIVATION',
+  ...SPELL_CONDITION_KINDS
 ])
 
 /**
@@ -36,16 +47,28 @@ export type Dnd5eAttackingItem = {
 }
 
 /**
+ * The spell an action casts: its identity, and its level and school when its facts are known (an
+ * unknown one meets no level or school condition). `damageTypeId` is the type of the damage being
+ * modified, null while no damage is.
+ */
+export type Dnd5eCastSpell = {
+  readonly id: string
+  readonly level: number | null
+  readonly magicSchoolId: string | null
+  readonly damageTypeId: string | null
+}
+
+/**
  * What a modifier consumer evaluates: the sources whose own (SOURCE-scoped) modifiers apply, the
  * attacking item for item facets, the ability the attack uses for attack-ability facets, the
- * activation it is made with and the spell for spell facets.
+ * activation it is made with and the cast spell for spell facets.
  */
 export type Dnd5eModifierTarget = {
   readonly sourceIds: readonly string[]
   readonly item: Dnd5eAttackingItem | null
   readonly attackAbility: string | null
   readonly activation: string | null
-  readonly spellId: string | null
+  readonly spell: Dnd5eCastSpell | null
 }
 
 /** Character-wide values (saves, skills, initiative, spellcasting) evaluate no source or item. */
@@ -54,7 +77,7 @@ export const DND5E_CHARACTER_WIDE_TARGET: Dnd5eModifierTarget = {
   item: null,
   attackAbility: null,
   activation: null,
-  spellId: null
+  spell: null
 }
 
 /** The facts of one folded modifier that decide where it applies. */
@@ -64,13 +87,37 @@ export type Dnd5eModifierApplicability = {
   readonly boundSourceId?: string
   readonly scope: 'GLOBAL' | 'SOURCE'
   readonly deferredRequirements: CharacterGrantFoldRestriction
-  readonly scopeSpellIds: string[]
+}
+
+function spellConditionMatches(condition: ActionCondition, spell: Dnd5eCastSpell): boolean {
+  switch (condition.kind) {
+    case 'SPELL_IDENTITY':
+      return condition.requiredIds.includes(spell.id)
+    case 'SPELL_SCHOOL':
+      return (
+        spell.magicSchoolId !== null &&
+        (condition.mode === 'ALL' || condition.requiredIds.includes(spell.magicSchoolId))
+      )
+    case 'SPELL_LEVEL':
+      return (
+        spell.level !== null &&
+        spell.level >= (condition.min ?? 0) &&
+        (condition.max === null || spell.level <= condition.max)
+      )
+    case 'SPELL_DAMAGE_TYPE':
+      return (
+        spell.damageTypeId !== null &&
+        (condition.mode === 'ALL' || condition.requiredIds.includes(spell.damageTypeId))
+      )
+    default:
+      return false
+  }
 }
 
 /** An attack-ability or activation condition needs no item, so an unarmed strike can meet it. */
 function itemConditionMatches(
-  condition: ItemCondition,
-  { item, attackAbility, activation }: AttackFacts
+  condition: ActionCondition,
+  { item, attackAbility, activation }: ActionFacts
 ): boolean {
   if (condition.kind === 'ITEM_ATTACK_ABILITY')
     return attackAbility !== null && condition.abilityId === attackAbility
@@ -102,12 +149,13 @@ function itemConditionMatches(
 }
 
 /**
- * OR-of-AND item groups; a Character-wide value (no item) meets only an empty requirement, or a
- * group of attack-ability and activation conditions alone.
+ * OR-of-AND action groups; a Character-wide value (no item, no spell) meets only an empty
+ * requirement, or a group of attack-ability and activation conditions alone. A spell condition
+ * needs a cast spell, so it never applies Character-wide.
  */
-export function dnd5eItemRequirementsMet(
+export function dnd5eActionRequirementsMet(
   requirements: CharacterGrantFoldRestriction,
-  target: AttackFacts
+  target: ActionFacts
 ): boolean {
   if (requirements.length === 0) return true
   return requirements.some(
@@ -115,7 +163,11 @@ export function dnd5eItemRequirementsMet(
       (target.item !== null || group.conditions.length > 0) &&
       group.conditions.every((condition) => {
         // A holder-state condition is decided where the holder's state is known, never here.
-        if (!DND5E_ITEM_CONDITION_KINDS.has(condition.kind)) return false
+        if (!DND5E_ACTION_CONDITION_KINDS.has(condition.kind)) return false
+        if (SPELL_CONDITION_KINDS.has(condition.kind)) {
+          const matches = target.spell !== null && spellConditionMatches(condition, target.spell)
+          return condition.constraint === 'INCLUDE' ? matches : !matches
+        }
         if (
           target.item === null &&
           condition.kind !== 'ITEM_ATTACK_ABILITY' &&
@@ -155,7 +207,8 @@ export function dnd5eAttackRequiresEffectSource(
 /**
  * The single D&D modifier scope rule: a GLOBAL modifier applies Character-wide and a SOURCE
  * modifier only while its own source is evaluated (an attack with that item, that item's armor
- * class), or the item it is bound to (Magic Weapon's weapon). Item and spell facets then narrow either kind to the attacking item and the spell.
+ * class), or the item it is bound to (Magic Weapon's weapon). Item and spell facets then narrow
+ * either kind to the attacking item and the cast spell.
  */
 export function dnd5eModifierApplies(
   modifier: Dnd5eModifierApplicability,
@@ -164,9 +217,7 @@ export function dnd5eModifierApplies(
   return (
     (modifier.scope === 'GLOBAL' ||
       target.sourceIds.includes(modifier.boundSourceId ?? modifier.sourceId)) &&
-    dnd5eItemRequirementsMet(modifier.deferredRequirements, target) &&
-    (modifier.scopeSpellIds.length === 0 ||
-      (target.spellId !== null && modifier.scopeSpellIds.includes(target.spellId)))
+    dnd5eActionRequirementsMet(modifier.deferredRequirements, target)
   )
 }
 
@@ -184,8 +235,7 @@ export function dnd5eAcceptedModifierApplicability(
     sourceId: modifier.sourceId,
     ...(modifier.boundSourceId !== undefined && { boundSourceId: modifier.boundSourceId }),
     scope: modifier.scope,
-    deferredRequirements: modifier.deferredRequirements,
-    scopeSpellIds: modifier.scopeSpellIds ?? []
+    deferredRequirements: modifier.deferredRequirements
   }
 }
 
@@ -229,7 +279,11 @@ export function dnd5eCharacterActionTarget(
     item: dnd5eAttackingItem(candidate.equipment),
     attackAbility: null,
     activation: candidate.mechanicFacts.invocation.activation?.code ?? null,
-    spellId: candidate.mechanicsOwner.kind === 'SPELL' ? candidate.mechanicsOwner.id : null
+    // Only the spell's identity is on the candidate; the action's mechanic adds its facts.
+    spell:
+      candidate.mechanicsOwner.kind === 'SPELL'
+        ? { id: candidate.mechanicsOwner.id, level: null, magicSchoolId: null, damageTypeId: null }
+        : null
   }
 }
 

@@ -18,7 +18,8 @@ import {
 const ABILITY_MODIFIER_KINDS = ['ABILITY_MODIFIER_BONUS', 'OPTIONAL_ABILITY_MODIFIER_BONUS']
 
 type ActionCandidate = CharacterActionModelInput['candidates'][number]
-type SpellEffect = CharacterActionModelInput['spellEffects'][number]['effects'][number]
+type SpellFacts = CharacterActionModelInput['spellEffects'][number]
+type SpellEffect = SpellFacts['effects'][number]
 type RawOutcome = ActionCandidate['mechanicFacts']['outcomes'][number]
 type DamageOrHealOutcome = Extract<RawOutcome, { readonly kind: 'DAMAGE' | 'HEAL' }>
 type OutcomeValue = DamageOrHealOutcome['values'][number]
@@ -35,7 +36,7 @@ type MechanicContext = {
   readonly spellCastLevel: number | null
   readonly spellDamageBonus: number
   /** The spell whose effect is resolved, for spell-scoped modifiers. */
-  readonly spellId: string | null
+  readonly spell: Pick<SpellFacts, 'spellId' | 'level' | 'magicSchoolId'> | null
   /** The ammunition stack this attack fires, whose modifiers apply to it alone. */
   readonly ammunition?: { itemInstanceId: string; equipmentId: string }
 }
@@ -324,10 +325,27 @@ export function resolveDnd5eActionMechanic(
   const attackKind = dnd5eAttackKind(invocation.triggerCode)
   const attackDomain = attackKind === null ? null : dnd5eAttackModifierDomain(attackKind)
   const item = dnd5eAttackingItem(equipment)
-  const actionTarget: Dnd5eModifierTarget =
+  const ownTarget: Dnd5eModifierTarget =
     'sourceId' in candidate
       ? dnd5eCharacterActionTarget(candidate, context.ammunition)
-      : { ...DND5E_CHARACTER_WIDE_TARGET, spellId: context.spellId }
+      : DND5E_CHARACTER_WIDE_TARGET
+  // A spell's own action (Spiritual Weapon's attack) reads the facts of the spell it belongs to.
+  const spell =
+    context.spell ??
+    input.spellEffects.find((entry) => entry.spellId === ownTarget.spell?.id) ??
+    null
+  const actionTarget: Dnd5eModifierTarget =
+    spell === null
+      ? ownTarget
+      : {
+          ...ownTarget,
+          spell: {
+            id: spell.spellId,
+            level: spell.level,
+            magicSchoolId: spell.magicSchoolId,
+            damageTypeId: null
+          }
+        }
   const target: Dnd5eModifierTarget = {
     ...actionTarget,
     attackAbility:
@@ -448,16 +466,42 @@ export function resolveDnd5eActionMechanic(
     const disadvantage = influenced('DISADVANTAGE')
     return advantage === disadvantage ? 'NORMAL' : advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
   }
-  /** Weapon and spell attacks add their damage modifiers (ability, +N, Dueling) to the first
-   * damage roll, together with the item's manual damage adjustment. */
+  /** Weapon attacks add their damage modifiers (ability, +N, Dueling) to the first damage roll,
+   * together with the item's manual damage adjustment. */
   const attackDamageBonus =
-    attackDomain === null
+    attackDomain === null || target.spell !== null
       ? 0
       : abilityTotal('DAMAGE') +
         dnd5eAttackBonusTotal(input.modifierGroups, attackDomain, 'DAMAGE', target) +
         (adjustment?.damageBonus ?? 0) -
         (equipment?.degradation ?? 0)
   const firstDamageOutcome = outcomes.find((outcome) => outcome.kind === 'DAMAGE')
+  /**
+   * A spell's damage modifiers, attack or save alike, each add once to every path's damage: to the
+   * path's first damage roll of a type the modifier applies to (Elemental Affinity's fire bonus
+   * on the fire roll), so a half-damage save success halves it with the rest.
+   */
+  const spellDamageContributions =
+    target.spell === null
+      ? []
+      : attackModifierContributions(input.modifierGroups, 'SPELL', 'DAMAGE', numericKinds).filter(
+          (contribution) => contribution.state === 'APPLIED'
+        )
+  const appliesToDamage = (contribution: ModifierContribution, damageTypeId: string): boolean =>
+    target.spell !== null &&
+    dnd5eModifierApplies(contribution, { ...target, spell: { ...target.spell, damageTypeId } })
+  const spellDamageBonus = (outcome: Extract<RawOutcome, { readonly kind: 'DAMAGE' }>): number =>
+    spellDamageContributions
+      .filter(
+        (contribution) =>
+          outcomes.find(
+            (candidateOutcome) =>
+              candidateOutcome.kind === 'DAMAGE' &&
+              candidateOutcome.pathCode === outcome.pathCode &&
+              appliesToDamage(contribution, candidateOutcome.damageTypeId)
+          ) === outcome
+      )
+      .reduce((sum, contribution) => sum + contribution.value, 0)
   /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
   const weaponDieFaces =
     attackKind === null || isDnd5eSpellAttackKind(attackKind)
@@ -501,7 +545,7 @@ export function resolveDnd5eActionMechanic(
    * 2 + the spell's level). A cantrip, or any action that is not a spell, adds none.
    */
   const healingDealtBonus = (castLevel: number | null): number => {
-    if (context.spellId === null || castLevel === null || castLevel < 1) return 0
+    if (context.spell === null || castLevel === null || castLevel < 1) return 0
     return input.modifierGroups
       .filter((group) => group.domainKey.startsWith('HEALING_DEALT:BONUS'))
       .reduce((sum, group) => {
@@ -548,7 +592,9 @@ export function resolveDnd5eActionMechanic(
         )
       },
       outcome.kind === 'DAMAGE'
-        ? context.spellDamageBonus + (outcome === firstDamageOutcome ? attackDamageBonus : 0)
+        ? context.spellDamageBonus +
+            spellDamageBonus(outcome) +
+            (outcome === firstDamageOutcome ? attackDamageBonus : 0)
         : outcome.temporary
           ? 0
           : healingDealtBonus(context.spellCastLevel)
