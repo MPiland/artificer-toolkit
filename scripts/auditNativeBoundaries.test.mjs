@@ -64,6 +64,9 @@ describe('sourceViolations', () => {
     ])
     expect(
       rules('packages/shared/src/core/index.ts', "export * from '@artificer-toolkit/schema/api'")
+    ).toEqual(['@artificer-toolkit/shared runtime source imports @artificer-toolkit/schema'])
+    expect(
+      rules('packages/schema/src/api/index.ts', "export * from '@artificer-toolkit/shared/core'")
     ).toEqual([])
   })
 
