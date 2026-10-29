@@ -11,7 +11,10 @@ import {
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { CommittedExecutionTrace } from '@artificer-toolkit/rules-runtime/executionOutcomeCapability'
 import {
   encounterBasicActionCheckPendingSnapshot,
@@ -31,33 +34,34 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 
+type EndEffectsOutcome = {
+  kind: string
+  endEffects?: Parameters<typeof offerEndEffects>[0]['endEffects']
+}
+
 /**
  * An end-effects action's legal list is the target's own held effects it could end: one match is
  * picked for the caster, several need the caster's pick (a cast without one is rejected), none is
  * an overridable warning when ending is all the action does.
  */
 export function planEndEffects(
-  outcomes: readonly {
-    kind: string
-    endEffects?: Parameters<typeof offerEndEffects>[0]['endEffects']
-  }[],
+  outcomes: readonly EndEffectsOutcome[],
   held: readonly ActiveRuleEffectRecord[],
   target: { kind: string; chosenEffectId?: string },
-  {
-    castLevel,
-    actors
-  }: { castLevel: number | null; actors: Parameters<typeof actorCreatureTypeIdsOf>[0] }
+  prepared: Parameters<typeof preparedSpellCastLevel>[0] & {
+    actors: Parameters<typeof actorCreatureTypeIdsOf>[0]
+  }
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
-  const actorCreatureTypeIds = actorCreatureTypeIdsOf(actors)
+  const actorCreatureTypeIds = actorCreatureTypeIdsOf(prepared.actors)
   const offer = offerEndEffects({
     endEffects,
     held,
     actorCreatureTypeIds,
     chosenEffectId: target.chosenEffectId,
-    castLevel
+    castLevel: preparedSpellCastLevel(prepared)
   })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
@@ -65,14 +69,29 @@ export function planEndEffects(
       reason: 'TARGET_UNAVAILABLE',
       message: 'Choose which effect on the target this ends.'
     })
-  // Nothing to end breaks a rule only when ending is all the action does; an action that also
-  // grants (Fiendish Resilience replacing its earlier resistance) simply has nothing to replace yet.
-  const onlyEnds = outcomes.every((outcome) => outcome.kind === 'EFFECT' && outcome.endEffects)
-  const warnings: EncounterRuleWarningDto[] =
-    endEffects && onlyEnds && offer.candidates.length === 0 && offer.checks.length === 0
-      ? [TARGET_NOTHING_TO_END_WARNING]
-      : []
-  return { endEffects, offer, actorCreatureTypeIds, warnings }
+  return {
+    endEffects,
+    offer,
+    actorCreatureTypeIds,
+    warnings: nothingToEndWarnings(outcomes, offer)
+  }
+}
+
+/**
+ * Nothing to end breaks a rule only when ending is all the action does; an action that also grants
+ * (Fiendish Resilience replacing its earlier resistance) simply has nothing to replace yet.
+ */
+export function nothingToEndWarnings(
+  outcomes: readonly EndEffectsOutcome[],
+  offer: { candidates: readonly unknown[]; checks: readonly unknown[] }
+): EncounterRuleWarningDto[] {
+  const ends = (outcome: EndEffectsOutcome) => outcome.kind === 'EFFECT' && !!outcome.endEffects
+  return outcomes.some(ends) &&
+    outcomes.every(ends) &&
+    offer.candidates.length === 0 &&
+    offer.checks.length === 0
+    ? [TARGET_NOTHING_TO_END_WARNING]
+    : []
 }
 
 /**

@@ -107,8 +107,9 @@ describe('room Fiendish Resilience (SPELLS-31.T5k)', () => {
       expectedVersion: await fixture.version()
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
-    expect((await readRoomHistory(fixture.room.base.stub)).characterEffects).toEqual(
-      before.characterEffects
-    )
+    // The undo writes the earlier effect back as a new room row, so only its storage row differs.
+    const held = ({ characterEffects }: typeof before) =>
+      characterEffects.map(({ _id, _creationTime, ...effect }) => effect)
+    expect(held(await readRoomHistory(fixture.room.base.stub))).toEqual(held(before))
   }, 120000)
 })

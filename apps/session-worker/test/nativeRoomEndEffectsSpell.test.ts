@@ -9,7 +9,7 @@ import { lesserRestoration } from '@artificer-toolkit/source-data/srd/spells/les
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { planEndEffects } from '../src/nativeEndEffects.js'
+import { nothingToEndWarnings } from '../src/nativeEndEffects.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -154,8 +154,8 @@ describe('Lesser Restoration cast in the room (SPELLS-4.T2f)', () => {
  * that ends its own earlier grant and grants anew (Fiendish Resilience) has nothing to replace yet.
  */
 describe('the nothing-to-end warning (SPELLS-31.T5k)', () => {
-  const plan = (outcomes: Parameters<typeof planEndEffects>[0]) =>
-    planEndEffects(outcomes, [], { kind: 'ACTOR' }, { castLevel: null, actors: [] }).warnings
+  const plan = (outcomes: Parameters<typeof nothingToEndWarnings>[0]) =>
+    nothingToEndWarnings(outcomes, { candidates: [], checks: [] })
   const ends = {
     kind: 'EFFECT',
     endEffects: { scope: 'ALL', selectors: [{ kind: 'SAME_EFFECT', effectId: WOLF_ID }] }
