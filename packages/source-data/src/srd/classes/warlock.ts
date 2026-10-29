@@ -6,10 +6,6 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
-  DAMAGE_BONUS_KIND,
-  DAMAGE_DEFENSE_BYPASS_CODE,
-  DAMAGE_VALUE_KIND,
-  DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -41,7 +37,7 @@ import {
 import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
-import { creatureTypeId, damageTypeId } from '../spells/shared.js'
+import { creatureTypeId } from '../spells/shared.js'
 import {
   SRD_CURRENCIES,
   SRD_DEVILS_SIGHT_SENSE_ID,
@@ -51,6 +47,7 @@ import {
   ABILITY_CODE
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
+import { lifedrinkerEffect, pactOfTheBladeEffect } from './warlock-pact-weapon.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -125,155 +122,10 @@ function selfClassRuleEffect(
   })
 }
 
-/** Pact of the Blade's action, which Lifedrinker's damage names. */
-const pactOfTheBladeEffect: EffectAuthored = {
-  id: classRowId(W, 0x60, 24),
-  order: 1,
-  invocation: {
-    kind: 'ACTION',
-    triggerCode: TRIGGER.ACTIVATED,
-    activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-    range: { id: classRowId(W, 0x69, 24), rangeKind: RANGE_KIND.SELF },
-    targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-  },
-  paths: [
-    {
-      id: classRowId(W, 0x80, 24),
-      order: 1,
-      pathCode: PATH_CODE.ON_USE,
-      groupType: PATH_GROUP_TYPE.SINGLE,
-      originKind: 'SOURCE',
-      selectionKind: 'FIXED',
-      chosenItem: {
-        category: EQUIPMENT_CATEGORY_CODE.WEAPON,
-        requiredProperties: [EQUIPMENT_PROPERTY_CODE.MELEE]
-      },
-      resultBlock: {
-        id: `${classRowId(W, 0x81, 24)}__result`,
-        resultKind: 'SEQUENCE',
-        duration: { id: classRowId(W, 0x83, 24), durationKind: DURATION_KIND.UNTIL_DISPELLED },
-        lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
-        outcomes: [
-          {
-            id: classRowId(W, 0x82, 24),
-            effectKind: EFFECT_KIND.END_EFFECTS,
-            scope: 'ALL',
-            selectors: [{ kind: 'SAME_EFFECT' }]
-          },
-          {
-            id: classRowId(W, 0x84, 24),
-            effectKind: EFFECT_KIND.APPLY_GRANT,
-            bindsChosenItem: true,
-            grants: {
-              modifiers: [
-                {
-                  id: classRowId(W, 0x85, 24),
-                  grantKind: GRANT_KIND.MODIFIER_GRANT,
-                  valueDomainCode: VALUE_DOMAIN_CODE.WEAPON_PROFICIENCY,
-                  domain: {},
-                  modifierKind: MODIFIER_KIND.ENABLE,
-                  scope: MODIFIER_SCOPE_KIND.SOURCE,
-                  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                  order: 1
-                },
-                {
-                  id: classRowId(W, 0x86, 24),
-                  grantKind: GRANT_KIND.MODIFIER_GRANT,
-                  valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_TRAIT,
-                  domain: { trait: DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL },
-                  modifierKind: MODIFIER_KIND.ENABLE,
-                  scope: MODIFIER_SCOPE_KIND.SOURCE,
-                  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                  order: 2
-                }
-              ]
-            }
-          }
-        ]
-      }
-    }
-  ]
-}
+/** The rows of one Warlock Feature entry, by group. */
+const warlockRowId = (entry: number) => (group: number) => classRowId(W, group, entry)
 
-/** Lifedrinker's extra necrotic damage on a weapon hit, made only with the pact weapon. */
-function lifedrinkerEffect(
-  entry: number,
-  triggerCode: typeof TRIGGER.MELEE_WEAPON_ATTACK | typeof TRIGGER.RANGED_WEAPON_ATTACK
-): EffectAuthored {
-  return {
-    id: classRowId(W, 0x60, entry),
-    order: 1,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode,
-      range: { id: classRowId(W, 0x69, entry), rangeKind: RANGE_KIND.SPECIAL },
-      targeting: {
-        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-        dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-      }
-    },
-    paths: [
-      {
-        id: classRowId(W, 0x80, entry),
-        order: 1,
-        pathCode: PATH_CODE.ON_HIT,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        restrictions: {
-          id: classRowId(W, 0x83, entry),
-          groups: [
-            {
-              id: classRowId(W, 0x84, entry),
-              order: 0,
-              contexts: [
-                {
-                  id: classRowId(W, 0x85, entry),
-                  order: 0,
-                  subject: 'EQUIPMENT',
-                  authoringModeKind: AUTHORING_MODE_KIND.ALL,
-                  conditions: [
-                    {
-                      id: classRowId(W, 0x86, entry),
-                      order: 0,
-                      kind: 'PREDICATE',
-                      constraint: 'INCLUDE',
-                      predicateCode: 'BOUND_BY_EFFECT',
-                      effectIds: [pactOfTheBladeEffect.id]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        resultBlock: {
-          id: `${classRowId(W, 0x81, entry)}__result`,
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: classRowId(W, 0x82, entry),
-              effectKind: EFFECT_KIND.DAMAGE,
-              damageTypeId: damageTypeId('NECROTIC'),
-              valueKind: DAMAGE_VALUE_KIND.FIXED,
-              scalingKind: SCALING.NONE,
-              amount: 0,
-              bonuses: [
-                {
-                  id: classRowId(W, 0x87, entry),
-                  bonusKind: DAMAGE_BONUS_KIND.ABILITY_BONUS,
-                  ability: ABILITY_CODE.CHARISMA,
-                  min: 1,
-                  order: 1
-                }
-              ]
-            }
-          ]
-        }
-      }
-    ]
-  }
-}
+const PACT_OF_THE_BLADE = pactOfTheBladeEffect(warlockRowId(24))
 
 function warlockSpellIdsAtLevel(level: number): string[] {
   return srdSpells
@@ -1476,8 +1328,12 @@ export const warlock: ClassAuthored = {
             ]
           },
           effects: [
-            lifedrinkerEffect(17, TRIGGER.MELEE_WEAPON_ATTACK),
-            lifedrinkerEffect(0x81, TRIGGER.RANGED_WEAPON_ATTACK)
+            lifedrinkerEffect(warlockRowId(17), PACT_OF_THE_BLADE.id, TRIGGER.MELEE_WEAPON_ATTACK),
+            lifedrinkerEffect(
+              warlockRowId(0x81),
+              PACT_OF_THE_BLADE.id,
+              TRIGGER.RANGED_WEAPON_ATTACK
+            )
           ],
           order: 16
         },
@@ -2127,7 +1983,7 @@ export const warlock: ClassAuthored = {
             "You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it. You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.\n\nYour pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.\n\nYou can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can't affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.",
           // The weapon is one the warlock holds: creating it in any form, its disappearance 5 feet away
           // and the bonding ritual stay description (D156). It lasts until used again or let go.
-          effects: [pactOfTheBladeEffect],
+          effects: [PACT_OF_THE_BLADE],
           order: 1
         },
         {

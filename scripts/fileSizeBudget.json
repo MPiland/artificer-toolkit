@@ -6,8 +6,8 @@
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4158,
   "packages/shared/src/domains/effects/maps/path.ts": 3011,
-  "packages/shared/src/domains/shared/maps/facet.ts": 2501,
-  "packages/source-data/src/srd/classes/warlock.ts": 2088,
+  "packages/shared/src/domains/shared/maps/facet.ts": 2483,
+  "packages/source-data/src/srd/classes/warlock.ts": 2077,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,
   "scripts/phase8/buildPhaseLedger.mjs": 2240,
   "scripts/validatePreStagingLocal.mjs": 1544

@@ -78,15 +78,12 @@ function homebrewBond() {
       ),
     source
   )
-  const [bond, rider] = JSON.parse(renamed) as [EffectAuthored, EffectAuthored]
+  const [bond, rider] = JSON.parse(
+    renamed.replaceAll(damageTypeId('NECROTIC'), damageTypeId('FIRE'))
+  ) as [EffectAuthored, EffectAuthored]
   const bondPath = bond.paths[0]
-  const riderPath = rider.paths[0]
-  if (!bondPath?.chosenItem || riderPath?.selectionKind !== 'FIXED')
-    throw new Error('Expected the SRD shapes.')
+  if (!bondPath?.chosenItem) throw new Error('Expected the SRD bond to choose an item.')
   bondPath.chosenItem = { ...bondPath.chosenItem, requiredProperties: [] }
-  const [damage] = riderPath.resultBlock.outcomes
-  if (damage?.effectKind !== 'DAMAGE') throw new Error('Expected the rider damage.')
-  riderPath.resultBlock.outcomes = [{ ...damage, damageTypeId: damageTypeId('FIRE') }]
   const feature = (id: string, label: string, effect: EffectAuthored, order: number) =>
     ({
       id,

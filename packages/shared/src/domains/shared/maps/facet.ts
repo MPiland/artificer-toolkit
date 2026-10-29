@@ -563,6 +563,7 @@ function createFacetPredicateNodeMap(
   return facetPredicateNode.define(mapId, ({ map, logic, cond, data, nodes }) => {
     const { and, or, not } = logic
     const local = cond.local()
+    const predicateCode = local.field(['predicateCode'])
     const owner =
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(3)
     const selection =
@@ -571,8 +572,8 @@ function createFacetPredicateNodeMap(
 
     const { selectSingle, selectMulti, number, toggle, groupArray } = nodes
     const { chain, mapValues, table, condition } = data
-    const attackActivation = local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
-    const attackRollMode = local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
+    const attackActivation = predicateCode.eq('ATTACK_ACTIVATION')
+    const attackRollMode = predicateCode.eq('ATTACK_ROLL_MODE')
 
     const predicateOptions = NODE_SUBJECT_OPTIONS.map((s) => ({
       showIf: p.field(['subject']).eq(s.code),
@@ -584,9 +585,7 @@ function createFacetPredicateNodeMap(
       }))
     )
 
-    const showAuthoringMode = or(
-      SELECTABLE_PREDICATE_CODES.map((c) => local.field(['predicateCode']).eq(c))
-    )
+    const showAuthoringMode = or(SELECTABLE_PREDICATE_CODES.map((c) => predicateCode.eq(c)))
 
     map
       .set(
@@ -638,8 +637,8 @@ function createFacetPredicateNodeMap(
           },
           {
             order: 3,
-            requiredIf: local.field(['predicateCode']).eq('CLASS_LEVEL'),
-            showIf: local.field(['predicateCode']).eq('CLASS_LEVEL')
+            requiredIf: predicateCode.eq('CLASS_LEVEL'),
+            showIf: predicateCode.eq('CLASS_LEVEL')
           }
         )
       )
@@ -660,7 +659,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('SUBCLASS_SPECIALIZATION'),
+              predicateCode.eq('SUBCLASS_SPECIALIZATION'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -680,9 +679,9 @@ function createFacetPredicateNodeMap(
             requiredIf: true,
             showIf: and([
               or([
-                local.field(['predicateCode']).eq('SIZE'),
-                local.field(['predicateCode']).eq('CREATURE_SIZE'),
-                local.field(['predicateCode']).eq('VEHICLE_SIZE')
+                predicateCode.eq('SIZE'),
+                predicateCode.eq('CREATURE_SIZE'),
+                predicateCode.eq('VEHICLE_SIZE')
               ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
@@ -702,10 +701,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              or([
-                local.field(['predicateCode']).eq('CREATURE_TYPE'),
-                local.field(['predicateCode']).eq('SOURCE_CREATURE_TYPE')
-              ]),
+              or([predicateCode.eq('CREATURE_TYPE'), predicateCode.eq('SOURCE_CREATURE_TYPE')]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -721,7 +717,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('SOURCE_TRAIT'),
+              predicateCode.eq('SOURCE_TRAIT'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -808,7 +804,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('RANGE'),
+              predicateCode.eq('RANGE'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -940,7 +936,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('DURATION'),
+              predicateCode.eq('DURATION'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -953,7 +949,7 @@ function createFacetPredicateNodeMap(
           requiredIf: true,
           showIf: or([
             and([
-              local.field(['predicateCode']).eq('RANGE'),
+              predicateCode.eq('RANGE'),
               or([
                 and([
                   local.field(['rangeKind']).contains(['DISTANCE']),
@@ -963,7 +959,7 @@ function createFacetPredicateNodeMap(
               ])
             ]),
             and([
-              local.field(['predicateCode']).eq('DURATION'),
+              predicateCode.eq('DURATION'),
               or([
                 and([
                   not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
@@ -972,13 +968,13 @@ function createFacetPredicateNodeMap(
                 local.field(['authoringModeKind']).eq('ALL')
               ])
             ]),
-            local.field(['predicateCode']).eq('SPELL_LEVEL'),
-            local.field(['predicateCode']).eq('SAVING_THROW_DC'),
-            local.field(['predicateCode']).eq('ARMOR_CLASS'),
-            local.field(['predicateCode']).eq('CHARACTER_LEVEL'),
-            local.field(['predicateCode']).eq('CLASS_LEVEL'),
-            local.field(['predicateCode']).eq('ABILITY_SCORE'),
-            local.field(['predicateCode']).eq('SAVING_THROW_ABILITY_BONUS')
+            predicateCode.eq('SPELL_LEVEL'),
+            predicateCode.eq('SAVING_THROW_DC'),
+            predicateCode.eq('ARMOR_CLASS'),
+            predicateCode.eq('CHARACTER_LEVEL'),
+            predicateCode.eq('CLASS_LEVEL'),
+            predicateCode.eq('ABILITY_SCORE'),
+            predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
           ])
         })
       )
@@ -987,7 +983,7 @@ function createFacetPredicateNodeMap(
         number(['max'], 'Max Amount', {
           showIf: or([
             and([
-              local.field(['predicateCode']).eq('RANGE'),
+              predicateCode.eq('RANGE'),
               or([
                 and([
                   local.field(['rangeKind']).contains(['DISTANCE']),
@@ -997,7 +993,7 @@ function createFacetPredicateNodeMap(
               ])
             ]),
             and([
-              local.field(['predicateCode']).eq('DURATION'),
+              predicateCode.eq('DURATION'),
               or([
                 and([
                   not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
@@ -1006,13 +1002,13 @@ function createFacetPredicateNodeMap(
                 local.field(['authoringModeKind']).eq('ALL')
               ])
             ]),
-            local.field(['predicateCode']).eq('SPELL_LEVEL'),
-            local.field(['predicateCode']).eq('SAVING_THROW_DC'),
-            local.field(['predicateCode']).eq('ARMOR_CLASS'),
-            local.field(['predicateCode']).eq('CHARACTER_LEVEL'),
-            local.field(['predicateCode']).eq('CLASS_LEVEL'),
-            local.field(['predicateCode']).eq('ABILITY_SCORE'),
-            local.field(['predicateCode']).eq('SAVING_THROW_ABILITY_BONUS')
+            predicateCode.eq('SPELL_LEVEL'),
+            predicateCode.eq('SAVING_THROW_DC'),
+            predicateCode.eq('ARMOR_CLASS'),
+            predicateCode.eq('CHARACTER_LEVEL'),
+            predicateCode.eq('CLASS_LEVEL'),
+            predicateCode.eq('ABILITY_SCORE'),
+            predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
           ])
         })
       )
@@ -1020,14 +1016,14 @@ function createFacetPredicateNodeMap(
         'maxFeet',
         number(['maxFeet'], 'Max Feet Moved', {
           order: 3,
-          showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+          showIf: predicateCode.eq('TURN_MOVEMENT')
         })
       )
       .set(
         'maxSpeedFraction',
         number(['maxSpeedFraction'], 'Max Fraction of Speed', {
           order: 3,
-          showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+          showIf: predicateCode.eq('TURN_MOVEMENT')
         })
       )
       .set(
@@ -1036,8 +1032,8 @@ function createFacetPredicateNodeMap(
           order: 3,
           presentation: 'inline',
           showIf: or([
-            local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT'),
-            local.field(['predicateCode']).eq('BOUND_BY_EFFECT')
+            predicateCode.eq('HOLDER_ACTIVE_EFFECT'),
+            predicateCode.eq('BOUND_BY_EFFECT')
           ])
         })
       )
@@ -1055,15 +1051,12 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             requiredIf: and([
-              local.field(['predicateCode']).eq('FEATURE_OBTAINED'),
+              predicateCode.eq('FEATURE_OBTAINED'),
               p.field(['subject']).eq('CHARACTER')
             ]),
             showIf: and([
               p.field(['subject']).eq('CHARACTER'),
-              or([
-                local.field(['predicateCode']).eq('FEATURE_OBTAINED'),
-                local.field(['predicateCode']).eq('OPTION_OBTAINED')
-              ])
+              or([predicateCode.eq('FEATURE_OBTAINED'), predicateCode.eq('OPTION_OBTAINED')])
             ])
           }
         )
@@ -1106,10 +1099,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              local.field(['predicateCode']).eq('OPTION_OBTAINED'),
-              p.field(['subject']).eq('CHARACTER')
-            ])
+            showIf: and([predicateCode.eq('OPTION_OBTAINED'), p.field(['subject']).eq('CHARACTER')])
           }
         )
       )
@@ -1138,7 +1128,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('MAGIC_SCHOOL'),
+              predicateCode.eq('MAGIC_SCHOOL'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -1156,7 +1146,7 @@ function createFacetPredicateNodeMap(
               kind: 'ALLOW',
               by: condition((c) =>
                 c
-                  .if(local.field(['predicateCode']).eq('SPELLCASTING_ABILITY'))
+                  .if(predicateCode.eq('SPELLCASTING_ABILITY'))
                   .then((o) =>
                     o.condition((c2) =>
                       c2
@@ -1184,7 +1174,7 @@ function createFacetPredicateNodeMap(
                         .end()
                     )
                   )
-                  .elseIf(local.field(['predicateCode']).eq('SAVE_ABILITY_PROFICIENCY'))
+                  .elseIf(predicateCode.eq('SAVE_ABILITY_PROFICIENCY'))
                   .then((o) =>
                     o.condition((c2) =>
                       c2
@@ -1310,11 +1300,11 @@ function createFacetPredicateNodeMap(
             order: 3,
             showIf: and([
               or([
-                local.field(['predicateCode']).eq('SPELLCASTING_ABILITY'),
-                local.field(['predicateCode']).eq('SAVING_THROW_ABILITY'),
-                local.field(['predicateCode']).eq('SAVE_ABILITY_PROFICIENCY'),
-                local.field(['predicateCode']).eq('ABILITY_SCORE'),
-                local.field(['predicateCode']).eq('SAVING_THROW_ABILITY_BONUS')
+                predicateCode.eq('SPELLCASTING_ABILITY'),
+                predicateCode.eq('SAVING_THROW_ABILITY'),
+                predicateCode.eq('SAVE_ABILITY_PROFICIENCY'),
+                predicateCode.eq('ABILITY_SCORE'),
+                predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
               ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
@@ -1329,8 +1319,8 @@ function createFacetPredicateNodeMap(
           { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
           {
             order: 3,
-            showIf: local.field(['predicateCode']).eq('ATTACK_ABILITY'),
-            requiredIf: local.field(['predicateCode']).eq('ATTACK_ABILITY')
+            showIf: predicateCode.eq('ATTACK_ABILITY'),
+            requiredIf: predicateCode.eq('ATTACK_ABILITY')
           }
         )
       )
@@ -1364,8 +1354,8 @@ function createFacetPredicateNodeMap(
         number(['feet'], 'Feet', {
           constraints: { minimum: 1 },
           order: 3,
-          showIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET'),
-          requiredIf: local.field(['predicateCode']).eq('ENEMY_NEAR_TARGET')
+          showIf: predicateCode.eq('ENEMY_NEAR_TARGET'),
+          requiredIf: predicateCode.eq('ENEMY_NEAR_TARGET')
         })
       )
       .set(
@@ -1373,15 +1363,15 @@ function createFacetPredicateNodeMap(
         number(['minFeet'], 'Minimum Feet Closed', {
           constraints: { minimum: 1 },
           order: 3,
-          showIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET'),
-          requiredIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET')
+          showIf: predicateCode.eq('MOVED_TOWARD_TARGET'),
+          requiredIf: predicateCode.eq('MOVED_TOWARD_TARGET')
         })
       )
       .set(
         'requiresDaylight',
         toggle(['requiresDaylight'], 'Daylight only', {
           order: 3,
-          showIf: local.field(['predicateCode']).eq('HOLDER_IN_BRIGHT_LIGHT')
+          showIf: predicateCode.eq('HOLDER_IN_BRIGHT_LIGHT')
         })
       )
       .set(
@@ -1399,8 +1389,8 @@ function createFacetPredicateNodeMap(
                   .if(
                     and([
                       or([
-                        local.field(['predicateCode']).eq('EQUIPMENT_CATEGORY'),
-                        local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY')
+                        predicateCode.eq('EQUIPMENT_CATEGORY'),
+                        predicateCode.eq('EQUIPMENT_PROPERTY')
                       ]),
                       p.field(['subject']).eq('EQUIPMENT')
                     ])
@@ -1423,7 +1413,7 @@ function createFacetPredicateNodeMap(
                         .end()
                     )
                   )
-                  .elseIf(local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED'))
+                  .elseIf(predicateCode.eq('EQUIPMENT_EQUIPPED'))
                   .then((o) =>
                     o.condition((c2) =>
                       c2
@@ -1497,16 +1487,14 @@ function createFacetPredicateNodeMap(
                         )
                         .condition((c2) =>
                           c2
-                            .if(local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'))
+                            .if(predicateCode.eq('EQUIPMENT_PROFICIENCY'))
                             .then((o2) =>
                               o2.mapValues('proficiency_grant_equipment', {
                                 whereColumn: 'proficiency_grant_id',
                                 valueColumn: 'equipment_id'
                               })
                             )
-                            .elseIf(
-                              local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
-                            )
+                            .elseIf(predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY'))
                             .then((o2) =>
                               o2.chain((s2) =>
                                 s2
@@ -1537,13 +1525,13 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: or([
-              local.field(['predicateCode']).eq('EQUIPMENT_CATEGORY'),
-              local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'),
-              local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-              local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
-              local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED')
+              predicateCode.eq('EQUIPMENT_CATEGORY'),
+              predicateCode.eq('EQUIPMENT_PROPERTY'),
+              predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+              predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
+              predicateCode.eq('EQUIPMENT_EQUIPPED')
             ]),
-            requiredIf: local.field(['predicateCode']).eq('EQUIPMENT_CATEGORY')
+            requiredIf: predicateCode.eq('EQUIPMENT_CATEGORY')
           }
         )
       )
@@ -1559,7 +1547,7 @@ function createFacetPredicateNodeMap(
               kind: 'ALLOW',
               by: condition((c) =>
                 c
-                  .if(local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'))
+                  .if(predicateCode.eq('EQUIPMENT_PROPERTY'))
                   .then((o) =>
                     o.condition((c2) =>
                       c2
@@ -1580,13 +1568,13 @@ function createFacetPredicateNodeMap(
                         .end()
                     )
                   )
-                  .elseIf(local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON'))
+                  .elseIf(predicateCode.eq('ATTACK_ACTION_OTHER_WEAPON'))
                   .then((o) =>
                     o.chain((s) =>
                       s.seed('equipment_properties', { valueColumn: 'property_code' }).end()
                     )
                   )
-                  .elseIf(local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED'))
+                  .elseIf(predicateCode.eq('EQUIPMENT_EQUIPPED'))
                   .then((o) =>
                     o.condition((c2) =>
                       c2
@@ -1610,8 +1598,8 @@ function createFacetPredicateNodeMap(
                   .elseIf(
                     and([
                       or([
-                        local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-                        local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
+                        predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+                        predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY')
                       ]),
                       p.field(['subject']).eq('CHARACTER')
                     ])
@@ -1623,8 +1611,8 @@ function createFacetPredicateNodeMap(
                   )
                   .elseIf(
                     or([
-                      local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-                      local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY')
+                      predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+                      predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY')
                     ])
                   )
                   .then((o) =>
@@ -1691,23 +1679,23 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: and([
               or([
-                local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'),
-                local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
-                local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON')
+                predicateCode.eq('EQUIPMENT_PROPERTY'),
+                predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
+                predicateCode.eq('ATTACK_ACTION_OTHER_WEAPON')
               ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ]),
             showIf: or([
               and([
                 or([
-                  local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY'),
-                  local.field(['predicateCode']).eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
-                  local.field(['predicateCode']).eq('ATTACK_ACTION_OTHER_WEAPON')
+                  predicateCode.eq('EQUIPMENT_PROPERTY'),
+                  predicateCode.eq('EQUIPMENT_PROPERTY_PROFICIENCY'),
+                  predicateCode.eq('ATTACK_ACTION_OTHER_WEAPON')
                 ]),
                 local.field(['authoringModeKind']).eq('SELECTED')
               ]),
-              local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-              local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED')
+              predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+              predicateCode.eq('EQUIPMENT_EQUIPPED')
             ])
           }
         )
@@ -1727,8 +1715,8 @@ function createFacetPredicateNodeMap(
             order: 3,
             showIf: and([
               or([
-                local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-                local.field(['predicateCode']).eq('EQUIPMENT_EQUIPPED')
+                predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+                predicateCode.eq('EQUIPMENT_EQUIPPED')
               ]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
@@ -1747,10 +1735,10 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: or([
-              local.field(['predicateCode']).eq('EQUIPMENT_PROFICIENCY'),
-              local.field(['predicateCode']).eq('SAVE_ABILITY_PROFICIENCY'),
-              local.field(['predicateCode']).eq('SKILL_PROFICIENCY'),
-              local.field(['predicateCode']).eq('LANGUAGE_PROFICIENCY')
+              predicateCode.eq('EQUIPMENT_PROFICIENCY'),
+              predicateCode.eq('SAVE_ABILITY_PROFICIENCY'),
+              predicateCode.eq('SKILL_PROFICIENCY'),
+              predicateCode.eq('LANGUAGE_PROFICIENCY')
             ])
           }
         )
@@ -1812,7 +1800,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('LANGUAGE_PROFICIENCY'),
+              predicateCode.eq('LANGUAGE_PROFICIENCY'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -1940,7 +1928,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('DAMAGE_TYPE'),
+              predicateCode.eq('DAMAGE_TYPE'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -2068,7 +2056,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('CONDITION_TYPE'),
+              predicateCode.eq('CONDITION_TYPE'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -2156,7 +2144,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             showIf: and([
-              local.field(['predicateCode']).eq('CHARGE_LIMIT_KIND'),
+              predicateCode.eq('CHARGE_LIMIT_KIND'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -2245,7 +2233,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('CHARGE_RESET_KIND'),
+              predicateCode.eq('CHARGE_RESET_KIND'),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
@@ -2265,10 +2253,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              local.field(['predicateCode']).eq('SPELL_OBTAINED'),
-              p.field(['subject']).eq('CHARACTER')
-            ])
+            showIf: and([predicateCode.eq('SPELL_OBTAINED'), p.field(['subject']).eq('CHARACTER')])
           }
         )
       )
@@ -2286,10 +2271,7 @@ function createFacetPredicateNodeMap(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              local.field(['predicateCode']).eq('FEAT_OBTAINED'),
-              p.field(['subject']).eq('CHARACTER')
-            ])
+            showIf: and([predicateCode.eq('FEAT_OBTAINED'), p.field(['subject']).eq('CHARACTER')])
           }
         )
       )
@@ -2306,7 +2288,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              local.field(['predicateCode']).eq('HERITAGE'),
+              predicateCode.eq('HERITAGE'),
               local.field(['authoringModeKind']).eq('SELECTED'),
               p.field(['subject']).eq('CHARACTER')
             ])
@@ -2322,7 +2304,7 @@ function createFacetPredicateNodeMap(
             kind: 'DATA',
             relationship: condition((c) =>
               c
-                .if(local.field(['predicateCode']).eq('SKILL_PROFICIENCY'))
+                .if(predicateCode.eq('SKILL_PROFICIENCY'))
                 .then((o) =>
                   o.chain((s) =>
                     s
@@ -2386,10 +2368,7 @@ function createFacetPredicateNodeMap(
             order: 3,
             requiredIf: true,
             showIf: and([
-              or([
-                local.field(['predicateCode']).eq('SKILL_SCORE'),
-                local.field(['predicateCode']).eq('SKILL_PROFICIENCY')
-              ]),
+              or([predicateCode.eq('SKILL_SCORE'), predicateCode.eq('SKILL_PROFICIENCY')]),
               local.field(['authoringModeKind']).eq('SELECTED')
             ])
           }
