@@ -1,6 +1,8 @@
 {
+  "account-deletion-browser": "RELIABILITY-21.T22",
   "builder-browser": "RELIABILITY-21.T16",
   "campaign-custody-browser": "RELIABILITY-21.T18",
   "character-sheet-browser": "RELIABILITY-21.T16",
+  "effects-browser": "RELIABILITY-21.T23",
   "vtt-browser": "RELIABILITY-21.T16"
 }

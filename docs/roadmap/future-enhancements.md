@@ -577,6 +577,20 @@ Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 
 These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
 
+- **Description-only class and creature features (D198 rubric, 2026-10-28; automate after release):** each one ships as a GM ruling.
+
+  | Feature                                 | What the GM does now                                           | What would automate it                                               |
+  | --------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------- |
+  | Peerless Skill                          | Spends Bardic Inspiration and adds the die by hand             | Feature-option discovery and charge payment in the D168 check window |
+  | Dark One's Own Luck                     | Spends the use and adds a d10 by hand                          | Same as Peerless Skill                                               |
+  | Survivor                                | Heals 5 + Con at the start of the holder's turn while bloodied | A start-of-turn passive heal gated on HP at or below half            |
+  | Quivering Palm                          | Spends ki, then applies 10d10 or sets HP to 0                  | A ki-paid delayed save-or-drop outcome                               |
+  | Retaliation                             | Has the holder make a reaction attack and applies its damage   | A reaction attack triggered by damage taken                          |
+  | Overchannel                             | Applies maximum damage, then the escalating self-damage        | Maximized damage dice and a per-rest escalation counter              |
+  | Heroes' Feast HP-maximum rider          | Raises the HP maximum and heals by hand                        | A shared roll applied to HP maximum and healing                      |
+  | Animate Trees and Children of the Night | Adds the creatures with REINFORCE                              | A creature-summon outcome                                            |
+  | Voice of the Chain Master               | Nothing; the effect is narrative                               | Not needed                                                           |
+
 - **Total application cap on an action:** Oil Flask's "Ignite the coating" is authored with `maxApplicationsTotal: 1` (`oil-flask.ts:102`), but no runtime reads the field. The engine piece counts an action's applications across its effect's life and refuses one past the cap. Deferred by the user on 2026-10-28.
 - **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).
 - **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
