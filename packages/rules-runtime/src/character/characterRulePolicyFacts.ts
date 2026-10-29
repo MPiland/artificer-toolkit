@@ -146,7 +146,12 @@ export function composeCharacterRulePolicyFacts(
       if (pool) return { kind: 'POOL' as const, poolCode: pool.code, rawUsed: slot.used }
       const match = /^STANDARD:([1-9])$/.exec(slot.slotKey)
       if (!match) throw new Error(`Unsupported spell slot usage key: ${slot.slotKey}`)
-      return { kind: 'STANDARD' as const, spellLevel: Number(match[1]), rawUsed: slot.used }
+      return {
+        kind: 'STANDARD' as const,
+        spellLevel: Number(match[1]),
+        rawUsed: slot.used,
+        ...(slot.created ? { created: slot.created } : {})
+      }
     }),
     ...resourceFacts,
     actionCandidates: actionFacts.actionCandidates,

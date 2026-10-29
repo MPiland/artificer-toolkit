@@ -2285,6 +2285,31 @@ Modules: `encounterInitiative*` (graph execution, score batches, tie and order r
 state settlement), `encounterTurn*`, `encounterRechargeLifecycle`. The room's ordering and delivery are in
 [live sessions](live-sessions.md).
 
+## Spell slot exchange (current, SPELLS-31.T5j)
+
+A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It
+has three modes:
+
+- `RECOVER_SLOTS` has a level budget scaled from the class level (`divisor` and `rounding`) and a
+  `maximumSlotLevel`. It is used by Arcane Recovery and Natural Recovery.
+- `SLOT_TO_RESOURCE` turns one slot into pool points equal to its level.
+- `RESOURCE_TO_SLOT` spends authored `costs` per slot level to create one slot. Font of Magic uses
+  both pool modes.
+
+`resolveSpellSlotExchange` (`systems/dnd5e/characterActionMechanics.ts`) resolves the outcome onto
+the action mechanic. The pool modes need exactly one RESOLVED pool matching the authored `chargeId`,
+or the outcome resolves to nothing.
+
+The Sheet and room command is `EXCHANGE_SPELL_SLOTS { actionId, selection }`. Its selection is
+`SLOTS { slotKeys }` or `SLOT_LEVEL { slotLevel }`. `planSpellSlotExchange` (`character/sheetSpellSlotExchange.ts`)
+is the one validator: the reducer applies its plan, and `getSheetCommandResourceUsageUpdate` writes
+its pool use. A recovery spends the action's own charge. A pool-mode action spends no charge of its
+own and no Bonus Action.
+
+A created slot is stored as `spellSlots[].created`. The slot table adds it to that level's total,
+and a long rest clears it. Sorcerous Restoration, Eldritch Master and the short-rest timing of the
+recoveries are GM rulings (D156).
+
 ## Effective maximum hit points
 
 Effective maximum hit points is one computation (`character/hitPointMaximumReductions`) that subtracts a

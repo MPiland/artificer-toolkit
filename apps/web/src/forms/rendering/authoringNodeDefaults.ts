@@ -129,6 +129,7 @@ import type {
   ShapeAuthored,
   SpeedAuthored,
   SpellGrantAuthored,
+  SpellSlotExchangeAuthored,
   SummonStatBlockAuthored,
   TargetingAuthored,
   TargetRequirementAuthored,
@@ -887,6 +888,16 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         amount: 30,
         unit: 'FEET'
       } satisfies SpeedAuthored
+    case 'spellSlotCost':
+      return { slotLevel: Math.min(order, 9), cost: 1 } satisfies Extract<
+        SpellSlotExchangeAuthored,
+        { mode: 'RESOURCE_TO_SLOT' }
+      >['costs'][number]
+    case 'spellSlotLevelBudget':
+      return { classId: '', divisor: 1, rounding: 'UP' } satisfies Extract<
+        SpellSlotExchangeAuthored,
+        { mode: 'RECOVER_SLOTS' }
+      >['levelBudget']
     case 'shape':
       return {
         id: crypto.randomUUID(),

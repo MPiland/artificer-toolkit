@@ -45,7 +45,7 @@ export function projectCharacterSheetSlice(
           meta,
           actions: sheet.actions,
           resources: { items: resources.items },
-          spells: { activeGroups: spells.activeGroups, spells: spells.spells }
+          spells: { activeGroups: spells.activeGroups, spells: spells.spells, slots: spells.slots }
         }
       }
     case 'SPELLS':

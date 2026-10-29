@@ -148,6 +148,8 @@ type AuthoringDefaultKind =
   | 'shape'
   | 'sizeLimit'
   | 'speed'
+  | 'spellSlotCost'
+  | 'spellSlotLevelBudget'
   | 'spellGrant'
   | 'spellGrantLevel'
   | 'spellGrantProgression'
@@ -339,6 +341,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   shape: ['shape'],
   sizeLimit: ['sizeLimit'],
   speed: ['speed'],
+  spellSlotCost: ['spellSlotCost'],
+  spellSlotLevelBudget: ['spellSlotLevelBudget'],
   spellGrant: ['spellGrant'],
   spellGrantLevel: ['spellGrantLevel'],
   spellGrantProgression: ['spellGrantProgression'],

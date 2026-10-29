@@ -1839,26 +1839,16 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'restoreChargeId',
+      'chargeId',
       text(['chargeId'], 'Charge ID', {
         requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
-      })
-    )
-    .set(
-      'restoreFloor',
-      number(['floor'], 'Restore To At Least', {
-        constraints: { minimum: 1 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
-      })
-    )
-    .set(
-      'restoreWhenAtOrBelow',
-      number(['whenAtOrBelow'], 'When Remaining Is At Most', {
-        constraints: { minimum: 0 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE)
+        showIf: or([
+          local.field(['effectKind']).eq(EFFECT_KIND.RESTORE_RESOURCE),
+          and([
+            local.field(['effectKind']).eq(EFFECT_KIND.SPELL_SLOT_EXCHANGE),
+            not(local.field(['mode']).eq('RECOVER_SLOTS'))
+          ])
+        ])
       })
     )
     .set(

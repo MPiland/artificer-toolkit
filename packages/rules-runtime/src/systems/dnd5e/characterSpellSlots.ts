@@ -195,7 +195,7 @@ export function evaluateDnd5eCharacterSpellSlots(
     )
     return usages.length === 1 ? usages[0]!.rawUsed : 0
   }
-  const slots =
+  const castingSlots =
     standardCasters.length === 0
       ? []
       : standardCasters.length === 1
@@ -204,6 +204,22 @@ export function evaluateDnd5eCharacterSpellSlots(
             spellLevel,
             slotCount
           }))
+  // A created slot adds to its level's count, even a level the caster has no slots of.
+  const createdSlots = (input.spellSlotUsageFacts ?? []).flatMap((usage) =>
+    usage.kind === 'STANDARD' && usage.created
+      ? [{ spellLevel: usage.spellLevel, slotCount: usage.created }]
+      : []
+  )
+  const slots = [...castingSlots, ...createdSlots]
+    .reduce<{ spellLevel: number; slotCount: number }[]>((merged, slot) => {
+      const existing = merged.find((entry) => entry.spellLevel === slot.spellLevel)
+      return existing
+        ? merged.map((entry) =>
+            entry === existing ? { ...entry, slotCount: entry.slotCount + slot.slotCount } : entry
+          )
+        : [...merged, slot]
+    }, [])
+    .sort((left, right) => left.spellLevel - right.spellLevel)
   const sourceIds =
     standardCasters.length === 1
       ? [standardCasters[0]!.classId]

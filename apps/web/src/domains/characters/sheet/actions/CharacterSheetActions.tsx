@@ -17,6 +17,7 @@ import {
 } from './characterSheetActions.utils'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetRollText } from '../dice/CharacterSheetRollValue'
+import { CharacterSheetSpellSlotExchange } from './CharacterSheetSpellSlotExchange'
 import { getMechanicRollTargets } from '../dice/dice.utils'
 
 export function CharacterSheetActions({
@@ -118,6 +119,13 @@ export function CharacterSheetActions({
                     action.availability.status === 'UNAVAILABLE'
                       ? formatActionUnavailableReason(action.availability.reasonCode)
                       : undefined
+                  const spellSlotExchange = action.mechanics
+                    ?.flatMap((mechanic) => mechanic.outcomes)
+                    .flatMap((outcome) =>
+                      outcome.kind === 'EFFECT' && outcome.spellSlotExchange
+                        ? [outcome.spellSlotExchange]
+                        : []
+                    )[0]
 
                   if (!isTabularAttack)
                     return (
@@ -173,6 +181,17 @@ export function CharacterSheetActions({
                           <Text className={actionSummaryStyles.actionDescriptionText}>
                             <CharacterSheetRollText targets={rollTargets} text={effect} />
                           </Text>
+                        ) : null}
+                        {spellSlotExchange ? (
+                          <CharacterSheetSpellSlotExchange
+                            actionId={action.id}
+                            actionLabel={action.label}
+                            available={!unavailableReason}
+                            exchange={spellSlotExchange}
+                            pending={pending}
+                            sheet={sheet}
+                            submitCommand={submitCommand}
+                          />
                         ) : null}
                         {unavailableReason ? (
                           <Text className={panelStyles.muted}>{unavailableReason}</Text>
