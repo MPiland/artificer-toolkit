@@ -127,9 +127,14 @@ export async function recordActionRollCards(
   const system = await ctx.ports.requireSystem(input.gameSystemId)
   const ruleset = { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion }
   for (const [checkIndex, d20] of [batch.d20, batch.nestedD20].entries()) {
-    // A d20 the server adjusted for sight is always carded here: the app attempt's card showed
-    // only the dice as rolled.
-    if (!d20 || (input.appCardedD20s.has(checkIndex) && !d20.modeAdjustment)) continue
+    // A d20 the server adjusted for sight, or failed automatically, is always carded here: the app
+    // attempt's card showed only the dice as rolled.
+    const autoFailConditionIds = d20?.autoFailConditionIds ?? []
+    if (
+      !d20 ||
+      (input.appCardedD20s.has(checkIndex) && !d20.modeAdjustment && !autoFailConditionIds.length)
+    )
+      continue
     const roller = d20.resultPath.startsWith('ON_SAVE_') ? target : source
     const record = (reader: 'PLAYER' | 'GM') =>
       actionD20RollRecord({
@@ -140,7 +145,11 @@ export async function recordActionRollCards(
         rollerLabel: roller.label,
         ruleset,
         createdAt: input.createdAt,
-        reader
+        reader,
+        autoFailLabels: autoFailConditionIds.map(
+          (id) =>
+            system.conditionTypes.find((condition) => condition.id === id)?.label ?? 'A condition'
+        )
       })
     const roll = record('PLAYER')
     await recordRuleRollCard(ctx, {

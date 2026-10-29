@@ -64,7 +64,7 @@ import {
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
   encounterConditionMechanicsInSourceSight,
-  encounterConditionSaveAutoFailAbilityIds,
+  encounterConditionSaveAutoFails,
   encounterConditionSources
 } from './encounterConditionMechanics.js'
 import { featureChargeUsed, snapshotCreatureTypeId } from './encounterActorState.js'
@@ -975,9 +975,7 @@ export async function prepareEncounterActionMechanics<
             target: targetFacts.conditionMechanics,
             attack: conditionAttack
           }),
-        saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(
-          targetFacts.conditionMechanics
-        )
+        saveAutoFails: encounterConditionSaveAutoFails(targetFacts.conditionMechanics)
       },
       currentHitPoints: targetFacts.state.current,
       temporaryHitPoints: targetFacts.state.temporary,

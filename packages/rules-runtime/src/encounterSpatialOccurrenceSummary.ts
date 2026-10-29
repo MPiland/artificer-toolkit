@@ -12,6 +12,7 @@ import { contestCheckMovementContinuation } from './encounterMovementPendingCont
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import { contestDefenderPolicy } from './encounterOptionalContestActionExecution.js'
 import {
+  encounterAutoFailRequest,
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from './encounterRollModeReasons.js'
@@ -356,6 +357,11 @@ export function projectEncounterSpatialOccurrenceSummary(
           rollMode: spatialCandidate.d20Policy.rollMode,
           contributors: spatialCandidate.d20Policy.contributors
         }),
+        ...encounterAutoFailRequest(
+          reasons,
+          spatialCandidate.d20Policy,
+          spatialCandidate.candidate.targetActorId
+        ),
         ...(spatialCandidate.d20Policy.addedDice?.length
           ? { addedDice: spatialCandidate.d20Policy.addedDice }
           : {})

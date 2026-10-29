@@ -46,6 +46,8 @@ export function CampaignTabletopEvidenceRollRow({
   // Why the rules recommend the mode, e.g. "Flanking"; empty for a normal roll.
   const derivedReasons =
     pending.kind === 'D20_EVIDENCE' ? pending.request.derivedRollModeReasons : []
+  // The conditions that make this save fail automatically; the d20 is still rolled.
+  const autoFail = pending.kind === 'D20_EVIDENCE' ? (pending.request.autoFail ?? []) : []
   // The dice the test adds to or subtracts from its d20 (D156), entered or app-rolled with it.
   const addedEntries =
     pending.kind === 'D20_EVIDENCE' ? addedDieEntries(pending.request.addedDice ?? []) : []
@@ -156,6 +158,11 @@ export function CampaignTabletopEvidenceRollRow({
               : `Changed from ${derivedLabel}, the recommended mode`}
           </Text>
         </div>
+      ) : null}
+      {autoFail.length ? (
+        <Text size='xs'>
+          Fails automatically: {autoFail.map((reason) => reason.label).join(', ')}
+        </Text>
       ) : null}
       <Group align='end' gap='xs' wrap='nowrap'>
         {values.map((value, index) => (
