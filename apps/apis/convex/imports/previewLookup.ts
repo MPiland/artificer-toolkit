@@ -14,7 +14,6 @@ import type {
   ImportPreparationLookup,
   ImportSystemVocabulary
 } from '@artificer-toolkit/authoring/imports'
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import {
   SRD_DWARVEN_HERITAGE_ID,
   SRD_GOLD_CURRENCY_ID,
@@ -176,9 +175,9 @@ interface SystemVocabularySnapshot {
  * never to one that only shares its code or label.
  */
 export function importSystemVocabulary(
-  system: Pick<
-    SystemAuthoredDto,
-    'damageTypes' | 'rarities' | 'currencies' | 'speeds' | 'skills' | 'heritages'
+  system: Record<
+    'damageTypes' | 'rarities' | 'currencies' | 'speeds' | 'skills' | 'heritages',
+    readonly VocabularyEntrySnapshot[]
   >
 ): Omit<SystemVocabularySnapshot, 'systemId'> & ImportSystemVocabulary {
   const entries = (list: readonly VocabularyEntrySnapshot[]) =>
