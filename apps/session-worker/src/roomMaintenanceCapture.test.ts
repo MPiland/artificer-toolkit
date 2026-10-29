@@ -128,9 +128,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',

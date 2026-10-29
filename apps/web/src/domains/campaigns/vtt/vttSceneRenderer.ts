@@ -44,7 +44,7 @@ import {
   dashedPolygonSegments,
   dimOverlayAlpha,
   ellipseArcPoints,
-  describeAuraOverlays,
+  describeAreaOverlays,
   describeSceneLighting,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
@@ -1390,7 +1390,7 @@ export async function createVttSceneRenderer(
   function updateCanvasDescription(next: VttSceneRendererUpdate): void {
     const sentences = [
       tokenSummary,
-      describeAuraOverlays(next.overlays),
+      describeAreaOverlays(next.overlays),
       describeSceneLighting(next.scene, visionLabels, illuminationLevels)
     ]
     app.canvas.setAttribute('aria-description', sentences.filter(Boolean).join('. '))
@@ -1752,11 +1752,8 @@ export async function createVttSceneRenderer(
     return visual
   }
 
-  /** What a Graphics actually holds: each fill or stroke instruction's colour and polygon paths. */
-  function drawnStyles(
-    graphic: Container | null,
-    action: 'fill' | 'stroke'
-  ): { alpha: number; color: number; paths: ScenePoint[][] }[] {
+  /** What a Graphics actually holds: each fill or stroke instruction's colour, circles and polygon paths. */
+  function drawnStyles(graphic: Container | null, action: 'fill' | 'stroke') {
     if (!(graphic instanceof pixi.Graphics)) return []
     return graphic.context.instructions.flatMap((instruction) => {
       if (instruction.action !== 'fill' && instruction.action !== 'stroke') return []
@@ -1764,6 +1761,11 @@ export async function createVttSceneRenderer(
       return [
         {
           alpha: instruction.data.style.alpha,
+          circles: instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
+            shape instanceof pixi.Circle
+              ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
+              : []
+          ),
           color: instruction.data.style.color,
           paths: instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
             shape instanceof pixi.Polygon
@@ -1778,6 +1780,16 @@ export async function createVttSceneRenderer(
         }
       ]
     })
+  }
+
+  /** A drawn overlay graphic read back: its label, stroked circles and stroke colours. */
+  function drawnOverlay(child: Container) {
+    const strokes = drawnStyles(child, 'stroke')
+    return {
+      circles: strokes.flatMap((stroke) => stroke.circles),
+      label: child.label,
+      strokeColors: strokes.map((stroke) => stroke.color)
+    }
   }
 
   function strokedPath(points: readonly ScenePoint[], color: number, width: number): Graphics {
@@ -1853,7 +1865,7 @@ export async function createVttSceneRenderer(
     if (overlay.kind === 'CIRCLE') {
       graphic
         .circle(overlay.center.x, overlay.center.y, overlay.radius)
-        .fill({ alpha: 0.1, color: overlay.color })
+        .fill({ alpha: overlay.purpose === 'ZONE' ? 0.18 : 0.1, color: overlay.color })
         .stroke({ alpha: 0.9, color: overlay.color, width: overlay.purpose === 'TARGET' ? 5 : 3 })
     } else if (overlay.kind === 'PATH') {
       const first = overlay.points[0]
@@ -1863,7 +1875,7 @@ export async function createVttSceneRenderer(
     } else if (overlay.points.length >= 3) {
       graphic
         .poly(overlay.points.flatMap((point) => [point.x, point.y]))
-        .fill({ alpha: overlay.purpose === 'TRAP' ? 0.18 : 0.1, color: overlay.color })
+        .fill({ alpha: overlay.purpose === 'ZONE' ? 0.18 : 0.1, color: overlay.color })
         .stroke({ alpha: 0.85, color: overlay.color, width: 3 })
     }
     return graphic
@@ -2482,6 +2494,8 @@ export async function createVttSceneRenderer(
     focusPoint,
     focusToken,
     getDiagnostics() {
+      // While an area is aimed the measurement layer holds only the area under the pointer.
+      const aimed = current?.areaAim ? measurementLayer.children[0] : undefined
       return {
         activeDrag: drag
           ? {
@@ -2490,6 +2504,7 @@ export async function createVttSceneRenderer(
               route: drawnStyles(dragRouteLayer.children[0] ?? null, 'stroke')[0]?.paths[0] ?? []
             }
           : null,
+        areaAimOverlay: aimed ? drawnOverlay(aimed) : null,
         doorVisualCreateCount,
         dragRouteLabel:
           dragRouteLayer.children.find((child): child is PixiText => child instanceof pixi.Text)
@@ -2534,22 +2549,7 @@ export async function createVttSceneRenderer(
         loadedMapAssetCount: loadedMapUrls.size,
         mapLoadComplete,
         overlayCount: renderedOverlays?.length ?? 0,
-        overlays: presentationLayer.children.map((child) => ({
-          circles:
-            child instanceof pixi.Graphics
-              ? child.context.instructions.flatMap((instruction) =>
-                  instruction.action === 'stroke'
-                    ? instruction.data.path.shapePath.shapePrimitives.flatMap(({ shape }) =>
-                        shape instanceof pixi.Circle
-                          ? [{ center: { x: shape.x, y: shape.y }, radius: shape.radius }]
-                          : []
-                      )
-                    : []
-                )
-              : [],
-          label: child.label,
-          strokeColors: drawnStyles(child, 'stroke').map((stroke) => stroke.color)
-        })),
+        overlays: presentationLayer.children.map(drawnOverlay),
         sceneVersion: current?.scene.version ?? null,
         tokenArtCount: [...tokenVisuals.values()].filter((entry) => entry.presentation?.artUrl)
           .length,

@@ -562,11 +562,15 @@ function zoneComponentPlan(
       })
     : null
   const lingering = lingeringPlan?.modifierGrantContribution
-  // The grant is read only for its modifiers and end events; one that is also consumed or
-  // maintained would silently lose that behavior on a creature.
+  // The grant is read only for its modifiers and end events; one that is also consumed, ended by a
+  // structured trigger or maintained would silently lose that behavior on a creature.
   if (
     grant &&
-    (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
+    (!lingering ||
+      lingering.endTriggers.some(
+        (trigger) => trigger.event !== 'LIFECYCLE' || trigger.timing !== 'END'
+      ) ||
+      lingeringPlan?.maintenance)
   )
     unsupported('A placed zone grant must last until its end event.')
   const maintenance = maintenancePlan(action, primary)
@@ -596,7 +600,7 @@ function zoneComponentPlan(
           applyGrantOutcomeId: lingering.applyGrantOutcomeId,
           modifiers: [...lingering.modifiers],
           senses: [...lingering.senses],
-          endOnEvents: [...lingering.endOnEvents]
+          endTriggers: [...lingering.endTriggers]
         }
       : null,
     maintenance
@@ -615,15 +619,22 @@ function zoneHeldCondition(
     unsupported('A placed zone condition is a direct condition outcome.')
   const {
     heldBySource,
-    endOnEvents = [],
+    endTriggers = [],
     escape,
     turnAnchor,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
+  const leavingArea = endTriggers.map(
+    (trigger) =>
+      trigger.event === 'LIFECYCLE' &&
+      trigger.timing === 'END' &&
+      trigger.code === 'ON_LEAVING_AREA'
+  )
+  const leavesArea = leavingArea.some(Boolean)
   const unread =
     turnAnchor !== undefined || Object.values(otherLifecycle).some((value) => value !== undefined)
   if (!heldBySource) {
-    if (endOnEvents.includes('ON_LEAVING_AREA') || escape)
+    if (leavesArea || escape)
       unsupported('A placed zone condition that its zone does not hold has no leave or escape.')
     if (!turnAnchor) return null
     // The one timed form: until the end of the holder's turn, which the occupant's own turn
@@ -633,7 +644,7 @@ function zoneHeldCondition(
       turnAnchor.boundary !== 'END_OF_TURN' ||
       !entry.duration ||
       conditionDurationTurns(entry.duration) !== 1 ||
-      endOnEvents.length > 0 ||
+      endTriggers.length > 0 ||
       Object.values(otherLifecycle).some((value) => value !== undefined)
     )
       unsupported(
@@ -645,13 +656,13 @@ function zoneHeldCondition(
       ...(entry.outcome.recordsSource ? { recordsSource: true as const } : {})
     }
   }
-  if (unread || endOnEvents.some((event) => event !== 'ON_LEAVING_AREA'))
+  if (unread || !leavingArea.every(Boolean))
     unsupported(
       'A zone-held condition ends only with its zone, on leaving the area, or through its escape.'
     )
   return {
     conditionId: entry.outcome.conditionId,
-    ...(endOnEvents.length > 0 ? { endsOnLeavingArea: true as const } : {}),
+    ...(leavesArea ? { endsOnLeavingArea: true as const } : {}),
     ...(escape
       ? { escape: { activation: escape.activation, checks: escape.checks, dc: escape.dc } }
       : {})

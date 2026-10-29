@@ -150,7 +150,7 @@ export type VttScenePresentationOverlay =
       id: string
       kind: 'CIRCLE'
       label: string
-      purpose: 'AURA' | 'RANGE' | 'TARGET'
+      purpose: 'AURA' | 'RANGE' | 'TARGET' | 'ZONE'
       center: ScenePoint
       radius: number
     }
@@ -167,7 +167,7 @@ export type VttScenePresentationOverlay =
       id: string
       kind: 'POLYGON'
       label: string
-      purpose: 'AURA' | 'RANGE' | 'TARGET' | 'TRAP'
+      purpose: 'AURA' | 'RANGE' | 'TARGET' | 'ZONE'
       points: ScenePoint[]
     }
 
@@ -486,20 +486,60 @@ export function auraOverlays(
   })
 }
 
-/** The aura sentence for the canvas description; null when no aura is drawn. */
-export function describeAuraOverlays(
-  overlays: readonly VttScenePresentationOverlay[] | undefined
-): string | null {
-  const labels = (overlays ?? [])
-    .filter((overlay) => overlay.purpose === 'AURA')
-    .map((overlay) => overlay.label)
-  return labels.length > 0 ? `Auras: ${labels.join('; ')}` : null
+export const placedZoneColor = 0xc2255c
+
+/**
+ * The ZONE outline of each zone placed on the Scene (SPELLS-17), hazards and GM traps alike. The
+ * server lists only the zones the viewer may see (MOVE-3.3): every zone to the GM, a concealed one
+ * to a player only once one of their Characters knows of it. The GM's label names a concealed zone's
+ * spot DC, which a player never reads. A ring is drawn by its outer edge.
+ */
+export function placedZoneOverlays(
+  zones: EncounterSessionStateDto['placedZones']
+): VttScenePresentationOverlay[] {
+  return zones.map(({ id, label, shape, spotDc }) => {
+    const overlay = {
+      color: placedZoneColor,
+      id: `zone:${id}`,
+      label: `${label ?? 'Placed zone'}${spotDc ? ` (hidden, spot DC ${spotDc.value})` : ''}`,
+      purpose: 'ZONE' as const
+    }
+    return shape.kind === 'POLYGON'
+      ? { ...overlay, kind: 'POLYGON', points: [...shape.points] }
+      : {
+          ...overlay,
+          kind: 'CIRCLE',
+          center: shape.center,
+          radius: shape.kind === 'CIRCLE' ? shape.radius : shape.outerRadius
+        }
+  })
 }
 
 /**
- * The overlays the stage hands the renderer: the visible auras, the action preview while the drawer
- * is open (including while the caster aims an area's center), the picked area once it is no longer
- * being aimed, then the forced-movement destinations being picked.
+ * The aura and placed-zone sentences for the canvas description, e.g. "Auras: …. Zones: …"; null
+ * when neither is drawn.
+ */
+export function describeAreaOverlays(
+  overlays: readonly VttScenePresentationOverlay[] | undefined
+): string | null {
+  const sentences = (
+    [
+      ['Auras', 'AURA'],
+      ['Zones', 'ZONE']
+    ] as const
+  ).flatMap(([heading, purpose]) => {
+    const labels = (overlays ?? [])
+      .filter((overlay) => overlay.purpose === purpose)
+      .map((overlay) => overlay.label)
+    return labels.length > 0 ? [`${heading}: ${labels.join('; ')}`] : []
+  })
+  return sentences.length > 0 ? sentences.join('. ') : null
+}
+
+/**
+ * The overlays the stage hands the renderer: the visible placed zones and auras, the action preview
+ * while the drawer is open (including while the caster aims an area's center), the picked area once
+ * it is no longer being aimed, then the forced-movement destinations being picked.
  */
 export function stageOverlays({
   actionPreview,
@@ -509,6 +549,7 @@ export function stageOverlays({
   auras,
   destinationOverlays,
   drawerOpened,
+  placedZones,
   scene
 }: {
   actionPreview: VttActionPreview | null
@@ -518,6 +559,7 @@ export function stageOverlays({
   auras: EncounterSessionStateDto['auras']
   destinationOverlays: readonly VttScenePresentationOverlay[]
   drawerOpened: boolean
+  placedZones: EncounterSessionStateDto['placedZones']
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
   // A directed area is drawn from the token the action is previewed for.
@@ -525,6 +567,7 @@ export function stageOverlays({
   const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
   const band = picked && areaSize && areaAim ? areaBandOverlay(areaSize, areaAim) : null
   const overlays = [
+    ...(scene ? placedZoneOverlays(placedZones) : []),
     ...(scene ? auraOverlays(auras, scene.tokens) : []),
     ...(drawerOpened && scene ? actionPreviewOverlays(actionPreview, scene) : []),
     ...(picked ? [picked] : []),

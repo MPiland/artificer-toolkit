@@ -12,6 +12,7 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { RoomEncounterStore } from '../roomEncounterStore.js'
+import { characterHeadDocument } from '../roomInputs.js'
 import { characterPageFixtureFor } from './characterPageFixture.js'
 import { buildSrdSourceKinds } from './srdCharacterSource.js'
 
@@ -82,23 +83,13 @@ export function srdRoomHydration(
 ): Pick<Parameters<RoomEncounterStore['hydrate']>[0], 'documents' | 'records'> {
   if (!owner) throw new Error('Missing Character fixture.')
   const stored = characterStoredRowSchema.parse(owner)
-  const {
-    _id,
-    _creationTime,
-    documentJson: _documentJson,
-    sheetState: _sheetState,
-    checksum: _checksum,
-    sheetStateChecksum: _sheetStateChecksum,
-    play,
-    ...head
-  } = stored
-  const { _id: playId, _creationTime: playCreationTime, ...playFields } = play
+  const { _id: playId, _creationTime: playCreationTime, ...playFields } = stored.play
   const held = { ...part, inputs: part.inputs && { ...part.inputs, owner: stored } }
   // The System inputs are not stamped with the Character's revision, so a Builder edit leaves them current.
   const systemRevisions = part.revisions.filter(({ scope }) => scope !== 'CHARACTER')
   return {
     documents: [
-      { table: 'characters', id: _id, creationTime: _creationTime, fields: head },
+      characterHeadDocument(stored),
       {
         table: 'characterPlayStates',
         id: playId,

@@ -9,7 +9,10 @@ describe('the authored lifecycle turn anchor (SPELLS-5 D99)', () => {
     ['SOURCE', 'START_OF_TURN'],
     ['SOURCE', 'END_OF_TURN']
   ] as const)('accepts %s at %s', (actor, boundary) => {
-    const lifecycle = { turnAnchor: { actor, boundary }, consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+    const lifecycle = {
+      turnAnchor: { actor, boundary },
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+    }
     expect(pathLifecycleDtoSchema.parse(lifecycle)).toEqual(lifecycle)
   })
 

@@ -19,7 +19,8 @@ import type {
   NodeLocalCollectionSource,
   RuntimeNodeEntry,
   RuntimeNodeMap,
-  NodeSelectSource
+  NodeSelectSource,
+  RelationshipPlan
 } from '@artificer-toolkit/shared/maps'
 import {
   clearValuesAtPaths,
@@ -642,13 +643,21 @@ async function resolveNode(
   }
 }
 
-// A data source keeps an unknown value when it says so; a System core-code table refuses it.
+/** Whether a plan reads only System core-code tables, directly or through every branch of a condition. */
+export function readsOnlyCoreCodes(plan: RelationshipPlan): boolean {
+  if (plan.kind === 'TABLE') return coreCodeTables.has(plan.table)
+  if (plan.kind !== 'CONDITION') return false
+  return (
+    plan.choices.every((choice) => readsOnlyCoreCodes(choice.plan)) &&
+    (plan.fallback === undefined || readsOnlyCoreCodes(plan.fallback))
+  )
+}
+
+// A data source keeps an unknown value when it says so; a System core-code source refuses it.
 function unknownOptionsPolicy(source: NodeSelectSource): 'PRESERVE' | 'REFUSE' | undefined {
   if (source.kind !== 'DATA') return undefined
   if (source.preserveUnknownOptions) return 'PRESERVE'
-  return source.relationship.kind === 'TABLE' && coreCodeTables.has(source.relationship.table)
-    ? 'REFUSE'
-    : undefined
+  return readsOnlyCoreCodes(source.relationship) ? 'REFUSE' : undefined
 }
 
 async function resolveOptions(

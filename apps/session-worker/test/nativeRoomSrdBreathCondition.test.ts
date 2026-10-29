@@ -169,7 +169,7 @@ describe.each([
         const { recurrence, frozenGraphNodeId } = JSON.parse(effect.definitionJson)
         // "for 1 minute" is ten rounds.
         expect(recurrence.expiration).toMatchObject({ kind: 'TICKS', initialRemaining: 10 })
-        expect(recurrence.endOnTriggers).toEqual(
+        expect(recurrence.endTriggers).toEqual(
           endsOnDamage ? [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] : []
         )
         expect(recurrence.recurrenceStage).toBe('END_OF_TURN')

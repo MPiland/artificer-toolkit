@@ -683,7 +683,6 @@ function byLabel(left: { id: string; label: string }, right: { id: string; label
 // Registry documents passed the publication schema; authored refinements narrow its inferred DTO.
 const toClassSource = (document: ClassAuthored) =>
   toContentSnapshotIndexEntry({ subjectKind: 'CLASS', document: document as ClassAuthoredDto })
-/** The Class pool matters only once a selected Class reaches its subclass level. */
 /** A Class past its subclass level without a readable subclass needs the subclass options. */
 function isSubclassSelectionDue(character: CharacterAuthored, classes: readonly CompiledClass[]) {
   return character.intent.classes.some(

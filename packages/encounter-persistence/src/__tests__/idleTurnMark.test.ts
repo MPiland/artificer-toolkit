@@ -19,10 +19,7 @@ const HOLDER_ID = '00000000-0000-4000-8000-0000000e0002'
 const OTHER_ID = '00000000-0000-4000-8000-0000000e0003'
 const GRANT_ID = '00000000-0000-4000-8000-0000000e0004'
 
-const marked = (
-  actor: ReturnType<typeof creatureActor>,
-  mark: 'ARMED' | 'ENGAGED' | null
-) =>
+const marked = (actor: ReturnType<typeof creatureActor>, mark: 'ARMED' | 'ENGAGED' | null) =>
   encounterRunActorStateSchema.parse({
     ...actor,
     resources: withEncounterActorIdleTurnMark(actor, mark)
@@ -80,13 +77,17 @@ describe('arming an actor given an idle-bound grant', () => {
   const actor = creatureActor({ id: HOLDER_ID, snapshot: {} })
 
   it('arms a holder that is not on its own turn', async () => {
-    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
+    const grant = await createdGrant({
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }]
+    })
     const armed = armIdleTurnActor({ actor, createdEffects: [grant], currentActorId: OTHER_ID })
     expect(encounterActorIdleTurnMark(armed)).toBe('ARMED')
   })
 
   it('exempts the turn the grant starts on by arriving engaged', async () => {
-    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
+    const grant = await createdGrant({
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }]
+    })
     const engaged = armIdleTurnActor({ actor, createdEffects: [grant], currentActorId: HOLDER_ID })
     expect(encounterActorIdleTurnMark(engaged)).toBe('ENGAGED')
   })
@@ -99,11 +100,13 @@ describe('arming an actor given an idle-bound grant', () => {
   })
 
   it.each(['ARMED', 'ENGAGED'] as const)('keeps the mark of a holder already %s', async (mark) => {
-    const grant = await createdGrant({ endOnEvents: ['ON_IDLE_TURN'] })
+    const grant = await createdGrant({
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }]
+    })
     const before = marked(actor, mark)
-    expect(armIdleTurnActor({ actor: before, createdEffects: [grant], currentActorId: OTHER_ID })).toBe(
-      before
-    )
+    expect(
+      armIdleTurnActor({ actor: before, createdEffects: [grant], currentActorId: OTHER_ID })
+    ).toBe(before)
   })
 })
 

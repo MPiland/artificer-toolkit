@@ -162,7 +162,7 @@ export const wayOfTheOpenHand: ClassAuthored = {
                 resultKind: 'SINGLE',
                 // Sanctuary from long rest to long rest: it ends early as the spell does.
                 lifecycle: {
-                  endOnTriggers: [
+                  endTriggers: [
                     { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
                     { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
                   ],

@@ -156,7 +156,9 @@ export const oathOfDevotion: ClassAuthored = {
                   amount: 1
                 },
                 lifecycle: {
-                  endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+                  endTriggers: [
+                    { event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }
+                  ],
                   endOnConditionIds: [conditionTypeId('UNCONSCIOUS')]
                 },
                 outcomes: [

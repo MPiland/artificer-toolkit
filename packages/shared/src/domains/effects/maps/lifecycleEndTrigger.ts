@@ -1,14 +1,18 @@
 import { type PathLifecycleAuthored } from '#authored'
 import { buildNodeMap, type NodeMap } from '#utils'
 
-type PathLifecycleEndTriggerNode = NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
+type PathLifecycleEndTriggerNode = NonNullable<PathLifecycleAuthored['endTriggers']>[number]
+
+const CODE_COLUMNS = ['id', 'label', 'description'] as const
 
 const pathLifecycleEndTrigger = buildNodeMap<PathLifecycleEndTriggerNode>()
 export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTriggerNode> =
   pathLifecycleEndTrigger.define('pathLifecycleEndTrigger', ({ map, nodes, data, cond }) => {
     const { selectSingle, selectMulti, number } = nodes
-    const { table } = data
-    const event = cond.local().field(['event'])
+    const { table, condition } = data
+    const local = cond.local()
+    const event = local.field(['event'])
+    const isLifecycle = event.eq('LIFECYCLE')
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
     const isActionTrait = event.eq('ACTION_TRAIT')
     const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
@@ -24,6 +28,7 @@ export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTrigge
           {
             kind: 'INLINE_OPTIONS',
             options: [
+              { code: 'LIFECYCLE', label: 'A System lifecycle event' },
               { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
               { code: 'ACTION_TRAIT', label: 'The holder acts against an enemy' },
               {
@@ -35,6 +40,39 @@ export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTrigge
             ]
           },
           { requiredIf: true }
+        )
+      )
+      .set(
+        'timing',
+        selectSingle(
+          ['timing'],
+          'Timing',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'CONSUME', label: 'Used up: applies to the event, then ends' },
+              { code: 'END', label: 'Ends on the event' }
+            ]
+          },
+          { requiredIf: isLifecycle, showIf: isLifecycle }
+        )
+      )
+      .set(
+        'code',
+        selectSingle(
+          ['code'],
+          'Event',
+          {
+            kind: 'DATA',
+            relationship: condition((c) =>
+              c
+                .if(local.field(['timing']).eq('CONSUME'))
+                .then((o) => o.table('effect_consume_events', { selectColumns: CODE_COLUMNS }))
+                .else((o) => o.table('effect_end_events', { selectColumns: CODE_COLUMNS }))
+                .end()
+            )
+          },
+          { requiredIf: isLifecycle, showIf: isLifecycle }
         )
       )
       .set(

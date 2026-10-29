@@ -6,6 +6,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { MoraleDispositionDto } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
 import {
   activeGrantLabel,
@@ -20,6 +21,13 @@ const healthColours = {
   WOUNDED: 0xf08c00
 } as const
 const DEFEATED_COLOUR = 0x495057
+
+/** A confirmed morale outcome the token shows; a creature that fights on shows none. */
+const moraleOutcomeLabels = {
+  CONTINUE: null,
+  FLEE: 'Fled',
+  SURRENDER: 'Surrendered'
+} as const satisfies Record<MoraleDispositionDto, string | null>
 
 /** The token's inner ring shows the actor's disposition; a token with no actor keeps white. */
 export const dispositionRingColours = {
@@ -130,6 +138,10 @@ export function buildVttTokenPresentations(input: {
     else if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push(statusFromValues(`health:${healthBand}`, 'HEALTH', titleCase(healthBand)))
     }
+    // Like health, only the GM projection carries morale, so players see no outcome.
+    const moraleDisposition = actor && 'morale' in actor ? actor.morale?.disposition : null
+    const moraleOutcome = moraleDisposition ? moraleOutcomeLabels[moraleDisposition] : null
+    if (moraleOutcome) statuses.push(statusFromValues('morale', 'MORALE', moraleOutcome))
     // Everyone sees the GM's cover override, as they see what the target hides behind.
     const coverStatus = tokenCoverStatus(token.coverTierOverride, input.coverTiers)
     if (coverStatus) statuses.push(coverStatus)

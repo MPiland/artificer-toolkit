@@ -84,13 +84,13 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       const asleep = await attackOgre(attacker, feature, [...hit, marginFace])
       expect([...asleep.conditionIds].sort()).toEqual([POISONED, UNCONSCIOUS].sort())
       expect(asleep.effects.recurringEffect?.definition.recurrence).toMatchObject({
-        endOnTriggers: [],
+        endTriggers: [],
         expiration: { kind: 'TICKS', initialRemaining: turns }
       })
       // The sleep is its own effect: it lasts as long as the poison, or until it is woken.
       expect(asleep.effects.riderEffects[0]?.definition).toMatchObject({
         recurrence: {
-          endOnTriggers: WAKE_TRIGGERS,
+          endTriggers: WAKE_TRIGGERS,
           expiration: { kind: 'TICKS', initialRemaining: turns }
         },
         stateContributions: [
@@ -138,7 +138,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       id: testUuid(0x2209),
       owner,
       createdOrdinal: 1,
-      endOnEvents: ['ON_ATTACK_ROLL'],
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' }],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: POISONED, baselinePresent: false }
       ]
@@ -321,7 +321,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
                                       }
                                     ],
                                     lifecycle: {
-                                      endOnTriggers: [
+                                      endTriggers: [
                                         { event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const },
                                         {
                                           event: 'ACTION_USED_ON_HOLDER' as const,

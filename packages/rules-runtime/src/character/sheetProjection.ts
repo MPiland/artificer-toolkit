@@ -31,6 +31,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import { sheetSpellSummonConcentration, sheetSpellSummonExtra } from './sheetSpellSummon.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -714,6 +715,22 @@ interface ProjectCharacterSheetBundleParams {
 interface CharacterSheetProjectionBundle {
   sheet: CharacterSheetResponseDto
   ruleProjection: CharacterSheetRuleProjection
+}
+
+/** The Sheet's option for one Equipment catalogue entry. */
+export function projectCharacterSheetEquipmentOption(
+  equipment: Pick<
+    CharacterBuilderEquipmentCatalogRecord,
+    'id' | 'label' | 'isContainer' | 'maxStack' | 'requiresAttunement'
+  >
+) {
+  return {
+    id: equipment.id,
+    label: equipment.label,
+    isContainer: equipment.isContainer,
+    ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
+    requiresAttunement: equipment.requiresAttunement
+  }
 }
 
 export function projectCharacterSheetBundle(
@@ -1485,13 +1502,7 @@ export function projectCharacterSheetBundle(
         value: formatSenseRange(sense)
       })),
       conditionOptions,
-      equipmentOptions: resolution.catalog.equipment.map((equipment) => ({
-        id: equipment.id,
-        label: equipment.label,
-        isContainer: equipment.isContainer,
-        ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
-        requiresAttunement: equipment.requiresAttunement
-      })),
+      equipmentOptions: resolution.catalog.equipment.map(projectCharacterSheetEquipmentOption),
       currencyOptions
     },
     notes: projectCharacterSheetNotes(character)

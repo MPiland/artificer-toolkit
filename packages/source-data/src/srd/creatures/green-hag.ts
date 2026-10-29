@@ -151,7 +151,10 @@ export const greenHag: CreatureAuthored = {
           effectId: S.actionId(151, 209),
           rangeId: S.actionId(151, 1206),
           pathId: S.actionId(151, 210),
-          endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+          endTriggers: [
+            { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+            { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+          ]
         })
       ],
       order: 6

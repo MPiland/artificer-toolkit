@@ -45,19 +45,18 @@ export type PathLifecycleAuthored = {
   recurringKind?: PathLifecycleRecurringKind
   /** Whose turn boundary counts a timed effect down; absent means the target's end of turn. */
   turnAnchor?: PathLifecycleTurnAnchorAuthored
-  /** System `effectConsumeEvent` codes. */
-  consumeOnFirstEvents?: string[]
-  /** System `effectEndEvent` codes. */
-  endOnEvents?: string[]
   /**
-   * Events that end the effect early. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
+   * Events that end the effect early. A lifecycle event names a System code by timing (D122):
+   * `CONSUME` takes an `effectConsumeEvent` code and applies the effect to that event first
+   * (Guidance's die joins the check it ends on); `END` takes an `effectEndEvent` code. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
    * action with a System-listed trait (an attack roll, a cast) ends it only against an enemy (Sanctuary); another creature using one of
    * the named basic actions on the holder ends it (rousing a sleeper); the effect source being
    * incapacitated or defeated ends it on every holder (Knight Leadership); the holder standing more
    * than `beyondFeet` from the effect source ends it (Warding Bond).
    */
-  endOnTriggers?: (
+  endTriggers?: (
+    | { event: 'LIFECYCLE'; timing: 'CONSUME' | 'END'; code: string }
     | {
         event: 'DAMAGE_TAKEN'
         by: 'ANYONE' | 'SOURCE_SIDE'

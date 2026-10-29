@@ -347,22 +347,8 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         })
       )
       .set(
-        'consumeOnFirstEvents',
-        selectMulti(['consumeOnFirstEvents'], 'Consume On First Event', {
-          kind: 'DATA',
-          relationship: table('effect_consume_events', { selectColumns: CODE_COLUMNS })
-        })
-      )
-      .set(
-        'endOnEvents',
-        selectMulti(['endOnEvents'], 'End On Events', {
-          kind: 'DATA',
-          relationship: table('effect_end_events', { selectColumns: CODE_COLUMNS })
-        })
-      )
-      .set(
-        'endOnTriggers',
-        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+        'endTriggers',
+        groupArray(['endTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -947,8 +933,8 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
     'followUpSaveFailureMarginRiderLifecycle',
     ({ map, nodes }) => {
       map.set(
-        'endOnTriggers',
-        nodes.groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+        'endTriggers',
+        nodes.groupArray(['endTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
           presentation: 'inline'
         })
       )

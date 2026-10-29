@@ -1,4 +1,5 @@
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import {
@@ -38,7 +39,7 @@ export function maintenancePlan(
 }
 
 /** The end triggers a timed modifier grant carries: its source's incapacitation, its holder's separation from the source (Warding Bond), or its holder attacking or casting at an enemy (Sanctuary). */
-export const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
+const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
   'INCAPACITATED',
   'SEPARATED',
   'ACTION_TRAIT'
@@ -47,12 +48,18 @@ export const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
 const grantableCodes = (entries: readonly { code: string; grantable?: boolean }[]) =>
   new Set(entries.flatMap(({ code, grantable }) => (grantable ? [code] : [])))
 
-const GRANT_CONSUME_EVENTS = grantableCodes(DND5E_EFFECT_CONSUME_EVENTS)
-const GRANT_END_EVENTS = grantableCodes(DND5E_EFFECT_END_EVENTS)
+const GRANT_LIFECYCLE_CODES = {
+  CONSUME: grantableCodes(DND5E_EFFECT_CONSUME_EVENTS),
+  END: grantableCodes(DND5E_EFFECT_END_EVENTS)
+}
 
-export const isGrantConsumeEvent = (event: string) => GRANT_CONSUME_EVENTS.has(event)
-
-export const isGrantEndEvent = (event: string) => GRANT_END_EVENTS.has(event)
+/** Whether a timed grant may carry the end trigger: a grantable lifecycle code for its timing, or a grant end trigger. */
+export const isGrantEndTrigger = (
+  trigger: NonNullable<PathLifecycleAuthored['endTriggers']>[number]
+) =>
+  trigger.event === 'LIFECYCLE'
+    ? GRANT_LIFECYCLE_CODES[trigger.timing].has(trigger.code)
+    : GRANT_END_TRIGGER_EVENTS.has(trigger.event)
 
 export function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`

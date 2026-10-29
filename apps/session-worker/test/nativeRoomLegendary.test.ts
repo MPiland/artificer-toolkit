@@ -493,7 +493,10 @@ describe('a Legendary Action uses up the owner’s one-roll grants (SPELLS-5.4)'
       seed: seedModifierGrant({
         sourceActorId: WOLF_ID,
         holderActorId: FIRST_DRAGON_ID,
-        lifecycle: endsOn === 'CAST' ? {} : { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        lifecycle:
+          endsOn === 'CAST'
+            ? {}
+            : { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }] },
         ownedConditionId,
         ...(endsOn === 'CAST' && { endsOnCast: true as const })
       })

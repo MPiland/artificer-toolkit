@@ -77,10 +77,12 @@ authoring: {
 
 Invalid examples include `presentation: 'focused-drawer'`, manual ordering without `identityPath`, a scalar input with options, a select input without a source, duplicate action types, `tone: '#ff9900'`, and any platform class or token path.
 
-Grant lifecycle options on an effect (`path.ts`) are generic node-map options, not class rules: `endOnEvents`
-(`ON_INCAPACITATED`; `ON_MOVE`, the holder's voluntary movement; `ON_TAKE_ACTION`, any action, bonus action or reaction the holder takes; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
+Grant lifecycle options on an effect (`path.ts`) are generic node-map options, not class rules: `endTriggers`, one list of
+structured triggers (SPELLS-27.T6). A `LIFECYCLE` trigger (`{ event: 'LIFECYCLE', timing, code }`) names a System lifecycle code:
+`timing: 'CONSUME'` uses the grant up on the code's first occurrence (codes from `effect_consume_events`), and
+`timing: 'END'` ends it (codes from `effect_end_events`: `ON_INCAPACITATED`; `ON_MOVE`, the holder's voluntary movement; `ON_TAKE_ACTION`, any action, bonus action or reaction the holder takes; `ON_IDLE_TURN`, the grant ends at the end of its holder's turn when the holder made no attack roll against a
 hostile creature and took no damage since their previous turn), `endOnConditionIds` (a `condition_types` multi-select; the grant ends while its holder has any of them),
-`holderEnd` (`{ activation }`, the holder may end it at that cost), `consumeOnFirstEvents`, `fromSourceOnly` (only the
+`holderEnd` (`{ activation }`, the holder may end it at that cost), `fromSourceOnly` (only the
 effect's source meets its attacker grants and its attack consume) and `activeOnlyOnFinalAnchorTurn` (the timed effect is
 dormant until its tick anchor's final counted turn and active only during it; SPELLS-4.T2k1). Modifier facets include
 `TURN_MOVEMENT` (a facet predicate: the holder has moved at most `maxFeet`, or `maxSpeedFraction` of its speed, this turn; decided live from the Encounter's turn movement),

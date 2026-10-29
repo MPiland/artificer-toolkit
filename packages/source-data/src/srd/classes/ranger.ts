@@ -886,7 +886,12 @@ export const ranger: ClassAuthored = {
             result: classRowId(RA, 0x81, 13)
           },
           activation: ACTIVATION_CODE.ACTION,
-          lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+          lifecycle: {
+            endTriggers: [
+              { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' },
+              { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' }
+            ]
+          },
           outcome: {
             id: classRowId(RA, 0x82, 13),
             effectKind: EFFECT_KIND.APPLY_GRANT,

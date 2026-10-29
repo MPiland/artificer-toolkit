@@ -972,7 +972,9 @@ describe('room area commit with a grant that ends on incapacitation (D113)', () 
             encounterId,
             sourceActorId: CAUGHT_IDS[0]!,
             holderActorId: CAUGHT_IDS[0]!,
-            lifecycle: { endOnEvents: ['ON_INCAPACITATED'] },
+            lifecycle: {
+              endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }]
+            },
             rounds: 10
           }).definition,
           occurredAt
@@ -1037,7 +1039,9 @@ describe('room area commit with a grant that ends on incapacitation (D113)', () 
           encounterId,
           sourceActorId: CAUGHT_IDS[0]!,
           holderActorId: CAUGHT_IDS[0]!,
-          lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] }
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
+          }
         })
         await effects.create({
           id: GRANT_ID,

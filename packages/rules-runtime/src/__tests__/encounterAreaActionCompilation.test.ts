@@ -709,7 +709,7 @@ describe('hit-point pool area compilation from the SRD (SPELLS-27.T8)', () => {
             durationKind: 'MINUTE',
             amount: 1
           },
-          lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE' }] },
+          lifecycle: { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE' }] },
           outcomes: [
             {
               id: '00000000-0000-4000-8000-000000008207',
