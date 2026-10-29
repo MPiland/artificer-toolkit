@@ -20365,9 +20365,10 @@
             {
               "id": "RELIABILITY-21.19",
               "text": "Slices gate on Tests, Live backend and the browser journeys their acceptance criteria name; merge batches run every journey in shards; a journey that fails only on a merge batch is traced to the slice that broke it; recurring flaky proofs (account-deletion fixture cleanup timeout, disarm, effects) are fixed or labelled first.",
-              "status": "TODO",
-              "proof": [],
-              "origin": []
+              "status": "DONE",
+              "proof": ["heldAccountDeletion.test.ts"],
+              "origin": [],
+              "note": "Closed 2026-10-29 by RELIABILITY-21.T21, RELIABILITY-21.T22, RELIABILITY-21.T23, RELIABILITY-21.T24."
             }
           ],
           "tasks": [
@@ -20691,7 +20692,7 @@
             },
             {
               "id": "RELIABILITY-21.T22",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.19"],
               "wsjf": {
                 "bv": 3,
@@ -20700,7 +20701,9 @@
                 "size": 2
               },
               "text": "Bound auth:onDelete (account deletion) under the 1 s Convex limit on the CI runner, for example by scheduling the per-table deletes in bounded batches; remove the account-deletion-browser known-bug label.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). D199 (user 2026-10-28): staged deletion plus onCreate/onUpdate moved out of auth.ts; new ADR and persistence.md; size re-scored at push. D200 (2026-10-28): a held Character deleted after departure is removed from the Run on the deletion invalidate."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). D199 (user 2026-10-28): staged deletion plus onCreate/onUpdate moved out of auth.ts; new ADR and persistence.md; size re-scored at push. D200 (2026-10-28): a held Character deleted after departure is removed from the Run on the deletion invalidate. Merged in m540.",
+              "mergedAt": "2026-10-29T08:06:07Z",
+              "proof": "Tests 40836205101, Live backend 40838640813, Browser journeys 40836205115 on 117dbe80a; merge-slice 40839643098. Staged account deletion (D199): onDelete commits the gate, profile delete and job row; per-module bounded idempotent steps with token-guarded retry (accountDeletionJobs.ts); onCreate/onUpdate out of auth.ts. D200: a CHARACTER notice makes the room remove a frozen actor whose Character is DELETED. account-deletion-browser passed in 213 s and gates again; heldAccountDeletion.test.ts, owner-deletes-after-leaving regression, worker UNASSIGNED-stays-frozen unit test."
             },
             {
               "id": "RELIABILITY-21.T23",
