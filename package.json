@@ -88,7 +88,11 @@
     "vitest": "^4.1.12"
   },
   "resolutions": {
+    "@better-auth/core/zod": "4.5.4",
+    "@convex-dev/better-auth/zod": "4.5.4",
     "@convex-dev/react-query@npm:0.1.0": "patch:@convex-dev/react-query@npm%3A0.1.0#~/.yarn/patches/convex-react-query-npm-0.1.0-stale-query-removal.patch",
+    "auth/zod": "4.5.4",
+    "better-auth/zod": "4.5.4",
     "convex@npm:1.48.0": "patch:convex@npm%3A1.48.0#~/.yarn/patches/convex-npm-1.48.0-4174a5f4e7.patch",
     "prosemirror-model": "1.25.12"
   },
