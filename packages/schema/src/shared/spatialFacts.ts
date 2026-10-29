@@ -19,6 +19,21 @@ const coordinateSchema = lazySchema(() =>
 export const spatialPointDtoSchema = lazySchema(() =>
   z.strictObject({ x: coordinateSchema, y: coordinateSchema })
 )
+/**
+ * Where an aimed area goes, without its Scene fence: the point it is centered on, or the origin and
+ * the point a directed area extends toward.
+ */
+export const areaAimDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('POINT'), point: spatialPointDtoSchema }),
+    z.strictObject({
+      kind: z.literal('DIRECTED'),
+      origin: spatialPointDtoSchema,
+      toward: spatialPointDtoSchema
+    })
+  ])
+)
+export type AreaAimDto = z.infer<typeof areaAimDtoSchema>
 export const spatialTriggerDtoSchema = lazySchema(() => z.enum(['ENTER', 'EXIT', 'CROSS']))
 /**
  * The turn boundaries at which a creature standing in a zone is caught (not a movement), in

@@ -227,7 +227,8 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   Scene never plays, and no lookup ranks Runs by recency.
 - `RESOLVE_ACTION` naming a Creature's Legendary Action option is refused (`LEGENDARY_WINDOW_ONLY`),
   except the rule-raised root of a delegated Legendary area option (D197). After a turn end that
-  delegates one, the room raises that root, then once nothing is pending the continuation
+  delegates one, the room raises that root (at the aim the answer gave, for an aimed area), then once
+  nothing is pending the continuation
   `ADVANCE_TURN`, whose turn start raises its own effects.
 - Steps play cannot continue without (initiative, saves, Recharge, Legendary dice, dice during a move)
   refuse a GM void with `DECISION_REQUIRES_ANSWER`. Other voids cancel the occurrence
