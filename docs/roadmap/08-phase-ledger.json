@@ -499,20 +499,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "Code-quality groundwork",
+              "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "Audit: built (planLiveSceneCommand, callLiveSessionRoute with LIVE_SESSION_ROUTE_PATHS, ed1faa3e6); stateHttp single factory and fixture consolidation still to verify.",
+              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21.",
               "origin": ["CP-S1"],
               "id": "PLATFORM-13.2"
-            },
-            {
-              "text": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: convex-test 0.0.60 done (6507a4678); per-file timings unrecorded and the parallelism trial not run (vitest.config still serial).",
-              "origin": ["TST-0"],
-              "id": "PLATFORM-13.3"
             },
             {
               "text": "Relocate the pure files (about 25) out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
@@ -658,7 +650,7 @@
               "id": "PLATFORM-13.T1",
               "text": "Test speed, per-file work: convex-test 0.0.60 upgrade (6507a4678), the import.test.ts 5 s timeout regression of PLATFORM-13.6 (reads definitions only), and the partial serial timing baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). The module-load prepareSrdImport() subsetting was tried and reverted: no measurable gain.",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -680,22 +672,10 @@
               }
             },
             {
-              "id": "PLATFORM-13.T3",
-              "text": "Code-quality groundwork.",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.2"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 1,
-                "rr": 3,
-                "size": 5
-              }
-            },
-            {
               "id": "PLATFORM-13.T4",
               "text": "CI parallelism trial (pulled forward 2026-10-18): Convex 2 and Worker 4 file workers per job, Convex shards balanced by recorded file duration, no added jobs; Convex 4 rejected (developmentCustody timeouts); three clean full dispatches, no timeout raised. Tests wall time 18.4-19.8 to 10.5-12.2 min (docs/validation/platform-13-t4-ci-parallelism-2026-10-18.md).",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -707,22 +687,9 @@
               "mergedAt": "2026-10-18T17:36:12-05:00"
             },
             {
-              "id": "PLATFORM-13.T4b",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.3"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 8,
-                "rr": 8,
-                "size": 2,
-                "finalSource": true
-              },
-              "text": "End of phase, on the final source: the full-suite timing record (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (one test there carries a 20 s timeout). Split from T4 when the CI parallelism trial landed early."
-            },
-            {
               "id": "PLATFORM-13.T14",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
@@ -737,7 +704,7 @@
             {
               "id": "PLATFORM-13.T15",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 5,
@@ -767,7 +734,7 @@
             {
               "id": "PLATFORM-13.T17",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
@@ -12741,6 +12708,14 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-8.T6a merge review: hold-person.ts declares ANY targeting and the targeting schema has no allowed-types field, so a Character can paralyze a Wolf (the T5 journey does)."
+            },
+            {
+              "id": "SPELLS-8.6",
+              "text": "The Sheet shows attack and damage rows that match what the room rolls: active grants and modifiers (Bless, Hunter's Mark, Shillelagh's die and magical trait), proficiencies (pact weapon) and ability modifiers are folded in by the same shared code the room uses.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies."
             }
           ],
           "wsjf": {
@@ -12947,6 +12922,18 @@
               },
               "mergedAt": "2026-10-22T20:32:00Z",
               "note": "Merged in m352."
+            },
+            {
+              "id": "SPELLS-8.T15",
+              "status": "TODO",
+              "closes": ["SPELLS-8.6"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
             }
           ]
         },
@@ -15202,7 +15189,7 @@
             },
             {
               "id": "SPELLS-31.T4c1p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15212,7 +15199,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m541 (c57b95e37)."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -15288,7 +15275,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. 2026-10-29 ruling (option A on T4c1p): T4c3 builds the parent-class charge payment (paying with Bardic Inspiration) together with Cutting Words."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -19526,17 +19513,46 @@
           },
           "tasks": [
             {
-              "id": "RELIABILITY-10.T1",
+              "id": "RELIABILITY-10.T1a",
               "status": "TODO",
-              "closes": ["RELIABILITY-10.1", "RELIABILITY-10.2", "RELIABILITY-10.3"],
+              "closes": ["RELIABILITY-10.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "Builder submit, finalize and saving flags have one writer (CharacterBuilderStateSync); the Renderer publishes only progress; red-first regression test plus a builder journey through the real AuthoringLayout.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1b",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
                 "size": 8,
-                "after": ["RELIABILITY-8.T1"]
+                "after": ["RELIABILITY-10.T1a"]
               },
-              "text": "One state owner (top-level TanStack form) with behaviour-split stable contexts; narrow selectors so a keystroke re-renders only that field; builder submit/finalize/saving from one source with a red-first regression test (OQ-1 option 1)."
+              "text": "One resolution owner reads values through a debounced form.store subscription outside render; chrome reads step status, progress and navigation through narrow selectors; FormRenderer push-up effects deleted; AuthoringFormContext split into stable actions, navigation and mode contexts; render-count test on a real authored form plus a Profiler before/after in local-validation.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1c",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 5,
+                "after": ["RELIABILITY-10.T1b"]
+              },
+              "text": "Builder chrome reads the builder form directly (StateSync and the Renderer and AuthoringRuntime push-up effects deleted), the forms-to-domains type import removed, and AuthoringLayoutProvider and the Sheet CharacterSheetRollContext controller split by behaviour.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
             }
           ]
         },
@@ -21417,11 +21433,11 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
-                "size": 2,
+                "size": 3,
                 "after": ["PERF-3.T1", "PERF-1.T1"],
                 "finalSource": true
               },
-              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here.",
+              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here. Also record, from that full run on the final source, the full-suite timing (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (moved from PLATFORM-13.T4b, 2026-10-29).",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             }
           ]
@@ -22215,6 +22231,24 @@
       "id": "VTT_UI-6",
       "origin": [],
       "reason": "Conditional Creature senses need rules, authoring and live form state (the Wererat rat-form case has no actor form to check); moved whole to docs/roadmap/future-enhancements.md#conditional-creature-senses as a post-launch feature. Ruling packet: side-session-notes/vtt-ui-6-t1-ruling-packet.md in the VTT_UI-6.T1 session worktree.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.3",
+      "origin": ["TST-0"],
+      "reason": "Test speed work is done (convex-test upgrade, per-file timings, parallelism trial via PLATFORM-13.T1, T4, T14, T15, T17); the phase-end timing record (T4b) duplicated PERF-3.T2's full run and moved there.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.T3",
+      "origin": ["CP-S1"],
+      "reason": "Task text was only \"Code-quality groundwork.\" with no defined scope; PLATFORM-13.2 now means the native boundary audit, closed by PLATFORM-13.T21.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "RELIABILITY-10.T1",
+      "origin": [],
+      "reason": "Split into RELIABILITY-10.T1a, T1b and T1c (size 3 + 8 + 5).",
       "decision": "Approved by the user on 2026-10-29."
     }
   ],

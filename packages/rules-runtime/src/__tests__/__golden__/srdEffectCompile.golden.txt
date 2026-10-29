@@ -26,7 +26,7 @@
 00000000-0000-0000-c001-601500000000 CHARACTER:classes Primal Champion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-b20100000000 CHARACTER:classes Frenzy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-140100000000 CHARACTER:classes Cutting Words | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c002-140200000000 CHARACTER:classes Peerless Skill | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c002-140200000000 CHARACTER:classes Peerless Skill | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-600100000000 CHARACTER:classes Bardic Inspiration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c002-600300000000 CHARACTER:classes Jack of All Trades | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-600400000000 CHARACTER:classes Song of Rest | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
