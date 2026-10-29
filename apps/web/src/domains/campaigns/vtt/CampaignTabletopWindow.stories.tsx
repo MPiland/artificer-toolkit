@@ -21,6 +21,7 @@ import {
   createTabletopCampaign,
   tabletopCampaignId,
   tabletopConditions,
+  tabletopConfirmedMorale,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene,
@@ -1041,6 +1042,88 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
   }
 }
 
+// The scene canvas's description of its tokens, once the Warden is described.
+async function describedScene(page: ReturnType<typeof within>): Promise<string> {
+  return waitFor(() => {
+    const value = page
+      .getByRole('img', { name: 'Interactive campaign scene' })
+      .getAttribute('aria-description')
+    if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
+    return value
+  })
+}
+
+// VTT_UI-2 journey: the GM confirmed the Warden fled; its token says so in the canvas description
+// and in its status list.
+export const GmSeesMoraleOutcome: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, fledWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      fledWardenFixtures.gmEncounter
+    )
+    await expect(presentation.statuses).toContainEqual(
+      expect.objectContaining({ kind: 'MORALE', label: 'Fled' })
+    )
+    await expect(await describedScene(page)).toContain('Fled')
+    await expectDrawnWardenPresentation('OWNER', fledWardenFixtures.gmEncounter)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.hover(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${wardenToken.label}` })
+    )
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(list).getByText('Fled')).toBeVisible()
+  }
+}
+
+// VTT_UI-2 journey: in the same Run a player sees the Warden's conditions, never its health band or
+// the GM's morale outcome, and sees their own Character's reaction come up.
+export const PlayerSeesOnlyWhatTheyMay: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), null, fledWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const description = await describedScene(page)
+    await expect(description).toContain('Poisoned')
+    await expect(description).not.toContain('Wounded')
+    await expect(description).not.toContain('Fled')
+    // The harness binds no actor to Ember's token; its reaction is keyed by the token.
+    const scene = projectScene('PLAYER', fledWardenFixtures.liveScene)
+    const emberPresentation = buildTabletopPresentations({
+      actorIdByTokenId: new Map(),
+      boundTokenControl: new Map(),
+      currentUserId: tabletopCurrentUserId,
+      encounter: fledWardenFixtures.playerEncounter,
+      pending: fledWardenFixtures.pending!,
+      scene
+    })[emberToken.id]!
+    await expect(emberPresentation.halo?.label).toBe('Reaction available')
+    await expect(emberPresentation.accessibleDescription).toContain(
+      `${emberToken.label}. Scene token. Reaction available`
+    )
+    await expect(description).toContain(emberPresentation.accessibleDescription)
+    const renderer = await latestStageRenderer()
+    await waitFor(async () =>
+      expectDrawnPresentation(
+        drawnToken(renderer.getDiagnostics(), emberToken.id),
+        emberPresentation
+      )
+    )
+    await expectDrawnWardenPresentation('PLAYER', fledWardenFixtures.playerEncounter)
+  }
+}
+
 // D157: a push that leaves its target a choice waits on the board for the player whose Character
 // pushed; a press inside one of the highlighted legal squares answers it.
 export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
@@ -1221,6 +1304,40 @@ if (pushedWardenPending.kind !== 'FORCED_MOVEMENT_DESTINATION')
 const pushedWardenFixtures: TabletopFixtures = {
   ...presentedTokensFixtures,
   pending: pushedWardenPending
+}
+
+// VTT_UI-2 journey data: the GM confirmed the Warden fled, and Ember's reaction is up as it goes.
+const emberToken = presentedTokensFixtures.liveScene.tokens[0]!
+const emberActorId = presentedTokensFixtures.gmEncounter.actors[0]!.id
+const fledWardenFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: presentedTokensFixtures.gmEncounter.actors.map((actor) =>
+      actor.id === wardenId
+        ? { ...actor, morale: tabletopConfirmedMorale(wardenId, 'FLEE') }
+        : actor
+    )
+  },
+  pending: validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'MOVEMENT_REACTION',
+    occurrenceId: '12121212-1212-4121-8121-121212121213',
+    occurrenceVersion: 2,
+    encounterVersion: tabletopGmEncounter.version,
+    choice: {
+      pathDistance: 5,
+      reactorActorId: emberActorId,
+      reactorTokenId: emberToken.id,
+      options: [
+        {
+          optionId: 'a'.repeat(64),
+          actionId: 'opportunity-attack',
+          actionSourceKind: 'CHARACTER_ACTION'
+        }
+      ]
+    },
+    allowedResponses: ['DECLINE', 'OPTION']
+  })
 }
 
 // The Warden bound to a token but carrying no status, so only its disposition is listed.

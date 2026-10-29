@@ -4,10 +4,14 @@ import { facingArcSectors } from '@artificer-toolkit/shared/vtt'
 import { hideActiveGrantSources } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { srdMarkListing } from '@artificer-toolkit/rules-runtime/testing/srdMarkListing'
 import { activeGrantTimeLeft } from '../../../components/activeGrants/activeGrantDisplay'
-import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounters'
+import {
+  encounterPlayerActorDtoSchema,
+  type EncounterGmProjectionDto
+} from '@artificer-toolkit/schema/api/encounters'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
   tabletopConditions,
+  tabletopConfirmedMorale,
   tabletopGmEncounter,
   tabletopLiveScene,
   tabletopPlayerEncounter
@@ -154,6 +158,62 @@ describe('VTT token presentation model', () => {
 
     expect(result.statuses.some((status) => status.kind === 'HEALTH')).toBe(false)
     expect(result.fillColor).toBe(deterministicTokenColour(actor.id))
+  })
+
+  // VTT_UI-2.1: a confirmed morale outcome is GM-only, decided like the health band.
+  describe('morale outcome', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const enemyId = tabletopGmEncounter.actors[1]!.id
+    const present = (encounter: Parameters<typeof buildVttTokenPresentations>[0]['encounter']) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: new Map([[token.id, enemyId]]),
+        boundTokenControl: new Map(),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: { ...encounter, currentActorId: null },
+        pending: null,
+        scene
+      })[token.id]!
+    const gmWithMorale = (morale: EncounterGmProjectionDto['actors'][number]['morale']) =>
+      present({
+        ...tabletopGmEncounter,
+        actors: tabletopGmEncounter.actors.map((actor) =>
+          actor.id === enemyId ? { ...actor, morale } : actor
+        )
+      })
+
+    it('names a fled or surrendered creature for the GM in the status list and description', () => {
+      for (const [disposition, label] of [
+        ['FLEE', 'Fled'],
+        ['SURRENDER', 'Surrendered']
+      ] as const) {
+        const result = gmWithMorale(tabletopConfirmedMorale(enemyId, disposition))
+        expect(result.statuses.filter((status) => status.kind === 'MORALE')).toEqual([
+          { category: 'HARMFUL', id: 'morale', kind: 'MORALE', label }
+        ])
+        expect(result.accessibleDescription).toContain(label)
+      }
+    })
+
+    it('shows no outcome while the creature fights on, the GM has not confirmed, or none was checked', () => {
+      const unconfirmed = { ...tabletopConfirmedMorale(enemyId, 'FLEE'), disposition: null }
+      for (const morale of [tabletopConfirmedMorale(enemyId, 'CONTINUE'), unconfirmed, null])
+        expect(gmWithMorale(morale).statuses.some((status) => status.kind === 'MORALE')).toBe(false)
+    })
+
+    it('shows players no morale outcome, which their projection cannot carry', () => {
+      const playerActor = tabletopPlayerEncounter.actors.find((actor) => actor.id === enemyId)!
+      expect(encounterPlayerActorDtoSchema.safeParse(playerActor).success).toBe(true)
+      expect(
+        encounterPlayerActorDtoSchema.safeParse({
+          ...playerActor,
+          morale: tabletopConfirmedMorale(enemyId, 'FLEE')
+        }).success
+      ).toBe(false)
+      const player = present(tabletopPlayerEncounter)
+      expect(player.statuses.some((status) => status.kind === 'MORALE')).toBe(false)
+      expect(player.accessibleDescription).not.toMatch(/Fled|Surrendered/)
+    })
   })
 
   it('shows everyone the GM’s cover tier by its System label (SPELLS-14.T3)', () => {
