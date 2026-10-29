@@ -2695,6 +2695,7 @@ export declare const api: {
                   concentration: boolean;
                   customName?: string;
                   displayName: string;
+                  encounterActorId?: string;
                   equipmentItemIds: Array<string>;
                   features: Array<{
                     description?: string;
@@ -11083,6 +11084,11 @@ export declare const api: {
             }>;
             spellSummons?: Array<{
               abilityScores?: Record<string, number>;
+              actions?: Array<{
+                description?: string;
+                id: string;
+                label: string;
+              }>;
               armorClass: number | null;
               castAt: string;
               concentration: boolean;
@@ -11474,6 +11480,11 @@ export declare const api: {
               }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
+                actions?: Array<{
+                  description?: string;
+                  id: string;
+                  label: string;
+                }>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -11864,6 +11875,11 @@ export declare const api: {
               }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
+                actions?: Array<{
+                  description?: string;
+                  id: string;
+                  label: string;
+                }>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -12445,6 +12461,11 @@ export declare const api: {
                 }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
+                  actions?: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -13034,6 +13055,11 @@ export declare const api: {
                 }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
+                  actions?: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -13626,6 +13652,11 @@ export declare const api: {
               }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
+                actions?: Array<{
+                  description?: string;
+                  id: string;
+                  label: string;
+                }>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -14201,6 +14232,11 @@ export declare const api: {
                 }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
+                  actions?: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -17340,6 +17376,7 @@ export declare const api: {
                   concentration: boolean;
                   customName?: string;
                   displayName: string;
+                  encounterActorId?: string;
                   equipmentItemIds: Array<string>;
                   features: Array<{
                     description?: string;
@@ -21391,6 +21428,7 @@ export declare const api: {
                       concentration: boolean;
                       customName?: string;
                       displayName: string;
+                      encounterActorId?: string;
                       equipmentItemIds: Array<string>;
                       features: Array<{
                         description?: string;
