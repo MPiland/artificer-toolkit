@@ -299647,7 +299647,7 @@ export declare const internal: {
       store: FunctionReference<
         "mutation",
         "internal",
-        { characterId: string },
+        { characterId: string; token: string },
         null
       >;
     };
