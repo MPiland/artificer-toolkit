@@ -984,11 +984,13 @@ describe('native Convex authoring resolver', () => {
 
   it('lists definition choices from stored identities without decoding their documents', async () => {
     const { t, caller, userId } = await fixture()
+    // One import batch holds at most 10 definitions.
+    const imported = SRD_REUSABLE_DEFINITIONS.slice(0, 10).map((entry) =>
+      sourceImportDefinitionDtoSchema.parse(entry)
+    )
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: SRD_REUSABLE_DEFINITIONS.map((entry) =>
-        sourceImportDefinitionDtoSchema.parse(entry)
-      )
+      definitions: imported
     })
     const request = { mapId: 'feature', systemId: srdSystemRecord.id, values: {} }
     const choices = async () => {
@@ -1005,7 +1007,7 @@ describe('native Convex authoring resolver', () => {
         userId
       )
     )
-    expect(full.length).toBe(SRD_REUSABLE_DEFINITIONS.length)
+    expect(full.length).toBe(imported.length)
     const listed = await choices()
     expect(listed.map(({ value, label }) => ({ value, label }))).toEqual(
       full
