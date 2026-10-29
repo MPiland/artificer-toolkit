@@ -4,7 +4,6 @@ import { postRulesChatMessage } from '@artificer-toolkit/encounter-persistence/r
 import type { MutationCtx } from '../_generated/server'
 import { insertPreEvaluatedCampaignTableRoll } from '../campaigns/tableRoll'
 import { writeCharacterRecord } from '../characters/characterWrites'
-import { storeCharacterSheetSections } from '../characters/sheetSectionDerivation'
 import { executeEncounterCharacterCommand } from '../characters/encounterCommands'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -51,10 +50,7 @@ export function encounterWriteTransaction(
       postRulesChatMessage: (authority, input) =>
         postRulesChatMessage(encounterWriteTransaction(ctx), authority, input),
       writeCharacterRecord: async (input) => {
-        await writeCharacterRecord(ctx, {
-          ...input,
-          storeSheetSections: storeCharacterSheetSections
-        })
+        await writeCharacterRecord(ctx, input)
       },
       snapshotBlueprintEnemies: (userId, input) => snapshotBlueprintEnemies(ctx, userId, input),
       executeCharacterCommand: (userId, input) =>

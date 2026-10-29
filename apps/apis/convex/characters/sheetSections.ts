@@ -271,15 +271,34 @@ export async function writeCharacterSheetSections(
     await ctx.db.replace('characterSheetDerivations', stored._id, derivation)
 }
 
-const storeReference = makeFunctionReference<'mutation', { characterId: string }, null>(
-  'characters/sheetSectionDerivation:store'
-)
+const storeReference = makeFunctionReference<
+  'mutation',
+  { characterId: string; token: string },
+  null
+>('characters/sheetSectionDerivation:store')
+
+/** How long a queued derivation waits, so a burst of writes (a Builder session) derives once. */
+export const CHARACTER_SHEET_STORE_DELAY_MS = 300
+
+export function readCharacterSheetPendingStore(ctx: QueryCtx, characterId: string) {
+  return ctx.db
+    .query('characterSheetPendingStores')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+}
 
 /**
- * Queues the Sheet's derivation after a write that did not store it: Builder commit (referenced
- * content only), a resolution-scope command, a writer outside the Sheet's own commands and the
- * focused preference write.
+ * Queues the Sheet's derivation after a Character write; reads derive live until it lands. A newer
+ * write cancels the pending derivation and queues its own, so a Character has one at a time.
  */
 export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
-  await ctx.scheduler.runAfter(0, storeReference, { characterId })
+  const pending = await readCharacterSheetPendingStore(ctx, characterId)
+  if (pending) await ctx.scheduler.cancel(pending.scheduledId)
+  const token = crypto.randomUUID()
+  const scheduledId = await ctx.scheduler.runAfter(CHARACTER_SHEET_STORE_DELAY_MS, storeReference, {
+    characterId,
+    token
+  })
+  if (pending) await ctx.db.replace(pending._id, { characterId, scheduledId, token })
+  else await ctx.db.insert('characterSheetPendingStores', { characterId, scheduledId, token })
 }

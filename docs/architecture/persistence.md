@@ -548,7 +548,8 @@ changes one collection never rewrites an aggregate hash on the head.
 | `characterCreatureInstances`, `characterVehicleInstances`                       | One Creature or Vehicle instance with its state and equipment links                                                                     |
 | `characterNotes`, `characterNoteGroups`                                         | One note or group, preserving owner privacy and order                                                                                   |
 | `characterCommandReceipts`                                                      | Private Character command receipt headers (bodies are in ledgers)                                                                       |
-| `characterSheetDerivations`, `characterSheetSections`                           | Derived Sheet sections per viewer and their input fingerprint (ADR 0041); rewritten by Character writes                                 |
+| `characterSheetDerivations`, `characterSheetSections`                           | Derived Sheet sections per viewer and their input fingerprint (ADR 0041); rewritten by the derivation a Character write queues          |
+| `characterSheetPendingStores`                                                   | The one queued Sheet derivation per Character (ADR 0041); a newer write cancels and replaces it                                         |
 
 Campaign adjustments and conditions stay Campaign-scoped (`campaignCharacterStates`). Authored versions, drafts,
 snapshots and capture artifacts may keep validated checksummed JSON; normalization does not apply to authored

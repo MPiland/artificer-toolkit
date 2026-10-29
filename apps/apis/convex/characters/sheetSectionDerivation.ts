@@ -11,7 +11,6 @@ import { listCharacterSheetPanelTargets } from '@artificer-toolkit/rules-runtime
 import { projectCharacterSheetSlice } from '@artificer-toolkit/rules-runtime/character/sheetSlices'
 import { v } from 'convex/values'
 import type { MutationCtx } from '../_generated/server'
-import type { CampaignInternalScope } from '../campaigns/authority'
 import { internalMutation } from '../lib/mutations'
 import { loadCharacterState } from './documents'
 import { projectCharacterSheetPanel } from './panels'
@@ -22,6 +21,7 @@ import {
   characterSheetSection,
   isStoredCharacterSheetCurrent,
   readCharacterSheetFingerprint,
+  readCharacterSheetPendingStore,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
 } from './sheetSections'
@@ -45,12 +45,11 @@ function projectSlices(
 /**
  * Projects every stored Sheet section from the facts this write evaluated, for each viewer that
  * can read the Character: its owner, the GM of its Campaign and, while "Party can view" is on, the
- * party. Rule evaluation does not depend on the viewer, so the write evaluates once (ADR 0041).
+ * party. Rule evaluation does not depend on the viewer, so the derivation evaluates once (ADR 0041).
  */
-export async function storeCharacterSheetSections(
+async function storeCharacterSheetSections(
   ctx: MutationCtx,
-  facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>,
-  authorityScope?: CampaignInternalScope
+  facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>
 ) {
   const characterId = facts.active.id
   const campaign = facts.sourceContext.context.sourceAccess.campaign
@@ -93,20 +92,23 @@ export async function storeCharacterSheetSections(
     if (campaign && campaignContext === ownerContext && facts.sheetState.partyVisibility.sheet)
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
   }
-  // The facts carry the Character row as this transaction wrote it.
-  const fingerprint = await readCharacterSheetFingerprint(
-    ctx,
-    { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
-    authorityScope
-  )
+  const fingerprint = await readCharacterSheetFingerprint(ctx, {
+    active: facts.active,
+    hasDraft: facts.draft !== null,
+    publicId: facts.route.publicId
+  })
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
 export const store = internalMutation({
-  args: { characterId: v.string() },
+  args: { characterId: v.string(), token: v.string() },
   returns: v.null(),
-  handler: async (ctx, { characterId }) => {
+  handler: async (ctx, { characterId, token }) => {
+    // A newer write queued its own derivation; this one began before it could be cancelled.
+    const pending = await readCharacterSheetPendingStore(ctx, characterId)
+    if (pending && pending.token !== token) return null
+    if (pending) await ctx.db.delete(pending._id)
     const { active } = await loadCharacterState(ctx, characterId)
     // A deleted Character, or one that needs Builder repair, has no Sheet to store.
     if (active?.status !== 'ACTIVE') return null

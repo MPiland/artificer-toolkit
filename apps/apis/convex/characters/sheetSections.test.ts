@@ -224,7 +224,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(await readCommon()).toEqual(common)
   }, 60_000)
 
-  it('stores every section, panels included, within the Sheet command and queues nothing', async () => {
+  it('queues one derivation per Character, which a newer Sheet command replaces', async () => {
     const { t, player, character, input, visibility } = await setup()
     const [target] = listCharacterSheetPanelTargets(await player.caller.query(campaignSheet, input))
     const readStored = (section: string) =>
@@ -236,9 +236,17 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           section
         })
       )
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const readQueue = () =>
+      t.run(async (ctx) => ({
+        scheduled: (await ctx.db.system.query('_scheduled_functions').collect())
+          .filter((row) => row.state.kind === 'pending')
+          .map((row) => row._id),
+        pending: (await ctx.db.query('characterSheetPendingStores').collect()).map(
+          (row) => row.scheduledId
+        )
+      }))
 
-    await player.caller.mutation(api.characters.sheetCommands.execute, {
+    const adjusted = await player.caller.mutation(api.characters.sheetCommands.execute, {
       id: character.id,
       command: {
         type: 'UPSERT_SHEET_ADJUSTMENT',
@@ -247,14 +255,97 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         adjustment: { family: 'HIT_POINTS', field: 'MAXIMUM_MODIFIER', value: 1 }
       }
     })
-    // A queued re-derivation would rewrite the derivation row and rerun every subscribed slice
-    // read, so the command stores the whole Sheet itself.
-    const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
-    expect(scheduled.filter((row) => row.state.kind === 'pending').map((row) => row.name)).toEqual(
-      []
-    )
-    expect(await readStored(characterSheetSection.slice('COMMON'))).not.toBeNull()
+    const first = await readQueue()
+    expect(first.scheduled).toHaveLength(1)
+    expect(first.pending).toEqual(first.scheduled)
+    const damaged = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command: {
+        type: 'SET_HIT_POINTS',
+        commandId: crypto.randomUUID(),
+        expectedVersion: adjusted.streamVersion,
+        current: 1
+      }
+    })
+    const second = await readQueue()
+    expect(second.scheduled).toHaveLength(1)
+    expect(second.pending).toEqual(second.scheduled)
+    expect(second.scheduled).not.toEqual(first.scheduled)
+
+    // Until the queued derivation lands, every read derives live over the written Character.
+    expect(await readStored(characterSheetSection.slice('COMMON'))).toBeNull()
+    const live = {
+      common: await player.caller.query(api.characters.sheetSlices.get, {
+        id: character.id,
+        campaignId: input.campaignId,
+        slice: 'COMMON'
+      }),
+      panel: await player.caller.query(api.characters.panels.get, {
+        id: character.id,
+        target: target!
+      })
+    }
+    expect(live.common?.data.meta.streamVersion).toBe(damaged.streamVersion)
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(await readQueue()).toEqual({ scheduled: [], pending: [] })
+    expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(live.common)
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
+    expect(
+      await player.caller.query(api.characters.panels.get, { id: character.id, target: target! })
+    ).toEqual(live.panel)
+  }, 60_000)
+
+  it('queues no derivation for a Builder draft save', async () => {
+    const { t, player, character } = await setup()
+    const readPending = () => t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())
+    const edit = await player.caller.mutation(api.characters.drafts.create, {
+      id: character.id,
+      systemId: character.systemId
+    })
+    await player.caller.mutation(api.characters.drafts.save, {
+      expectedDraftId: edit.id,
+      characterId: character.id,
+      mode: 'edit',
+      character: { ...character, label: 'Unsaved edit', status: 'DRAFT' }
+    })
+    expect(await readPending()).toEqual([])
+  }, 60_000)
+
+  it('replays a Sheet command without rewriting the Character or queueing a derivation', async () => {
+    const { t, player, character, visibility } = await setup()
+    const command = {
+      type: 'SET_HIT_POINTS' as const,
+      commandId: crypto.randomUUID(),
+      expectedVersion: visibility.streamVersion,
+      current: 2
+    }
+    const readRecords = () =>
+      t.run(async (ctx) => {
+        const play = await ctx.db
+          .query('characterPlayStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+        const build = await ctx.db
+          .query('characterBuildStates')
+          .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
+          .unique()
+        return { play, build }
+      })
+    const executed = await player.caller.mutation(api.characters.sheetCommands.execute, {
+      id: character.id,
+      command
+    })
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    const written = await readRecords()
+
+    expect(
+      await player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: character.id,
+        command
+      })
+    ).toEqual(executed)
+    expect(await readRecords()).toEqual(written)
+    expect(await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())).toEqual([])
   }, 60_000)
 
   it('leaves the Character head every Campaign read joins unchanged across Sheet commands', async () => {
@@ -311,7 +402,8 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
       const { _id } = (await readDerivation())!
       await t.run((ctx) => ctx.db.patch(_id, { fingerprint: 'stale' }))
       await t.mutation(internal.characters.sheetSectionDerivation.store, {
-        characterId: character.id
+        characterId: character.id,
+        token: crypto.randomUUID()
       })
       return readDerivation()
     }
@@ -324,7 +416,8 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     await t.run((ctx) => ctx.db.patch(derivation!._id, { sections }))
 
     await t.mutation(internal.characters.sheetSectionDerivation.store, {
-      characterId: character.id
+      characterId: character.id,
+      token: crypto.randomUUID()
     })
     expect((await readDerivation())!.sections).toEqual(sections)
 

@@ -94,6 +94,12 @@ export const characterTables = {
   characterSheetSections: defineTable(
     zodToConvexFields(characterSheetSectionRecordSchema.shape)
   ).index('by_characterId_viewer_section', ['characterId', 'viewer', 'section']),
+  // The one queued Sheet derivation per Character; a newer write cancels and replaces it.
+  characterSheetPendingStores: defineTable({
+    characterId: v.string(),
+    scheduledId: v.id('_scheduled_functions'),
+    token: v.string()
+  }).index('by_characterId', ['characterId']),
   characterCommandReceipts: defineTable(
     zodToConvexFields(characterCommandReceiptHeaderSchema.shape)
   )

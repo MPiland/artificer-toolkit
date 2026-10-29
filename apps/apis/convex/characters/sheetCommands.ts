@@ -70,7 +70,6 @@ import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet, projectCharacterSheetFacts } from './sheetPreparation'
 import { writeCharacterRecord } from './characterWrites'
-import { storeCharacterSheetSections } from './sheetSectionDerivation'
 import type { CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterPublication, readCharacterSources } from './context'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -627,8 +626,7 @@ export async function executeCharacterSheetCommand(
       document,
       ...(sheetStateChanged ? { sheetState: nextSheetState } : {}),
       sourceContext: unchangedSources,
-      evaluateAs: { userId, campaignId },
-      storeSheetSections: storeCharacterSheetSections
+      evaluateAs: { userId, campaignId }
     })
   let written = await write(updated, initial.active)
   if (!written.facts) throw new Error('Character Sheet is unavailable after applying this command.')
