@@ -234,7 +234,10 @@ describe('feature choices and their rulings (SPELLS-31.T5k)', () => {
       [WARD_EFFECT_ID, WARD_TYPES.map(({ label }) => label), undefined]
     ] as const) {
       const { endEffects, options } = compiledOptions(homebrew, effectId)
-      expect(endEffects).toEqual([{ scope: 'ALL', selectors: [{ kind: 'SAME_EFFECT', effectId }] }])
+      // Each pick first ends what this same Effect granted before.
+      expect(endEffects).toEqual(
+        labels.map(() => ({ scope: 'ALL', selectors: [{ kind: 'SAME_EFFECT', effectId }] }))
+      )
       expect(options).toEqual(
         labels.map((label) => ({
           label,

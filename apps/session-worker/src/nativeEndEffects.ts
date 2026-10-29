@@ -37,7 +37,7 @@ import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 /**
  * An end-effects action's legal list is the target's own held effects it could end: one match is
  * picked for the caster, several need the caster's pick (a cast without one is rejected), none is
- * an overridable warning.
+ * an overridable warning when ending is all the action does.
  */
 export function planEndEffects(
   outcomes: readonly {
@@ -67,8 +67,11 @@ export function planEndEffects(
       reason: 'TARGET_UNAVAILABLE',
       message: 'Choose which effect on the target this ends.'
     })
+  // Nothing to end breaks a rule only when ending is all the action does; an action that also
+  // grants (Fiendish Resilience replacing its earlier resistance) simply has nothing to replace yet.
+  const onlyEnds = outcomes.every((outcome) => outcome.kind === 'EFFECT' && outcome.endEffects)
   const warnings: EncounterRuleWarningDto[] =
-    endEffects && offer.candidates.length === 0 && offer.checks.length === 0
+    endEffects && onlyEnds && offer.candidates.length === 0 && offer.checks.length === 0
       ? [TARGET_NOTHING_TO_END_WARNING]
       : []
   return { endEffects, offer, actorCreatureTypeIds, warnings }
