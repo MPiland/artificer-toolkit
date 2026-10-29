@@ -1031,12 +1031,12 @@ describe('native Convex authoring resolver', () => {
         .withIndex('by_publicId', (q) => q.eq('id', imported[1].id))
         .unique()
       if (!stored || !other) throw new Error('Missing definition fixture')
-      // A well-formed document whose checksum no longer matches the stored record.
+      // A well-formed document that belongs to another definition.
       await ctx.db.patch(stored._id, { documentJson: other.documentJson })
     })
     expect(await choices()).toEqual(listed)
     await expect(t.run((ctx) => readDefinitionRoot(ctx, definition.id, userId))).rejects.toThrow(
-      'Reusable definition integrity mismatch.'
+      'Reusable definition ID must match its document ID.'
     )
   })
 
