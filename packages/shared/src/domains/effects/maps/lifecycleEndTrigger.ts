@@ -69,6 +69,7 @@ export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTrigge
                 .if(local.field(['timing']).eq('CONSUME'))
                 .then((o) => o.table('effect_consume_events', { selectColumns: CODE_COLUMNS }))
                 .else((o) => o.table('effect_end_events', { selectColumns: CODE_COLUMNS }))
+                .end()
             )
           },
           { requiredIf: isLifecycle, showIf: isLifecycle }
