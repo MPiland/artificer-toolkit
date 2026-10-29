@@ -711,6 +711,8 @@ export function CampaignVttStage({
         auras: encounterSessionState?.auras ?? [],
         destinationOverlays: forcedMovementDestinationOverlays(destinationPick, focusedDestination),
         drawerOpened: actionsOpened,
+        // The Run's zones are fixed to its Scene; another presented Scene draws none.
+        placedZones: encounterScene ? (encounterSessionState?.placedZones ?? []) : [],
         scene: renderedScene ?? null
       }),
     [
@@ -720,6 +722,8 @@ export function CampaignVttStage({
       areaSize,
       destinationPick,
       encounterSessionState?.auras,
+      encounterScene,
+      encounterSessionState?.placedZones,
       focusedDestination,
       rendererAreaAim,
       renderedScene
