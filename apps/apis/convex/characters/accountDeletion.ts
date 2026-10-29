@@ -147,7 +147,7 @@ export async function removePrivateCharacter(
   const pendingStore = await readCharacterSheetPendingStore(ctx, characterId)
   if (pendingStore) {
     await ctx.scheduler.cancel(pendingStore.scheduledId)
-    await ctx.db.delete(pendingStore._id)
+    await ctx.db.delete('characterSheetPendingStores', pendingStore._id)
   }
   if (active) {
     await ctx.db.delete(active.play._id)

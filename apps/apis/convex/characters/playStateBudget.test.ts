@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
@@ -27,9 +27,14 @@ function playWriteBytes(totals: ReturnType<typeof createDatabaseIoTotals>) {
 }
 
 describe('Character play-state write budget', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('writes only the small play record for a Sheet HP change and an Encounter damage', async () => {
     const fixture = await setupCharacterRun()
-    const { player, character, actor, run } = fixture
+    const { t, player, character, actor, run } = fixture
+    // The Builder commit queues the Sheet's derivation (ADR 0041); let it store the sections.
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
     const sheet = await player.caller.query(api.characters.sheet.get, { id: character.id })
     if (!sheet) throw new Error('Expected Character Sheet.')
 

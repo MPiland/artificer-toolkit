@@ -299,6 +299,11 @@ export async function scheduleCharacterSheetSections(ctx: MutationCtx, character
     characterId,
     token
   })
-  if (pending) await ctx.db.replace(pending._id, { characterId, scheduledId, token })
+  if (pending)
+    await ctx.db.replace('characterSheetPendingStores', pending._id, {
+      characterId,
+      scheduledId,
+      token
+    })
   else await ctx.db.insert('characterSheetPendingStores', { characterId, scheduledId, token })
 }

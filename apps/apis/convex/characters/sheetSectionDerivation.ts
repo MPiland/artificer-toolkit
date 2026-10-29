@@ -58,7 +58,7 @@ export async function storeCharacterSheetSections(
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending) {
     await ctx.scheduler.cancel(pending.scheduledId)
-    await ctx.db.delete(pending._id)
+    await ctx.db.delete('characterSheetPendingStores', pending._id)
   }
   const campaign = facts.sourceContext.context.sourceAccess.campaign
   const ownerContext: CharacterSheetCampaignContext = {
@@ -117,7 +117,7 @@ export const store = internalMutation({
     // A newer write queued its own derivation; this one began before it could be cancelled.
     const pending = await readCharacterSheetPendingStore(ctx, characterId)
     if (pending && pending.token !== token) return null
-    if (pending) await ctx.db.delete(pending._id)
+    if (pending) await ctx.db.delete('characterSheetPendingStores', pending._id)
     const { active } = await loadCharacterState(ctx, characterId)
     // A deleted Character, or one that needs Builder repair, has no Sheet to store.
     if (active?.status !== 'ACTIVE') return null
