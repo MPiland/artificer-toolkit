@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { AuthoredCataloguePage } from '@artificer-toolkit/schema/api/authoredCatalogue'
 import type { CampaignPartyItemPage } from '@artificer-toolkit/schema/api/campaignInventoryPages'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
@@ -12,23 +13,55 @@ import {
   importedSubject,
   publicationFixture
 } from '../../tests/fixtures/publication'
+import { getFunctionName } from 'convex/server'
 import { api } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-import { items } from './partyInventoryPages'
+import { equipmentOptions, items } from './partyInventory'
 
 // RELIABILITY-21.2: four concurrent item pages ran 815-937 ms on CI and starved the custody proof's
 // next mutation past Convex's 1 s limit. Each row re-resolved the Campaign's catalogue binding, so a
 // full 8-row page read the 34 KB System document 8 times (404 KB per page before the fix). A page
 // resolves the binding once.
-const ROWS = 8
-const PAGE_BUDGET_BYTES = 192 * 1024
+// RELIABILITY-21.T18: one write re-ran every 8-row page of every client at once (23 executions in a
+// second on CI). A page holds the 48 rows a client requests and reads no System document, so one
+// execution's reads stay bounded by these budgets.
+const ROWS = 48
+// Measured 151 documents and 406 KB: identity, authority, inventory and binding reads, then each
+// row's item, root and content source.
+const PAGE_BUDGET_BYTES = 512 * 1024
+const PAGE_BUDGET_DOCUMENTS = 8 + 3 * ROWS
 
-type Handler = (ctx: QueryCtx, args: unknown) => Promise<CampaignPartyItemPage>
+// RELIABILITY-21.T18: the public query read the page through a `runQuery` hop into a second module
+// graph, which repeated validation, identity and authority; CI ran it at 909-991 ms. It reads in its
+// own transaction.
+function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
+  return {
+    ...ctx,
+    db,
+    runQuery: ((reference, ...args) => {
+      // Identity still reads the Better Auth component; only an app query is a second module graph.
+      // `getFunctionName` names this app's functions and refuses component references.
+      let appQuery: string | null = null
+      try {
+        appQuery = getFunctionName(reference)
+      } catch {
+        appQuery = null
+      }
+      if (appQuery !== null)
+        throw new Error(
+          `Party inventory pages read in the public query transaction, not ${appQuery}.`
+        )
+      return ctx.runQuery(reference, ...args)
+    }) satisfies QueryCtx['runQuery']
+  } as QueryCtx
+}
 
-function handlerOf(registered: object): Handler {
+function handlerOf<Result = CampaignPartyItemPage>(
+  registered: object
+): (ctx: QueryCtx, args: unknown) => Promise<Result> {
   if (!('_handler' in registered) || typeof registered._handler !== 'function')
     throw new Error('Missing registered query handler.')
-  return registered._handler as Handler
+  return registered._handler as (ctx: QueryCtx, args: unknown) => Promise<Result>
 }
 
 describe('party inventory items read budget', () => {
@@ -40,7 +73,10 @@ describe('party inventory items read budget', () => {
     const base = await publicationFixture(
       import.meta.glob('/apps/apis/convex/**/*.*s'),
       import.meta.glob('../betterAuth/**/*.*s'),
-      [subjects]
+      // An import batch holds at most 10 subjects.
+      Array.from({ length: Math.ceil(subjects.length / 10) }, (_, batch) =>
+        subjects.slice(batch * 10, batch * 10 + 10)
+      )
     )
     const campaign = await base.first.caller.mutation(api.campaigns.create.create, {
       name: 'Party inventory budget',
@@ -63,18 +99,45 @@ describe('party inventory items read budget', () => {
       })
     const handler = handlerOf(items)
     const totals = createDatabaseIoTotals()
+    const startedAt = performance.now()
     const result = await base.first.caller.run((ctx) =>
-      handler({ ...ctx, db: countDatabaseIo(ctx.db, totals) } as unknown as QueryCtx, {
-        campaignId: campaign.id,
-        paginationOpts: { cursor: null, numItems: 48 }
-      })
+      handler(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        { campaignId: campaign.id, paginationOpts: { cursor: null, numItems: 48 } }
+      )
     )
-    console.info('party items page reads', JSON.stringify(totals.reads))
+    console.info(
+      'party items page reads',
+      JSON.stringify(totals.reads),
+      `${Math.round(performance.now() - startedAt)} ms`
+    )
     expect(result.page.map((row) => row.label).sort()).toEqual(
       equipment.map((entry) => entry.label).sort()
     )
-    expect(totals.reads.byTable.systems?.documents).toBe(1)
+    expect(totals.reads.byTable.systems).toBeUndefined()
+    expect(totals.reads.byTable.rulesCatalogues?.documents).toBe(1)
+    expect(totals.reads.documents).toBeLessThanOrEqual(PAGE_BUDGET_DOCUMENTS)
     expect(totals.reads.bytes).toBeLessThanOrEqual(PAGE_BUDGET_BYTES)
+    // The page returns nothing from the System document: without it, the same page comes back.
+    await base.t.run(async (ctx) => {
+      const system = await ctx.db
+        .query('systems')
+        .withIndex('by_publicId', (q) => q.eq('id', srdSystemRecord.id))
+        .unique()
+      if (!system) throw new Error('Missing SRD System')
+      await ctx.db.delete(system._id)
+    })
+    await expect(
+      base.first.caller.run((ctx) =>
+        handler(inOwnTransaction(ctx as unknown as QueryCtx), {
+          campaignId: campaign.id,
+          paginationOpts: { cursor: null, numItems: 48 }
+        })
+      )
+    ).resolves.toStrictEqual(result)
   }, 300_000)
 
   it('lists held Equipment from root catalogue facts alone and rejects stale facts', async () => {
@@ -130,7 +193,13 @@ describe('party inventory items read budget', () => {
     const args = { campaignId: campaign.id, paginationOpts: { cursor: null, numItems: 48 } }
     const totals = createDatabaseIoTotals()
     const result = await base.first.caller.run((ctx) =>
-      handler({ ...ctx, db: countDatabaseIo(ctx.db, totals) } as unknown as QueryCtx, args)
+      handler(
+        inOwnTransaction(
+          ctx as unknown as QueryCtx,
+          countDatabaseIo(ctx.db, totals) as QueryCtx['db']
+        ),
+        args
+      )
     )
     expect(totals.reads.byTable.authoredVersionPayloadChunks).toBeUndefined()
     expect(
@@ -154,8 +223,37 @@ describe('party inventory items read budget', () => {
       if (!root?.catalogue || !other) throw new Error('Missing stale Equipment root')
       await ctx.db.patch(root._id, { catalogue: { ...root.catalogue, checksum: other.checksum } })
     })
-    await expect(base.first.caller.run((ctx) => handler(ctx, args))).rejects.toThrow(
-      'catalogue facts are missing or stale'
+    await expect(
+      base.first.caller.run((ctx) => handler(inOwnTransaction(ctx as unknown as QueryCtx), args))
+    ).rejects.toThrow('catalogue facts are missing or stale')
+  }, 300_000)
+
+  it('lists Equipment options in the public query transaction', async () => {
+    const equipment = [backpack, arrows]
+    const base = await publicationFixture(
+      import.meta.glob('/apps/apis/convex/**/*.*s'),
+      import.meta.glob('../betterAuth/**/*.*s'),
+      [
+        equipment.map((entry) =>
+          importedSubject({ subjectKind: 'EQUIPMENT', ...entry, document: entry })
+        )
+      ]
     )
+    const campaign = await base.first.caller.mutation(api.campaigns.create.create, {
+      name: 'Party Equipment options',
+      format: 'ONGOING',
+      toneTags: ['HEROIC'],
+      contentMaturity: 'STANDARD',
+      gameSystemId: srdSystemRecord.id,
+      primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
+    })
+    const handler = handlerOf<AuthoredCataloguePage>(equipmentOptions)
+    const result = await base.first.caller.run((ctx) =>
+      handler(inOwnTransaction(ctx as unknown as QueryCtx), {
+        campaignId: campaign.id,
+        paginationOpts: { cursor: null, numItems: 48 }
+      })
+    )
+    expect(result.page.map((row) => row.label).sort()).toEqual(['Arrows', 'Backpack'])
   }, 300_000)
 })

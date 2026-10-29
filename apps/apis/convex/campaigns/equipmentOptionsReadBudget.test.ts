@@ -11,7 +11,7 @@ import {
 } from '../../tests/fixtures/publication'
 import { api } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
-import { list } from './equipmentOptions'
+import { equipmentOptions } from './partyInventory'
 
 // RELIABILITY-21.2: a 48-row page of the party inventory Equipment picker timed out at Convex's 1 s
 // query limit on CI, because every row loaded, checksummed and parsed its full published payload to
@@ -52,7 +52,7 @@ describe('party inventory Equipment options read budget', () => {
     await base.t.run(async (ctx) => {
       for (const entry of equipment) await corruptPublishedVersionPayload(ctx, entry.id)
     })
-    const handler = handlerOf(list)
+    const handler = handlerOf(equipmentOptions)
     const page: AuthoredCataloguePage['page'] = []
     let cursor: string | null = null
     while (true) {
