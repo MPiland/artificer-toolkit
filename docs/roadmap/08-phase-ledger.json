@@ -12708,6 +12708,14 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-8.T6a merge review: hold-person.ts declares ANY targeting and the targeting schema has no allowed-types field, so a Character can paralyze a Wolf (the T5 journey does)."
+            },
+            {
+              "id": "SPELLS-8.6",
+              "text": "The Sheet shows attack and damage rows that match what the room rolls: active grants and modifiers (Bless, Hunter's Mark, Shillelagh's die and magical trait), proficiencies (pact weapon) and ability modifiers are folded in by the same shared code the room uses.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies."
             }
           ],
           "wsjf": {
@@ -12914,6 +12922,18 @@
               },
               "mergedAt": "2026-10-22T20:32:00Z",
               "note": "Merged in m352."
+            },
+            {
+              "id": "SPELLS-8.T15",
+              "status": "TODO",
+              "closes": ["SPELLS-8.6"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
             }
           ]
         },
@@ -15169,7 +15189,7 @@
             },
             {
               "id": "SPELLS-31.T4c1p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15179,7 +15199,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m541 (c57b95e37)."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -15255,7 +15275,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. 2026-10-29 ruling (option A on T4c1p): T4c3 builds the parent-class charge payment (paying with Bardic Inspiration) together with Cutting Words."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -19493,17 +19513,46 @@
           },
           "tasks": [
             {
-              "id": "RELIABILITY-10.T1",
+              "id": "RELIABILITY-10.T1a",
               "status": "TODO",
-              "closes": ["RELIABILITY-10.1", "RELIABILITY-10.2", "RELIABILITY-10.3"],
+              "closes": ["RELIABILITY-10.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "Builder submit, finalize and saving flags have one writer (CharacterBuilderStateSync); the Renderer publishes only progress; red-first regression test plus a builder journey through the real AuthoringLayout.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1b",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
                 "size": 8,
-                "after": ["RELIABILITY-8.T1"]
+                "after": ["RELIABILITY-10.T1a"]
               },
-              "text": "One state owner (top-level TanStack form) with behaviour-split stable contexts; narrow selectors so a keystroke re-renders only that field; builder submit/finalize/saving from one source with a red-first regression test (OQ-1 option 1)."
+              "text": "One resolution owner reads values through a debounced form.store subscription outside render; chrome reads step status, progress and navigation through narrow selectors; FormRenderer push-up effects deleted; AuthoringFormContext split into stable actions, navigation and mode contexts; render-count test on a real authored form plus a Profiler before/after in local-validation.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1c",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 5,
+                "after": ["RELIABILITY-10.T1b"]
+              },
+              "text": "Builder chrome reads the builder form directly (StateSync and the Renderer and AuthoringRuntime push-up effects deleted), the forms-to-domains type import removed, and AuthoringLayoutProvider and the Sheet CharacterSheetRollContext controller split by behaviour.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
             }
           ]
         },
@@ -22194,6 +22243,12 @@
       "id": "PLATFORM-13.T3",
       "origin": ["CP-S1"],
       "reason": "Task text was only \"Code-quality groundwork.\" with no defined scope; PLATFORM-13.2 now means the native boundary audit, closed by PLATFORM-13.T21.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "RELIABILITY-10.T1",
+      "origin": [],
+      "reason": "Split into RELIABILITY-10.T1a, T1b and T1c (size 3 + 8 + 5).",
       "decision": "Approved by the user on 2026-10-29."
     }
   ],

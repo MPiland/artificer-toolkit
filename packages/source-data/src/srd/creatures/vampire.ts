@@ -533,7 +533,8 @@ export const vampire: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        S.closedRuleEffect({
+        // The GM adds the called beasts with REINFORCE (D198).
+        S.manualAdjudicationEffect({
           id: S.actionId(277, 240),
           invocation: {
             kind: 'ACTION',
@@ -541,7 +542,10 @@ export const vampire: CreatureAuthored = {
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: S.actionId(277, 241), rangeKind: S.RANGE_KIND.SPECIAL }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_CHILDREN_OF_THE_NIGHT
+          label: 'Children of the Night',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'If the sun isn’t up, the GM adds 2d4 swarms of bats or rats (or, outdoors, 3d6 wolves) as the vampire’s allies, arriving in 1d4 rounds. They obey its spoken commands and stay 1 hour, until the vampire dies, or until it dismisses them as a bonus action; the GM then removes them.'
         })
       ],
       order: 16
