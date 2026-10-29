@@ -78,7 +78,11 @@ export const brandingSmite: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
-            lifecycle: { consumeOnFirstEvents: ['ON_HIT'] },
+            lifecycle: {
+              endTriggers: [
+                { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_HIT' }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BRANDING_SMITE, 0x212, 1),

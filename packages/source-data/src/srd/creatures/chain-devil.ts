@@ -2,9 +2,11 @@ import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from 
 import {
   DURATION_KIND,
   MANIFEST_KIND,
+  NUMERIC_EXPR_CODE,
   SHAPE_KIND,
   type CreatureAuthored
 } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 
 import * as S from './shared.js'
@@ -201,31 +203,34 @@ export const chainDevil: CreatureAuthored = {
               id: S.actionId(61, 115),
               order: 1,
               pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: `${S.actionId(61, 115)}__result`,
-                resultKind: 'SINGLE',
+                resultKind: 'SEQUENCE',
                 outcomes: [
                   {
                     id: S.actionId(61, 116),
                     effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: 'OBJECT',
-                    label: 'Animated Chains',
-                    attachmentKind: 'TOUCHED_OBJECT',
-                    components: [1, 2, 3, 4].map((order) => ({
-                      id: S.actionId(61, 116 + order),
-                      order,
-                      label: `Animated Chain ${order}`,
-                      armorClass: 20,
-                      hitPoints: 20
-                    }))
+                    manifestKind: MANIFEST_KIND.SUMMON,
+                    label: 'Animated Chain',
+                    statBlock: {
+                      // The SRD names no size; a chain is drawn in one 5-foot square.
+                      size: S.SIZE_CODE.MEDIUM,
+                      armorClass: { kind: NUMERIC_EXPR_CODE.FIXED, value: 20 },
+                      hitPoints: { kind: NUMERIC_EXPR_CODE.FIXED, value: 20 },
+                      damageResistances: [S.damageTypeId('PIERCING')],
+                      damageImmunities: [S.damageTypeId('PSYCHIC'), S.damageTypeId('THUNDER')]
+                    }
                   },
                   {
                     id: S.actionId(61, 121),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_ANIMATE_CHAINS
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Animate Chains',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'Up to four chains that aren’t worn or carried animate; each is an Animated Chain under the devil’s control. When the devil uses Multiattack, each chain makes one additional chain attack. A chain can grapple one creature of its own but can’t attack while grappling. A chain reverts to an inanimate object at 0 hit points or when the devil is incapacitated or dies; the GM then removes it.'
                   }
                 ]
               }

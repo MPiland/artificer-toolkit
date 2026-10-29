@@ -154,7 +154,9 @@ export const guidingBolt: SpellAuthored = {
             },
             lifecycle: {
               turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
-              consumeOnFirstEvents: ['ON_ATTACKED']
+              endTriggers: [
+                { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_ATTACKED' }
+              ]
             },
             outcomes: [
               {

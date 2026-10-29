@@ -105,6 +105,7 @@ export function encodeCharacterOperationalStructure(capture: CharacterCapture): 
   }
   const fields = {
     characterId: capture.id,
+    updatedAt: capture.updatedAt,
     ...(document.description === undefined ? {} : { description: document.description }),
     profile: document.profile,
     intent: document.intent,
@@ -213,10 +214,11 @@ export function readCharacterNoteState(
   }
 }
 
-/** The build and note records after a note edit; every other build field and record is untouched. */
+/** The build and note records after a note edit, with the structure clock at `updatedAt`; every other build field and record is untouched. */
 export function encodeCharacterNoteRecords(
   build: CharacterStoredBuildState,
-  next: NoteState
+  next: NoteState,
+  updatedAt: string
 ): { build: CharacterStoredBuildState; collections: NoteRecords } {
   const current = readCharacterBuildFields(build.characterId, build)
   // Values are stored as the complete structure split stores them: canonical JSON, contract-parsed.
@@ -232,6 +234,7 @@ export function encodeCharacterNoteRecords(
   }
   const fields = {
     ...current,
+    updatedAt,
     optionalStateKeys: optionalStateKeys.filter((key) =>
       key === 'notes' || key === 'noteGroups'
         ? next[key] !== undefined
@@ -349,6 +352,7 @@ export function assembleCharacterStructure(
   }
   return {
     ...head,
+    updatedAt: fields.updatedAt,
     checksum: checksumRuleDocument(document),
     sheetStateChecksum: checksumRuleDocument(sheet),
     documentJson: canonicalizeRuleDocument(document),

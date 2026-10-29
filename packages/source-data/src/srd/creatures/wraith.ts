@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 import * as R from './rollInfluenceGrants.js'
 
@@ -142,9 +143,9 @@ export const wraith: CreatureAuthored = {
       description:
         "Create Specter. The wraith targets a humanoid within 10 feet of it that has been dead for no longer than 1 minute and died violently. The target's spirit rises as a specter in the space of its corpse or in the nearest unoccupied space. The specter is under the wraith's control. The wraith can have no more than seven specters under its control at one time.",
       effects: [
-        {
+        // The GM adds the specter with REINFORCE (D198).
+        S.manualAdjudicationEffect({
           id: S.actionId(298, 210),
-          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
@@ -160,33 +161,11 @@ export const wraith: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          paths: [
-            {
-              id: S.actionId(298, 212),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(298, 213),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(298, 214),
-                    effectKind: S.EFFECT_KIND.MANIFEST,
-                    manifestKind: 'CREATURE'
-                  },
-                  {
-                    id: S.actionId(298, 215),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WRAITH_CREATE_SPECTER
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          label: 'Create Specter',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'If the target is a humanoid that died violently no more than 1 minute ago, the GM adds a Specter in its corpse’s space or the nearest unoccupied space, under the wraith’s control. The wraith controls at most seven specters at a time.'
+        })
       ],
       order: 4
     }

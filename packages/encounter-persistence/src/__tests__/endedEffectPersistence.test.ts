@@ -67,7 +67,9 @@ async function concentratingActor() {
         encounterId: ENCOUNTER_ID,
         sourceActorId: ACTOR_ID,
         holderActorId: ACTOR_ID,
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+        },
         rounds: 10
       }).definition,
       lifecycle: { schemaVersion: 1, remainingTicks: 10 },

@@ -41,7 +41,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     sheetState: loaded.sheetState,
     campaignContext: loaded.campaignContext,
     sourcePreparation: loaded.sourceContext.sourcePreparation,
-    referenceSpellIds
+    referenceSpellIds,
+    builderPreparation: loaded.sourceContext.builderPreparation
   })
   return {
     ...loaded,
@@ -58,7 +59,8 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     ).then((carried) => (carried.length === 0 ? null : carried)),
     sourceContext: {
       ...loaded.sourceContext,
-      sourcePreparation: evaluated.prepared.sourcePreparation
+      sourcePreparation: evaluated.prepared.sourcePreparation,
+      builderPreparation: evaluated.builderPreparation
     }
   }
 }

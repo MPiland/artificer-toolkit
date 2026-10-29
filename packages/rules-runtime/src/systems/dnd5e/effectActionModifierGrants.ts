@@ -15,9 +15,7 @@ import { dnd5eResultGate } from './effectActionOperationRegistry.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import {
   durationPublishedGraph,
-  isGrantConsumeEvent,
-  isGrantEndEvent,
-  GRANT_END_TRIGGER_EVENTS,
+  isGrantEndTrigger,
   maintenancePlan
 } from './effectActionLifetime.js'
 
@@ -106,9 +104,7 @@ export function modifierGrantEntryPlan(input: {
     entry.duration && !untilDispelled ? conditionDurationTurns(entry.duration) : null
   const {
     turnAnchor,
-    consumeOnFirstEvents = [],
-    endOnEvents = [],
-    endOnTriggers = [],
+    endTriggers = [],
     endOnConditionIds = [],
     holderEnd = null,
     endsWithHeldEffectId,
@@ -122,10 +118,9 @@ export function modifierGrantEntryPlan(input: {
     returnsOn,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
-  const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
-  const endEvents = [...new Set(endOnEvents)].sort()
-  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
-  const grantEndEvents = endEvents.filter(isGrantEndEvent)
+  const endEventCount = endTriggers.filter(
+    (trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END'
+  ).length
   const senses = grants.senses ?? []
   const grantedSenses = senses.flatMap((sense) =>
     sense.selectionKind === 'GRANTED' && sense.scalingKind === 'NONE' && 'senseIds' in sense
@@ -161,18 +156,14 @@ export function modifierGrantEntryPlan(input: {
     standing !== (returnsOn !== undefined) ||
     (untilEndEvent || standing
       ? entry.duration !== undefined ||
-        (standing
-          ? endEvents.length + endOnTriggers.length + endOnConditionIds.length
-          : endEvents.length) === 0 ||
+        (standing ? endTriggers.length + endOnConditionIds.length : endEventCount) === 0 ||
         turnAnchor !== undefined ||
         activeOnlyOnFinalAnchorTurn
       : untilDispelled
         ? turnAnchor !== undefined || activeOnlyOnFinalAnchorTurn
         : initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
-    grantConsumeEvents.length !== consumeEvents.length ||
-    grantEndEvents.length !== endEvents.length ||
-    endOnTriggers.some(({ event }) => !GRANT_END_TRIGGER_EVENTS.has(event)) ||
+    !endTriggers.every(isGrantEndTrigger) ||
     !UUID.test(entry.entryId)
   )
     return null
@@ -180,9 +171,6 @@ export function modifierGrantEntryPlan(input: {
     authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'modifier-grant',
-    ...(endOnTriggers.length > 0 && {
-      lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
-    }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage:
       untilEndEvent || standing || untilDispelled
@@ -196,8 +184,7 @@ export function modifierGrantEntryPlan(input: {
       modifiers: buildCharacterGrantFoldModifierFacts(modifiers.map(compileModifierGrant)),
       senses: grantedSenses,
       includesCurrentTurn: entry.duration?.durationKind === 'TURN',
-      consumeOnFirstEvents: grantConsumeEvents,
-      endOnEvents: grantEndEvents,
+      endTriggers: canonicalEndTriggers(endTriggers),
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       holderEnd,
       ...(fromSourceOnly && { fromSourceOnly: true }),

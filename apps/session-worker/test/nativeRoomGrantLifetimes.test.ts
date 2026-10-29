@@ -106,7 +106,11 @@ describe('a grant anchored to its source’s turn (SPELLS-5.4)', () => {
 
 describe('a grant used up by the holder’s attack roll (SPELLS-5.4)', () => {
   it('is deleted by the holder’s attack and restored by the GM’s undo', async () => {
-    const fixture = await grantRoom(shortGrantVial({ consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }))
+    const fixture = await grantRoom(
+      shortGrantVial({
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+      })
+    )
     await useVial(fixture, BITER_ID)
     const [granted] = await activeEffects(fixture)
     expect(granted).toMatchObject({ targetActorId: BITER_ID })

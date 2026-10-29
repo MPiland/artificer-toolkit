@@ -29,6 +29,13 @@ export interface CharacterRuleEvaluationResult extends CharacterRulePolicyFactsR
   output: CharacterRulePolicyOutput
 }
 
+/**
+ * Policy output per parsed facts object. Output depends only on the facts and on the System vocabulary
+ * of the context they were parsed for, and composition hands back one facts object per context and
+ * unchanged facts, so an evaluation over unchanged facts reuses the earlier output.
+ */
+const outputByFacts = new WeakMap<object, CharacterRulePolicyOutput>()
+
 /** Evaluates trusted current sources; the calling backend owns source visibility and persistence. */
 export function evaluateCharacterRules(
   input: Omit<CharacterRulePolicyFactsInput, 'spellsWithEffects'> & {
@@ -54,16 +61,18 @@ export function evaluateCharacterRules(
     { ...input, spellsWithEffects },
     { assembled, spellFacts }
   )
-  return {
-    ...composed,
-    output: resolveCharacterRulePolicyRollModes(
+  let output = outputByFacts.get(composed.facts)
+  if (!output) {
+    output = resolveCharacterRulePolicyRollModes(
       evaluateInstalledCharacterPolicy({
         gameSystemId: input.character.systemId,
         facts: composed.facts
       }),
       input.context.vocabularySnapshot
     )
+    outputByFacts.set(composed.facts, output)
   }
+  return { ...composed, output }
 }
 
 /**

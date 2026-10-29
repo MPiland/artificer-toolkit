@@ -299797,6 +299797,14 @@ export declare const internal: {
         null
       >;
     };
+    sheetSectionDerivation: {
+      store: FunctionReference<
+        "mutation",
+        "internal",
+        { characterId: string; token: string },
+        null
+      >;
+    };
   };
   content: {
     accountDefinitionDeletion: {

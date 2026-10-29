@@ -74,8 +74,10 @@ describe('the follow-up an Absorb Elements reaction leaves', () => {
   })
 
   it('is spent by the first attack roll', () => {
-    expect(plannedAbsorbElements(ids).definition.recurrence.consumeOnFirstEvents).toContain(
-      'ON_ATTACK_ROLL'
-    )
+    expect(plannedAbsorbElements(ids).definition.recurrence.endTriggers).toContainEqual({
+      event: 'LIFECYCLE',
+      timing: 'CONSUME',
+      code: 'ON_ATTACK_ROLL'
+    })
   })
 })

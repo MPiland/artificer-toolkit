@@ -138,9 +138,7 @@ export function activeEffect(input: {
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.lifetimeScope ?? 'OWNER',
