@@ -1806,6 +1806,61 @@ describe('native encounter actions', () => {
     30000
   )
 
+  it('prompts a Paralyzed target's Dexterity save with the condition that fails it, and fails it on a natural 20 (D94)', async () => {
+    const base = await setup({
+      directRepeatSave: true,
+      targetCreature: true,
+      rolls: 'PROMPT'
+    })
+    const paralyzed = srdSystemRecord.conditionTypes.find((value) => value.code === 'PARALYZED')
+    if (!paralyzed) throw new Error('Missing Paralyzed condition fixture.')
+    const conditioned = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'UPDATE_ACTOR',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: base.run.version,
+        actorId: base.target.id,
+        conditions: [paralyzed.id]
+      }
+    })
+    const pending = await executeInRoom(base.owner.caller, {
+      command: command({
+        encounterId: base.run.id,
+        expectedVersion: conditioned.projection.version,
+        actorId: base.actor.id,
+        targetActorId: base.target.id,
+        actionId: base.actionId
+      })
+    })
+    const request = pending.occurrence?.pending
+    if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
+      throw new Error('Expected initial save evidence.')
+    expect(request.request.autoFail).toEqual([
+      { conditionId: paralyzed.id, label: 'Paralyzed' }
+    ])
+    // A natural 20 passes a DC 10 save, but Paralyzed fails it: the failure's Frightened lands.
+    const result = await executeInRoom(base.owner.caller, {
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: base.run.id,
+        commandId: crypto.randomUUID(),
+        expectedVersion: conditioned.projection.version,
+        correlationId: null,
+        occurrenceId: pending.occurrence.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrence.occurrenceVersion,
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId: request.request.requestId,
+          rawFaces: request.request.rollMode === 'NORMAL' ? [20] : [20, 20],
+          rollMode: request.request.rollMode
+        }
+      }
+    })
+    expect(result.occurrence?.status).toBe('COMPLETE')
+    expect((await records(base.t, base.run.id, base.campaign.id)).activeEffects).toHaveLength(1)
+  }, 30000)
+
   it('refuses a failed repeated-save condition against an immune Creature target', async () => {
     const base = await setup({
       directRepeatSave: true,
