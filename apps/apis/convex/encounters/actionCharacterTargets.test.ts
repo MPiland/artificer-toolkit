@@ -40,6 +40,7 @@ import {
 
 useLocalRoomWorker()
 afterEach(() => {
+  vi.useRealTimers()
   vi.unstubAllEnvs()
 })
 
@@ -489,6 +490,8 @@ describe('native Creature actions against Character targets', () => {
         .withIndex('by_publicId', (q) => q.eq('id', base.run.campaignId))
         .unique()
     }))
+    // Fake timers keep the scheduler from running the job's steps behind the test.
+    vi.useFakeTimers()
     const deletionJob = await base.t.run(async (ctx) => {
       const profile = await ctx.db
         .query('userProfiles')

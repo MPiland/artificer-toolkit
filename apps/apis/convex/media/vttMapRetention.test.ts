@@ -1,5 +1,5 @@
-import { makeFunctionReference } from 'convex/server'
-import { expect, it, vi } from 'vitest'
+import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { afterEach, expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -24,15 +24,19 @@ import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlemen
 import type { z } from 'zod'
 import { fixture } from '../../tests/fixtures/characters'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { internal } from '../_generated/api'
+import { components, internal } from '../_generated/api'
 import {
-  deleteAccountCompletely,
+  advanceAccountDeletionToProvider,
   runAccountDeletionStep
 } from '../../tests/fixtures/accountDeletion'
 import * as deletionJobs from '../accountDeletionJobs'
 
+afterEach(() => vi.useRealTimers())
+
 /** Puts the account's deletion job at the MEDIA step so these tests exercise that step alone. */
 async function holdAtMedia(base: Awaited<ReturnType<typeof setup>>, userId: string) {
+  // Fake timers keep the scheduler from running the job's steps behind the test.
+  vi.useFakeTimers()
   await base.t.run(async (ctx) => {
     const profile = await ctx.db
       .query('userProfiles')
@@ -269,7 +273,13 @@ async function readProfile(base: Awaited<ReturnType<typeof setup>>, userId: stri
 async function deleteAccount(base: Awaited<ReturnType<typeof setup>>, userId: string) {
   const profile = await readProfile(base, userId)
   if (!profile) throw new Error('Missing uploader profile.')
-  await deleteAccountCompletely(base.t, profile.authUserId)
+  await advanceAccountDeletionToProvider(base.t, profile.authUserId, userId)
+  await base.t.run(async (ctx) =>
+    ctx.runMutation(components.betterAuth.adapter.deleteOne, {
+      input: { model: 'user', where: [{ field: '_id', value: profile.authUserId }] },
+      onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
+    })
+  )
   return profile
 }
 

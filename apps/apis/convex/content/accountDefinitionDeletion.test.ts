@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   CreateReusableDefinitionInputDto,
   PublishReusableDefinitionDraftInputDto,
@@ -21,10 +21,14 @@ import { api, internal } from '../_generated/api'
 import { runAccountDeletionStep } from '../../tests/fixtures/accountDeletion'
 import { startAccountDeletion } from '../accountDeletionJobs'
 
+afterEach(() => vi.useRealTimers())
+
 type Fixture = Awaited<ReturnType<typeof publicationFixture>>
 
 /** Puts the account's deletion job at the SOURCES step so this suite exercises that step alone. */
 async function holdAtSources({ t }: Fixture, userId: string) {
+  // Fake timers keep the scheduler from running the job's steps behind the test.
+  vi.useFakeTimers()
   await t.run(async (ctx) => {
     const profile = await ctx.db
       .query('userProfiles')

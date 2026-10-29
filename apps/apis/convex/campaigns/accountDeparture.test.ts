@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
@@ -14,10 +14,14 @@ import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publ
 import * as reconciliation from './contentShareRemoval'
 import { departAccountCampaignMembership } from './accountDeparture'
 
+afterEach(() => vi.useRealTimers())
+
 type Fixture = Pick<Awaited<ReturnType<typeof setupCharacterRun>>, 't'>
 
 /** Puts the account in a scheduled deletion job, at the CAMPAIGNS step. */
 async function startDeletion(base: Fixture, userId: string) {
+  // Fake timers keep the scheduler from running the job's steps behind the test.
+  vi.useFakeTimers()
   await base.t.run(async (ctx) => {
     const profile = await ctx.db
       .query('userProfiles')
@@ -213,7 +217,7 @@ describe('native account Campaign departure', () => {
         if (!left) throw new Error('Missing retained LEFT membership.')
         return departAccountCampaignMembership(ctx, base.player.userId, left)
       })
-    ).resolves.toBeUndefined()
+    ).resolves.toBeNull()
 
     expect(await base.snapshot()).toEqual(before)
   })
