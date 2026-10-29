@@ -20,6 +20,9 @@ import {
   type LiveSessionTransientCapture
 } from '@artificer-toolkit/schema/api/liveSessionTransient'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { SRD_SENSE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/senses.js'
+import { SRD_DEVILS_SIGHT_SENSE_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   canonicalizeSceneFogLayer,
   createSceneFogAreaPatch,
@@ -30,7 +33,7 @@ import {
 import { ROOM_LIMITS } from '../src/roomLimits.js'
 import { NO_CHECKPOINT_IO } from './checkpointIoFixture.js'
 import { characterSheetInputsFixture } from './characterSheetInputsFixture.js'
-import { darkvisionDefinition } from './srdSenseInputsFixture.js'
+import { darkvisionDefinition, srdSenseDefinition } from './srdSenseInputsFixture.js'
 import { ROOM_AUTHORIZATION_PATH, roomAuthorizationResponse } from './roomAuthorizationFixture.js'
 import {
   ROOM_INPUTS_PATH,
@@ -1174,11 +1177,25 @@ it('drops previews without a third capture when the fresh capture also conflicts
   expect(captureCalls).toBe(admitted + 3)
 })
 
+const devilsSightInvocation = srdBaselineContent.subjects.classes
+  .find(({ label }) => label === 'Warlock')
+  ?.features?.flatMap((feature) => feature.options ?? [])
+  .find(({ label }) => label === "Devil's Sight")
+if (!devilsSightInvocation?.id) throw new Error("The SRD Warlock has no Devil's Sight.")
+// The room's Character is first level, so the invocation's level requirement is lifted; its Sense grant is the SRD's own.
+const devilsSight = {
+  ...devilsSightInvocation,
+  id: devilsSightInvocation.id,
+  restrictions: undefined,
+  availableAtLevel: 1
+}
+
 /**
  * A room whose Scene token takes its vision from a bound Character at revision A (60 ft
- * Darkvision), then B (no Senses), composed from the room's own store.
+ * Darkvision, or the Warlock's Devil's Sight invocation with `warlock`), then B (no Senses),
+ * composed from the room's own store.
  */
-async function characterVisionRoom() {
+async function characterVisionRoom({ warlock = false } = {}) {
   const members = [
     member(ownerId, 'OWNER'),
     member(playerId, 'PLAYER'),
@@ -1193,7 +1210,7 @@ async function characterVisionRoom() {
   }
   const revisionA = await characterSheetInputsFixture({
     ...bound,
-    darkvision: true
+    ...(warlock ? { classFeatures: [devilsSight] } : { darkvision: true })
   })
   const revisionB = await characterSheetInputsFixture(bound)
   const { systemId, encounterId, actorId } = revisionA
@@ -1253,7 +1270,9 @@ async function characterVisionRoom() {
               ...revisionA.characterInputs,
               parts: current.characterInputs.parts
             },
-            definitions: [darkvisionDefinition]
+            definitions: [
+              warlock ? srdSenseDefinition(SRD_DEVILS_SIGHT_SENSE_ID) : darkvisionDefinition
+            ]
           })
         )
       }
@@ -1354,6 +1373,26 @@ const darkvisionSenses = [
     range: { rangeKind: 'DISTANCE', amount: 60 }
   })
 ]
+
+it("gives a Warlock's token Devil's Sight: magical-darkness access at 120 ft, with no invisibility sight (VTT_UI-3.5)", async () => {
+  const { admittedSenses } = await characterVisionRoom({ warlock: true })
+  expect(admittedSenses).toEqual([
+    {
+      channel: 'VISUAL',
+      illuminationAccess: 'MAGICAL_DARKNESS',
+      label: "Devil's Sight",
+      range: { rangeKind: 'DISTANCE', amount: 120 },
+      senseId: SRD_DEVILS_SIGHT_SENSE_ID
+    }
+  ])
+  // The Sense the room pinned perceives no invisible creature; sight alone is granted.
+  const document = SRD_SENSE_DEFINITIONS.find(
+    ({ id }) => id === SRD_DEVILS_SIGHT_SENSE_ID
+  )?.document
+  expect(
+    document?.kind === 'SENSE' && document.capabilities.map((c) => c.perceivesInvisible)
+  ).toEqual([false])
+}, 90_000)
 
 it('rehydrates Character vision after a CHARACTER notice, with no read per sample (D33)', async () => {
   const advance = controlClock()
