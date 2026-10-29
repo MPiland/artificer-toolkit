@@ -601,7 +601,8 @@ export function resolveDnd5eActionMechanic(
             outcome.amountKind,
             outcome.amountMultiplier
           ),
-          diceExpression: expression,
+          // A fixed amount and its bonuses are one whole number the compiler reads as stated.
+          diceExpression: typeof value === 'number' ? formatAmount(value + bonus) : expression,
           damageTypeId: outcome.damageTypeId,
           ...(weaponDieFaces !== null && value !== resolvedValue ? { weaponDieFaces } : {}),
           scaling

@@ -10,12 +10,17 @@ import {
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
 import type { Dnd5eAuthoredOutcome } from './effectActionOutcomes.js'
-import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
+import {
+  parseBoundedDiceConfiguration,
+  type Dnd5eEffectScalingFacts
+} from './effectActionScalingFacts.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 
 export type SpecializedOutcome =
   | Outcome
   | { kind: 'DICE_DAMAGE'; damageTypeId: string }
+  /** A fixed amount its bonuses size, which the source's resolved expression states once bound. */
+  | { kind: 'RESOLVED_DAMAGE'; damageTypeId: string }
   | { kind: 'DICE_HEAL'; temporary: boolean }
   | {
       kind: 'DICE_SCALAR_REDUCTION'
@@ -68,10 +73,34 @@ export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
  * all-branches graph.
  */
 export function specializedTestOutcome(
-  entry: CompiledEffectGroup['entries'][number]
+  entry: CompiledEffectGroup['entries'][number],
+  /** The source's bound facts, which only the outcome phase has. */
+  facts?: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
 ): SpecializedOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
+  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED' && outcome.bonuses?.length) {
+    // "Damage equal to your Charisma modifier": the bonuses read the source, so the amount waits
+    // for its resolved expression.
+    validateDamageBonuses(outcome.bonuses)
+    if (
+      outcome.scalingKind !== 'NONE' ||
+      !Number.isSafeInteger(outcome.amount) ||
+      outcome.amount < 0
+    )
+      unsupported('D&D fixed damage with bonuses must be one unscaled whole amount.')
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    if (!facts) return { kind: 'RESOLVED_DAMAGE', damageTypeId: outcome.damageTypeId }
+    const resolved = facts.resolvedDamageOutcomeExpressions[entry.entryId]
+    const amount = resolved !== undefined && /^\d+$/.test(resolved) ? Number(resolved) : 0
+    if (!Number.isSafeInteger(amount) || amount <= 0)
+      unsupported('D&D resolved fixed damage must be a positive whole amount.')
+    return {
+      kind: 'DAMAGE',
+      amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),
+      damageTypeId: outcome.damageTypeId
+    }
+  }
   if (outcome.effectKind === 'SCALAR_REDUCTION') {
     uuid(outcome.valueDefinitionId, 'D&D scalar definition identity')
     parseBoundedDiceConfiguration(outcome.amount.diceConfig)

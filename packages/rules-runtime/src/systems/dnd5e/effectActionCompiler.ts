@@ -2671,7 +2671,7 @@ function reducedToZeroDamageNodeId(
   if (!damageEntry || damageIndex > groupIndex || !('outcome' in damageEntry))
     unsupported('D&D reduced-to-0 gate needs its damage outcome owed earlier in the path.')
   const damageKind = specializedTestOutcome(damageEntry).kind
-  if (damageKind !== 'DAMAGE' && damageKind !== 'DICE_DAMAGE')
+  if (damageKind !== 'DAMAGE' && damageKind !== 'DICE_DAMAGE' && damageKind !== 'RESOLVED_DAMAGE')
     unsupported('D&D reduced-to-0 gate must name a damage outcome.')
   if (outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'HEAL')
     unsupported('D&D reduced-to-0 gate belongs to a kill, condition or heal outcome.')
@@ -2810,7 +2810,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const saveOwed = owed(immediate.saveEntry)
     if (owedPrimaryEntries.length === 0 && !saveOwed) return null
     const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
-      const primaryDamage = specializedTestOutcome(primaryDamageEntry)
+      const primaryDamage = specializedTestOutcome(primaryDamageEntry, input.facts)
       const nodePrefix =
         owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
       // A fixed amount ("1 piercing damage") has no dice to double on a critical hit, and a GM
@@ -2908,7 +2908,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
-    const outcome = specializedTestOutcome(entry)
+    const outcome = specializedTestOutcome(entry, input.facts)
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}

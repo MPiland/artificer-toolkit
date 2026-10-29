@@ -131,10 +131,10 @@ async function bindLongsword(room: WarlockRoom) {
 
 /** The Longsword attack at the Gargoyle: the d20 modifier it rolls and the hit points it deals. */
 async function longswordAttack(room: WarlockRoom) {
-  const sword = (await room.actionChoices()).actions.find(({ label }) =>
-    label.includes('Longsword')
-  )
-  if (!sword) throw new Error('The Warlock offers no Longsword attack.')
+  const { actions } = await room.actionChoices()
+  const sword = actions.find(({ label }) => label.includes('Longsword'))
+  if (!sword)
+    throw new Error(`The Warlock offers no Longsword attack: ${actions.map(({ label }) => label)}`)
   const before = readActorHitPoints(await readRoomHistory(room.room.base.stub), GARGOYLE_ID)
   const attack = await room.startAction(GARGOYLE_ID, RANGE, null, null, sword.id)
   expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
