@@ -18,6 +18,7 @@ import type { HitPointsToZeroAuthored } from './hitPointsToZero.js'
 import type { TeleportAuthored } from './teleport.js'
 import type { ArmorClassFloorAuthored } from './armorClassFloor.js'
 import type { RestoreResourceAuthored } from './restoreResource.js'
+import type { SpellSlotExchangeAuthored } from './spellSlotExchange.js'
 import type { TelepathicLinkAuthored } from './telepathicLink.js'
 import type { PlantPortalAuthored } from './plantPortal.js'
 import type { TreeStrideAuthored } from './treeStride.js'
@@ -57,6 +58,7 @@ export type OutcomeAuthored =
   | HitPointsToZeroAuthored
   | ArmorClassFloorAuthored
   | RestoreResourceAuthored
+  | SpellSlotExchangeAuthored
   | TelepathicLinkAuthored
   | PlantPortalAuthored
   | TreeStrideAuthored

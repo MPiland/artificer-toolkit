@@ -54,7 +54,8 @@ function projectOutcome(
         kind: outcome.kind,
         pathCode: outcome.pathCode,
         effectKind: outcome.effectKind,
-        ...(outcome.label === null ? {} : { label: outcome.label })
+        ...(outcome.label === null ? {} : { label: outcome.label }),
+        ...(outcome.spellSlotExchange ? { spellSlotExchange: outcome.spellSlotExchange } : {})
       }
   }
 }

@@ -488,7 +488,9 @@ const characterSpellSlotUsageFactsSchema = lazySchema(() =>
         z.strictObject({
           kind: z.literal('STANDARD'),
           spellLevel: integerSchema.check(z.gte(1)).check(z.lte(9)),
-          rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
+          rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
+          /** Extra slots of this level a feature created until the next long rest. */
+          created: z.optional(integerSchema.check(z.gte(1)).check(z.lte(100)))
         }),
         z.strictObject({
           kind: z.literal('POOL'),

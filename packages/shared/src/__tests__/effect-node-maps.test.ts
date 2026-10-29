@@ -74,7 +74,7 @@ describe('effect node maps', () => {
     if (outcomesNode?.kind !== 'GROUP') throw new Error('Expected outcomes to be a group node')
     const outcomeMap =
       typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
-    const fields = ['restoreChargeId', 'restoreFloor', 'restoreWhenAtOrBelow'].map((key) => {
+    const fields = ['chargeId', 'restoreFloor', 'restoreWhenAtOrBelow'].map((key) => {
       const node = outcomeMap.nodes[key]
       if (!node?.showIf) throw new Error(`Expected ${key} to be conditional`)
       return node.showIf
@@ -88,6 +88,53 @@ describe('effect node maps', () => {
         evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.ARMOR_CLASS_FLOOR } })
       ).toBe(false)
     }
+  })
+
+  it('offers a spell slot exchange outcome with the fields of the chosen mode only', () => {
+    const resultNode = PATH_NODE_MAP.nodes.resultBlock
+    if (resultNode?.kind !== 'GROUP')
+      throw new Error('Expected the result block to be a group node')
+    const resultMap = typeof resultNode.nodes === 'function' ? resultNode.nodes() : resultNode.nodes
+    const outcomesNode = resultMap.nodes.outcomes
+    if (outcomesNode?.kind !== 'GROUP') throw new Error('Expected outcomes to be a group node')
+    const outcomeMap =
+      typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
+    const shown = (key: string, mode: string) => {
+      const showIf = outcomeMap.nodes[key]?.showIf
+      if (!showIf) throw new Error(`Expected ${key} to be conditional`)
+      return evaluateConditionIf(showIf, {
+        values: { effectKind: EFFECT_KIND.SPELL_SLOT_EXCHANGE, mode }
+      })
+    }
+    const fieldsByMode = (mode: string) =>
+      [
+        'spellSlotExchangeMode',
+        'spellSlotLevelBudget',
+        'spellSlotMaximumLevel',
+        'chargeId',
+        'spellSlotCosts'
+      ].filter((key) => shown(key, mode))
+
+    expect(fieldsByMode('RECOVER_SLOTS')).toEqual([
+      'spellSlotExchangeMode',
+      'spellSlotLevelBudget',
+      'spellSlotMaximumLevel'
+    ])
+    expect(fieldsByMode('SLOT_TO_RESOURCE')).toEqual([
+      'spellSlotExchangeMode',
+      'spellSlotMaximumLevel',
+      'chargeId'
+    ])
+    expect(fieldsByMode('RESOURCE_TO_SLOT')).toEqual([
+      'spellSlotExchangeMode',
+      'chargeId',
+      'spellSlotCosts'
+    ])
+    const modeShowIf = outcomeMap.nodes.spellSlotExchangeMode?.showIf
+    if (!modeShowIf) throw new Error('Expected the exchange mode to be conditional')
+    expect(
+      evaluateConditionIf(modeShowIf, { values: { effectKind: EFFECT_KIND.RESTORE_RESOURCE } })
+    ).toBe(false)
   })
 
   it('offers an end-effects outcome only for the end-effects kind, with its scope and conditions', () => {

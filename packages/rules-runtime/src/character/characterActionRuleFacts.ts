@@ -425,6 +425,15 @@ export function normalizeCharacterActionMechanicFacts(
       })
       continue
     }
+    if (outcome.effectKind === 'SPELL_SLOT_EXCHANGE') {
+      outcomes.push({
+        kind: 'SPELL_SLOT_EXCHANGE',
+        pathCode: entry.pathCode,
+        exchange: outcome,
+        label: nullableLabel(entry.label)
+      })
+      continue
+    }
     outcomes.push({
       kind: 'EFFECT',
       pathCode: entry.pathCode,

@@ -15,6 +15,7 @@ import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
+import { sorcerer } from '@artificer-toolkit/source-data/srd/classes/sorcerer.js'
 import { thiefRoguishArchetype } from '@artificer-toolkit/source-data/srd/classes/thief.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
@@ -36,6 +37,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * the walking speed; Unarmored Movement Improvement and Second-Story Work (T4o, D187a) are GM rulings.
  * Reliable Talent (T5c) is a proficient-only ability check floor; Indomitable, Diamond Soul and
  * Stroke of Luck (T5c, D187a) spend their use automatically and leave the new result to a GM ruling.
+ * Arcane Recovery, Natural Recovery and Font of Magic (T5j) are SPELL_SLOT_EXCHANGE outcomes;
+ * Sorcerous Restoration and Eldritch Master (T5j) are GM rulings.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -435,6 +438,70 @@ const CASES: ReadonlyArray<{
       // A homebrew variant that costs two uses and words the ruling for the table.
       effect.invocation.resourceUse.cost = 2
       outcome.instructions = 'The table decides the new result.'
+      return variant
+    }
+  })),
+  ...(
+    [
+      { record: wizard, label: 'Arcane Recovery' },
+      { record: circleOfTheLand, label: 'Natural Recovery' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const path = feature(variant, label).effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'SPELL_SLOT_EXCHANGE' || outcome.mode !== 'RECOVER_SLOTS')
+        throw new Error(`${label} must author a spell slot recovery.`)
+      // A homebrew variant that recovers a third of the class level, up to 4th-level slots.
+      outcome.levelBudget = { ...outcome.levelBudget, divisor: 3, rounding: 'DOWN' }
+      outcome.maximumSlotLevel = 4
+      return variant
+    }
+  })),
+  {
+    record: sorcerer,
+    label: 'Font of Magic',
+    variant: () => {
+      const variant = structuredClone(sorcerer)
+      const outcomes = (feature(variant, 'Font of Magic').effects ?? []).map((effect) => {
+        const path = effect.paths[0]
+        return path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      })
+      const [toPool, toSlot] = outcomes
+      if (
+        toPool?.effectKind !== 'SPELL_SLOT_EXCHANGE' ||
+        toPool.mode !== 'SLOT_TO_RESOURCE' ||
+        toSlot?.effectKind !== 'SPELL_SLOT_EXCHANGE' ||
+        toSlot.mode !== 'RESOURCE_TO_SLOT'
+      )
+        throw new Error('Font of Magic must author both spell slot conversions.')
+      // A homebrew variant that converts slots up to 3rd level and creates only cheap ones.
+      toPool.maximumSlotLevel = 3
+      toSlot.costs = [
+        { slotLevel: 1, cost: 1 },
+        { slotLevel: 2, cost: 2 }
+      ]
+      return variant
+    }
+  },
+  ...(
+    [
+      { record: sorcerer, label: 'Sorcerous Restoration' },
+      { record: warlock, label: 'Eldritch Master' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const path = feature(variant, label).effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+        throw new Error(`${label} must author a GM ruling.`)
+      outcome.instructions = 'The table decides what this feature restores.'
       return variant
     }
   }))

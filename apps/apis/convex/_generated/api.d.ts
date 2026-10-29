@@ -2194,6 +2194,15 @@ export declare const api: {
                 type: "RESTORE_SPELL_SLOT";
               }
             | {
+                actionId: string;
+                commandId: string;
+                expectedVersion: number;
+                selection:
+                  | { kind: "SLOTS"; slotKeys: Array<string> }
+                  | { kind: "SLOT_LEVEL"; slotLevel: number };
+                type: "EXCHANGE_SPELL_SLOTS";
+              }
+            | {
                 commandId: string;
                 expectedVersion: number;
                 slotKey?: string;
@@ -2575,6 +2584,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -3277,6 +3302,22 @@ export declare const api: {
                         kind: "EFFECT";
                         label?: string;
                         pathCode: string;
+                        spellSlotExchange?:
+                          | {
+                              levelBudget: number;
+                              maximumSlotLevel: number;
+                              mode: "RECOVER_SLOTS";
+                            }
+                          | {
+                              maximumSlotLevel: number | null;
+                              mode: "SLOT_TO_RESOURCE";
+                              resourcePoolId: string;
+                            }
+                          | {
+                              costs: Array<{ cost: number; slotLevel: number }>;
+                              mode: "RESOURCE_TO_SLOT";
+                              resourcePoolId: string;
+                            };
                       }
                   >;
                   rangeLabel?: string;
@@ -3390,6 +3431,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -11011,7 +11068,11 @@ export declare const api: {
               updatedAt: string;
             }>;
             resources?: Array<{ resourceGrantId: string; used: number }>;
-            spellSlots?: Array<{ slotKey: string; used: number }>;
+            spellSlots?: Array<{
+              created?: number;
+              slotKey: string;
+              used: number;
+            }>;
             spellSummons?: Array<{
               abilityScores?: Record<string, number>;
               armorClass: number | null;
@@ -11398,7 +11459,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -11784,7 +11849,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -12361,7 +12430,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -12946,7 +13019,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -13534,7 +13611,11 @@ export declare const api: {
                 updatedAt: string;
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
-              spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSlots?: Array<{
+                created?: number;
+                slotKey: string;
+                used: number;
+              }>;
               spellSummons?: Array<{
                 abilityScores?: Record<string, number>;
                 armorClass: number | null;
@@ -14105,7 +14186,11 @@ export declare const api: {
                   updatedAt: string;
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
-                spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSlots?: Array<{
+                  created?: number;
+                  slotKey: string;
+                  used: number;
+                }>;
                 spellSummons?: Array<{
                   abilityScores?: Record<string, number>;
                   armorClass: number | null;
@@ -17137,6 +17222,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -17839,6 +17940,22 @@ export declare const api: {
                         kind: "EFFECT";
                         label?: string;
                         pathCode: string;
+                        spellSlotExchange?:
+                          | {
+                              levelBudget: number;
+                              maximumSlotLevel: number;
+                              mode: "RECOVER_SLOTS";
+                            }
+                          | {
+                              maximumSlotLevel: number | null;
+                              mode: "SLOT_TO_RESOURCE";
+                              resourcePoolId: string;
+                            }
+                          | {
+                              costs: Array<{ cost: number; slotLevel: number }>;
+                              mode: "RESOURCE_TO_SLOT";
+                              resourcePoolId: string;
+                            };
                       }
                   >;
                   rangeLabel?: string;
@@ -17952,6 +18069,22 @@ export declare const api: {
                       kind: "EFFECT";
                       label?: string;
                       pathCode: string;
+                      spellSlotExchange?:
+                        | {
+                            levelBudget: number;
+                            maximumSlotLevel: number;
+                            mode: "RECOVER_SLOTS";
+                          }
+                        | {
+                            maximumSlotLevel: number | null;
+                            mode: "SLOT_TO_RESOURCE";
+                            resourcePoolId: string;
+                          }
+                        | {
+                            costs: Array<{ cost: number; slotLevel: number }>;
+                            mode: "RESOURCE_TO_SLOT";
+                            resourcePoolId: string;
+                          };
                     }
                 >;
                 rangeLabel?: string;
@@ -19293,6 +19426,15 @@ export declare const api: {
                 type: "RESTORE_SPELL_SLOT";
               }
             | {
+                actionId: string;
+                commandId: string;
+                expectedVersion: number;
+                selection:
+                  | { kind: "SLOTS"; slotKeys: Array<string> }
+                  | { kind: "SLOT_LEVEL"; slotLevel: number };
+                type: "EXCHANGE_SPELL_SLOTS";
+              }
+            | {
                 commandId: string;
                 expectedVersion: number;
                 slotKey?: string;
@@ -19771,6 +19913,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;
@@ -20020,6 +20181,25 @@ export declare const api: {
                             kind: "EFFECT";
                             label?: string;
                             pathCode: string;
+                            spellSlotExchange?:
+                              | {
+                                  levelBudget: number;
+                                  maximumSlotLevel: number;
+                                  mode: "RECOVER_SLOTS";
+                                }
+                              | {
+                                  maximumSlotLevel: number | null;
+                                  mode: "SLOT_TO_RESOURCE";
+                                  resourcePoolId: string;
+                                }
+                              | {
+                                  costs: Array<{
+                                    cost: number;
+                                    slotLevel: number;
+                                  }>;
+                                  mode: "RESOURCE_TO_SLOT";
+                                  resourcePoolId: string;
+                                };
                           }
                       >;
                       rangeLabel?: string;
@@ -20068,6 +20248,14 @@ export declare const api: {
                   }>;
                   label: string;
                   level: number;
+                }>;
+                slots: Array<{
+                  label: string;
+                  level: number | null;
+                  max: number;
+                  remaining: number;
+                  slotKey: string;
+                  used: number;
                 }>;
                 spells: Array<{
                   attributes?: Array<
@@ -20122,6 +20310,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;
@@ -20395,6 +20602,25 @@ export declare const api: {
                             kind: "EFFECT";
                             label?: string;
                             pathCode: string;
+                            spellSlotExchange?:
+                              | {
+                                  levelBudget: number;
+                                  maximumSlotLevel: number;
+                                  mode: "RECOVER_SLOTS";
+                                }
+                              | {
+                                  maximumSlotLevel: number | null;
+                                  mode: "SLOT_TO_RESOURCE";
+                                  resourcePoolId: string;
+                                }
+                              | {
+                                  costs: Array<{
+                                    cost: number;
+                                    slotLevel: number;
+                                  }>;
+                                  mode: "RESOURCE_TO_SLOT";
+                                  resourcePoolId: string;
+                                };
                           }
                       >;
                       rangeLabel?: string;
@@ -20514,6 +20740,25 @@ export declare const api: {
                           kind: "EFFECT";
                           label?: string;
                           pathCode: string;
+                          spellSlotExchange?:
+                            | {
+                                levelBudget: number;
+                                maximumSlotLevel: number;
+                                mode: "RECOVER_SLOTS";
+                              }
+                            | {
+                                maximumSlotLevel: number | null;
+                                mode: "SLOT_TO_RESOURCE";
+                                resourcePoolId: string;
+                              }
+                            | {
+                                costs: Array<{
+                                  cost: number;
+                                  slotLevel: number;
+                                }>;
+                                mode: "RESOURCE_TO_SLOT";
+                                resourcePoolId: string;
+                              };
                         }
                     >;
                     rangeLabel?: string;

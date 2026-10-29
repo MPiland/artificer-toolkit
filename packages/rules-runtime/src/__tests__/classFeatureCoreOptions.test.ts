@@ -3,8 +3,16 @@ import { compileCharge } from '@artificer-toolkit/shared/compilers'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { buildCharacterChargeRuleFact } from '../character/characterChargeRuleFacts.js'
+import { buildCharacterSpellSlotRuleFacts } from '../character/characterSpellSlotRuleFacts.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
-import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
+import { evaluateDnd5eCharacterSpellSlots } from '../systems/dnd5e/characterSpellSlots.js'
+import {
+  SRD,
+  evaluateSrdCharacter,
+  srdByLabel,
+  srdFeature,
+  srdRegistry
+} from '../testing/dnd5eSrdCharacter.js'
 
 /**
  * SPELLS-31.T3b and T3c (D156): Divine Sense, Empty Body, Gaze of Two Minds and Divine
@@ -260,6 +268,129 @@ describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
     expect(candidate!.mechanicFacts.invocation.activation?.code).toBe('ACTION')
     expect(candidate!.mechanicFacts.outcomes).toEqual([
       expect.objectContaining({ kind: 'EFFECT', effectKind: 'APPLY_GRANT' })
+    ])
+  })
+})
+
+describe('spell slot recovery and conversion (SPELLS-31.T5j)', () => {
+  function exchanges(input: {
+    classLabel: string
+    level: number
+    subclass?: string
+    featureLabel: string
+  }) {
+    const character = evaluateSrdCharacter({
+      classes: [
+        {
+          label: input.classLabel,
+          level: input.level,
+          ...(input.subclass ? { subclass: input.subclass } : {})
+        }
+      ],
+      features: [
+        srdFeature({
+          owner: input.subclass ? 'SUBCLASS' : 'CLASS',
+          classLabel: input.classLabel,
+          ...(input.subclass ? { subclassLabel: input.subclass } : {}),
+          featureLabel: input.featureLabel,
+          level: input.level
+        })
+      ],
+      resourceUsage: []
+    })
+    return character.facts.actionCandidates
+      .filter(({ label }) => label === input.featureLabel)
+      .map((candidate) => ({
+        candidate,
+        exchange: character.output.actionDecisions
+          .find(({ actionId }) => actionId === candidate.actionId)
+          ?.mechanic?.outcomes.flatMap((outcome) =>
+            outcome.kind === 'EFFECT' && outcome.spellSlotExchange
+              ? [outcome.spellSlotExchange]
+              : []
+          ),
+        pools: character.facts.resourcePoolCandidates
+      }))
+  }
+
+  it.each([
+    { classLabel: 'Wizard', level: 5, featureLabel: 'Arcane Recovery', budget: 3 },
+    {
+      classLabel: 'Druid',
+      level: 6,
+      subclass: 'Circle of the Land',
+      featureLabel: 'Natural Recovery',
+      budget: 3
+    },
+    { classLabel: 'Wizard', level: 1, featureLabel: 'Arcane Recovery', budget: 1 }
+  ])(
+    '$featureLabel at level $level spends its free use to recover $budget slot levels up to 5th',
+    ({ budget, ...input }) => {
+      const [action, ...others] = exchanges(input)
+      expect(others).toEqual([])
+      expect(action!.candidate.mechanicFacts.invocation.activation?.code).toBe('FREE')
+      expect(action!.candidate.resourceUse).toEqual(expect.objectContaining({ cost: 1 }))
+      expect(action!.exchange).toEqual([
+        { mode: 'RECOVER_SLOTS', levelBudget: budget, maximumSlotLevel: 5 }
+      ])
+    }
+  )
+
+  it('Font of Magic converts slots into sorcery points and back as bonus actions', () => {
+    const actions = exchanges({ classLabel: 'Sorcerer', level: 5, featureLabel: 'Font of Magic' })
+    expect(actions).toHaveLength(2)
+    const poolIds = actions[0]!.pools.map(({ poolId }) => poolId)
+    expect(poolIds).toHaveLength(1)
+    for (const { candidate } of actions) {
+      expect(candidate.mechanicFacts.invocation.activation?.code).toBe('BONUS_ACTION')
+      expect(candidate.resourceUse).toBeNull()
+    }
+    expect(actions.map(({ exchange }) => exchange)).toEqual([
+      [{ mode: 'SLOT_TO_RESOURCE', resourcePoolId: poolIds[0], maximumSlotLevel: null }],
+      [
+        {
+          mode: 'RESOURCE_TO_SLOT',
+          resourcePoolId: poolIds[0],
+          costs: [
+            { slotLevel: 1, cost: 2 },
+            { slotLevel: 2, cost: 3 },
+            { slotLevel: 3, cost: 5 },
+            { slotLevel: 4, cost: 6 },
+            { slotLevel: 5, cost: 7 }
+          ]
+        }
+      ]
+    ])
+  })
+
+  it('adds a created slot to its level until the usage is cleared', () => {
+    const { facts } = evaluateSrdCharacter({ classes: [{ label: 'Sorcerer', level: 3 }] })
+    const slots = (created?: number) =>
+      evaluateDnd5eCharacterSpellSlots({
+        ...facts,
+        spellcastingClasses: buildCharacterSpellSlotRuleFacts(
+          evaluateSrdCharacter({ classes: [{ label: 'Sorcerer', level: 3 }] }).snapshot,
+          srdRegistry
+        ),
+        spellSlotUsageFacts: created
+          ? [
+              { kind: 'STANDARD', spellLevel: 2, rawUsed: 0, created },
+              { kind: 'STANDARD', spellLevel: 3, rawUsed: 1, created }
+            ]
+          : []
+      }).maxByLevel.map(({ spellLevel, slotCount, remaining }) => ({
+        spellLevel,
+        slotCount,
+        remaining
+      }))
+    expect(slots()).toEqual([
+      { spellLevel: 1, slotCount: 4, remaining: 4 },
+      { spellLevel: 2, slotCount: 2, remaining: 2 }
+    ])
+    expect(slots(1)).toEqual([
+      { spellLevel: 1, slotCount: 4, remaining: 4 },
+      { spellLevel: 2, slotCount: 3, remaining: 3 },
+      { spellLevel: 3, slotCount: 1, remaining: 0 }
     ])
   })
 })
