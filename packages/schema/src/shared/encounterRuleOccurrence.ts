@@ -9,6 +9,7 @@ import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 import type { DamageSaveSource } from './ruleExecutionConcentration.js'
 import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
+import { aimedAreaTargetDtoSchema } from './shape.js'
 import {
   offeredRollModeSchema,
   rollModeKeepSchema,
@@ -493,7 +494,9 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
               label: triggerLabelSchema,
               featureCost: z.number().check(z.int()).check(z.positive()),
               /** The actors this viewer may pick as the option's target. */
-              targetActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+              targetActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+              /** The area an aimed area option asks this viewer to aim, sent back as the answer's aim. */
+              area: z.optional(aimedAreaTargetDtoSchema)
             })
           )
           .check(z.minLength(1))
