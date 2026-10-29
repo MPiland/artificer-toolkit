@@ -405,6 +405,8 @@ describe('a half-damage success authored as an amount kind', () => {
         spellEffects: [
           {
             spellId: SPELL_ID,
+            level: 3,
+            magicSchoolId: 'evocation',
             readsCastLevel: false,
             effects: [
               {
