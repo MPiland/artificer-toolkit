@@ -13,7 +13,8 @@ import { internalAction } from '../_generated/server'
 import { internalMutation } from '../lib/mutations'
 import { internalQuery } from '../lib/queries'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
-import { onAuthUserDelete } from '../lib/authTriggers.helper'
+import { removePrivateCharacter } from './accountDeletion'
+import { readCharacterRow } from './stateDocuments'
 
 const ROLLBACK_MARKER = 'Abort after private receipt retirement.'
 const rollbackReference = makeFunctionReference<'mutation', DevelopmentReceiptLedgerScope, null>(
@@ -35,8 +36,14 @@ export const rollback = internalMutation({
       .unique()
     if (!profile || !draft || draft.userId !== userId)
       throw new Error('Receipt retirement rollback requires the owned fixture draft.')
-    await onAuthUserDelete(ctx, { _id: profile.authUserId })
-    const [remaining, intent, removedProfile] = await Promise.all([
+    await removePrivateCharacter(
+      ctx,
+      userId,
+      characterId,
+      await readCharacterRow(ctx, characterId),
+      draft
+    )
+    const [remaining, intent, removedRoute] = await Promise.all([
       ctx.db
         .query('characterCommandReceipts')
         .withIndex('by_characterId_commandId', (q) => q.eq('characterId', characterId))
@@ -46,11 +53,11 @@ export const rollback = internalMutation({
         .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
         .unique(),
       ctx.db
-        .query('userProfiles')
-        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .query('authoredRouteIds')
+        .withIndex('by_subjectId', (q) => q.eq('subjectId', characterId))
         .unique()
     ])
-    if (remaining || !intent || removedProfile)
+    if (remaining || !intent || removedRoute)
       throw new Error('Receipt retirement did not atomically remove references and create intent.')
     throw new ConvexError(ROLLBACK_MARKER)
   }
@@ -82,7 +89,7 @@ export const inspect = internalQuery({
       where: [{ field: '_id', value: input.authUserId }],
       select: ['_id', 'email']
     })
-    if (!user || !/^draft_[0-9a-f]{12}@example\.invalid$/.test(user.email))
+    if (user && !/^draft_[0-9a-f]{12}@example\.invalid$/.test(user.email))
       throw new Error('Receipt retirement inspection requires the exact fixture auth account.')
     const [profile, active, draft, job, headers, ledgers] = await Promise.all([
       ctx.db
@@ -112,7 +119,10 @@ export const inspect = internalQuery({
         )
         .take(4)
     ])
+    // Staged account deletion removes the auth account last, so its absence is valid only after
+    // the profile is gone too.
     if (
+      (!user && profile) ||
       (profile && profile.userId !== input.userId) ||
       (active && active.userId !== input.userId) ||
       (draft && draft.userId !== input.userId) ||

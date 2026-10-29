@@ -16,7 +16,7 @@ import type {
 import { deletedCampaignAuthorLabel } from '@artificer-toolkit/schema/api/campaignCommunication'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { internal } from '../_generated/api'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/characters'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
@@ -453,7 +453,7 @@ describe('native Campaign notebooks', () => {
       if (!profile) throw new Error('Missing player profile.')
       return profile.authUserId
     })
-    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
+    await deleteAccountCompletely(t, authUserId)
     expect(await listAll(owner.caller, campaign.id)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: privateEntry!.id, authorLabel: deletedCampaignAuthorLabel }),

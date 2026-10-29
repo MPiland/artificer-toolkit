@@ -1,13 +1,14 @@
 // @vitest-environment node
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
+import { makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
   SRD_CONTENT_SOURCE,
   SRD_RULES_CATALOGUE
 } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { createEncounterLifecyclePolicyFixture } from '../../tests/fixtures/encounterInitiative'
@@ -237,17 +238,15 @@ it('runs the shared Manual and Assisted lifecycles, native map/Scene binding and
     ),
     policies.cleanup
   )
-  await t.run(async (ctx) => {
+  const authUserId = await t.run(async (ctx) => {
     const profile = await ctx.db
       .query('userProfiles')
       .withIndex('by_userId', (q) => q.eq('userId', owner.userId))
       .unique()
     if (!profile) throw new Error('Missing fixture owner.')
-    await ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-      input: { model: 'user', where: [{ field: '_id', value: profile.authUserId }] },
-      onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-    })
+    return profile.authUserId
   })
+  await deleteAccountCompletely(t, authUserId)
   await expect(owner.caller.query(api.account.identity, {})).rejects.toThrow('Unauthenticated')
   vi.setSystemTime(Date.now() + 25 * 60 * 60 * 1000)
   await t.finishAllScheduledFunctions(vi.runAllTimers)

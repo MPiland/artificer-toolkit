@@ -6,7 +6,13 @@ import {
 } from '@artificer-toolkit/schema/api/authoredPublication'
 import type { MutationCtx } from '../_generated/server'
 import type { Doc } from '../_generated/dataModel'
-import { mutation } from '../lib/mutations'
+import { internalMutation, mutation } from '../lib/mutations'
+import {
+  ACCOUNT_DELETION_BATCH,
+  accountDeletionStepArgs,
+  continueAccountDeletion,
+  readAccountDeletionStep
+} from '../accountDeletionJobs'
 import { requireIdentity } from '../lib/identity'
 import {
   canReadAuthoredRoot,
@@ -232,85 +238,96 @@ async function retainDeletedAuthoredReferences(ctx: MutationCtx, root: Doc<'auth
     })
   }
 }
-/** Complete current owner cleanup through the existing source-loss transaction. */
-export async function removeAccountAuthoredContent(ctx: MutationCtx, userId: string) {
+/** The owner's next root that no other owned root depends on, so source loss can delete it. */
+async function nextDeletableAuthoredRoot(ctx: MutationCtx, userId: string) {
   const roots = await ctx.db
     .query('authoredRoots')
     .withIndex('by_ownerUserId', (q) => q.eq('ownerUserId', userId))
     .collect()
-  const pending = new Map(
-    roots.sort((left, right) => left.id.localeCompare(right.id)).map((root) => [root.id, root])
-  )
-  const ordered: typeof roots = []
-  while (pending.size > 0) {
-    let next: (typeof roots)[number] | undefined
-    for (const root of pending.values()) {
-      if (
-        [...pending.values()].some(
-          (child) =>
-            child.systemId === root.systemId &&
-            child.subjectKind === root.subjectKind &&
-            (child.parentClassId === root.id ||
-              child.parentEquipmentId === root.id ||
-              child.parentRaceId === root.id)
-        )
-      )
-        continue
-      if (root.subjectKind === 'CLASS') {
-        const references = await ctx.db
-          .query('authoredSpellClasses')
-          .withIndex('by_classId', (q) => q.eq('classId', root.id))
-          .collect()
-        if (references.some((reference) => pending.has(reference.spellId))) continue
-      }
-      next = root
-      break
-    }
-    if (!next) throw new Error('Owned authored dependency cycle prevents account deletion.')
-    pending.delete(next.id)
-    ordered.push(next)
-  }
-  for (const root of ordered)
-    await deleteOwnedActiveAuthoredContent(
-      ctx,
-      {
-        subjectKind: root.subjectKind,
-        subjectId: root.id
-      },
-      userId
-    )
-  const drafts = await ctx.db
-    .query('authoredDrafts')
-    .withIndex('by_userId', (q) => q.eq('userId', userId))
-    .collect()
-  for (const draft of drafts.sort((left, right) => left.subjectId.localeCompare(right.subjectId))) {
-    await readDraft(ctx, draft)
-    const [active, route] = await Promise.all([
-      ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
-        .unique(),
-      ctx.db
-        .query('authoredRouteIds')
-        .withIndex('by_subjectId', (q) => q.eq('subjectId', draft.subjectId))
-        .unique()
-    ])
+  const pending = new Set(roots.map((root) => root.id))
+  for (const root of roots.sort((left, right) => left.id.localeCompare(right.id))) {
     if (
-      active ||
-      !route ||
-      route.subjectKind !== draft.subjectKind ||
-      route.publicId !== draft.publicId
+      roots.some(
+        (child) =>
+          child.systemId === root.systemId &&
+          child.subjectKind === root.subjectKind &&
+          (child.parentClassId === root.id ||
+            child.parentEquipmentId === root.id ||
+            child.parentRaceId === root.id)
+      )
     )
-      throw new Error('Stored authored draft route mismatch.')
-    await deleteDraftPayload(ctx, draft)
-    await ctx.db.delete(draft._id)
-    await dropImageSlot(ctx, draft.subjectId, 'DRAFT')
-    await ctx.db.delete(route._id)
-    await syncAccountUsage(ctx, 'homebrewRoots', draft.subjectId)
+      continue
+    if (root.subjectKind === 'CLASS') {
+      const references = await ctx.db
+        .query('authoredSpellClasses')
+        .withIndex('by_classId', (q) => q.eq('classId', root.id))
+        .collect()
+      if (references.some((reference) => pending.has(reference.spellId))) continue
+    }
+    return root
   }
-  const imports = await ctx.db
-    .query('authoredImportRefs')
-    .withIndex('by_userId_subjectKind_subjectId_createdAt', (q) => q.eq('userId', userId))
-    .collect()
-  for (const reference of imports) await ctx.db.delete(reference._id)
+  if (roots.length) throw new Error('Owned authored dependency cycle prevents account deletion.')
+  return null
 }
+
+/**
+ * The AUTHORED step (ADR 0040): one root through the existing source-loss transaction, leaves
+ * first, then one draft-only subject per invocation, then import references in batches.
+ */
+export const accountDeletionStep = internalMutation({
+  args: accountDeletionStepArgs,
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const job = await readAccountDeletionStep(ctx, args, 'AUTHORED')
+    if (!job) return null
+    const userId = job.userId
+    const root = await nextDeletableAuthoredRoot(ctx, userId)
+    if (root) {
+      await deleteOwnedActiveAuthoredContent(
+        ctx,
+        { subjectKind: root.subjectKind, subjectId: root.id },
+        userId
+      )
+      await continueAccountDeletion(ctx, job, true)
+      return null
+    }
+    const draft = await ctx.db
+      .query('authoredDrafts')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .first()
+    if (draft) {
+      await readDraft(ctx, draft)
+      const [active, route] = await Promise.all([
+        ctx.db
+          .query('authoredRoots')
+          .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
+          .unique(),
+        ctx.db
+          .query('authoredRouteIds')
+          .withIndex('by_subjectId', (q) => q.eq('subjectId', draft.subjectId))
+          .unique()
+      ])
+      if (
+        active ||
+        !route ||
+        route.subjectKind !== draft.subjectKind ||
+        route.publicId !== draft.publicId
+      )
+        throw new Error('Stored authored draft route mismatch.')
+      await deleteDraftPayload(ctx, draft)
+      await ctx.db.delete(draft._id)
+      await dropImageSlot(ctx, draft.subjectId, 'DRAFT')
+      await ctx.db.delete(route._id)
+      await syncAccountUsage(ctx, 'homebrewRoots', draft.subjectId)
+      await continueAccountDeletion(ctx, job, true)
+      return null
+    }
+    const imports = await ctx.db
+      .query('authoredImportRefs')
+      .withIndex('by_userId_subjectKind_subjectId_createdAt', (q) => q.eq('userId', userId))
+      .take(ACCOUNT_DELETION_BATCH)
+    for (const reference of imports) await ctx.db.delete(reference._id)
+    await continueAccountDeletion(ctx, job, imports.length === ACCOUNT_DELETION_BATCH)
+    return null
+  }
+})

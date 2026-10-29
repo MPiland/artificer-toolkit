@@ -192,7 +192,7 @@ in that check remains mocked. Compilation and full preparation/command execution
 The held lifecycle gaps are concrete. [characterDeparture](../../apps/apis/convex/campaigns/characterDeparture.ts)
 still freezes PREPARED/ACTIVE Convex actors, and
 [actorControllerRemoval](../../apps/apis/convex/encounters/actorControllerRemoval.ts) rewrites their
-controller lists. [accountDeparture.helper](../../apps/apis/convex/campaigns/accountDeparture.helper.ts)
+controller lists. [accountDeparture](../../apps/apis/convex/campaigns/accountDeparture.ts)
 removes account actors before departing membership. Worker `EVICT_USER` currently closes sockets
 and updates room cache/admission state; it does not perform native actor freeze/removal.
 [checkpointRecords](../../apps/apis/convex/liveSessions/checkpointRecords.ts) validates actor rows

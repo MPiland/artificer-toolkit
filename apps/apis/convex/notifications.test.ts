@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { NotificationFeedItemDto } from '@artificer-toolkit/schema/api/notifications'
 import { api, components, internal } from './_generated/api'
 import schema from './schema'
+import {
+  advanceAccountDeletionToProvider,
+  drainScheduledWork,
+  scheduledSince
+} from '../tests/fixtures/accountDeletion'
 import authSchema from './betterAuth/schema'
 
 const modules = import.meta.glob('./**/*.*s')
@@ -204,13 +209,14 @@ describe('native notification feed and preferences', () => {
       await ctx.db.insert('notificationFeedItems', { ...item(), userId: first.userId }),
       await ctx.db.insert('notificationFeedItems', { ...item(), userId: second.userId })
     ])
+    const before = await advanceAccountDeletionToProvider(t, first.user._id, first.userId)
     await t.mutation(internal.auth.onDelete, { model: 'user', doc: first.user })
-    vi.runAllTimers()
-    await t.finishInProgressScheduledFunctions()
-    expect(await t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(4))).toEqual([
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } })
+    await drainScheduledWork(t)
+    expect(await scheduledSince(t, before)).toEqual([
+      { name: 'accountDeletionFinish:purge', state: 'success' },
+      { name: 'notifications/delivery:purgeRecipient', state: 'success' },
+      { name: 'media/assets:purgeAccount', state: 'success' },
+      { name: 'social/accountCleanup:run', state: 'success' }
     ])
     expect(await t.run((ctx) => ctx.db.get(ids[0]))).toBeNull()
     expect(await t.run((ctx) => ctx.db.get(ids[1]))).not.toBeNull()

@@ -1,6 +1,7 @@
 import { createFunctionHandle, makeFunctionReference } from 'convex/server'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { campaignStoredInviteSchema } from '@artificer-toolkit/schema/projections/campaignPersistence'
+import { advanceAccountDeletionToProvider } from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { api, components, internal } from '../_generated/api'
 
@@ -87,10 +88,12 @@ it('atomically schedules bounded, retry-safe account cascades and immediately hi
       profiles: await ctx.db.query('socialProfiles').collect()
     }))
   const args = { userId: victim.userId, profileId: victim.id }
+  const account = (await snapshot()).accounts.find((row) => row.userId === victim.userId)!
+  // Every earlier staged step runs first (ADR 0040); the provider delete is the last commit.
+  await advanceAccountDeletionToProvider(base.t, account.authUserId, victim.userId)
   const before = await snapshot()
   await base.t.mutation(cleanup, args)
   expect(await snapshot()).toEqual(before)
-  const account = before.accounts.find((row) => row.userId === victim.userId)!
   await expect(
     base.t.run(async (ctx) => {
       await ctx.runMutation(components.betterAuth.adapter.deleteOne, {

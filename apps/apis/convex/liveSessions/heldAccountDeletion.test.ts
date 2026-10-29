@@ -8,7 +8,8 @@ import {
   readRoomTimeline,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { api, internal } from '../_generated/api'
+import { deleteAccountCompletely } from '../../tests/fixtures/accountDeletion'
+import { api } from '../_generated/api'
 
 useLocalRoomWorker()
 
@@ -119,7 +120,7 @@ describe('account deletion with a Character held by a live room', () => {
     })
 
     // Deleting the account makes the room evict the member, and Convex writes nothing to the Run.
-    await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: authUserId } })
+    await deleteAccountCompletely(t, authUserId)
     expect(
       (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect()))
         .filter((job) => job.name === 'liveSessions/control:evictUser')

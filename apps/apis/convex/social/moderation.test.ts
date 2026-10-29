@@ -12,6 +12,12 @@ import type {
   SocialModerationQueuePage,
   SocialModerationEvidenceDto
 } from '@artificer-toolkit/schema/api/socialModeration'
+import {
+  advanceAccountDeletionToProvider,
+  deleteAccountCompletely,
+  drainScheduledWork,
+  scheduledSince
+} from '../../tests/fixtures/accountDeletion'
 import { fixture } from '../../tests/fixtures/socialWriters'
 import { api, components, internal } from '../_generated/api'
 import * as documents from './moderationDocuments'
@@ -509,12 +515,7 @@ describe('native Social moderation report review', () => {
           expect.objectContaining({ moderatorUserId: actor.userId, action: 'VIEWED' })
         ])
 
-      await base.t.run(async (ctx) =>
-        ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-          input: { model: 'user', where: [{ field: '_id', value: account.authUserId }] },
-          onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-        })
-      )
+      await deleteAccountCompletely(base.t, account.authUserId)
 
       expect(
         await base.t.run(async (ctx) => ({
@@ -569,18 +570,23 @@ describe('native Social moderation report review', () => {
       return profile
     })
     const before = await base.moderationSnapshot()
+    const scheduled = await advanceAccountDeletionToProvider(
+      base.t,
+      account.authUserId,
+      unrelated.userId
+    )
     await base.t.run(async (ctx) =>
       ctx.runMutation(components.betterAuth.adapter.deleteOne, {
         input: { model: 'user', where: [{ field: '_id', value: account.authUserId }] },
         onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
       })
     )
-    vi.runAllTimers()
-    await base.t.finishInProgressScheduledFunctions()
-    expect(await base.t.run((ctx) => ctx.db.system.query('_scheduled_functions').take(4))).toEqual([
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } }),
-      expect.objectContaining({ state: { kind: 'success' } })
+    await drainScheduledWork(base.t)
+    expect(await scheduledSince(base.t, scheduled)).toEqual([
+      { name: 'accountDeletionFinish:purge', state: 'success' },
+      { name: 'notifications/delivery:purgeRecipient', state: 'success' },
+      { name: 'media/assets:purgeAccount', state: 'success' },
+      { name: 'social/accountCleanup:run', state: 'success' }
     ])
     expect(
       await base.t.run(async (ctx) => ({

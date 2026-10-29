@@ -1,5 +1,5 @@
-import { createFunctionHandle, makeFunctionReference } from 'convex/server'
-import { expect, it } from 'vitest'
+import { makeFunctionReference } from 'convex/server'
+import { expect, it, vi } from 'vitest'
 import type {
   CampaignDetailDto,
   CreateCampaignInput
@@ -24,8 +24,44 @@ import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlemen
 import type { z } from 'zod'
 import { fixture } from '../../tests/fixtures/characters'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
-import { components, internal } from '../_generated/api'
-import { retainAccountCampaignMedia } from './accountRetention.helper'
+import { internal } from '../_generated/api'
+import {
+  deleteAccountCompletely,
+  runAccountDeletionStep
+} from '../../tests/fixtures/accountDeletion'
+import * as deletionJobs from '../accountDeletionJobs'
+
+/** Puts the account's deletion job at the MEDIA step so these tests exercise that step alone. */
+async function holdAtMedia(base: Awaited<ReturnType<typeof setup>>, userId: string) {
+  await base.t.run(async (ctx) => {
+    const profile = await ctx.db
+      .query('userProfiles')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .unique()
+    if (!profile) throw new Error('Missing deleting account profile.')
+    await deletionJobs.startAccountDeletion(ctx, profile.authUserId, userId)
+    const job = await ctx.db
+      .query('accountDeletionJobs')
+      .withIndex('by_userId', (q) => q.eq('userId', userId))
+      .unique()
+    if (!job) throw new Error('Missing account deletion job.')
+    await ctx.db.patch(job._id, { step: 'MEDIA' })
+  })
+}
+
+/** Runs the MEDIA step until the job moves on, as the scheduler would. */
+async function retainMedia(base: Awaited<ReturnType<typeof setup>>, userId: string) {
+  for (;;) {
+    await runAccountDeletionStep(base.t, userId, internal.media.accountRetention.step)
+    const job = await base.t.run((ctx) =>
+      ctx.db
+        .query('accountDeletionJobs')
+        .withIndex('by_userId', (q) => q.eq('userId', userId))
+        .unique()
+    )
+    if (job?.step !== 'MEDIA') return
+  }
+}
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -233,12 +269,7 @@ async function readProfile(base: Awaited<ReturnType<typeof setup>>, userId: stri
 async function deleteAccount(base: Awaited<ReturnType<typeof setup>>, userId: string) {
   const profile = await readProfile(base, userId)
   if (!profile) throw new Error('Missing uploader profile.')
-  await base.t.run(async (ctx) =>
-    ctx.runMutation(components.betterAuth.adapter.deleteOne, {
-      input: { model: 'user', where: [{ field: '_id', value: profile.authUserId }] },
-      onDeleteHandle: await createFunctionHandle(internal.auth.onDelete)
-    })
-  )
+  await deleteAccountCompletely(base.t, profile.authUserId)
   return profile
 }
 
@@ -317,7 +348,8 @@ it.each([true, undefined])(
       source: await readProfile(base, base.other.userId),
       owner: await readProfile(base, base.owner.userId)
     }
-    await base.t.run((ctx) => retainAccountCampaignMedia(ctx, base.other.userId))
+    await holdAtMedia(base, base.other.userId)
+    await retainMedia(base, base.other.userId)
     const references = await base.t.run(async (ctx) => [
       ...(await ctx.db.query('sceneDefinitions').take(8)),
       ...(await ctx.db.query('campaignScenes').take(8))
@@ -362,15 +394,20 @@ it('allows retention over quota and rolls an outer account-deletion transaction 
       definitions: await ctx.db.query('sceneDefinitions').take(8),
       scenes: await ctx.db.query('campaignScenes').take(8)
     }))
+  await holdAtMedia(base, base.other.userId)
   const before = await snapshot()
-  await expect(
-    base.t.run(async (ctx) => {
-      await retainAccountCampaignMedia(ctx, base.other.userId)
-      throw new Error('late outer rollback')
-    })
-  ).rejects.toThrow('late outer rollback')
+  const abort = vi
+    .spyOn(deletionJobs, 'continueAccountDeletion')
+    .mockRejectedValueOnce(new Error('late outer rollback'))
+  try {
+    await expect(
+      runAccountDeletionStep(base.t, base.other.userId, internal.media.accountRetention.step)
+    ).rejects.toThrow('late outer rollback')
+  } finally {
+    abort.mockRestore()
+  }
   expect(await snapshot()).toEqual(before)
-  await base.t.run((ctx) => retainAccountCampaignMedia(ctx, base.other.userId))
+  await retainMedia(base, base.other.userId)
   expect((await readProfile(base, base.owner.userId))!.mediaBytes).toBe(
     ENTITLEMENT_LIMITS.FREE.storageBytes + asset.chargedBytes
   )
@@ -414,7 +451,8 @@ it('copies one map once per Campaign owner and never retains personal references
   })
   await referenceMap(base, art.id, 'definition')
   await referenceMap(base, art.id, 'live', elsewhere.id)
-  await base.t.run((ctx) => retainAccountCampaignMedia(ctx, departing.userId))
+  await holdAtMedia(base, departing.userId)
+  await retainMedia(base, departing.userId)
   const [definition] = await base.t.run((ctx) => ctx.db.query('sceneDefinitions').take(8))
   const [scene] = await base.t.run((ctx) => ctx.db.query('campaignScenes').take(8))
   const copies = await Promise.all(

@@ -223,12 +223,16 @@ export async function verifyDevelopmentReceiptLedgers({
       beforeRetirement,
       'Native private retirement did not roll back.'
     )
-    await cli('auth:onDelete', { model: 'user', doc: { _id: authUserId } }, false)
+    await cli('accountDeletion:schedule', { authUserId }, false)
     accountDeleted = true
-    const deadline = Date.now() + 30_000
+    const deadline = Date.now() + 60_000
     let retired = await readRetirement()
+    while (retired.profileExists) {
+      assert.ok(Date.now() < deadline, 'Native staged account deletion did not finish.')
+      await new Promise((resolve) => setTimeout(resolve, 250))
+      retired = await readRetirement()
+    }
     assert.equal(retired.characterExists, false)
-    assert.equal(retired.profileExists, false)
     assert.equal(retired.headerCount, 0)
     while (retired.jobExists || retired.storagePresent) {
       assert.ok(Date.now() < deadline, 'Native deferred private payload purge did not finish.')

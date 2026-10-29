@@ -11,6 +11,10 @@ import schema from '../schema'
 import type { TableNames } from '../_generated/dataModel'
 import authSchema from '../betterAuth/schema'
 import { api, components, internal } from '../_generated/api'
+import {
+  advanceAccountDeletionToProvider,
+  drainScheduledWork
+} from '../../tests/fixtures/accountDeletion'
 import { startLocalR2 } from '../../tests/localR2'
 
 let t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))
@@ -348,10 +352,10 @@ it('cleans pending and ready keys after account deletion, without touching anoth
     assetId: foreignIntent.assetId,
     crop
   })
-  await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
-  // An already issued PUT may arrive after deletion; its exact key is retained by cleanup.
+  await t.mutation(internal.accountDeletion.schedule, { authUserId: owner.user._id })
+  // An already issued PUT may arrive after deletion starts; its exact key is retained by cleanup.
   await put(pending.url, image)
-  await t.finishAllScheduledFunctions(vi.runAllTimers)
+  await drainScheduledWork(t)
   expect(
     await t.run((ctx) =>
       ctx.db
@@ -381,20 +385,12 @@ it('converges identically when every deferred account cleanup reruns', async () 
     upload(image.byteLength)
   )
   await put(pending.url, image)
-  const scheduledBefore = new Set(
-    (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).map(
-      (job) => job._id
-    )
+  const scheduledBefore = await advanceAccountDeletionToProvider(
+    t,
+    owner.user._id,
+    owner.identity.userId
   )
   await t.mutation(internal.auth.onDelete, { model: 'user', doc: { _id: owner.user._id } })
-  const deferred = (
-    await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
-  ).filter((job) => !scheduledBefore.has(job._id))
-  expect(deferred.map((job) => job.name).sort()).toEqual([
-    'media/assets:purgeAccount',
-    'notifications/delivery:purgeRecipient',
-    'social/accountCleanup:run'
-  ])
   const converged = async () => {
     await t.finishAllScheduledFunctions(vi.runAllTimers)
     return {
@@ -413,6 +409,16 @@ it('converges identically when every deferred account cleanup reruns', async () 
   }
   const first = await converged()
   expect(first.app.mediaAssets).toEqual([])
+  // The provider delete schedules the purge, which schedules the per-module account cleanups.
+  const deferred = (
+    await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
+  ).filter((job) => !scheduledBefore.has(job._id))
+  expect(deferred.map((job) => job.name).sort()).toEqual([
+    'accountDeletionFinish:purge',
+    'media/assets:purgeAccount',
+    'notifications/delivery:purgeRecipient',
+    'social/accountCleanup:run'
+  ])
   for (const job of deferred)
     await t.mutation(
       makeFunctionReference<'mutation', Record<string, unknown>, null>(job.name),

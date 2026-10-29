@@ -296,7 +296,7 @@ authorized mutation before any write, so a rejection rolls back the whole transa
 - Social (fixed UTC-aligned hour/day windows from the shared `SOCIAL_RATE_LIMITS` policy):
   application, invitation, report and block writers.
 
-Account deletion (`lib/authTriggers.helper.ts`) resets every user-keyed counter. The component
+Account deletion (the FINISH step in `accountDeletionFinish.ts`) resets every user-keyed counter. The component
 exposes no client mutation. See
 [native Social rate limits](../../docs/architecture/persistence.md#social-rate-limits).
 
@@ -384,10 +384,11 @@ The private `accountDeletion:confirmCredentials` mutation reuses the strict shar
 current Better Auth password credential without creating a session or changing account state.
 It returns no credential or profile data. The implemented `POST /api/auth/account/delete` handler
 passes its server-derived cookie session token and strict command to private `accountDeletion:execute`.
-That mutation rechecks current session, user, email and password before the installed SDK deletes
-credentials and sessions with app cleanup and deferred scheduling in one native transaction.
-The HTTP handler expires session and Convex JWT cookies after commit. See the
-[native account deletion transaction](../../docs/architecture/persistence.md#account-deletion).
+That mutation rechecks current session, user, email and password, revokes every session and
+credential, and schedules a staged deletion job whose last step calls the SDK `deleteUser`
+([ADR 0040](../../docs/adr/0040-staged-account-deletion.md)). The HTTP handler expires session and
+Convex JWT cookies after commit and answers "deletion scheduled". See
+[staged account deletion](../../docs/architecture/persistence.md#account-deletion).
 D71 private-payload purge has focused local native proof; final integrated native/browser acceptance
 and the complete local lifecycle remain pending.
 Native account password changes use `POST /api/auth/account/password` with the existing strict

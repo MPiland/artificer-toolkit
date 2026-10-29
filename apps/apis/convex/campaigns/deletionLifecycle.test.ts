@@ -13,7 +13,7 @@ import { fixture } from '../../tests/fixtures/characters'
 import { api } from '../_generated/api'
 import type { Id } from '../_generated/dataModel'
 import * as deletionState from './deletionState'
-import { createAuth } from '../authFactory.helper'
+import { runAccountDeletionInPlace } from '../../tests/fixtures/accountDeletion'
 
 const status = makeFunctionReference<'query', { campaignId: string }, CampaignDeletionStatus>(
   'campaigns/deletion:status'
@@ -231,14 +231,14 @@ describe('one Campaign deletion lifecycle', () => {
           })
       })
       for (const userId of [base.owner.userId, base.other.userId]) {
-        await base.t.run(async (ctx) => {
-          const profile = await ctx.db
+        const profile = await base.t.run((ctx) =>
+          ctx.db
             .query('userProfiles')
             .withIndex('by_userId', (q) => q.eq('userId', userId))
             .unique()
-          if (!profile) throw new Error('Missing account profile.')
-          await (await createAuth(ctx).$context).internalAdapter.deleteUser(profile.authUserId)
-        })
+        )
+        if (!profile) throw new Error('Missing account profile.')
+        await runAccountDeletionInPlace(base.t, profile.authUserId, userId)
       }
       const scheduledBefore = await base.t.run((ctx) =>
         ctx.db.system.query('_scheduled_functions').collect()
