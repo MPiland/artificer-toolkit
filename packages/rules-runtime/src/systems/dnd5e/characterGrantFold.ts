@@ -53,7 +53,10 @@ function totalClassLevel(input: CharacterGrantFoldInput): number {
   return input.base.classes.reduce((sum, entry) => sum + entry.level, 0)
 }
 
-/** The conditions only a modifier's consumer can decide: the action (item, spell) and the holder's state. */
+/**
+ * The conditions only a modifier's consumer can decide: the action (item, spell) and the holder's
+ * state.
+ */
 const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
   ...DND5E_ACTION_CONDITION_KINDS,
   'CAN_ACT',

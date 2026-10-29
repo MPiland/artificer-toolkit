@@ -1124,6 +1124,24 @@ describe('D&D 5e modifier scope', () => {
     expect(dnd5eModifierApplies(agonizing, cast(fireBolt))).toBe(false)
   })
 
+  // Regression (SPELLS-31.T5i1 review): an ALL spell context with no conditions folded to an empty
+  // group, which only an attacking item meets, so it applied to every weapon and no spell.
+  it('an any-spell context applies to every cast spell and never to a weapon', () => {
+    const anySpellModifier = spellModifier(anySpell())
+    expect(dnd5eModifierApplies(anySpellModifier, cast(fireBolt))).toBe(true)
+    expect(dnd5eModifierApplies(anySpellModifier, cast(sleep))).toBe(true)
+    expect(dnd5eModifierApplies(anySpellModifier, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
+    expect(
+      dnd5eModifierApplies(anySpellModifier, {
+        sourceIds: [],
+        item: sword,
+        spell: null,
+        attackAbility: null,
+        activation: null
+      })
+    ).toBe(false)
+  })
+
   // Regression (SPELLS-31.T5i1): an ALL spell context with a school condition used to fold to no
   // spell ids, so it applied to every spell and Character-wide.
   it('a school condition on any spell applies only to spells of that school', () => {
@@ -1666,6 +1684,56 @@ describe('D&D 5e restrictions and spell-scoped damage', () => {
       'ON_SAVE_SUCCESS half of 8d6 + 5'
     ])
     expect(damage('cold-snap').damage).toEqual(['ON_SAVE_FAIL 2d8 + 2'])
+  })
+
+  it('a spell’s weapon attack keeps its weapon damage modifiers and adds the spell ones', () => {
+    const weaponBonus = (sourceId: string, value: number) => ({
+      sourceId,
+      value,
+      ability: null,
+      state: 'APPLIED' as const,
+      scope: 'GLOBAL' as const,
+      deferredRequirements: []
+    })
+    const output = evaluateDnd5e2014CharacterActions({
+      ...noActionSources,
+      spellEffects: [
+        spellEffect(
+          'conjured-blade',
+          { level: 2, magicSchoolId: 'evocation', triggerCode: 'MELEE_WEAPON_ATTACK' },
+          [damageOutcome('ON_HIT', 'fire', '2d6')]
+        )
+      ],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [
+        {
+          domainKey: 'DAMAGE:ABILITY_MODIFIER_BONUS|attackDomain=MELEE',
+          contributions: [weaponBonus('strength', 3)]
+        },
+        {
+          domainKey: 'DAMAGE:BONUS|attackDomain=MELEE',
+          contributions: [weaponBonus('plus-one', 1)]
+        },
+        {
+          domainKey: 'DAMAGE:ABILITY_MODIFIER_BONUS|attackDomain=SPELL',
+          contributions: [spellDamageBonus('empowered-evocation', 4, evocationOnly)]
+        }
+      ],
+      totalLevel: 1,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: { saveDc: 13, attackBonus: 5 }
+    })
+    const outcomes = output.spellReferenceMechanics.find(
+      (entry) => entry.spellId === 'conjured-blade'
+    )!.mechanics[0]!.outcomes
+    expect(outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.expression)).toEqual([
+      '2d6 + 8'
+    ])
   })
 })
 

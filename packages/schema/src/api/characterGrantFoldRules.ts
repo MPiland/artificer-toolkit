@@ -405,8 +405,8 @@ export const characterGrantFoldModifierSchema = lazySchema(() =>
     scopeResourceIds: z.optional(z.array(identitySchema).check(z.maxLength(500))),
     /**
      * Conditions still to be met where they are known, as OR-of-AND groups: the attacking item's,
-     * the cast spell's, or the holder's state in the Encounter. Empty means the modifier is unconditional; a
-     * Character-wide value never satisfies a non-empty requirement.
+     * the cast spell's, or the holder's state in the Encounter. Empty means the modifier is
+     * unconditional; a Character-wide value never satisfies a non-empty requirement.
      */
     deferredRequirements: characterGrantFoldRestrictionSchema
   })

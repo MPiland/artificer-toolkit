@@ -92,7 +92,7 @@ export type Dnd5eModifierApplicability = {
 function spellConditionMatches(condition: ActionCondition, spell: Dnd5eCastSpell): boolean {
   switch (condition.kind) {
     case 'SPELL_IDENTITY':
-      return condition.requiredIds.includes(spell.id)
+      return condition.mode === 'ALL' || condition.requiredIds.includes(spell.id)
     case 'SPELL_SCHOOL':
       return (
         spell.magicSchoolId !== null &&

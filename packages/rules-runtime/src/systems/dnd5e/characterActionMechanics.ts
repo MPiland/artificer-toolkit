@@ -467,9 +467,10 @@ export function resolveDnd5eActionMechanic(
     return advantage === disadvantage ? 'NORMAL' : advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
   }
   /** Weapon attacks add their damage modifiers (ability, +N, Dueling) to the first damage roll,
-   * together with the item's manual damage adjustment. */
+   * together with the item's manual damage adjustment. A spell's own spell attack takes its
+   * SPELL-domain damage from the spell damage bonus below instead. */
   const attackDamageBonus =
-    attackDomain === null || target.spell !== null
+    attackDomain === null || (attackDomain === 'SPELL' && target.spell !== null)
       ? 0
       : abilityTotal('DAMAGE') +
         dnd5eAttackBonusTotal(input.modifierGroups, attackDomain, 'DAMAGE', target) +
@@ -481,27 +482,30 @@ export function resolveDnd5eActionMechanic(
    * path's first damage roll of a type the modifier applies to (Elemental Affinity's fire bonus
    * on the fire roll), so a half-damage save success halves it with the rest.
    */
+  const castSpell = target.spell
   const spellDamageContributions =
-    target.spell === null
+    castSpell === null
       ? []
       : attackModifierContributions(input.modifierGroups, 'SPELL', 'DAMAGE', numericKinds).filter(
           (contribution) => contribution.state === 'APPLIED'
         )
-  const appliesToDamage = (contribution: ModifierContribution, damageTypeId: string): boolean =>
-    target.spell !== null &&
-    dnd5eModifierApplies(contribution, { ...target, spell: { ...target.spell, damageTypeId } })
   const spellDamageBonus = (outcome: Extract<RawOutcome, { readonly kind: 'DAMAGE' }>): number =>
-    spellDamageContributions
-      .filter(
-        (contribution) =>
-          outcomes.find(
-            (candidateOutcome) =>
-              candidateOutcome.kind === 'DAMAGE' &&
-              candidateOutcome.pathCode === outcome.pathCode &&
-              appliesToDamage(contribution, candidateOutcome.damageTypeId)
-          ) === outcome
-      )
-      .reduce((sum, contribution) => sum + contribution.value, 0)
+    castSpell === null
+      ? 0
+      : spellDamageContributions
+          .filter(
+            (contribution) =>
+              outcomes.find(
+                (candidateOutcome) =>
+                  candidateOutcome.kind === 'DAMAGE' &&
+                  candidateOutcome.pathCode === outcome.pathCode &&
+                  dnd5eModifierApplies(contribution, {
+                    ...target,
+                    spell: { ...castSpell, damageTypeId: candidateOutcome.damageTypeId }
+                  })
+              ) === outcome
+          )
+          .reduce((sum, contribution) => sum + contribution.value, 0)
   /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
   const weaponDieFaces =
     attackKind === null || isDnd5eSpellAttackKind(attackKind)

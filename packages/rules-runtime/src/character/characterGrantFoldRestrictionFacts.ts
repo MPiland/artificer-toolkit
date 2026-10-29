@@ -334,18 +334,16 @@ function normalizeItemContext(
 function normalizeSpellContext(
   context: Extract<FacetContextAuthored, { subject: 'SPELL' }>
 ): RestrictionCondition[] {
-  const identity: RestrictionCondition[] =
-    context.authoringModeKind === 'SELECTED'
-      ? [
-          {
-            ...baseCondition({ id: context.id, constraint: 'INCLUDE' }, 'SPELL_IDENTITY'),
-            mode: 'SELECTED',
-            requiredIds: [...context.spellIds]
-          }
-        ]
-      : []
+  // Always present, so an ALL context with no conditions still needs a cast spell.
+  const identity: RestrictionCondition = {
+    ...baseCondition(
+      { id: context.id, constraint: 'INCLUDE', authoringModeKind: context.authoringModeKind },
+      'SPELL_IDENTITY'
+    ),
+    requiredIds: context.authoringModeKind === 'SELECTED' ? [...context.spellIds] : []
+  }
   return [
-    ...identity,
+    identity,
     ...(context.conditions ?? []).map((condition): RestrictionCondition => {
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'MAGIC_SCHOOL')
         return {
