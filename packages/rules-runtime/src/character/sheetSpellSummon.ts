@@ -133,7 +133,10 @@ export function sheetSpellSummonExtra(
 
 /** An Encounter summon the owner's Sheet reads: the Run actor its cast created, and its values. */
 export interface EncounterSpellSummon {
-  actor: Pick<EncounterRunActorState, 'id' | 'currentHitPoints' | 'maxHitPoints' | 'tempHitPoints'>
+  actor: Pick<
+    Exclude<EncounterRunActorState, { kind: 'CHARACTER' }>,
+    'id' | 'currentHitPoints' | 'maxHitPoints' | 'tempHitPoints'
+  >
   summon: SpellSummonStatBlockValues
 }
 
@@ -147,7 +150,8 @@ export function ownedEncounterSpellSummons(
   ownerActorId: string
 ): EncounterSpellSummon[] {
   return actors.flatMap((actor) => {
-    if (actor.owner?.ownerActorId !== ownerActorId || actor.defeated) return []
+    if (actor.kind === 'CHARACTER' || actor.owner?.ownerActorId !== ownerActorId || actor.defeated)
+      return []
     const { snapshot } = actor
     const stored =
       typeof snapshot === 'object' && snapshot !== null && 'summon' in snapshot
