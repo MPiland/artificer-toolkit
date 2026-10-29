@@ -1,7 +1,7 @@
 {
   "apps/session-worker/src/nativeEncounterRules.ts": 1619,
   "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1795,
-  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2583,
+  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2580,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4154,

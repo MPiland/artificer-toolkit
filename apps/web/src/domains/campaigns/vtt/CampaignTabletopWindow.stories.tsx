@@ -40,8 +40,10 @@ import {
   facingArcWedge,
   gmDarknessCapAlpha,
   minimumFocusedTokenScreenSize,
+  placedZoneColor,
   selectionOutlineColor
 } from './vttSceneRenderer.model'
+import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneTool.model'
 import {
   TabletopFixtures,
   fogAppend,
@@ -443,6 +445,135 @@ export const PlayerSeesOnlyAVisibleSourcesAura: Story = {
       .getAttribute('aria-description')
     await expect(description).toContain(`Auras: ${emberAuraLabel}`)
     await expect(description).not.toContain(wardenAuraLabel)
+  }
+}
+
+// VTT_UI-3.1: placed zones (SPELLS-17), a GM's hidden trap and a hazard in plain sight.
+const hiddenTrap = {
+  id: '13131313-1313-4131-8131-000000000011',
+  label: 'Caltrops',
+  shape: { kind: 'CIRCLE' as const, center: auraEmberToken!.position, radius: 70 },
+  spotDc: { value: 15, source: 'FLAT' as const },
+  disarmDc: { value: 12, source: 'FLAT' as const },
+  unawareActorIds: []
+}
+const plainHazard = {
+  id: '13131313-1313-4131-8131-000000000012',
+  label: 'Burning oil',
+  shape: { kind: 'CIRCLE' as const, center: auraWardenToken!.position, radius: 105 },
+  spotDc: null,
+  disarmDc: null,
+  unawareActorIds: []
+}
+const hiddenTrapLabel = 'Caltrops (hidden, spot DC 15)'
+
+// The placed zones the stage draws, read from the renderer's drawn presentation overlays.
+async function drawnZones(expectedLabels: readonly string[]) {
+  const renderer = await latestStageRenderer()
+  return waitFor(() => {
+    const drawn = renderer
+      .getDiagnostics()
+      .overlays.filter((overlay) => overlay.strokeColors.includes(placedZoneColor))
+    expect(drawn.map((overlay) => overlay.label)).toEqual(expectedLabels)
+    return drawn
+  })
+}
+
+// The server lists every zone to the GM (MOVE-3.3), whose label names the hidden trap's spot DC.
+export const GmSeesEveryPlacedZone: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, {
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      placedZones: [hiddenTrap, plainHazard],
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const drawn = await drawnZones([hiddenTrapLabel, plainHazard.label])
+    await expect(drawn.map((overlay) => overlay.circles)).toEqual([
+      [{ center: hiddenTrap.shape.center, radius: hiddenTrap.shape.radius }],
+      [{ center: plainHazard.shape.center, radius: plainHazard.shape.radius }]
+    ])
+    await expect(
+      page.getByRole('img', { name: 'Interactive campaign scene' }).getAttribute('aria-description')
+    ).toContain(`Zones: ${hiddenTrapLabel}; ${plainHazard.label}`)
+  }
+}
+
+// The server omits a trap concealed from every one of the player's Characters (MOVE-3.3), and
+// carries no spot DC to a player, so the map draws only the zone in plain sight.
+export const PlayerSeesOnlyZonesTheyKnowOf: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, {
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      placedZones: [plainHazard],
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const drawn = await drawnZones([plainHazard.label])
+    await expect(drawn[0]!.circles).toEqual([
+      { center: plainHazard.shape.center, radius: plainHazard.shape.radius }
+    ])
+    const description = page
+      .getByRole('img', { name: 'Interactive campaign scene' })
+      .getAttribute('aria-description')
+    await expect(description).toContain(`Zones: ${plainHazard.label}`)
+    await expect(description).not.toContain(hiddenTrap.label)
+  }
+}
+
+// MOVE-3.2 with VTT_UI-3.1: while the GM picks a zone's center, its area follows the pointer.
+export const PlacingAZonePreviewsItsArea: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const renderer = await latestStageRenderer()
+    const size = placedZoneSize(createPlacedZoneDraft(), tabletopLiveScene.grid)
+    await expect(size).toMatchObject({ kind: 'RADIUS' })
+    await userEvent.click(await page.findByRole('button', { name: 'Place a zone' }))
+    const tool = await page.findByRole('dialog', { name: 'Place a zone' })
+    await userEvent.click(await within(tool).findByRole('button', { name: 'Pick on map' }))
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Place a zone' })).toBeNull())
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
+
+    const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const bounds = canvas.getBoundingClientRect()
+    fireEvent.pointerMove(canvas, {
+      pointerId: 42,
+      pointerType: 'mouse',
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2
+    })
+    await waitFor(() => {
+      const aimed = renderer.getDiagnostics().areaAimOverlay
+      expect(aimed?.label).toBe('Area origin')
+      expect(aimed?.circles.map(({ radius }) => radius)).toEqual([
+        size?.kind === 'RADIUS' ? size.radius : null
+      ])
+    })
+
+    await pressStage(canvas, 'centre')
+    const reopened = await page.findByRole('dialog', { name: 'Place a zone' })
+    await expect(await within(reopened).findByText(/^Centered at/)).toBeVisible()
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
   }
 }
 

@@ -32,7 +32,7 @@ import {
   clampPolygonToRadius,
   darknessZoneStyle,
   dashedPolygonSegments,
-  describeAuraOverlays,
+  describeAreaOverlays,
   directedAreaAim,
   drawnAreaAim,
   describeDarknessZone,
@@ -48,6 +48,8 @@ import {
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
   lightRadii,
+  placedZoneColor,
+  placedZoneOverlays,
   positionVttMapTiles,
   resolveViewTokenId,
   resolveVttMapLoadDecision,
@@ -446,6 +448,7 @@ describe('VTT scene renderer model', () => {
         auras: [],
         destinationOverlays: [],
         drawerOpened: true,
+        placedZones: [],
         scene: tabletopLiveScene
       }
 
@@ -536,10 +539,92 @@ describe('VTT scene renderer model', () => {
         expect(auraOverlays(auras, movedTokens)[0]).toMatchObject({ center: moved })
         // A source token the viewer's Scene does not carry draws no aura.
         expect(auraOverlays(auras, [warden!])).toEqual([drawn[1]])
-        expect(describeAuraOverlays(stageOverlays({ ...stage, auras }))).toBe(
+        expect(describeAreaOverlays(stageOverlays({ ...stage, auras }))).toBe(
           `Auras: Spirit Guardians around ${ember!.label}; Aura around ${warden!.label}`
         )
-        expect(describeAuraOverlays(stageOverlays(stage))).toBeNull()
+        expect(describeAreaOverlays(stageOverlays(stage))).toBeNull()
+      })
+
+      // VTT_UI-3.1: placed zones (SPELLS-17), hazards and GM traps alike, drawn as listed (MOVE-3.3).
+      it('draws each listed placed zone as a ZONE outline and names a concealed one’s spot DC', () => {
+        const placedZones = [
+          {
+            id: '13131313-1313-4131-8131-000000000001',
+            label: 'Caltrops',
+            shape: { kind: 'CIRCLE' as const, center: { x: 240, y: 160 }, radius: 70 },
+            spotDc: { value: 15, source: 'FLAT' as const },
+            disarmDc: { value: 12, source: 'FLAT' as const },
+            unawareActorIds: []
+          },
+          {
+            id: '13131313-1313-4131-8131-000000000002',
+            label: null,
+            shape: {
+              kind: 'RING' as const,
+              center: { x: 400, y: 300 },
+              outerRadius: 140,
+              innerRadius: 70
+            },
+            spotDc: null,
+            disarmDc: null,
+            unawareActorIds: []
+          },
+          {
+            id: '13131313-1313-4131-8131-000000000003',
+            label: 'Pit',
+            shape: {
+              kind: 'POLYGON' as const,
+              points: [
+                { x: 0, y: 0 },
+                { x: 70, y: 0 },
+                { x: 70, y: 70 }
+              ]
+            },
+            spotDc: null,
+            disarmDc: null,
+            unawareActorIds: []
+          }
+        ]
+        const drawn = [
+          {
+            center: { x: 240, y: 160 },
+            color: placedZoneColor,
+            id: `zone:${placedZones[0]!.id}`,
+            kind: 'CIRCLE',
+            label: 'Caltrops (hidden, spot DC 15)',
+            purpose: 'ZONE',
+            radius: 70
+          },
+          {
+            center: { x: 400, y: 300 },
+            color: placedZoneColor,
+            id: `zone:${placedZones[1]!.id}`,
+            kind: 'CIRCLE',
+            label: 'Placed zone',
+            purpose: 'ZONE',
+            radius: 140
+          },
+          {
+            color: placedZoneColor,
+            id: `zone:${placedZones[2]!.id}`,
+            kind: 'POLYGON',
+            label: 'Pit',
+            points: placedZones[2]!.shape.points,
+            purpose: 'ZONE'
+          }
+        ]
+        expect(placedZoneOverlays(placedZones)).toEqual(drawn)
+        expect(stageOverlays({ ...stage, placedZones, drawerOpened: false })).toEqual(drawn)
+        // A player reads no spot DC, so the same zone once revealed to them carries no hidden cue.
+        expect(placedZoneOverlays([{ ...placedZones[0]!, spotDc: null, disarmDc: null }])).toEqual([
+          { ...drawn[0], label: 'Caltrops' }
+        ])
+        expect(stageOverlays({ ...stage, placedZones, scene: null, actionPreview: null })).toBe(
+          undefined
+        )
+        expect(describeAreaOverlays(placedZoneOverlays(placedZones))).toBe(
+          'Zones: Caltrops (hidden, spot DC 15); Placed zone; Pit'
+        )
       })
     })
   })
@@ -1597,6 +1682,7 @@ describe('VTT drawn wall and ring areas (SPELLS-4.T1b, D154)', () => {
         auras: [],
         destinationOverlays: [],
         drawerOpened: true,
+        placedZones: [],
         scene: null
       })?.map((overlay) => overlay.id)
     ).toEqual(['area-origin', 'area-band'])
