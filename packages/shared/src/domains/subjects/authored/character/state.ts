@@ -134,11 +134,10 @@ export interface CharacterConsequenceState {
 }
 
 /**
- * A creature a Sheet spell cast conjured outside an Encounter (D190). It holds the stat block values
- * the cast resolved against the caster, never the plan's expressions.
+ * The stat block values a summon cast resolved against its caster (D190), never the plan's
+ * expressions. A Sheet summon and an Encounter summon's Run actor both keep them.
  */
-export interface CharacterSpellSummonState {
-  id: string
+export interface SpellSummonStatBlockValues {
   spellId: string
   summonOutcomeId: string
   label: string
@@ -148,6 +147,13 @@ export interface CharacterSpellSummonState {
   abilityScores?: Record<string, number>
   speeds?: SpeedAuthored[]
   passivePerception?: number
+  /** The attacks the spell lets its caster make with the summon. */
+  actions?: { id: string; label: string; description?: string }[]
+}
+
+/** A creature a Sheet spell cast conjured outside an Encounter (D190). */
+export interface CharacterSpellSummonState extends SpellSummonStatBlockValues {
+  id: string
   /** Absent with `currentHitPoints` for a stat block with no hit points: no pool, never ends at 0. */
   maximumHitPoints?: number
   currentHitPoints?: number

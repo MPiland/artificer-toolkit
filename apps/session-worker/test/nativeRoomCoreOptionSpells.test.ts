@@ -39,7 +39,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer, ROOM_REPLY_WAIT } from './liveRoomFixture.js'
 import { seededSrdCreature } from './seededSrdCreature.js'
 import { endConcentrationAtSheet } from './placedZoneRoomReads.js'
 import {
@@ -913,6 +913,86 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
     expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+
+  /** The owner's socket, subscribed to the caster's Sheet, and the summons its latest push lists. */
+  async function ownerSheet(room: ActionRoom) {
+    const player = await connectPlayer(room.room.base)
+    player.socket.send(
+      JSON.stringify({ type: 'SUBSCRIBE_CHARACTER_SHEET', characterId: CHARACTER_ID })
+    )
+    return () =>
+      player.messages
+        .flatMap((message) => (message.type === 'CHARACTER_SHEET' ? [message.sheet] : []))
+        .at(-1)
+        ?.extras.items.filter((item) => item.kind === 'SPELL_SUMMON')
+  }
+
+  /** The GM sets the hand's current hit points in the Encounter. */
+  async function setHandHitPoints(room: ActionRoom, actorId: string, currentHitPoints: number) {
+    const updated = await room.send({
+      type: 'UPDATE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId,
+      currentHitPoints
+    })
+    expect(updated.type, JSON.stringify(updated)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('lists the hand in its owner’s pushed Sheet Extras with live hit points until it falls (SPELLS-34.2, .3)', async () => {
+    const room = await handRoom()
+    const summons = await ownerSheet(room)
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+
+    const hand = await castSummon(room, HAND_POINT)
+    await vi.waitFor(
+      () =>
+        expect(summons()).toEqual([
+          expect.objectContaining({
+            id: hand.actor.id,
+            encounterActorId: hand.actor.id,
+            spellId: arcaneHand.id,
+            displayName: 'Arcane Hand',
+            concentration: true,
+            armorClass: 20,
+            hitPoints: { current: 25, maximum: 25, temp: 0 },
+            actions: [
+              {
+                id: arcaneHand.effects?.[1]?.id,
+                label: 'Melee Spell Attack',
+                description: 'Bonus Action'
+              }
+            ]
+          })
+        ]),
+      ROOM_REPLY_WAIT
+    )
+
+    // The Run actor is the only record: the Encounter's change reaches the Sheet.
+    await setHandHitPoints(room, hand.actor.id, 10)
+    await vi.waitFor(
+      () => expect(summons()?.[0]?.hitPoints).toEqual({ current: 10, maximum: 25, temp: 0 }),
+      ROOM_REPLY_WAIT
+    )
+
+    await setHandHitPoints(room, hand.actor.id, 0)
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+
+  it('takes the hand out of its owner’s Sheet Extras when Concentration ends (SPELLS-34.3)', async () => {
+    const room = await handRoom()
+    const summons = await ownerSheet(room)
+    const hand = await castSummon(room, HAND_POINT)
+    await vi.waitFor(
+      () => expect(summons()?.map(({ id }) => id)).toEqual([hand.actor.id]),
+      ROOM_REPLY_WAIT
+    )
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
   }, 120000)
 })
 
