@@ -6,7 +6,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS, authoredShortTextSchema } from './authoredLimits.js'
 import { deathSavesAfterRoll, isCharacterDead } from './characterDeathSaves.js'
-import { directedAreaTargetDtoSchema, pointAreaTargetDtoSchema } from './shape.js'
+import { aimedAreaTargetDtoSchema } from './shape.js'
 import { areaAimDtoSchema } from './spatialFacts.js'
 import {
   d20AddedDiceDtoSchema,
@@ -251,9 +251,7 @@ export const legendaryActionChoiceOptionDtoSchema = lazySchema(() =>
        * The authored area of an aimed area option, for the client to aim: a point it is centered on,
        * or a direction from its owner. Absent for an area the owner centers on itself.
        */
-      area: z.optional(
-        z.discriminatedUnion('kind', [pointAreaTargetDtoSchema, directedAreaTargetDtoSchema])
-      ),
+      area: z.optional(aimedAreaTargetDtoSchema),
       chargeId: uuidSchema,
       featureCost: positiveIntegerSchema,
       poolBefore: nonNegativeIntegerSchema,

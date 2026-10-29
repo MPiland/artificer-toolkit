@@ -98,3 +98,15 @@ export const directedAreaTargetDtoSchema = lazySchema(() =>
     ])
   })
 )
+
+/**
+ * An area its controller aims at a point or in a direction. Named and annotated so declaration files
+ * that carry it (pending options, occurrence projections) share one type instead of inline copies.
+ */
+export type AimedAreaTargetDto =
+  | z.infer<typeof pointAreaTargetDtoSchema>
+  | z.infer<typeof directedAreaTargetDtoSchema>
+
+export const aimedAreaTargetDtoSchema: z.ZodMiniType<AimedAreaTargetDto> = lazySchema(() =>
+  z.discriminatedUnion('kind', [pointAreaTargetDtoSchema, directedAreaTargetDtoSchema])
+)
