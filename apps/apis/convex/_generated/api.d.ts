@@ -298087,6 +298087,12 @@ export declare const internal: {
       { currentPassword: string; email: string },
       null
     >;
+    deleteAccount: FunctionReference<
+      "mutation",
+      "internal",
+      { jobId: Id<"accountDeletionJobs">; token: string },
+      null
+    >;
     execute: FunctionReference<
       "mutation",
       "internal",
@@ -298094,6 +298100,34 @@ export declare const internal: {
         command: { currentPassword: string; email: string };
         sessionToken: string;
       },
+      null
+    >;
+    schedule: FunctionReference<
+      "mutation",
+      "internal",
+      { authUserId: string },
+      null
+    >;
+  };
+  accountDeletionFinish: {
+    purge: FunctionReference<
+      "mutation",
+      "internal",
+      { profileId: null | string; userId: string },
+      null
+    >;
+    step: FunctionReference<
+      "mutation",
+      "internal",
+      { jobId: Id<"accountDeletionJobs">; token: string },
+      null
+    >;
+  };
+  accountDeletionJobs: {
+    retry: FunctionReference<
+      "mutation",
+      "internal",
+      { jobId: Id<"accountDeletionJobs">; token: string },
       null
     >;
   };
@@ -298368,6 +298402,14 @@ export declare const internal: {
     >;
   };
   campaigns: {
+    accountDeparture: {
+      step: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
+      >;
+    };
     clockGrantExpiry: {
       endExpired: FunctionReference<
         "mutation",
@@ -299265,6 +299307,14 @@ export declare const internal: {
     };
   };
   characters: {
+    accountDeletion: {
+      step: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
+      >;
+    };
     development: {
       removePersonalFixtureCharacter: FunctionReference<
         "mutation",
@@ -299463,6 +299513,14 @@ export declare const internal: {
     };
   };
   content: {
+    accountDefinitionDeletion: {
+      step: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
+      >;
+    };
     catalogueSearchBackfill: {
       backfill: FunctionReference<
         "mutation",
@@ -299865,6 +299923,14 @@ export declare const internal: {
           reset?: boolean;
         },
         any
+      >;
+    };
+    deletion: {
+      accountDeletionStep: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
       >;
     };
     development: {
@@ -302524,6 +302590,14 @@ export declare const internal: {
     };
   };
   media: {
+    accountRetention: {
+      step: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
+      >;
+    };
     assets: {
       beginSave: FunctionReference<
         "mutation",
@@ -304489,6 +304563,12 @@ export declare const internal: {
   };
   social: {
     accountCleanup: {
+      prepareAccountDeletion: FunctionReference<
+        "mutation",
+        "internal",
+        { jobId: Id<"accountDeletionJobs">; token: string },
+        null
+      >;
       run: FunctionReference<
         "mutation",
         "internal",
