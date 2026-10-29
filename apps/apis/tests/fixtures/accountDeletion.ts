@@ -21,7 +21,7 @@ export async function drainScheduledWork(t: TestConvex<typeof schema>) {
   const realTimers = !vi.isFakeTimers()
   if (realTimers) vi.useFakeTimers({ now: Date.now() })
   try {
-    for (let advances = 0; advances < 1_000; ) {
+    for (let advances = 0; advances < 1_000;) {
       await t.finishInProgressScheduledFunctions()
       const outstanding = (
         await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
