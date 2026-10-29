@@ -16,6 +16,7 @@ import {
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
 import {
+  darknessZoneStyle,
   describeDarknessZone,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
@@ -937,7 +938,9 @@ export const DevilsSightSeesTokensInMagicalDarknessWithoutColourLoss: Story = {
     expect(samples.every((sample) => !sample.greyscale)).toBe(true)
     // Clearing it does not unmark it: the zone keeps its dotted arcane outline.
     expect(lighting.darknessZones.magical).toBe(1)
-    expect(lighting.magicalDarknessOutlineCount).toBe(1)
+    expect(darknessZoneStyle(devilsSightCave.darknessZones[0]!, illuminationLevels)).toMatchObject({
+      illuminationOutline: { dash: 3 }
+    })
     const visible = (id: string) => tokens.find((token) => token.id === id)?.visible
     expect(visible(inZoneToken.id)).toBe(true)
     expect(visible(beyondRangeToken.id)).toBe(false)

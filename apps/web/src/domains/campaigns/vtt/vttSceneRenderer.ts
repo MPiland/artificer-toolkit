@@ -263,7 +263,6 @@ const darknessZoneLabelPrefix = 'darkness-zone:'
 /** A zone whose System level dispels light; other zones are labelled by their render class. */
 const darknessZoneSuppressingLabel = `${darknessZoneLabelPrefix}SUPPRESSES_LIGHT`
 const obscurementLabelPrefix = 'obscurement:'
-const magicalDarknessOutlineLabel = 'magical-darkness-outline'
 const lightTintDimLabel = 'light-tint-dim'
 const lightTintBrightLabel = 'light-tint-bright'
 
@@ -1084,14 +1083,12 @@ export async function createVttSceneRenderer(
       obscurementLayer.addChild(outline)
     }
     if (style.illuminationOutline) {
-      const outline = dashedOutline(
-        points,
-        style.illuminationOutline.dash,
-        style.illuminationOutline.gap,
-        { color: colors.arcane, width: style.illuminationOutline.width }
+      obscurementLayer.addChild(
+        dashedOutline(points, style.illuminationOutline.dash, style.illuminationOutline.gap, {
+          color: colors.arcane,
+          width: style.illuminationOutline.width
+        })
       )
-      outline.label = magicalDarknessOutlineLabel
-      obscurementLayer.addChild(outline)
     }
   }
 
@@ -2515,7 +2512,6 @@ export async function createVttSceneRenderer(
             unspecified: drawnCount(obscurementLayer, `${darknessZoneLabelPrefix}VISUAL`)
           },
           dimLightCount: drawnCount(lightTintLayer, lightTintDimLabel),
-          magicalDarknessOutlineCount: drawnCount(obscurementLayer, magicalDarknessOutlineLabel),
           lightTints: lightTintLayer.children.flatMap((child) => {
             const fill = drawnStyles(child, 'fill')[0]
             return fill
