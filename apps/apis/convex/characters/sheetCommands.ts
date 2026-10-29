@@ -62,8 +62,10 @@ import { compileCharacterSpellCasts } from '@artificer-toolkit/rules-runtime/cha
 import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { projectCharacterSheetEquipmentOption } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
+import { readCharacterEquipmentCatalogue } from './builderContext'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet, projectCharacterSheetFacts } from './sheetPreparation'
@@ -158,9 +160,8 @@ export async function executeCharacterSheetCommand(
   if (sourceContext && input.command.type !== 'RECOVER_SHEET_RESOURCE')
     throw new Error('Only Clock resource recovery accepts an existing source context.')
   const catalogScope =
-    input.command.type === 'ADD_INVENTORY_ITEM' ||
-    (input.command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
-      input.command.adjustment.family === 'PROFICIENCY')
+    input.command.type === 'UPSERT_SHEET_ADJUSTMENT' &&
+    input.command.adjustment.family === 'PROFICIENCY'
       ? 'resolution'
       : 'active'
   const initial = await loadCharacterSheet(
@@ -358,9 +359,43 @@ export async function executeCharacterSheetCommand(
     )
       throw new CharacterSheetCommandError('New Equipment copies require current source access.')
   }
+  // The active Sheet lists the Character's own Equipment; the entry being added is read on its own.
+  let commandSheet = initial.sheet
+  if (command.type === 'ADD_INVENTORY_ITEM') {
+    const { sourceAccess, sourceIdentities } = initial.sourceContext.context
+    const { systemId, userId: ownerUserId } = initial.character
+    const root = await ctx.db
+      .query('authoredRoots')
+      .withIndex('by_publicId', (q) => q.eq('id', command.equipmentId))
+      .unique()
+    const [entry] =
+      root?.subjectKind === 'EQUIPMENT' && root.systemId === systemId
+        ? (
+            await readCharacterEquipmentCatalogue(
+              ctx,
+              [root],
+              systemId,
+              ownerUserId,
+              sourceAccess,
+              sourceIdentities
+            )
+          ).entries
+        : []
+    if (entry)
+      commandSheet = {
+        ...initial.sheet,
+        reference: {
+          ...initial.sheet.reference,
+          equipmentOptions: [
+            ...initial.sheet.reference.equipmentOptions.filter((option) => option.id !== entry.id),
+            projectCharacterSheetEquipmentOption(entry)
+          ]
+        }
+      }
+  }
   const updated = characterAuthoredDtoSchema.parse(
     completedRest?.character ??
-      applySupportedCommand(initial.character, initial.sheet, input.command, {
+      applySupportedCommand(initial.character, commandSheet, input.command, {
         now: () => occurredAt,
         attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit,
         preparationEligibleSpellIdsByClassId:

@@ -307,7 +307,17 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
           .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
           .unique()
       )
-    const derivation = await readDerivation()
+    const rederive = async () => {
+      const { _id } = (await readDerivation())!
+      await t.run((ctx) => ctx.db.patch(_id, { fingerprint: 'stale' }))
+      await t.mutation(internal.characters.sheetSectionDerivation.store, {
+        characterId: character.id
+      })
+      return readDerivation()
+    }
+    // Snapshot builds finish without a Character write, so the setup's stored preparation manifest
+    // can predate them; derive once over the settled inputs first.
+    const derivation = await rederive()
     const sections = derivation!.sections.map((section, index) =>
       index === 0 ? { ...section, checksum: 'marker' } : section
     )
@@ -318,10 +328,6 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     })
     expect((await readDerivation())!.sections).toEqual(sections)
 
-    await t.run((ctx) => ctx.db.patch(derivation!._id, { fingerprint: 'stale' }))
-    await t.mutation(internal.characters.sheetSectionDerivation.store, {
-      characterId: character.id
-    })
-    expect((await readDerivation())!.sections).toEqual(derivation!.sections)
+    expect((await rederive())!.sections).toEqual(derivation!.sections)
   }, 60_000)
 })
