@@ -9,7 +9,7 @@ import type { QueryCtx } from '../_generated/server'
 import { readDefinitionRoot } from '../content/definitionStore'
 import { loadCharacterSheetFacts } from '../characters/sheetFacts'
 import { readLiveScene } from '../scenes/liveDocuments'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 
 type ConvexCharacterTurnFacts = NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts>>>
 

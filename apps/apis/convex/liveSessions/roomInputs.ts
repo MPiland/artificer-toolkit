@@ -16,11 +16,14 @@ import type { ReceiptHeaderTable } from '@artificer-toolkit/schema/projections/r
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readCampaignClockMinute } from '../campaigns/clockReads'
+import { readCampaignCharacterState } from '../campaigns/characterState'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
+import { readCharacterSheetState } from '../characters/sheetStateDocuments'
+import type { CharacterRow } from '../characters/stateDocuments'
 import { requireSystem } from '../content/systemDocuments'
 import { readSystemVocabularySnapshot } from '../content/systemVocabulary'
 import { requireActiveCampaignLiveAuthority } from './authorityGuard'
-import { readAssignedActiveCharacter, readStoredCharacterInputs } from './characterRulesCapture'
+import { readAssignedActiveCharacter } from './characterRulesCapture'
 import { readLiveSessionRulesRevisions } from './rulesRevisions'
 import { readCharacterSources, readCampaignCharacterSources } from '../characters/sourceReads'
 import { readContentSnapshotManifest } from '../contentSnapshots/manifest'
@@ -646,3 +649,26 @@ export const read = internalQuery({
     )
   }
 })
+
+/**
+ * An admitted Character's stored rules inputs; the room's Character read returns the same. Both
+ * callers have already refused an archived Campaign, so the result states `ACTIVE`.
+ */
+async function readStoredCharacterInputs(
+  ctx: QueryCtx,
+  active: CharacterRow,
+  campaign: Doc<'campaigns'>
+) {
+  return {
+    owner: active,
+    sheetState: readCharacterSheetState(active),
+    campaign: {
+      id: campaign.id,
+      status: 'ACTIVE' as const,
+      contentMaturity: campaign.contentMaturity,
+      attunementSlotOverride: campaign.attunementSlotOverride,
+      state: (await readCampaignCharacterState(ctx, campaign.id, active.id)).state,
+      currencyOptions: await readCampaignCurrencyOptions(ctx, campaign)
+    }
+  }
+}

@@ -56,7 +56,7 @@ import {
   readRunState
 } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readMovementTargets } from '../../tests/fixtures/movementTargets'
 import { encounterTurnReadTransaction } from './turnReadPorts'
 

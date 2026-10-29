@@ -29,7 +29,7 @@ import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { requireIdentity } from '../lib/identity'
-import { encounterReadTransaction } from './encounterPorts'
+import { encounterReadTransaction } from './encounterReadPorts'
 import { readMemberEncounter } from './readAccess'
 type EncounterProjection = EncounterGmProjectionDto | EncounterPlayerProjectionDto
 const encounterStatusOrder = ['ACTIVE', 'PREPARED', 'COMPLETED'] as const

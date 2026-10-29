@@ -148,6 +148,11 @@
       "types": "./dist/domains/vtt/segments.d.ts",
       "default": "./dist/domains/vtt/segments.js"
     },
+    "./vtt/spatial": {
+      "source": "./src/domains/vtt/spatial.ts",
+      "types": "./dist/domains/vtt/spatial.d.ts",
+      "default": "./dist/domains/vtt/spatial.js"
+    },
     "./account/username": {
       "source": "./src/domains/account/usernamePolicy.ts",
       "types": "./dist/domains/account/usernamePolicy.d.ts",

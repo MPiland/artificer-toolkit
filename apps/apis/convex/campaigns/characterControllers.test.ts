@@ -21,7 +21,7 @@ import {
   invalidateRoomInputs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { readRoomAuthorization } from '../liveSessions/roomAuthorization'
 
 const setControllers = makeFunctionReference<

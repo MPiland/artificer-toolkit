@@ -52,7 +52,7 @@ import { sourceImportBatches } from '../content/importBatches'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readRunState, writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
-import { encounterReadTransaction } from '../encounters/encounterPorts'
+import { encounterReadTransaction } from '../encounters/encounterReadPorts'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 
 useLocalRoomWorker()
