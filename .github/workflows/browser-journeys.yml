@@ -6,16 +6,17 @@
 # generates its env and the ignored local env files, so scripts/runLocalBrowserProof.mjs (Worker, web
 # app, scripts/runLocalConvexProof.ps1) runs unchanged under pwsh on Linux. The container shares the
 # runner's host network, so its Node actions reach the host Worker at host.docker.internal:8787.
-# Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks the CI proofs
-# (every *-browser proof of scripts/runLocalConvexProof.ps1, the one proof list) when the slice's changes
-# since the phase branch reach a journey through the Tests workflow's import graph, or change the stack;
-# otherwise the run passes with no proof. A dispatch runs one named proof (any runLocalConvexProof.ps1
-# proof) or, unnamed, every CI proof. The selected proofs run in shards, several per stack. A
+# Every ci/** push runs the `select` job (scripts/affectedBrowserJourneys.mjs), which picks CI proofs
+# (the *-browser proofs of scripts/runLocalConvexProof.ps1, the one proof list). A slice whose changes
+# since the phase branch reach a journey through the Tests workflow's import graph runs the journeys its
+# task's acceptance criteria name (the ledger's AC `journeys`); a stack change and a ci/merge-* batch run
+# every CI proof; otherwise the run passes with no proof. A dispatch runs the named proofs (any
+# runLocalConvexProof.ps1 proofs) or, unnamed, every CI proof; merge-slice dispatches it on each batch. The selected proofs run in shards, several per stack. A
 # scripts/knownBugProofs.json proof runs in the non-gating shard until its fix task removes it. `reverse` runs each
 # shard's proofs in reverse order, which proves they do not depend on each other. merge-slice requires
 # every run on a tip green (docs/architecture/ci-validation.md#browser-journeys).
 #   git push origin HEAD:ci/<slice>
-#   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof=<name>] [-f reverse=true]
+#   gh workflow run browser-journeys.yml --ref ci/<slice> [-f proof="<name> ..."] [-f reverse=true]
 name: Browser journeys
 
 on:
@@ -24,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       proof:
-        description: One proof from scripts/runLocalConvexProof.ps1 (empty runs every CI proof)
+        description: Proofs from scripts/runLocalConvexProof.ps1, space-separated (empty runs every CI proof)
         default: ''
       reverse:
         description: Run each shard's proofs in reverse order
@@ -67,7 +68,7 @@ jobs:
         env:
           PROOF: ${{ inputs.proof }}
           REVERSE: ${{ inputs.reverse && '--reverse' || '' }}
-        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --event "$GITHUB_EVENT_NAME" --proof "$PROOF" $REVERSE
+        run: node scripts/affectedBrowserJourneys.mjs --base "origin/$PHASE_BRANCH" --branch "$GITHUB_REF_NAME" --event "$GITHUB_EVENT_NAME" --proof "$PROOF" $REVERSE
 
   # Booting a stack takes longer than most proofs, so each shard boots one and runs its proofs on it in
   # turn; proofs make their own accounts and records, as they do on the long-lived local container. The

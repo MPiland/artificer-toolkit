@@ -1837,6 +1837,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   not maximized. Known limit: Beacon of Hope's death-save advantage is description-only until a death-save target exists on the
   `SAVING_THROW_MODIFIER` filter (the encounter death save is a separate single-d20 graph).
 
+- **Healing dealt (SPELLS-31.T4n).** A `HEALING_DEALT` `BONUS` modifier adds hit points to every spell the holder casts that restores hit points
+  (Disciple of Life: 2 + the spell's level). `healingDealtBonus` in `characterActionMechanics.ts` folds the applied contributions into the
+  heal outcome's expression and into each per-level scaling entry at that entry's level; the `addsSpellLevel` domain param (part of the
+  `domainKey`) adds the cast level. A cantrip, a non-spell action and temporary hit points get nothing. The bonus is the caster's, so it is
+  resolved with the cast and not per target.
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a

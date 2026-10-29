@@ -7,6 +7,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { acJourneyProblems, ciProofsOf } from './affectedBrowserJourneys.mjs'
 
 const ledgerRelative = 'docs/roadmap/08-phase-ledger.json'
 const repoRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -281,6 +282,13 @@ const validate = () => {
     for (const id of item.wsjf?.after ?? [])
       if (!statuses.has(id)) errors.push(`${item.id} wsjf.after names unknown work item ${id}`)
   }
+  // An AC's optional `journeys` names the CI proofs a slice closing it gates on (RELIABILITY-21.19).
+  errors.push(
+    ...acJourneyProblems(
+      ledger,
+      ciProofsOf(readFileSync(`${repoRoot}scripts/runLocalConvexProof.ps1`, 'utf8'))
+    )
+  )
   const workCycle = rankWork(ledger.features ?? []).filter((item) => item.dependencyCycle)
   if (workCycle.length > 0)
     errors.push(`Dependency cycle among work items: ${workCycle.map((item) => item.id).join(', ')}`)
