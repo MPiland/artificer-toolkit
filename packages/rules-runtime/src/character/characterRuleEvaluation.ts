@@ -85,7 +85,9 @@ export function withCharacterActiveGrants(
         restrictions: normalizeCharacterGrantRestrictions(undefined),
         proficiencies: [],
         senses: [...senses],
-        modifiers: [...modifiers],
+        // A held hit point maximum grant stays out of the evaluated maximum: every reader
+        // layers it, with maximum reductions, through `effectiveHitPointMaximum`.
+        modifiers: modifiers.filter(({ valueDomainCode }) => valueDomainCode !== 'HIT_POINTS_MAX'),
         feats: [],
         spells: []
       }

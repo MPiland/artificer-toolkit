@@ -22,7 +22,7 @@ export function CharacterSheetActiveBonuses({
       onDismiss={close}
       opened={opened}
       position='bottom-start'
-      shadow='md'
+      shadow='none'
       width={260}
       withinPortal
     >
