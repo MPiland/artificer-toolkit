@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  FacetAuthored,
+  FacetConditionAuthored,
+  FacetContextAuthored,
+  FeatureAuthored,
+  PredicateNodeAuthored
+} from '@artificer-toolkit/shared/authored'
 import type { CharacterGrantFoldSource } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import {
   SRD_ABILITIES,
@@ -1062,19 +1068,22 @@ describe('D&D 5e modifier scope', () => {
     ).toBe(false)
   })
 
-  const spellModifier = (context: Record<string, unknown>) => ({
+  const spellModifier = (context: FacetContextAuthored<'SPELL'>) => ({
     sourceId: 'feature',
     scope: 'GLOBAL' as const,
     deferredRequirements: normalizeCharacterGrantRestrictions({
       id: 'facet',
-      groups: [
-        {
-          id: 'group',
-          order: 0,
-          contexts: [{ id: 'context', order: 0, subject: 'SPELL', ...context }]
-        }
-      ]
-    } as FacetAuthored)
+      groups: [{ id: 'group', order: 0, contexts: [context] }]
+    })
+  })
+  const anySpell = (
+    ...conditions: FacetConditionAuthored<'SPELL'>[]
+  ): FacetContextAuthored<'SPELL'> => ({
+    id: 'context',
+    order: 0,
+    subject: 'SPELL',
+    authoringModeKind: 'ALL',
+    conditions
   })
   const cast = (spell: {
     id: string
@@ -1082,12 +1091,15 @@ describe('D&D 5e modifier scope', () => {
     magicSchoolId: string | null
     damageTypeId: string | null
   }) => ({ sourceIds: [], item: null, spell, attackAbility: null, activation: null })
-  const predicate = (fields: Record<string, unknown>) => ({
+  const predicate = (
+    node: PredicateNodeAuthored<'SPELL'>,
+    constraint: 'INCLUDE' | 'EXCLUDE' = 'INCLUDE'
+  ): FacetConditionAuthored<'SPELL'> => ({
     id: 'predicate',
     order: 0,
     kind: 'PREDICATE',
-    constraint: 'INCLUDE',
-    ...fields
+    constraint,
+    ...node
   })
   const eldritchBlast = {
     id: 'eldritch-blast',
@@ -1100,7 +1112,13 @@ describe('D&D 5e modifier scope', () => {
   const sleep = { id: 'sleep', level: 1, magicSchoolId: 'enchantment', damageTypeId: null }
 
   it('spell facets apply only to the named spell', () => {
-    const agonizing = spellModifier({ authoringModeKind: 'SELECTED', spellIds: ['eldritch-blast'] })
+    const agonizing = spellModifier({
+      id: 'context',
+      order: 0,
+      subject: 'SPELL',
+      authoringModeKind: 'SELECTED',
+      spellIds: ['eldritch-blast']
+    })
     expect(dnd5eModifierApplies(agonizing, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
     expect(dnd5eModifierApplies(agonizing, cast(eldritchBlast))).toBe(true)
     expect(dnd5eModifierApplies(agonizing, cast(fireBolt))).toBe(false)
@@ -1109,16 +1127,15 @@ describe('D&D 5e modifier scope', () => {
   // Regression (SPELLS-31.T5i1): an ALL spell context with a school condition used to fold to no
   // spell ids, so it applied to every spell and Character-wide.
   it('a school condition on any spell applies only to spells of that school', () => {
-    const evocation = spellModifier({
-      authoringModeKind: 'ALL',
-      conditions: [
+    const evocation = spellModifier(
+      anySpell(
         predicate({
           predicateCode: 'MAGIC_SCHOOL',
           authoringModeKind: 'SELECTED',
           magicSchoolIds: ['evocation']
         })
-      ]
-    })
+      )
+    )
     expect(dnd5eModifierApplies(evocation, DND5E_CHARACTER_WIDE_TARGET)).toBe(false)
     expect(dnd5eModifierApplies(evocation, cast(fireball))).toBe(true)
     expect(dnd5eModifierApplies(evocation, cast(sleep))).toBe(false)
@@ -1127,23 +1144,21 @@ describe('D&D 5e modifier scope', () => {
   })
 
   it('level and damage type conditions read the cast spell and the damage being modified', () => {
-    const cantrips = spellModifier({
-      authoringModeKind: 'ALL',
-      conditions: [predicate({ predicateCode: 'SPELL_LEVEL', min: 0, max: 0 })]
-    })
+    const cantrips = spellModifier(
+      anySpell(predicate({ predicateCode: 'SPELL_LEVEL', min: 0, max: 0 }))
+    )
     expect(dnd5eModifierApplies(cantrips, cast(fireBolt))).toBe(true)
     expect(dnd5eModifierApplies(cantrips, cast(fireball))).toBe(false)
     expect(dnd5eModifierApplies(cantrips, cast({ ...fireBolt, level: null }))).toBe(false)
-    const fire = spellModifier({
-      authoringModeKind: 'ALL',
-      conditions: [
+    const fire = spellModifier(
+      anySpell(
         predicate({
           predicateCode: 'DAMAGE_TYPE',
           authoringModeKind: 'SELECTED',
           damageTypeIds: ['fire']
         })
-      ]
-    })
+      )
+    )
     expect(dnd5eModifierApplies(fire, cast({ ...fireball, damageTypeId: 'fire' }))).toBe(true)
     expect(dnd5eModifierApplies(fire, cast({ ...fireball, damageTypeId: 'cold' }))).toBe(false)
     // Before any damage is chosen, a damage type condition is not met.
@@ -1152,19 +1167,18 @@ describe('D&D 5e modifier scope', () => {
   })
 
   it('an EXCLUDE spell condition applies to every other cast spell, never Character-wide', () => {
-    const notEvocation = spellModifier({
-      authoringModeKind: 'ALL',
-      conditions: [
-        {
-          ...predicate({
+    const notEvocation = spellModifier(
+      anySpell(
+        predicate(
+          {
             predicateCode: 'MAGIC_SCHOOL',
             authoringModeKind: 'SELECTED',
             magicSchoolIds: ['evocation']
-          }),
-          constraint: 'EXCLUDE'
-        }
-      ]
-    })
+          },
+          'EXCLUDE'
+        )
+      )
+    )
     expect(dnd5eModifierApplies(notEvocation, cast(sleep))).toBe(true)
     expect(dnd5eModifierApplies(notEvocation, cast(fireball))).toBe(false)
   })
