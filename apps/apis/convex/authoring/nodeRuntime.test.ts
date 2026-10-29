@@ -1026,8 +1026,13 @@ describe('native Convex authoring resolver', () => {
         .query('reusableDefinitions')
         .withIndex('by_publicId', (q) => q.eq('id', definition.id))
         .unique()
-      if (!stored) throw new Error('Missing definition fixture')
-      await ctx.db.patch(stored._id, { documentJson: '{"tampered":true}' })
+      const other = await ctx.db
+        .query('reusableDefinitions')
+        .withIndex('by_publicId', (q) => q.eq('id', imported[1].id))
+        .unique()
+      if (!stored || !other) throw new Error('Missing definition fixture')
+      // A well-formed document whose checksum no longer matches the stored record.
+      await ctx.db.patch(stored._id, { documentJson: other.documentJson })
     })
     expect(await choices()).toEqual(listed)
     await expect(t.run((ctx) => readDefinitionRoot(ctx, definition.id, userId))).rejects.toThrow(
