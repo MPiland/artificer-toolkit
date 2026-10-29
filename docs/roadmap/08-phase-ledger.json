@@ -15596,7 +15596,7 @@
             },
             {
               "id": "SPELLS-31.T4n",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15606,8 +15606,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m535.",
+              "mergedAt": "2026-10-29T02:33:20Z",
+              "proof": "Tests 40795105396, Live backend 40795105393, Browser journeys 40795105425 on 6dee114cf; batch ci/merge-m535 green. Disciple of Life authored through the new generic HEALING_DEALT BONUS value domain (addsSpellLevel); characterSpellCastActions.test.ts asserts 2 + cast level per cast level; classHealingDealtAuthoringParity.test.ts runs SRD and homebrew through the class node map; Preserve Life, Blessed Healer, Supreme Healing and Song of Rest are GM rulings; five closed-rule kinds deleted."
             },
             {
               "id": "SPELLS-31.T4o",
@@ -16880,7 +16881,7 @@
             },
             {
               "id": "SPELLS-33.T4pr",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16890,7 +16891,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2p", "SPELLS-4.T2r"]
               },
               "text": "Siege Monster, fear and darkness auras (with Hezrou Stench and Sea Hag Horrific Appearance from SPELLS-33.T7a: one creature start-of-turn aura option), Web Walker, Create Whirlwind (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-29T02:33:29Z",
+              "proof": "Tests 40801479245, Live backend 40801479213, Browser journeys 40801479163 on a241e24a2; batch ci/merge-m535 green. Fear Aura, Stench and Horrific Appearance authored as passive start-of-turn save zones through one data helper (turnAura.ts), darkness auras and Siege Monster/Web Walker as GM rulings; closed-rule kinds deleted; SRD compile golden refreshed.",
+              "note": " Merged in m535."
             },
             {
               "id": "SPELLS-33.T4s1",

@@ -72,7 +72,7 @@ export const tarrasque: CreatureAuthored = {
       label: 'Siege Monster',
       description: 'Siege Monster. The tarrasque deals double damage to objects and structures.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(268, 205),
           invocation: {
             kind: 'PASSIVE',
@@ -80,7 +80,10 @@ export const tarrasque: CreatureAuthored = {
             range: { id: S.actionId(268, 206), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SIEGE_MONSTER
+          label: 'Siege Monster',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'The tarrasque deals double damage to objects and structures: the GM doubles the damage its attacks deal to an object or structure.'
         })
       ],
       order: 3
