@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
+import type { RelationshipPlan } from '@artificer-toolkit/shared/maps'
 import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
 import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
@@ -191,11 +192,11 @@ describe('System vocabulary option descriptions', () => {
 
 /** Every DATA select source a node map declares, wherever the builder nested it. */
 function collectDataSources(value: unknown, seen = new WeakSet<object>()) {
-  const sources: { relationship: { kind: string } }[] = []
+  const sources: { relationship: RelationshipPlan }[] = []
   if (typeof value !== 'object' || value === null || seen.has(value)) return sources
   seen.add(value)
   const record = value as Record<string, unknown>
-  const source = record.source as { kind?: unknown; relationship?: { kind: string } } | undefined
+  const source = record.source as { kind?: unknown; relationship?: RelationshipPlan } | undefined
   if (source?.kind === 'DATA' && source.relationship)
     sources.push({ relationship: source.relationship })
   for (const child of Object.values(record)) sources.push(...collectDataSources(child, seen))
