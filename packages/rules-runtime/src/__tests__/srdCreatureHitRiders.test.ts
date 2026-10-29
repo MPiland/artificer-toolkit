@@ -40,6 +40,8 @@ async function attackOgre(input: {
   target?: string
   /** How far the attacker closed on the Ogre in a straight line before the attack. */
   closedFeet?: number
+  /** Conditions the target starts with. */
+  targetConditionIds?: readonly string[]
 }) {
   const attacker = srdByLabel(SRD.creatures, input.attacker)
   const prepared = await prepareCreatureAction({
@@ -52,7 +54,8 @@ async function attackOgre(input: {
     }),
     target: srdCreatureActor({
       id: TARGET_ID,
-      creature: srdByLabel(SRD.creatures, input.target ?? 'Ogre')
+      creature: srdByLabel(SRD.creatures, input.target ?? 'Ogre'),
+      ...(input.targetConditionIds ? { conditionIds: input.targetConditionIds } : {})
     }),
     featureId: creatureFeature(attacker, input.feature).id,
     ...(input.option && {
@@ -783,6 +786,24 @@ describe('SRD Creature hits that force a saving throw', () => {
     const saved = await attackOgre({ attacker: 'Mastiff', feature: 'Bite', rolls: [9, 2, 6] })
     expect(saved.execution.nestedD20).toMatchObject({ total: 11, resultPath: 'ON_SAVE_SUCCESS' })
     expect(saved.conditionIds).toEqual([])
+  })
+
+  it('fails a Paralyzed target’s nested Strength save even on a natural 20, and names why', async () => {
+    // Bite, +3: DC 11 Strength or prone. Natural 20 + 4 passes the DC, but Paralyzed fails it.
+    const paralyzed = srdCondition('Paralyzed')
+    const failed = await attackOgre({
+      attacker: 'Mastiff',
+      feature: 'Bite',
+      // Advantage on the Bite (two d20s), a critical hit (two d6s), then the save d20.
+      rolls: [9, 9, 2, 2, 19],
+      targetConditionIds: [paralyzed]
+    })
+    expect(failed.execution.nestedD20).toMatchObject({
+      selectedNatural: 20,
+      resultPath: 'ON_SAVE_FAIL',
+      autoFailConditionIds: [paralyzed]
+    })
+    expect(failed.conditionIds).toContain(srdCondition('Prone'))
   })
 
   it('deals the Spider’s poison only on a failed save', async () => {

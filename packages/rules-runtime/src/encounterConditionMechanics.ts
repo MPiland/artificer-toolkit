@@ -12,6 +12,7 @@ import {
   measuredDistance,
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
+import type { CharacterRuleActionSaveAutoFail } from './characterRuleActionSystemAdapter.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import {
@@ -313,17 +314,35 @@ function encounterConditionSaveContributors(input: {
   )
 }
 
-/** The abilities whose saving throws the holder's conditions fail unrolled, sorted. */
-export function encounterConditionSaveAutoFailAbilityIds(
+/**
+ * The saving throws the holder's conditions fail unrolled: each ability with the condition that
+ * fails it, sorted by ability then condition.
+ */
+export function encounterConditionSaveAutoFails(
   mechanics: readonly EncounterConditionMechanic[]
-): string[] {
-  return [
-    ...new Set(
-      mechanics.flatMap(({ mechanic }) =>
-        mechanic.kind === 'SAVE_AUTO_FAIL' ? mechanic.abilityDefinitionIds : []
-      )
+): CharacterRuleActionSaveAutoFail[] {
+  const failures = mechanics.flatMap(({ conditionDefinitionId, mechanic }) =>
+    mechanic.kind === 'SAVE_AUTO_FAIL'
+      ? mechanic.abilityDefinitionIds.map((abilityDefinitionId) => ({
+          abilityDefinitionId,
+          conditionDefinitionId
+        }))
+      : []
+  )
+  return failures
+    .filter(
+      (failure, index) =>
+        failures.findIndex(
+          (other) =>
+            other.abilityDefinitionId === failure.abilityDefinitionId &&
+            other.conditionDefinitionId === failure.conditionDefinitionId
+        ) === index
     )
-  ].sort()
+    .sort(
+      (left, right) =>
+        left.abilityDefinitionId.localeCompare(right.abilityDefinitionId) ||
+        left.conditionDefinitionId.localeCompare(right.conditionDefinitionId)
+    )
 }
 
 /** An ability check's roll with the checker's condition contributors added (D94). */

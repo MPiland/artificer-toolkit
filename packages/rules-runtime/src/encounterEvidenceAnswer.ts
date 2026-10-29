@@ -180,6 +180,13 @@ export function selectEncounterActionD20Natural(
       : faces[0]!
 }
 
+/** A saving throw's policy and evidence name the conditions that fail it unrolled, when any do. */
+export function autoFailConditions(policy: { autoFailConditionIds?: readonly string[] }) {
+  return policy.autoFailConditionIds?.length
+    ? { autoFailConditionIds: [...policy.autoFailConditionIds] }
+    : {}
+}
+
 /** A saving throw's policy and evidence carry the ability it is made with; no other test does. */
 export function savingThrowAbility(policy: { savingThrowAbilityDefinitionId?: string }) {
   return policy.savingThrowAbilityDefinitionId

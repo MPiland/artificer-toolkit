@@ -1,4 +1,5 @@
 import {
+  encounterAutoFailRequest,
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from './encounterRollModeReasons.js'
@@ -210,6 +211,11 @@ export function projectNativeLegendaryPending(input: {
               rollMode: d20Policy.rollMode,
               contributors: d20Policy.contributors
             }),
+            ...encounterAutoFailRequest(
+              input.reasons ?? noEncounterRollModeReasons,
+              d20Policy,
+              rollerActorId
+            ),
             ...(d20Policy.addedDice?.length ? { addedDice: d20Policy.addedDice } : {})
           },
           allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
@@ -269,6 +275,11 @@ export function projectNativeTurnPending(
                 rollMode: candidate.d20Policy.rollMode,
                 contributors: candidate.d20Policy.contributors
               }),
+              ...encounterAutoFailRequest(
+                input.reasons ?? noEncounterRollModeReasons,
+                candidate.d20Policy,
+                identity.rollerActorId
+              ),
               ...(candidate.d20Policy.addedDice?.length
                 ? { addedDice: candidate.d20Policy.addedDice }
                 : {})
