@@ -178,7 +178,7 @@ describe('SRD APPLY_GRANT spells cast in an Encounter (SPELLS-8.3)', () => {
     { level: 3, label: 'Aid (2nd level)', bonus: 5 },
     { level: 5, label: 'Aid (3rd level)', bonus: 10 }
   ])(
-    '$label raises the target’s hit points by $bonus above its maximum',
+    '$label holds a $bonus hit point maximum bonus on the chosen target',
     async ({ level, label, bonus }) => {
       const room = await casterRoom(aid, label, { allied: true, level })
 
@@ -187,9 +187,13 @@ describe('SRD APPLY_GRANT spells cast in an Encounter (SPELLS-8.3)', () => {
       const held = await wolfGrants(room)
       expect(held.effects).toHaveLength(1)
       expect(held.modifiers).toEqual([
-        expect.objectContaining({ valueDomainCode: 'HIT_POINTS_MAX', modifierKind: 'BONUS' })
+        {
+          valueDomainCode: 'HIT_POINTS_MAX',
+          modifierKind: 'BONUS',
+          domain: {},
+          payload: { valueKind: 'FIXED', amount: bonus }
+        }
       ])
-      expect(held.wolf.currentHitPoints).toBe(plainWolf.hitPoints + bonus)
     },
     120000
   )

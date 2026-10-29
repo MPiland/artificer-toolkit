@@ -1825,6 +1825,34 @@ function healDiceConfiguration(
 }
 
 /**
+ * The hit points a fixed heal gives: its one authored amount, or the row the spell's cast level
+ * reaches (Aid). Like a heal's dice, the amount is a literal of the graph, so the cast level is a
+ * compile input.
+ */
+function fixedHealAmount(
+  outcome: AuthoredOutcomeOf<'HEAL'>,
+  spellCastLevel: number | undefined
+): number {
+  const scaled: Partial<Record<'scalingKind' | 'scalingSource' | 'levels', unknown>> = outcome
+  if (scaled.scalingKind !== 'PER_LEVEL' || scaled.scalingSource !== 'SPELL_CAST_LEVEL')
+    return positiveFixedAmount(outcome)
+  if (spellCastLevel === undefined) unsupported('D&D fixed healing scaling facts are unavailable.')
+  const row = Array.isArray(scaled.levels)
+    ? selectScalingRow(scaled.levels as readonly Record<string, unknown>[], spellCastLevel)
+    : null
+  const amount = row?.amount
+  if (
+    outcome.valueKind !== 'FIXED' ||
+    outcome.bonuses?.length ||
+    typeof amount !== 'number' ||
+    !Number.isSafeInteger(amount) ||
+    amount <= 0
+  )
+    unsupported('D&D fixed healing scaling does not select a positive authored amount.')
+  return amount
+}
+
+/**
  * Compiled PER_LEVEL source is flattened to one row per level. Validate the
  * whole reachable authored group before publishing TEST; only exact row
  * selection from locked facts remains deferred.
@@ -2056,7 +2084,7 @@ const DND5E_DIRECT_OUTCOMES: {
       validateHealBonuses(outcome.bonuses)
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
-    const amount = positiveFixedAmount(outcome)
+    const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
   DAMAGE: (outcome) => {
