@@ -28,41 +28,11 @@ export const resolve = query({
     )
   },
   handler: async (ctx, args): Promise<NodeRuntimeCompactResolveResponseDto> => {
-    // T24-DIAG start
-    console.time('t24 identity')
     const identity = await requireIdentity(ctx)
-    console.timeEnd('t24 identity')
-    console.time('t24 parseArgs')
     const input = nodeRuntimeResolveRequestDtoSchema.parse(args)
-    console.timeEnd('t24 parseArgs')
-    console.time('t24 reader')
     const reader = await createSystemSourceReader(ctx, input.systemId, identity.userId)
-    console.timeEnd('t24 reader')
-    const tables: string[] = []
-    const timed: typeof reader = async (...query) => {
-      const label = `t24 read ${query[0]} ${tables.length}`
-      tables.push(String(query[0]))
-      console.time(label)
-      const rows = await reader(...query)
-      console.timeEnd(label)
-      return rows
-    }
-    console.time('t24 resolve')
-    const full = await resolveNodeRuntime(timed, input)
-    console.timeEnd('t24 resolve')
-    console.time('t24 compact')
-    const compact = compactNodeRuntimeResponse(full)
-    console.timeEnd('t24 compact')
-    console.log(
-      't24 sizes',
-      JSON.stringify(args).length,
-      JSON.stringify(compact.nodes).length,
-      JSON.stringify(compact.models).length,
-      JSON.stringify(compact.scopes).length,
-      JSON.stringify(compact.steps).length
-    )
-    return compact
-    // T24-DIAG end
+    // The compact transport is JSON-clean and checked by `returns`, so it crosses as built.
+    return compactNodeRuntimeResponse(await resolveNodeRuntime(reader, input))
   }
 })
 

@@ -27,7 +27,12 @@ import { api, components, internal } from '../_generated/api'
 import schema from '../schema'
 import authSchema from '../betterAuth/schema'
 import { createSystemSourceReader } from './systemSources'
-import { readSystemOwner } from '../content/definitionStore'
+import {
+  readCurrentSourceDefinitions,
+  readDefinitionRoot,
+  readSystemOwner
+} from '../content/definitionStore'
+import { readAuthoringSources } from '../content/sources'
 import { authoredSourceFacts, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
 import { getValueAtPath, isRuntimeRecord } from '@artificer-toolkit/shared/utils'
 
@@ -974,6 +979,56 @@ describe('native Convex authoring resolver', () => {
     })
     await expect(caller.query(resolve, request)).rejects.toThrow(
       'Stored authoring definition mismatch'
+    )
+  })
+
+  it('lists definition choices from stored identities without decoding their documents', async () => {
+    const { t, caller, userId } = await fixture()
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: SRD_REUSABLE_DEFINITIONS.map((entry) =>
+        sourceImportDefinitionDtoSchema.parse(entry)
+      )
+    })
+    const request = { mapId: 'feature', systemId: srdSystemRecord.id, values: {} }
+    const choices = () =>
+      caller.query(resolve, request).then((compact) =>
+        expandNodeRuntimeResponse(compact)
+          .steps.flatMap((step) => step.sections.flatMap((section) => section.nodes))
+          .find((node) => node.id === 'ruleDefinitionIds')
+      )
+    const full = await t.run(async (ctx) =>
+      readCurrentSourceDefinitions(
+        ctx,
+        await readAuthoringSources(ctx, srdSystemRecord.id, userId),
+        userId
+      )
+    )
+    expect(full.length).toBe(SRD_REUSABLE_DEFINITIONS.length)
+    const listed = await choices()
+    expect(listed?.options?.map(({ value, label }) => ({ value, label }))).toEqual(
+      full
+        .map(({ id, label }) => ({ value: id, label }))
+        .sort(
+          (left, right) =>
+            left.label.localeCompare(right.label) || left.value.localeCompare(right.value)
+        )
+    )
+
+    // RELIABILITY-21.T24: decoding, parsing and checksumming every definition document cost ~200 ms
+    // of resolve's 1 s budget on CI. A choice reads only the stored identity; the document stays
+    // guarded wherever it is read.
+    await t.run(async (ctx) => {
+      const stored = await ctx.db
+        .query('reusableDefinitions')
+        .withIndex('by_publicId', (q) => q.eq('id', definition.id))
+        .unique()
+      if (!stored) throw new Error('Missing definition fixture')
+      await ctx.db.patch(stored._id, { documentJson: '{"tampered":true}' })
+    })
+    expect(await choices()).toEqual(listed)
+    await expect(t.run((ctx) => readDefinitionRoot(ctx, definition.id, userId))).rejects.toThrow(
+      'Reusable definition integrity mismatch.'
     )
   })
 

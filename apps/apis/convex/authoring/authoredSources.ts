@@ -27,9 +27,6 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
     // ponytail: current inline selectors require the complete <=500 visible roots per
     // kind. Add paginated source selection before raising this limit, never truncate.
     for (const source of await (sources ??= readAuthoringSources(ctx, systemId, userId))) {
-      // T24-DIAG
-      const label = `t24 kind ${kind} ${source.id.slice(-4)}`
-      console.time(`${label} query`)
       const roots = await contentStream(ctx.db)
         .query('authoredRoots')
         .withIndex('by_contentSourceId_subjectKind_ownerUserId', (q) =>
@@ -40,9 +37,6 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
         )
         .filterWith((root) => isImportRowVisible(ctx, root.importJobId))
         .take(501 - facts.length)
-      console.timeEnd(`${label} query`)
-      console.log(`${label} roots`, roots.length, JSON.stringify(roots).length)
-      console.time(`${label} parse`)
       if (facts.length + roots.length > 500)
         throw new Error('Authoring options require paginated search.')
       for (const root of roots) {
@@ -57,7 +51,6 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
           )
         facts.push(projected)
       }
-      console.timeEnd(`${label} parse`)
     }
     return facts
   }
