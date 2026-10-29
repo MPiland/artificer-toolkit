@@ -49,10 +49,11 @@ function clamp(value: number, minimum: number | null, maximum: number | null): n
   )
 }
 
+/** Dice keep their bonus as a term; a fixed amount and its bonuses are one whole number, never below 0. */
 function formatExpression(value: number | string, bonus: number): string {
-  const base = typeof value === 'number' ? formatAmount(value) : value
-  if (bonus === 0) return base
-  return bonus > 0 ? `${base} + ${formatAmount(bonus)}` : `${base} - ${formatAmount(-bonus)}`
+  if (typeof value === 'number') return formatAmount(Math.max(0, value + bonus))
+  if (bonus === 0) return value
+  return bonus > 0 ? `${value} + ${formatAmount(bonus)}` : `${value} - ${formatAmount(-bonus)}`
 }
 
 /**
@@ -601,8 +602,7 @@ export function resolveDnd5eActionMechanic(
             outcome.amountKind,
             outcome.amountMultiplier
           ),
-          // A fixed amount and its bonuses are one whole number the compiler reads as stated.
-          diceExpression: typeof value === 'number' ? formatAmount(value + bonus) : expression,
+          diceExpression: expression,
           damageTypeId: outcome.damageTypeId,
           ...(weaponDieFaces !== null && value !== resolvedValue ? { weaponDieFaces } : {}),
           scaling

@@ -59,12 +59,25 @@ function optionFeature(featureLabel: string, optionLabel: string, order: number)
 const PACT_OF_THE_BLADE = optionFeature('Pact Boon', 'Pact of the Blade', 90)
 const LIFEDRINKER = optionFeature('Eldritch Invocations', 'Lifedrinker', 91)
 
+/** A homebrew Lifedrinker whose Charisma bonus has no minimum of 1. */
+function unflooredLifedrinker(): ClassFeature {
+  const feature = structuredClone(LIFEDRINKER)
+  for (const path of feature.effects?.flatMap((effect) => effect.paths) ?? []) {
+    if (!('resultBlock' in path)) continue
+    for (const outcome of path.resultBlock.outcomes)
+      if ('bonuses' in outcome) for (const bonus of outcome.bonuses ?? []) delete bonus.min
+  }
+  return feature
+}
+
 /**
  * A 12th-level Warlock (first in the order) holding a Longsword, which its Class gives it no
  * proficiency with, then the Gargoyle. Strength 8 (-1) and Charisma 15 (+2) swap places in the
- * standard array. The Warlock's d20 and d8 show 19 and 8.
+ * standard array unless the scores are named. The Warlock's d20 and d8 show 19 and 8.
  */
-function warlockRoom() {
+function warlockRoom(
+  input: { lifedrinker?: ClassFeature; abilityScores?: Record<string, number> } = {}
+) {
   return actionRoom({
     rolls: [18, 7],
     fallbackRoll: 0,
@@ -75,13 +88,13 @@ function warlockRoom() {
       },
       srdCreatureActor({ id: GARGOYLE_ID, creature: seededSrdCreature('Gargoyle') })
     ],
-    characterClassFeatures: [PACT_OF_THE_BLADE, LIFEDRINKER],
+    characterClassFeatures: [PACT_OF_THE_BLADE, input.lifedrinker ?? LIFEDRINKER],
     characterEquipment: [longsword],
     characterPlay: {
       characterClass: warlock,
       classLevel: 12,
       equipped: true,
-      abilityScores: { STRENGTH: 8, CHARISMA: 15 }
+      abilityScores: input.abilityScores ?? { STRENGTH: 8, CHARISMA: 15 }
     },
     characterAction: (action) => action.label.startsWith('Pact of the Blade')
   })
@@ -163,6 +176,14 @@ describe('room Pact of the Blade and Lifedrinker (SPELLS-31.T4v)', () => {
     expect(plain.damage).toBe(3)
     // Bound, the full 7 slashing lands, and Lifedrinker adds the Charisma modifier (+2) as necrotic.
     expect(bound.damage).toBe(9)
+  }, 120000)
+
+  it('drinks no life, and keeps the attack automated, when Charisma is negative', async () => {
+    // The captured standard array: Strength 15 (+2), Charisma 8 (-1). The homebrew rider has no
+    // minimum, so it deals 0 necrotic, not -1, beside the d8's 8 plus 2 slashing.
+    const room = await warlockRoom({ lifedrinker: unflooredLifedrinker(), abilityScores: {} })
+    await bindLongsword(room)
+    expect((await longswordAttack(room)).damage).toBe(10)
   }, 120000)
 
   it('replaces the earlier binding when the pact is used again', async () => {

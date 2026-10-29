@@ -11,6 +11,7 @@ import {
   evaluateSrdCharacter,
   srdByLabel
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { facetDtoSchema } from '@artificer-toolkit/schema/shared/facet'
 import type { EffectAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
@@ -209,5 +210,19 @@ describe('Pact of the Blade, Lifedrinker and Voice of the Chain Master (SPELLS-3
       expect(riderOwed(rider, [otherBond])).toBe(false)
       expect(riderOwed(rider, [])).toBe(false)
     }
+  })
+
+  it('refuses a bond check on any subject but the equipment', () => {
+    const restrictions = SRD_MELEE_LIFEDRINKER.paths[0]?.restrictions
+    expect(facetDtoSchema.safeParse(restrictions).success).toBe(true)
+    const onCharacter = JSON.parse(
+      JSON.stringify(restrictions).replace('"subject":"EQUIPMENT"', '"subject":"CHARACTER"')
+    ) as unknown
+    const parsed = facetDtoSchema.safeParse(onCharacter)
+    expect(parsed.success).toBe(false)
+    // The refusal sits among the issues of the union it was tried in, its quotes JSON-escaped.
+    expect(JSON.stringify(parsed.error?.issues)).toMatch(
+      /BOUND_BY_EFFECT\W+ is not valid for CHARACTER\./
+    )
   })
 })

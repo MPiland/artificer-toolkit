@@ -74,7 +74,10 @@ export type PredicatePayloadByCode = {
     { category?: EquipmentCategoryCode }
   >
   SOLE_WIELDED_WEAPON: EmptyObject
-  /** The item is bound by a live active effect of its holder authored as one of ffectIds (Pact of the Blade). */
+  /**
+   * The item is bound by a live active effect of its holder authored as one of `effectIds`
+   * (Pact of the Blade).
+   */
   BOUND_BY_EFFECT: {
     effectIds: string[]
   }

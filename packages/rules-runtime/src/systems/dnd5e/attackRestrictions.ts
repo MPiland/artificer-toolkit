@@ -131,12 +131,12 @@ const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
 
 /**
  * Resolves the weapon checks of an attack's restrictions against the weapon it is made with, and
- * its damage-type checks against the damage types its hit deals, leaving only the circumstance checks (roll mode, nearby enemies, target creature type, binding Effects), which are
- * decided when the attack rolls. A group whose weapon checks fail can never hold and is dropped; a
- * group with nothing left to decide always holds, as does a facet without groups. Returns `null`
- * when the restrictions can never be met and `undefined` when they always are. Only the attacking
- * item's own checks are evaluated: a check the item cannot
- * answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
+ * its damage-type checks against the damage types its hit deals, leaving only the circumstance
+ * checks (roll mode, nearby enemies, target creature type, binding Effects), which are decided when
+ * the attack rolls. A group whose weapon checks fail can never hold and is dropped; a group with
+ * nothing left to decide always holds, as does a facet without groups. Returns `null` when the
+ * restrictions can never be met and `undefined` when they always are. Only the attacking item's own
+ * checks are evaluated: a check the item cannot answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
  */
 function reduceRestrictions(
   restrictions: Restrictions,

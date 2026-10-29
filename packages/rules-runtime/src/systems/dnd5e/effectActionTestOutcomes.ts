@@ -104,10 +104,11 @@ export function specializedTestOutcome(
       unsupported('D&D fixed damage with bonuses must be one unscaled whole amount.')
     uuid(outcome.damageTypeId, 'D&D damage type identity')
     if (!facts) return { kind: 'RESOLVED_DAMAGE', damageTypeId: outcome.damageTypeId }
+    // The source states the amount already floored at 0, as a dice total is; 0 deals no damage.
     const resolved = facts.resolvedDamageOutcomeExpressions[entry.entryId]
-    const amount = resolved !== undefined && /^\d+$/.test(resolved) ? Number(resolved) : 0
-    if (!Number.isSafeInteger(amount) || amount <= 0)
-      unsupported('D&D resolved fixed damage must be a positive whole amount.')
+    const amount = resolved !== undefined && /^\d+$/.test(resolved) ? Number(resolved) : -1
+    if (!Number.isSafeInteger(amount) || amount < 0)
+      unsupported('D&D resolved fixed damage must be a whole amount of at least 0.')
     return {
       kind: 'DAMAGE',
       amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),

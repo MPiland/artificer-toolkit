@@ -515,7 +515,8 @@ export type ValueDomainParamByCode = {
   // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
   WEAPON_DAMAGE_DIE: EmptyObject
 
-  // The holder is proficient with the attacks the grant applies to; bound to a chosen item, with that item only.
+  // The holder is proficient with the attacks the grant applies to; bound to a chosen item, with
+  // that item only.
   WEAPON_PROFICIENCY: EmptyObject
 
   // The holder's movement provokes no opportunity attacks (Disengage).
