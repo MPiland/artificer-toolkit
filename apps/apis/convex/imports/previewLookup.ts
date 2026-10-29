@@ -10,7 +10,17 @@ import {
   type AuthoredSubjectKindDto
 } from '@artificer-toolkit/schema/api/content'
 import { importSourceDtoSchema, type ImportSourceDto } from '@artificer-toolkit/schema/api/imports'
-import type { ImportPreparationLookup } from '@artificer-toolkit/authoring/imports'
+import type {
+  ImportPreparationLookup,
+  ImportSystemVocabulary
+} from '@artificer-toolkit/authoring/imports'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { readCharacterDraftSummary } from '../characters/documents'
@@ -89,10 +99,10 @@ const systemVocabularyValidator = v.object({
   systemId: v.string(),
   damageTypes: v.array(vocabularyEntryValidator),
   rarities: v.array(vocabularyEntryValidator),
-  currencies: v.array(vocabularyEntryValidator),
-  speeds: v.array(vocabularyEntryValidator),
-  skills: v.array(vocabularyEntryValidator),
-  heritages: v.array(vocabularyEntryValidator)
+  goldCurrencyId: v.optional(v.string()),
+  walkSpeedId: v.optional(v.string()),
+  stealthSkillId: v.optional(v.string()),
+  dwarvenHeritageId: v.optional(v.string())
 })
 
 export type ImportPreviewExactLookupRequest =
@@ -154,10 +164,35 @@ interface SystemVocabularySnapshot {
   systemId: string
   damageTypes: VocabularyEntrySnapshot[]
   rarities: VocabularyEntrySnapshot[]
-  currencies: VocabularyEntrySnapshot[]
-  speeds: VocabularyEntrySnapshot[]
-  skills: VocabularyEntrySnapshot[]
-  heritages: VocabularyEntrySnapshot[]
+  goldCurrencyId?: string
+  walkSpeedId?: string
+  stealthSkillId?: string
+  dwarvenHeritageId?: string
+}
+
+/**
+ * The System vocabulary an import resolves custom content against. The SRD armor and price rules
+ * name source-data definitions, so each binds to the System entry that keeps that definition's id,
+ * never to one that only shares its code or label.
+ */
+export function importSystemVocabulary(
+  system: Pick<
+    SystemAuthoredDto,
+    'damageTypes' | 'rarities' | 'currencies' | 'speeds' | 'skills' | 'heritages'
+  >
+): Omit<SystemVocabularySnapshot, 'systemId'> & ImportSystemVocabulary {
+  const entries = (list: readonly VocabularyEntrySnapshot[]) =>
+    list.map(({ id, code, label }) => ({ id, code, label }))
+  const keptId = (list: readonly VocabularyEntrySnapshot[], id: string) =>
+    list.some((entry) => entry.id === id) ? id : undefined
+  return {
+    damageTypes: entries(system.damageTypes),
+    rarities: entries(system.rarities),
+    goldCurrencyId: keptId(system.currencies, SRD_GOLD_CURRENCY_ID),
+    walkSpeedId: keptId(system.speeds, SRD_WALK_SPEED_ID),
+    stealthSkillId: keptId(system.skills, SRD_STEALTH_SKILL_ID),
+    dwarvenHeritageId: keptId(system.heritages, SRD_DWARVEN_HERITAGE_ID)
+  }
 }
 
 export interface ImportPreviewExactLookupSnapshot {
@@ -583,17 +618,9 @@ async function loadExactForUser(
         .withIndex('by_publicId', (query) => query.eq('id', request.systemId))
         .unique()
       if (record) {
-        const { damageTypes, rarities, currencies, speeds, skills, heritages } = readSystem(record)
-        const entries = (list: VocabularyEntrySnapshot[]) =>
-          list.map(({ id, code, label }) => ({ id, code, label }))
         systemVocabularies.set(request.systemId, {
           systemId: request.systemId,
-          damageTypes: entries(damageTypes),
-          rarities: entries(rarities),
-          currencies: entries(currencies),
-          speeds: entries(speeds),
-          skills: entries(skills),
-          heritages: entries(heritages)
+          ...importSystemVocabulary(readSystem(record))
         })
       }
       continue

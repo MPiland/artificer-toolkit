@@ -2,12 +2,19 @@ import { describe, expect, it } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 import {
   IMPORT_PREVIEW_LOOKUP_ARGUMENT_MAX_BYTES,
   chunkImportPreviewLookupRequests,
   createImportPreviewLookupRecorder,
   createImportPreviewMapLookup,
+  importSystemVocabulary,
   loadExactRef,
   loadExactForJobRef,
   loadMasterPageRef,
@@ -138,10 +145,7 @@ describe('native import preview lookup', () => {
       systemId: 'system-1',
       damageTypes: [{ id: 'damage-1', code: 'PIERCING', label: 'Piercing' }],
       rarities: [],
-      currencies: [],
-      speeds: [],
-      skills: [],
-      heritages: []
+      goldCurrencyId: 'currency-gold'
     }
     const part = {
       ownerUserId,
@@ -339,4 +343,36 @@ describe('native import preview lookup', () => {
     expect(second.isDone).toBe(true)
     expect(new Set([...first.page, ...second.page].map((item) => item.subjectId)).size).toBe(100)
   }, 15_000)
+})
+
+describe('importSystemVocabulary', () => {
+  const system = {
+    damageTypes: [{ id: 'damage-piercing', code: 'PIERCING', label: 'Piercing', description: '' }],
+    rarities: [{ id: 'rarity-common', code: 'COMMON', label: 'Common' }],
+    currencies: [{ id: SRD_GOLD_CURRENCY_ID, code: 'GOLD', label: 'Crown' }],
+    speeds: [{ id: SRD_WALK_SPEED_ID, code: 'FOOT', label: 'Foot' }],
+    skills: [{ id: SRD_STEALTH_SKILL_ID, code: 'SNEAK', label: 'Sneak' }],
+    heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DEEPFOLK', label: 'Deepfolk' }]
+  }
+
+  it('binds gold, walking speed, Stealth and Dwarven by definition id whatever their codes', () => {
+    expect(importSystemVocabulary(system)).toEqual({
+      damageTypes: [{ id: 'damage-piercing', code: 'PIERCING', label: 'Piercing' }],
+      rarities: [{ id: 'rarity-common', code: 'COMMON', label: 'Common' }],
+      goldCurrencyId: SRD_GOLD_CURRENCY_ID,
+      walkSpeedId: SRD_WALK_SPEED_ID,
+      stealthSkillId: SRD_STEALTH_SKILL_ID,
+      dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID
+    })
+  })
+
+  it('does not take a code match for the definition', () => {
+    const vocabulary = importSystemVocabulary({
+      ...system,
+      currencies: [{ id: 'other-gp', code: 'GP', label: 'Gold' }],
+      skills: [{ id: 'other-stealth', code: 'STEALTH', label: 'Stealth' }]
+    })
+    expect(vocabulary.goldCurrencyId).toBeUndefined()
+    expect(vocabulary.stealthSkillId).toBeUndefined()
+  })
 })
