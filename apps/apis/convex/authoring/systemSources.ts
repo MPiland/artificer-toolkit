@@ -8,7 +8,7 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 import type { QueryCtx } from '../_generated/server'
 import { readSystem } from '../content/systemDocuments'
 import { readAuthoringSources } from '../content/sources'
-import { readCurrentSourceDefinitions } from '../content/definitionStore'
+import { readCurrentSourceDefinitionChoices } from '../content/definitionStore'
 import { createAuthoredSourceReader } from './authoredSources'
 
 export async function createSystemSourceReader(
@@ -46,7 +46,7 @@ export async function createSystemSourceReader(
 
 async function readDefinitionOptions(ctx: QueryCtx, systemId: string, userId: string) {
   const sources = await readAuthoringSources(ctx, systemId, userId)
-  return readCurrentSourceDefinitions(ctx, sources, userId).catch(() => {
+  return readCurrentSourceDefinitionChoices(ctx, sources, userId).catch(() => {
     throw new Error('Stored authoring definition mismatch.')
   })
 }
