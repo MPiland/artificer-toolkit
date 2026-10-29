@@ -3,7 +3,7 @@
   "phase": "8",
   "title": "Phase 8: Convex platform and VTT",
   "rebaselined": "2026-10-06",
-  "definitionOfDone": "A PBI is done when every acceptance criterion is proved (DONE with non-empty proof) and at least one of its journey tests, verified to drive the real flow, passes. After each PBI, run that feature's regression suite plus the suites of the features that depend on it. PERF runs at feature completion and at release. The final pre-staging run (yarn validate:pre-staging:local on one source state) is the release-candidate check.",
+  "definitionOfDone": "A PBI is done when every acceptance criterion is proved (DONE with non-empty proof) and at least one of its journey tests, verified to drive the real flow, passes. After each PBI, run that feature's regression suite plus the suites of the features that depend on it. PERF runs at feature completion and at release. The final pre-staging run (yarn validate:pre-staging:local on one source state) is the release-candidate check. A PBI that adds no user-visible flow (a refactor, removal, internal typing, documentation or measurement) sets journeyStatus internal with an internalReason, and is done when every criterion is proved; real play is checked by UAT (user, 2026-10-29).",
   "statusVocabulary": {
     "ac": {
       "TODO": "Not started.",
@@ -18,7 +18,8 @@
     "journeyStatus": {
       "verified": "The listed journey tests drive the whole user-visible flow through real code (convex-test, the real Session room, Playwright or session-worker native tests).",
       "partial": "The journey tests cover part of the flow; journeyGap says what is missing.",
-      "none": "No journey test exists for the flow."
+      "none": "No journey test exists for the flow.",
+      "internal": "The PBI adds no user-visible flow (refactor, removal, typing, docs or measurement); internalReason says why, and its criteria proofs are the evidence."
     },
     "uat": {
       "NOT_RUN": "Not run on the rebaselined ledger.",
@@ -272,9 +273,9 @@
         {
           "id": "PLATFORM-6",
           "title": "Convex is the only home for product data",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R01"],
           "acs": [
             {
@@ -290,13 +291,6 @@
               ],
               "origin": ["R01.1"],
               "id": "PLATFORM-6.1"
-            },
-            {
-              "text": "Complete same-source R08 product journeys and the release audit show that Convex is the durable record for all product data; live Encounter state reaches it by checkpoint (ADR 0035).",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["R01.2"],
-              "id": "PLATFORM-6.2"
             }
           ],
           "wsjf": {
@@ -306,30 +300,15 @@
             "size": 3,
             "finalSource": true
           },
-          "tasks": [
-            {
-              "id": "PLATFORM-6.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-6.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 8,
-                "rr": 13,
-                "size": 1,
-                "after": ["RELEASE-2.T1"],
-                "finalSource": true
-              },
-              "text": "After RELEASE-2's final-source manifest is green, re-run node scripts/auditNativeBoundaries.mjs on the same source identity, and write the ledger proof for AC .2 citing the manifest's journey stages (account/campaign/character/encounter journeys, checkpoint of live Encounter state to Convex) plus the audit log. Ledger-only edit plus one scripted audit run; no code expected.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
+          "tasks": [],
+          "internalReason": "Removal: Convex as the only product-data home is proved by PLATFORM-6.1; it adds no user flow."
         },
         {
           "id": "PLATFORM-7",
           "title": "Nothing depends on Supabase",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R02"],
           "acs": [
             {
@@ -342,14 +321,6 @@
               ],
               "origin": ["R02.1"],
               "id": "PLATFORM-7.1"
-            },
-            {
-              "text": "Final same-source R08 auth, session, SSR, realtime and media journeys and the release audit pass with no Supabase runtime dependency.",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["R02.2"],
-              "id": "PLATFORM-7.2",
-              "journeys": ["auth-browser", "scene-live-browser"]
             }
           ],
           "wsjf": {
@@ -359,30 +330,15 @@
             "size": 3,
             "finalSource": true
           },
-          "tasks": [
-            {
-              "id": "PLATFORM-7.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-7.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 8,
-                "rr": 13,
-                "size": 1,
-                "after": ["RELEASE-2.T1"],
-                "finalSource": true
-              },
-              "text": "On the final-source manifest, cite the auth, session, SSR, realtime and media browser/native proof stages and the signed-in request audit (no supabase.co request, the live-backend guards stay green), re-run the boundary audit, record AC .2 proof. Also decide whether the stale prose mentions (threat model, apps/web/README.md) and the Historical Supabase runbook should be reworded or deleted; deletion is pre-launch policy-consistent but belongs to RELEASE-1 docs sweep.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
+          "tasks": [],
+          "internalReason": "Removal of Supabase, proved by PLATFORM-7.1; it adds no user flow."
         },
         {
           "id": "PLATFORM-8",
           "title": "No SQL, Kysely or migrations remain",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R03"],
           "acs": [
             {
@@ -396,13 +352,6 @@
               ],
               "origin": ["R03.1"],
               "id": "PLATFORM-8.1"
-            },
-            {
-              "text": "Final native seed, import and audit and the same-source R08 lifecycle pass.",
-              "status": "TODO",
-              "proof": [],
-              "origin": ["R03.2"],
-              "id": "PLATFORM-8.2"
             }
           ],
           "wsjf": {
@@ -412,30 +361,15 @@
             "size": 3,
             "finalSource": true
           },
-          "tasks": [
-            {
-              "id": "PLATFORM-8.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-8.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 8,
-                "rr": 13,
-                "size": 2,
-                "after": ["RELEASE-2.T1"],
-                "finalSource": true
-              },
-              "text": "On the final source, confirm the seed and SRD audit stages (convex-reset, deploy, seed, audit) in the pre-staging manifest report the current SRD manifest checksum, re-check that every packages/source-data/src/srd commit since the last recorded check cites a ruling (git log scan), and record AC .2 proof. Re-run the boundary audit on the same source.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
+          "tasks": [],
+          "internalReason": "Removal of SQL, Kysely and migrations, proved by PLATFORM-8.1; it adds no user flow."
         },
         {
           "id": "PLATFORM-9",
           "title": "Nothing depends on GoRules",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R04"],
           "acs": [
             {
@@ -448,13 +382,6 @@
               ],
               "origin": ["R04.1"],
               "id": "PLATFORM-9.1"
-            },
-            {
-              "text": "The complete native rule-corpus and gameplay proof passes in the same R08 source state.",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "origin": ["R04.2"],
-              "id": "PLATFORM-9.2"
             }
           ],
           "wsjf": {
@@ -464,30 +391,15 @@
             "size": 3,
             "finalSource": true
           },
-          "tasks": [
-            {
-              "id": "PLATFORM-9.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-9.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 8,
-                "rr": 13,
-                "size": 1,
-                "after": ["RELEASE-2.T1"],
-                "finalSource": true
-              },
-              "text": "Cite the rules-runtime-tests, encounter-persistence-tests and native Encounter/movement/passage/disarm/effects/VTT stages from the final manifest (all must pass against build dist, same source identity as RELEASE-2) and record AC .2 proof. Note: the ongoing RULES-2 and SPELLS lanes keep changing rules code, so this must be taken only from the last final-source manifest.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
+          "tasks": [],
+          "internalReason": "Removal of GoRules, proved by PLATFORM-9.1; the gameplay proof moved to RELEASE-2.3."
         },
         {
           "id": "PLATFORM-10",
           "title": "No tRPC or product Netlify functions; the web app runs on Cloudflare Workers",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R05", "PLT-5", "VS-7"],
           "acs": [
             {
@@ -502,14 +414,6 @@
               ],
               "origin": ["R05.1"],
               "id": "PLATFORM-10.1"
-            },
-            {
-              "text": "Final native journeys and the same-source R08 packaging and request audit pass; the audit shows signed-in pages render without server-side Convex prefetch and without session refetch on window focus (D75, D80).",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "origin": ["R05.2"],
-              "id": "PLATFORM-10.2",
-              "journeys": ["auth-browser"]
             }
           ],
           "wsjf": {
@@ -519,23 +423,8 @@
             "size": 3,
             "finalSource": true
           },
-          "tasks": [
-            {
-              "id": "PLATFORM-10.T1",
-              "status": "TODO",
-              "closes": ["PLATFORM-10.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 8,
-                "rr": 13,
-                "size": 1,
-                "after": ["RELEASE-2.T1"],
-                "finalSource": true
-              },
-              "text": "From the final manifest, cite the build stage and the signed-in-request-audit proof (r08-browser-signed-in-request-audit.json, passed) and the web Worker packaging; re-run auditNativeBoundaries; record AC .2 proof. If the proof fails at final source, fix is a separate bug task.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
+          "tasks": [],
+          "internalReason": "Removal of tRPC and product Netlify functions, proved by PLATFORM-10.1; it adds no user flow."
         },
         {
           "id": "PLATFORM-11",
@@ -610,20 +499,12 @@
           "origin": [],
           "acs": [
             {
-              "text": "Code-quality groundwork",
+              "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
               "status": "IN_PROGRESS",
               "proof": [],
-              "note": "Audit: built (planLiveSceneCommand, callLiveSessionRoute with LIVE_SESSION_ROUTE_PATHS, ed1faa3e6); stateHttp single factory and fixture consolidation still to verify.",
+              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21.",
               "origin": ["CP-S1"],
               "id": "PLATFORM-13.2"
-            },
-            {
-              "text": "Test speed: convex-test 0.0.60 upgrade, per-file timings, parallelism trial",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Audit: convex-test 0.0.60 done (6507a4678); per-file timings unrecorded and the parallelism trial not run (vitest.config still serial).",
-              "origin": ["TST-0"],
-              "id": "PLATFORM-13.3"
             },
             {
               "text": "Relocate the pure files (about 25) out of the Convex suite; remove dead test work; slim Convex tests behind pure proofs; planner-level worker tests for movement Concentration checks, passage contests and reaction order (needs the SRD rules fixtures exported from rules-runtime)",
@@ -769,7 +650,7 @@
               "id": "PLATFORM-13.T1",
               "text": "Test speed, per-file work: convex-test 0.0.60 upgrade (6507a4678), the import.test.ts 5 s timeout regression of PLATFORM-13.6 (reads definitions only), and the partial serial timing baseline (docs/validation/platform-13-t1-test-timings-2026-10-14.md). The module-load prepareSrdImport() subsetting was tried and reverted: no measurable gain.",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -791,22 +672,10 @@
               }
             },
             {
-              "id": "PLATFORM-13.T3",
-              "text": "Code-quality groundwork.",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.2"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 1,
-                "rr": 3,
-                "size": 5
-              }
-            },
-            {
               "id": "PLATFORM-13.T4",
               "text": "CI parallelism trial (pulled forward 2026-10-18): Convex 2 and Worker 4 file workers per job, Convex shards balanced by recorded file duration, no added jobs; Convex 4 rejected (developmentCustody timeouts); three clean full dispatches, no timeout raised. Tests wall time 18.4-19.8 to 10.5-12.2 min (docs/validation/platform-13-t4-ci-parallelism-2026-10-18.md).",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 1,
                 "tc": 8,
@@ -818,22 +687,9 @@
               "mergedAt": "2026-10-18T17:36:12-05:00"
             },
             {
-              "id": "PLATFORM-13.T4b",
-              "status": "TODO",
-              "closes": ["PLATFORM-13.3"],
-              "wsjf": {
-                "bv": 1,
-                "tc": 8,
-                "rr": 8,
-                "size": 2,
-                "finalSource": true
-              },
-              "text": "End of phase, on the final source: the full-suite timing record (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (one test there carries a 20 s timeout). Split from T4 when the CI parallelism trial landed early."
-            },
-            {
               "id": "PLATFORM-13.T14",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 3,
@@ -848,7 +704,7 @@
             {
               "id": "PLATFORM-13.T15",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 5,
@@ -878,7 +734,7 @@
             {
               "id": "PLATFORM-13.T17",
               "status": "DONE",
-              "closes": ["PLATFORM-13.3"],
+              "closes": ["PLATFORM-13.4"],
               "wsjf": {
                 "bv": 3,
                 "tc": 5,
@@ -1053,6 +909,18 @@
               "mergedAt": "2026-10-23T03:13:37Z",
               "note": "Merged in m362.",
               "proof": "ci/platform-13-t20 @ b974e05bd: two full Tests dispatches (39889028586, 39891867297) plus push Tests and Live green; root cause was per-row re-parse in normalizeNodeRuntimeValues and per-call SRD row rebuilds."
+            },
+            {
+              "id": "PLATFORM-13.T21",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 2
+              },
+              "text": "Bug: node scripts/auditNativeBoundaries.mjs fails at 591b93e65 with 4 violations: packages/authoring/package.json depends on @artificer-toolkit/source-data and @artificer-toolkit/rules-runtime (layering), and scripts/phase8/buildPhaseLedger.mjs trips the GoRules and tRPC removal rules with PBI titles (false positives). Fix the layering, scope the removal rules away from ledger tooling without weakening them, and run the audit in CI (tests.yml) so it cannot drift again."
             }
           ]
         },
@@ -3362,7 +3230,7 @@
         {
           "id": "RULES-2",
           "title": "Composable, System-neutral rules engine (ADR 0039)",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
           "wsjf": {
             "bv": 5,
@@ -4529,7 +4397,9 @@
               "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22. Merged in m357.",
               "mergedAt": "2026-10-23T00:20:57Z"
             }
-          ]
+          ],
+          "journeyStatus": "internal",
+          "internalReason": "Rules-engine refactor (ADR 0039); play behaviour is unchanged and pinned by the golden harness (RULES-2.2) and the gameplay journeys of the SPELLS, ATTACK and ENCOUNTER PBIs."
         }
       ]
     },
@@ -12838,6 +12708,14 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the SPELLS-8.T6a merge review: hold-person.ts declares ANY targeting and the targeting schema has no allowed-types field, so a Character can paralyze a Wolf (the T5 journey does)."
+            },
+            {
+              "id": "SPELLS-8.6",
+              "text": "The Sheet shows attack and damage rows that match what the room rolls: active grants and modifiers (Bless, Hunter's Mark, Shillelagh's die and magical trait), proficiencies (pact weapon) and ability modifiers are folded in by the same shared code the room uses.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies."
             }
           ],
           "wsjf": {
@@ -13044,6 +12922,18 @@
               },
               "mergedAt": "2026-10-22T20:32:00Z",
               "note": "Merged in m352."
+            },
+            {
+              "id": "SPELLS-8.T15",
+              "status": "TODO",
+              "closes": ["SPELLS-8.6"],
+              "wsjf": {
+                "bv": 13,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
             }
           ]
         },
@@ -15299,7 +15189,7 @@
             },
             {
               "id": "SPELLS-31.T4c1p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15309,7 +15199,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m541 (c57b95e37)."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -15385,7 +15275,7 @@
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. 2026-10-29 ruling (option A on T4c1p): T4c3 builds the parent-class charge payment (paying with Bardic Inspiration) together with Cutting Words."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -15667,7 +15557,7 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 8,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-4.T2v",
@@ -15677,7 +15567,7 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user ruled option C (size 8): build Pact of the Blade, the pact-weapon proficiency consumer (Sheet and room attack bonus), Lifedrinker and the Pact of the Chain familiar reaction attack; Voice of the Chain Master stays a GM ruling."
             },
             {
               "id": "SPELLS-31.T5a",
@@ -15854,11 +15744,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user approved the split (side-session-notes/spells-31-t5i-ruling-packet.md). T5i builds G1 (spell facets in modifiers, damage bonuses on save spells, the ALL + MAGIC_SCHOOL fail-open bug), Empowered Evocation and Elemental Affinity."
             },
             {
               "id": "SPELLS-31.T5j",
@@ -16071,13 +15961,55 @@
               "text": "Spell grants on chosen features (Eldritch Invocations, feats, options, background features) become spell access: buildCharacterSpellRuleFacts reads snapshot.features by provenance, with spell-access source kinds for FEAT, OPTION and BACKGROUND. List every chosen-feature grant this moves from MANUAL to automated, and prove the Chains of Carceri journey (cast, lockout, creature-type narrowing) end to end (D156 SPELLS-31.T5l ruling).",
               "note": "Merged m260 (e732d8db6).",
               "mergedAt": "2026-10-21T00:13:46Z"
+            },
+            {
+              "id": "SPELLS-31.T5i2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T5i"]
+              },
+              "text": "Merge ON_HIT riders into Character spell casts and allow SPELL-scoped rider restrictions (G4); Repelling Blast as FORCED_MOVEMENT UP_TO 10 ft. Authoring-parity proof; deletes its kind (D156).",
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+            },
+            {
+              "id": "SPELLS-31.T5i3",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T5i"]
+              },
+              "text": "Widen REPLACE_RANGE_KIND to a full range and consume it (G2); Eldritch Spear. Authoring-parity proof; deletes its kind (D156).",
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+            },
+            {
+              "id": "SPELLS-31.T5i4",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T5i"]
+              },
+              "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
             }
           ]
         },
         {
           "id": "SPELLS-32",
           "title": "Racial trait closed rules become core authoring options",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": ["Q25 answered A (user, 2026-10-18)"],
           "wsjf": {
             "bv": 5,
@@ -16093,7 +16025,7 @@
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: 14 racial trait closed-rule kinds. Closed 2026-10-28 by SPELLS-32.T1, SPELLS-32.T2, SPELLS-32.T3, SPELLS-32.T4j, SPELLS-32.T5, SPELLS-32.T6.",
               "text": "Every racial trait CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
-                "Closed by SPELLS-32.T1undefined), SPELLS-32.T2undefined), SPELLS-32.T3undefined), SPELLS-32.T4j (m428), SPELLS-32.T5 (m513), SPELLS-32.T6undefined); see each task's proof."
+                "Closed by SPELLS-32.T1, SPELLS-32.T2, SPELLS-32.T3, SPELLS-32.T4j (m428), SPELLS-32.T5 (m513), SPELLS-32.T6; see each task's proof."
               ]
             }
           ],
@@ -16194,7 +16126,9 @@
               "text": "Halfling Nimbleness (1 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
               "note": "Delivered by SPELLS-33.T6k1, merged m165 (8dbf72244)."
             }
-          ]
+          ],
+          "journeyStatus": "internal",
+          "internalReason": "Converts racial-trait closed rules to core options with authoring-parity proofs; play behaviour is unchanged and checked by UAT."
         },
         {
           "id": "SPELLS-33",
@@ -19208,9 +19142,9 @@
         {
           "id": "RELIABILITY-8",
           "title": "Authored forms share one typed factory with no silent defaults",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
@@ -19362,7 +19296,8 @@
               "mergedAt": "2026-10-25T15:55:21Z",
               "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
-          ]
+          ],
+          "internalReason": "Authoring form typing refactor; the authoring journeys of the AUTHORING PBIs exercise the forms."
         },
         {
           "id": "RELIABILITY-9",
@@ -19578,17 +19513,46 @@
           },
           "tasks": [
             {
-              "id": "RELIABILITY-10.T1",
+              "id": "RELIABILITY-10.T1a",
               "status": "TODO",
-              "closes": ["RELIABILITY-10.1", "RELIABILITY-10.2", "RELIABILITY-10.3"],
+              "closes": ["RELIABILITY-10.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "Builder submit, finalize and saving flags have one writer (CharacterBuilderStateSync); the Renderer publishes only progress; red-first regression test plus a builder journey through the real AuthoringLayout.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1b",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.2"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
                 "size": 8,
-                "after": ["RELIABILITY-8.T1"]
+                "after": ["RELIABILITY-10.T1a"]
               },
-              "text": "One state owner (top-level TanStack form) with behaviour-split stable contexts; narrow selectors so a keystroke re-renders only that field; builder submit/finalize/saving from one source with a red-first regression test (OQ-1 option 1)."
+              "text": "One resolution owner reads values through a debounced form.store subscription outside render; chrome reads step status, progress and navigation through narrow selectors; FormRenderer push-up effects deleted; AuthoringFormContext split into stable actions, navigation and mode contexts; render-count test on a real authored form plus a Profiler before/after in local-validation.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-10.T1c",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 5,
+                "after": ["RELIABILITY-10.T1b"]
+              },
+              "text": "Builder chrome reads the builder form directly (StateSync and the Renderer and AuthoringRuntime push-up effects deleted), the forms-to-domains type import removed, and AuthoringLayoutProvider and the Sheet CharacterSheetRollContext controller split by behaviour.",
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
             }
           ]
         },
@@ -19623,9 +19587,9 @@
         {
           "id": "RELIABILITY-12",
           "title": "Convex infers real types for authoring DTOs and creature speeds",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
@@ -19682,7 +19646,8 @@
               "mergedAt": "2026-10-25T15:55:21Z",
               "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
-          ]
+          ],
+          "internalReason": "Convex type inference for DTOs; no user-visible change."
         },
         {
           "id": "RELIABILITY-13",
@@ -20903,7 +20868,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Range, target, path, aura and trap previews are shown.",
+              "text": "Range, target, path, aura and placed-zone (hazard and trap) previews are shown.",
               "status": "IN_PROGRESS",
               "proof": [
                 "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
@@ -20918,7 +20883,7 @@
                 "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › ActionRangeAndTargetPreview"
               ],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route).",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model.",
               "id": "VTT_UI-3.1",
               "journeys": ["vtt-browser"]
             },
@@ -21000,11 +20965,11 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 2,
-                "size": 3,
+                "size": 2,
                 "after": ["VTT_UI-3.T1"]
               },
-              "text": "Trap preview, after a scope ruling: show placed fields/traps (SPELLS-17 placed zones) as map overlays and a preview while placing one; hidden-trap visibility and a distinct trap model are NOT in any contract. Recommend narrowing AC 3.1 to 'placed zone' and moving 'trap' semantics to future-enhancements. If narrowed this is a story+model test of an existing zone overlay (size 2); if a true trap model is required it needs a lane-1 contract task first (+5).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Placed-zone preview: show placed zones (SPELLS-17), including GM-placed hazards and traps, as map overlays and as a preview while placing one. Concealed zones follow MOVE-3 (decisions \"Hazards and traps\"): a zone with a spot DC is drawn only for the GM and for Characters it was revealed to. No new trap model.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm)."
             },
             {
               "id": "VTT_UI-3.T3",
@@ -21119,76 +21084,6 @@
             "size": 5
           },
           "mergedAt": "2026-10-14T07:42:19-05:00"
-        },
-        {
-          "id": "VTT_UI-6",
-          "title": "Conditional Creature senses apply only when their condition holds",
-          "status": "TODO",
-          "journeyTests": [],
-          "journeyStatus": "none",
-          "origin": [],
-          "note": "Registered 2026-10-13 at the VTT_UI-5 merge review. Structured Creature senses carry a display-only qualifier, so a printed condition is ignored: Grimlock blindsight 30 ft (10 ft while deafened) is always 30 ft, and Wererat darkvision (rat form only) applies in every form. The VTT_UI-5 report lists every SRD Creature with a mechanics-bearing qualifier.",
-          "acs": [
-            {
-              "text": "A Creature sense whose stat block limits it to a condition or form (deafened, a shape) applies only while that condition or form holds, for Scene vision and combat perception alike; every SRD Creature with such a qualifier is modeled, proved by tests that fail first.",
-              "status": "TODO",
-              "proof": [],
-              "origin": [],
-              "id": "VTT_UI-6.1",
-              "journeys": ["vtt-browser"]
-            }
-          ],
-          "journeyGap": "No journey yet. Next: a session-worker room test where a deafened Grimlock perceives at 10 ft, not 30 ft.",
-          "wsjf": {
-            "bv": 2,
-            "tc": 1,
-            "rr": 1,
-            "size": 5,
-            "after": ["VTT_UI-5"]
-          },
-          "tasks": [
-            {
-              "id": "VTT_UI-6.T1",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 5
-              },
-              "text": "Model conditional Creature senses generically: replace the display-only qualifier for mechanics-bearing cases with a structured, system-neutral activation (condition applies / replaces range while a condition holds, or applies only in a form) on the authored Creature sense in packages/schema and packages/shared, with the label derived from it. Migrate Grimlock (30 ft, 10 ft while deafened) and Wererat (darkvision in rat form only) with no feature-specific code; source-data audit test fails if any SRD sense qualifier that names a condition or form is left display-only. Pre-launch: delete the free-text qualifier for these, migrate dev data.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            },
-            {
-              "id": "VTT_UI-6.T2",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 3,
-                "after": ["VTT_UI-6.T1"]
-              },
-              "text": "Resolution: evaluate the activation against the actor's live conditions and form in actorSenses so Scene vision (roomSceneVision, scene senses projection refresh on condition/form change) and combat perception agree. Proof: rules-runtime tests that fail first, and the session-worker room journey the PBI names (a deafened Grimlock perceives at 10 ft, not 30 ft; a human-form Wererat has no darkvision, rat form has it), including recompute when Deafened is applied/removed mid-Encounter.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            },
-            {
-              "id": "VTT_UI-6.T3",
-              "status": "TODO",
-              "closes": ["VTT_UI-6.1"],
-              "wsjf": {
-                "bv": 2,
-                "tc": 1,
-                "rr": 1,
-                "size": 3,
-                "after": ["VTT_UI-6.T1"]
-              },
-              "text": "Authoring: expose the activation on the Creature senses node map and form (apps/web creature authoring, packages/shared maps/creature.ts) with an authoring-parity proof that an authored Creature reproduces the Grimlock/Wererat behavior from core options. Could be folded into T1 if node-map work is small.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
-            }
-          ]
         }
       ]
     },
@@ -21236,8 +21131,7 @@
             "apps/apis/convex/encounters/cutoverConcurrency.test.ts",
             "apps/web/tests/e2e/storybook/vttLoad.spec.ts"
           ],
-          "journeyStatus": "partial",
-          "journeyGap": "cutoverConcurrency.test.ts validates the workload harness; vttLoad.spec.ts measures renderer load only. The frozen local workload runs in yarn validate:pre-staging:local, not in a test file.",
+          "journeyStatus": "internal",
           "origin": ["V15", "REL-5"],
           "acs": [
             {
@@ -21303,7 +21197,8 @@
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             }
-          ]
+          ],
+          "internalReason": "Latency measurement of the frozen local workload; no user flow."
         },
         {
           "id": "PERF-2",
@@ -21538,11 +21433,11 @@
                 "bv": 2,
                 "tc": 3,
                 "rr": 8,
-                "size": 2,
+                "size": 3,
                 "after": ["PERF-3.T1", "PERF-1.T1"],
                 "finalSource": true
               },
-              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here.",
+              "text": "Close 3.14 at phase end: one full tests.yml run (full=true) green with fixes, then the V15 load run is PERF-1.T1's output; link both runs. 'Faster suites' is owned by PLATFORM-13 (timing docs exist) and should be dropped from the AC wording rather than re-done here. Also record, from that full run on the final source, the full-suite timing (Convex, Worker, root) with peak memory and paging, and a loaded root run proving import.test.ts passes at the default 5 s (moved from PLATFORM-13.T4b, 2026-10-29).",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             }
           ]
@@ -21776,7 +21671,7 @@
           "title": "Docs, ADRs and runbooks match the final system",
           "status": "IN_PROGRESS",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": ["R07"],
           "acs": [
             {
@@ -21831,7 +21726,8 @@
               "text": "Final-source docs reconciliation after the SPELLS/RULES lanes freeze: sweep docs/architecture, docs/adr, runbooks, root READMEs, CONTEXT.md and apps/web/README.md for retired-service wording (Supabase, Kysely, GoRules, tRPC, Netlify) and stale current-vs-historical labels; delete or reword the Historical Supabase runbook and threat-model references as appropriate; run the anchor-aware link audit across all Markdown and record link/file counts; update the three AC proofs with the fresh run. Agent can do all of it.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             }
-          ]
+          ],
+          "internalReason": "Documentation, ADRs and runbooks; no user flow."
         },
         {
           "id": "RELEASE-2",
@@ -21854,6 +21750,14 @@
               "proof": [],
               "origin": ["R08.2", "G5-RELEASE-MANIFEST"],
               "id": "RELEASE-2.2"
+            },
+            {
+              "id": "RELEASE-2.3",
+              "text": "The complete native rule-corpus and gameplay proof passes in the same R08 source state.",
+              "status": "TODO",
+              "proof": [],
+              "origin": ["R04.2"],
+              "note": "Moved from PLATFORM-9.2 on 2026-10-29 (user): the native rule-corpus and gameplay proof is a real check of the final source."
             }
           ],
           "wsjf": {
@@ -21882,7 +21786,7 @@
             {
               "id": "RELEASE-2.T1",
               "status": "TODO",
-              "closes": ["RELEASE-2.1", "RELEASE-2.2"],
+              "closes": ["RELEASE-2.1", "RELEASE-2.2", "RELEASE-2.3"],
               "wsjf": {
                 "bv": 3,
                 "tc": 8,
@@ -22298,6 +22202,54 @@
       "origin": ["F01"],
       "reason": "Development tooling, not a user-visible behavior, so it can never have a journey test. Its three ACs were done; every merge now proves it locally (Convex codegen push, deploy, SRD seed and audit against the local Docker backend), apps/apis/tests/developmentFoundation.ts (run by the pre-staging lifecycle) and the ACCOUNTS-1 journey prove anonymous denial and closed signup over real HTTP. AC 1.1 also proved a push to the personal cloud dev deployment, which ADR 0035 now forbids for development and agents.",
       "decision": "Approved by the user on 2026-10-15."
+    },
+    {
+      "id": "PLATFORM-6.2",
+      "origin": ["R01.2"],
+      "reason": "Only re-cited stages of RELEASE-2's final-source lifecycle run, which RELEASE-2 already requires; the removal itself is proved by PLATFORM-6.1.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-7.2",
+      "origin": ["R02.2"],
+      "reason": "Only re-cited stages of RELEASE-2's final-source lifecycle run, which RELEASE-2 already requires; the removal itself is proved by PLATFORM-7.1.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-8.2",
+      "origin": ["R03.2"],
+      "reason": "Only re-cited stages of RELEASE-2's final-source lifecycle run, which RELEASE-2 already requires; the removal itself is proved by PLATFORM-8.1.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-10.2",
+      "origin": ["R05.2"],
+      "reason": "Only re-cited stages of RELEASE-2's final-source lifecycle run, which RELEASE-2 already requires; the removal itself is proved by PLATFORM-10.1.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "VTT_UI-6",
+      "origin": [],
+      "reason": "Conditional Creature senses need rules, authoring and live form state (the Wererat rat-form case has no actor form to check); moved whole to docs/roadmap/future-enhancements.md#conditional-creature-senses as a post-launch feature. Ruling packet: side-session-notes/vtt-ui-6-t1-ruling-packet.md in the VTT_UI-6.T1 session worktree.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.3",
+      "origin": ["TST-0"],
+      "reason": "Test speed work is done (convex-test upgrade, per-file timings, parallelism trial via PLATFORM-13.T1, T4, T14, T15, T17); the phase-end timing record (T4b) duplicated PERF-3.T2's full run and moved there.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "PLATFORM-13.T3",
+      "origin": ["CP-S1"],
+      "reason": "Task text was only \"Code-quality groundwork.\" with no defined scope; PLATFORM-13.2 now means the native boundary audit, closed by PLATFORM-13.T21.",
+      "decision": "Approved by the user on 2026-10-29."
+    },
+    {
+      "id": "RELIABILITY-10.T1",
+      "origin": [],
+      "reason": "Split into RELIABILITY-10.T1a, T1b and T1c (size 3 + 8 + 5).",
+      "decision": "Approved by the user on 2026-10-29."
     }
   ],
   "openQuestions": []

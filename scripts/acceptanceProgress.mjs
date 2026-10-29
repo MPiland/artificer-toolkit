@@ -17,7 +17,7 @@ const ledger = JSON.parse(
 
 const workStatuses = ['TODO', 'IN_PROGRESS', 'DONE']
 const uatStatuses = ['NOT_RUN', 'PASSED', 'FAILED']
-const journeyStatuses = ['verified', 'partial', 'none']
+const journeyStatuses = ['verified', 'partial', 'none', 'internal']
 const wsjfPoints = [1, 2, 3, 5, 8, 13, 20]
 const historyCap = 200
 
@@ -34,7 +34,7 @@ const journeyStatusOf = (pbi) =>
 const isPbiProven = (pbi) =>
   pbi.acs.length > 0 &&
   pbi.acs.every((ac) => ac.status === 'DONE' && hasProof(ac)) &&
-  journeyStatusOf(pbi) === 'verified'
+  ['verified', 'internal'].includes(journeyStatusOf(pbi))
 
 // Every feature needs accepted UAT to be DONE; built features without it are UAT_READY.
 const featureStatus = (feature) => {
@@ -199,6 +199,8 @@ const validatePbi = (pbi, seen, errors) => {
   const journey = journeyStatusOf(pbi)
   if (!journeyStatuses.includes(journey))
     errors.push(`${pbi.id} has invalid journeyStatus ${journey}`)
+  if (journey === 'internal' && !pbi.internalReason)
+    errors.push(`${pbi.id} is internal but has no internalReason`)
   for (const path of pbi.journeyTests ?? []) {
     if (!existsSync(`${repoRoot}${path}`)) errors.push(`${pbi.id} journey test not found: ${path}`)
   }
@@ -254,7 +256,7 @@ const validatePbi = (pbi, seen, errors) => {
   if (pbi.status !== 'DONE') validateWsjf(pbi.id, pbi.wsjf, errors)
   if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
     errors.push(
-      `${pbi.id} is DONE but breaks the definition of done (all ACs DONE with proof and journeyStatus verified)`
+      `${pbi.id} is DONE but breaks the definition of done (all ACs DONE with proof and journeyStatus verified or internal)`
     )
   }
 }
