@@ -150,6 +150,31 @@ describe('runsVerdict', () => {
     })
   })
 
+  // RELIABILITY-21.19: a merge batch requires Browser journeys like Tests and Live.
+  describe('requiring Browser journeys on a batch', () => {
+    const all = Object.keys(WORKFLOWS)
+    const green = [
+      runAt('Tests', '2026-10-28T10:00:00Z', 'completed', 'success', 1),
+      runAt('Live backend', '2026-10-28T10:00:00Z', 'completed', 'success', 2)
+    ]
+
+    it('is missing without a browser run', () => {
+      expect(runsVerdict(green, all)).toEqual({ state: 'missing', missing: ['Browser journeys'] })
+    })
+
+    it('counts the newest browser run once', () => {
+      const runs = [
+        ...green,
+        runAt('Browser journeys', '2026-10-28T10:00:00Z', 'completed', 'failure', 3),
+        runAt('Browser journeys', '2026-10-28T11:00:00Z', 'completed', 'success', 4)
+      ]
+      expect(runsVerdict(runs, all)).toEqual({
+        state: 'green',
+        detail: 'Tests 1, Live backend 2, Browser journeys 4'
+      })
+    })
+  })
+
   it('ignores other workflows', () => {
     const runs = [
       runAt('Deploy web', '2026-10-18T12:00:00Z', 'completed', 'failure'),
@@ -297,7 +322,7 @@ describe('mergeSlice waiting on dispatched runs', () => {
         status: done ? 'completed' : 'in_progress',
         conclusion: done
           ? typeof conclusion === 'function'
-            ? conclusion(state.ref)
+            ? conclusion(state.ref, state.name)
             : conclusion
           : ''
       }
@@ -351,6 +376,15 @@ describe('mergeSlice waiting on dispatched runs', () => {
     expect(calls.some((call) => call.startsWith('run view 1000'))).toBe(true)
     expect(sh(origin, 'rev-parse', PHASE)).not.toBe(sh(origin, 'rev-parse', 'ci/slice-a'))
     expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+  })
+
+  it('dispatches every workflow, browser journeys included, as the fast-path backstop', async () => {
+    const { work, tip } = repo()
+    const { tools, calls } = platform(work)
+    await mergeSlice(input(tip), tools)
+    expect(calls.filter((call) => call.includes('--ref ci/merge-m1'))).toEqual(
+      Object.values(WORKFLOWS).map((file) => `workflow run ${file} --ref ci/merge-m1`)
+    )
   })
 
   it('treats an empty commit listing as unknown and does not dispatch runs that exist', async () => {
@@ -412,7 +446,10 @@ describe('mergeSlice waiting on dispatched runs', () => {
       const { outcome, origin, tip, calls } = await merge(testsAndLive)
       expect(outcome).toBeUndefined()
       expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
-      expect(calls.filter((call) => call.includes('browser-journeys.yml'))).toEqual([])
+      // The fast path's batch backstop dispatches every journey; the slice tip gets none.
+      expect(
+        calls.filter((call) => call.includes('browser-journeys.yml') && call.includes('ci/slice-a'))
+      ).toEqual([])
     })
   })
 
@@ -511,8 +548,10 @@ describe('mergeSlice waiting on dispatched runs', () => {
         .split('\n')
         .map((parents) => parents.split(' ')[1])
       expect(merged).toEqual(slices.map((slice) => slice.sha).reverse())
-      // Tests and Live run once on the batch commit.
-      expect(calls.filter((call) => call.includes('--ref ci/merge-m1'))).toHaveLength(2)
+      // Tests, Live and every browser journey run once on the batch commit (RELIABILITY-21.19).
+      expect(calls.filter((call) => call.includes('--ref ci/merge-m1'))).toEqual(
+        Object.values(WORKFLOWS).map((file) => `workflow run ${file} --ref ci/merge-m1`)
+      )
     })
 
     it('refuses the whole batch on a conflict, naming the slice and pushing nothing', async () => {
@@ -555,6 +594,37 @@ describe('mergeSlice waiting on dispatched runs', () => {
       })
       await expect(mergeSlice(batchInput(slices), tools)).rejects.toThrow(/Not green/)
       expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+    })
+
+    it('refuses a batch whose browser journeys go red, naming the run and slices to trace', async () => {
+      const { work, origin, slices, before } = three()
+      const { tools, calls } = platform(work, {
+        conclusion: (ref) => (ref.startsWith('ci/merge-m') ? 'failure' : 'success')
+      })
+      const journeys = calls.length
+      const refusal = await mergeSlice(batchInput(slices), tools).catch((error) => error)
+      expect(refusal).toBeInstanceOf(MergeRefused)
+      const dispatched = calls
+        .slice(journeys)
+        .filter((call) => call.startsWith('workflow run browser-journeys.yml --ref ci/merge-m1'))
+      expect(dispatched).toHaveLength(1)
+      expect(refusal.trace).toEqual({
+        run: expect.stringMatching(/^\d+$/),
+        slices: slices.map((slice) => slice.branch)
+      })
+      expect(refusal.message).toContain(`Browser journeys ${refusal.trace.run} failure`)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+    })
+
+    it('names nothing to trace when only Tests goes red on the batch', async () => {
+      const { work, slices } = three()
+      const { tools } = platform(work, {
+        conclusion: (ref, name) =>
+          ref.startsWith('ci/merge-m') && name === 'Tests' ? 'failure' : 'success'
+      })
+      const refusal = await mergeSlice(batchInput(slices), tools).catch((error) => error)
+      expect(refusal).toBeInstanceOf(MergeRefused)
+      expect(refusal.trace).toBeNull()
     })
 
     it('refuses a slice named twice', async () => {
