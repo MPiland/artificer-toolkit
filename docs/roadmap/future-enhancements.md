@@ -564,6 +564,10 @@ MOVE-3 ships the small version: the GM places zones through the zone node map, t
 
 Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
 
+### Conditional Creature senses
+
+A Creature sense that its stat block limits to a condition or a form (a Grimlock's blindsight while deafened, a Wererat's darkvision in rat form only) should apply only while that holds, for Scene vision and for combat. Today the qualifier is display text. This is a feature of its own: a structured, system-neutral activation on the sense, resolution against the actor's live conditions and form in Scene vision, Creature authoring for the activation, and live actor form state (Shapechanger and Change Shape are GM rulings with no live form today; see "Creature forms beyond Wild Shape" below). Moved out of Phase 8 as VTT_UI-6 by the user on 2026-10-29.
+
 ### Effects that end with their source
 
 Vampire Charm (D176) ships with its damage-triggered repeat save and its 24-hour duration. The remaining SRD clauses are description-only. Candidates:
