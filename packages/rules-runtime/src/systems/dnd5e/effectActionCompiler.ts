@@ -210,6 +210,7 @@ import {
   forcedMovementProposalNode,
   dnd5eResultGate,
   saveAudit,
+  saveOutcomeFact,
   dnd5eSaveOutcomeRule,
   testContractVersion
 } from './effectActionOperationRegistry.js'
@@ -3959,10 +3960,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: dc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
-            conditionOutcomeRules,
-            nestedSaveAbilityDefinitionId
-          )
+          ...saveOutcomeFact(conditionOutcomeRules, nestedSaveAbilityDefinitionId)
         },
         d20RollMode: matches[0]!.rollMode,
         d20Keep: DND5E_KEEP_BY_ROLL_MODE[matches[0]!.rollMode],
@@ -4102,10 +4100,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_SAVE_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: folded.defenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
-            conditionOutcomeRules,
-            save.abilityDefinitionId
-          )
+          ...saveOutcomeFact(conditionOutcomeRules, save.abilityDefinitionId)
         },
         d20RollMode: rollMode,
         d20Keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],

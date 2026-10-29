@@ -935,6 +935,14 @@ export function dnd5eSaveOutcomeRule(
     : 'NONE'
 }
 
+/** The save outcome rule as the bound fact of a TEST phase. */
+export function saveOutcomeFact(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+) {
+  return { [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(rules, abilityDefinitionId) }
+}
+
 /** A save's audited ability, naming the conditions that fail it unrolled only when one does. */
 export function saveAudit(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
