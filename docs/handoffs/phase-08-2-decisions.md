@@ -1918,3 +1918,19 @@ Every description-only feature is logged for post-release automation under [Defe
 4. `onDelete` then refuses while any membership is still ACTIVE.
 
 The request returns once deletion is scheduled.
+
+## D200: a held Character deleted after departure leaves the Run (orchestrator ruling, 2026-10-28)
+
+**Problem.** Under staged deletion (D199), the departure step evicts the user before the CHARACTERS step deletes their held Character. The room then reads that Character as UNASSIGNED and freezes its actor, and the later deletion is never seen, because reconcile skips frozen actors. The same happens when an owner deletes a Character after leaving a Campaign.
+
+**Ruling.** Option 1 restores D74 ("actors of Characters that no longer exist are removed") whenever the deletion lands:
+
+- A Character deletion sends the room an invalidate, reusing an existing control scope where one fits.
+- On that invalidate, reconcile re-reads its frozen CHARACTER actors and removes those whose Character reads DELETED. An UNASSIGNED Character's actor stays frozen.
+- The CHARACTERS cleanup step sends this once per affected Run after its batch commits, and stays idempotent.
+
+**Rejected.**
+
+- Deleting in the departure transaction: it risks the 1 s limit.
+- Delaying the departure notice: it forks the departure code.
+- Leaving the actor frozen: it breaks D74.
