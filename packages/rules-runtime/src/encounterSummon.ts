@@ -1,3 +1,4 @@
+import type { SpellSummonStatBlockValues } from '@artificer-toolkit/shared/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -12,10 +13,16 @@ import { summonHitPoints } from './summonHitPoints.js'
  * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block,
  * and the Scene token that stands at `point`. The summon fights on the caster's side and is
  * controlled through its owner, so its own controller list is empty. Its snapshot keeps the stat
- * block's body rules (`encounterActorBody`).
+ * block's body rules (`encounterActorBody`) and the values a spell cast resolved, which the owner's
+ * Sheet lists it by (`ownedEncounterSpellSummons`).
  */
 export function buildEncounterSummon(input: {
   summon: Pick<CompiledActionSummonPlacement, 'statBlock'>
+  /**
+   * The values a spell cast resolved for the creature (`resolveSpellSummonStatBlock`); null when no
+   * spell made it, and no Sheet lists it.
+   */
+  spellSummon: SpellSummonStatBlockValues | null
   caster: EncounterRunActorState
   /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
   casterHitPointMaximum: number
@@ -30,6 +37,7 @@ export function buildEncounterSummon(input: {
 }): LiveSessionSummonedToken {
   const {
     summon,
+    spellSummon,
     caster,
     casterHitPointMaximum,
     label,
@@ -70,7 +78,8 @@ export function buildEncounterSummon(input: {
       label,
       maxHitPoints,
       systemId: caster.systemId,
-      body: summonBody(summon.statBlock)
+      body: summonBody(summon.statBlock),
+      ...(spellSummon ? { summon: spellSummon } : {})
     },
     createdAt: occurredAt,
     updatedAt: occurredAt

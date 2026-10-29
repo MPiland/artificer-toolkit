@@ -8,7 +8,10 @@ type SpellSummon = Extract<
   { kind: 'SPELL_SUMMON' }
 >
 
-/** Creatures a spell cast from the Sheet conjured (D190): tracked here until they end. */
+/**
+ * Creatures this Character's spell casts conjured (D190). A Sheet summon is tracked here until it
+ * ends; an Encounter summon is its Run actor, read live and changed only in the Encounter.
+ */
 export function CharacterSheetSpellSummons({
   expectedVersion,
   pending,
@@ -37,6 +40,20 @@ export function CharacterSheetSpellSummons({
                   Concentration
                 </Badge>
               ) : null}
+              {summon.actions.length ? (
+                <ul
+                  className={extrasStyles.summonActions}
+                  aria-label={`${summon.displayName} attacks`}
+                >
+                  {summon.actions.map((action) => (
+                    <li key={action.id}>
+                      {action.description
+                        ? `${action.label} · ${action.description}`
+                        : action.label}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </span>
             <span className={extrasStyles.extraStatBlock}>
               <span className={extrasStyles.extraMetric} data-extra-metric='AC'>
@@ -47,7 +64,14 @@ export function CharacterSheetSpellSummons({
                 <small className={extrasStyles.extraMetricLabel}>Speed</small>
                 <strong>{summon.speedLabel ?? '-'}</strong>
               </span>
-              {hitPoints ? (
+              {hitPoints && summon.encounterActorId ? (
+                <span className={extrasStyles.extraMetric} data-extra-metric='HP'>
+                  <small className={extrasStyles.extraMetricLabel}>HP / {hitPoints.maximum}</small>
+                  <strong>
+                    {hitPoints.temp ? `${hitPoints.current} +${hitPoints.temp}` : hitPoints.current}
+                  </strong>
+                </span>
+              ) : hitPoints ? (
                 <NumberInput
                   aria-label={`${summon.displayName} current hit points`}
                   clampBehavior='strict'
@@ -73,20 +97,22 @@ export function CharacterSheetSpellSummons({
                   }}
                 />
               ) : null}
-              <Button
-                disabled={pending}
-                size='xs'
-                variant='default'
-                onClick={() =>
-                  void submitCommand({
-                    type: 'REMOVE_SHEET_EXTRA',
-                    expectedVersion,
-                    extra: { kind: 'SPELL_SUMMON', extraId: summon.id }
-                  })
-                }
-              >
-                Dismiss
-              </Button>
+              {summon.encounterActorId ? null : (
+                <Button
+                  disabled={pending}
+                  size='xs'
+                  variant='default'
+                  onClick={() =>
+                    void submitCommand({
+                      type: 'REMOVE_SHEET_EXTRA',
+                      expectedVersion,
+                      extra: { kind: 'SPELL_SUMMON', extraId: summon.id }
+                    })
+                  }
+                >
+                  Dismiss
+                </Button>
+              )}
             </span>
           </div>
         ))}

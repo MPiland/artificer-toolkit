@@ -122,6 +122,18 @@ export const extraDrawerActions = style({
   '@layer': { [app]: { display: 'flex', gap: '8px', justifyContent: 'flex-end' } }
 })
 
+export const summonActions = style({
+  '@layer': {
+    [app]: {
+      color: foundationVars.color.text.secondary,
+      fontSize: '0.75rem',
+      listStyle: 'none',
+      margin: 0,
+      padding: 0
+    }
+  }
+})
+
 export const summonRow = style({
   '@layer': {
     [app]: {

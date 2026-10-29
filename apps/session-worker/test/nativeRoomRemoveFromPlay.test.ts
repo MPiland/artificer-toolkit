@@ -165,6 +165,7 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     // Owned with no carrier effect, so the orphan sweep after each command keeps it on the Scene.
     const { actor: conjured } = buildEncounterSummon({
       summon: { statBlock: { occupiesSpace: false, hitPoints: { kind: 'FIXED', value: 10 } } },
+      spellSummon: null,
       caster: character,
       casterHitPointMaximum: 20,
       label: 'Conjured',
