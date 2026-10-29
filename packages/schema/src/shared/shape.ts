@@ -68,3 +68,33 @@ export const shapeDtoSchema = lazySchema(() =>
 )
 
 export type ShapeDto = z.infer<typeof shapeDtoSchema>
+
+/** An area centered on a point the client picks, as the client previews it. */
+export const pointAreaTargetDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('POINT'),
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
+      z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
+    ])
+  })
+)
+
+/**
+ * An area that starts on the caster's own token and extends toward a direction: a cone, a line, or
+ * a cube from the caster's side (a cube authored with a Self range).
+ */
+export const directedAreaTargetDtoSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.literal('DIRECTED'),
+    area: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('CONE'), length: shapeMeasurementDtoSchema }),
+      z.strictObject({
+        kind: z.literal('LINE'),
+        length: shapeMeasurementDtoSchema,
+        width: z.optional(shapeMeasurementDtoSchema)
+      }),
+      z.strictObject({ kind: z.literal('CUBE_FROM_SIDE'), edgeLength: shapeMeasurementDtoSchema })
+    ])
+  })
+)

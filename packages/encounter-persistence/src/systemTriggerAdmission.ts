@@ -7,6 +7,7 @@ import {
   massiveDamageRulePinned
 } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
+import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { readEncounterActorDefeated } from './characterStates.js'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readRunActor } from './documents.js'
@@ -78,7 +79,8 @@ export function ruleFailedSaveAction(
  * actions of several saves one command failed each run. A resume skips the version and holder tests,
  * as the answers arrive in later commands. A Legendary Action root is the area option a turn end
  * delegated: its parent is that ADVANCE_TURN, and it runs while the Run still holds the delegation
- * for that holder and action, whatever other rule roots ran since, for a holder that still stands.
+ * for that holder, action and aim, whatever other rule roots ran since, for a holder that still
+ * stands.
  */
 export async function requireSystemTriggerAdmission(
   ctx: EncounterReadTransaction,
@@ -129,9 +131,10 @@ export async function requireSystemTriggerAdmission(
           failedSave?.holderActorId !== holderActorId ||
           ruleAction?.definitionId !== failedSave.definitionId ||
           ruleAction.effectId !== failedSave.effectId
-        : command.target.kind !== 'CASTER_CENTERED' ||
-          (trigger === 'LEGENDARY_ACTION' &&
-            !(parent && 'commandType' in parent && parent.commandType === 'ADVANCE_TURN'))) ||
+        : trigger === 'LEGENDARY_ACTION'
+          ? !['CASTER_CENTERED', 'POINT', 'DIRECTED'].includes(command.target.kind) ||
+            !(parent && 'commandType' in parent && parent.commandType === 'ADVANCE_TURN')
+          : command.target.kind !== 'CASTER_CENTERED') ||
     command.commandId.toLowerCase() !==
       systemTriggerCommandId(parentCommandId, holderActorId, command.actionId) ||
     parent?.encounterId !== run.id
@@ -149,11 +152,18 @@ export async function requireSystemTriggerAdmission(
   }
   if (trigger === 'LEGENDARY_ACTION') {
     const delegation = state.delegatedLegendaryAction
+    const { target } = command
+    if (!('sceneId' in target)) rejectDomain('VERSION_STALE')
+    // The root goes exactly where the delegation was aimed, or on its holder when it was not; only
+    // its Scene fence is the room's own.
+    const { sceneId: _sceneId, expectedSceneVersion: _sceneVersion, ...aimed } = target
     if (
       delegation?.parentCommandId !== parentCommandId ||
       delegation.holderActorId !== holderActorId ||
       delegation.actionId !== command.actionId ||
-      command.expectedVersion !== state.version
+      command.expectedVersion !== state.version ||
+      checksumCanonicalJson(aimed) !==
+        checksumCanonicalJson(delegation.aim ?? { kind: 'CASTER_CENTERED' })
     )
       rejectDomain('VERSION_STALE')
     if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
