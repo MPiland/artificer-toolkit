@@ -123,8 +123,8 @@ function same(left: unknown, right: unknown) {
 
 /**
  * The option a turn end hands to its own rule-raised action, which is always its last window: the
- * turn commits the end so far, the action resolves, and a continuation runs the rest. Null when the
- * turn delegated nothing.
+ * turn commits the end so far, the action resolves, and a continuation runs the rest. It comes with
+ * the aim its controller gave an aimed area. Null when the turn delegated nothing.
  */
 export function delegatedLegendaryOption(
   root: Pick<TurnCoordinatorRootDto, 'completedLegendaryActions'>
@@ -136,7 +136,7 @@ export function delegatedLegendaryOption(
     (entry) => entry.optionId === resolution.selectedOptionId
   )
   if (!option?.delegated) throw new Error('Delegated Legendary Action option is unavailable.')
-  return option
+  return { option, ...(resolution.aim ? { aim: resolution.aim } : {}) }
 }
 
 /**
@@ -699,16 +699,24 @@ export async function prepareTurnLegendaryActions<
         )
         if (delegated) {
           const owner = await windowFor(choice.ownerActorId)
+          // An aimed area takes the aim its area asks for; the area coordinator checks where it goes.
+          const aim =
+            input.resolution?.kind === 'LEGENDARY_OPTION' ? input.resolution.aim : undefined
           if (
             !owner ||
             !same(owner.choice, choice) ||
-            selection.targetActorId !== choice.ownerActorId
+            selection.targetActorId !== choice.ownerActorId ||
+            aim?.kind !== delegated.area?.kind
           )
             throw new Error('Legendary Action choice is stale.')
           completed.push({
             choice,
             selectionChecksum: checksumCanonicalJson(choice),
-            resolution: { kind: 'DELEGATED', selectedOptionId: delegated.optionId }
+            resolution: {
+              kind: 'DELEGATED',
+              selectedOptionId: delegated.optionId,
+              ...(aim ? { aim } : {})
+            }
           })
           // The turn end commits here; the remaining windows wait for the continuation.
           root = { ...root, completedLegendaryActions: completed, legendaryActionQueue: undefined }
