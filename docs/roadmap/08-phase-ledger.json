@@ -13118,10 +13118,10 @@
             },
             {
               "text": "A roll that a condition makes an automatic failure shows that it fails and why before and after the roll.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["actionCommands.test.ts"],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): the d20 is still prompted and rolled, and the result path is the failure.",
+              "note": "Registered from SPELLS-2 (D94): the d20 is still prompted and rolled, and the result path is the failure. Closed 2026-10-29 by SPELLS-10.T3.",
               "id": "SPELLS-10.4"
             },
             {
@@ -13206,7 +13206,7 @@
             },
             {
               "id": "SPELLS-10.T3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-10.4"],
               "wsjf": {
                 "bv": 5,
@@ -13215,8 +13215,9 @@
                 "size": 5
               },
               "text": "Automatic failure shown with reason before and after the roll.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 3 to 5 (orchestrator ruling 2026-10-28): optional autoFail reasons {conditionId,label} on the d20 policy, D20_EVIDENCE request and evidence; Encounter direct-action and repeat saves; concentration stays in T4.",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 3 to 5 (orchestrator ruling 2026-10-28): optional autoFail reasons {conditionId,label} on the d20 policy, D20_EVIDENCE request and evidence; Encounter direct-action and repeat saves; concentration stays in T4. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:20Z",
+              "proof": "Tests 40809596493, Live backend 40809596464, Browser journeys 40809596592 on fcc19629b; batch ci/merge-m539 green. Save requests carry autoFail [{conditionId,label}] from System condition types; roll card and decision drawer show the reason; actionCommands.test.ts round trip (Paralyzed Dexterity save, natural 20 still fails); nested-save resultPath regression test."
             },
             {
               "id": "SPELLS-10.T4",
@@ -15861,7 +15862,7 @@
             },
             {
               "id": "SPELLS-31.T5j",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15871,12 +15872,13 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Re-sized 3 to 5 (orchestrator ruling 2026-10-28): one SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and a shared EXCHANGE_SPELL_SLOTS play command; Sorcerous Restoration and Eldritch Master ship as GM rulings.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Re-sized 3 to 5 (orchestrator ruling 2026-10-28): one SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and a shared EXCHANGE_SPELL_SLOTS play command; Sorcerous Restoration and Eldritch Master ship as GM rulings. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:18Z",
+              "proof": "Tests 40807494906, Live backend 40807494924, Browser journeys 40807494968 on 7c777d138; batch ci/merge-m539 green. One SPELL_SLOT_EXCHANGE outcome (RECOVER_SLOTS, SLOT_TO_RESOURCE, RESOURCE_TO_SLOT) and one EXCHANGE_SPELL_SLOTS command; Arcane Recovery, Natural Recovery and Flexible Casting authored; Sorcerous Restoration and Eldritch Master GM rulings; five closed-rule kinds deleted. sheetCommandReducer.test.ts, nativeRoomSpellSlotExchange.test.ts, CharacterSheetActions.test.tsx, classFeatureOptionsAuthoringParity.test.ts. Deferred limits in future-enhancements.md."
             },
             {
               "id": "SPELLS-31.T5k",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15886,8 +15888,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:22Z",
+              "proof": "Tests 40816243449, Live backend 40816243457, Browser journeys 40816243442 on 46c4a9baa; batch ci/merge-m539 green. Fiendish Resilience as SAME_EFFECT END_EFFECTS options; Dragon Ancestor via the stored specializationId in the grant fold; Favored Enemy and Foe Slayer description-only; four closed-rule kinds deleted; nothingToEndWarnings only when ending is the whole action. subclassSpecializationGrantFold.test.ts, featureChoiceRulingsAuthoringParity.test.ts, nativeRoomFiendishResilience.test.ts."
             },
             {
               "id": "SPELLS-31.T5l",
@@ -20219,10 +20222,12 @@
             {
               "id": "RELIABILITY-21.2",
               "text": "campaigns/partyInventory:equipmentOptions stays under the 1 s query limit, and the campaign-custody journey passes.",
-              "status": "TODO",
-              "proof": ["Closed by RELIABILITY-21.T2 (m517); see each task's proof."],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-21.T2 (m517), RELIABILITY-21.T18 (m539); see each task's proof."
+              ],
               "origin": [],
-              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2. Reopened 2026-10-28: campaign-custody-browser still fails on CI (partyInventory:items); owned by T18.",
+              "note": "Proof: campaign-custody. Closed 2026-10-28 by RELIABILITY-21.T2. Reopened 2026-10-28: campaign-custody-browser still fails on CI (partyInventory:items); owned by T18. Closed 2026-10-29 by RELIABILITY-21.T2, RELIABILITY-21.T18.",
               "journeys": ["campaign-custody-browser"]
             },
             {
@@ -20625,7 +20630,7 @@
             },
             {
               "id": "RELIABILITY-21.T18",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.2"],
               "wsjf": {
                 "bv": 5,
@@ -20634,8 +20639,9 @@
                 "size": 3
               },
               "text": "Bound campaigns/partyInventory:items under the 1 s limit: drop the public to internal runQuery hop, make args/returns lazy getters, and use one variant signal (category or parentEquipmentId) for root catalogue facts; remove campaign-custody-browser from the known-bug labels.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13).",
-              "activeWorkbook": "docs/architecture/ci-validation.md"
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.2 after T13). Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:18Z",
+              "proof": "Tests 40806857924, Live backend 40806858162, Browser journeys 40806857901 on ca4efea6c; batch ci/merge-m539 green (Tests 40821391572, Live 40821391567, Browser journeys 40821391602). partyInventory reads under 1 s."
             },
             {
               "id": "RELIABILITY-21.T19",
@@ -20694,11 +20700,11 @@
                 "size": 2
               },
               "text": "Bound auth:onDelete (account deletion) under the 1 s Convex limit on the CI runner, for example by scheduling the per-table deletes in bounded batches; remove the account-deletion-browser known-bug label.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). D199 (user 2026-10-28): staged deletion plus onCreate/onUpdate moved out of auth.ts; new ADR and persistence.md; size re-scored at push."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). D199 (user 2026-10-28): staged deletion plus onCreate/onUpdate moved out of auth.ts; new ADR and persistence.md; size re-scored at push. D200 (2026-10-28): a held Character deleted after departure is removed from the Run on the deletion invalidate."
             },
             {
               "id": "RELIABILITY-21.T23",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.19"],
               "wsjf": {
                 "bv": 3,
@@ -20707,11 +20713,13 @@
                 "size": 2
               },
               "text": "Bound the owner d20 evidence submission mutation (effects-browser \"submit owner d20 evidence\") under the 1 s Convex limit on the CI runner; remove the effects-browser known-bug label.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19: recurring flaky proofs fixed or labelled first, found by T21). Merged in m538.",
+              "mergedAt": "2026-10-29T04:11:19Z",
+              "proof": "Tests 40808859158, Live backend 40813580818, Browser journeys 40808859171 on 94214c8fd. Owner d20 evidence reads under 1 s; effects-browser gates again (known-bug label removed)."
             },
             {
               "id": "RELIABILITY-21.T24",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.19"],
               "wsjf": {
                 "bv": 3,
@@ -20720,7 +20728,9 @@
                 "size": 2
               },
               "text": "Bound authoring/nodeRuntime:resolve under the 1 s Convex limit on the CI runner after T19 (publication-class-browser still times out at 1.006-1.221 s on T18, T23 and T4n runs); find whether module-graph evaluation (D199, T22/T23 finding) or per-scope work is the residue; remove the publication-class-browser known-bug label.",
-              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19)."
+              "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19). Merged in m539.",
+              "mergedAt": "2026-10-29T05:05:19Z",
+              "proof": "Tests 40819499214, Live backend 40819499130, Browser journeys 40819499127 on 913be9a86; batch ci/merge-m539 green. readCurrentSourceDefinitionChoices reads only {id,label} under the shared definition guards; Fighter-copy resolve 199-251 ms uncontended, 573 ms max contended (was 1006-1221 ms). publication-class-browser gates again."
             }
           ]
         }
