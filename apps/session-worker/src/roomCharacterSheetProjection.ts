@@ -4,6 +4,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
+import type { EncounterSpellSummon } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import type { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 
 type RoomCharacterSheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
@@ -13,7 +14,9 @@ export function projectRoomCharacterSheet(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
   /** Only the Sheet a client reads names the Concentration; the numbers other readers take never depend on it. */
-  concentration: ConcentrationListingDto | null = null
+  concentration: ConcentrationListingDto | null = null,
+  /** The summons the Character's Run actor owns, which the client's Sheet lists in Extras. */
+  encounterSummons: readonly EncounterSpellSummon[] = []
 ) {
   return projectCharacterSheetBundle({
     character: facts.prepared.character,
@@ -26,7 +29,8 @@ export function projectRoomCharacterSheet(
     spellCustomizations: facts.sheetState.spellCustomizations,
     ruleEvaluation: facts.ruleEvaluation,
     activeEffects,
-    concentration
+    concentration,
+    encounterSummons
   }).sheet
 }
 
@@ -38,9 +42,10 @@ export function projectRoomCharacterSheetForViewer(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
   viewer: CharacterSheetResponseDto['meta']['viewer'] = facts.campaignContext.viewer,
-  concentration: ConcentrationListingDto | null = null
+  concentration: ConcentrationListingDto | null = null,
+  encounterSummons: readonly EncounterSpellSummon[] = []
 ): CharacterSheetResponseDto {
-  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentration)
+  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentration, encounterSummons)
   return projectCharacterSheetForViewer(
     {
       ...sheet,
