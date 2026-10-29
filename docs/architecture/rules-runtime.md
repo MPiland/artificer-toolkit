@@ -2295,7 +2295,7 @@ the action mechanic. The pool modes need exactly one RESOLVED pool matching the 
 or the outcome resolves to nothing.
 
 The Sheet and room command is `EXCHANGE_SPELL_SLOTS { actionId, selection }`. Its selection is
-`SLOTS { slotKeys }` or `LEVEL { level }`. `planSpellSlotExchange` (`character/sheetSpellSlotExchange.ts`)
+`SLOTS { slotKeys }` or `SLOT_LEVEL { slotLevel }`. `planSpellSlotExchange` (`character/sheetSpellSlotExchange.ts`)
 is the one validator: the reducer applies its plan, and `getSheetCommandResourceUsageUpdate` writes
 its pool use. A recovery spends the action's own charge. A pool-mode action spends no charge of its
 own and no Bonus Action.

@@ -3,7 +3,10 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 
-type ExchangeCommand = Extract<CharacterSheetCommandInputDto, { type: 'EXCHANGE_SPELL_SLOTS' }>
+type ExchangeCommand = Pick<
+  Extract<CharacterSheetCommandInputDto, { type: 'EXCHANGE_SPELL_SLOTS' }>,
+  'actionId' | 'selection'
+>
 
 /** What one EXCHANGE_SPELL_SLOTS command changes, checked against the Sheet it runs on. */
 export interface SpellSlotExchangePlan {
@@ -18,14 +21,18 @@ export interface SpellSlotExchangePlan {
 function sheetResource(sheet: CharacterSheetResponseDto, resourceId: string) {
   const resource = sheet.resources.items.find((item) => item.id === resourceId)
   if (!resource)
-    throw new CharacterSheetCommandError(`Resource "${resourceId}" is not available on this character.`)
+    throw new CharacterSheetCommandError(
+      `Resource "${resourceId}" is not available on this character.`
+    )
   return resource
 }
 
 function sheetSlot(sheet: CharacterSheetResponseDto, slotKey: string) {
   const slot = sheet.spells.slots.find((item) => item.slotKey === slotKey)
   if (!slot || slot.level === null)
-    throw new CharacterSheetCommandError(`Spell slot "${slotKey}" is not available on this character.`)
+    throw new CharacterSheetCommandError(
+      `Spell slot "${slotKey}" is not available on this character.`
+    )
   return { ...slot, level: slot.level }
 }
 
@@ -45,7 +52,8 @@ export function planSpellSlotExchange(
   command: ExchangeCommand
 ): SpellSlotExchangePlan {
   const action = sheet.actions.items.find((candidate) => candidate.id === command.actionId)
-  if (!action) throw new CharacterSheetCommandError(`Action "${command.actionId}" is not available.`)
+  if (!action)
+    throw new CharacterSheetCommandError(`Action "${command.actionId}" is not available.`)
   if (action.availability.status === 'UNAVAILABLE')
     throw new CharacterSheetCommandError(`Action "${action.label}" is unavailable.`)
   const exchange = action.mechanic?.outcomes.flatMap((outcome) =>
@@ -77,7 +85,9 @@ export function planSpellSlotExchange(
             `Spell slots above level ${exchange.maximumSlotLevel} cannot be recovered.`
           )
         if (count > slot.max - slot.remaining)
-          throw new CharacterSheetCommandError(`Only expended ${slot.label} slots can be recovered.`)
+          throw new CharacterSheetCommandError(
+            `Only expended ${slot.label} slots can be recovered.`
+          )
         levels += slot.level * count
       }
       if (levels > exchange.levelBudget)
