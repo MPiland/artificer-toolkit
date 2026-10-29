@@ -2357,7 +2357,10 @@ policy keys and contract versions are rejected.
 
 **Modifiers and combat math.** `systems/dnd5e/modifierApplicability` is the one scope rule: a `GLOBAL`
 modifier applies Character-wide, a `SOURCE` modifier only while its own source is evaluated, narrowed by
-Equipment and Spell facets. Restrictions the fold cannot evaluate fail closed. `systems/dnd5e/attackKind`
+Equipment and Spell facets. Restrictions the fold cannot evaluate fail closed. A Subclass context's
+`SUBCLASS_SPECIALIZATION` condition is decided from the class entry's stored `specializationId` (a Draconic
+Bloodline's dragon, SPELLS-31.T5k; `subclassSpecializationGrantFold.test.ts`); a Subclass context without one
+fails closed. `systems/dnd5e/attackKind`
 classifies `MELEE | RANGED | UNARMED | MELEE_SPELL | RANGED_SPELL`; `dnd5eAttackRollContributors` adds an
 action's own contributors to the Character-wide `rollContributorEvidence`. Armor class uses one
 calculation (best of worn armor, unarmored, or an authored formula; a shield and flat bonuses add).

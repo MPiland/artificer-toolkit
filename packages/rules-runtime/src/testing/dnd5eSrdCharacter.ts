@@ -142,7 +142,8 @@ export type SrdCharacterInput = {
   abilities?: Partial<Record<Ability, number>>
   race?: string
   subrace?: string
-  classes: readonly { label: string; level: number; subclass?: string }[]
+  /** `specialization` labels one of the subclass's specializations (a Draconic Bloodline's dragon). */
+  classes: readonly { label: string; level: number; subclass?: string; specialization?: string }[]
   features?: readonly SnapshotFeature[]
   items?: readonly {
     label: string
@@ -183,13 +184,20 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
   const equipmentRecords = [...SRD.equipment, ...(input.extraEquipment ?? [])]
   const race = input.race === undefined ? undefined : srdByLabel(SRD.races, input.race)
   const subrace = input.subrace === undefined ? undefined : srdByLabel(SRD.races, input.subrace)
-  const classes = input.classes.map((entry) => ({
-    classId: srdByLabel(SRD.classes, entry.label).id,
-    level: entry.level,
-    ...(entry.subclass === undefined
-      ? {}
-      : { subclassId: srdByLabel(SRD.classes, entry.subclass).id })
-  }))
+  const classes = input.classes.map((entry) => {
+    const subclass =
+      entry.subclass === undefined ? undefined : srdByLabel(SRD.classes, entry.subclass)
+    return {
+      classId: srdByLabel(SRD.classes, entry.label).id,
+      level: entry.level,
+      ...(subclass ? { subclassId: subclass.id } : {}),
+      ...(entry.specialization === undefined
+        ? {}
+        : {
+            specializationId: srdByLabel(subclass?.specializations ?? [], entry.specialization).id
+          })
+    }
+  })
   const held: HeldItem[] = []
   const items = (input.items ?? []).map((item, index) => {
     const equipment = srdByLabel(equipmentRecords, item.label)
