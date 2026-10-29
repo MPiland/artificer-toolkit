@@ -934,6 +934,20 @@
               },
               "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path.",
               "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
+            },
+            {
+              "id": "PLATFORM-13.T23",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-13.T2"]
+              },
+              "text": "Bump convex-test 0.0.60 to latest (0.0.66). Bug: social/developmentRetention calls .paginate() twice in one query, which the real backend rejects (surfaces at lib/domainRejectionTransport.ts:10); fix the product query, with the bumped harness as its red proof. Fix the ~12 Convex test files whose fixtures assume Date.now() inside a mutation equals the fake system time (convex-test 0.0.63 monotonic commit clock): measure from stored timestamps, never loosen an assertion. Failure list: platform-13-t2-convex-test-0.0.66.md in the shared notes folder.",
+              "note": "Orchestrator ruling (a) on PLATFORM-13.T2, 2026-10-29: T2 stays a dependency refresh with convex-test held at 0.0.60."
             }
           ]
         },
