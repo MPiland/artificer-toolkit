@@ -108,8 +108,32 @@ export async function runAccountDeletionInPlace(
   await advanceAccountDeletion(t, userId, null)
 }
 
+/**
+ * Throws when an account's deletion job survived a drain: a step that keeps failing retries until
+ * the drain gives up, and its backoff carries the fake clock past every other session's expiry.
+ */
+export async function assertAccountDeletionRetired(
+  t: TestConvex<typeof schema>,
+  authUserId: string
+) {
+  const { job, failed } = await t.run(async (ctx) => ({
+    job: await ctx.db
+      .query('accountDeletionJobs')
+      .filter((q) => q.eq(q.field('authUserId'), authUserId))
+      .first(),
+    failed: (await ctx.db.system.query('_scheduled_functions').collect()).flatMap((row) =>
+      row.state.kind === 'failed' ? [`${row.name}: ${row.state.error}`] : []
+    )
+  }))
+  if (job)
+    throw new Error(
+      `Account deletion stopped at ${job.step} after ${job.attempt} retries. ${failed.slice(-3).join(' | ')}`
+    )
+}
+
 /** Schedules an account's staged deletion and runs every step, as the production scheduler does. */
 export async function deleteAccountCompletely(t: TestConvex<typeof schema>, authUserId: string) {
   await t.mutation(internal.accountDeletion.schedule, { authUserId })
   await drainScheduledWork(t)
+  await assertAccountDeletionRetired(t, authUserId)
 }

@@ -58,6 +58,7 @@ import { RoomSceneCache } from './roomSceneCache.js'
 import { RoomStorageAuthority } from './roomStorageAuthority.js'
 import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
 import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
+import { readFrozenCharacterIds } from './roomActorReconcile.js'
 import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
 import { RoomSceneFogUploads } from './roomSceneFogUploads.js'
@@ -475,11 +476,16 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         this.#authorization.invalidate()
         if (scopes.includes('CHARACTER')) this.#recheckFrozenCharacters = true
         // With a socket connected every input reloads now (Amendment 21). With none, membership
-        // still reloads now since it can end sockets, and so does a Character notice since it can
-        // name a deleted Character (D200); other inputs reload before their next use.
+        // still reloads now since it can end sockets, and so does a Character notice while an open
+        // Run holds a frozen actor, whose Character it may name deleted (D200); other inputs reload
+        // before their next use.
         if (this.ctx.getWebSockets().some((socket) => this.#admissions.liveAdmission(socket)))
           this.#queueEagerReload()
-        else if (scopes.includes('CAMPAIGN') || scopes.includes('CHARACTER'))
+        else if (
+          scopes.includes('CAMPAIGN') ||
+          (scopes.includes('CHARACTER') &&
+            (await readFrozenCharacterIds(this.#roomStore)).length > 0)
+        )
           this.ctx.waitUntil(this.#queueMembershipReload())
         return Response.json({ invalidated: true })
       }

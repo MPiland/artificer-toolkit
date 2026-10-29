@@ -13,6 +13,7 @@ import authSchema from '../betterAuth/schema'
 import { api, components, internal } from '../_generated/api'
 import {
   advanceAccountDeletionToProvider,
+  assertAccountDeletionRetired,
   drainScheduledWork
 } from '../../tests/fixtures/accountDeletion'
 import { startLocalR2 } from '../../tests/localR2'
@@ -359,6 +360,7 @@ it('cleans pending and ready keys after account deletion, without touching anoth
   // An already issued PUT may arrive after deletion starts; its exact key is retained by cleanup.
   await put(pending.url, image)
   await drainScheduledWork(t)
+  await assertAccountDeletionRetired(t, owner.user._id)
   expect(
     await t.run((ctx) =>
       ctx.db

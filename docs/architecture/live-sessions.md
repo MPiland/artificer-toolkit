@@ -480,8 +480,9 @@ controllers are unlisted, via
 checkpoints before its receipt, then the room drops cached play and Scene and challenges every socket.
 A frozen actor is skipped by later reconciles, so a Character deleted after its departure froze the actor
 reaches the room through a CHARACTER `INVALIDATE_INPUTS` (D200): the account deletion's CHARACTERS step
-sends one to the live room of each Campaign the owner left, once the step's batch commits. That notice
-reloads at once even with no socket connected, and the next reconcile also reads the open Runs' frozen
+sends one to the live room of each Campaign the owner left, once the step's batch commits. With no socket
+connected, that notice reloads at once only while an open Run holds a frozen Character actor (otherwise it
+stays lazy, per Amendment 21), and the next reconcile also reads the open Runs' frozen
 Character actors whose assignment is gone
 ([readFrozenUnassignedCharacterIds](../../apps/session-worker/src/roomActorReconcile.ts)); one that reads
 `DELETED` is removed, one that reads `UNASSIGNED` stays frozen, and when none is deleted nothing journals.
