@@ -5,11 +5,14 @@ import type { ReactionHigherLevelCheckAuthored } from './effect.js'
  * What an END_EFFECTS outcome matches on a held effect (D174, D182): it owns a condition the
  * selector names, or the spell that made it was cast at a level the selector admits. A
  * `SLOT_LEVEL` limit is the level the ending spell is itself cast at (Dispel Magic); a `FIXED`
- * limit is `level`. An effect cast from no spell never matches a spell-level selector.
+ * limit is `level`. An effect cast from no spell never matches a spell-level selector. `SAME_EFFECT`
+ * matches the effects the owning Effect made earlier, so a new use replaces the old one (Fiendish
+ * Resilience's "until you choose a different one").
  */
 export type EndEffectsSelectorAuthored =
   | { kind: 'CONDITION'; conditionIds: string[] }
   | { kind: 'SPELL_LEVEL'; limit: 'SLOT_LEVEL' | 'FIXED'; level?: number }
+  | { kind: 'SAME_EFFECT' }
 
 /**
  * Ends the effects held on the target that any selector matches (Lesser Restoration, Dispel

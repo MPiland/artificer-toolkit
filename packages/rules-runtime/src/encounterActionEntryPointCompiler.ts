@@ -330,10 +330,13 @@ export function compileCastChoicePlans(
   })
   const options = compiled?.map(({ option }) => option)
   // The pick is made at cast on the creatures targeted, after the test and Concentration
-  // are settled (D148); only a creature target carries it.
-  if (options && !['ACTOR', 'ACTORS'].includes(encounterActionChoiceTarget(targetPolicy).kind))
+  // are settled (D148); only a creature target, or the user itself, carries it.
+  if (
+    options &&
+    !['ACTOR', 'ACTORS', 'SELF'].includes(encounterActionChoiceTarget(targetPolicy).kind)
+  )
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'Only a cast at chosen creatures carries a pick.'
+      'Only a cast at chosen creatures or at its user carries a pick.'
     )
   if (
     compiled &&

@@ -7,7 +7,7 @@ import type { OutcomeNodeMapApi } from './path.js'
 
 const endEffectsSelector = buildNodeMap<AllUnionFields<EndEffectsSelectorAuthored>>()
 
-/** One thing an END_EFFECTS outcome matches: a condition a held effect owns, or the level its spell was cast at (D174, D182). */
+/** One thing an END_EFFECTS outcome matches: a condition a held effect owns, the level its spell was cast at (D174, D182), or the owning Effect's earlier effects. */
 const END_EFFECTS_SELECTOR_NODE_MAP = endEffectsSelector.define(
   'endEffectsSelector',
   ({ map, nodes, data, cond }) => {
@@ -20,7 +20,8 @@ const END_EFFECTS_SELECTOR_NODE_MAP = endEffectsSelector.define(
           kind: 'INLINE_OPTIONS',
           options: [
             { code: 'CONDITION', label: 'Effects Granting a Condition' },
-            { code: 'SPELL_LEVEL', label: 'Effects Cast at a Spell Level' }
+            { code: 'SPELL_LEVEL', label: 'Effects Cast at a Spell Level' },
+            { code: 'SAME_EFFECT', label: 'Earlier Effects From This Effect' }
           ]
         })
       )

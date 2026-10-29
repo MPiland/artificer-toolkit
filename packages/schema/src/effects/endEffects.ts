@@ -25,7 +25,8 @@ export const endEffectsSelectorDtoSchema = lazySchema(() =>
           (selector) => (selector.limit === 'FIXED') === (selector.level !== undefined),
           'A fixed spell-level limit names its level, and a slot-level limit names none.'
         )
-      )
+      ),
+    z.object({ kind: z.literal('SAME_EFFECT') })
   ])
 )
 

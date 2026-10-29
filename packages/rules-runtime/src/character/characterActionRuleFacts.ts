@@ -435,11 +435,13 @@ export function normalizeCharacterActionMechanicFacts(
         ? {
             endEffects: {
               scope: outcome.scope,
-              selectors: outcome.selectors.map((selector) =>
-                selector.kind === 'CONDITION'
-                  ? { ...selector, conditionIds: [...selector.conditionIds] }
-                  : { ...selector }
-              ),
+              selectors: outcome.selectors.map((selector) => {
+                if (selector.kind === 'CONDITION')
+                  return { ...selector, conditionIds: [...selector.conditionIds] }
+                if (selector.kind === 'SAME_EFFECT')
+                  return { kind: selector.kind, effectId: effect.id }
+                return { ...selector }
+              }),
               ...(outcome.originCreatureTypeIds?.length
                 ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
                 : {}),

@@ -254,7 +254,9 @@ const actionEffectFactSchema = lazySchema(() =>
                 kind: z.literal('SPELL_LEVEL'),
                 limit: z.enum(['SLOT_LEVEL', 'FIXED']),
                 level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9)))
-              })
+              }),
+              /** An authored `SAME_EFFECT` selector, resolved to the Effect that owns the outcome. */
+              z.strictObject({ kind: z.literal('SAME_EFFECT'), effectId: identitySchema })
             ])
           )
           .check(z.minLength(1))
