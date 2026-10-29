@@ -621,6 +621,7 @@ export function resolveDnd5eActionMechanic(
         : null,
     rangeLabel: rangeLabel(invocation.range),
     attackKind,
+    attackDomain,
     attackAbility:
       target.attackAbility === null ? null : characterAbilityCode(input, target.attackAbility),
     attackBonus: resolveAttackBonus(),

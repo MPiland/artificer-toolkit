@@ -18,6 +18,7 @@ import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/s
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { characterConsequenceDtoSchema } from '../shared/consequenceRolls.js'
+import { d20AddedDiceDtoSchema } from '../shared/d20AddedDice.js'
 import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
@@ -283,6 +284,8 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     ),
     rangeLabel: z.optional(stringSchema),
     attackBonus: z.optional(integerSchema),
+    // Dice the Character's active grants add to this attack's roll (Bless's d4).
+    attackAddedDice: z.optional(d20AddedDiceDtoSchema),
     attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({

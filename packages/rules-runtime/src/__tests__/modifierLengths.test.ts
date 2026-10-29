@@ -6,7 +6,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { withActiveGrantSpeeds, withCharacterActiveGrants } from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
+import { withActiveGrantSpeeds } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { darkvisionEffect, longstriderEffect } from './antitoxinEffectFixture.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'

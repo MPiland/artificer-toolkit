@@ -1,6 +1,7 @@
 import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { formatEnumLabel } from '#components/AuthoredDetail'
 import {
+  formatAttackAddedDice,
   summarizeCharacterSheetMechanics,
   type CharacterSheetMechanic
 } from '../shared/characterSheetMechanics.utils'
@@ -169,7 +170,12 @@ function toPlayableActionFacts(
       ? mechanic.save?.dc == null
         ? undefined
         : `${mechanic.save.ability.slice(0, 3)} ${mechanic.save.dc}`
-      : `${mechanic.attackBonus >= 0 ? '+' : ''}${mechanic.attackBonus}`
+      : [
+          `${mechanic.attackBonus >= 0 ? '+' : ''}${mechanic.attackBonus}`,
+          formatAttackAddedDice(mechanic, false)
+        ]
+          .filter(Boolean)
+          .join(' ')
 
   return {
     activation,

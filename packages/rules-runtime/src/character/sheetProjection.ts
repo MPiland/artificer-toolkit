@@ -478,6 +478,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
+  activeEffects: ProjectCharacterSheetBundleParams['activeEffects']
   abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
@@ -515,7 +516,11 @@ function buildActiveSpellGroups(params: {
           )
         }
         const projectedMechanics = policyCastMechanics.mechanics.map((mechanic) =>
-          projectCharacterRuleActionMechanic(mechanic, params.actionReferences)
+          projectCharacterRuleActionMechanic(
+            mechanic,
+            params.actionReferences,
+            params.activeEffects
+          )
         )
         const displayName = source.customName ?? spell.label
         const primaryEffect = getSpellPrimaryEffect(projectedMechanics, castLevel)
@@ -1099,7 +1104,8 @@ export function projectCharacterSheetBundle(
     }
     const mechanic = projectCharacterRuleActionMechanic(
       decision.mechanic,
-      mechanicPresentation.actionReferences
+      mechanicPresentation.actionReferences,
+      params.activeEffects
     )
     const sourceFeatureId =
       decision.mechanicsOwner.kind === 'FEATURE_OPTION'
@@ -1227,7 +1233,11 @@ export function projectCharacterSheetBundle(
     .map((spell) => {
       const policyReferenceMechanics = spellReferenceMechanicsBySpellId.get(spell.id)
       const spellMechanics = (policyReferenceMechanics?.mechanics ?? []).map((mechanic) =>
-        projectCharacterRuleActionMechanic(mechanic, mechanicPresentation.actionReferences)
+        projectCharacterRuleActionMechanic(
+          mechanic,
+          mechanicPresentation.actionReferences,
+          params.activeEffects
+        )
       )
       const sources = (spellSourcesBySpellId.get(spell.id) ?? []).map((source) => {
         const sourceKey = createCharacterSpellSourceKey(source.source)
@@ -1288,6 +1298,7 @@ export function projectCharacterSheetBundle(
       ruleEvaluation.output.spellReferenceMechanics
     ),
     actionReferences: mechanicPresentation.actionReferences,
+    activeEffects: params.activeEffects,
     abilityByCode
   })
   const displayedProficiencyKeys = new Set<string>()

@@ -2,14 +2,15 @@
 import { describe, expect, it } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
-import { setupCharacterRun } from '../tests/fixtures/encounterCharacter'
+import { equipAllCharacterItems, setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
 
-type CarriedSpell = typeof guidance | typeof resistance | typeof glibness
+type CarriedSpell = typeof guidance | typeof resistance | typeof glibness | typeof bless
 
 /** The spell's one effect, its die limited to `ability` when given. */
 function carriedEffect(spell: CarriedSpell, ability?: 'DEXTERITY') {
@@ -89,7 +90,33 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
       source: { kind: 'SAVING_THROW', label: `${save.label} saving throw` }
     })
   }
-  return { effectCount, abilityCheck, strengthCheck, initiative, savingThrow }
+  const attackRow = async () => {
+    const sheet = (await player.caller.query(api.characters.sheet.get, { id: character.id }))!
+    const row = sheet.actions.items.find((action) => action.mechanic?.attackBonus != null)
+    if (row?.mechanic?.attackBonus == null) throw new Error('The Character has no attack row.')
+    return { label: row.label, mechanic: row.mechanic, attackBonus: row.mechanic.attackBonus }
+  }
+  const attack = async () => {
+    const { label, mechanic, attackBonus } = await attackRow()
+    return player.caller.mutation(api.rolls.execute, {
+      characterId: character.id,
+      rollMode: mechanic.attackRollMode,
+      expression:
+        attackBonus === 0 ? '1d20' : `1d20 ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`,
+      source: { kind: 'ATTACK', label: `${label} attack` }
+    })
+  }
+  const equipWeapons = () => equipAllCharacterItems(base)
+  return {
+    effectCount,
+    abilityCheck,
+    strengthCheck,
+    initiative,
+    savingThrow,
+    equipWeapons,
+    attackRow,
+    attack
+  }
 }
 
 const d4Terms = (record: { evidence: { terms: readonly { die: number }[] } }) =>
@@ -183,5 +210,21 @@ describe('a carried d20 floor on a Sheet roll', () => {
       expect(d20Of(record).subtotal).toBe(d20Of(record).rolls[0])
       expect(record.ruleCheck).toBeUndefined()
     }
+  })
+})
+
+/** SPELLS-8.6: the Sheet's attack row shows the die an active grant (Bless) adds, and its roll adds it. */
+describe('an active attack-roll die on the Sheet', () => {
+  it('shows the die on the attack row and adds it to every attack roll, unspent', async () => {
+    const { equipWeapons, attackRow, attack, effectCount } = await characterCarrying(bless)
+    await equipWeapons()
+    expect((await attackRow()).mechanic.attackAddedDice).toEqual([
+      { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
+    ])
+    for (const record of [await attack(), await attack()]) {
+      expect(d4Terms(record)).toHaveLength(1)
+      expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
+    }
+    expect(await effectCount()).toBe(1)
   })
 })

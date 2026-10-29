@@ -2,6 +2,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import type { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
@@ -24,7 +25,12 @@ export function projectRoomCharacterSheet(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     presentation: facts.prepared.context.presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
-    ruleEvaluation: facts.ruleEvaluation,
+    ruleEvaluation: evaluateCharacterActiveGrantRules({
+      gameSystemId: facts.prepared.character.systemId,
+      evaluation: facts.ruleEvaluation,
+      activeEffects,
+      vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+    }),
     activeEffects,
     concentration
   }).sheet

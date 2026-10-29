@@ -357,6 +357,40 @@ describe('Character Sheet actions', () => {
     expect(screen.queryByRole('heading', { name: /^limited use$/i })).not.toBeInTheDocument()
   })
 
+  it('shows the dice active grants add to an attack beside its bonus (SPELLS-8.6)', () => {
+    const sheet = createSheet()
+    sheet.actions.items = [
+      {
+        id: 'action-club',
+        label: 'Club',
+        kind: 'ACTION',
+        availability: { status: 'AVAILABLE' },
+        mechanic: {
+          effectId: 'club-effect',
+          trigger: 'MELEE_WEAPON_ATTACK',
+          activation: { kind: 'ACTION', amount: 1 },
+          attackBonus: 5,
+          attackAddedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD' }],
+          outcomes: [
+            {
+              kind: 'DAMAGE',
+              pathCode: 'ON_HIT',
+              expression: '1d8 + 3',
+              damageTypeId: 'bludgeoning',
+              damageTypeLabel: 'Bludgeoning'
+            }
+          ]
+        }
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetActions pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    expect(screen.getByLabelText('Hit or DC +5 +1d4')).toBeInTheDocument()
+  })
+
   it('shows a resource-backed recovery feature only as its charge row', () => {
     const sheet = createSheet()
     sheet.actions.items = [

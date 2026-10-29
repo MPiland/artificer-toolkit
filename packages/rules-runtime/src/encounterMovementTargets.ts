@@ -26,7 +26,6 @@ import {
   type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
-  withCharacterActiveGrants,
   withCreatureActiveGrantArmorClass,
   creatureInnateConditionIds,
   withCreatureActiveGrantProtection,
@@ -46,7 +45,10 @@ import type {
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterBuilderContext } from './character/builderTypes.js'
 import type { CharacterSheetCampaignContext } from './character/campaignCharacterSheet.js'
-import type { CharacterRuleEvaluationResult } from './character/characterRuleEvaluation.js'
+import {
+  evaluateCharacterActiveGrantRules,
+  type CharacterRuleEvaluationResult
+} from './character/characterRuleEvaluation.js'
 import { resolveCharacterEffectiveMaximumHitPoints } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -71,8 +73,6 @@ import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection
 import { characterFormCreatureView, formRetainsProficiencies } from './encounterActorForm.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
-import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRollProjection.js'
 import type { QualifiedDamageDefense } from './attackProfileCapability.js'
 import {
   attackProfileCapabilityRegistry,
@@ -371,27 +371,21 @@ export function buildMovementTarget<
       effects: activeEffects
     })
     const scalarsReduced = scalarValuesDiffer(baseScalarValues, effectiveScalarValues)
-    const factsWithGrants = withCharacterActiveGrants(
-      characterFacts.ruleEvaluation.facts,
-      activeEffects
-    )
-    const policyOutput =
-      scalarsReduced || factsWithGrants !== characterFacts.ruleEvaluation.facts
-        ? resolveCharacterRulePolicyRollModes(
-            evaluateInstalledCharacterPolicy({
+    const policyOutput = evaluateCharacterActiveGrantRules({
+      gameSystemId,
+      evaluation: characterFacts.ruleEvaluation,
+      activeEffects,
+      vocabularySnapshot: characterFacts.prepared.context.vocabularySnapshot,
+      adjustFacts: scalarsReduced
+        ? (facts) =>
+            applyCharacterScalarValuesToFacts(
+              facts,
               gameSystemId,
-              facts: scalarsReduced
-                ? applyCharacterScalarValuesToFacts(
-                    factsWithGrants,
-                    gameSystemId,
-                    baseScalarValues,
-                    effectiveScalarValues
-                  )
-                : factsWithGrants
-            }),
-            characterFacts.prepared.context.vocabularySnapshot
-          )
-        : baseRulePolicyOutput
+              baseScalarValues,
+              effectiveScalarValues
+            )
+        : undefined
+    }).output
     const formStatBlock = characterFormStatBlock(actor)
     const formArmorClass =
       formStatBlock?.armorClass == null

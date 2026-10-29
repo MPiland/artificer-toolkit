@@ -7,7 +7,12 @@ import {
 } from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
-import { attackKindSchema, equipmentGripSchema, modifierScopeKindSchema } from '../shared/enums.js'
+import {
+  attackDomainCodeSchema,
+  attackKindSchema,
+  equipmentGripSchema,
+  modifierScopeKindSchema
+} from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { higherLevelCheckDtoSchema, reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
@@ -471,6 +476,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
       stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     attackKind: z.nullable(attackKindSchema),
+    // The modifier domain the attack reads (its added dice), as the System classifies the attack.
+    attackDomain: z.nullable(attackDomainCodeSchema),
     // The ability the attack is made with, which an ability-scoped attack grant is read against.
     attackAbility: z.nullable(systemCoreCodeSchema),
     attackBonus: z.nullable(integerSchema),

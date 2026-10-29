@@ -2,6 +2,7 @@ import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterShee
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
@@ -22,6 +23,8 @@ type ResolvedRoll = {
   abilityCode?: string
   /** Whether a skill check adds the Character's full proficiency bonus or more. */
   proficient?: boolean
+  /** The dice the Character's active grants add to an attack roll (Bless), as its Sheet row shows them. */
+  attackAddedDice?: D20AddedDieDto[] | undefined
 }
 
 function withModifier(expression: string, modifier: number) {
@@ -42,7 +45,8 @@ function mechanicRolls(
           {
             expression: withModifier('1d20', mechanic.attackBonus),
             rollMode: mechanic.attackRollMode,
-            source: { kind: 'ATTACK' as const, label: `${sourceLabel} attack`.slice(0, 80) }
+            source: { kind: 'ATTACK' as const, label: `${sourceLabel} attack`.slice(0, 80) },
+            attackAddedDice: mechanic.attackAddedDice
           }
         ]),
     ...mechanic.outcomes.flatMap((outcome): ResolvedRoll[] => {
@@ -175,7 +179,8 @@ export function resolveCharacterSheetRoll(
  * The dice the Character's carried effects add to a resolved ability check, skill check or saving
  * throw (Guidance, Resistance), the effects the test spends: those whose die applied to its
  * ability (D156), and the floor a check's d20 takes from those effects and the Character's own
- * features (Glibness, Reliable Talent). Any other roll adds none.
+ * features (Glibness, Reliable Talent). An attack adds the dice its Sheet row carries; any other
+ * roll adds none.
  */
 export function carriedTestDice(
   resolved: ResolvedRoll,
@@ -183,6 +188,8 @@ export function carriedTestDice(
   character: NonNullable<Parameters<typeof abilityCheckMinimumRoll>[0]['character']>
 ) {
   const { abilityCode } = resolved
+  if (resolved.attackAddedDice)
+    return { addedDice: resolved.attackAddedDice, spent: [], minimumRoll: null }
   if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
   if (resolved.source.kind === 'SAVING_THROW')
     return {

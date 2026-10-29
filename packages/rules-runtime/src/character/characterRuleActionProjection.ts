@@ -1,4 +1,7 @@
 import type { CharacterResolvedActionMechanic } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+
+import { activeAttackRollDice } from './activeEffectGrantTotals.js'
 
 import type {
   CharacterSheetProjectedMechanic,
@@ -62,14 +65,21 @@ function projectOutcome(
 
 export function projectCharacterRuleActionMechanic(
   mechanic: CharacterResolvedActionMechanic,
-  references: CharacterRuleActionPresentationReferences
+  references: CharacterRuleActionPresentationReferences,
+  /** The Character's active effects; their attack-roll dice join the row as the room rolls them. */
+  activeEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): CharacterSheetProjectedMechanic {
+  const attackAddedDice =
+    mechanic.attackDomain === null
+      ? []
+      : activeAttackRollDice(activeEffects, mechanic.attackDomain, mechanic.attackAbility)
   return {
     effectId: mechanic.effectId,
     trigger: mechanic.trigger,
     ...(mechanic.activation === null ? {} : { activation: mechanic.activation }),
     ...(mechanic.rangeLabel === null ? {} : { rangeLabel: mechanic.rangeLabel }),
     ...(mechanic.attackBonus === null ? {} : { attackBonus: mechanic.attackBonus }),
+    ...(attackAddedDice.length > 0 ? { attackAddedDice } : {}),
     ...(mechanic.attackRollMode === null ? {} : { attackRollMode: mechanic.attackRollMode }),
     ...(mechanic.save === null
       ? {}

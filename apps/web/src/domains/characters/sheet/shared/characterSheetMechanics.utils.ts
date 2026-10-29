@@ -55,6 +55,18 @@ function formatMechanicOutcome(outcome: CharacterSheetMechanicOutcome, castLevel
   }
 }
 
+/** The dice active grants add to an attack roll, as "+1d4 Bless"; `withLabels: false` drops the names. */
+export function formatAttackAddedDice(
+  mechanic: CharacterSheetMechanic,
+  withLabels = true
+): string | undefined {
+  const dice = (mechanic.attackAddedDice ?? []).map(
+    ({ count, faces, sign, label }) =>
+      `${sign === 'ADD' ? '+' : '−'}${count}d${faces}${withLabels ? ` ${label}` : ''}`
+  )
+  return dice.length > 0 ? dice.join(' ') : undefined
+}
+
 function formatMechanicFacts(mechanic: CharacterSheetMechanic): string {
   const save = mechanic.save
     ? `${formatAbilityLabel(mechanic.save.ability)} save${mechanic.save.dc == null ? '' : ` DC ${mechanic.save.dc}`}`
@@ -63,6 +75,7 @@ function formatMechanicFacts(mechanic: CharacterSheetMechanic): string {
   return joinFacts(
     mechanic.rangeLabel,
     mechanic.attackBonus == null ? undefined : `${formatSigned(mechanic.attackBonus)} to hit`,
+    formatAttackAddedDice(mechanic),
     save
   )
 }

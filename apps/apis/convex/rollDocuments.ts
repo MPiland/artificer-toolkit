@@ -56,7 +56,8 @@ export async function evaluateCharacterRoll(
         rollMode: input.rollMode,
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
-  // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.
+  // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction;
+  // an attack adds the dice its Sheet row carries (Bless).
   const { addedDice, spent, minimumRoll } = sheet
     ? carriedTestDice(resolved, sheet.activeEffects, {
         grantFold: sheet.ruleEvaluation.output.grantFold,
