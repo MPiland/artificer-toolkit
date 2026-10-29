@@ -1806,7 +1806,7 @@ describe('native encounter actions', () => {
     30000
   )
 
-  it('prompts a Paralyzed target's Dexterity save with the condition that fails it, and fails it on a natural 20 (D94)', async () => {
+  it('prompts a Paralyzed target’s Dexterity save with the condition that fails it, and fails it on a natural 20 (D94)', async () => {
     const base = await setup({
       directRepeatSave: true,
       targetCreature: true,
@@ -1836,9 +1836,7 @@ describe('native encounter actions', () => {
     const request = pending.occurrence?.pending
     if (!pending.occurrence || !request || request.kind !== 'D20_EVIDENCE')
       throw new Error('Expected initial save evidence.')
-    expect(request.request.autoFail).toEqual([
-      { conditionId: paralyzed.id, label: 'Paralyzed' }
-    ])
+    expect(request.request.autoFail).toEqual([{ conditionId: paralyzed.id, label: 'Paralyzed' }])
     // A natural 20 passes a DC 10 save, but Paralyzed fails it: the failure's Frightened lands.
     const result = await executeInRoom(base.owner.caller, {
       command: {
