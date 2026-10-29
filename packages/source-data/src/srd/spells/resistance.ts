@@ -71,7 +71,11 @@ export const resistance: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
-            lifecycle: { consumeOnFirstEvents: ['ON_SAVING_THROW'] },
+            lifecycle: {
+              endTriggers: [
+                { event: 'LIFECYCLE' as const, timing: 'CONSUME' as const, code: 'ON_SAVING_THROW' }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RESISTANCE, 0x212, 1),

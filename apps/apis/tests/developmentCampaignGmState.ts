@@ -615,6 +615,31 @@ async function assertCommit(input: {
   expectedPersonal.characterPlayStates = expectedPersonal.characterPlayStates.map((row) =>
     matchesCharacter(row, input.characterId) ? { ...row, maximumHitPoints } : row
   )
+  // The same evaluation re-derives that Character's stored Sheet sections (ADR 0041); every other
+  // Character's stay as they were. Storing them cancels that Character's queued derivation.
+  for (const table of [
+    'characterSheetSections',
+    'characterSheetDerivations',
+    'characterSheetPendingStores'
+  ])
+    expectedPersonal[table] = [
+      ...(expectedPersonal[table] ?? []).filter((row) => !matchesCharacter(row, input.characterId)),
+      ...targetRows(after.personal, table, input.characterId)
+    ]
+  expectedPersonal._scheduled_functions = (expectedPersonal._scheduled_functions ?? []).map(
+    (row) => {
+      const [args] = Array.isArray(row.args) ? row.args : []
+      if (
+        row.name !== 'characters/sheetSectionDerivation:store' ||
+        !isRecordValue(args) ||
+        !matchesCharacter(args, input.characterId) ||
+        !isRecordValue(row.state) ||
+        row.state.kind !== 'pending'
+      )
+        return row
+      return { ...row, state: { kind: 'canceled' } }
+    }
+  )
 
   assert.deepEqual(normalize(after.campaign), normalize(expectedCampaign))
   assert.deepEqual(normalize(after.personal), normalize(expectedPersonal))
@@ -877,6 +902,10 @@ function targetRows(tables: TableMap, table: string, identity: string) {
 
 function matchesCharacter(row: Record<string, unknown>, characterId: string) {
   return row.characterId === characterId
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
 function marker(tables: TableMap, characterId: string): Record<string, unknown> {

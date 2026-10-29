@@ -1335,9 +1335,7 @@ describe('spatial movement rule contracts', () => {
       recurrence: {
         recurrenceStage: 'NONE' as const,
         anchor: 'HOLDER' as const,
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
-        endOnTriggers: [],
+        endTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER' as const,

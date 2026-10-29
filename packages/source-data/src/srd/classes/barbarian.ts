@@ -416,7 +416,9 @@ function rageEffect(): EffectAuthored {
           resultKind: 'SINGLE',
           duration: { id: classRowId(B, 0x83, 1), durationKind: DURATION_KIND.MINUTE, amount: 1 },
           lifecycle: {
-            endOnEvents: ['ON_IDLE_TURN'],
+            endTriggers: [
+              { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_IDLE_TURN' }
+            ],
             endOnConditionIds: [conditionTypeId('UNCONSCIOUS')],
             holderEnd: { activation: 'BONUS_ACTION' }
           },

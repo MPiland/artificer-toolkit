@@ -152,10 +152,8 @@ describe('effect lifecycle and action-trait vocabulary', () => {
     const adapter = eventVocabularyCapabilityRegistry.require(DND5E_SYSTEM_ID)
     const recurrence = (trait: string) =>
       ({
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
         endOnConditionIds: [],
-        endOnTriggers: [{ event: 'ACTION_TRAIT', trait, against: 'ENEMY' }]
+        endTriggers: [{ event: 'ACTION_TRAIT', trait, against: 'ENEMY' }]
       }) as unknown as Parameters<typeof adapter.effectHooks>[0]
     expect(adapter.effectHooks(recurrence('SPELL_CAST'))).toEqual([
       {

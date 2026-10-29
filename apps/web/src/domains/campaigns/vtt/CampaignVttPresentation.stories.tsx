@@ -184,16 +184,16 @@ const overlays = [
   },
   {
     color: 0xff922b,
-    id: 'trap',
+    id: 'zone',
     kind: 'POLYGON',
-    label: 'Trap preview',
+    label: 'Zone preview',
     points: [
       { x: 500, y: 110 },
       { x: 650, y: 110 },
       { x: 650, y: 220 },
       { x: 500, y: 220 }
     ],
-    purpose: 'TRAP'
+    purpose: 'ZONE'
   }
 ] satisfies VttScenePresentationOverlay[]
 

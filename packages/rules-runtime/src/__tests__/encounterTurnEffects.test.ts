@@ -301,7 +301,13 @@ describe('prepareEncounterTurnEffects', () => {
   })
 
   it('counts down an effect that also ends on an event, leaving the event to its consumer', async () => {
-    const ending = await effect(1, { ticks: 3, endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL'] })
+    const ending = await effect(1, {
+      ticks: 3,
+      endTriggers: [
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+      ]
+    })
     const run = prepare({ effects: [ending], faces: [10] })
 
     const result = await complete(run)
@@ -318,7 +324,7 @@ describe('prepareEncounterTurnEffects', () => {
       id: testUuid(0x2f1),
       owner: OWNER,
       createdOrdinal: 9,
-      endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }],
+      endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }],
       stateContributions: [
         { kind: 'CONDITION_OWNERSHIP', conditionId: invisible, baselinePresent: false }
       ]
@@ -342,7 +348,7 @@ describe('prepareEncounterTurnEffects', () => {
       damage: 1,
       currentEffects: [ticking],
       conditionOwnership: [{ conditionId: invisible, baselinePresent: false }],
-      endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }]
+      endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }]
     })
     const unseen = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN, conditionIds: [invisible] })
 

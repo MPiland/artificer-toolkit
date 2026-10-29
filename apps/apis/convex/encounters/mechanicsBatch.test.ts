@@ -170,7 +170,9 @@ describe('applyEncounterMechanicsBatch', () => {
         encounterId: base.run.id,
         sourceActorId: base.actor.id,
         holderActorId: base.actor.id,
-        lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
+        },
         rounds: 10,
         lifetimeScope: 'OWNER'
       })
@@ -198,7 +200,11 @@ describe('applyEncounterMechanicsBatch', () => {
       encounterId: base.run.id,
       targetActorId: base.actor.id
     }
-    const grant = (lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] } | { endOnEvents: [] }) =>
+    const grant = (
+      lifecycle:
+        | { endTriggers: [{ event: 'LIFECYCLE'; timing: 'END'; code: 'ON_HIT_POINTS_REGAINED' }] }
+        | { endTriggers: [] }
+    ) =>
       plannedModifierGrant({
         encounterId: base.run.id,
         sourceActorId: base.actor.id,
@@ -209,14 +215,16 @@ describe('applyEncounterMechanicsBatch', () => {
       })
     await base.t.run(async (ctx) => {
       const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
-      const primary = grant({ endOnEvents: ['ON_HIT_POINTS_REGAINED'] })
+      const primary = grant({
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
+      })
       await store.create({
         id: primaryId,
         owner,
         definition: primary.definition,
         lifecycle: primary.lifecycle
       })
-      const linked = grant({ endOnEvents: [] })
+      const linked = grant({ endTriggers: [] })
       await store.create({
         id: linkedId,
         owner,

@@ -255,8 +255,7 @@ describe('private Character receipt retirement', () => {
             systemId: uuid(4),
             label: 'Retained',
             status: 'ACTIVE',
-            createdAt: timestamp,
-            updatedAt: timestamp
+            createdAt: timestamp
           })
         if (kind === 'DRAFT')
           await ctx.db.insert('characterDrafts', {

@@ -17,7 +17,9 @@ import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue
 import * as projection from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { api } from '../_generated/api'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
+import { executeCharacterSheetCommand } from './sheetCommands'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
 
 const execute = makeFunctionReference<
@@ -642,5 +644,49 @@ describe('native Character Sheet inventory commands', () => {
     }))!
     expect(partialSheet.inventory.items.find((item) => item.id === stack.id)?.quantity).toBe(1)
     expect(stateOf(await readState())).toEqual(beforePartialRemoval)
+  })
+
+  // RELIABILITY-21.16: the command must stay well inside the 1 s function limit on a full catalogue.
+  it('reads the Equipment it adds, not the Equipment catalogue', async () => {
+    const { t, owner, character, equipment } = await fixture()
+    const catalogueSize = 30
+    // An import takes at most 10 subjects.
+    for (let batch = 0; batch < catalogueSize / 10; batch += 1)
+      await importSeededSubjects(t, {
+        contentSourceId: SRD_CONTENT_SOURCE.id,
+        subjects: Array.from({ length: 10 }, (_, index) => {
+          const other = { ...club, id: crypto.randomUUID(), label: `Club ${batch * 10 + index}` }
+          return importedSubject({ subjectKind: 'EQUIPMENT', ...other, document: other })
+        })
+      })
+    const totals = createDatabaseIoTotals()
+    await t.run((ctx) =>
+      executeCharacterSheetCommand({ ...ctx, db: countDatabaseIo(ctx.db, totals) }, owner.userId, {
+        id: character.id,
+        command: {
+          type: 'ADD_INVENTORY_ITEM',
+          commandId: crypto.randomUUID(),
+          expectedVersion: 1,
+          equipmentId: equipment.id,
+          quantity: 1
+        }
+      })
+    )
+    expect(totals.reads.byTable.authoredRoots!.distinct).toBeLessThan(catalogueSize)
+    const sheet = (await owner.caller.query(api.characters.sheet.get, { id: character.id }))!
+    expect(inventoryItems(sheet, equipment.id)).toHaveLength(1)
+
+    await expect(
+      owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type: 'ADD_INVENTORY_ITEM',
+          commandId: crypto.randomUUID(),
+          expectedVersion: 2,
+          equipmentId: crypto.randomUUID(),
+          quantity: 1
+        }
+      })
+    ).rejects.toThrow('is not available for this character')
   })
 })

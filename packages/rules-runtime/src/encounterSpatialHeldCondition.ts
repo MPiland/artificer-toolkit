@@ -69,9 +69,9 @@ export function planSpatialHeldCondition(input: {
       recurrence: {
         recurrenceStage: held.endsAtEndOfHolderTurn ? 'END_OF_TURN' : 'NONE',
         anchor: 'HOLDER',
-        consumeOnFirstEvents: [],
-        endOnEvents: held.endsOnLeavingArea ? ['ON_LEAVING_AREA'] : [],
-        endOnTriggers: [],
+        endTriggers: held.endsOnLeavingArea
+          ? [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }]
+          : [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',

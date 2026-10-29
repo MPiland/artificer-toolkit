@@ -103,8 +103,7 @@ describe('checkpoint record decoding', () => {
       label: 'Character',
       status: 'ACTIVE',
       portraitAssetId: undefined,
-      createdAt: updatedAt,
-      updatedAt
+      createdAt: updatedAt
     })
     expect(Object.hasOwn(decoded, 'portraitAssetId')).toBe(false)
     expect(decoded.label).toBe('Character')

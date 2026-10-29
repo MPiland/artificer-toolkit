@@ -20,7 +20,6 @@ import {
 } from '@artificer-toolkit/schema/api/characterBuilder'
 import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
 import { ENTITLEMENT_LIMITS } from '@artificer-toolkit/shared/account/entitlements'
-import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { mutation } from '../lib/mutations'
@@ -38,6 +37,7 @@ import {
   replaceCharacterDraftPayload,
   resolveCharacterId
 } from './documents'
+import type { CharacterRow } from './stateDocuments'
 
 function parseDraftPayload(
   userId: string,
@@ -60,7 +60,7 @@ async function openDraft(
   userId: string,
   characterId: string,
   character: CharacterDraftSaveInput['character'],
-  active: Doc<'characters'> | null
+  active: CharacterRow | null
 ): Promise<CharacterBuilderDraftDto> {
   await requireSystem(ctx, character.systemId)
   const retiring = await ctx.db

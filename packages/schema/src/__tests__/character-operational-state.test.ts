@@ -109,9 +109,10 @@ function capture(state: typeof character.state) {
   })
 }
 
-/** The persisted head: identity and clocks, without the capture's structure and its hashes. */
+/** The persisted head: identity only, without the capture's clock, structure and hashes. */
 function storedHead(record: ReturnType<typeof capture>) {
   const {
+    updatedAt: _updatedAt,
     documentJson: _documentJson,
     sheetState: _sheetState,
     checksum: _checksum,
@@ -231,7 +232,7 @@ it('re-encodes a note edit exactly as the complete split does and leaves every o
   const { notes, noteGroups, ...withoutNotes } = character.state
   const before = encodeCharacterOperationalStructure(capture(withoutNotes))
   for (const next of [{ notes, noteGroups }, { notes: [], noteGroups: [] }, {}]) {
-    const focused = encodeCharacterNoteRecords(before.build, next)
+    const focused = encodeCharacterNoteRecords(before.build, next, before.build.updatedAt)
     const complete = encodeCharacterOperationalStructure(capture({ ...withoutNotes, ...next }))
     expect(focused.build).toEqual(complete.build)
     expect(focused.collections).toEqual({

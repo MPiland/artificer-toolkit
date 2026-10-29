@@ -6,7 +6,6 @@ import {
 } from '@artificer-toolkit/shared/core'
 
 import { z, lazySchema } from '../zod.js'
-import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 export const activationCodeSchema = lazySchema(() =>
   z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
@@ -369,12 +368,12 @@ export const pathLifecycleTurnAnchorDtoSchema = lazySchema(() =>
   })
 )
 /**
- * A lifecycle code that uses an effect or timed grant up (consume) or ends it (end) is a System code
- * (ADR 0039): the wire checks its shape, and the System's `effectConsumeEvent` and `effectEndEvent`
- * lists decide membership wherever the `gameSystemId` is known.
+ * When a `LIFECYCLE` end trigger's event ends the effect (D122): `CONSUME` uses it up, so it applies
+ * to that event first (Guidance's die joins the check it ends on); `END` ends it on the event. The
+ * code is a System code (ADR 0039): the System's `effectConsumeEvent` and `effectEndEvent` lists say
+ * which codes each timing takes, wherever the `gameSystemId` is known.
  */
-export const pathLifecycleConsumeEventSchema = lazySchema(() => systemCoreCodeSchema)
-export const pathLifecycleEndEventSchema = lazySchema(() => systemCoreCodeSchema)
+export const pathLifecycleEndTimingSchema = lazySchema(() => z.enum(['CONSUME', 'END']))
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
 export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */

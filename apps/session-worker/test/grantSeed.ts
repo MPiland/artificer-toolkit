@@ -1,4 +1,5 @@
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 
@@ -43,9 +44,10 @@ export function seedModifierGrant(input: {
         recurrence: endsOnCast
           ? {
               ...definition.recurrence,
-              endOnEvents: [
-                ...new Set([...definition.recurrence.endOnEvents, 'ON_CAST_SPELL' as const])
-              ].sort()
+              endTriggers: canonicalActiveEffectEndTriggers([
+                ...definition.recurrence.endTriggers,
+                { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' } as const
+              ])
             }
           : definition.recurrence,
         stateContributions: ownedConditionId

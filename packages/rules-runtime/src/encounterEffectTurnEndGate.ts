@@ -34,9 +34,7 @@ export function turnEndGateChildEffect(
       recurrence: {
         recurrenceStage: 'START_OF_TURN',
         anchor: 'HOLDER',
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
-        endOnTriggers: [],
+        endTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: definition.recurrence.lifetimeScope,

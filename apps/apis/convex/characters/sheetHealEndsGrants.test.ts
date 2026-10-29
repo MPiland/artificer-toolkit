@@ -11,12 +11,18 @@ describe('Sheet healing and grants that last until hit points are regained', () 
   async function fixture() {
     const base = await setupCharacterRun()
     const { t, run, actor, character, owner, campaign } = base
-    const grant = (endOnEvents: 'ON_HIT_POINTS_REGAINED'[]) => {
+    const grant = (endEvents: 'ON_HIT_POINTS_REGAINED'[]) => {
       const planned = plannedModifierGrant({
         encounterId: run.id,
         sourceActorId: actor.id,
         holderActorId: actor.id,
-        lifecycle: { endOnEvents },
+        lifecycle: {
+          endTriggers: endEvents.map((code) => ({
+            event: 'LIFECYCLE' as const,
+            timing: 'END' as const,
+            code
+          }))
+        },
         lifetimeScope: 'OWNER'
       })
       return t.run((ctx) =>

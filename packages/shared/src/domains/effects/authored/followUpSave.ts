@@ -26,7 +26,7 @@ export type FailureMarginRiderAuthored = {
   /** The failure band's condition outcome whose ending ends these conditions too (D172). */
   endsWithOutcomeId?: string
   lifecycle: {
-    endOnTriggers?: PathLifecycleAuthored['endOnTriggers']
+    endTriggers?: PathLifecycleAuthored['endTriggers']
   }
 }
 

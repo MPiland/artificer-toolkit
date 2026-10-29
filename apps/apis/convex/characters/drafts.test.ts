@@ -17,6 +17,7 @@ import { ensureAuthoredRouteId } from '../content/routeIds'
 import { insertActiveCharacterRecord } from '../../tests/fixtures/characterRows'
 import { fixture, input } from '../../tests/fixtures/characters'
 import { deleteCharacterDraftPayloadByHead, insertCharacterDraftPayload } from './documents'
+import { writeCharacterOperationalStructure } from './operationalWrites'
 import { readCharacterRow } from './stateDocuments'
 
 const create = makeFunctionReference<
@@ -348,14 +349,15 @@ describe('native Character working drafts', () => {
         streamVersion: 2,
         updatedAt
       })
-      await ctx.db.patch(activeId, { updatedAt })
+      // The structure clock lives on the build record.
+      await writeCharacterOperationalStructure(ctx, active, { ...encoded, updatedAt })
       await ctx.db.patch(active.play._id, {
         state: encoded.play.state,
         checksum: encoded.play.checksum,
         streamVersion: encoded.play.streamVersion,
         updatedAt: encoded.play.updatedAt
       })
-      return (await ctx.db.get(activeId))!
+      return { head: (await ctx.db.get(activeId))!, updatedAt }
     })
     const saved = await owner.caller.mutation(save, {
       characterId: request.id,
@@ -373,9 +375,9 @@ describe('native Character working drafts', () => {
         baseActiveUpdatedAt: advanced.updatedAt
       })
     ).rejects.toThrow('base revision does not match')
-    expect(await t.run((ctx) => ctx.db.get(activeId))).toEqual(advanced)
+    expect(await t.run((ctx) => ctx.db.get(activeId))).toEqual(advanced.head)
     await owner.caller.mutation(discard, { id: edit.publicId, expectedDraftId: edit.id })
-    expect(await t.run((ctx) => ctx.db.get(activeId))).toEqual(advanced)
+    expect(await t.run((ctx) => ctx.db.get(activeId))).toEqual(advanced.head)
     const reopened = await owner.caller.mutation(create, request)
     expect(reopened.baseActiveUpdatedAt).toBe(advanced.updatedAt)
     expect(reopened.payload.character.state.hitpoints.current).toBe(7)

@@ -21,6 +21,7 @@ import {
   createTabletopCampaign,
   tabletopCampaignId,
   tabletopConditions,
+  tabletopConfirmedMorale,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene,
@@ -39,8 +40,10 @@ import {
   facingArcWedge,
   gmDarknessCapAlpha,
   minimumFocusedTokenScreenSize,
+  placedZoneColor,
   selectionOutlineColor
 } from './vttSceneRenderer.model'
+import { createPlacedZoneDraft, placedZoneSize } from './campaignTabletopZoneTool.model'
 import {
   TabletopFixtures,
   fogAppend,
@@ -442,6 +445,135 @@ export const PlayerSeesOnlyAVisibleSourcesAura: Story = {
       .getAttribute('aria-description')
     await expect(description).toContain(`Auras: ${emberAuraLabel}`)
     await expect(description).not.toContain(wardenAuraLabel)
+  }
+}
+
+// VTT_UI-3.1: placed zones (SPELLS-17), a GM's hidden trap and a hazard in plain sight.
+const hiddenTrap = {
+  id: '13131313-1313-4131-8131-000000000011',
+  label: 'Caltrops',
+  shape: { kind: 'CIRCLE' as const, center: auraEmberToken!.position, radius: 70 },
+  spotDc: { value: 15, source: 'FLAT' as const },
+  disarmDc: { value: 12, source: 'FLAT' as const },
+  unawareActorIds: []
+}
+const plainHazard = {
+  id: '13131313-1313-4131-8131-000000000012',
+  label: 'Burning oil',
+  shape: { kind: 'CIRCLE' as const, center: auraWardenToken!.position, radius: 105 },
+  spotDc: null,
+  disarmDc: null,
+  unawareActorIds: []
+}
+const hiddenTrapLabel = 'Caltrops (hidden, spot DC 15)'
+
+// The placed zones the stage draws, read from the renderer's drawn presentation overlays.
+async function drawnZones(expectedLabels: readonly string[]) {
+  const renderer = await latestStageRenderer()
+  return waitFor(() => {
+    const drawn = renderer
+      .getDiagnostics()
+      .overlays.filter((overlay) => overlay.strokeColors.includes(placedZoneColor))
+    expect(drawn.map((overlay) => overlay.label)).toEqual(expectedLabels)
+    return drawn
+  })
+}
+
+// The server lists every zone to the GM (MOVE-3.3), whose label names the hidden trap's spot DC.
+export const GmSeesEveryPlacedZone: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('OWNER'), null, {
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      placedZones: [hiddenTrap, plainHazard],
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const drawn = await drawnZones([hiddenTrapLabel, plainHazard.label])
+    await expect(drawn.map((overlay) => overlay.circles)).toEqual([
+      [{ center: hiddenTrap.shape.center, radius: hiddenTrap.shape.radius }],
+      [{ center: plainHazard.shape.center, radius: plainHazard.shape.radius }]
+    ])
+    await expect(
+      page.getByRole('img', { name: 'Interactive campaign scene' }).getAttribute('aria-description')
+    ).toContain(`Zones: ${hiddenTrapLabel}; ${plainHazard.label}`)
+  }
+}
+
+// The server omits a trap concealed from every one of the player's Characters (MOVE-3.3), and
+// carries no spot DC to a player, so the map draws only the zone in plain sight.
+export const PlayerSeesOnlyZonesTheyKnowOf: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) =>
+    renderWindow(args, createTabletopCampaign('PLAYER'), null, {
+      gmEncounter: tabletopGmEncounter,
+      liveScene: tabletopLiveScene,
+      placedZones: [plainHazard],
+      playerEncounter: tabletopPlayerEncounter
+    }),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const drawn = await drawnZones([plainHazard.label])
+    await expect(drawn[0]!.circles).toEqual([
+      { center: plainHazard.shape.center, radius: plainHazard.shape.radius }
+    ])
+    const description = page
+      .getByRole('img', { name: 'Interactive campaign scene' })
+      .getAttribute('aria-description')
+    await expect(description).toContain(`Zones: ${plainHazard.label}`)
+    await expect(description).not.toContain(hiddenTrap.label)
+  }
+}
+
+// MOVE-3.2 with VTT_UI-3.1: while the GM picks a zone's center, its area follows the pointer.
+export const PlacingAZonePreviewsItsArea: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER')),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const renderer = await latestStageRenderer()
+    const size = placedZoneSize(createPlacedZoneDraft(), tabletopLiveScene.grid)
+    await expect(size).toMatchObject({ kind: 'RADIUS' })
+    await userEvent.click(await page.findByRole('button', { name: 'Place a zone' }))
+    const tool = await page.findByRole('dialog', { name: 'Place a zone' })
+    await userEvent.click(await within(tool).findByRole('button', { name: 'Pick on map' }))
+    await waitFor(() => expect(page.queryByRole('dialog', { name: 'Place a zone' })).toBeNull())
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
+
+    const canvas = page.getByRole('img', { name: 'Interactive campaign scene' })
+    const bounds = canvas.getBoundingClientRect()
+    fireEvent.pointerMove(canvas, {
+      pointerId: 42,
+      pointerType: 'mouse',
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2
+    })
+    await waitFor(() => {
+      const aimed = renderer.getDiagnostics().areaAimOverlay
+      expect(aimed?.label).toBe('Area origin')
+      expect(aimed?.circles.map(({ radius }) => radius)).toEqual([
+        size?.kind === 'RADIUS' ? size.radius : null
+      ])
+    })
+
+    await pressStage(canvas, 'centre')
+    const reopened = await page.findByRole('dialog', { name: 'Place a zone' })
+    await expect(await within(reopened).findByText(/^Centered at/)).toBeVisible()
+    await expect(renderer.getDiagnostics().areaAimOverlay).toBeNull()
   }
 }
 
@@ -1041,6 +1173,88 @@ export const PlayerSeesTokenStatusesWithoutGmHealth: Story = {
   }
 }
 
+// The scene canvas's description of its tokens, once the Warden is described.
+async function describedScene(page: ReturnType<typeof within>): Promise<string> {
+  return waitFor(() => {
+    const value = page
+      .getByRole('img', { name: 'Interactive campaign scene' })
+      .getAttribute('aria-description')
+    if (!value?.includes('Vault Warden. Creature')) throw new Error('Tokens not yet described.')
+    return value
+  })
+}
+
+// VTT_UI-2 journey: the GM confirmed the Warden fled; its token says so in the canvas description
+// and in its status list.
+export const GmSeesMoraleOutcome: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('OWNER'), null, fledWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const { presentation, wardenToken } = wardenPresentationFor(
+      'OWNER',
+      fledWardenFixtures.gmEncounter
+    )
+    await expect(presentation.statuses).toContainEqual(
+      expect.objectContaining({ kind: 'MORALE', label: 'Fled' })
+    )
+    await expect(await describedScene(page)).toContain('Fled')
+    await expectDrawnWardenPresentation('OWNER', fledWardenFixtures.gmEncounter)
+    await userEvent.click(await page.findByRole('button', { name: 'Scene controls' }))
+    const sceneControls = await page.findByRole('menu', { name: 'Scene controls' })
+    await userEvent.hover(
+      await within(sceneControls).findByRole('menuitem', { name: `Focus ${wardenToken.label}` })
+    )
+    const list = await page.findByRole('region', { name: `${wardenToken.label} statuses` })
+    await expect(within(list).getByText('Fled')).toBeVisible()
+  }
+}
+
+// VTT_UI-2 journey: in the same Run a player sees the Warden's conditions, never its health band or
+// the GM's morale outcome, and sees their own Character's reaction come up.
+export const PlayerSeesOnlyWhatTheyMay: Story = {
+  args: {
+    campaignId: tabletopCampaignId,
+    currentUserId: tabletopCurrentUserId
+  },
+  render: (args) => renderWindow(args, createTabletopCampaign('PLAYER'), null, fledWardenFixtures),
+  play: async ({ canvasElement }) => {
+    const page = within(canvasElement.ownerDocument.body)
+    await page.findByText('Scene map ready.', undefined, { timeout: mapReadyTimeoutMs })
+    const description = await describedScene(page)
+    await expect(description).toContain('Poisoned')
+    await expect(description).not.toContain('Wounded')
+    await expect(description).not.toContain('Fled')
+    // The harness binds no actor to Ember's token; its reaction is keyed by the token.
+    const scene = projectScene('PLAYER', fledWardenFixtures.liveScene)
+    const emberPresentation = buildTabletopPresentations({
+      actorIdByTokenId: new Map(),
+      boundTokenControl: new Map(),
+      currentUserId: tabletopCurrentUserId,
+      encounter: fledWardenFixtures.playerEncounter,
+      pending: fledWardenFixtures.pending!,
+      scene
+    })[emberToken.id]!
+    await expect(emberPresentation.halo?.label).toBe('Reaction available')
+    await expect(emberPresentation.accessibleDescription).toContain(
+      `${emberToken.label}. Scene token. Reaction available`
+    )
+    await expect(description).toContain(emberPresentation.accessibleDescription)
+    const renderer = await latestStageRenderer()
+    await waitFor(async () =>
+      expectDrawnPresentation(
+        drawnToken(renderer.getDiagnostics(), emberToken.id),
+        emberPresentation
+      )
+    )
+    await expectDrawnWardenPresentation('PLAYER', fledWardenFixtures.playerEncounter)
+  }
+}
+
 // D157: a push that leaves its target a choice waits on the board for the player whose Character
 // pushed; a press inside one of the highlighted legal squares answers it.
 export const PlayerPicksWhereAPushLeavesTheCreature: Story = {
@@ -1221,6 +1435,40 @@ if (pushedWardenPending.kind !== 'FORCED_MOVEMENT_DESTINATION')
 const pushedWardenFixtures: TabletopFixtures = {
   ...presentedTokensFixtures,
   pending: pushedWardenPending
+}
+
+// VTT_UI-2 journey data: the GM confirmed the Warden fled, and Ember's reaction is up as it goes.
+const emberToken = presentedTokensFixtures.liveScene.tokens[0]!
+const emberActorId = presentedTokensFixtures.gmEncounter.actors[0]!.id
+const fledWardenFixtures: TabletopFixtures = {
+  ...presentedTokensFixtures,
+  gmEncounter: {
+    ...presentedTokensFixtures.gmEncounter,
+    actors: presentedTokensFixtures.gmEncounter.actors.map((actor) =>
+      actor.id === wardenId
+        ? { ...actor, morale: tabletopConfirmedMorale(wardenId, 'FLEE') }
+        : actor
+    )
+  },
+  pending: validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+    kind: 'MOVEMENT_REACTION',
+    occurrenceId: '12121212-1212-4121-8121-121212121213',
+    occurrenceVersion: 2,
+    encounterVersion: tabletopGmEncounter.version,
+    choice: {
+      pathDistance: 5,
+      reactorActorId: emberActorId,
+      reactorTokenId: emberToken.id,
+      options: [
+        {
+          optionId: 'a'.repeat(64),
+          actionId: 'opportunity-attack',
+          actionSourceKind: 'CHARACTER_ACTION'
+        }
+      ]
+    },
+    allowedResponses: ['DECLINE', 'OPTION']
+  })
 }
 
 // The Warden bound to a token but carrying no status, so only its disposition is listed.

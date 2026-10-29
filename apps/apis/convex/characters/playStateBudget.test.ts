@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { applyEncounterMechanicsBatch } from '../../tests/fixtures/mechanicsBatch'
@@ -13,33 +13,76 @@ import { executeCharacterSheetCommand } from './sheetCommands'
 const PLAY_RECORD_BYTES = 800
 const SHEET_HP_CHANGE_BYTES = 2400
 const ENCOUNTER_DAMAGE_BYTES = 2500
+/** The Sheet's stored sections (ADR 0041): a COMMON slice measured 2026-10-28 at about 9.8 KB. */
+const SHEET_SECTION_BYTES_PER_VIEWER = 12_000
+
+const storedSheetTables = ['characterSheetSections', 'characterSheetDerivations'] as const
+
+/** Writes apart from the Sheet's stored sections, which ADR 0041 bounds separately. */
+function playWriteBytes(totals: ReturnType<typeof createDatabaseIoTotals>) {
+  return storedSheetTables.reduce(
+    (bytes, table) => bytes - (totals.writes.byTable[table]?.bytes ?? 0),
+    totals.writes.bytes
+  )
+}
 
 describe('Character play-state write budget', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('writes only the small play record for a Sheet HP change and an Encounter damage', async () => {
     const fixture = await setupCharacterRun()
     const { player, character, actor, run } = fixture
-    const sheet = await player.caller.query(api.characters.sheet.get, { id: character.id })
-    if (!sheet) throw new Error('Expected Character Sheet.')
-
-    const sheetTotals = createDatabaseIoTotals()
-    await player.caller.run((ctx) =>
-      executeCharacterSheetCommand(
-        { ...ctx, db: countDatabaseIo(ctx.db, sheetTotals) },
-        player.userId,
-        {
-          id: character.id,
-          command: {
-            type: 'ADJUST_HIT_POINTS',
-            commandId: crypto.randomUUID(),
-            expectedVersion: sheet.meta.streamVersion,
-            mode: 'DAMAGE',
-            amount: 1
-          }
+    const damage = (ctx: Parameters<typeof executeCharacterSheetCommand>[0], version: number) =>
+      executeCharacterSheetCommand(ctx, player.userId, {
+        id: character.id,
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          mode: 'DAMAGE',
+          amount: 1
         }
+      })
+    const readVersion = async () => {
+      const current = await player.caller.query(api.characters.sheet.get, { id: character.id })
+      if (!current) throw new Error('Expected Character Sheet.')
+      return current.meta.streamVersion
+    }
+    // The Builder commit only queues the Sheet's derivation (ADR 0041). A first Sheet command
+    // stores the sections inline, over the same content heads as the metered one: the fake clock
+    // keeps the snapshot build pending.
+    const warmUpVersion = await readVersion()
+    await player.caller.run((ctx) => damage(ctx, warmUpVersion))
+
+    const readSections = () =>
+      player.caller.run((ctx) =>
+        ctx.db
+          .query('characterSheetSections')
+          .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', character.id))
+          .collect()
       )
+    const sectionsBefore = await readSections()
+    expect(sectionsBefore).not.toHaveLength(0)
+    const sheetTotals = createDatabaseIoTotals()
+    const version = await readVersion()
+    await player.caller.run((ctx) =>
+      damage({ ...ctx, db: countDatabaseIo(ctx.db, sheetTotals) }, version)
     )
     expect(sheetTotals.writes.byTable.replace.bytes).toBeLessThan(PLAY_RECORD_BYTES)
-    expect(sheetTotals.writes.bytes).toBeLessThan(SHEET_HP_CHANGE_BYTES)
+    expect(playWriteBytes(sheetTotals)).toBeLessThan(SHEET_HP_CHANGE_BYTES)
+    // An HP change rewrites only each viewer's COMMON slice; every other section is unchanged.
+    const checksumsBefore = new Map(sectionsBefore.map((row) => [row._id, row.checksum]))
+    const rewritten = (await readSections()).filter(
+      (row) => checksumsBefore.get(row._id) !== row.checksum
+    )
+    const viewers = new Set(sectionsBefore.map((row) => row.viewer))
+    expect(rewritten.map((row) => row.section)).toEqual([...viewers].map(() => 'SLICE:COMMON'))
+    expect(sheetTotals.writes.byTable.characterSheetSections?.documents).toBe(rewritten.length)
+    expect(sheetTotals.writes.byTable.characterSheetSections?.bytes).toBeLessThan(
+      viewers.size * SHEET_SECTION_BYTES_PER_VIEWER
+    )
+    expect(sheetTotals.writes.byTable.characterSheetDerivations?.documents).toBe(1)
 
     const after = await player.caller.query(api.characters.sheet.get, { id: character.id })
     if (!after) throw new Error('Expected Character Sheet.')
@@ -85,6 +128,6 @@ describe('Character play-state write budget', () => {
     )
     // Before the split, both wrote the whole Character document (about 7.6 KB) plus the receipt.
     expect(encounterTotals.writes.byTable.replace.bytes).toBeLessThan(PLAY_RECORD_BYTES)
-    expect(encounterTotals.writes.bytes).toBeLessThan(ENCOUNTER_DAMAGE_BYTES)
+    expect(playWriteBytes(encounterTotals)).toBeLessThan(ENCOUNTER_DAMAGE_BYTES)
   })
 })

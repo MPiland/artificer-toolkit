@@ -70,7 +70,9 @@ function repeatCarrierPath(
         amount: 1
       },
       lifecycle: {
-        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED' as const],
+        endTriggers: [
+          { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_CHOSEN_ITEM_RELEASED' }
+        ],
         effectOffers: [
           {
             kind: 'REPEAT_SOURCE_PATH' as const,

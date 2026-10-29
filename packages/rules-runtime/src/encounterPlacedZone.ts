@@ -173,9 +173,7 @@ function placedZoneRecord(
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: 'ENCOUNTER',
@@ -190,7 +188,7 @@ function placedZoneRecord(
             senses: grant.senses,
             sourceLabel: zone.label,
             sourceHidden: false,
-            endOnEvents: grant.endOnEvents
+            endTriggers: grant.endTriggers
           }
         ]
       : []

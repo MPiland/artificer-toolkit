@@ -136,7 +136,7 @@ describe('concealment rules', () => {
       ...record,
       definition: {
         ...record.definition,
-        recurrence: { ...record.definition.recurrence, consumeOnFirstEvents: [], endOnEvents: [] }
+        recurrence: { ...record.definition.recurrence, endTriggers: [] }
       }
     }
     expect(

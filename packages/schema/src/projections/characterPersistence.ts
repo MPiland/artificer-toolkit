@@ -25,14 +25,14 @@ const characterHeadFields = lazySchemaParts(() => ({
   portraitRevision: z.optional(z.number().check(z.int()).check(z.nonnegative())),
   /** The portrait's own framing; the same image framed differently elsewhere is unaffected. */
   portraitCrop: z.optional(normalizedImageCropSchema),
-  createdAt: z.iso.datetime(),
-  /** The structure clock: it advances only when the document or the Sheet structure changes. */
-  updatedAt: z.iso.datetime()
+  createdAt: z.iso.datetime()
 }))
 
 /**
- * Identity and structure clock only; mutable values live in typed operational records. Structure
- * hashes are derived when the records are assembled, so a focused write never recomputes them.
+ * Identity only; mutable values live in typed operational records. The structure clock lives on the
+ * build record, so a Sheet command never replaces the head every Campaign read joins (ADR 0035
+ * Amendment 12, RELIABILITY-21.16). Structure hashes are derived when the records are assembled, so
+ * a focused write never recomputes them.
  */
 export const characterStoredHeadSchema = lazySchema(() => z.strictObject(characterHeadFields()))
 
@@ -40,6 +40,8 @@ export const characterStoredHeadSchema = lazySchema(() => z.strictObject(charact
 export const characterStoredRecordSchema = lazySchema(() =>
   z.strictObject({
     ...characterHeadFields(),
+    /** The structure clock, read from the build record (`characterStoredBuildStateSchema`). */
+    updatedAt: z.iso.datetime(),
     /** Integrity of the complete structure assembled from the owned records. */
     checksum: projectionChecksumSchema,
     sheetStateChecksum: z.optional(projectionChecksumSchema),
