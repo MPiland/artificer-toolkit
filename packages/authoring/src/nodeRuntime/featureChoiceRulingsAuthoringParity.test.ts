@@ -204,9 +204,11 @@ describe('feature choices and their rulings (SPELLS-31.T5k)', () => {
     ] as const)
       expect(srdByLabel(record.features ?? [], label).effects ?? []).toEqual([])
     // The ancestor itself is the specialization the Builder stores.
-    expect(draconicBloodlineOrigin.specializations?.map(({ label }) => label)).toContain(
-      'Red Dragon'
-    )
+    expect(
+      draconicBloodlineOrigin.category === 'SUBCLASS'
+        ? draconicBloodlineOrigin.specializations?.map(({ label }) => label)
+        : []
+    ).toContain('Red Dragon')
   })
 
   it('keeps a homebrew ward exactly as authored through the class node map', async () => {

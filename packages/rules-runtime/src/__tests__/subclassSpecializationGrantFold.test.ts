@@ -12,6 +12,7 @@ import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const SORCERER = srdByLabel(SRD.classes, 'Sorcerer')
 const BLOODLINE = srdByLabel(SRD.classes, 'Draconic Bloodline')
+if (BLOODLINE.category !== 'SUBCLASS') throw new Error('Draconic Bloodline is a subclass.')
 const RED = srdByLabel(BLOODLINE.specializations ?? [], 'Red Dragon')
 const damageTypeId = (code: string) => SRD_DAMAGE_TYPES.find((each) => each.code === code)!.id
 

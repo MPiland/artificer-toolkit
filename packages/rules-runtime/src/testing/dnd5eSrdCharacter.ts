@@ -194,7 +194,10 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
       ...(entry.specialization === undefined
         ? {}
         : {
-            specializationId: srdByLabel(subclass?.specializations ?? [], entry.specialization).id
+            specializationId: srdByLabel(
+              subclass?.category === 'SUBCLASS' ? (subclass.specializations ?? []) : [],
+              entry.specialization
+            ).id
           })
     }
   })
