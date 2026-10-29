@@ -103,6 +103,18 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Pool division among chosen creatures (SPELLS-31.T4n):** Preserve Life (5 x cleric level, each creature healed to at most half its hit point maximum, no undead or construct) and Mass Heal's 700-point pool are GM rulings or uncompiled, because no engine piece divides a hit-point pool among a chosen set of targets with a per-creature cap. A pool-division engine piece (the caster splits the pool at cast time, the engine clamps each share to the cap and the target exclusions) would author both from core options; see `rules-2-t6e-refusal-classification.md:131` for Mass Heal. Rare: a Life Cleric uses Channel Divinity on it a few times a day and the GM can apply the split by hand.
 
 - **Creature start-of-turn auras spare no ally and no non-humanoid (SPELLS-33.T4pr):** Fear Aura, Stench and Horrific Appearance are passive source zones that catch every occupant at the start of its turn. The pit fiend's hostile-only wording, its incapacitated switch-off, the sea hag's humanoid-only and avert-your-eyes wording, the darkmantle's dispelling of low-level light, and the Whirlwind's carry and end rules stay in the Feature descriptions and GM rulings. Siege Monster and Web Walker are GM rulings, since the engine has no object-damage multiplier or zone movement exemption by source. Revisit if tables report allies frightened by a pit fiend.
+- **Spell slot exchange limits (SPELLS-31.T5j):** the engine does not enforce four limits.
+  - A pool-mode action cannot also spend a charge of its own.
+  - `RECOVER_SLOTS` accepts pact slots too, which matters only for multiclass characters.
+  - Arcane and Natural Recovery are not restricted to a short rest.
+  - The Sheet's "use one charge" control can spend the Arcane Recovery charge without recovering slots.
+
+  The GM judges or corrects each by hand. The fixes:
+  - a slot-kind filter on the outcome;
+  - a rest-window gate on the action;
+  - hiding the plain charge control for exchange actions.
+
+- **Fiendish Resilience outside a room (SPELLS-31.T5k):** the pick runs only in a live room, because the Sheet has no out-of-Encounter action for it. `SAME_EFFECT` also ends that Effect from any origin, not just this Character's. Both are rare. The fix is a Sheet path for self END_EFFECTS outcomes.
 - **Condition held on entering an immunity aura (SPELLS-31.T4r):** an occupant condition-immunity aura (Aura of Courage, Aura of Devotion) refuses new applications of its conditions but does not suppress one the creature already holds when it enters, or when the source wakes. In SRD play the frightened or charmed creature is usually already beside the paladin, and the GM can end the condition by hand. The fix is to suppress held conditions while the aura holds the creature, through the condition-mechanics fold.
 - **Dislodged climber with no free square (MOVE-4.T3a):** a dislodge that wins when no free square lies 5 feet from the target leaves the climber where it was. Its space then overlaps a target it no longer clings to. This is rare and the GM can move the token by hand. The fix is to fall back to the nearest free square.
 
