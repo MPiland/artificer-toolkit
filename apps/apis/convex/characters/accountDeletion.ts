@@ -15,6 +15,7 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
 import { isRoomHeldRun } from '../liveSessions/authorityGuard'
+import { scheduleLiveSessionInputInvalidation } from '../liveSessions/controlScheduling'
 import {
   deleteCharacterDraftPayload,
   readCharacterDraft,
@@ -142,6 +143,24 @@ export async function removePrivateCharacter(
 }
 
 /**
+ * A room may hold a departed Character's frozen actor, which it removes only once it reads the
+ * Character deleted: each former Campaign's live room gets a `CHARACTER` notice when this step
+ * commits (D200). Campaign departure has made every membership LEFT.
+ */
+async function notifyFormerCampaignRooms(ctx: MutationCtx, userId: string) {
+  for await (const membership of ctx.db
+    .query('campaignMemberships')
+    .withIndex('by_userId_status_joinedAt', (q) => q.eq('userId', userId).eq('status', 'LEFT'))) {
+    const authority = await ctx.db
+      .query('campaignLiveAuthorities')
+      .withIndex('by_campaignId', (q) => q.eq('campaignId', membership.campaignId))
+      .unique()
+    if (authority?.phase === 'DO_ACTIVE')
+      await scheduleLiveSessionInputInvalidation(ctx, membership.campaignId, ['CHARACTER'])
+  }
+}
+
+/**
  * The CHARACTERS step (ADR 0040): one Character, active or draft-only, per invocation, then the
  * roll history in batches.
  */
@@ -171,6 +190,7 @@ export const step = internalMutation({
           .unique()
       ])
       await removePrivateCharacter(ctx, job.userId, characterId, active, draft)
+      if (active) await notifyFormerCampaignRooms(ctx, job.userId)
       await continueAccountDeletion(ctx, job, true)
       return null
     }

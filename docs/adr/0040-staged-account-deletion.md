@@ -21,7 +21,9 @@ Account deletion is a durable job (`accountDeletionJobs`) of bounded, idempotent
    - CAMPAIGNS: one membership departure per invocation, through the existing departure code.
    - SOCIAL: Social preparation.
    - MEDIA: retention of one READY VTT map per invocation.
-   - CHARACTERS: one private Character per invocation, then roll history in batches.
+   - CHARACTERS: one private Character per invocation, then roll history in batches. Each removed active
+     Character sends a CHARACTER notice to the live room of every Campaign the owner left, so a room
+     that froze its actor at departure removes it (D200).
    - AUTHORED: one authored root or draft-only subject per invocation.
    - SOURCES: one content source per invocation.
    - FINISH: Blueprints in batches, then rate limits, the feed and the entitlement.
