@@ -32,11 +32,28 @@ describe('Character play-state write budget', () => {
 
   it('writes only the small play record for a Sheet HP change and an Encounter damage', async () => {
     const fixture = await setupCharacterRun()
-    const { t, player, character, actor, run } = fixture
-    // The Builder commit queues the Sheet's derivation (ADR 0041); let it store the sections.
-    await t.finishAllScheduledFunctions(vi.runAllTimers)
-    const sheet = await player.caller.query(api.characters.sheet.get, { id: character.id })
-    if (!sheet) throw new Error('Expected Character Sheet.')
+    const { player, character, actor, run } = fixture
+    const damage = (ctx: Parameters<typeof executeCharacterSheetCommand>[0], version: number) =>
+      executeCharacterSheetCommand(ctx, player.userId, {
+        id: character.id,
+        command: {
+          type: 'ADJUST_HIT_POINTS',
+          commandId: crypto.randomUUID(),
+          expectedVersion: version,
+          mode: 'DAMAGE',
+          amount: 1
+        }
+      })
+    const readVersion = async () => {
+      const current = await player.caller.query(api.characters.sheet.get, { id: character.id })
+      if (!current) throw new Error('Expected Character Sheet.')
+      return current.meta.streamVersion
+    }
+    // The Builder commit only queues the Sheet's derivation (ADR 0041). A first Sheet command
+    // stores the sections inline, over the same content heads as the metered one: the fake clock
+    // keeps the snapshot build pending.
+    const warmUpVersion = await readVersion()
+    await player.caller.run((ctx) => damage(ctx, warmUpVersion))
 
     const readSections = () =>
       player.caller.run((ctx) =>
@@ -48,21 +65,9 @@ describe('Character play-state write budget', () => {
     const sectionsBefore = await readSections()
     expect(sectionsBefore).not.toHaveLength(0)
     const sheetTotals = createDatabaseIoTotals()
+    const version = await readVersion()
     await player.caller.run((ctx) =>
-      executeCharacterSheetCommand(
-        { ...ctx, db: countDatabaseIo(ctx.db, sheetTotals) },
-        player.userId,
-        {
-          id: character.id,
-          command: {
-            type: 'ADJUST_HIT_POINTS',
-            commandId: crypto.randomUUID(),
-            expectedVersion: sheet.meta.streamVersion,
-            mode: 'DAMAGE',
-            amount: 1
-          }
-        }
-      )
+      damage({ ...ctx, db: countDatabaseIo(ctx.db, sheetTotals) }, version)
     )
     expect(sheetTotals.writes.byTable.replace.bytes).toBeLessThan(PLAY_RECORD_BYTES)
     expect(playWriteBytes(sheetTotals)).toBeLessThan(SHEET_HP_CHANGE_BYTES)
