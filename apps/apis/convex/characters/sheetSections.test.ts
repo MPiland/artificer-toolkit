@@ -330,8 +330,13 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const scheduled = await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())
     expect(scheduled.filter((row) => row.state.kind === 'pending')).toEqual([])
     expect(await t.run((ctx) => ctx.db.query('characterSheetPendingStores').collect())).toEqual([])
-    const common = await readStored(characterSheetSection.slice('COMMON'))
+    const common = await player.caller.query(api.characters.sheetSlices.get, {
+      id: character.id,
+      campaignId: input.campaignId,
+      slice: 'COMMON'
+    })
     expect(common?.data.meta.streamVersion).toBe(adjusted.streamVersion)
+    expect(await readStored(characterSheetSection.slice('COMMON'))).toEqual(common)
     expect(await readStored(characterSheetSection.panel(target!))).not.toBeNull()
   }, 60_000)
 
