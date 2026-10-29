@@ -6,6 +6,7 @@ import {
   resolveSpellCastSource
 } from './sheetCommandReducer.js'
 import { validateActionResourceUse } from './sheetCommandValidation.js'
+import { planSpellSlotExchange } from './sheetSpellSlotExchange.js'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   createCharacterResourceOwnerKey,
@@ -136,6 +137,16 @@ export function getSheetCommandResourceUsageUpdate(params: {
       resourceUsageUpdate = {
         resource,
         used: command.all ? 0 : Math.max(used - (command.amount ?? 1), 0)
+      }
+    }
+  }
+  if (command.type === 'EXCHANGE_SPELL_SLOTS') {
+    const { resourceUse } = planSpellSlotExchange(params.sheet, command)
+    if (resourceUse) {
+      const resource = ensureResource(params.sheet, resourceUse.resourceId)
+      resourceUsageUpdate = {
+        resource,
+        used: Math.max(getRawResourceUsed(resource) + resourceUse.delta, 0)
       }
     }
   }

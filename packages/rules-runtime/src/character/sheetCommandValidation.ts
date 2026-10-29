@@ -296,6 +296,7 @@ export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetComma
     case 'RECOVER_SHEET_RESOURCE':
     case 'USE_SPELL_SLOT':
     case 'RESTORE_SPELL_SLOT':
+    case 'EXCHANGE_SPELL_SLOTS':
     case 'CAST_SPELL':
     case 'SET_PREPARED_SPELLS':
     case 'SET_KNOWN_SPELLS':

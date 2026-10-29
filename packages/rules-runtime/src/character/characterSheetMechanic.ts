@@ -1,3 +1,5 @@
+import type { ResolvedSpellSlotExchange } from '@artificer-toolkit/schema/api/characterActionRules'
+
 export type CharacterSheetProjectedOutcome =
   | {
       kind: 'DAMAGE'
@@ -25,6 +27,7 @@ export type CharacterSheetProjectedOutcome =
       pathCode: string
       effectKind: string
       label?: string
+      spellSlotExchange?: ResolvedSpellSlotExchange
     }
 
 export interface CharacterSheetProjectedOutcomeScaling {

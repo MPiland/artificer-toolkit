@@ -110,6 +110,71 @@ function classLevel(input: CharacterActionModelInput, classId: string | null): n
     : (input.classLevels.find((entry) => entry.classId === classId)?.level ?? null)
 }
 
+/** A class level divided by the authored divisor, rounded as authored. */
+function dividedClassLevel(level: number, divisor: number, rounding: 'UP' | 'DOWN' | 'NEAREST'): number {
+  const quotient = level / divisor
+  return rounding === 'UP'
+    ? Math.ceil(quotient)
+    : rounding === 'DOWN'
+      ? Math.floor(quotient)
+      : Math.round(quotient)
+}
+
+/**
+ * A spell slot exchange with its class-level budget and charge pool resolved. The pool modes need
+ * exactly one resolved pool carrying the charge; otherwise the outcome stays a plain effect the
+ * Sheet cannot run.
+ */
+function resolveSpellSlotExchange(
+  input: CharacterActionModelInput,
+  outcome: Extract<RawOutcome, { readonly kind: 'SPELL_SLOT_EXCHANGE' }>
+): ResolvedOutcome {
+  const effect = {
+    kind: 'EFFECT' as const,
+    pathCode: outcome.pathCode,
+    effectKind: outcome.exchange.effectKind,
+    label: outcome.label
+  }
+  const { exchange } = outcome
+  if (exchange.mode === 'RECOVER_SLOTS') {
+    const level = classLevel(input, exchange.levelBudget.classId)
+    return level === null
+      ? effect
+      : {
+          ...effect,
+          spellSlotExchange: {
+            mode: exchange.mode,
+            levelBudget: dividedClassLevel(
+              level,
+              exchange.levelBudget.divisor,
+              exchange.levelBudget.rounding
+            ),
+            maximumSlotLevel: exchange.maximumSlotLevel
+          }
+        }
+  }
+  const pools = input.resources.filter(
+    (resource) => resource.chargeId === exchange.chargeId && resource.state === 'RESOLVED'
+  )
+  const [pool] = pools
+  if (pools.length !== 1 || !pool) return effect
+  return {
+    ...effect,
+    spellSlotExchange:
+      exchange.mode === 'SLOT_TO_RESOURCE'
+        ? {
+            mode: exchange.mode,
+            resourcePoolId: pool.poolId,
+            maximumSlotLevel: exchange.maximumSlotLevel ?? null
+          }
+        : {
+            mode: exchange.mode,
+            resourcePoolId: pool.poolId,
+            costs: exchange.costs.map((entry) => ({ ...entry }))
+          }
+  }
+}
+
 function targetLevel(
   input: CharacterActionModelInput,
   source: DamageOrHealOutcome['scalingSource'],
@@ -429,6 +494,7 @@ export function resolveDnd5eActionMechanic(
   }
   const resolveOutcome = (outcome: RawOutcome): ResolvedOutcome => {
     if (outcome.kind === 'CONDITION' || outcome.kind === 'EFFECT') return outcome
+    if (outcome.kind === 'SPELL_SLOT_EXCHANGE') return resolveSpellSlotExchange(input, outcome)
     const level =
       outcome.scalingKind === 'NONE'
         ? null
