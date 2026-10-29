@@ -213,7 +213,9 @@ export const willOWisp: CreatureAuthored = {
           effectId: S.actionId(294, 4),
           rangeId: S.actionId(294, 5),
           pathId: S.actionId(294, 6),
-          endOnEvents: ['ON_ATTACK_ROLL']
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' }
+          ]
         })
       ],
       order: 7

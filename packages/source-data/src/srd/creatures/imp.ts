@@ -197,7 +197,9 @@ export const imp: CreatureAuthored = {
           effectId: S.actionId(173, 6),
           rangeId: S.actionId(173, 7),
           pathId: S.actionId(173, 8),
-          endOnEvents: ['ON_ATTACK_ROLL']
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' }
+          ]
         })
       ],
       order: 5

@@ -4,6 +4,7 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import {
+  pathLifecycleEndTimingSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerOfSchema,
   pathLifecycleEndTriggerBySchema
@@ -65,7 +66,7 @@ export const reactionMovementTriggerBindingDtoSchema = lazySchema(() =>
 
 /**
  * The damage types a damage-taken trigger filters on: a non-empty set of damage-type ids. A
- * reaction (`DAMAGE_TAKEN`) and an end trigger (`endOnTriggers`) share it.
+ * reaction (`DAMAGE_TAKEN`) and an end trigger (`endTriggers`) share it.
  */
 export const damageTypeFilterDtoSchema = lazySchema(() =>
   z
@@ -82,10 +83,18 @@ export const basicActionFilterDtoSchema = lazySchema(() =>
     .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
 )
 
-/** Structured events that end an authored effect early, each with its own filter. */
+/**
+ * Structured events that end an authored effect, each with its own filter. `LIFECYCLE` names a
+ * System lifecycle code and its timing (D122).
+ */
 export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
   authoredReferenceCollectionSchema(
     z.discriminatedUnion('event', [
+      z.strictObject({
+        event: z.literal('LIFECYCLE'),
+        timing: pathLifecycleEndTimingSchema,
+        code: systemCoreCodeSchema
+      }),
       z.strictObject({
         event: z.literal('DAMAGE_TAKEN'),
         by: pathLifecycleEndTriggerBySchema,

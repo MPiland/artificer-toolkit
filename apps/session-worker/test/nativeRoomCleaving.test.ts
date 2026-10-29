@@ -65,7 +65,9 @@ function cleavingRoom(options: {
           encounterId,
           sourceActorId: options.grantHolderActorId,
           holderActorId: options.grantHolderActorId,
-          lifecycle: { endOnEvents: ['ON_INCAPACITATED'] },
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }]
+          },
           rounds: 10
         }).definition,
         occurredAt

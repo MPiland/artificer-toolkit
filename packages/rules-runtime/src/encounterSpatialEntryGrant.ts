@@ -51,7 +51,7 @@ export function planSpatialEntryGrant(input: {
     })
   )
     return null
-  const { endOnEvents = [], ...grant } = template
+  const { endTriggers = [], ...grant } = template
   return {
     id: uuidv5(
       `${input.occurrenceId}:${input.sourceCommandId}:${input.ordinal}:${input.targetActorId}`,
@@ -77,9 +77,7 @@ export function planSpatialEntryGrant(input: {
       recurrence: {
         recurrenceStage: 'NONE',
         anchor: 'HOLDER',
-        consumeOnFirstEvents: [],
-        endOnEvents,
-        endOnTriggers: [],
+        endTriggers,
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',

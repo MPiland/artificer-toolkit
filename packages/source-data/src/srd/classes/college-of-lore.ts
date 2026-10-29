@@ -6,6 +6,7 @@ import {
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
   RANGE_KIND,
@@ -19,7 +20,7 @@ import {
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
-import { closedRuleEffect } from './mechanics.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -151,16 +152,18 @@ export const collegeOfLore: ClassAuthored = {
       availableAtLevel: 14,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 20, 2),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.FREE },
-            range: { id: classRowId(BD, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(BD, 20, 2),
+            range: classRowId(BD, 21, 2),
+            path: classRowId(BD, 23, 2),
+            result: classRowId(BD, 24, 2),
+            outcome: classRowId(BD, 25, 2)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_COLLEGE_OF_LORE_PEERLESS_SKILL
+          label: 'Peerless Skill',
+          instructions:
+            'After you roll an ability check and before the GM says whether it succeeds, you can expend one use of Bardic Inspiration to roll a Bardic Inspiration die and add the number rolled to the check. The GM adds the die to the result and you mark the use spent.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     }

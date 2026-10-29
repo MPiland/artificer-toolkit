@@ -391,7 +391,11 @@ store.
   `RULE_OCCURRENCE`; a contested escape keeps the existing `ESCAPE` row, whose `receipt.checkOccurrenceId`
   is the contest occurrence and whose rule receipt's `commandType` is `ESCAPE`. Replay and resume
   (`actionContestReplay.ts`, `contestAdmission.ts`) read either root through `ContestRootCommand`.
-- **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for `ON_INCAPACITATED` grants, a named Condition for `endOnConditionIds`) are deleted in
+- **Stored end triggers (SPELLS-27.T6):** an Active Rule Effect's `recurrence.endTriggers` is the one list of what ends or uses it up: the
+  `LIFECYCLE` arm (`{ event, timing: 'CONSUME' | 'END', code }`) and the qualified arms, unique and sorted by their serialized form
+  (`canonicalActiveEffectEndTriggers`), required on read with no default. Rows of the earlier consume and end event lists are not migrated;
+  local data is reset and reseeded (D196).
+- **Ended grants and undo (D113):** state-bound grants the engine ends (incapacitation or defeat for grants with a `LIFECYCLE` `END` `ON_INCAPACITATED` trigger, a named Condition for `endOnConditionIds`) are deleted in
   the same commit. A `RESOLVE_ACTION`, area or cleaving root keeps them in `consumedGrants` (`receiptConsumedGrants`,
   `addResponseChangesToRoot`), so `REVERT_LAST_ACTION` restores them with the consumed grants. The commit validates every
   `endedGrants` record against the stored effect and the holder's state, not the client's claim
@@ -427,7 +431,7 @@ receipt; a matching replay returns the stored projection before loading sources.
 A placed zone (SPELLS-17) is one `encounterSpatialRuleEffects` row written by the area commit
 (`persistEncounterAreaCommit` takes it as `placedZone` on its input). Its `placement` carries `label` (one shared
 rule, `spatialZoneLabelSchema`), `visibility`, `activation`, `movementKinds`, `triggerModes` and
-`bypassAtHalfSpeed` (the zone may be crossed carefully at double cost) and, when the caster designated creatures at cast (SPELLS-20 T4c), `unaffectedActorIds` (a non-empty Encounter actor list the zone never catches; omitted when empty, immutable with the placement checksum) and, when authored (SPELLS-20 T4b1), `maxApplicationsPerTurn` (a positive integer; also immutable). The count of applications lives on the Encounter run state, never on the placement: `zoneApplications` (optional, keyed `effectId:actorId`, each entry `{ turnSequence, count }`, bounded by `MAX_ENCOUNTER_ACTORS * MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`). An entry whose `turnSequence` differs from the run's current `turnSequence` counts as unspent; no step clears it on a turn change, and `recordZoneApplications` prunes stale entries whenever it writes the map. The terminal movement publications (`publishSpatialTerminal`, the movement-response terminal) write it from the settled executions; `recurrence.endOnEvents` stays empty, and a
+`bypassAtHalfSpeed` (the zone may be crossed carefully at double cost) and, when the caster designated creatures at cast (SPELLS-20 T4c), `unaffectedActorIds` (a non-empty Encounter actor list the zone never catches; omitted when empty, immutable with the placement checksum) and, when authored (SPELLS-20 T4b1), `maxApplicationsPerTurn` (a positive integer; also immutable). The count of applications lives on the Encounter run state, never on the placement: `zoneApplications` (optional, keyed `effectId:actorId`, each entry `{ turnSequence, count }`, bounded by `MAX_ENCOUNTER_ACTORS * MAX_SPATIAL_RULE_EFFECTS_PER_SCENE`). An entry whose `turnSequence` differs from the run's current `turnSequence` counts as unspent; no step clears it on a turn change, and `recordZoneApplications` prunes stale entries whenever it writes the map. The terminal movement publications (`publishSpatialTerminal`, the movement-response terminal) write it from the settled executions; `recurrence.endTriggers` stays empty, and a
 creature's lingering grant takes its end events from the grant template. The area receipt names the row as
 `placedSpatialEffectIds` (one per zone component), so GM undo deletes them with the commit. The Scene holds at most
 `MAX_SPATIAL_RULE_EFFECTS_PER_SCENE` rows; the next placement is refused with `TARGET_UNAVAILABLE`.

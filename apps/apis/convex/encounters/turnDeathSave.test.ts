@@ -286,7 +286,9 @@ describe('a dying Character’s turn-start death save (D96)', () => {
           encounterId: base.run.id,
           sourceActorId: base.hero.id,
           holderActorId: base.hero.id,
-          lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }]
+          },
           rounds: 10,
           lifetimeScope: 'OWNER'
         })

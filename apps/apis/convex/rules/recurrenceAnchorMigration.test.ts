@@ -61,9 +61,7 @@ function definition(
     recurrence: {
       recurrenceStage: 'NONE',
       anchor,
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: origin.kind === 'ENCOUNTER' ? 'ENCOUNTER' : 'OWNER',

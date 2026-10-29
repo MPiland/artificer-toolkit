@@ -324,9 +324,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       recurrence: {
         recurrenceStage: 'NONE',
         anchor: 'HOLDER',
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
-        endOnTriggers: [],
+        endTriggers: [],
         endOnConditionIds: [],
         holderEnd: null,
         lifetimeScope: 'ENCOUNTER',

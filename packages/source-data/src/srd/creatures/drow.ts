@@ -251,7 +251,7 @@ export const drow: CreatureAuthored = {
                           conditionId: conditionTypeId('UNCONSCIOUS')
                         }
                       ],
-                      lifecycle: { endOnTriggers: S.WAKE_END_TRIGGERS }
+                      lifecycle: { endTriggers: S.WAKE_END_TRIGGERS }
                     }
                   }
                 ]

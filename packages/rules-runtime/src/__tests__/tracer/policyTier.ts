@@ -97,15 +97,13 @@ function tracerLifecycleSubscription(code: string) {
 const tracerEventVocabularyAdapter: EventVocabularyCapabilityAdapter = {
   gameSystemId: TRACER_SYSTEM_ID,
   effectHooks(recurrence) {
-    if (recurrence.endOnTriggers.length > 0 || recurrence.repeatTriggers?.length)
-      throw new Error('The tracer authors no structured end or repeat triggers.')
+    if (recurrence.repeatTriggers?.length) throw new Error('The tracer authors no repeat triggers.')
     return [
-      ...[...recurrence.consumeOnFirstEvents, ...recurrence.endOnEvents].map(
-        (code): EncounterEffectHook => ({
-          hook: 'END',
-          subscription: tracerLifecycleSubscription(code)
-        })
-      ),
+      ...recurrence.endTriggers.map((trigger): EncounterEffectHook => {
+        if (trigger.event !== 'LIFECYCLE')
+          throw new Error('The tracer authors no structured end triggers.')
+        return { hook: 'END', subscription: tracerLifecycleSubscription(trigger.code) }
+      }),
       ...(recurrence.endOnConditionIds.length > 0
         ? [
             {
