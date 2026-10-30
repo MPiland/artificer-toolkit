@@ -744,7 +744,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       /** The conjured creatures removed, so a replay removes the same ones. An undo does not restore them. */
       receipt: z.strictObject({
         removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
-      })
+      }),
+      /** The round's initiative after the removal; null when no removed creature held a place in it. */
+      initiativeStateJson: z.nullable(z.string()),
+      initiativeStateChecksum: z.nullable(projectionChecksumSchema)
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
@@ -766,7 +769,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.literal('REVERT_LAST_ACTION'),
       /** The undone RESOLVE_ACTION command, and the action's occurrence if any. */
       revertedCommandId: postgresUuidSchema,
-      ruleOccurrenceId: z.nullable(postgresUuidSchema)
+      ruleOccurrenceId: z.nullable(postgresUuidSchema),
+      /** The round's initiative after the undo removed the creatures the action conjured, else null. */
+      initiativeStateJson: z.nullable(z.string()),
+      initiativeStateChecksum: z.nullable(projectionChecksumSchema)
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('REMOVE_ACTOR'),
