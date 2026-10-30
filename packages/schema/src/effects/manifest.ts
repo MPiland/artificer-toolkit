@@ -175,6 +175,11 @@ const summonAbilityScoresDtoSchema = lazySchema(() =>
   z.record(systemCoreCodeSchema, numericExprSchema)
 )
 
+/** When a summon acts (D200); absent means on its owner's turn. */
+const summonTurnTimingSchema = lazySchema(() =>
+  z.enum(['OWNER_TURN', 'AFTER_OWNER', 'OWN_INITIATIVE'])
+)
+
 const summonDamageabilityKindSchema = lazySchema(() =>
   z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL'])
 )
@@ -364,6 +369,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         creatureTypeIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
         /** The creature makes no attack of its own; one its owner's grant delegates still resolves. */
         cannotAttack: z.optional(z.boolean()),
+        turnTiming: z.optional(summonTurnTimingSchema),
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),

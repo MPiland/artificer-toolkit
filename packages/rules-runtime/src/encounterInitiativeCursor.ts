@@ -1,3 +1,4 @@
+import type { EncounterActorOwnerDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 
 export function orderedInitiativeRows<
@@ -58,16 +59,23 @@ export function readSideOrder(state: EncounterInitiativeRoundStateDto, orderErro
   return sides
 }
 
-/** Whether a Run actor is in the initiative order: an owned actor acts on its owner's turn (D190a). */
-export function takesInitiativeTurns(actor: { owner?: { ownerActorId: string } | null }) {
-  return !actor.owner
+/** The owner link of a Run actor, as the initiative order reads it. */
+export type ActorOwnerLink = Pick<EncounterActorOwnerDto, 'ownerActorId' | 'turnTiming'>
+
+/**
+ * Whether a Run actor is rolled into the initiative order: an owned actor acts on its owner's turn
+ * (D190a) unless its summon was authored to roll its own initiative (D200). One authored to act right
+ * after its owner is not rolled; its turn follows the owner's.
+ */
+export function takesInitiativeTurns(actor: { owner?: ActorOwnerLink | null }) {
+  return !actor.owner || actor.owner.turnTiming === 'OWN_INITIATIVE'
 }
 
 export function validateInitiativeCursor(input: {
   state: EncounterInitiativeRoundStateDto
   currentActorId: string | null
   /** Every Run actor; the owned ones are left out of the cohort. */
-  actors: readonly { id: string; owner?: { ownerActorId: string } | null }[]
+  actors: readonly { id: string; owner?: ActorOwnerLink | null }[]
   allowedSideIds: readonly string[]
 }): void {
   const { state, currentActorId, actors, allowedSideIds } = input

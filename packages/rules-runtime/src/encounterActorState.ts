@@ -9,7 +9,7 @@ import {
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { RuleCapabilityRefreshBoundaryDto } from '@artificer-toolkit/schema/shared/ruleState'
 
-import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
+import { takesInitiativeTurns, type ActorOwnerLink } from './encounterInitiativeCursor.js'
 
 export function requireSnapshotIdentity(actor: EncounterRunActorState) {
   if (
@@ -203,7 +203,7 @@ export function stableActors<
     manualOrder: number | null
     initiative: number | null
     stableTieKey: string
-    owner?: { ownerActorId: string } | null
+    owner?: ActorOwnerLink | null
   }
 >(encounter: {
   actors: readonly TActor[]
