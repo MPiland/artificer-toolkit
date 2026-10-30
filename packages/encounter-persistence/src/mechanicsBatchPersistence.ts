@@ -19,6 +19,10 @@ import type {
   EncounterMechanicsBatchInput,
   EncounterMechanicsBatchPlan
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
+import {
+  settleCharacterConditionMaximum,
+  settleCreatureConditionMaximum
+} from './conditionMaximumSettlement.js'
 import { rejectDomain } from './domainRejections.js'
 import { ensureEncounterSpellPins } from './spellPins.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
@@ -257,10 +261,16 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
         systemId: actor.systemId,
         snapshots: [updatedActor.snapshot]
       })
-    if (plan.stateChanged || updatedActor !== plan.updatedActor)
-      await writeRunActor(ctx, actorRow._id, updatedActor)
+    const settledActor = await settleCreatureConditionMaximum(ctx, {
+      before: actor,
+      actor: updatedActor,
+      ownerUserId: campaign.ownerUserId,
+      gameSystemId: target.state.gameSystemId
+    })
+    if (plan.stateChanged || settledActor !== plan.updatedActor)
+      await writeRunActor(ctx, actorRow._id, settledActor)
     return {
-      updatedActor,
+      updatedActor: settledActor,
       receiptApplications: plan.receiptApplications,
       targetTransition: plan.targetTransition,
       characterStreamVersion: null,
@@ -317,10 +327,19 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
   if (plan.characterUpdate) {
     const characterStreamVersion = plan.characterStreamVersion
     if (characterStreamVersion === null) throw new Error('Encounter Character plan is invalid.')
+    const { character: planned } = plan.characterUpdate
+    const state = await settleCharacterConditionMaximum(ctx, {
+      characterId: character.id,
+      systemId: character.systemId,
+      before: ctx.ports.readCharacterRecord(character).state,
+      state: planned.state,
+      maximumHitPoints: character.play.maximumHitPoints,
+      ownerUserId: campaign.ownerUserId
+    })
     await ctx.ports.writeCharacterRecord({
       current: character,
       fields: { streamVersion: characterStreamVersion, updatedAt: input.occurredAt },
-      document: JSON.parse(JSON.stringify(plan.characterUpdate.character)),
+      document: JSON.parse(JSON.stringify({ ...planned, state })),
       ...(plan.characterUpdate.sheetState ? { sheetState: plan.characterUpdate.sheetState } : {}),
       sourceContext: prepared.sourceContext
     })

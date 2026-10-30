@@ -5,6 +5,11 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
+import {
+  readRunCampaignOwnerUserId,
+  settleCharacterConditionMaximum,
+  settleCreatureConditionMaximum
+} from './conditionMaximumSettlement.js'
 import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 
@@ -60,13 +65,25 @@ export async function reconcileNativeMaintenanceOwners(
       character: characterInput
     })
     if (planned.character && characterRow && character) {
+      // The Campaign clock has no Run: the Character's own user reads the definition then.
+      const ownerUserId =
+        input.encounterId === null
+          ? character.userId
+          : await readRunCampaignOwnerUserId(ctx, input.encounterId)
       const nextCharacter = {
         ...character,
-        state: {
-          ...character.state,
-          conditions: planned.character.conditions,
-          hitpoints: planned.character.hitpoints
-        }
+        state: await settleCharacterConditionMaximum(ctx, {
+          characterId: character.id,
+          systemId: character.systemId,
+          before: character.state,
+          state: {
+            ...character.state,
+            conditions: planned.character.conditions,
+            hitpoints: planned.character.hitpoints
+          },
+          maximumHitPoints: characterRow.play.maximumHitPoints,
+          ownerUserId
+        })
       }
       await ctx.ports.writeCharacterRecord({
         current: characterRow,
@@ -87,7 +104,12 @@ export async function reconcileNativeMaintenanceOwners(
       // (D178), so the stored absence, not the caller's copy, is the current one.
       const { row, actor: stored } = await readRunActorWithRow(ctx, readRunState(run), actor.id)
       const current = { ...actor, absence: stored.absence }
-      const next = { ...updated, absence: stored.absence }
+      const next = await settleCreatureConditionMaximum(ctx, {
+        before: current,
+        actor: { ...updated, absence: stored.absence },
+        ownerUserId: await readRunCampaignOwnerUserId(ctx, encounterId),
+        gameSystemId: stored.systemId
+      })
       if (row.stateChecksum !== checksumRunActorPlayState(current))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')
       if (row.stateChecksum !== checksumRunActorPlayState(next))
