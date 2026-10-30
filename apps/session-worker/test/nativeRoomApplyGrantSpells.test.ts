@@ -224,7 +224,7 @@ describe('SRD APPLY_GRANT spells cast in an Encounter (SPELLS-8.3)', () => {
 
       const { answer } = await room.startActorsAction([CHARACTER_ACTOR_ID], RANGE_UNCHECKED)
       expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-      expect(await characterHitPoints(room)).toBe(before + bonus)
+      expect(await characterHitPoints(room), JSON.stringify(answer)).toBe(before + bonus)
     },
     120000
   )
