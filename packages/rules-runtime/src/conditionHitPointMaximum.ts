@@ -1,4 +1,5 @@
 import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
+import type { CharacterHitpointsState } from '@artificer-toolkit/shared/subjects/authored'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
@@ -116,6 +117,17 @@ export function creatureHitPointMaximumFraction(input: {
 export type ConditionMaximum = {
   fraction: HitPointMaximumFractionDto | null
   maximumHitPoints: number
+}
+
+/** Stores the fraction a condition change leaves the maximum and keeps hit points within it (SPELLS-10.T1b). */
+export function applyConditionMaximum(
+  character: { state: { hitpoints: CharacterHitpointsState } },
+  conditionMaximum?: ConditionMaximum
+) {
+  if (!conditionMaximum) return
+  const { hitpoints } = character.state
+  hitpoints.maximumFraction = conditionMaximum.fraction ?? undefined
+  hitpoints.current = Math.min(hitpoints.current, conditionMaximum.maximumHitPoints)
 }
 
 /**

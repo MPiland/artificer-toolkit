@@ -1,4 +1,4 @@
-import type { ConditionMaximum } from '../conditionHitPointMaximum.js'
+import { applyConditionMaximum, type ConditionMaximum } from '../conditionHitPointMaximum.js'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
@@ -471,19 +471,10 @@ function applyZeroHitPoints(character: CharacterAuthored, beforeCurrentHitPoints
     )
 }
 
-/** Stores the fraction a condition change leaves the maximum and keeps hit points within it (SPELLS-10.T1b). */
-function applyConditionMaximum(character: CharacterAuthored, conditionMaximum?: ConditionMaximum) {
-  if (!conditionMaximum) return
-  const { hitpoints } = character.state
-  hitpoints.maximumFraction = conditionMaximum.fraction ?? undefined
-  hitpoints.current = Math.min(hitpoints.current, conditionMaximum.maximumHitPoints)
-}
-
 /** A condition level's authored DEATH mechanic: dead at once, so no death saves are rolled (D96). */
 function applyConditionDeath(character: CharacterAuthored) {
   const beforeCurrentHitPoints = character.state.hitpoints.current
-  character.state.hitpoints.current = 0
-  character.state.hitpoints.deathSaves = deathSavesAfterDeath()
+  Object.assign(character.state.hitpoints, { current: 0, deathSaves: deathSavesAfterDeath() })
   applyZeroHitPoints(character, beforeCurrentHitPoints)
 }
 

@@ -997,18 +997,17 @@ export function projectCharacterSheetBundle(
     classLabels,
     featureLabels
   )
-  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap(
-    (source) =>
-      source.preparedSpellLimit === null
-        ? []
-        : [
-            {
-              classId: source.classId,
-              label: classLabels.get(source.classId) ?? 'Class',
-              preparedSpellLimit: source.preparedSpellLimit,
-              preparedSpellIds: source.preparedSpellIds
-            }
-          ]
+  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap((source) =>
+    source.preparedSpellLimit === null
+      ? []
+      : [
+          {
+            classId: source.classId,
+            label: classLabels.get(source.classId) ?? 'Class',
+            preparedSpellLimit: source.preparedSpellLimit,
+            preparedSpellIds: source.preparedSpellIds
+          }
+        ]
   )
   const overviewSkills = Object.entries(ruleProjection.derivedStats.skillBonuses).map(
     ([skill, total]) => {

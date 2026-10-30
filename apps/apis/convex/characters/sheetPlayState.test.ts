@@ -212,10 +212,12 @@ describe('native Character play-state commands', () => {
     const setLevel = (level: number, expectedVersion: number) =>
       run({ type: 'SET_EXHAUSTION', commandId: crypto.randomUUID(), expectedVersion, level })
 
-    const standing = (await overview()).currentHitPoints
+    const { currentHitPoints: standing, maxHitPoints } = await overview()
+    // Exhaustion 4 and up halves the maximum (SPELLS-10.T1b), so hit points stand at the halved maximum.
+    const halved = Math.min(standing, Math.floor(maxHitPoints / 2))
     await setLevel(5, 1)
     expect(await overview()).toMatchObject({
-      currentHitPoints: standing,
+      currentHitPoints: halved,
       deathSaves: NO_DEATH_SAVES
     })
 
@@ -232,10 +234,10 @@ describe('native Character play-state commands', () => {
       type: 'SET_HIT_POINTS',
       commandId: crypto.randomUUID(),
       expectedVersion: 4,
-      current: standing
+      current: halved
     })
     expect(await overview()).toMatchObject({
-      currentHitPoints: standing,
+      currentHitPoints: halved,
       deathSaves: NO_DEATH_SAVES,
       exhaustion: { level: 5 }
     })
