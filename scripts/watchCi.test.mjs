@@ -24,7 +24,9 @@ const run = (workflowName, status, conclusion, databaseId) => ({
   createdAt: '2026-10-29T00:00:00Z'
 })
 
-describe('watchCi.ps1', { timeout: 30000 }, () => {
+// The fake gh is a POSIX shell shim, as CI runs on Linux: a Windows .cmd shim would let cmd.exe parse the
+// `|` and quotes in gh's --jq arguments.
+describe.skipIf(process.platform === 'win32')('watchCi.ps1', { timeout: 30000 }, () => {
   let directory
 
   beforeEach(() => {
@@ -32,7 +34,6 @@ describe('watchCi.ps1', { timeout: 30000 }, () => {
     writeFileSync(join(directory, 'gh.mjs'), fakeGh)
     writeFileSync(join(directory, 'gh'), `#!/bin/sh\nexec node "$(dirname "$0")/gh.mjs" "$@"\n`)
     chmodSync(join(directory, 'gh'), 0o755)
-    writeFileSync(join(directory, 'gh.cmd'), '@node "%~dp0gh.mjs" %*\r\n')
   })
 
   afterEach(() => rmSync(directory, { recursive: true, force: true }))
@@ -41,14 +42,13 @@ describe('watchCi.ps1', { timeout: 30000 }, () => {
   const watch = (responses) => {
     const responsesFile = join(directory, 'responses.json')
     writeFileSync(responsesFile, JSON.stringify(responses))
-    const pathKey = Object.keys(process.env).find((key) => key.toUpperCase() === 'PATH') ?? 'PATH'
     return spawnSync('pwsh', ['-NoProfile', '-File', script], {
       cwd: repository,
       encoding: 'utf8',
       timeout: 20000,
       env: {
         ...process.env,
-        [pathKey]: `${directory}${delimiter}${process.env[pathKey]}`,
+        PATH: `${directory}${delimiter}${process.env.PATH}`,
         FAKE_GH_RESPONSES: responsesFile
       }
     })
