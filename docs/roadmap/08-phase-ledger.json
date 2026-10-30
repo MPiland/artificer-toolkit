@@ -949,6 +949,34 @@
               },
               "text": "Bump convex-test 0.0.60 to latest (0.0.66). Bug: social/developmentRetention calls .paginate() twice in one query, which the real backend rejects (surfaces at lib/domainRejectionTransport.ts:10); fix the product query, with the bumped harness as its red proof. Fix the ~12 Convex test files whose fixtures assume Date.now() inside a mutation equals the fake system time (convex-test 0.0.63 monotonic commit clock): measure from stored timestamps, never loosen an assertion. Failure list: platform-13-t2-convex-test-0.0.66.md in the shared notes folder.",
               "note": "Orchestrator ruling (a) on PLATFORM-13.T2, 2026-10-29: T2 stays a dependency refresh with convex-test held at 0.0.60."
+            },
+            {
+              "id": "PLATFORM-13.T24",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.5"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 3,
+                "after": ["PLATFORM-13.T2"]
+              },
+              "text": "Bug: on wrangler 4.155 (workerd 1.20261023) the room Worker misses invalidated inputs: playerControl keeps a departed member as controller and liveCharacterState misses a Sheet maximum change (run 40987080521); both pass on 4.147 (run 40989252324). Production runs the newer workerd, so treat it as a room-refresh bug: bisect wrangler 4.148-4.155, find the room input-invalidation cause, fix it in product code and lift the wrangler 4.147.0 hold in session-worker and apis. The two tests are the red proof.",
+              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list."
+            },
+            {
+              "id": "PLATFORM-13.T25",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["PLATFORM-13.T2"]
+              },
+              "text": "Bug: on zod 4.6.7 the content snapshot builder's readScopeKind query exceeds the self-hosted 1 s query limit (run 40980096246), so snapshot builds never finish. Find the cost at its source (schema parsing on the read path, read volume), fix it with a red-first read-budget or compute test, and lift the app zod 4.4.3 hold.",
+              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list."
             }
           ]
         },
