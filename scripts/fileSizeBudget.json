@@ -1,6 +1,6 @@
 {
   "apps/session-worker/src/nativeEncounterRules.ts": 1609,
-  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1795,
+  "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1792,
   "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2580,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,
