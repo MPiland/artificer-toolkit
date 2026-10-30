@@ -54,6 +54,12 @@ export function buildEncounterActionStoredExecution(input: {
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
+  /** The commanding actor's spend on a delegated attack (DELEGATED_ATTACK): undone with the action. */
+  delegation?: {
+    actorId: string
+    consumption: EncounterActionEconomyConsumption | null
+    attackAction: EncounterAttackActionTransitionDto
+  } | null
   /** Set when the batch is one creature's outcome of a point-area action rooted at `parentOccurrenceId`. */
   area?: { parentOccurrenceId: string }
   /** The target's decided Legendary Resistance and the charge it cost, when its failed save offered one. */
@@ -87,6 +93,15 @@ export function buildEncounterActionStoredExecution(input: {
   const { mechanics, resourceReceipt, featureResourceReceipt } = settled
   const { stateEffectTransitions, activeEffectTransitions } = effects
   const actionEconomyTransition = actionEconomyReceipt(input.actionEconomy)
+  const delegatingActorSpend = input.delegation
+    ? {
+        delegatingActorSpend: {
+          actorId: input.delegation.actorId,
+          actionEconomyTransition: actionEconomyReceipt(input.delegation.consumption),
+          attackActionTransition: input.delegation.attackAction
+        }
+      }
+    : {}
   const boundDice = prepared.binding.sourceDerivedFacts.damageAddedDice
   const damageAddedDice = boundDice === undefined ? [] : damageAddedDiceDtoSchema.parse(boundDice)
   const addedDice = damageAddedDice.length ? { damageAddedDice } : {}
@@ -161,6 +176,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetItemDegradation: settled.targetItemDegradation,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
+            ...delegatingActorSpend,
             activeEffectTransitions: activeEffectTransitions.map((transition) =>
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
@@ -216,6 +232,7 @@ export function buildEncounterActionStoredExecution(input: {
             targetItemUseStateTransition: settled.targetItemUseStateTransition,
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
+            ...delegatingActorSpend,
             activeEffectTransitions,
             grantEffectTransitions: input.grantEffectTransitions ?? [],
             stateEffectTransitions,

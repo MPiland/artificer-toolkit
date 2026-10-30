@@ -412,6 +412,20 @@ export async function persistEncounterActionCommit(
         economyOverridden: false
       })
     : castSettledSource
+  // A delegated attack spends one attack of its commander's Attack action (DELEGATED_ATTACK).
+  const delegated = batch.delegatingActorSpend
+  const commander = delegated && actors.find((actor) => actor.id === delegated.actorId)
+  if (delegated && (!commander || commander.id === source.id || commander.id === target.id))
+    throw new Error('Live Session delegated attack scope mismatch.')
+  const settledCommander =
+    delegated && commander
+      ? await settleActionSourceSpend(ctx, {
+          encounterId: state.id,
+          source: commander,
+          spend: { ...delegated, featureResourceConsumption: null },
+          economyOverridden: false
+        })
+      : null
   const settledFailed = await applyFailedCounterSpends(ctx, {
     state,
     occurrenceId: execution.occurrenceId,
@@ -427,7 +441,9 @@ export async function persistEncounterActionCommit(
       ? settledSource
       : actor.id === target.id
         ? settledTarget
-        : (settledFailed.get(actor.id) ?? actor)
+        : actor.id === settledCommander?.id
+          ? settledCommander
+          : (settledFailed.get(actor.id) ?? actor)
   )
   nextActors = await callbacks.persistActionEffects({
     ...effectInput,

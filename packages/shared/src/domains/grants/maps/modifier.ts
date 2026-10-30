@@ -1144,9 +1144,12 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       )
       .set(
         'effectIds',
-        groupArray(['effectIds'], 'Exempt Active Effects', () => EFFECT_ID_NODE_MAP, {
+        groupArray(['effectIds'], 'Effects', () => EFFECT_ID_NODE_MAP, {
           presentation: 'inline',
-          showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
+          showIf: or([
+            parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION'),
+            parent.field(['valueDomainCode']).eq('DELEGATED_ATTACK')
+          ])
         })
       )
       .set(

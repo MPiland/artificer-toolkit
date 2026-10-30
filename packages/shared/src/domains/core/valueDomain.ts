@@ -25,6 +25,7 @@ export const VALUE_DOMAIN_CODE = {
   ATTACK_DECOYS: 'ATTACK_DECOYS',
   DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
   DAMAGE_MIRROR: 'DAMAGE_MIRROR',
+  DELEGATED_ATTACK: 'DELEGATED_ATTACK',
   END_EVENT_EXEMPTION: 'END_EVENT_EXEMPTION',
   INCOMING_DAMAGE: 'INCOMING_DAMAGE',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
@@ -191,6 +192,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Damage Mirror',
     description:
       'Damage the holder takes, after its resistances, is also dealt to the creature that applied the effect, whose own defenses then apply. Mirrored damage is never mirrored again.'
+  },
+
+  [VALUE_DOMAIN_CODE.DELEGATED_ATTACK]: {
+    code: VALUE_DOMAIN_CODE.DELEGATED_ATTACK,
+    label: 'Delegated Attack',
+    description:
+      'The holder can forgo one attack of its Attack action; a creature it summoned with one of the chosen effects makes that attack with its reaction.'
   },
 
   [VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION]: {
@@ -498,7 +506,8 @@ export type ValueDomainParamByCode = {
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
-  // holder through one of those System Senses (Blur's Blindsight and Truesight). ttackOccasion`n  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
+  // holder through one of those System Senses (Blur's Blindsight and Truesight). `attackOccasion`
+  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
   ATTACKS_AGAINST: {
     attackDomain: AttackDomainCode
     requiresHolderSeesAttacker: boolean
@@ -540,6 +549,9 @@ export type ValueDomainParamByCode = {
 
   // Damage the holder takes is also dealt to the effect source (Warding Bond).
   DAMAGE_MIRROR: EmptyObject
+
+  // The holder's summoned creature attacks in place of one of its attacks (Pact of the Chain).
+  DELEGATED_ATTACK: EmptyObject
 
   // The holder's chosen effects no longer end on the chosen events (Persistent Rage).
   END_EVENT_EXEMPTION: EmptyObject

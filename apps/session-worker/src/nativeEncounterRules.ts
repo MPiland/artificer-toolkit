@@ -276,24 +276,10 @@ export async function planNativeLiveEncounterAction(
     // An area's push pick is the area's own, never its pushed creature's save (D157).
     else if (areaSnapshot && resolution.kind === 'FORCED_MOVEMENT') areaLanding = resolution
     else {
-      const decision =
-        resolution.kind === 'DECLINE' || resolution.kind === 'OPTION' ? resolution : null
       pauseAnswer = readNativePauseAnswer({
         pause: snapshot.applicationContext.pause,
         snapshot,
-        resolution,
-        decision,
-        dice:
-          (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
-          snapshot.request.requestId === resolution.requestId
-            ? resolution
-            : null,
-        evidence:
-          resolution.kind === 'ENTER_DICE' ||
-          resolution.kind === 'ENTER_INTEGER' ||
-          resolution.kind === 'SYSTEM_ROLL'
-            ? resolution
-            : null
+        resolution
       })
     }
     const context = snapshot.applicationContext
@@ -476,8 +462,8 @@ export async function planNativeLiveEncounterAction(
   }
   const targetActorId = actionTargetActorId(command.target)
   const choiceOptionId = castChoiceOptionId(command.target)
-  const selectedActors = actors.filter(
-    (actor) => actor.id === command.actorId || actor.id === targetActorId
+  const selectedActors = actors.filter((actor) =>
+    [command.actorId, targetActorId, command.delegatingActorId].includes(actor.id)
   )
   const movementTargets = new Map(
     await Promise.all(
@@ -681,8 +667,16 @@ export async function planNativeLiveEncounterAction(
     heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
     characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
   })
-  const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
+  const delegatingActor = actors.find((actor) => actor.id === command.delegatingActorId)
+  if (command.delegatingActorId !== undefined && !delegatingActor)
+    throw new Error('Encounter rules input binding mismatch.')
+  const { activationCode, economy, suppressed, attackAction, grantedUseKey, delegation } =
     await evaluateNativeLiveActionEconomy({
+      delegation: delegatingActor && {
+        actor: delegatingActor,
+        target: movementTargets.get(delegatingActor.id),
+        effects: activeEffectsByActorId.get(delegatingActor.id) ?? []
+      },
       prepared,
       state,
       actionId: command.actionId,
@@ -887,6 +881,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     actionEconomy,
     attackAction,
+    delegation,
     maintenance,
     sceneContext
   })
@@ -1478,14 +1473,14 @@ export async function planNativeLiveEncounterAction(
         : planned.settledSource
   }
   // The attack's outcome is known now: a later slot's "earlier attacks hit" predicate reads it.
-  const settledAttackAction =
-    attackAction &&
-    settleEncounterAttackActionHit(
-      attackAction,
-      prepared.makesAttackRoll
-        ? execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
-        : null
-    )
+  const hit = prepared.makesAttackRoll
+    ? execution.d20?.resultPath === 'ON_HIT' || execution.d20?.resultPath === 'ON_CRIT'
+    : null
+  const settledAttackAction = attackAction && settleEncounterAttackActionHit(attackAction, hit)
+  const settledDelegation = delegation && {
+    ...delegation,
+    attackAction: settleEncounterAttackActionHit(delegation.attackAction, hit)
+  }
   const settlement = planNativeLiveEncounterSettlement({
     command,
     occurrenceId,
@@ -1511,6 +1506,7 @@ export async function planNativeLiveEncounterAction(
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction: settledAttackAction,
+    delegation: settledDelegation,
     maintenance,
     activeEffectsByActorId
   })
@@ -1604,6 +1600,7 @@ export async function planNativeLiveEncounterAction(
     maintenanceTransition: settlement.maintenanceTransition,
     actionEconomy,
     attackAction: settledAttackAction,
+    delegation: settledDelegation,
     resistance,
     reaction: reaction && {
       audit: reaction.audit,
