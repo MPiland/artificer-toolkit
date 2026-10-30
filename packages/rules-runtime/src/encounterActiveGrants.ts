@@ -1316,13 +1316,13 @@ export function encounterSavingThrowAddedDice(
 export function encounterSavingThrowAfterRollDice(
   gameSystemId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
-): Record<string, Pick<D20AddedDieDto, 'count' | 'faces' | 'sign'>[]> {
+): Record<string, D20AddedDieDto[]> {
   return Object.fromEntries(
     Object.entries(
       abilityScoreCapabilityRegistry.require(gameSystemId).abilityDefinitionIdByCode
     ).flatMap(([ability, abilityDefinitionId]) => {
       const dice = activeAfterRollSavingThrowDice(effects, ability).map(
-        ({ count, faces, sign }) => ({ count, faces, sign })
+        ({ label, count, faces, sign }) => ({ label, count, faces, sign })
       )
       return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
     })
