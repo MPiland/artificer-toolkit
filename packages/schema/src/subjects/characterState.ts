@@ -162,6 +162,13 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
         tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
         customName: z.optional(z.string()),
         notes: z.optional(z.string()),
+        form: z.optional(
+          z.object({
+            creatureId: postgresUuidSchema,
+            creatureTypeId: z.optional(postgresUuidSchema)
+          })
+        ),
+        untimed: z.optional(z.literal(true)),
         castAt: z.iso.datetime()
       })
       .check(

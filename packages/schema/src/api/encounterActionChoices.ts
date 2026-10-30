@@ -3,6 +3,7 @@ import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.j
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { characterSheetActionDtoSchema } from './characterSheetData.js'
+import { summonPickOptionsShape } from './summonPickOptions.js'
 import { resolveEncounterActionInputDtoSchema } from './encounters.js'
 import {
   encounterHeldWeaponStowDtoSchema,
@@ -246,22 +247,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         ),
       z.extend(pointAreaTargetDtoSchema, {
         ...choosesUnaffectedShape(),
-        /**
-         * The Creatures a summon of a chosen form may be, one of which the caster picks (Find
-         * Familiar); its area is then the System's default size, and the Worker places the picked
-         * Creature's own space. Absent for any other point.
-         */
-        summonForms: z.optional(
-          z
-            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
-            .check(z.minLength(1))
-        ),
-        /** The Creature Types the caster picks one of for the summoned form; absent for none. */
-        creatureTypes: z.optional(
-          z
-            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
-            .check(z.minLength(1))
-        )
+        ...summonPickOptionsShape()
       }),
       z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),

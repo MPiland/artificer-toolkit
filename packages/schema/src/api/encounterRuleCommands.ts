@@ -15,6 +15,7 @@ import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
 import { manifestDtoSchema } from '../effects/manifest.js'
+import { summonPicksShape } from './summonPickOptions.js'
 import { zoneDcDtoSchema } from '../shared/spatial.js'
 import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
@@ -167,10 +168,7 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       unaffectedActorIds: unaffectedActorIdsSchema,
       /** The zone the caster picks at cast, for an action that offers several (D140). */
       choiceOptionId: z.optional(postgresUuidSchema),
-      /** The form a summon takes, for a summon that authors forms (Find Familiar); absent otherwise. */
-      formId: z.optional(postgresUuidSchema),
-      /** The creature type the summon takes instead of its form's own, where the summon offers several. */
-      creatureTypeId: z.optional(postgresUuidSchema)
+      ...summonPicksShape()
     }),
     z.strictObject({
       kind: z.literal('DIRECTED'),

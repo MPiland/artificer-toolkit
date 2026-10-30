@@ -57,6 +57,7 @@ import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZ
 import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
+import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import {
   creatureSnapshotSize,
   encounterActiveEffectPlan
@@ -461,31 +462,20 @@ async function readSummonBody(
   | null
 > {
   const { target } = input.command
-  const formId = target.kind === 'POINT' ? target.formId : undefined
-  const creatureTypeId = target.kind === 'POINT' ? target.creatureTypeId : undefined
-  if (!placement || 'statBlock' in placement) {
-    if (formId !== undefined || creatureTypeId !== undefined)
-      throw summonFormRefusal('This action takes no creature form.')
-    return placement ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock } : null
-  }
-  const form = placement.forms.find((candidate) => candidate.id === formId)
-  if (!form) throw summonFormRefusal('This summon needs one of its creature forms.')
-  if (
-    placement.creatureTypeIds.length
-      ? creatureTypeId === undefined || !placement.creatureTypeIds.includes(creatureTypeId)
-      : creatureTypeId !== undefined
+  const pick = summonFormPick(
+    placement,
+    target.kind === 'POINT' ? { formId: target.formId, creatureTypeId: target.creatureTypeId } : {}
   )
-    throw summonFormRefusal(
-      placement.creatureTypeIds.length
-        ? 'Pick one of the creature types this summon offers.'
-        : "This summon keeps its form's creature type."
-    )
+  if (pick && 'refusal' in pick) throw summonFormRefusal(pick.refusal)
+  if (!pick) return placement && 'statBlock' in placement
+    ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock }
+    : null
   if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
   return {
     kind: 'CREATURE',
-    creature: await input.readFormCreature(input.state.gameSystemId, form.creatureId),
-    creatureTypeId: creatureTypeId ?? null,
-    label: form.label
+    creature: await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
+    creatureTypeId: pick.creatureTypeId,
+    label: pick.form.label
   }
 }
 

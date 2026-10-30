@@ -11,6 +11,7 @@ import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
+import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
 import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
 export function projectCharacterSheetPanel(
@@ -35,7 +36,8 @@ export function projectCharacterSheetPanel(
     adjustments: current.displayAdjustments,
     movementDisplayPreference: current.sheetState.movementDisplayPreference,
     target,
-    editable: viewer === 'CHARACTER_OWNER' || campaignStatus === 'ACTIVE'
+    editable: viewer === 'CHARACTER_OWNER' || campaignStatus === 'ACTIVE',
+    spellSummonPlacement: (cast) => readSheetSpellSummonPlacement(current, cast)
   })
   const allowedCommands =
     viewer === 'CHARACTER_OWNER'

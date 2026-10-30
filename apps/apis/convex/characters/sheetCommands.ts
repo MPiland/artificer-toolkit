@@ -58,9 +58,12 @@ import {
   characterStandingEffects,
   prepareRestStandingEffects
 } from '@artificer-toolkit/rules-runtime/standingEffectPlans'
-import { compileCharacterSpellCasts } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
-import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
-import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
+import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
+import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
+import { snapshotBlueprintEnemies } from '../encounters/blueprintSnapshots'
+import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { projectCharacterSheetEquipmentOption } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { type MutationCtx } from '../_generated/server'
@@ -359,6 +362,26 @@ export async function executeCharacterSheetCommand(
     )
       throw new CharacterSheetCommandError('New Equipment copies require current source access.')
   }
+  // The pure reducer conjures a picked summon form from its System Creature, read here first.
+  const summonFormCreatures = new Map<string, SheetSummonFormCreature>()
+  if (command.type === 'CAST_SPELL' && command.formId !== undefined) {
+    const { castLevel } = resolveAvailableSpellCast(initial.sheet, command)
+    const pick = summonFormPick(
+      readSheetSpellSummonPlacement(initial, { spellId: command.spellId, castLevel }),
+      command
+    )
+    if (pick && !('refusal' in pick)) {
+      const [creature] = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
+        gameSystemId: initial.character.systemId,
+        enemies: [{ kind: 'CREATURE', sourceId: pick.form.creatureId }]
+      })
+      if (creature?.kind === 'CREATURE')
+        summonFormCreatures.set(pick.form.creatureId, {
+          stats: formSummonStats(creature),
+          maxHitPoints: creature.maxHitPoints
+        })
+    }
+  }
   // The active Sheet lists the Character's own Equipment, even after its source access ends; the
   // entry being added is read on its own and is offered only while the owner can still read it.
   let commandSheet = initial.sheet
@@ -404,23 +427,8 @@ export async function executeCharacterSheetCommand(
           command.type === 'SET_PREPARED_SPELLS'
             ? getCharacterSpellPreparationEligibleIdsByClass(spellEligibilityInput)
             : undefined,
-        spellSummonPlacement: (cast) =>
-          sheetSpellCastSummonPlacement({
-            casts: compileCharacterSpellCasts({
-              gameSystemId: initial.character.systemId,
-              character: initial.character,
-              ruleEvaluation: initial.ruleEvaluation,
-              policyOutput: initial.ruleEvaluation.output,
-              spellsById: initial.spellsById,
-              characterLevel: characterTotalLevel(initial),
-              conditionDefinitionIds: (
-                initial.resolution.registry.system?.conditionTypes ?? []
-              ).map((condition) => condition.id),
-              firstSequence: initial.ruleEvaluation.facts.actionCandidates.length
-            }),
-            spellCastCandidates: initial.ruleEvaluation.facts.spellCastCandidates,
-            ...cast
-          }),
+        spellSummonPlacement: (cast) => readSheetSpellSummonPlacement(initial, cast),
+        summonFormCreatures,
         extraDefaults,
         deathSaveDie
       })
