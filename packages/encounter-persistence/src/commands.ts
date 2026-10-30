@@ -405,6 +405,7 @@ async function recordEncounterToolCommand(
     const conditionDeath =
       input.type === 'UPDATE_ACTOR' &&
       input.conditions !== undefined &&
+      actor.kind !== 'CHARACTER' &&
       (await creatureConditionEditReachesDeath({
         beforeRows: actor.conditions,
         afterRows: input.conditions,

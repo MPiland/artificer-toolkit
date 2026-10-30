@@ -70,19 +70,21 @@ export async function sheetCommandReachesConditionDeath(input: {
 
 /** Whether a GM condition edit on a Creature raises any condition onto an authored DEATH mechanic. */
 export async function creatureConditionEditReachesDeath(input: {
-  beforeRows: readonly unknown[]
-  afterRows: readonly unknown[]
+  beforeRows: unknown
+  afterRows: unknown
   gameSystemId: string
   readCurrentDefinition: ReadCurrentDefinition
 }): Promise<boolean> {
   const { gameSystemId, readCurrentDefinition } = input
-  const levels = (rows: readonly unknown[]) =>
-    encounterConditionLevels({
-      conditionIds: readEncounterActorConditionState(rows).ids,
-      conditionRows: rows,
+  const levels = (rows: unknown) => {
+    const { ids, values } = readEncounterActorConditionState(rows)
+    return encounterConditionLevels({
+      conditionIds: ids,
+      conditionRows: values,
       exhaustionLevel: 0,
       gameSystemId
     })
+  }
   const before = levels(input.beforeRows)
   for (const [conditionId, after] of levels(input.afterRows))
     if (
