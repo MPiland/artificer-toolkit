@@ -310,6 +310,20 @@ describe('development Social retention fixture pages', () => {
     ).toEqual(before)
   })
 
+  it.each(['INVITATIONS', 'APPLICATIONS', 'REPORTS'] as const)(
+    'checks and serves the %s page from one paginated read',
+    async (phase) => {
+      const base = await setup()
+      const page = { phase, asOf, paginationOpts: { cursor: null, numItems: 8 } }
+      expect(await base.t.query(previewFixturePage, { ...base.args, input: page })).toMatchObject({
+        fixtureOnly: true
+      })
+      expect(
+        await base.t.mutation(applyFixturePage, { ...base.args, input: input(phase) })
+      ).toMatchObject({ deleted: 0 })
+    }
+  )
+
   it('preserves empty-page continuation metadata', async () => {
     const base = await setup()
     const empty: SocialRetentionPreviewInput = {

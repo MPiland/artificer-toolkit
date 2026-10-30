@@ -55,7 +55,8 @@ afterEach(() => {
 })
 
 function atFixedTime() {
-  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-27T12:00:00.000Z') })
+  // Ahead of every commit: a transaction's clock cannot run behind the last one.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2100-01-01T12:00:00.000Z') })
 }
 
 /** Receipt ledgers store `*Json` bodies canonically, so Convex reads them back key-sorted. */

@@ -1,6 +1,6 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { v } from 'convex/values'
-import type { Id } from '../_generated/dataModel'
+import type { Doc, Id } from '../_generated/dataModel'
 import { internal } from '../_generated/api'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
@@ -26,9 +26,14 @@ type RetentionCursor = {
   splitCursor?: string | null
   pageStatus?: 'SplitRecommended' | 'SplitRequired' | null
 }
-type RetentionSelection = RetentionCursor & {
-  scanned: number
+type RetentionPage =
+  | { phase: 'INVITATIONS'; rows: Doc<'campaignInvites'>[] }
+  | { phase: 'REPORTS'; rows: Doc<'socialReports'>[] }
+  | { phase: 'APPLICATIONS'; rows: Doc<'socialApplications'>[] }
+type RetentionSelection = {
+  page: RetentionPage
   matches: Array<{ id: RetentionId; reportId?: string }>
+  summary: RetentionCursor & { scanned: number }
 }
 
 function cutoffValues(input: SocialRetentionPreviewInput) {
@@ -48,7 +53,8 @@ function cutoffValues(input: SocialRetentionPreviewInput) {
   return { terminalBefore, reportCutoff, reportRangeStart, earlierShortTimes }
 }
 
-async function selectRetentionPage(
+/** Convex allows one `.paginate()` per function call, so callers share this page read. */
+export async function selectRetentionPage(
   ctx: QueryCtx | MutationCtx,
   input: SocialRetentionPreviewInput,
   requireNoReports = false
@@ -67,7 +73,11 @@ async function selectRetentionPage(
         : []
     })
     const { page, ...cursor } = result
-    return { ...cursor, scanned: page.length, matches }
+    return {
+      page: { phase: 'INVITATIONS', rows: page },
+      matches,
+      summary: { ...cursor, scanned: page.length }
+    }
   }
   if (input.phase === 'REPORTS') {
     const result = await ctx.db.query('socialReports').paginate(pagination)
@@ -81,7 +91,11 @@ async function selectRetentionPage(
         : []
     })
     const { page, ...cursor } = result
-    return { ...cursor, scanned: page.length, matches }
+    return {
+      page: { phase: 'REPORTS', rows: page },
+      matches,
+      summary: { ...cursor, scanned: page.length }
+    }
   }
   const result = await ctx.db.query('socialApplications').paginate(pagination)
   const matches: RetentionSelection['matches'] = []
@@ -176,18 +190,36 @@ async function selectRetentionPage(
     if (!protectedReport) matches.push({ id: _id })
   }
   const { page, ...cursor } = result
-  return { ...cursor, scanned: page.length, matches }
+  return {
+    page: { phase: 'APPLICATIONS', rows: page },
+    matches,
+    summary: { ...cursor, scanned: page.length }
+  }
+}
+
+export async function deleteRetentionMatches(
+  ctx: MutationCtx,
+  { matches, summary }: RetentionSelection
+) {
+  for (const match of matches) {
+    await ctx.db.delete(match.id)
+    if (match.reportId)
+      await ctx.scheduler.runAfter(0, internal.social.retention.cleanupReportActions, {
+        reportId: match.reportId
+      })
+  }
+  return { ...summary, eligible: matches.length, deleted: matches.length }
 }
 
 export const preview = internalQuery({
   args: zodToConvexFields(socialRetentionPreviewInputSchema.shape),
   returns: zodToConvex(socialRetentionPreviewResultSchema),
   handler: async (ctx, args) => {
-    const { matches, ...result } = await selectRetentionPage(
+    const { matches, summary } = await selectRetentionPage(
       ctx,
       socialRetentionPreviewInputSchema.parse(args)
     )
-    return { ...result, eligible: matches.length }
+    return { ...summary, eligible: matches.length }
   }
 })
 
@@ -196,15 +228,7 @@ export const apply = internalMutation({
   returns: zodToConvex(socialRetentionApplyResultSchema),
   handler: async (ctx, args) => {
     const input = socialRetentionApplyInputSchema.parse(args)
-    const { matches, ...result } = await selectRetentionPage(ctx, input, true)
-    for (const match of matches) {
-      await ctx.db.delete(match.id)
-      if (match.reportId)
-        await ctx.scheduler.runAfter(0, internal.social.retention.cleanupReportActions, {
-          reportId: match.reportId
-        })
-    }
-    return { ...result, eligible: matches.length, deleted: matches.length }
+    return deleteRetentionMatches(ctx, await selectRetentionPage(ctx, input, true))
   }
 })
 

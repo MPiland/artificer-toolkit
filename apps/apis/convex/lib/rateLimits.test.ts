@@ -112,14 +112,15 @@ describe('native Social fixed-window limits', () => {
   it('uses UTC boundaries and cannot reset an allowance by moving the clock backwards', async () => {
     const t = setup()
     const userId = crypto.randomUUID()
-    vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
+    vi.setSystemTime(new Date('2030-01-01T01:59:00.000Z'))
     for (let count = 0; count < 29; count++)
       await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
     vi.setSystemTime(new Date('2030-01-01T00:59:59.999Z'))
     await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
       'Too many Social actions'
     )
-    vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
+    // The rejected attempt below runs one millisecond later, on the window's last.
+    vi.setSystemTime(new Date('2030-01-01T01:59:59.998Z'))
     await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
     await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
       'Too many Social actions'
