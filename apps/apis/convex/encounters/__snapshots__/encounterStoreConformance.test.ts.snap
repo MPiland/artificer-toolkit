@@ -81,7 +81,6 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
     "updatedActor": {
       "absence": null,
       "conditions": [],
-      "consequences": [],
       "controllerUserIds": [],
       "createdAt": "<time:55>",
       "currentHitPoints": 9,

@@ -53,7 +53,6 @@ exports[`Encounter projections built on read > applies an action mechanics batch
     "updatedActor": {
       "absence": null,
       "conditions": [],
-      "consequences": [],
       "controllerUserIds": [],
       "createdAt": "<time>",
       "currentHitPoints": 9,
