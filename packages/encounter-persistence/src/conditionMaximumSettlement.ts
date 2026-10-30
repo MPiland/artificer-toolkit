@@ -39,7 +39,7 @@ export async function settleCreatureConditionMaximum(
   }
 ): Promise<EncounterRunActorState> {
   const { before, actor } = input
-  if (actor.kind === 'CHARACTER') return actor
+  if (actor.kind === 'CHARACTER' || before.kind === 'CHARACTER') return actor
   if (JSON.stringify(before.conditions) === JSON.stringify(actor.conditions)) return actor
   const fraction = await creatureHitPointMaximumFraction({
     conditionRows: actor.conditions ?? [],

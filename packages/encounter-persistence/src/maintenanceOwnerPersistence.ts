@@ -108,7 +108,7 @@ export async function reconcileNativeMaintenanceOwners(
         before: current,
         actor: { ...updated, absence: stored.absence },
         ownerUserId: await readRunCampaignOwnerUserId(ctx, encounterId),
-        gameSystemId: stored.systemId
+        gameSystemId: readRunState(run).gameSystemId
       })
       if (row.stateChecksum !== checksumRunActorPlayState(current))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')
