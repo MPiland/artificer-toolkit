@@ -21,7 +21,10 @@ function repellingBlastRiders() {
     ?.flatMap((each) => each.options ?? [])
     .find((option) => option.label === 'Repelling Blast')
   if (!feature) throw new Error('Repelling Blast is missing from the SRD Warlock.')
-  return collectOnHitRiders((feature.effects ?? []).map(compileEffect), feature.id)
+  return collectOnHitRiders(
+    (feature.effects ?? []).map((effect) => compileEffect(effect)),
+    feature.id
+  )
 }
 
 function castOf(authored: SpellAuthored, onHitRiders = repellingBlastRiders()) {

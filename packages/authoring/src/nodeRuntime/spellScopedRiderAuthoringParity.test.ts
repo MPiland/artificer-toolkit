@@ -5,7 +5,7 @@ import { compiledTestSpellCast } from '@artificer-toolkit/rules-runtime/testing/
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
-import type { FeatureOptionAuthored } from '@artificer-toolkit/shared/authored'
+import type { OptionAuthored } from '@artificer-toolkit/shared/authored'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
@@ -34,7 +34,7 @@ function normalize(record: ClassAuthored) {
 
 const spell = (label: string): SpellAuthored => srdByLabel(srdSpells, label)
 
-const repellingBlast = (): FeatureOptionAuthored => {
+const repellingBlast = (): OptionAuthored => {
   const option = warlock.features
     ?.flatMap((feature) => feature.options ?? [])
     .find((each) => each.label === 'Repelling Blast')
@@ -43,52 +43,32 @@ const repellingBlast = (): FeatureOptionAuthored => {
 }
 
 /** The same push, scoped to the casts of another Spell and authored under fresh identities. */
-function homebrewPush(spellId: string): FeatureOptionAuthored {
-  const idFor = (part: number) =>
-    `7e57a000-0000-4000-8${part.toString(16).padStart(3, '0')}-000000000002`
-  const source = structuredClone(repellingBlast())
-  const [effect] = source.effects ?? []
-  const [path] = effect?.paths ?? []
-  if (!effect || effect.invocation.kind !== 'PASSIVE' || !path?.resultBlock)
-    throw new Error('Expected the SRD rider as a passive Effect with a result block.')
-  return {
-    ...source,
-    id: idFor(0x01),
-    label: 'Homebrew Push',
-    restrictions: undefined,
-    effects: [
-      {
-        ...effect,
-        id: idFor(0x02),
-        invocation: {
-          ...effect.invocation,
-          ridesSpellIds: [spellId],
-          range: { ...effect.invocation.range, id: idFor(0x03) }
-        },
-        paths: [
-          {
-            ...path,
-            id: idFor(0x04),
-            resultBlock: {
-              ...path.resultBlock,
-              id: idFor(0x05),
-              outcomes: path.resultBlock.outcomes.map((outcome) => ({
-                ...outcome,
-                id: idFor(0x06)
-              }))
-            }
-          }
-        ]
-      }
-    ]
-  }
+function homebrewPush(spellId: string): OptionAuthored {
+  const source = repellingBlast()
+  const eldritchBlastId = spell('Eldritch Blast').id
+  const json = JSON.stringify({ ...source, restrictions: undefined })
+  const ids = [
+    ...new Set(json.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g))
+  ]
+  const fresh = ids
+    .filter((id) => id !== eldritchBlastId)
+    .reduce(
+      (text, id, index) =>
+        text.replaceAll(id, `7e57a000-0000-4000-8000-${index.toString(16).padStart(12, '0')}`),
+      json
+    )
+    .replaceAll(eldritchBlastId, spellId)
+  return { ...JSON.parse(fresh), label: 'Homebrew Push' }
 }
 
-function pushes(option: FeatureOptionAuthored, cast: SpellAuthored) {
+function pushes(option: OptionAuthored, cast: SpellAuthored) {
   const sourceInstanceId = `class-${cast.id}`
   const { entry } = compiledTestSpellCast({
     spell: cast,
-    onHitRiders: collectOnHitRiders((option.effects ?? []).map(compileEffect), option.id),
+    onHitRiders: collectOnHitRiders(
+      (option.effects ?? []).map((effect) => compileEffect(effect)),
+      option.id
+    ),
     cast: {
       sequence: 0,
       candidateId: `CLASS:${sourceInstanceId}:${cast.id}:level:${cast.level}`,
