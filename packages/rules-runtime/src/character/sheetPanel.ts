@@ -1,5 +1,4 @@
-import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
-import { summonPickOptions } from '../spellSummonStatBlock.js'
+import type { SummonPickOptionsDto } from '@artificer-toolkit/schema/api/summonPickOptions'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   characterSheetPanelDtoSchema,
@@ -1303,7 +1302,7 @@ function buildSpellPanel(
       castLevel: entry.castLevel,
       available: entry.available,
       ...(entry.unavailableReason ? { unavailableReason: entry.unavailableReason } : {}),
-      ...castSummonPickOptions(params, { spellId: spell.id, castLevel: entry.castLevel })
+      ...params.castSummonPickOptions?.({ spellId: spell.id, castLevel: entry.castLevel })
     })),
     calculations: {
       ...(spell.mechanics?.some((mechanic) => mechanic.attackBonus !== undefined) &&
@@ -1691,22 +1690,7 @@ interface BuildCharacterSheetPanelParams {
   movementDisplayPreference: CharacterMovementDisplayPreference
   target: CharacterSheetPanelTargetDto
   editable: boolean
-  /** The summon plan of a Sheet cast, from the compile an Encounter offers its casts from (D190). */
-  spellSummonPlacement?: (cast: {
-    spellId: string
-    castLevel: number
-  }) => CompiledActionSummonPlacement | null
-}
-
-/** The form and Creature Type a cast of a summon of a chosen form asks its caster to pick. */
-function castSummonPickOptions(
-  params: BuildCharacterSheetPanelParams,
-  cast: { spellId: string; castLevel: number }
-) {
-  const placement = params.spellSummonPlacement?.(cast)
-  return placement
-    ? summonPickOptions(placement, params.resolution.registry.system?.creatureTypes ?? [])
-    : {}
+  castSummonPickOptions?: (cast: { spellId: string; castLevel: number }) => SummonPickOptionsDto
 }
 
 export function buildCharacterSheetPanel(

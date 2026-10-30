@@ -1,6 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelInput
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type {
   CharacterSheetExecuteInput,
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
@@ -94,7 +98,7 @@ async function fixture(spell: SpellAuthored = arcaneHand, creatures: CreatureAut
       ...picks
     })
   const panel = () =>
-    base.owner.caller.query(api.characters.panels.get, {
+    base.owner.caller.query(getPanel, {
       id: character.id,
       target: { kind: 'SPELL', source: source.source }
     })
@@ -117,6 +121,10 @@ async function fixture(spell: SpellAuthored = arcaneHand, creatures: CreatureAut
   }
   return { run, cast, rest, sheet, panel }
 }
+
+const getPanel = makeFunctionReference<'query', CharacterSheetPanelInput, CharacterSheetPanelDto>(
+  'characters/panels:get'
+)
 
 const summonsOf = (sheet: CharacterSheetResponseDto) =>
   sheet.extras.items.filter((item) => item.kind === 'SPELL_SUMMON')

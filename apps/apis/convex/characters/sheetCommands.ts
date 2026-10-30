@@ -377,7 +377,7 @@ export async function executeCharacterSheetCommand(
       })
       if (creature?.kind === 'CREATURE')
         summonFormCreatures.set(pick.form.creatureId, {
-          stats: formSummonStats(creature),
+          stats: formSummonStats({ ...creature, systemId: initial.character.systemId }),
           maxHitPoints: creature.maxHitPoints
         })
     }

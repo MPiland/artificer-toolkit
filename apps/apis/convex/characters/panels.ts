@@ -12,6 +12,7 @@ import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
+import { summonPickOptions } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
 export function projectCharacterSheetPanel(
@@ -37,7 +38,12 @@ export function projectCharacterSheetPanel(
     movementDisplayPreference: current.sheetState.movementDisplayPreference,
     target,
     editable: viewer === 'CHARACTER_OWNER' || campaignStatus === 'ACTIVE',
-    spellSummonPlacement: (cast) => readSheetSpellSummonPlacement(current, cast)
+    castSummonPickOptions: (cast) => {
+      const placement = readSheetSpellSummonPlacement(current, cast)
+      return placement
+        ? summonPickOptions(placement, current.resolution.registry.system?.creatureTypes ?? [])
+        : {}
+    }
   })
   const allowedCommands =
     viewer === 'CHARACTER_OWNER'

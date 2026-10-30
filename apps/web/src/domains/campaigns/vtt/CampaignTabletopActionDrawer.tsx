@@ -325,11 +325,8 @@ export function CampaignTabletopActionDrawer({
     ...choiceActorsTarget,
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
-  const summonChoices = summonPicks(
-    choiceTarget?.kind === 'POINT' ? choiceTarget : null,
-    pickedFormId,
-    pickedCreatureTypeId
-  )
+  const pointTarget = choiceTarget?.kind === 'POINT' ? choiceTarget : null
+  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
