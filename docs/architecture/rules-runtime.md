@@ -530,6 +530,14 @@ owner's turn. `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) is the one
 `createStagedInitiativeRoundState` and reinforcement read it, and the projection's `stableActors` orders the
 unowned actors by initiative, then puts each owned actor right after its owner, with no extra read.
 
+**Summon turn timing (D200, amends D190a; current: authoring and the owner link only).** A `SUMMON` manifest may
+author `turnTiming`: `OWNER_TURN` (the default; absence means it), `AFTER_OWNER` or `OWN_INITIATIVE`. The compiler
+carries the two non-default values on `summonPlacement.turnTiming`, `buildEncounterSummon` stores them on the actor's
+`owner` link, and `takesInitiativeTurns` reads them: only `OWN_INITIATIVE` puts an owned actor in the initiative
+cohort. An owner-turn summon is unchanged, and the owner stays its command actor. Target: the turn cursor stepping to an
+`AFTER_OWNER` summon, rolling at arrival, the owner's player running the turn, and the prompt belong to SPELLS-35.T2 to
+T6; until they land no authored spell uses a non-default timing.
+
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
 attack roll (`makesAttackRoll`, a required policy input) or the authored single-target `self` field is `WARN`

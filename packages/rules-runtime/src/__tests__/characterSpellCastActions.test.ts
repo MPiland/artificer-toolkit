@@ -3128,6 +3128,19 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       })
     })
 
+    it('carries an authored turn timing onto the plan, and none for the default (D200)', () => {
+      const timing = (turnTiming?: 'OWNER_TURN' | 'AFTER_OWNER' | 'OWN_INITIATIVE') =>
+        compiledCast(
+          familiar((outcome) => {
+            outcome.turnTiming = turnTiming
+          })
+        )?.summonPlacement
+      expect(timing('AFTER_OWNER')).toMatchObject({ turnTiming: 'AFTER_OWNER' })
+      expect(timing('OWN_INITIATIVE')).toMatchObject({ turnTiming: 'OWN_INITIATIVE' })
+      expect(timing('OWNER_TURN')).not.toHaveProperty('turnTiming')
+      expect(timing()).not.toHaveProperty('turnTiming')
+    })
+
     it('lists the forms in their authored order, whatever order they are written in', () => {
       const placement = compiledCast(
         familiar((outcome) => {
