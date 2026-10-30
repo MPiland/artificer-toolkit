@@ -170,6 +170,7 @@ export type SrdCharacter = {
   initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
   standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
   standingGrantedActions: ReturnType<typeof buildCharacterActionRuleFacts>['standingGrantedActions']
+  castModifiers: ReturnType<typeof buildCharacterActionRuleFacts>['castModifiers']
   snapshot: CharacterBuildSnapshot
   output: CharacterRulePolicyOutput
   itemInstanceId: (label: string) => string
@@ -308,6 +309,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     initiativeRestoreSources: actionFacts.initiativeRestores,
     standingEffectSources: actionFacts.standingEffects,
     standingGrantedActions: actionFacts.standingGrantedActions,
+    castModifiers: actionFacts.castModifiers,
     snapshot,
     output: resolveCharacterRulePolicyRollModes(
       evaluateDnd5e2014CharacterPolicy(facts),

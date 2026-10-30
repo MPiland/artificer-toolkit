@@ -58,6 +58,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
   /** Server-only basic actions the Character's passive features offer on every turn (D188). */
   standingGrantedActions: ReturnType<typeof buildCharacterActionRuleFacts>['standingGrantedActions']
+  /** Server-only costs the Character may pay on casting a spell; the spell casts offer them. */
+  castModifiers: ReturnType<typeof buildCharacterActionRuleFacts>['castModifiers']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -198,6 +200,7 @@ export function composeCharacterRulePolicyFacts(
     passiveZoneSources: actionFacts.passiveZones,
     initiativeRestoreSources: actionFacts.initiativeRestores,
     standingEffectSources: actionFacts.standingEffects,
-    standingGrantedActions: actionFacts.standingGrantedActions
+    standingGrantedActions: actionFacts.standingGrantedActions,
+    castModifiers: actionFacts.castModifiers
   }
 }

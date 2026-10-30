@@ -14,6 +14,8 @@ import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
+import type { CastModifierSource } from './characterCastModifiers.js'
+import { affordablePoolFor } from './characterResourcePool.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
@@ -165,6 +167,8 @@ export function buildCharacterSpellCastActions(input: {
   /** The Character's level, the sum of its class levels. */
   characterLevel: number
   firstSequence: number
+  /** What the Character's features let it pay on a cast; offered on casts no pool already pays for. */
+  castModifiers?: readonly CastModifierSource[]
 }): {
   candidates: CharacterActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
@@ -239,6 +243,22 @@ export function buildCharacterSpellCastActions(input: {
             )
       if (pool === undefined) continue
       const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
+      const offeredModifiers = resourceUse
+        ? []
+        : (input.castModifiers ?? []).flatMap(({ modifierId, label, cost }) => {
+            const modifierPool = affordablePoolFor(policyOutput.resources, cost)
+            return modifierPool
+              ? [
+                  {
+                    modifierId,
+                    label,
+                    chargeId: cost.chargeId,
+                    cost: cost.cost,
+                    poolId: modifierPool.poolId
+                  }
+                ]
+              : []
+          })
       const sequence = input.firstSequence + candidates.length
       candidates.push({
         sequence,
@@ -251,6 +271,7 @@ export function buildCharacterSpellCastActions(input: {
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
         resourceUse,
+        ...(offeredModifiers.length > 0 && { castModifiers: offeredModifiers }),
         mechanicFacts
       })
       entryPoints.push({
@@ -312,7 +333,8 @@ export function compileCharacterSpellCasts(input: {
     policyOutput,
     spellsById,
     characterLevel: input.characterLevel,
-    firstSequence: input.firstSequence
+    firstSequence: input.firstSequence,
+    castModifiers: ruleEvaluation.castModifiers
   })
   const entryPoints = compileCharacterActionEntryPoints({
     gameSystemId,

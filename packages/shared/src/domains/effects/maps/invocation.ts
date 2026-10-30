@@ -394,6 +394,14 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'castModifier',
+        groupObject(['castModifier'], 'Cast Modifier Cost', () => RESOURCE_USE_NODE_MAP, {
+          presentation: 'inline',
+          order: 7,
+          showIf: local.field(['kind']).eq('PASSIVE')
+        })
+      )
+      .set(
         'ridesFeatureId',
         selectSingle(
           ['ridesFeatureId'],

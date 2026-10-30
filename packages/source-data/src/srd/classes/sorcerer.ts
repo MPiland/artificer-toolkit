@@ -824,7 +824,22 @@ export const sorcerer: ClassAuthored = {
           label: 'Subtle Spell',
           description:
             'When you cast a spell, you can spend 1 sorcery point to cast it without any somatic or verbal components.',
-          effects: [selfClassRuleEffect(26, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_SUBTLE)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 26),
+                range: classRowId(S, 0x69, 26),
+                path: classRowId(S, 0x80, 26),
+                result: classRowId(S, 0x81, 26),
+                outcome: classRowId(S, 0x82, 26)
+              },
+              label: 'Subtle Spell',
+              instructions:
+                'The spell is cast without any somatic or verbal components. The sorcery point is spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: { chargeId: sorceryPointsCharge.id, cost: 1 }
+            })
+          ],
           order: 6
         },
         {

@@ -318,6 +318,8 @@ export async function prepareEncounterActionMechanics<
   actionId: string
   /** The option the caster picked at cast, as `prepareEncounterActionSource` takes it. */
   choiceOptionId?: string
+  /** The `castModifiers` entry of the cast candidate the caster pays on this cast. */
+  castModifierId?: string
   /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
   readsSharedTest?: boolean
   /** The ammunition a weapon attack fires and how many attacks the command makes; absent for a read, which previews the first stack in stock. */
@@ -499,6 +501,8 @@ export async function prepareEncounterActionMechanics<
             ).actual
         : undefined
     })
+  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'
@@ -509,7 +513,16 @@ export async function prepareEncounterActionMechanics<
             characterFacts.character.systemId !== state.gameSystemId
           )
             throw new StaleCharacterActionError('The selected Character action source is stale.')
+          const castModifier =
+            input.castModifierId === undefined
+              ? null
+              : (source.candidate.castModifiers?.find(
+                  ({ modifierId }) => modifierId === input.castModifierId
+                ) ?? null)
+          if (input.castModifierId !== undefined && !castModifier)
+            throw new EncounterValidationError('The selected cast modifier is not offered.')
           return prepareNativeCharacterActionState({
+            castModifier,
             entry: source.entry,
             candidate: source.candidate,
             policyOutput: source.effectivePolicyOutput,

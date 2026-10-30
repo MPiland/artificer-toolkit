@@ -631,6 +631,7 @@ export function prepareCasterActionOnTarget(
     actors: input.actors,
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
+    castModifierId: capability ? undefined : input.command.castModifierId,
     ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',

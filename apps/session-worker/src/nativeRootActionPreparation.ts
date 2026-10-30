@@ -81,6 +81,7 @@ export async function prepareNativeLiveRootActionMechanics(input: {
     actionId: root.actionId,
     // A resumed action runs as the outcome its root picked (Shove, D105).
     choiceOptionId: castChoiceOptionId(root.target),
+    castModifierId: root.castModifierId,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: false,
     movementTargets,
