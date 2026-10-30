@@ -1426,17 +1426,10 @@ export async function planNativeLiveEncounterAction(
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      grantedMaximumHitPoints: preparedEffects.hitPointMaximumRaise,
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
-      degradeTargetItem: preparedEffects.degradedItem && {
-        itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
-        afterPenalty: preparedEffects.degradedItem.afterPenalty,
-        destroyed: preparedEffects.degradedItem.destroyed
-      },
-      degradeSourceItem: preparedEffects.sourceDegradedItem && {
-        itemInstanceId: preparedEffects.sourceDegradedItem.itemInstanceId,
-        afterPenalty: preparedEffects.sourceDegradedItem.afterPenalty,
-        destroyed: preparedEffects.sourceDegradedItem.destroyed
-      },
+      degradeTargetItem: preparedEffects.degradedItem,
+      degradeSourceItem: preparedEffects.sourceDegradedItem,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||

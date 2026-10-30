@@ -169,7 +169,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
         let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
-        let maximum = value.targetTransition.before.maximumHitPoints
+        let maximum =
+          value.targetTransition.before.maximumHitPoints +
+          (value.targetTransition.grantedMaximumHitPoints ?? 0)
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
         const scalarValues = {

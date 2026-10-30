@@ -144,6 +144,12 @@ export function foldCharacterMechanicsApplications<
   /** The active effect whose temporary hit points these are, null or absent when none (D156). */
   temporaryHitPointsSourceEffectId?: string | null
   maximumHitPoints: number
+  /**
+   * How far the effects this batch's outcome leaves on the target raise its maximum
+   * (`createdHitPointMaximumRaise`): the applications clamp against the raised maximum, while the
+   * transition's before state keeps the stored one.
+   */
+  grantedMaximumHitPoints?: number
   /** A Character's death saves; null for an actor that is simply defeated at 0 (D63). */
   deathSaves: TDeathSaves
   /** Every present condition: the target's own and any the Campaign holds. */
@@ -186,7 +192,13 @@ export function foldCharacterMechanicsApplications<
   afterAbsence: EncounterActorAbsenceDto | null
   stateChanged: boolean
 } {
-  if (!Number.isSafeInteger(input.maximumHitPoints) || input.maximumHitPoints < 0)
+  const granted = input.grantedMaximumHitPoints ?? 0
+  if (
+    !Number.isSafeInteger(input.maximumHitPoints) ||
+    input.maximumHitPoints < 0 ||
+    !Number.isSafeInteger(granted) ||
+    granted < 0
+  )
     throw new EncounterValidationError('The Character maximum hit points are invalid.')
   if (
     !Number.isSafeInteger(input.currentHitPoints) ||
@@ -229,7 +241,7 @@ export function foldCharacterMechanicsApplications<
   let current = before.currentHitPoints
   let temporary = before.temporaryHitPoints
   let temporarySource = before.temporaryHitPointsSourceEffectId ?? null
-  let maximum = before.maximumHitPoints
+  let maximum = before.maximumHitPoints + granted
   let deathSaves: CharacterDeathSaves | null = before.deathSaves
   const conditions = new Set(before.conditionIds)
   const ownConditions = new Set(input.layers?.ownConditionIds ?? before.conditionIds)

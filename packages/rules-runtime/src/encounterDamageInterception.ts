@@ -407,16 +407,37 @@ export function applyDamageInterceptions(input: {
   interceptions: readonly HeldDamageInterception[]
   /** The target takes no damage (`encounterActorBody`): every damage is IMMUNE. */
   invulnerable?: boolean
+  /**
+   * The maximum the batch starts from when the outcome's own effects raised it after its
+   * applications were interpreted (`grantedMaximumHitPoints`): every hit point change is rebased
+   * onto it, so a heal regains up to the raised maximum.
+   */
+  maximumHitPoints?: number
 }): CharacterRuleActionApplication[] {
-  if (input.interceptions.length === 0 && !input.invulnerable) return [...input.applications]
+  if (
+    input.interceptions.length === 0 &&
+    !input.invulnerable &&
+    input.maximumHitPoints === undefined
+  )
+    return [...input.applications]
   const unspent = [...input.interceptions]
+  let maximum = input.maximumHitPoints
   let current = input.currentHitPoints
   let pool: TemporaryHitPointsPool = {
     amount: input.temporaryHitPoints,
     sourceEffectId: input.temporaryHitPointsSourceEffectId ?? null
   }
-  let rebased = false
-  return input.applications.map((application) => {
+  let rebased = maximum !== undefined
+  return input.applications.map((interpreted) => {
+    const application =
+      maximum === undefined || !('maximumHitPoints' in interpreted)
+        ? interpreted
+        : { ...interpreted, maximumHitPoints: maximum }
+    if (application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' && maximum !== undefined) {
+      maximum = Math.max(0, maximum - application.reductionAmount)
+      current = Math.min(current, maximum)
+      return application
+    }
     if (application.kind === 'KILL') {
       const spent = killInterception(unspent)
       if (spent === undefined) {

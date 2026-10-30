@@ -59,6 +59,8 @@ export type NativeEncounterActionMechanicsInput = {
    */
   damageReleases?: readonly CharacterEndedEffectReleaseApplication[]
   forceTargetVersionAdvance?: boolean
+  /** How far the effects this outcome leaves on the target raise its maximum (`createdHitPointMaximumRaise`). */
+  grantedMaximumHitPoints?: number
   /** The item a hand of the target holds that it drops with this outcome (Heat Metal). */
   releaseTargetItemInstanceId?: string
   /** The worn item the target's outcome corrodes (Dissolving Pseudopod, Rust Monster Antennae). */
@@ -248,6 +250,9 @@ function prepareNativeActionMechanicsBatches(
     ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,
     effectiveMaximumHitPoints: targetFacts.effectiveMaximumHitPoints,
+    ...(input.grantedMaximumHitPoints
+      ? { grantedMaximumHitPoints: input.grantedMaximumHitPoints }
+      : {}),
     damageInterceptions: targetFacts.damageInterceptions,
     sheetMaximumHitPoints: targetFacts.sheetMaximumHitPoints,
     effectiveScalarValues: targetFacts.effectiveScalarValues,
