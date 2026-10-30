@@ -285,6 +285,7 @@ async function executeLocalEncounterCommand(
             presentedSceneId: sceneCache?.scene?.id ?? null,
             sceneTokens: host.sceneTokens(value.authorityEpoch),
             random,
+            summonTurnExecution: { runtime: host.liveRulesRuntime() },
             ...(command.type === 'START' ||
             command.type === 'ADVANCE_TURN' ||
             command.type === 'RESOLVE_ACTION' ||

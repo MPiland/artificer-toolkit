@@ -987,6 +987,82 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
 })
 
 /**
+ * SPELLS-35.T3b (D200): a summon with its own initiative leaves the order when its carrier ends. One
+ * that is acting when it ends is left standing, and a keyed system ADVANCE_TURN ends its turn so the
+ * sweep can remove it. No authored spell conjures one yet, so the Run starts with the summon and
+ * without the carrier effect it names: the first Encounter command's sweep finds it ended.
+ */
+describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
+  const SUMMON_ID = testUuid(0xa35)
+  const CARRIER_ID = testUuid(0xa36)
+
+  /** The summon acts first (20), then the Character (15) and the Wolf (10). */
+  const summonRoom = () => {
+    const wolf = biteWolf('ATTACK')
+    return actionRoom({
+      fallbackRoll: 0,
+      actors: [
+        {
+          ...srdCreatureActor({ id: SUMMON_ID, creature: wolf }),
+          initiative: 20,
+          owner: {
+            ownerActorId: CHARACTER_ACTOR_ID,
+            sourceEffectId: CARRIER_ID,
+            turnTiming: 'OWN_INITIATIVE' as const
+          }
+        },
+        { ...casterActor(), initiative: 15 },
+        { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 10 }
+      ],
+      ownerFeatureId: creatureFeature(wolf, 'Bite').id
+    })
+  }
+
+  const runOf = async (room: ActionRoom) => {
+    const [run] = (await readRoomHistory(room.room.base.stub)).runs
+    if (!run) throw new Error('The room holds no Run.')
+    return { ...encounterRunStateSchema.parse(JSON.parse(run.stateJson)), version: run.version }
+  }
+  const updateWolf = async (room: ActionRoom) => {
+    const answer = await room.send({
+      type: 'UPDATE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: WOLF_ID,
+      currentHitPoints: 5
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+  const commandTypes = async (room: ActionRoom) =>
+    (await readRoomHistory(room.room.base.stub)).commands.map(({ commandType }) => commandType)
+
+  it('ends the turn of the summon acting when its carrier has ended, then removes it', async () => {
+    const room = await summonRoom()
+    expect((await runOf(room)).currentActorId).toBe(SUMMON_ID)
+    await updateWolf(room)
+
+    const run = await runOf(room)
+    expect(run.actorIds).not.toContain(SUMMON_ID)
+    expect(run.currentActorId).toBe(CHARACTER_ACTOR_ID)
+    const types = await commandTypes(room)
+    expect(types.filter((type) => type === 'ADVANCE_TURN')).toHaveLength(1)
+    expect(types.filter((type) => type === 'SUMMONS_ENDED')).toHaveLength(1)
+  }, 120000)
+
+  it('is recovered by the GM’s own ADVANCE_TURN while the summon stands, advancing once', async () => {
+    const room = await summonRoom()
+    expect((await runOf(room)).currentActorId).toBe(SUMMON_ID)
+    await room.advanceTurn()
+
+    const run = await runOf(room)
+    expect(run.actorIds).not.toContain(SUMMON_ID)
+    expect(run.currentActorId).toBe(CHARACTER_ACTOR_ID)
+    expect((await commandTypes(room)).filter((type) => type === 'ADVANCE_TURN')).toHaveLength(1)
+  }, 120000)
+})
+
+/**
  * SPELLS-4.T2v2b (D187b, D190a): Arcane Hand conjures a Large owned hand with the caster's hit point
  * maximum; the caster strikes with its Clenched Fist once free on the cast turn and as a Bonus Action
  * later, and the hand goes when Concentration ends. Its other three hands are GM rulings.
