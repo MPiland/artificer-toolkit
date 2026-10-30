@@ -778,7 +778,8 @@ export function projectCharacterSheetBundle(
   const hitPointMaximumReductions = listHitPointMaximumReductions(params.activeEffects)
   const maxHitPoints = effectiveHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(ruleProjection.derivedStats.maxHitPoints),
-    params.activeEffects
+    params.activeEffects,
+    character.state.hitpoints.maximumFraction
   )
   const conditionOptions = (resolution.registry.system?.conditionTypes ?? []).map((condition) => ({
     id: condition.id,

@@ -19,6 +19,8 @@ import {
   validateCharacterRestRollEvidence
 } from '@artificer-toolkit/rules-runtime/character/sheetRest'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { characterHitPointMaximumFraction } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
+import { readDefinitionRoot } from '../content/definitionStore'
 import type { QueryCtx } from '../_generated/server'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
@@ -106,6 +108,26 @@ export async function prepareCharacterRest(
         )
       })
     : current.ruleEvaluation
+  const definitionReader =
+    current.sourceContext.context.sourceAccess.campaign?.ownerUserId ?? current.character.userId
+  // A long rest lowers exhaustion, which can lift a condition's maximum-HP fraction (SPELLS-10.T1b).
+  const maximumFraction =
+    input.restKind === 'LONG'
+      ? await characterHitPointMaximumFraction({
+          character: {
+            systemId: current.character.systemId,
+            state: {
+              ...current.character.state,
+              exhaustion:
+                restEvaluation.output.rest.exhaustionAfterLongRest > 0
+                  ? { level: restEvaluation.output.rest.exhaustionAfterLongRest }
+                  : null
+            }
+          },
+          readCurrentDefinition: async (definitionId) =>
+            (await readDefinitionRoot(ctx, definitionId, definitionReader))?.current ?? null
+        })
+      : (current.character.state.hitpoints.maximumFraction ?? null)
   const preview = await buildCharacterRestPreview({
     character: current.character,
     resolution: current.resolution,
@@ -115,7 +137,8 @@ export async function prepareCharacterRest(
       resolveCharacterEffectiveMaximumHitPoints(
         restEvaluation.output.derivedStats.maxHitPoints.effective
       ),
-      current.activeEffects.filter((effect) => !activeEffectEndsOnRest(effect, input.restKind))
+      current.activeEffects.filter((effect) => !activeEffectEndsOnRest(effect, input.restKind)),
+      maximumFraction
     ),
     restPolicy: restEvaluation.output.rest,
     sheet: current.sheet,
@@ -124,6 +147,7 @@ export async function prepareCharacterRest(
   return {
     preview: characterRestPreviewResponseDtoSchema.parse(preview),
     restPolicy: restEvaluation.output.rest,
+    maximumFraction,
     resetMaximumModifierId: preview.hitPoints.canResetMaximumHitPointModifier
       ? maximumModifier?.id
       : undefined,

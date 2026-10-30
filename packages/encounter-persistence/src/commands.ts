@@ -33,11 +33,14 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorConditionLevels } from '@artificer-toolkit/rules-runtime/encounterConditionLevels'
 import { creatureConditionEditReachesDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
+import { creatureHitPointMaximumFraction } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   requireEncounterActorControl,
   requireEncounterActorControllerCandidates
 } from './actorController.js'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { listActiveRuleEffects } from './effectStore.js'
 import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -415,6 +418,26 @@ async function recordEncounterToolCommand(
       }))
     const editedHitPoints =
       input.type !== 'UPDATE_ACTOR' ? undefined : conditionDeath ? 0 : input.currentHitPoints
+    // A condition edit resolves the share of its maximum the creature keeps and holds its hit
+    // points within it; every reader of the maximum then uses the stored fraction (SPELLS-10.T1b).
+    // Null is a creature whose conditions leave its maximum whole; undefined is no condition edit.
+    const conditionFraction =
+      input.type === 'UPDATE_ACTOR' && input.conditions !== undefined && actor.kind !== 'CHARACTER'
+        ? await creatureHitPointMaximumFraction({
+            conditionRows: input.conditions,
+            gameSystemId: state.gameSystemId,
+            readCurrentDefinition: (definitionId) =>
+              ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+          })
+        : undefined
+    const conditionMaximumHitPoints =
+      conditionFraction === undefined || actor.kind === 'CHARACTER'
+        ? undefined
+        : effectiveHitPointMaximum(
+            actor.maxHitPoints,
+            await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id)),
+            conditionFraction
+          )
     if (input.type === 'UPDATE_ACTOR' && input.returnToInitiative && actor.absence === null)
       throw new Error('Only an absent actor can return to initiative.')
     if (
@@ -492,6 +515,17 @@ async function recordEncounterToolCommand(
                 }),
             ...(input.tempHitPoints === undefined ? {} : { tempHitPoints: input.tempHitPoints }),
             ...(input.conditions === undefined ? {} : { conditions: input.conditions }),
+            ...(conditionFraction === undefined ||
+            conditionMaximumHitPoints === undefined ||
+            actor.kind === 'CHARACTER'
+              ? {}
+              : {
+                  maximumFraction: conditionFraction ?? undefined,
+                  currentHitPoints: Math.min(
+                    editedHitPoints ?? actor.currentHitPoints,
+                    conditionMaximumHitPoints
+                  )
+                }),
             ...(input.gmNotes === undefined ? {} : { gmNotes: input.gmNotes }),
             ...(input.public === undefined ? {} : { public: input.public }),
             ...(input.controllerUserIds === undefined

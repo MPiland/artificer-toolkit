@@ -15,7 +15,9 @@ import type {
   DamageAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
+import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
 
+import { applyHitPointMaximumFraction } from '../hitPointMaximumFraction.js'
 import { modifierLengthFeet } from '../modifierLength.js'
 import {
   listHitPointMaximumReductions,
@@ -472,15 +474,20 @@ export function activeAttackCriticalRules(
 
 /**
  * The effective maximum hit points the Sheet and the Encounter read, for any holder: a maximum
- * raised or lowered by its active fixed `HIT_POINTS_MAX` grants (Aid), less every active reduction,
- * never below 0. A Character passes its grant-free policy maximum, so its grants count once.
+ * raised or lowered by its active fixed `HIT_POINTS_MAX` grants (Aid), kept to the share its
+ * conditions leave it (`maximumFraction`, SPELLS-10.T1b), less every active reduction, never below
+ * 0. A Character passes its grant-free policy maximum, so its grants count once.
  */
 export function effectiveHitPointMaximum(
   maximum: number,
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[]
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[],
+  maximumFraction?: HitPointMaximumFractionDto | null
 ): number {
   return reduceHitPointMaximum(
-    Math.max(0, maximum + activeFixedGrantTotal(effects, 'HIT_POINTS_MAX')),
+    applyHitPointMaximumFraction(
+      Math.max(0, maximum + activeFixedGrantTotal(effects, 'HIT_POINTS_MAX')),
+      maximumFraction
+    ),
     listHitPointMaximumReductions(effects)
   )
 }

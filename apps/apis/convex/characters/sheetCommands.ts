@@ -19,7 +19,8 @@ import type {
 } from '@artificer-toolkit/shared/subjects/authored'
 import {
   clampCharacterCurrentHitPoints,
-  createCharacterSpellSourceKey
+  createCharacterSpellSourceKey,
+  resolveCharacterEffectiveMaximumHitPoints
 } from '@artificer-toolkit/shared/character'
 import { canonicalizeRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
@@ -54,6 +55,8 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { sheetCommandConditionMaximum } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
 import {
   characterStandingEffects,
@@ -350,6 +353,7 @@ export async function executeCharacterSheetCommand(
           command,
           preview: rest.preview,
           restPolicy: rest.restPolicy,
+          maximumFraction: rest.maximumFraction,
           sheet: initial.sheet
         })
       : undefined
@@ -422,11 +426,25 @@ export async function executeCharacterSheetCommand(
   }
   const definitionReader =
     initial.sourceContext.context.sourceAccess.campaign?.ownerUserId ?? initial.character.userId
+  const readCurrentDefinition = async (definitionId: string) =>
+    (await readDefinitionRoot(ctx, definitionId, definitionReader))?.current ?? null
   const conditionDeath = await sheetCommandReachesConditionDeath({
     character: initial.character,
     command,
-    readCurrentDefinition: async (definitionId) =>
-      (await readDefinitionRoot(ctx, definitionId, definitionReader))?.current ?? null
+    readCurrentDefinition
+  })
+  const conditionMaximum = await sheetCommandConditionMaximum({
+    character: initial.character,
+    command,
+    readCurrentDefinition,
+    maximumHitPoints: (fraction) =>
+      effectiveHitPointMaximum(
+        resolveCharacterEffectiveMaximumHitPoints(
+          initial.ruleEvaluation.output.derivedStats.maxHitPoints.effective
+        ),
+        initial.activeEffects,
+        fraction
+      )
   })
   const updated = characterAuthoredDtoSchema.parse(
     completedRest?.character ??
@@ -441,7 +459,8 @@ export async function executeCharacterSheetCommand(
         summonFormCreatures,
         extraDefaults,
         deathSaveDie,
-        conditionDeath
+        conditionDeath,
+        conditionMaximum
       })
   )
   if (command.type === 'ADD_INVENTORY_ITEM')

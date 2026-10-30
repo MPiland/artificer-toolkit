@@ -154,6 +154,23 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
       numerator: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
       denominator: z.number().check(z.int()).check(z.positive()).check(z.lte(100))
     }),
+    /**
+     * A fraction of the holder's hit point maximum (SPELLS-10.T1b), at most 1. Writers resolve it
+     * into the holder's stored `HitPointMaximumFractionDto` when its conditions change.
+     */
+    z
+      .strictObject({
+        ...conditionMechanicFields(),
+        kind: z.literal('HIT_POINT_MAXIMUM'),
+        numerator: z.number().check(z.int()).check(z.positive()).check(z.lte(100)),
+        denominator: z.number().check(z.int()).check(z.positive()).check(z.lte(100))
+      })
+      .check(
+        z.refine(({ numerator, denominator }) => numerator <= denominator, {
+          path: ['numerator'],
+          message: 'A hit point maximum fraction cannot raise the maximum.'
+        })
+      ),
     z.strictObject({
       ...conditionMechanicFields(),
       kind: z.literal('HITS_AGAINST_CRITICAL'),
