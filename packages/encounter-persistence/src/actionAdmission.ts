@@ -216,6 +216,12 @@ export async function readNativeEncounterActionAdmission(
       'SOURCE_REQUIREMENTS_NOT_MET',
       'A rule’s own action runs only when the rule raises it.'
     )
+  // Only an ordinary attack at one creature is delegated; other routes never charge the commander.
+  if (input.delegatingActorId !== undefined && (systemTrigger || input.target.kind !== 'ACTOR'))
+    rejectDomain(
+      'SOURCE_REQUIREMENTS_NOT_MET',
+      'A delegated attack is one ordinary attack at one creature.'
+    )
   if (systemTrigger)
     await requireSystemTriggerAdmission(ctx, {
       run,
@@ -227,6 +233,17 @@ export async function readNativeEncounterActionAdmission(
     const actor = await readRunActor(ctx, state, input.actorId)
     await requireEncounterActorControl(ctx, { campaign, membership, actor })
     if (await readEncounterActorDefeated(ctx, actor)) rejectDomain('ACTOR_DEFEATED')
+    if (input.delegatingActorId !== undefined) {
+      // A delegated attack is the commanding actor's to make, with a creature it summoned.
+      const delegating = await readRunActor(ctx, state, input.delegatingActorId)
+      await requireEncounterActorControl(ctx, { campaign, membership, actor: delegating })
+      if (await readEncounterActorDefeated(ctx, delegating)) rejectDomain('ACTOR_DEFEATED')
+      if (actor.owner?.ownerActorId !== delegating.id)
+        rejectDomain(
+          'SOURCE_REQUIREMENTS_NOT_MET',
+          'Only a creature the commanding actor summoned attacks in its place.'
+        )
+    }
     if (actor.kind === 'CREATURE') {
       // A start-of-turn trait runs by itself; naming it as an action would be a free use.
       const system = await ctx.ports.requireSystem(state.gameSystemId)
@@ -262,7 +279,8 @@ export async function readNativeEncounterActionAdmission(
   if (state.status !== 'ACTIVE')
     rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Actions require an active Encounter.')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
-  if (!systemTrigger && state.currentActorId !== input.actorId) rejectDomain('NOT_CURRENT_ACTOR')
+  if (!systemTrigger && state.currentActorId !== (input.delegatingActorId ?? input.actorId))
+    rejectDomain('NOT_CURRENT_ACTOR')
   const pending = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_encounterId_state', (query) =>

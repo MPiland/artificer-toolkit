@@ -33,17 +33,31 @@ const handlerOf = (kind: NativePauseKind) =>
 
 /** Reads the answer a response carries for the pause its action holds, or its own evidence when none. */
 export function readNativePauseAnswer(
-  input: Omit<NativePauseReadInput<NativePauseKind>, 'pause'> & {
+  input: Pick<NativePauseReadInput<NativePauseKind>, 'snapshot' | 'resolution'> & {
     pause: NativePauseReadInput<NativePauseKind>['pause'] | undefined
-    evidence: Extract<NativePauseAnswer, { kind: 'EVIDENCE' }>['answer'] | null
   }
 ): NativePauseAnswer {
-  const { pause, evidence, ...rest } = input
+  const { pause, snapshot, resolution } = input
   if (!pause) {
-    if (!evidence) throw new Error('The action requires dice or integer evidence.')
-    return { kind: 'EVIDENCE', answer: evidence }
+    if (
+      resolution.kind !== 'ENTER_DICE' &&
+      resolution.kind !== 'ENTER_INTEGER' &&
+      resolution.kind !== 'SYSTEM_ROLL'
+    )
+      throw new Error('The action requires dice or integer evidence.')
+    return { kind: 'EVIDENCE', answer: resolution }
   }
-  return handlerOf(pause.kind).read({ ...rest, pause })
+  return handlerOf(pause.kind).read({
+    pause,
+    snapshot,
+    resolution,
+    decision: resolution.kind === 'DECLINE' || resolution.kind === 'OPTION' ? resolution : null,
+    dice:
+      (resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL') &&
+      snapshot.request.requestId === resolution.requestId
+        ? resolution
+        : null
+  })
 }
 
 /** Settles an answer the rules graphs resume; null for a kind that pauses before they run. */
