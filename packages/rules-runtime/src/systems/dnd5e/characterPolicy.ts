@@ -30,6 +30,7 @@ import {
   dnd5eFoldedModifierApplicability,
   dnd5eModifierApplies
 } from './modifierApplicability.js'
+import { dnd5eSpellFactsWithReplacedRanges } from './spellRangeReplacement.js'
 
 /**
  * Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. Its input is the
@@ -88,7 +89,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         remaining: pool.remaining
       }))
     ],
-    spellEffects: input.spellActionFacts,
+    spellEffects: dnd5eSpellFactsWithReplacedRanges(grantFold, input.spellActionFacts),
     spellcastingLocked: modifierGroups.some(
       (group) =>
         group.valueDomainCode === 'SPELLCASTING_LOCK' &&

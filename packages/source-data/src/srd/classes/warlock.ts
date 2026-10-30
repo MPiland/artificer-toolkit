@@ -1176,7 +1176,6 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 8),
           label: 'Eldritch Spear',
           description: 'When you cast eldritch blast, its range is 300 feet.',
-          // Range change is not representable as a modifier grant — description-only.
           // Requires Eldritch Blast cantrip.
           restrictions: {
             id: classRowId(W, 6, 14),
@@ -1204,27 +1203,43 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 14),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_ELDRITCH_SPEAR,
-              pathCode: PATH_CODE.ON_ATTACK,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-                range: {
-                  id: classRowId(W, 0x69, 14),
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(W, 3, 39),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.RANGE,
+                domain: {},
+                modifierKind: MODIFIER_KIND.REPLACE_RANGE_KIND,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: {
                   rangeKind: RANGE_KIND.DISTANCE,
                   amount: 300,
                   unit: MEASUREMENT_UNIT_CODE.FEET
                 },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
+                order: 0,
+                restrictions: {
+                  id: classRowId(W, 4, 13),
+                  groups: [
+                    {
+                      id: classRowId(W, 4, 14),
+                      order: 0,
+                      contexts: [
+                        {
+                          id: classRowId(W, 4, 15),
+                          order: 0,
+                          subject: 'SPELL' as const,
+                          authoringModeKind: 'SELECTED' as const,
+                          spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+                        }
+                      ]
+                    }
+                  ]
                 }
               }
-            })
-          ],
+            ]
+          },
           order: 13
         },
         {
