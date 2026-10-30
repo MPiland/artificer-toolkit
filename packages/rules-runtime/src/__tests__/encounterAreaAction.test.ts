@@ -650,7 +650,7 @@ describe('summon target', () => {
         null,
         null,
         false,
-        sizeSpaceFeet(DND5E_SYSTEM_ID, 'MEDIUM')
+        { feet: sizeSpaceFeet(DND5E_SYSTEM_ID, 'MEDIUM') }
       )
     ).toMatchObject({
       kind: 'POINT',

@@ -752,7 +752,7 @@ describe('room Scene command persistence', () => {
         snapshot: { kind: 'CHARACTER', id: uuid(59), label: 'Aria', systemId: uuid(60) }
       })
       const summoned = buildEncounterSummon({
-        summon: { statBlock: {} },
+        summon: { kind: 'STAT_BLOCK', statBlock: {} },
         spellSummon: null,
         caster,
         casterHitPointMaximum: 20,

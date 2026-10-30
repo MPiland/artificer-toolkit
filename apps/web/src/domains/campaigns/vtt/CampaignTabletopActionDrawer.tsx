@@ -62,6 +62,8 @@ import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreatu
 import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
+import { CampaignTabletopSummonPicks } from './CampaignTabletopSummonPicks'
+import { summonPicks } from './summonPicks.model'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
@@ -229,6 +231,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedChoiceOptionId, setPickedChoiceOptionId] = useState<string | null>(null)
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
+  const [pickedCreatureTypeId, setPickedCreatureTypeId] = useState<string | null>(null)
   const [pickedBandSide, setPickedBandSide] = useState<SpatialWallSide | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
@@ -322,6 +325,7 @@ export function CampaignTabletopActionDrawer({
     ...choiceActorsTarget,
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
+  const summonChoices = summonPicks(choiceTarget, pickedFormId, pickedCreatureTypeId)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
@@ -467,7 +471,8 @@ export function CampaignTabletopActionDrawer({
             sceneId: scene.id,
             expectedSceneVersion: scene.version,
             point: areaAim.origin,
-            ...zoneChoices
+            ...zoneChoices,
+            ...summonChoices
           }
         : areaAim.toward
           ? {
@@ -772,6 +777,7 @@ export function CampaignTabletopActionDrawer({
     setUnaffectedActorIds([])
     setPickedChoiceOptionId(null)
     setPickedFormId(null)
+    setPickedCreatureTypeId(null)
     setPickedBandSide(null)
     setPickedItemId(null)
   }
@@ -1061,6 +1067,15 @@ export function CampaignTabletopActionDrawer({
                     )?.maxTargets
                     if (cap !== undefined) setPickedActorIds((ids) => ids.slice(0, cap))
                   }}
+                />
+              ) : null}
+              {choiceTarget?.kind === 'POINT' ? (
+                <CampaignTabletopSummonPicks
+                  target={choiceTarget}
+                  {...summonChoices}
+                  disabled={selectionControlsDisabled}
+                  onFormChange={setPickedFormId}
+                  onCreatureTypeChange={setPickedCreatureTypeId}
                 />
               ) : null}
               {choiceActorsTarget?.choosesCreatureForm ? (

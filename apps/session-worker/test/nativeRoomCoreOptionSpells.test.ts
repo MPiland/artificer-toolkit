@@ -30,7 +30,11 @@ import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { produceFlame } from '@artificer-toolkit/source-data/srd/spells/produce-flame.js'
-import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import { creatureTypeId, damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
+import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-familiar.js'
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
+import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
@@ -782,9 +786,42 @@ async function conjured(room: ActionRoom) {
   }))
 }
 
-/** Casts the room's summon spell at `point` and returns the one creature it conjured. */
-async function castSummon(room: ActionRoom, point: { x: number; y: number }) {
-  const cast = await room.startAreaAction(point)
+/** The owner's socket, subscribed to the caster's Sheet, and the summons its latest push lists. */
+async function ownerSheet(room: ActionRoom) {
+  const player = await connectPlayer(room.room.base)
+  player.socket.send(
+    JSON.stringify({ type: 'SUBSCRIBE_CHARACTER_SHEET', characterId: CHARACTER_ID })
+  )
+  return () =>
+    player.messages
+      .flatMap((message) => (message.type === 'CHARACTER_SHEET' ? [message.sheet] : []))
+      .at(-1)
+      ?.extras.items.filter((item) => item.kind === 'SPELL_SUMMON')
+}
+
+/** The GM sets a summon's current hit points in the Encounter. */
+async function setSummonHitPoints(room: ActionRoom, actorId: string, currentHitPoints: number) {
+  const updated = await room.send({
+    type: 'UPDATE_ACTOR',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId,
+    currentHitPoints
+  })
+  expect(updated.type, JSON.stringify(updated)).toBe('COMMAND_COMMITTED')
+}
+
+/**
+ * Casts the room's summon spell at `point`, with the form and creature type a summon that authors
+ * forms takes, and returns the one creature it conjured.
+ */
+async function castSummon(
+  room: ActionRoom,
+  point: { x: number; y: number },
+  picks: { formId?: string; creatureTypeId?: string } = {}
+) {
+  const cast = await room.startAreaCommand({ kind: 'POINT', point, ...picks })
   expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
   const [summon] = await conjured(room)
   if (!summon?.tokenId) throw new Error('The cast conjured nothing.')
@@ -917,32 +954,6 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
     expect((await room.actionChoices()).effectOffers).toEqual([])
   }, 120000)
 
-  /** The owner's socket, subscribed to the caster's Sheet, and the summons its latest push lists. */
-  async function ownerSheet(room: ActionRoom) {
-    const player = await connectPlayer(room.room.base)
-    player.socket.send(
-      JSON.stringify({ type: 'SUBSCRIBE_CHARACTER_SHEET', characterId: CHARACTER_ID })
-    )
-    return () =>
-      player.messages
-        .flatMap((message) => (message.type === 'CHARACTER_SHEET' ? [message.sheet] : []))
-        .at(-1)
-        ?.extras.items.filter((item) => item.kind === 'SPELL_SUMMON')
-  }
-
-  /** The GM sets the hand's current hit points in the Encounter. */
-  async function setHandHitPoints(room: ActionRoom, actorId: string, currentHitPoints: number) {
-    const updated = await room.send({
-      type: 'UPDATE_ACTOR',
-      encounterId: room.room.encounterId,
-      commandId: crypto.randomUUID(),
-      expectedVersion: await room.version(),
-      actorId,
-      currentHitPoints
-    })
-    expect(updated.type, JSON.stringify(updated)).toBe('COMMAND_COMMITTED')
-  }
-
   it('lists the hand in its owner’s pushed Sheet Extras with live hit points until it falls (SPELLS-34.2, .3)', async () => {
     const room = await handRoom()
     const summons = await ownerSheet(room)
@@ -973,13 +984,13 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
     )
 
     // The Run actor is the only record: the Encounter's change reaches the Sheet.
-    await setHandHitPoints(room, hand.actor.id, 10)
+    await setSummonHitPoints(room, hand.actor.id, 10)
     await vi.waitFor(
       () => expect(summons()?.[0]?.hitPoints).toEqual({ current: 10, maximum: 25, temp: 0 }),
       ROOM_REPLY_WAIT
     )
 
-    await setHandHitPoints(room, hand.actor.id, 0)
+    await setSummonHitPoints(room, hand.actor.id, 0)
     await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
   }, 120000)
 
@@ -995,6 +1006,124 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
     const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+})
+
+/**
+ * SPELLS-34.T3a (D190): Find Familiar conjures the System Creature form its caster picks, as the
+ * creature type picked, owned by the caster with no duration; the owner's Sheet lists it with the Run
+ * actor's live hit points until it falls.
+ */
+describe('room Find Familiar (SPELLS-34.T3a)', () => {
+  const summonOutcome = findFamiliar.effects
+    ?.flatMap((effect) => effect.paths)
+    .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+    .find((outcome) => outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'SUMMON')
+  const catForm =
+    summonOutcome?.effectKind === 'MANIFEST'
+      ? summonOutcome.forms?.find((form) => form.creatureId === CREATURE_IDS.CAT)
+      : undefined
+  if (!catForm) throw new Error('Find Familiar must offer the Cat form.')
+  const FEY = creatureTypeId('FEY')
+  const familiarRoom = () =>
+    actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [findFamiliar], prepared: [findFamiliar.id] },
+      characterAction: (action) => action.label.startsWith(findFamiliar.label),
+      formCreatures: [applyCreatureAttackRolls(cat)]
+    })
+  /** One square below the caster, within the spell's 10 feet. */
+  const FAMILIAR_POINT = { x: 150, y: 250 }
+
+  it('conjures the picked form as the picked creature type and lists it in its owner’s Sheet Extras with live hit points (SPELLS-34.2)', async () => {
+    const room = await familiarRoom()
+    const summons = await ownerSheet(room)
+    const familiar = await castSummon(room, FAMILIAR_POINT, {
+      formId: catForm.id,
+      creatureTypeId: FEY
+    })
+    expect(familiar.actor).toMatchObject({
+      kind: 'CREATURE',
+      sourceId: CREATURE_IDS.CAT,
+      label: 'Cat',
+      maxHitPoints: cat.hitPoints,
+      currentHitPoints: cat.hitPoints,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID }
+    })
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === familiar.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The familiar’s snapshot is not stored.')
+    expect(readStoredActorSnapshot(snapshotRow)).toMatchObject({ payload: { creatureTypeId: FEY } })
+    await vi.waitFor(
+      () =>
+        expect(summons()).toEqual([
+          expect.objectContaining({
+            id: familiar.actor.id,
+            encounterActorId: familiar.actor.id,
+            spellId: findFamiliar.id,
+            displayName: 'Cat',
+            concentration: false,
+            size: 'TINY',
+            hitPoints: { current: cat.hitPoints, maximum: cat.hitPoints, temp: 0 }
+          })
+        ]),
+      ROOM_REPLY_WAIT
+    )
+
+    // The Run actor is the only record: the Encounter's change reaches the Sheet.
+    await setSummonHitPoints(room, familiar.actor.id, 1)
+    await vi.waitFor(
+      () =>
+        expect(summons()?.[0]?.hitPoints).toEqual({
+          current: 1,
+          maximum: cat.hitPoints,
+          temp: 0
+        }),
+      ROOM_REPLY_WAIT
+    )
+    // It has no duration: it stays a round later, and goes when it drops to 0 hit points.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await conjured(room)).toHaveLength(1)
+    await setSummonHitPoints(room, familiar.actor.id, 0)
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+
+  it('refuses a cast with no form, a type it does not offer, or a form a stat block summon never takes', async () => {
+    const room = await familiarRoom()
+    const refusedWith = async (picks: { formId?: string; creatureTypeId?: string }) => {
+      const { answer } = await room.startAreaCommand({
+        kind: 'POINT',
+        point: FAMILIAR_POINT,
+        ...picks
+      })
+      expect(answer.type).toBe('COMMAND_REJECTED')
+      return JSON.stringify(answer)
+    }
+
+    expect(await refusedWith({ creatureTypeId: FEY })).toContain('needs one of its creature forms')
+    expect(await refusedWith({ formId: catForm.id })).toContain('Pick one of the creature types')
+    expect(
+      await refusedWith({ formId: catForm.id, creatureTypeId: creatureTypeId('BEAST') })
+    ).toContain('Pick one of the creature types')
+    expect(await conjured(room)).toEqual([])
+
+    const handRoom = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 3 },
+      characterSpellcasting: { spells: [arcaneHand], prepared: [arcaneHand.id] },
+      characterAction: (action) => action.label.startsWith(arcaneHand.label)
+    })
+    const { answer } = await handRoom.startAreaCommand({
+      kind: 'POINT',
+      point: { x: 300, y: 200 },
+      formId: catForm.id
+    })
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).toContain('takes no creature form')
   }, 120000)
 })
 

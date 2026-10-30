@@ -212,13 +212,15 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
-  const snapshot = actor.snapshot
+/** A Creature snapshot's size, else null. */
+export function creatureSnapshotSize({ snapshot }: { snapshot: unknown }): string | null {
   const payload =
-    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
-  return payload &&
-    typeof payload === 'object' &&
-    !Array.isArray(payload) &&
+    typeof snapshot === 'object' && snapshot !== null && 'payload' in snapshot
+      ? snapshot.payload
+      : null
+  return typeof payload === 'object' &&
+    payload !== null &&
+    'size' in payload &&
     typeof payload.size === 'string'
     ? payload.size
     : null

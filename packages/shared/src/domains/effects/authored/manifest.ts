@@ -297,13 +297,20 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   retainedAbilityDefinitionIds?: string[]
   /** The holder keeps its own proficiencies (Wild Shape); absent, the form's stat block replaces them (Polymorph). */
   retainsProficiencies?: boolean
+  creatureTypeIds?: never
   statBlock?: never
   behaviors?: never
 }
 
+/**
+ * A creature an action conjures: from its own `statBlock`, or as one System Creature of `forms` the
+ * caster picks at cast (a familiar), whose `maxTargets` is 1.
+ */
 type SummonManifestAuthored = ManifestAuthoredBase & {
   manifestKind: typeof MANIFEST_KIND.SUMMON
-  forms?: never
+  forms?: ManifestCreatureFormAuthored[]
+  /** Creature Types the caster picks one of to replace the chosen form's; absent keeps the form's. */
+  creatureTypeIds?: string[]
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
@@ -315,6 +322,7 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
 type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredBase & {
   manifestKind: TKind
   forms?: never
+  creatureTypeIds?: never
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
