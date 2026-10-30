@@ -48,6 +48,7 @@ import {
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { pactBoonFeature } from './warlock-pact-boon.js'
 import { lifedrinkerEffect, pactOfTheBladeEffect } from './warlock-pact-weapon.js'
+import { repellingBlastEffect } from './warlock-repelling-blast.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -905,7 +906,7 @@ export const warlock: ClassAuthored = {
           label: 'Repelling Blast',
           description:
             'When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.',
-          // Requires Eldritch Blast. Push effect is a combat action modifier not representable as a grant.
+          // Requires Eldritch Blast; the push rides only its casts.
           restrictions: {
             id: classRowId(W, 4, 9),
             groups: [
@@ -932,22 +933,7 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 5),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_REPELLING_BLAST,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-                range: { id: classRowId(W, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
-          ],
+          effects: [repellingBlastEffect(warlockRowId(5), SPELL_IDS.ELDRITCH_BLAST)],
           order: 7
         },
         {

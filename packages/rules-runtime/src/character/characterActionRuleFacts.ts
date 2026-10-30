@@ -104,6 +104,8 @@ interface CharacterActionRuleFacts {
   standingEffects: CharacterActionSources
   /** The basic actions the Character's passive features offer on every turn (D188); never policy facts. */
   standingGrantedActions: HeldGrantedAction[]
+  /** The riders the Character's passive features, options and feats owe the attacks they name; never policy facts. */
+  onHitRiders: OnHitRider[]
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -846,7 +848,8 @@ export function buildCharacterActionRuleFacts(params: {
     passiveZones,
     initiativeRestores,
     standingEffects,
-    standingGrantedActions
+    standingGrantedActions,
+    onHitRiders
   }
 }
 

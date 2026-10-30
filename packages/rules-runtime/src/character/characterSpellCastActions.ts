@@ -16,6 +16,7 @@ import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointC
 import { spellComponentsLabel } from '../spellCastCandidates.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
+import { mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import { castableEffectGroups, spellCastActionId, spellCastLabel } from '../spellCastCandidates.js'
@@ -164,6 +165,8 @@ export function buildCharacterSpellCastActions(input: {
   spellsById: ReadonlyMap<string, CompiledSpell> | undefined
   /** The Character's level, the sum of its class levels. */
   characterLevel: number
+  /** The riders the Character's features owe a cast of the Spell they name (G4). */
+  onHitRiders?: readonly OnHitRider[]
   firstSequence: number
 }): {
   candidates: CharacterActionCandidate[]
@@ -214,7 +217,12 @@ export function buildCharacterSpellCastActions(input: {
     const perTargetLockout =
       access?.perTargetLockout && cast.castMode === 'AT_WILL' ? { grantId: access.grantId } : null
     for (const [index, spellGroup] of effects.entries()) {
-      const group = withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? [])
+      const group = mergeOnHitRiders(
+        withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? []),
+        input.onHitRiders ?? [],
+        undefined,
+        cast.spellId
+      )
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
       if (!mechanic) continue
@@ -312,6 +320,7 @@ export function compileCharacterSpellCasts(input: {
     policyOutput,
     spellsById,
     characterLevel: input.characterLevel,
+    onHitRiders: ruleEvaluation.onHitRiders,
     firstSequence: input.firstSequence
   })
   const entryPoints = compileCharacterActionEntryPoints({
