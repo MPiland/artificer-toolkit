@@ -78,7 +78,15 @@ async function setup() {
   async function publish(
     kind: 'RACE' | 'FEAT' | 'EQUIPMENT',
     document: HomebrewDocument,
-    { parentId = null, importJobId }: { parentId?: string | null; importJobId?: string } = {}
+    {
+      parentId = null,
+      importJobId,
+      invalidStoredFields
+    }: {
+      parentId?: string | null
+      importJobId?: string
+      invalidStoredFields?: Record<string, unknown>
+    } = {}
   ) {
     const parentField = kind === 'RACE' ? 'parentRaceId' : 'parentEquipmentId'
     await t.run(async (raw) => {
@@ -93,7 +101,8 @@ async function setup() {
         userId: owner.userId,
         status: 'ACTIVE'
       }
-      const checksum = checksumRuleDocument(authored)
+      const stored = { ...authored, ...invalidStoredFields }
+      const checksum = checksumRuleDocument(stored)
       const versionId = crypto.randomUUID()
       const currentVersionId = await insertAuthoredVersion(
         ctx,
@@ -109,8 +118,15 @@ async function setup() {
           version: current ? 2 : 1,
           documentSchemaVersion: 1
         },
-        canonicalizeRuleDocument(authored),
-        await compileAsPublished(ctx, parsePublicationDocument(kind, authored), owner.userId)
+        canonicalizeRuleDocument(stored),
+        {
+          ...(await compileAsPublished(
+            ctx,
+            parsePublicationDocument(kind, authored),
+            owner.userId
+          )),
+          authoredChecksum: checksum
+        }
       )
       const fields = {
         label: document.label,
@@ -462,6 +478,27 @@ describe('content snapshot builds', () => {
         parentEquipmentId: parent,
         category: club.category
       })
+    } finally {
+      await server.close()
+    }
+  }, 30_000)
+
+  it('reads a stored document without subject schemas and fails its build in the action', async () => {
+    const { t, server, userSource, publish, head } = await setup()
+    try {
+      const id = await publish('RACE', homebrew(elf), {
+        invalidStoredFields: { size: 'NOT_A_SIZE' }
+      })
+      const page = await t.query(internal.contentSnapshots.heads.readScopeKind, {
+        ...userSource,
+        kind: 'RACE',
+        paginationOpts: { numItems: 15, cursor: null }
+      })
+      expect(page).toMatchObject({ isDone: true })
+      expect(JSON.stringify(page)).toContain('NOT_A_SIZE')
+      expect(JSON.stringify(page)).toContain(id)
+      await expect(t.action(internal.contentSnapshots.actions.build, userSource)).rejects.toThrow()
+      expect((await head(userSource))?.kinds.RACE).toBeUndefined()
     } finally {
       await server.close()
     }

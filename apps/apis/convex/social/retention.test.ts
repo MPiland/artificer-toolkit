@@ -220,8 +220,8 @@ describe('social retention preview', () => {
       })
     })
     expect((await run(base, 'APPLICATIONS')).eligible).toBe(1)
+    expect(timestampSchema.safeParse('2024-09-01T00:00Z').success).toBe(false)
     for (const [resolvedAt, eligible] of [
-      ['2024-09-01T00:00Z', 1],
       ['2024-09-01T00:00:30Z', 1],
       ['2024-09-01T00:00:30.0Z', 1],
       ['2024-09-01T00:00:30.05Z', 1],
