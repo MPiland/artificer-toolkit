@@ -1,6 +1,9 @@
 import { Accordion, Badge, Button, Switch, Text } from '@mantine/core'
+import { useState } from 'react'
 
 import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
+import { SummonPicks } from '#app/components/summonPicks/SummonPicks'
+import { summonPicks } from '#app/components/summonPicks/summonPicks.model'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetCalculationBreakdown } from './CharacterSheetCalculationBreakdown'
@@ -30,6 +33,9 @@ export function CharacterSheetSpellPanelContent({
   const canCustomize =
     panel.editable && panel.allowedCommands.includes('UPDATE_SPELL_SOURCE_CUSTOMIZATION')
   const canReset = panel.editable && panel.allowedCommands.includes('RESET_ADJUSTMENTS')
+  const [pickedFormId, setPickedFormId] = useState<string | null>(null)
+  const [pickedCreatureTypeId, setPickedCreatureTypeId] = useState<string | null>(null)
+  const summonOptions = panel.legalCastModes.find((mode) => mode.summonForms ?? mode.creatureTypes)
 
   return (
     <div className={inspectorShellStyles.inspector}>
@@ -53,6 +59,15 @@ export function CharacterSheetSpellPanelContent({
       <section className={inspectorShellStyles.section}>
         <h3 className={inspectorShellStyles.sectionTitle}>Cast</h3>
         <div className={inspectorEditorStyles.entries}>
+          {summonOptions ? (
+            <SummonPicks
+              options={summonOptions}
+              {...summonPicks(summonOptions, pickedFormId, pickedCreatureTypeId)}
+              disabled={pending || !canCast}
+              onFormChange={setPickedFormId}
+              onCreatureTypeChange={setPickedCreatureTypeId}
+            />
+          ) : null}
           {panel.legalCastModes.map((mode) => (
             <div
               className={inspectorEditorStyles.entry}
@@ -73,7 +88,8 @@ export function CharacterSheetSpellPanelContent({
                     expectedVersion,
                     spellId: panel.spellId,
                     sourceId: panel.source.sourceInstanceId,
-                    ...(mode.slotKey ? { slotKey: mode.slotKey } : {})
+                    ...(mode.slotKey ? { slotKey: mode.slotKey } : {}),
+                    ...summonPicks(mode, pickedFormId, pickedCreatureTypeId)
                   })
                 }
               >

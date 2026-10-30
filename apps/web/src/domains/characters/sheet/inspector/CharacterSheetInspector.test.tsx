@@ -1279,4 +1279,46 @@ describe('Character Sheet inspector', () => {
     expect(screen.queryByText('Companion')).not.toBeInTheDocument()
     expect(screen.queryByText('Capacity')).not.toBeInTheDocument()
   })
+
+  it('casts a summon with the form and Creature Type picked in the Spell panel (SPELLS-34.2)', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn().mockResolvedValue(true)
+    const summonOptions = {
+      summonForms: [
+        { id: 'form-bat', label: 'Bat' },
+        { id: 'form-cat', label: 'Cat' }
+      ],
+      creatureTypes: [
+        { id: 'type-celestial', label: 'Celestial' },
+        { id: 'type-fey', label: 'Fey' }
+      ]
+    }
+    renderWithAppProviders(
+      <CharacterSheetSpellPanelContent
+        expectedVersion={4}
+        panel={{
+          ...spellPanelFixture,
+          legalCastModes: spellPanelFixture.legalCastModes.map((mode) => ({
+            ...mode,
+            ...summonOptions
+          }))
+        }}
+        pending={false}
+        submitCommand={submitCommand}
+      />
+    )
+
+    await user.click(screen.getAllByLabelText('Summon form')[0]!)
+    await user.click(await screen.findByRole('option', { name: 'Cat' }))
+    await user.click(screen.getByRole('radio', { name: 'Fey' }))
+    await user.click(screen.getAllByRole('button', { name: 'Cast' })[0]!)
+
+    expect(submitCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'CAST_SPELL',
+        formId: 'form-cat',
+        creatureTypeId: 'type-fey'
+      })
+    )
+  })
 })

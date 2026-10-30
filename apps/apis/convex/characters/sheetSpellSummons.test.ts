@@ -1,6 +1,10 @@
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type {
+  CharacterSheetPanelDto,
+  CharacterSheetPanelInput
+} from '@artificer-toolkit/schema/api/characterSheetPanel'
+import type {
   CharacterSheetExecuteInput,
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
@@ -10,13 +14,21 @@ import type {
   CharacterSheetResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
+import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
+import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-familiar.js'
+import { creatureTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
+import {
+  importSeededSrdCreatureSenses,
+  seededSrdCreature,
+  srdPrintedArmorClass
+} from '../../tests/fixtures/srdCreatures'
 
 const execute = makeFunctionReference<
   'mutation',
@@ -30,7 +42,7 @@ const getSheet = makeFunctionReference<
 >('characters/sheet:get')
 
 /** A Wizard with `spell` prepared and five 5th-level slots, cast outside any Encounter. */
-async function fixture(spell: SpellAuthored = arcaneHand) {
+async function fixture(spell: SpellAuthored = arcaneHand, creatures: CreatureAuthored[] = []) {
   if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
   const base = await readyCharacterFixture({
     spellcasting: {
@@ -45,9 +57,13 @@ async function fixture(spell: SpellAuthored = arcaneHand) {
         subjectKind: 'SPELL',
         ...spell,
         document: { ...spell, classIds: [base.baseClass.id] }
-      })
+      }),
+      ...creatures.map((creature) =>
+        importedSubject({ ...creature, subjectKind: 'CREATURE', document: creature })
+      )
     ]
   })
+  for (const creature of creatures) await importSeededSrdCreatureSenses(base.t, creature)
   const { draft, character } = await base.createCharacter()
   await base.owner.caller.mutation(api.characters.commit.commit, {
     expectedDraftId: draft.id,
@@ -73,8 +89,19 @@ async function fixture(spell: SpellAuthored = arcaneHand) {
   const source = sheet.spells.spells
     .find((entry) => entry.id === spell.id)!
     .sources!.find((entry) => entry.source.sourceKind === 'CLASS')!
-  const cast = () =>
-    run({ type: 'CAST_SPELL', spellId: spell.id, sourceId: source.id, slotKey: 'STANDARD:5' })
+  const cast = (picks: { formId?: string; creatureTypeId?: string } = {}) =>
+    run({
+      type: 'CAST_SPELL',
+      spellId: spell.id,
+      sourceId: source.id,
+      slotKey: 'STANDARD:5',
+      ...picks
+    })
+  const panel = () =>
+    base.owner.caller.query(getPanel, {
+      id: character.id,
+      target: { kind: 'SPELL', source: source.source }
+    })
   const rest = async (restKind: 'SHORT' | 'LONG') => {
     const input = {
       restKind,
@@ -92,8 +119,12 @@ async function fixture(spell: SpellAuthored = arcaneHand) {
     })
     return run({ ...input, type: 'COMPLETE_REST', previewFingerprint: preview.previewFingerprint })
   }
-  return { run, cast, rest, sheet }
+  return { run, cast, rest, sheet, panel }
 }
+
+const getPanel = makeFunctionReference<'query', CharacterSheetPanelInput, CharacterSheetPanelDto>(
+  'characters/panels:get'
+)
 
 const summonsOf = (sheet: CharacterSheetResponseDto) =>
   sheet.extras.items.filter((item) => item.kind === 'SPELL_SUMMON')
@@ -159,6 +190,61 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
 
     await cast()
     expect(summonsOf(await rest('LONG'))).toEqual([])
+  })
+
+  it('conjures the form and Creature Type picked on the Sheet, kept through a long rest (SPELLS-34.2)', async () => {
+    const cat = seededSrdCreature('Cat')
+    const { cast, rest, panel } = await fixture(findFamiliar, [cat])
+    const outcome = findFamiliar.effects
+      ?.flatMap((effect) => effect.paths)
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find((candidate) => candidate.effectKind === 'MANIFEST')
+    const catForm =
+      outcome?.effectKind === 'MANIFEST'
+        ? outcome.forms?.find((form) => form.creatureId === CREATURE_IDS.CAT)
+        : undefined
+    if (!catForm) throw new Error('Find Familiar must offer the Cat form.')
+    const FEY = creatureTypeId('FEY')
+
+    const spellPanel = await panel()
+    if (spellPanel?.kind !== 'SPELL') throw new Error('Expected the Spell panel.')
+    const mode = spellPanel.legalCastModes.find((entry) => entry.slotKey === 'STANDARD:5')
+    expect(mode?.summonForms).toContainEqual({ id: catForm.id, label: 'Cat' })
+    expect(mode?.summonForms).toHaveLength(15)
+    expect(mode?.creatureTypes?.map((type) => type.id)).toEqual([
+      creatureTypeId('CELESTIAL'),
+      FEY,
+      creatureTypeId('FIEND')
+    ])
+
+    await expect(cast()).rejects.toThrow('needs one of its creature forms')
+    await expect(cast({ formId: catForm.id })).rejects.toThrow('Pick one of the creature types')
+    await expect(
+      cast({ formId: catForm.id, creatureTypeId: creatureTypeId('BEAST') })
+    ).rejects.toThrow('Pick one of the creature types')
+
+    const casted = await cast({ formId: catForm.id, creatureTypeId: FEY })
+    expect(casted.spells.slots[0]).toMatchObject({ used: 1 })
+    const [familiar] = summonsOf(casted)
+    expect(familiar).toMatchObject({
+      kind: 'SPELL_SUMMON',
+      spellId: findFamiliar.id,
+      originKind: 'SUMMONED',
+      displayName: 'Cat',
+      concentration: false,
+      armorClass: srdPrintedArmorClass(cat),
+      hitPoints: { current: 2, maximum: 2, temp: 0 }
+    })
+
+    expect(summonsOf(await rest('LONG')).map((summon) => summon.id)).toEqual([familiar!.id])
+  })
+
+  it('refuses a form pick on a summon with no creature forms (SPELLS-34.2)', async () => {
+    const { cast } = await fixture()
+
+    await expect(cast({ formId: CREATURE_IDS.CAT })).rejects.toThrow(
+      'This action takes no creature form.'
+    )
   })
 
   it('tracks a summon whose stat block has no hit points, with no hit point pool, until it is dismissed (SPELLS-4.T2v2b)', async () => {

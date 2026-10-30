@@ -54,6 +54,7 @@ import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/en
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { defaultSize, sizeSpaceFeet } from '@artificer-toolkit/rules-runtime/systemSizes'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
+import { summonPickOptions } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import {
   repeatOfferFreeUseKey,
@@ -914,15 +915,15 @@ async function summonChoice(
 ) {
   if ('statBlock' in placement)
     return { feet: sizeSpaceFeet(gameSystemId, placement.statBlock.size) }
-  const offered = new Set(placement.creatureTypeIds)
-  const creatureTypes = offered.size
-    ? (await tx.ports.requireSystem(gameSystemId)).creatureTypes.filter(({ id }) => offered.has(id))
-    : []
-  if (creatureTypes.length !== offered.size)
-    throw new Error('A summon offers a Creature Type its System does not define.')
+  const { summonForms, creatureTypes } = summonPickOptions(
+    placement,
+    placement.creatureTypeIds.length
+      ? (await tx.ports.requireSystem(gameSystemId)).creatureTypes
+      : []
+  )
   return {
     feet: sizeSpaceFeet(gameSystemId, defaultSize(gameSystemId)),
-    forms: placement.forms,
+    forms: summonForms,
     creatureTypes
   }
 }
