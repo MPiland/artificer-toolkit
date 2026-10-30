@@ -912,7 +912,7 @@
             },
             {
               "id": "PLATFORM-13.T21",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.2"],
               "wsjf": {
                 "bv": 3,
@@ -920,7 +920,8 @@
                 "rr": 8,
                 "size": 2
               },
-              "text": "Bug: node scripts/auditNativeBoundaries.mjs fails at 591b93e65 with 4 violations: packages/authoring/package.json depends on @artificer-toolkit/source-data and @artificer-toolkit/rules-runtime (layering), and scripts/phase8/buildPhaseLedger.mjs trips the GoRules and tRPC removal rules with PBI titles (false positives). Fix the layering, scope the removal rules away from ledger tooling without weakening them, and run the audit in CI (tests.yml) so it cannot drift again."
+              "text": "Bug: node scripts/auditNativeBoundaries.mjs fails at 591b93e65 with 4 violations: packages/authoring/package.json depends on @artificer-toolkit/source-data and @artificer-toolkit/rules-runtime (layering), and scripts/phase8/buildPhaseLedger.mjs trips the GoRules and tRPC removal rules with PBI titles (false positives). Fix the layering, scope the removal rules away from ledger tooling without weakening them, and run the audit in CI (tests.yml) so it cannot drift again.",
+              "note": "Merged in m554 (a843899d2)."
             },
             {
               "status": "TODO",
