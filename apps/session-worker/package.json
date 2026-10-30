@@ -31,6 +31,6 @@
     "typescript": "^7.0.2",
     "uuid": "^14.0.3",
     "vitest": "^4.1.12",
-    "wrangler": "^4.155.0"
+    "wrangler": "4.147.0"
   }
 }
