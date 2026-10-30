@@ -96,9 +96,7 @@ export function plannedGrantEffect(input: {
     },
     createdOrdinal: 1,
     sourceActorId: input.sourceActorId ?? null,
-    consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
-    endOnEvents: plan.modifierGrantContribution.endOnEvents,
-    endOnTriggers: plan.lifecycle?.endOnTriggers ?? [],
+    endTriggers: plan.modifierGrantContribution.endTriggers,
     endOnConditionIds: plan.modifierGrantContribution.endOnConditionIds,
     holderEnd: plan.modifierGrantContribution.holderEnd,
     stateContributions: [
@@ -316,7 +314,7 @@ function breathGrantEffect(input: {
             : path
         )
       },
-      { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }, consumeOnFirstEvents: [] }
+      { turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }, endTriggers: [] }
     ),
     sourceLabel: input.sourceLabel
   })

@@ -685,10 +685,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         id: crypto.randomUUID(),
         failedBy: 5,
         outcomes: [],
-        lifecycle: { endOnTriggers: [] }
+        lifecycle: { endTriggers: [] }
       } satisfies FailureMarginRiderAuthored
     case 'followUpSaveFailureMarginRiderLifecycle':
-      return { endOnTriggers: [] } satisfies FailureMarginRiderAuthored['lifecycle']
+      return { endTriggers: [] } satisfies FailureMarginRiderAuthored['lifecycle']
     case 'followUpSaveRepeatRollInfluence':
       return {
         influence: 'ADVANTAGE',
@@ -753,7 +753,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return {
         event: 'DAMAGE_TAKEN',
         by: 'ANYONE'
-      } satisfies NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
+      } satisfies NonNullable<PathLifecycleAuthored['endTriggers']>[number]
     case 'pathLifecycleEscape':
       return {
         activation: { code: 'ACTION', amount: 1 },

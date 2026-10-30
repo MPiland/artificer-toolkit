@@ -24,7 +24,11 @@ import {
   preparedSpellDamageExpressions
 } from './encounterPreparedSpellCast.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
-import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
+import {
+  planEncounterEquipmentDegradation,
+  type EncounterEquipmentDegradation
+} from './encounterEquipmentDegradation.js'
+import { createdHitPointMaximumRaise } from './character/activeEffectGrantTotals.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
 import {
   characterClassLevels,
@@ -212,13 +216,15 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
-  const snapshot = actor.snapshot
+/** A Creature snapshot's size, else null. */
+export function creatureSnapshotSize({ snapshot }: { snapshot: unknown }): string | null {
   const payload =
-    snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null
-  return payload &&
-    typeof payload === 'object' &&
-    !Array.isArray(payload) &&
+    typeof snapshot === 'object' && snapshot !== null && 'payload' in snapshot
+      ? snapshot.payload
+      : null
+  return typeof payload === 'object' &&
+    payload !== null &&
+    'size' in payload &&
     typeof payload.size === 'string'
     ? payload.size
     : null
@@ -423,17 +429,28 @@ export function prepareNativeActionEffectsPlan<
       sourceCommandId: input.commandId,
       targetActorId: prepared.target.id
     })
+  const finalRecurringEffect =
+    recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null)
   return {
     ...effects,
-    recurringEffect:
-      recurringEffect ?? (hold ? { definition: hold.definition, lifecycle: hold.lifecycle } : null),
+    recurringEffect: finalRecurringEffect,
     riderEffects,
+    /**
+     * How far the effects this outcome leaves on its target raise its maximum, so its later
+     * applications clamp against it (D156); reaction and damage-trigger effects are not its own.
+     */
+    hitPointMaximumRaise: createdHitPointMaximumRaise(
+      [effects.stateEffect, finalRecurringEffect, ...riderEffects].flatMap((plan) =>
+        plan ? [plan] : []
+      )
+    ),
     /** The target's item the outcome drops; absent when it drops none. */
     releasedItemInstanceId: released ? chosen?.item.itemInstanceId : undefined,
     /** The worn item the outcome corrodes; absent when it corrodes none. */
-    degradedItem: degradation?.kind === 'DEGRADE' ? degradation : undefined,
+    degradedItem: degradation?.kind === 'DEGRADE' ? degradationChange(degradation) : undefined,
     /** The weapon the source hit with that the target's passive corrodes; absent when it corrodes none. */
-    sourceDegradedItem: sourceDegradation?.kind === 'DEGRADE' ? sourceDegradation : undefined,
+    sourceDegradedItem:
+      sourceDegradation?.kind === 'DEGRADE' ? degradationChange(sourceDegradation) : undefined,
     // A source immunity outlasts the Concentration its action's effect depends on.
     riderMaintained: !immune,
     maintenance: recurringEffect
@@ -442,4 +459,13 @@ export function prepareNativeActionEffectsPlan<
         ? holdingZone.maintenance
         : null
   }
+}
+
+/** The item change a degradation makes, in the mechanics batch's shape. */
+function degradationChange({
+  itemInstanceId,
+  afterPenalty,
+  destroyed
+}: Extract<EncounterEquipmentDegradation, { kind: 'DEGRADE' }>) {
+  return { itemInstanceId, afterPenalty, destroyed }
 }

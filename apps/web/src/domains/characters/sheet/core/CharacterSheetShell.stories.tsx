@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
+import { expect, userEvent, within } from 'storybook/test'
 import { characterSheetMulticlassFixture } from '../fixtures/characterRest.fixtures'
 import { characterSheetSpellStatesFixture } from '../fixtures/characterSpell.fixtures'
 import { astralTearCharacterSheetFixture } from '../fixtures/astralTearSheet.fixtures'
@@ -186,5 +187,72 @@ export const ActionTypes: Story = {
         ]
       }
     }
+  }
+}
+
+/** SPELLS-8.6: a long attack name with two active bonuses keeps the row inside a phone's width. */
+export const ActiveBonusesMobile: Story = {
+  ...Mobile,
+  args: {
+    initialTab: 'actions',
+    sheet: {
+      ...characterSheetMulticlassFixture,
+      actions: {
+        items: [
+          ...characterSheetMulticlassFixture.actions.items,
+          {
+            id: 'action-shillelagh-quarterstaff',
+            label: 'Quarterstaff of the Verdant Grove',
+            kind: 'ACTION',
+            availability: { status: 'AVAILABLE' },
+            sourceLabel: 'Weapon',
+            mechanic: {
+              effectId: 'quarterstaff-effect',
+              trigger: 'ATTACK_ROLL',
+              activation: { kind: 'ACTION', amount: 1 },
+              rangeLabel: '5 ft',
+              attackBonus: 5,
+              attackAddedDice: [{ label: 'Bless', count: 1, faces: 4, sign: 'ADD' }],
+              damageAddedDice: [
+                {
+                  label: "Hunter's Mark",
+                  count: 1,
+                  faces: 6,
+                  sign: 'ADD',
+                  damageTypeId: null,
+                  againstHolderOnly: true
+                }
+              ],
+              outcomes: [
+                {
+                  kind: 'DAMAGE',
+                  pathCode: 'ON_HIT',
+                  expression: '1d8 + 3',
+                  damageTypeId: 'bludgeoning',
+                  damageTypeLabel: 'Bludgeoning'
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const row = await canvas.findByRole('group', { name: 'Quarterstaff of the Verdant Grove' })
+    const badge = within(row).getByRole('button', { name: '2 active bonuses' })
+    await expect(row.scrollWidth).toBeLessThanOrEqual(row.clientWidth)
+    await expect(badge.getBoundingClientRect().right).toBeLessThanOrEqual(
+      row.getBoundingClientRect().right
+    )
+    await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(
+      canvasElement.ownerDocument.defaultView?.innerWidth ?? 0
+    )
+    await userEvent.click(badge)
+    const list = await within(canvasElement.ownerDocument.body).findByRole('list', {
+      name: '2 active bonuses'
+    })
+    await expect(within(list).getAllByRole('listitem')).toHaveLength(2)
   }
 }

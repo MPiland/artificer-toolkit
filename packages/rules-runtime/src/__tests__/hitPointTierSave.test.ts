@@ -51,6 +51,7 @@ function cast(hitPoints: number) {
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
         save: { abilityDefinitionId: CHARISMA, dc: UNSAVEABLE_DC },

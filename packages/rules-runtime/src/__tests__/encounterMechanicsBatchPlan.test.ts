@@ -262,7 +262,11 @@ describe('Creature mechanics batch plan', () => {
   it('settles an area that damages a creature and an invulnerable summon beside it: the summon takes none (SPELLS-4.T2v2a3c)', () => {
     const summon = (damageabilityKind: 'NORMAL' | 'INVULNERABLE') => ({
       ...buildEncounterSummon({
-        summon: { statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } } },
+        summon: {
+          kind: 'STAT_BLOCK',
+          statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } }
+        },
+        spellSummon: null,
         caster: creatureActor({ id: CHARACTER_ID, snapshot: {} }),
         casterHitPointMaximum: 20,
         label: 'Conjured',
@@ -570,11 +574,13 @@ describe('Creature mechanics batch plan', () => {
       },
       { ...followUpReceipt, ordinal: 1 }
     ])
+    // The reduction is kept as an active effect the effective maximum subtracts, so the stored
+    // maximum stays as it was; writing 7 here would count the reduction twice (SPELLS-8.T16).
     expect(plan.updatedActor).toEqual({
       ...actor,
       currentHitPoints: 6,
       tempHitPoints: 0,
-      maxHitPoints: 7,
+      maxHitPoints: 11,
       conditions: [],
       damageTypesSinceTurnStart: [NECROTIC_TAKEN]
     })
@@ -614,7 +620,51 @@ describe('Creature mechanics batch plan', () => {
       afterMaximumHitPoints: 0,
       afterCurrentHitPoints: 0
     })
-    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, maxHitPoints: 0 })
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, maxHitPoints: 6 })
+    expect(plan.targetTransition.after.maximumHitPoints).toBe(0)
+  })
+
+  it('heals up to a maximum the same outcome raised, keeping the stored maximum (SPELLS-8.T16)', () => {
+    const actor = creature({ current: 11, temporary: 0, max: 11 })
+    // Interpreted before the raise existed: the heal clamped to the stored maximum of 11.
+    const heal: CharacterRuleActionApplication = {
+      ...origin,
+      kind: 'HEAL',
+      targetActorId: ACTOR_ID,
+      requestedAmount: 5,
+      resolvedAmount: 5,
+      appliedAmount: 0,
+      beforeCurrentHitPoints: 11,
+      afterCurrentHitPoints: 11,
+      beforeTemporaryHitPoints: 0,
+      afterTemporaryHitPoints: 0,
+      maximumHitPoints: 11
+    }
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([heal], { grantedMaximumHitPoints: 5 }),
+      actor,
+      userId: USER_ID
+    })
+    expect(plan.receiptApplications).toMatchObject([
+      { kind: 'HEAL', appliedAmount: 5, afterCurrentHitPoints: 16, maximumHitPoints: 16 }
+    ])
+    expect(plan.updatedActor).toMatchObject({ currentHitPoints: 16, maxHitPoints: 11 })
+    // The receipt records the raise, so its replay runs the heal against 16, not the stored 11.
+    expect(plan.targetTransition).toMatchObject({
+      before: { maximumHitPoints: 11 },
+      after: { currentHitPoints: 16, maximumHitPoints: 16 },
+      grantedMaximumHitPoints: 5
+    })
+  })
+
+  it('refuses a negative granted maximum', () => {
+    expect(() =>
+      planEncounterMechanicsBatch({
+        batch: batch([], { grantedMaximumHitPoints: -1 }),
+        actor: creature({ current: 11, temporary: 0, max: 11 }),
+        userId: USER_ID
+      })
+    ).toThrow('The Character maximum hit points are invalid.')
   })
 
   it.each([
@@ -1536,7 +1586,12 @@ describe('0 hit points (D63)', () => {
       actor: creature({ current: 6, temporary: 0, max: 6 }),
       userId: USER_ID
     })
-    expect(drained.updatedActor).toMatchObject({ maxHitPoints: 0, defeated: true })
+    expect(drained.updatedActor).toMatchObject({
+      currentHitPoints: 0,
+      maxHitPoints: 6,
+      defeated: true
+    })
+    expect(drained.targetTransition.after.maximumHitPoints).toBe(0)
   })
 
   it('revives a defeated Creature that regains hit points', () => {
@@ -1630,6 +1685,20 @@ describe('0 hit points (D63)', () => {
         hitpoints: { current: 2 },
         conditions: []
       })
+    })
+
+    it('heals a Character up to a maximum the same outcome raised (SPELLS-8.T16)', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: batch([heal({ amount: 5, before: 11, maximum: 11 })], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          grantedMaximumHitPoints: 5
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts: facts(11, [])
+      })
+      expect(plan.characterUpdate?.character.state).toMatchObject({ hitpoints: { current: 16 } })
+      expect(plan.targetTransition.after.maximumHitPoints).toBe(16)
     })
 
     it('keeps a Character already at 0 unconscious when it takes more damage', () => {

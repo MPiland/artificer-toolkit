@@ -3,15 +3,25 @@ import { profanityMatcher } from '../moderation/profanityMatcher.js'
 
 export type CampaignContentMaturity = 'STANDARD' | 'MATURE'
 
+// Masking is pure in its text, and a Sheet write presents the same few hundred labels in every
+// panel for every viewer, so each distinct text runs the matcher once (RELIABILITY-21.16).
+const MASKED_TEXT_LIMIT = 1024
+const maskedPlainText = new Map<string, string>()
+
 /** Replaces each matched span with `****`. Matches are sorted by start; an overlapping one extends the span. */
 export function maskStandardPlainText(value: string): string {
+  const cached = maskedPlainText.get(value)
+  if (cached !== undefined) return cached
   let masked = ''
   let cursor = 0
   for (const { startIndex, endIndex } of profanityMatcher.getAllMatches(value, true)) {
     if (startIndex >= cursor) masked += `${value.slice(cursor, startIndex)}****`
     cursor = Math.max(cursor, endIndex + 1)
   }
-  return masked + value.slice(cursor)
+  masked += value.slice(cursor)
+  if (maskedPlainText.size >= MASKED_TEXT_LIMIT) maskedPlainText.clear()
+  maskedPlainText.set(value, masked)
+  return masked
 }
 
 export function maskStandardRichText(value: string): string {

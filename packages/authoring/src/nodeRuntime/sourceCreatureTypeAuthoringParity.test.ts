@@ -24,7 +24,7 @@ import {
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-4.T2j1 (D156, D179): a grant limited to attacks and effects from creatures of certain

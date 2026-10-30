@@ -19,12 +19,6 @@ import {
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared/authored'
 import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
-import {
-  SRD_DWARVEN_HERITAGE_ID,
-  SRD_GOLD_CURRENCY_ID,
-  SRD_STEALTH_SKILL_ID,
-  SRD_WALK_SPEED_ID
-} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import type { ExternalCustomContent } from './importParsers.js'
 import {
@@ -44,18 +38,17 @@ type EquipmentTermsSource = Pick<
   | 'stealthDisadvantage'
 >
 
-/** The parts of a System's vocabulary that custom Equipment terms resolve against. */
+/**
+ * The parts of a System's vocabulary that custom Equipment terms resolve against. The caller binds
+ * the definitions the SRD armor and price rules name to the System's entry ids; an absent id means
+ * the System has no such entry.
+ */
 export interface ImportedEquipmentVocabulary {
   rarities: readonly ImportedVocabularyEntry[]
-  currencies: readonly ImportedVocabularyEntry[]
-  speeds: readonly ImportedVocabularyEntry[]
-  skills: readonly ImportedVocabularyEntry[]
-  heritages: readonly ImportedVocabularyEntry[]
-}
-
-/** The SRD's source-data definition ids are the terms the SRD armor and price rules name. */
-function findById(vocabulary: readonly ImportedVocabularyEntry[], id: string) {
-  return vocabulary.find((entry) => entry.id === id)
+  goldCurrencyId?: string
+  walkSpeedId?: string
+  stealthSkillId?: string
+  dwarvenHeritageId?: string
 }
 
 /**
@@ -70,20 +63,15 @@ function armorRuleGrants(
 ): ModifierGrantAuthored[] {
   const grants: ModifierGrantAuthored[] = []
   if (stealthDisadvantage) {
-    const stealth = findById(vocabulary.skills, SRD_STEALTH_SKILL_ID)
-    if (stealth) grants.push(stealthDisadvantageModifier(childId, stealth.id))
+    const { stealthSkillId } = vocabulary
+    if (stealthSkillId) grants.push(stealthDisadvantageModifier(childId, stealthSkillId))
     else skipped.push('its Stealth disadvantage (the System has no Stealth skill)')
   }
   if (strengthRequirement !== undefined) {
-    const walk = findById(vocabulary.speeds, SRD_WALK_SPEED_ID)
-    const dwarven = findById(vocabulary.heritages, SRD_DWARVEN_HERITAGE_ID)
-    if (walk && dwarven)
+    const { walkSpeedId, dwarvenHeritageId } = vocabulary
+    if (walkSpeedId && dwarvenHeritageId)
       grants.push(
-        heavyArmorStrengthModifier(
-          childId,
-          { walkSpeedId: walk.id, dwarvenHeritageId: dwarven.id },
-          strengthRequirement
-        )
+        heavyArmorStrengthModifier(childId, { walkSpeedId, dwarvenHeritageId }, strengthRequirement)
       )
     else
       skipped.push(
@@ -174,14 +162,14 @@ export function applyImportedEquipmentTerms(
   const rarity = custom.rarityName
     ? resolveImportedVocabularyEntry(vocabulary.rarities, custom.rarityName)
     : undefined
-  const gold = findById(vocabulary.currencies, SRD_GOLD_CURRENCY_ID)
+  const { goldCurrencyId } = vocabulary
   return {
     payload: {
       ...custom.payload,
       ...(modifiers.length ? { modifiers } : {}),
       ...(rarity ? { rarityId: rarity.id } : {}),
-      ...(custom.costGold !== undefined && gold
-        ? { cost: { amount: custom.costGold, currencyId: gold.id } }
+      ...(custom.costGold !== undefined && goldCurrencyId
+        ? { cost: { amount: custom.costGold, currencyId: goldCurrencyId } }
         : {})
     },
     issues: skippedArmorRules.length

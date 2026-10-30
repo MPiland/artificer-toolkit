@@ -7,14 +7,20 @@ import { SRD_REUSABLE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/cat
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
-import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
-import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
+import {
+  authoredSourceFacts,
+  authoredSourceKindsByTable
+} from '../nodeRuntime/authoredSourceFacts.js'
+import type {
+  NodeRuntimeQueryRow,
+  NodeRuntimeSourceReader
+} from '../nodeRuntime/nodeRuntimeSourceContract.js'
+import type { NodeRuntimeSourceTable } from '../nodeRuntime/nodeRuntimeSourceManifest.js'
 import {
   createNodeRuntimeSourceReader,
   sortAuthoredSourceRows,
   type NodeRuntimePolicyVocabulary
-} from './systemSourceRows.js'
+} from '../nodeRuntime/systemSourceRows.js'
 
 const { subjects } = srdBaselineContent
 const fixtureVersionId = '00000000-0000-4000-8000-000000000f00'

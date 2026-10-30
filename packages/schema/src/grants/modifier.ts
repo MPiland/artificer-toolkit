@@ -26,7 +26,6 @@ import {
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
-  pathLifecycleEndEventSchema,
   rangeKindSchema,
   scalingKindSchema,
   shapeKindSchema
@@ -303,7 +302,7 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
 /** The holder's own active effects with these authored ids do not end on these lifecycle events. */
 export const endEventExemptionPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    events: z.array(pathLifecycleEndEventSchema).check(z.minLength(1)),
+    events: z.array(systemCoreCodeSchema).check(z.minLength(1)),
     effectIds: z.array(postgresUuidSchema).check(z.minLength(1))
   })
 )
@@ -876,6 +875,7 @@ const buildModifierGrantVariants = () =>
       emptyDomainDtoSchema,
       weaponDamageDiePayloadDtoSchema
     ),
+    buildModifierGrantVariant('WEAPON_PROFICIENCY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('FREE_OPPORTUNITY_REACTION', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),

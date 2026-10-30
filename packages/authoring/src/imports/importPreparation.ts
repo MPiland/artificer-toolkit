@@ -215,11 +215,7 @@ export interface ImportSystemVocabulary extends ImportedEquipmentVocabulary {
 
 const EMPTY_SYSTEM_VOCABULARY: ImportSystemVocabulary = {
   damageTypes: [],
-  rarities: [],
-  currencies: [],
-  speeds: [],
-  skills: [],
-  heritages: []
+  rarities: []
 }
 
 export interface ResolvedReference extends ExternalContentReference {

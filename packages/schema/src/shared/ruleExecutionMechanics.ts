@@ -448,7 +448,13 @@ export const characterMechanicsTargetTransitionDtoSchema = lazySchema(() =>
      * The Character settled in a form (D130): its hit points and death saves are the form's until
      * the form ends, so a change to them alone leaves the Sheet's version as it was.
      */
-    inForm: z.optional(z.literal(true))
+    inForm: z.optional(z.literal(true)),
+    /**
+     * How far effects the same outcome left on the target raised its maximum before its later
+     * results applied (a SEQUENTIAL grant then heal, D156). `before` keeps the stored maximum; the
+     * batch's applications run against the raised one.
+     */
+    grantedMaximumHitPoints: z.optional(z.number().check(z.int(), z.positive()))
   })
 )
 

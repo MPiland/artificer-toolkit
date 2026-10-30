@@ -8,7 +8,7 @@ interface LifecycleRole {
 }
 
 /**
- * The 5e lifecycle codes an effect lists in `consumeOnFirstEvents` or `endOnEvents`, and what each
+ * The 5e lifecycle codes an effect's `LIFECYCLE` end triggers name, per timing (D122), and what each
  * means to a hook: the event applies, then the effect is gone, restored by the same receipt. This is
  * the one source of the codes: the `effectConsumeEvent` and `effectEndEvent` lists derive from it.
  * A grant cannot be used up by a cast, and an attack roll or a cast never ends one.
@@ -133,10 +133,10 @@ function lifecycleEntries(role: 'consume' | 'end'): readonly SystemCoreCodeEntry
   )
 }
 
-/** The codes a stored effect lists in `consumeOnFirstEvents`. */
+/** The codes a `LIFECYCLE` end trigger names with `CONSUME` timing. */
 export const DND5E_EFFECT_CONSUME_EVENTS = lifecycleEntries('consume')
 
-/** The codes a stored effect lists in `endOnEvents`. */
+/** The codes a `LIFECYCLE` end trigger names with `END` timing. */
 export const DND5E_EFFECT_END_EVENTS = lifecycleEntries('end')
 
 /**

@@ -28,6 +28,8 @@ import {
 /** A grant a holder carries from an Active Effect, in the Character grant fold's modifier shape. */
 type ActiveEffectGrant = {
   effectId: string
+  /** The authored Effect the active effect runs, which a binding check names. */
+  authoredEffectId: string
   modifiers: readonly CharacterGrantFoldModifier[]
   senses: readonly CharacterGrantFoldSense[]
   sourceLabel: string
@@ -45,6 +47,7 @@ export function listActiveEffectGrants(
         ? [
             {
               effectId: id,
+              authoredEffectId: definition.authoredEffectId,
               modifiers: contribution.modifiers,
               senses: contribution.senses,
               sourceLabel: contribution.sourceLabel,
@@ -67,12 +70,14 @@ type DomainFilter = (domain: CharacterGrantFoldModifier['domain']) => boolean
 
 /** The global active bonuses and penalties to one value domain whose domain `applies` accepts. */
 function* activeBonusGrants(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[],
   valueDomainCode: string,
   applies: DomainFilter
 ) {
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
+  for (const { definition } of effects) {
+    for (const modifier of definition.stateContributions.flatMap((contribution) =>
+      contribution.kind === 'MODIFIER_GRANT' ? contribution.modifiers : []
+    )) {
       if (
         modifier.valueDomainCode === valueDomainCode &&
         (modifier.modifierKind === 'BONUS' || modifier.modifierKind === 'PENALTY') &&
@@ -89,7 +94,7 @@ function* activeBonusGrants(
  * whose domain `applies` accepts.
  */
 export function activeFixedGrantTotal(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[],
   valueDomainCode: string,
   applies: DomainFilter = () => true
 ): number {
@@ -183,36 +188,43 @@ export function activeDamageDice(input: {
   targetEffects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
   attackDomain: string | null
 }): DamageAddedDieDto[] {
-  const dice = (
-    effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-    recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER'
-  ) =>
-    activeRolledDieGrants(
-      effects,
-      'DAMAGE',
-      (domain) => domain.attackDomain === undefined || domain.attackDomain === input.attackDomain
-    ).flatMap(({ label, payload }) =>
-      'recipient' in payload && payload.recipient === recipient
-        ? [
-            {
-              label,
-              count: payload.count,
-              faces: payload.faces,
-              sign: payload.sign,
-              damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
-            }
-          ]
-        : []
-    )
   const placedByDealer = input.targetEffects.filter(
     ({ definition }) =>
       definition.origin.kind === 'ENCOUNTER' &&
       definition.origin.sourceActorId === input.dealerActorId
   )
   return [
-    ...dice(input.dealerEffects, 'HOLDER_DEALS'),
-    ...dice(placedByDealer, 'SOURCE_DEALS_TO_HOLDER')
+    ...activeDamageDiceTo(input.dealerEffects, 'HOLDER_DEALS', input.attackDomain),
+    ...activeDamageDiceTo(placedByDealer, 'SOURCE_DEALS_TO_HOLDER', input.attackDomain)
   ]
+}
+
+/**
+ * The damage dice `effects` grant to one recipient: their holder's own damage (`HOLDER_DEALS`), or
+ * their source's damage to that holder (`SOURCE_DEALS_TO_HOLDER`). See `activeDamageDice`.
+ */
+export function activeDamageDiceTo(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  recipient: 'HOLDER_DEALS' | 'SOURCE_DEALS_TO_HOLDER',
+  attackDomain: string | null
+): DamageAddedDieDto[] {
+  return activeRolledDieGrants(
+    effects,
+    'DAMAGE',
+    (domain) => domain.attackDomain === undefined || domain.attackDomain === attackDomain
+  ).flatMap(({ label, payload }) =>
+    'recipient' in payload && payload.recipient === recipient
+      ? [
+          {
+            label,
+            count: payload.count,
+            faces: payload.faces,
+            sign: payload.sign,
+            damageTypeId: 'damageTypeId' in payload ? payload.damageTypeId : null
+          }
+        ]
+      : []
+  )
 }
 
 /**
@@ -471,4 +483,16 @@ export function effectiveHitPointMaximum(
     Math.max(0, maximum + activeFixedGrantTotal(effects, 'HIT_POINTS_MAX')),
     listHitPointMaximumReductions(effects)
   )
+}
+
+/**
+ * How far the effects an outcome leaves on its target raise that target's maximum hit points. The
+ * outcome's own later results already see the raise (a SEQUENTIAL grant then heal, D156), though the
+ * effects are written after the target's mechanics batch, so the batch takes it as an input
+ * (`grantedMaximumHitPoints`). Only a raise counts.
+ */
+export function createdHitPointMaximumRaise(
+  created: readonly Pick<ActiveRuleEffectRecord, 'definition'>[]
+): number {
+  return Math.max(0, activeFixedGrantTotal(created, 'HIT_POINTS_MAX'))
 }

@@ -25,7 +25,10 @@ import {
   SRD_WALK_SPEED_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import { applyImportedEquipmentTerms } from './importedEquipmentTerms.js'
+import {
+  applyImportedEquipmentTerms,
+  type ImportedEquipmentVocabulary
+} from './importedEquipmentTerms.js'
 
 function sequentialIds() {
   let next = 0
@@ -51,19 +54,10 @@ const vocabulary = {
     { id: 'rarity-very-rare', code: 'VERY_RARE', label: 'Very Rare' },
     { id: 'rarity-legendary', code: 'LEGENDARY', label: 'Legendary' }
   ],
-  currencies: [
-    { id: 'currency-sp', code: 'SP', label: 'Silver' },
-    { id: SRD_GOLD_CURRENCY_ID, code: 'GP', label: 'Gold' }
-  ],
-  speeds: [
-    { id: SRD_WALK_SPEED_ID, code: 'WALK', label: 'Walking Speed' },
-    { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' }
-  ],
-  skills: [
-    { id: SRD_STEALTH_SKILL_ID, code: 'STEALTH', label: 'Stealth' },
-    { id: 'skill-athletics', code: 'ATHLETICS', label: 'Athletics' }
-  ],
-  heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DWARVEN', label: 'Dwarven' }]
+  goldCurrencyId: SRD_GOLD_CURRENCY_ID,
+  walkSpeedId: SRD_WALK_SPEED_ID,
+  stealthSkillId: SRD_STEALTH_SKILL_ID,
+  dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID
 }
 
 type TermsExtra = Partial<
@@ -77,7 +71,7 @@ function termsResult(
   category: string,
   properties: string[],
   extra: TermsExtra = {},
-  system: typeof vocabulary = vocabulary
+  system: ImportedEquipmentVocabulary = vocabulary
 ) {
   return applyImportedEquipmentTerms(
     {
@@ -176,49 +170,11 @@ describe('applyImportedEquipmentTerms rarity and price', () => {
     expect(terms('WEAPON', [], { rarityName: 'Unknown Rarity' })).toMatchObject({ rarityId: '' })
     const withoutGold = applyImportedEquipmentTerms(
       { label: 'Coin purse', path: [], payload: { rarityId: '' }, costGold: 5 },
-      { ...vocabulary, rarities: [], currencies: [vocabulary.currencies[0]!] },
+      { ...vocabulary, rarities: [], goldCurrencyId: undefined },
       sequentialIds()
     ).payload
     expect(withoutGold).not.toHaveProperty('cost')
     expect(withoutGold).toMatchObject({ rarityId: '' })
-  })
-})
-
-describe('applyImportedEquipmentTerms definition ids', () => {
-  const renamed = {
-    ...vocabulary,
-    currencies: [{ id: SRD_GOLD_CURRENCY_ID, code: 'GOLD', label: 'Crown' }],
-    speeds: [{ id: SRD_WALK_SPEED_ID, code: 'FOOT', label: 'Foot' }],
-    skills: [{ id: SRD_STEALTH_SKILL_ID, code: 'SNEAK', label: 'Sneak' }],
-    heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DEEPFOLK', label: 'Deepfolk' }]
-  }
-
-  it('resolves gold, walking speed, Stealth and Dwarven by definition id whatever their codes', () => {
-    const result = termsResult(
-      'ARMOR',
-      ['HEAVY'],
-      { costGold: 5, strengthRequirement: 15, stealthDisadvantage: true },
-      renamed
-    )
-    expect(result.payload).toMatchObject({ cost: { amount: 5, currencyId: SRD_GOLD_CURRENCY_ID } })
-    expect(result.payload.modifiers).toHaveLength(2)
-    expect(result.issues).toEqual([])
-  })
-
-  it('does not take a code match for the definition', () => {
-    const impostor = {
-      ...vocabulary,
-      currencies: [{ id: 'other-gp', code: 'GP', label: 'Gold' }],
-      skills: [{ id: 'other-stealth', code: 'STEALTH', label: 'Stealth' }]
-    }
-    const result = termsResult(
-      'ARMOR',
-      ['HEAVY'],
-      { costGold: 5, stealthDisadvantage: true },
-      impostor
-    )
-    expect(result.payload).not.toHaveProperty('cost')
-    expect(result.issues).toEqual([expect.objectContaining({ code: 'UNKNOWN_ARMOR_VOCABULARY' })])
   })
 })
 
@@ -275,7 +231,7 @@ describe('applyImportedEquipmentTerms armor rules', () => {
       'ARMOR',
       ['HEAVY'],
       { strengthRequirement: 15, stealthDisadvantage: true },
-      { ...vocabulary, skills: [vocabulary.skills[1]!] }
+      { ...vocabulary, stealthSkillId: undefined }
     )
     expect(noStealth.payload.modifiers).toEqual(expectedGrants(strength(15)))
     expect(noStealth.issues).toEqual([
@@ -288,7 +244,7 @@ describe('applyImportedEquipmentTerms armor rules', () => {
       })
     ])
 
-    for (const missing of [{ speeds: [] }, { heritages: [] }]) {
+    for (const missing of [{ walkSpeedId: undefined }, { dwarvenHeritageId: undefined }]) {
       const noStrength = termsResult(
         'ARMOR',
         ['HEAVY'],

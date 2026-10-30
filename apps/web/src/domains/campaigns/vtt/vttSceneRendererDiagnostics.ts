@@ -1,10 +1,19 @@
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 
+/** A drawn overlay: its label, stroked circles and stroke colours. */
+interface VttDrawnOverlay {
+  circles: { center: ScenePoint; radius: number }[]
+  label: string
+  strokeColors: number[]
+}
+
 /** What the Scene renderer has drawn, read back from its display objects for stories and tests. */
 export interface VttSceneRendererDiagnostics {
   /** The in-progress token drag: its path length, where the token is drawn and the route line drawn. */
   activeDrag: { pointCount: number; position: ScenePoint; route: ScenePoint[] } | null
+  /** The area drawn under the pointer while an area or a zone is aimed; null otherwise. */
+  areaAimOverlay: VttDrawnOverlay | null
   doorVisualCreateCount: number
   /** How many route lines are drawn: one during a token drag, none otherwise. */
   dragRouteLabel: string | null
@@ -34,12 +43,8 @@ export interface VttSceneRendererDiagnostics {
   loadedMapAssetCount: number
   mapLoadComplete: boolean
   overlayCount: number
-  /** The drawn presentation overlays: each one's label, stroked circles and stroke colours. */
-  overlays: {
-    circles: { center: ScenePoint; radius: number }[]
-    label: string
-    strokeColors: number[]
-  }[]
+  /** The drawn presentation overlays. */
+  overlays: VttDrawnOverlay[]
   sceneVersion: number | null
   tokenArtCount: number
   tokenOverflowCount: number

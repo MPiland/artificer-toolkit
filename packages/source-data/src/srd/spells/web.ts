@@ -130,7 +130,13 @@ export const web: SpellAuthored = {
                               resultKind: 'SINGLE' as const,
                               lifecycle: {
                                 heldBySource: true,
-                                endOnEvents: ['ON_LEAVING_AREA' as const],
+                                endTriggers: [
+                                  {
+                                    event: 'LIFECYCLE' as const,
+                                    timing: 'END' as const,
+                                    code: 'ON_LEAVING_AREA'
+                                  }
+                                ],
                                 escape: {
                                   activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
                                   checks: {

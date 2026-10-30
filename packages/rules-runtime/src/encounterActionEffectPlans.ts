@@ -5,6 +5,7 @@ import {
   type ServerRuleExecutionD20EvidenceDto,
   type ServerCompletedRuleExecutionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
@@ -185,11 +186,7 @@ export function prepareEncounterActionEffectPlans(input: {
                 frozenGraphNodeId: rider.frozenGraphNodeId,
                 conditionContributions: rider.conditionContributions,
                 initialRemaining: rider.initialRemaining ?? plan!.initialRemaining,
-                lifecycle: {
-                  consumeOnFirstEvents: [],
-                  endOnEvents: [],
-                  endOnTriggers: rider.lifecycle.endOnTriggers
-                },
+                lifecycle: { endTriggers: rider.lifecycle.endTriggers },
                 marginRiders: []
               }
             })
@@ -319,14 +316,6 @@ export function prepareEncounterConcealmentEffect(
     activeEffectsByActorId: new Map(),
     d20: null
   })
-}
-
-/** The distinct events of both lists, sorted. */
-function sortedUnion<Event extends string>(
-  first: readonly Event[] | undefined,
-  second: readonly Event[] | undefined
-): Event[] {
-  return [...new Set([...(first ?? []), ...(second ?? [])])].sort()
 }
 
 /**
@@ -585,13 +574,10 @@ export function prepareRecurringActiveEffect(
       anchor: tickAnchor,
       // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
       // own lifecycle joins the grant's.
-      consumeOnFirstEvents: sortedUnion(
-        grantContribution?.consumeOnFirstEvents ??
-          plan.concealmentContribution?.consumeOnFirstEvents,
-        endLifecycle?.consumeOnFirstEvents
-      ),
-      endOnEvents: sortedUnion(grantContribution?.endOnEvents, endLifecycle?.endOnEvents),
-      endOnTriggers: endLifecycle?.endOnTriggers ?? [],
+      endTriggers: canonicalActiveEffectEndTriggers([
+        ...(grantContribution?.endTriggers ?? plan.concealmentContribution?.endTriggers ?? []),
+        ...(endLifecycle?.endTriggers ?? [])
+      ]),
       ...(endLifecycle?.repeatTriggers?.length && { repeatTriggers: endLifecycle.repeatTriggers }),
       endOnConditionIds:
         grantContribution?.endOnConditionIds ?? formContribution?.endOnConditionIds ?? [],
@@ -830,8 +816,7 @@ function prepareRepeatCarrierEffect(
         modifiers: [],
         senses: [],
         includesCurrentTurn: false,
-        consumeOnFirstEvents: [],
-        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }],
         endOnConditionIds: [],
         holderEnd: null,
         effectOffers: carrier.effectOffers
@@ -921,9 +906,7 @@ export function sourceImmunityEffect(input: {
     recurrence: {
       recurrenceStage: immunity.initialRemaining === null ? 'NONE' : 'END_OF_TURN',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       // A Run holds no rest, so a lockout lasts the Run, ending before the source's long rest can.
@@ -1021,9 +1004,7 @@ function prepareTargetStateEffect(
     recurrence: {
       recurrenceStage: 'NONE',
       anchor: 'HOLDER',
-      consumeOnFirstEvents: [],
-      endOnEvents: [],
-      endOnTriggers: [],
+      endTriggers: [],
       endOnConditionIds: [],
       holderEnd: null,
       lifetimeScope: input.target.lifetimeScope,

@@ -60,9 +60,9 @@ describe('Hide in Plain Sight is authorable from core options (D156, SPELLS-31.T
 
   it('keeps no closed rule kind and ends on a move or any action', () => {
     expect(JSON.stringify(srd)).not.toContain('CLOSED_RULE')
-    expect(plannedAction(srd.effects)?.modifierGrantContribution?.endOnEvents).toEqual([
-      'ON_MOVE',
-      'ON_TAKE_ACTION'
+    expect(plannedAction(srd.effects)?.modifierGrantContribution?.endTriggers).toEqual([
+      { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+      { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' as const }
     ])
   })
 
@@ -89,7 +89,16 @@ describe('Hide in Plain Sight is authorable from core options (D156, SPELLS-31.T
             resultBlock: {
               id: testUuid(0x2213),
               resultKind: 'SINGLE' as const,
-              lifecycle: { endOnEvents: ['ON_MOVE' as const, 'ON_TAKE_ACTION' as const] },
+              lifecycle: {
+                endTriggers: [
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+                  {
+                    event: 'LIFECYCLE' as const,
+                    timing: 'END' as const,
+                    code: 'ON_TAKE_ACTION' as const
+                  }
+                ]
+              },
               outcomes: [
                 {
                   id: testUuid(0x2214),
@@ -125,8 +134,7 @@ describe('Hide in Plain Sight is authorable from core options (D156, SPELLS-31.T
         recurrenceStage: plan?.recurrenceStage,
         initialRemaining: plan?.initialRemaining,
         tickAnchor: plan?.tickAnchor,
-        endOnEvents: contribution?.endOnEvents,
-        consumeOnFirstEvents: contribution?.consumeOnFirstEvents,
+        endTriggers: contribution?.endTriggers,
         modifiers: contribution?.modifiers.map(({ grantId: _grantId, ...modifier }) => modifier)
       }
     }
@@ -246,7 +254,16 @@ describe('One with Shadows is authorable from core options (D156, SPELLS-31.T5n)
           resultBlock: {
             id: testUuid(0x2243),
             resultKind: 'SINGLE' as const,
-            lifecycle: { endOnEvents: ['ON_MOVE' as const, 'ON_TAKE_ACTION' as const] },
+            lifecycle: {
+              endTriggers: [
+                { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' as const },
+                {
+                  event: 'LIFECYCLE' as const,
+                  timing: 'END' as const,
+                  code: 'ON_TAKE_ACTION' as const
+                }
+              ]
+            },
             outcomes: [
               { id: testUuid(0x2244), effectKind: 'CONDITION' as const, conditionId: invisible }
             ]

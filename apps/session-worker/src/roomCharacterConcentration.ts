@@ -1,19 +1,19 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import { readActorConcentration } from '@artificer-toolkit/encounter-persistence/concentrationListing'
+import { readActorConcentrationEffects } from '@artificer-toolkit/encounter-persistence/concentrationListing'
 import { listCarriedActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
-import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
-import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
 
 /**
- * The Concentration a Character maintains as its Sheet names it (SPELLS-5.11): its live slot while an
- * ACTIVE Run holds it as an actor, otherwise the grants a finished Run carried over from its last one.
+ * The effects a Character's Concentration keeps alive as its Sheet reads them (SPELLS-5.11): its live
+ * slot's while an ACTIVE Run holds it as an actor, otherwise the grants a finished Run carried over
+ * from its last one. Null when it maintains none.
  */
-export async function readRoomCharacterConcentration(
+export async function readRoomCharacterConcentrationEffects(
   store: RoomEncounterStore,
   campaignId: string,
   characterId: string
-): Promise<ConcentrationListingDto | null> {
+): Promise<ActiveRuleEffectRecord[] | null> {
   const ctx = { db: store.store }
   for (const run of store.documents('encounterRuns')) {
     const state = readRunState(run)
@@ -21,7 +21,8 @@ export async function readRoomCharacterConcentration(
     const actor = (await readRunActors(ctx, state)).find(
       (candidate) => candidate.kind === 'CHARACTER' && candidate.sourceId === characterId
     )
-    if (actor) return readActorConcentration(ctx, { state, actor })
+    if (actor) return readActorConcentrationEffects(ctx, { state, actor })
   }
-  return carriedConcentration(await listCarriedActiveRuleEffects(ctx, characterId))
+  const carried = await listCarriedActiveRuleEffects(ctx, characterId)
+  return carried.length === 0 ? null : carried
 }

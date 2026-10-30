@@ -11,7 +11,7 @@ import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-31.T5b (D156): Deflect Missiles is a reaction to a ranged weapon attack that grants an

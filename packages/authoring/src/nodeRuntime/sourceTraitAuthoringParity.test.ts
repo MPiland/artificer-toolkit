@@ -19,7 +19,7 @@ import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-4.T2j2a (D156, D179): a grant limited to attacks that carry a trait (magical) is one

@@ -1,5 +1,4 @@
 import {
-  characterRulePolicyInputSchema,
   characterRulePolicyOutputSchema,
   type CharacterRulePolicyInput,
   type CharacterRulePolicyOutput
@@ -32,11 +31,14 @@ import {
   dnd5eModifierApplies
 } from './modifierApplicability.js'
 
-/** Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. */
+/**
+ * Pure System-owned Character policy. The generic Rules Kernel remains scalar-only. Its input is the
+ * parsed facts `composeCharacterRulePolicyFacts` returns; active grants added later are validated by
+ * the grant fold, so the facts are not parsed again here (RELIABILITY-21.16).
+ */
 export function evaluateDnd5e2014CharacterPolicy(
-  candidate: CharacterRulePolicyInput
+  input: CharacterRulePolicyInput
 ): CharacterRulePolicyOutput {
-  const input = characterRulePolicyInputSchema.parse(candidate)
   const spells = evaluateDnd5eCharacterSpellAccess(input)
   const grantFold = evaluateDnd5e2014CharacterGrantFold({
     ...input.grantFoldFacts,

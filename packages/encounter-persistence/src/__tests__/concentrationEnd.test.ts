@@ -308,7 +308,9 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
   }
 
   it('deletes a grant that ends on incapacitation when its holder is incapacitated', async () => {
-    const { persist, held } = await endGrants(paralyzed, { endOnEvents: ['ON_INCAPACITATED'] })
+    const { persist, held } = await endGrants(paralyzed, {
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }]
+    })
     expect(held()).toHaveLength(1)
     await persist()
     expect(held()).toEqual([])
@@ -316,7 +318,7 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
 
   it('tells the table which grant the commit ended, once per grant', async () => {
     const { persist, grant, postRulesChatMessage } = await endGrants(paralyzed, {
-      endOnEvents: ['ON_INCAPACITATED']
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }]
     })
     await persist()
     expect(postRulesChatMessage).toHaveBeenCalledWith(expect.anything(), {
@@ -347,7 +349,15 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
   })
 
   it.each([
-    ['a holder that can act', ableToAct, { endOnEvents: ['ON_INCAPACITATED' as const] }],
+    [
+      'a holder that can act',
+      ableToAct,
+      {
+        endTriggers: [
+          { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_INCAPACITATED' as const }
+        ]
+      }
+    ],
     ['a grant that does not end on incapacitation', paralyzed, {}]
   ])('refuses to end the grant of %s', async (_name, actorInput, lifecycle) => {
     const { persist, held } = await endGrants(actorInput, lifecycle)
@@ -358,7 +368,7 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
   it('refuses a commit that omits a grant its damaged holder state ends', async () => {
     const { persist, held } = await endGrants(
       paralyzed,
-      { endOnEvents: ['ON_INCAPACITATED'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
       { sendGrant: false }
     )
     await expect(persist()).rejects.toThrow('Live Session grant end is missing.')
@@ -368,7 +378,7 @@ describe('persistEncounterConcentrationChildren ends grants on incapacitation', 
   it('leaves the grants of a holder the commit did not damage alone', async () => {
     const { persist, held } = await endGrants(
       paralyzed,
-      { endOnEvents: ['ON_INCAPACITATED'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
       { sendGrant: false, damaged: false }
     )
     await persist()
@@ -808,7 +818,12 @@ describe('endConcentrationAfterEdit', () => {
       conditions: [srdCondition('Paralyzed')]
     })
     const { memory, ctx, postRulesChatMessage } = await holderFixture(actor, 'PUBLIC')
-    const grant = await storeGrant(ctx, actor, { endOnEvents: ['ON_INCAPACITATED'] }, 'Rage')
+    const grant = await storeGrant(
+      ctx,
+      actor,
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
+      'Rage'
+    )
     await endConcentrationAfterEdit(
       ctx as unknown as Parameters<typeof endConcentrationAfterEdit>[0],
       {
@@ -849,7 +864,12 @@ describe('endHolderStateGrants', () => {
   async function endFor(conditions: ReturnType<typeof srdCondition>[]) {
     const actor = creatureActor({ id: ACTOR_ID, kind: 'CUSTOM', snapshot: {}, conditions })
     const { memory, ctx, postRulesChatMessage } = await holderFixture(actor, 'PUBLIC')
-    const grant = await storeGrant(ctx, actor, { endOnEvents: ['ON_INCAPACITATED'] }, 'Rage')
+    const grant = await storeGrant(
+      ctx,
+      actor,
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
+      'Rage'
+    )
     await endHolderStateGrants(ctx as unknown as Parameters<typeof endHolderStateGrants>[0], {
       state: srdEncounterState({ actors: [actor], currentActorId: null }),
       actor,

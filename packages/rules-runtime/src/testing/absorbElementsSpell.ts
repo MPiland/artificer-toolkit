@@ -82,7 +82,7 @@ export function absorbElementsSpell(
               },
               lifecycle: {
                 turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
-                consumeOnFirstEvents: ['ON_ATTACK_ROLL']
+                endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
               },
               outcomes: [
                 {

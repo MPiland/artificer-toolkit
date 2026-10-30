@@ -13,10 +13,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
-import {
-  encounterGrantsEnabledDomain,
-  withCharacterActiveGrants
-} from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
+import { encounterGrantsEnabledDomain } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { rageEffect } from './antitoxinEffectFixture.js'
@@ -81,7 +79,9 @@ describe('the Rage active effect', () => {
   it('is a valid persisted grant that ends on an idle turn, while Unconscious, or by its holder', () => {
     const { definition } = rage()
     expect(activeRuleEffectDefinitionDtoSchema.parse(definition)).toEqual(definition)
-    expect(definition.recurrence.endOnEvents).toEqual(['ON_IDLE_TURN'])
+    expect(definition.recurrence.endTriggers).toEqual([
+      { event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }
+    ])
     expect(definition.recurrence.endOnConditionIds).toEqual([conditionTypeId('UNCONSCIOUS')])
     expect(definition.recurrence.holderEnd).toEqual({ activation: 'BONUS_ACTION' })
   })

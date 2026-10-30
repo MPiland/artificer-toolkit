@@ -322,6 +322,7 @@ export async function persistEncounterActionCommit(
       targetActorId: target.id
     })),
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
+    grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     // A used reaction versions its Character even when it leaves no effect behind (Uncanny Dodge).
     forceVersionAdvance:

@@ -10,7 +10,11 @@ import {
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
 import type { Dnd5eAuthoredOutcome } from './effectActionOutcomes.js'
-import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
+import {
+  parseBoundedDiceConfiguration,
+  type Dnd5eEffectScalingFacts
+} from './effectActionScalingFacts.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 
 export type SpecializedOutcome =
@@ -55,8 +59,16 @@ export function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]
   return boundedOutcome(entry.outcome, killAdmitted)
 }
 
+/**
+ * The TEST phase's view of an outcome: a fixed amount its bonuses size is known only by kind, since
+ * the source's resolved expression that states it is bound in the outcome phase.
+ */
+export type TestPhaseOutcome =
+  | SpecializedOutcome
+  | { kind: 'RESOLVED_DAMAGE'; damageTypeId: string }
+
 /** The sibling damage outcome an outcome sized by the damage dealt reads, if it is one. */
-export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
+export function damageSourceOutcomeId(outcome: TestPhaseOutcome) {
   if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') return outcome.amountSource.damageOutcomeId
   return outcome.kind === 'DAMAGE_DERIVED_HEAL' ? outcome.damageOutcomeId : undefined
 }
@@ -68,10 +80,42 @@ export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
  * all-branches graph.
  */
 export function specializedTestOutcome(
+  entry: CompiledEffectGroup['entries'][number],
+  /** The source's bound facts, which only the outcome phase has. */
+  facts: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
+): SpecializedOutcome
+export function specializedTestOutcome(
   entry: CompiledEffectGroup['entries'][number]
-): SpecializedOutcome {
+): TestPhaseOutcome
+export function specializedTestOutcome(
+  entry: CompiledEffectGroup['entries'][number],
+  facts?: Pick<Dnd5eEffectScalingFacts, 'resolvedDamageOutcomeExpressions'>
+): TestPhaseOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const outcome = entry.outcome
+  if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED' && outcome.bonuses?.length) {
+    // "Damage equal to your Charisma modifier": the bonuses read the source, so the amount waits
+    // for its resolved expression.
+    validateDamageBonuses(outcome.bonuses)
+    if (
+      outcome.scalingKind !== 'NONE' ||
+      !Number.isSafeInteger(outcome.amount) ||
+      outcome.amount < 0
+    )
+      unsupported('D&D fixed damage with bonuses must be one unscaled whole amount.')
+    uuid(outcome.damageTypeId, 'D&D damage type identity')
+    if (!facts) return { kind: 'RESOLVED_DAMAGE', damageTypeId: outcome.damageTypeId }
+    // The source states the amount already floored at 0, as a dice total is; 0 deals no damage.
+    const resolved = facts.resolvedDamageOutcomeExpressions[entry.entryId]
+    const amount = resolved !== undefined && /^\d+$/.test(resolved) ? Number(resolved) : -1
+    if (!Number.isSafeInteger(amount) || amount < 0)
+      unsupported('D&D resolved fixed damage must be a whole amount of at least 0.')
+    return {
+      kind: 'DAMAGE',
+      amount: multipliedDamageAmount(amount, damageMultiplier(outcome)),
+      damageTypeId: outcome.damageTypeId
+    }
+  }
   if (outcome.effectKind === 'SCALAR_REDUCTION') {
     uuid(outcome.valueDefinitionId, 'D&D scalar definition identity')
     parseBoundedDiceConfiguration(outcome.amount.diceConfig)
@@ -157,6 +201,57 @@ export function positiveFixedAmount(
       'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
     )
   return outcome.amount
+}
+
+/**
+ * The dice a heal rolls: its one authored value, or the row the spell's cast level reaches. A
+ * heal's dice count shapes its graph, so the cast level is a compile input rather than a runtime fact.
+ */
+export function healDiceConfiguration(
+  outcome: Partial<Record<'scalingKind' | 'diceConfig' | 'scalingSource' | 'levels', unknown>>,
+  spellCastLevel: number | undefined
+): string {
+  if (outcome.scalingKind === 'NONE' && typeof outcome.diceConfig === 'string')
+    return outcome.diceConfig
+  if (
+    outcome.scalingKind !== 'PER_LEVEL' ||
+    outcome.scalingSource !== 'SPELL_CAST_LEVEL' ||
+    !Array.isArray(outcome.levels)
+  )
+    unsupported('D&D dice healing requires one authored dice value or spell cast level rows.')
+  if (spellCastLevel === undefined) unsupported('D&D dice healing scaling facts are unavailable.')
+  const row = selectScalingRow(outcome.levels as readonly Record<string, unknown>[], spellCastLevel)
+  if (!row || typeof row.diceConfig !== 'string')
+    unsupported('D&D dice healing scaling does not select an authored value.')
+  return row.diceConfig
+}
+
+/**
+ * The hit points a fixed heal gives: its one authored amount, or the row the spell's cast level
+ * reaches (Aid). Like a heal's dice, the amount is a literal of the graph, so the cast level is a
+ * compile input.
+ */
+export function fixedHealAmount(
+  outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'HEAL' }>,
+  spellCastLevel: number | undefined
+): number {
+  const scaled: Partial<Record<'scalingKind' | 'scalingSource' | 'levels', unknown>> = outcome
+  if (scaled.scalingKind !== 'PER_LEVEL' || scaled.scalingSource !== 'SPELL_CAST_LEVEL')
+    return positiveFixedAmount(outcome)
+  if (spellCastLevel === undefined) unsupported('D&D fixed healing scaling facts are unavailable.')
+  const row = Array.isArray(scaled.levels)
+    ? selectScalingRow(scaled.levels as readonly Record<string, unknown>[], spellCastLevel)
+    : null
+  const amount = row?.amount
+  if (
+    outcome.valueKind !== 'FIXED' ||
+    outcome.bonuses?.length ||
+    typeof amount !== 'number' ||
+    !Number.isSafeInteger(amount) ||
+    amount <= 0
+  )
+    unsupported('D&D fixed healing scaling does not select a positive authored amount.')
+  return amount
 }
 
 export function validateHealBonuses(value: unknown): void {

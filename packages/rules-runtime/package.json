@@ -23,7 +23,7 @@
   "dependencies": {
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "uuid": "^14.0.2"
+    "uuid": "^14.0.3"
   },
   "devDependencies": {
     "@artificer-toolkit/source-data": "workspace:^",

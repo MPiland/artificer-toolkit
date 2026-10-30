@@ -81,7 +81,7 @@ function healRoom() {
     autoRoll: 'GAME_MASTER',
     characterPlay: { currentHitPoints: 5 },
     seed: async ({ effects, encounterId, occurredAt }) => {
-      for (const [id, endOnEvents] of [
+      for (const [id, endEvents] of [
         [UNTIL_HEALED_ID, ['ON_HIT_POINTS_REGAINED']],
         [LASTING_ID, []]
       ] as const) {
@@ -89,7 +89,13 @@ function healRoom() {
           encounterId,
           sourceActorId: HEALER_ID,
           holderActorId: CHARACTER_ACTOR_ID,
-          lifecycle: { endOnEvents: [...endOnEvents] }
+          lifecycle: {
+            endTriggers: endEvents.map((code) => ({
+              event: 'LIFECYCLE' as const,
+              timing: 'END' as const,
+              code
+            }))
+          }
         })
         await effects.create({
           id,

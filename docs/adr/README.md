@@ -55,6 +55,7 @@ When an ADR and code disagree, verify the code and tests first, then update the 
 | [0038](0038-rules-authored-from-core-options.md)                       | Rules mechanics are authored from core options; `CLOSED_RULE` retired | transitional (SPELLS-4 conversions pending)                         |
 | [0039](0039-composable-system-neutral-rules-engine.md)                 | Composable, System-neutral rules engine; size and import ratchets     | decision (RULES-2 in progress)                                      |
 | [0040](0040-staged-account-deletion.md)                                | Staged account deletion: durable job of bounded steps, account last   | decision (RELIABILITY-21.T22)                                       |
+| [0041](0041-stored-character-sheet-sections.md)                        | A Character write stores its derived Sheet per viewer and section     | decision (RELIABILITY-21.T16)                                       |
 
 ## Updating an ADR
 

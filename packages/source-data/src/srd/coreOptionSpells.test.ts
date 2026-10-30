@@ -249,7 +249,7 @@ describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
   it('authors the bonuses, every resistance and the mirror, with no closed rule left', () => {
     expect(path.resultBlock.duration).toMatchObject({ durationKind: 'HOUR', amount: 1 })
     expect(path.resultBlock.lifecycle).toEqual({
-      endOnTriggers: [
+      endTriggers: [
         { event: 'INCAPACITATED', of: 'SOURCE' },
         { event: 'SEPARATED', from: 'SOURCE', beyondFeet: 60 }
       ]
@@ -277,7 +277,7 @@ describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
                 resultBlock: {
                   ...entry.resultBlock,
                   lifecycle: {
-                    endOnTriggers: [
+                    endTriggers: [
                       { event: 'SEPARATED' as const, from: 'SOURCE' as const, beyondFeet: 30 }
                     ]
                   },

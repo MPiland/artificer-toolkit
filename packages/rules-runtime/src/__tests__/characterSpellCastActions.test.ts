@@ -46,10 +46,18 @@ import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
-import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { createSrdRulesRuntime, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterSummon } from '../encounterSummon.js'
-import { buildSheetSpellSummon } from '../character/sheetSpellSummon.js'
+import { buildEncounterSummon, formSummonStats } from '../encounterSummon.js'
+import {
+  buildSheetSpellSummon,
+  encounterSpellSummonExtra,
+  ownedEncounterSpellSummons,
+  sheetSpellSummonExtra
+} from '../character/sheetSpellSummon.js'
+import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -127,6 +135,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackDomain: null,
     attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
@@ -221,7 +230,8 @@ const SCORCHED_INVISIBILITY = (() => {
   const path = authored.effects?.[0]?.paths?.[0]
   if (!path || !('resultBlock' in path) || !path.resultBlock.lifecycle)
     throw new Error('Invisibility ends through its authored lifecycle.')
-  path.resultBlock.lifecycle.endOnTriggers = [
+  path.resultBlock.lifecycle.endTriggers = [
+    ...(path.resultBlock.lifecycle.endTriggers ?? []),
     { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
     { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID, FIRE_TYPE_ID] },
     { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
@@ -306,7 +316,7 @@ const HYPNOTIC_PATTERN_FROM_CORE_OPTIONS = {
             resultKind: 'SINGLE',
             duration: { id: testUuid(0x3106), durationKind: 'MINUTE', amount: 1 },
             lifecycle: {
-              endOnTriggers: [
+              endTriggers: [
                 { event: 'DAMAGE_TAKEN', by: 'ANYONE' },
                 {
                   event: 'ACTION_USED_ON_HOLDER',
@@ -384,7 +394,9 @@ const CONTACT_OTHER_PLANE_FROM_CORE_OPTIONS = {
           resultBlock: {
             id: testUuid(0x3305),
             resultKind: 'SEQUENCE',
-            lifecycle: { endOnEvents: ['ON_LONG_REST'] },
+            lifecycle: {
+              endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
+            },
             outcomes: [
               {
                 id: testUuid(0x3306),
@@ -1027,8 +1039,10 @@ describe('the timed condition a cast owns with no save', () => {
       initialRemaining: 600,
       conditionContributions: [{ conditionId: invisibleId }],
       lifecycle: {
-        consumeOnFirstEvents: [],
-        endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+          { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
+        ]
       }
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
@@ -1036,11 +1050,13 @@ describe('the timed condition a cast owns with no save', () => {
 
   it('carries authored end triggers with explicit filters, unique and in canonical order', () => {
     const plan = compiledCast(SCORCHED_INVISIBILITY)?.activeEffectPlan
-    expect(plan?.lifecycle?.endOnTriggers).toEqual([
+    expect(plan?.lifecycle?.endTriggers).toEqual([
       { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
       { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
       { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null },
-      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] }
+      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
+      { event: 'LIFECYCLE', timing: 'END', code: 'ON_ATTACK_ROLL' },
+      { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }
     ])
   })
 })
@@ -1052,7 +1068,7 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
       initialRemaining: 600,
       conditionContributions: [{ conditionId: charmedId }],
       lifecycle: {
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+        endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
       }
     })
   })
@@ -1061,7 +1077,7 @@ describe('the timed condition a save cast owns (SPELLS-27.T5)', () => {
       initialRemaining: 14_400,
       conditionContributions: [{ conditionId: conditionId('CHARMED') }],
       lifecycle: {
-        endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
+        endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }]
       }
     })
   })
@@ -1084,11 +1100,10 @@ describe('the conditions and speed a save cast owns together (SPELLS-27.T9)', ()
       ],
       modifierGrantContribution: {
         countedByTurnEffects: true,
-        consumeOnFirstEvents: [],
-        endOnEvents: [],
+        endTriggers: [],
         modifiers: [{ valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' }]
       },
-      lifecycle: { endOnTriggers: ROUSE_OR_DAMAGE }
+      lifecycle: { endTriggers: ROUSE_OR_DAMAGE }
     })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)
   })
@@ -1458,7 +1473,9 @@ describe('a save its caster makes, whose failure holds a condition until a long 
     initialRemaining: null,
     tickAnchor: 'HOLDER',
     conditionContributions: [{ conditionId: conditionId('INCAPACITATED') }],
-    lifecycle: { consumeOnFirstEvents: [], endOnEvents: ['ON_LONG_REST'], endOnTriggers: [] },
+    lifecycle: {
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
+    },
     maintenance: null
   }
 
@@ -1484,7 +1501,7 @@ describe('a save its caster makes, whose failure holds a condition until a long 
       lifetimeScope: 'OWNER'
     })
     expect(definition.recurrence).toMatchObject({
-      endOnEvents: ['ON_LONG_REST'],
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }],
       expiration: { kind: 'INDEFINITE' }
     })
     expect(activeEffectEndsOnRest({ definition }, 'LONG')).toBe(true)
@@ -2039,7 +2056,7 @@ describe('the timed condition a hit-point pool cast owns (SPELLS-27.T8)', () => 
       initialRemaining: 10,
       conditionContributions: [{ conditionId: conditionId('UNCONSCIOUS') }],
       lifecycle: {
-        endOnTriggers: [
+        endTriggers: [
           { event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [SRD_BASIC_ACTION_IDS.ROUSE] },
           { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }
         ]
@@ -2163,7 +2180,9 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
       initialRemaining: 1,
       recurrenceStage: 'END_OF_TURN',
       tickAnchor: 'SOURCE',
-      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
+      modifierGrantContribution: {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }]
+      }
     })
     expect(
       plan?.modifierGrantContribution?.modifiers.map((modifier) => ({
@@ -2361,7 +2380,7 @@ describe('a condition until dispelled that damage ends, beside a GM ruling (SPEL
     expect(entry?.compilation.activeEffectPlan).toMatchObject({
       initialRemaining: null,
       conditionContributions: [{ conditionId: conditionId('INVISIBLE') }],
-      lifecycle: { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
+      lifecycle: { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null }] },
       maintenance: null
     })
     const plan = entry?.compilation.executionPlan
@@ -2468,7 +2487,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       },
       modifierGrantContribution: {
-        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }],
         modifiers: [
           {
             valueDomainCode: 'ATTACK_ROLL',
@@ -2515,7 +2534,7 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
         grantUnlessReleased: false
       })
       // The weapon stays magic when it is dropped: no release ends the spell.
-      expect(plan?.modifierGrantContribution?.endOnEvents).toEqual([])
+      expect(plan?.modifierGrantContribution?.endTriggers).toEqual([])
       expect(
         plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, scope, payload }) => [
           valueDomainCode,
@@ -2584,7 +2603,9 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
           resultKind: 'SINGLE',
           duration: { id: testUuid(0x3712), durationKind: 'MINUTE', amount: 1 },
           // The grant ends when the target lets go of the item it is bound to.
-          lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'] },
+          lifecycle: {
+            endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CHOSEN_ITEM_RELEASED' }]
+          },
           outcomes: [
             {
               id: testUuid(0x3713),
@@ -2691,7 +2712,7 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
       initialRemaining: 1,
       tickAnchor: 'SOURCE',
       modifierGrantContribution: {
-        consumeOnFirstEvents: ['ON_ATTACKED'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }],
         fromSourceOnly: true,
         activeOnlyOnFinalAnchorTurn: true
       }
@@ -2978,7 +2999,8 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
   it('builds the Sheet’s summon and the Encounter’s from the one compiled plan (D190, SPELLS-34.4)', () => {
     const authored = spell('Arcane Hand')
     const placement = compiledCast(authored)?.summonPlacement
-    if (!placement) throw new Error('Arcane Hand must compile a summon plan.')
+    if (!placement || !('statBlock' in placement))
+      throw new Error('Arcane Hand must compile a stat block summon plan.')
     const NOW = '2026-10-23T00:00:00.000Z'
     const caster = encounterRunActorStateSchema.parse({
       id: testUuid(1),
@@ -3005,8 +3027,15 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       snapshot: { kind: 'CHARACTER', id: testUuid(4), label: 'Aria', systemId: SRD_SYSTEM_ID }
     })
     const label = placement.label ?? authored.label
+    const spellSummon = resolveSpellSummonStatBlock({
+      placement,
+      casterHitPointMaximum: 40,
+      spellId: authored.id,
+      label: authored.label
+    })
     const { actor } = buildEncounterSummon({
-      summon: placement,
+      summon: { kind: 'STAT_BLOCK', statBlock: placement.statBlock },
+      spellSummon,
       caster,
       casterHitPointMaximum: 40,
       sourceEffectId: testUuid(8),
@@ -3039,6 +3068,162 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     })
     expect(sheetSummon).not.toHaveProperty('passivePerception')
     expect(actor.maxHitPoints).toBe(40)
+    // Both paths list the attack the spell lets its caster make with the hand (SPELLS-34.1, .2).
+    const clenchedFist = {
+      id: authored.effects?.[1]?.id,
+      label: 'Melee Spell Attack',
+      description: 'Bonus Action'
+    }
+    expect(sheetSummon.actions).toEqual([clenchedFist])
+    expect(sheetSpellSummonExtra(sheetSummon, undefined).actions).toEqual([clenchedFist])
+    const [owned] = ownedEncounterSpellSummons([caster, actor], caster.id)
+    if (!owned) throw new Error('The caster must own the Encounter summon.')
+    expect(owned.summon).toEqual(spellSummon)
+    expect(encounterSpellSummonExtra(owned, undefined)).toMatchObject({
+      id: actor.id,
+      encounterActorId: actor.id,
+      spellId: authored.id,
+      armorClass: 20,
+      hitPoints: { current: 40, maximum: 40, temp: 0 },
+      actions: [clenchedFist]
+    })
+  })
+
+  describe('a summon of System Creature forms (SPELLS-34.T3a)', () => {
+    const FIND_FAMILIAR = spell('Find Familiar')
+    /** The spell's first summon outcome, as authored. */
+    const summonOutcome = (authored: SpellAuthored) => {
+      const path = authored.effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'SUMMON')
+        throw new Error(`${authored.label} must author its summon.`)
+      return outcome
+    }
+    /** Find Familiar with its summon outcome edited, the way a homebrew author would. */
+    const familiar = (edit: (outcome: ReturnType<typeof summonOutcome>) => void) => {
+      const authored = structuredClone(FIND_FAMILIAR)
+      edit(summonOutcome(authored))
+      return authored
+    }
+
+    it('compiles its forms and Creature Types onto an untimed carrier', () => {
+      const placement = compiledCast(FIND_FAMILIAR)?.summonPlacement
+      if (!placement || !('forms' in placement))
+        throw new Error('Find Familiar must compile a forms summon plan.')
+
+      expect(placement.forms).toHaveLength(15)
+      expect(placement.forms[1]).toEqual({
+        id: expect.any(String),
+        label: 'Cat',
+        creatureId: CREATURE_IDS.CAT
+      })
+      expect(placement.creatureTypeIds).toEqual(
+        [creatureTypeId('CELESTIAL'), creatureTypeId('FEY'), creatureTypeId('FIEND')].sort()
+      )
+      expect(placement.entry).toMatchObject({
+        initialRemaining: null,
+        recurrenceStage: 'NONE',
+        maintenance: null
+      })
+    })
+
+    it('lists the forms in their authored order, whatever order they are written in', () => {
+      const placement = compiledCast(
+        familiar((outcome) => {
+          outcome.forms = [...(outcome.forms ?? [])].reverse()
+        })
+      )?.summonPlacement
+      if (!placement || !('forms' in placement)) throw new Error('Expected a forms summon plan.')
+      expect(placement.forms.map(({ label }) => label).slice(0, 2)).toEqual(['Bat', 'Cat'])
+    })
+
+    it('refuses a summon that authors both a stat block and forms, neither, or more than one creature a form', () => {
+      const arcaneHandStatBlock = summonOutcome(spell('Arcane Hand')).statBlock
+      const refused = [
+        familiar((outcome) => {
+          outcome.statBlock = arcaneHandStatBlock
+        }),
+        familiar((outcome) => {
+          delete outcome.forms
+        }),
+        familiar((outcome) => {
+          delete outcome.forms
+          outcome.statBlock = arcaneHandStatBlock
+        }),
+        familiar((outcome) => {
+          outcome.forms = outcome.forms?.map((form, index) =>
+            index === 0 ? { ...form, maxTargets: 2 } : form
+          )
+        })
+      ]
+      for (const authored of refused) expect(compiledCastEntry(authored)).toBeNull()
+    })
+
+    it('builds the familiar from its corpus Creature, of the chosen Creature Type, linked to its caster', () => {
+      const placement = compiledCast(FIND_FAMILIAR)?.summonPlacement
+      if (!placement || !('forms' in placement)) throw new Error('Expected a forms summon plan.')
+      const NOW = '2026-10-29T00:00:00.000Z'
+      const caster = srdCreatureActor({ id: testUuid(0x34a1), creature: cat })
+      const catActor = srdCreatureActor({ id: testUuid(0x34a2), creature: cat })
+      if (
+        !('maxHitPoints' in catActor) ||
+        !catActor.systemId ||
+        !catActor.sourceId ||
+        catActor.sourceRevision === null
+      )
+        throw new Error('The cat must be a sourced Creature.')
+      const formCreature = {
+        systemId: catActor.systemId,
+        sourceId: catActor.sourceId,
+        sourceRevision: catActor.sourceRevision,
+        snapshot: catActor.snapshot,
+        maxHitPoints: catActor.maxHitPoints
+      }
+      const fey = creatureTypeId('FEY')
+      const spellSummon = resolveSpellSummonStatBlock({
+        placement,
+        casterHitPointMaximum: 40,
+        spellId: FIND_FAMILIAR.id,
+        label: 'Cat',
+        formStats: formSummonStats(formCreature)
+      })
+      const { actor } = buildEncounterSummon({
+        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
+        spellSummon,
+        caster,
+        casterHitPointMaximum: 40,
+        sourceEffectId: testUuid(0x34a3),
+        label: 'Cat',
+        point: { x: 0, y: 0 },
+        edgeLength: 100,
+        occurredAt: NOW
+      })
+
+      expect(actor).toMatchObject({
+        kind: 'CREATURE',
+        sourceId: CREATURE_IDS.CAT,
+        label: 'Cat',
+        maxHitPoints: cat.hitPoints,
+        currentHitPoints: cat.hitPoints,
+        owner: { ownerActorId: caster.id },
+        snapshot: { payload: { creatureTypeId: fey } }
+      })
+      if (!('maxHitPoints' in actor)) throw new Error('The familiar holds its own hit points.')
+      const extra = (familiarActor: typeof actor) => {
+        const [owned] = ownedEncounterSpellSummons([caster, familiarActor], caster.id)
+        if (!owned) throw new Error('The caster must own the familiar.')
+        return encounterSpellSummonExtra(owned, undefined)
+      }
+      expect(extra(actor)).toMatchObject({
+        encounterActorId: actor.id,
+        spellId: FIND_FAMILIAR.id,
+        concentration: false,
+        size: 'TINY',
+        hitPoints: { current: cat.hitPoints, maximum: cat.hitPoints, temp: 0 }
+      })
+      // The Run actor is the only record: its live hit points are what the Extras show.
+      expect(extra({ ...actor, currentHitPoints: 1 }).hitPoints).toMatchObject({ current: 1 })
+    })
   })
 
   it('conjures Spiritual Weapon: invulnerable, taking no space, attacked through as a bonus action that is free on the cast turn (SPELLS-4.T2v2a3d)', () => {
@@ -3224,7 +3409,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       },
       entry: { initialRemaining: 10, maintenance: null }
     })
-    expect(cast?.summonPlacement?.statBlock).not.toHaveProperty('hitPoints')
+    expect(cast?.summonPlacement).not.toHaveProperty(['statBlock', 'hitPoints'])
   })
 })
 
@@ -3238,8 +3423,7 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
         ability: null,
         state: 'APPLIED' as const,
         scope: 'GLOBAL' as const,
-        deferredRequirements: [],
-        scopeSpellIds: []
+        deferredRequirements: []
       }
     ]
   })

@@ -74,7 +74,15 @@ export const shillelagh: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
-            lifecycle: { endOnEvents: ['ON_CHOSEN_ITEM_RELEASED' as const] },
+            lifecycle: {
+              endTriggers: [
+                {
+                  event: 'LIFECYCLE' as const,
+                  timing: 'END' as const,
+                  code: 'ON_CHOSEN_ITEM_RELEASED'
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHILLELAGH, 0x212, 1),

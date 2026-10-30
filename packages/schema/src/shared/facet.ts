@@ -239,6 +239,10 @@ const predicatePayloadSchemas = lazySchemaParts(
       SOLE_WIELDED_WEAPON: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOLE_WIELDED_WEAPON)
       }),
+      BOUND_BY_EFFECT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.BOUND_BY_EFFECT),
+        effectIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
       ATTACK_ABILITY: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ABILITY),
         ability: systemCoreCodeSchema

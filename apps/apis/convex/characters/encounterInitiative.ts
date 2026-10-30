@@ -5,6 +5,7 @@ import {
   type CharacterEncounterInitiativeResult
 } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterSheetFacts } from './sheetFacts'
 
@@ -20,7 +21,13 @@ export async function loadCharacterEncounterInitiative(
     throw new Error('Character initiative source is unavailable.')
   if (loaded.character.systemId !== input.systemId)
     throw new Error('Character initiative source is stale.')
-  const { snapshot, registry, output } = loaded.ruleEvaluation
+  // Initiative reads the Character's active grants, as its Sheet does (a held Stealth bonus).
+  const { snapshot, registry, output } = evaluateCharacterActiveGrantRules({
+    gameSystemId: input.systemId,
+    evaluation: loaded.ruleEvaluation,
+    activeEffects: loaded.activeEffects,
+    vocabularySnapshot: loaded.prepared.context.vocabularySnapshot
+  })
   if (snapshot.characterId !== input.characterId || snapshot.systemId !== input.systemId)
     throw new Error('Character initiative source identity does not match the actor.')
   return characterEncounterInitiativeResultSchema.parse({

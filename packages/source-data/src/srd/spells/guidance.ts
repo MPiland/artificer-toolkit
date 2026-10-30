@@ -68,7 +68,15 @@ export const guidance: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
-            lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK'] },
+            lifecycle: {
+              endTriggers: [
+                {
+                  event: 'LIFECYCLE' as const,
+                  timing: 'CONSUME' as const,
+                  code: 'ON_ABILITY_CHECK'
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GUIDANCE, 0x212, 1),

@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest'
 
 import { listActiveGrantListings } from '../activeGrantListings.js'
-import { withCharacterActiveGrants } from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'
 import type { NativeEncounterActionSource } from '../encounterActionSources.js'
 import { encounterSpellSchoolImmunity } from '../encounterSpellSchoolImmunity.js'

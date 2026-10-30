@@ -9,8 +9,10 @@ import { enthrall } from '@artificer-toolkit/source-data/srd/spells/enthrall.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
 import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
+import { goodberry } from '@artificer-toolkit/source-data/srd/spells/goodberry.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
+import { heroesFeast } from '@artificer-toolkit/source-data/srd/spells/heroes-feast.js'
 import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js'
@@ -30,13 +32,13 @@ import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strik
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-/** D156 T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d and T2v2b: spells converted from closed rules to core options (ADR 0038 parity). */
-describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d, T2v2b, T2w, SPELLS-8.T7)', () => {
+/** D156 T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2n3, T2v2a3d and T2v2b: spells converted from closed rules to core options (ADR 0038 parity). */
+describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2n3, T2v2a3d, T2v2b, T2w, SPELLS-8.T7)', () => {
   it.each([
     ['Beacon of Hope', beaconOfHope],
     ['Blur', blur],
@@ -64,7 +66,11 @@ describe('spells authored from core options through the effect node map (SPELLS-
     // SPELLS-8.T7 (D187a): a summoned sword the caster attacks through, like Spiritual Weapon.
     ['Arcane Sword', arcaneSword],
     // SPELLS-4.T2w (D187a): a summon, with the bark and bite as a GM ruling.
-    ['Faithful Hound', faithfulHound]
+    ['Faithful Hound', faithfulHound],
+    // SPELLS-4.T2n3 (D181): the riders beyond the authored grants are a GM ruling.
+    ["Heroes' Feast", heroesFeast],
+    // SPELLS-4.T2n3: a carrier whose repeat spends its counted uses.
+    ['Goodberry', goodberry]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
     const result = await normalizeNodeRuntimeValues(reader, {

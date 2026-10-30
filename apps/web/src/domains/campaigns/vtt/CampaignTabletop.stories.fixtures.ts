@@ -13,6 +13,14 @@ import type {
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
 import type { SignedVttMapDeliveryDto } from '@artificer-toolkit/schema/api/media'
+import {
+  encounterActorMoraleDtoSchema,
+  type EncounterActorMoraleDto
+} from '@artificer-toolkit/schema/shared/encounterMorale'
+import {
+  DND5E_MORALE_DEFINITION_ID,
+  type MoraleDispositionDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import type {
   CampaignSceneStateDto,
   SceneDefinitionDto
@@ -383,6 +391,25 @@ export function seedTabletopSystem(queryClient: QueryClient, campaign: CampaignD
 }
 
 /** Actor conditions holding the SRD condition types with these codes, as an Encounter projection carries them. */
+/** A creature's morale check after the GM confirmed `disposition` (ENCOUNTER-6.2). */
+export function tabletopConfirmedMorale(
+  actorId: string,
+  disposition: MoraleDispositionDto
+): EncounterActorMoraleDto {
+  return encounterActorMoraleDtoSchema.parse({
+    commandId: '33333333-3333-4333-8333-333333333390',
+    definitionId: DND5E_MORALE_DEFINITION_ID,
+    triggerKind: 'INDIVIDUAL_REDUCED_TO_HALF',
+    scope: 'SUBJECT',
+    rollerActorId: actorId,
+    groupLeaderActorId: null,
+    save: null,
+    proposed: disposition,
+    disposition,
+    firedTriggerKinds: ['INDIVIDUAL_REDUCED_TO_HALF']
+  })
+}
+
 export function tabletopConditions(...codes: string[]) {
   return codes.map((code) => ({
     conditionTypeId: srdSystemRecord.conditionTypes.find((type) => type.code === code)!.id

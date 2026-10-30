@@ -40,10 +40,10 @@ import {
   readEncounterBasicActionEntries
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
-  decoyStrikeEffects,
   type EncounterAttackDecoy,
   prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
+import { settledCountedUseSpend } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
@@ -1365,8 +1365,9 @@ export async function planNativeLiveEncounterAction(
     ),
     resultPath: execution.d20?.resultPath
   })
-  // A hit on a decoy destroys it: the last one ends the effect, any other spends a use of it.
-  const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, execution.d20?.resultPath)
+  // A hit on a decoy destroys it, and a repeat spends one of its carrier's counted uses; the last
+  // decoy or use ends its effect.
+  const uses = settledCountedUseSpend(prepared, execution.d20?.resultPath, activeEffectsByActorId)
   // An attack roll against the target uses up what it consumes, and damage it takes ends the effects
   // that end on damage; the conditions only they held are released in the target's own batch.
   const targetHeld = heldOnTarget.filter(
@@ -1430,17 +1431,10 @@ export async function planNativeLiveEncounterAction(
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      grantedMaximumHitPoints: preparedEffects.hitPointMaximumRaise,
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
-      degradeTargetItem: preparedEffects.degradedItem && {
-        itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
-        afterPenalty: preparedEffects.degradedItem.afterPenalty,
-        destroyed: preparedEffects.degradedItem.destroyed
-      },
-      degradeSourceItem: preparedEffects.sourceDegradedItem && {
-        itemInstanceId: preparedEffects.sourceDegradedItem.itemInstanceId,
-        afterPenalty: preparedEffects.sourceDegradedItem.afterPenalty,
-        destroyed: preparedEffects.sourceDegradedItem.destroyed
-      },
+      degradeTargetItem: preparedEffects.degradedItem,
+      degradeSourceItem: preparedEffects.sourceDegradedItem,
       forceTargetVersionAdvance:
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
@@ -1678,7 +1672,7 @@ export async function planNativeLiveEncounterAction(
     spellCheck,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
-    spentUseGrants: decoyStrike.spentUseGrants,
+    spentUseGrants: uses.spentUseGrants,
     failedSpends,
     forcedMovements,
     revisions,
@@ -1686,7 +1680,7 @@ export async function planNativeLiveEncounterAction(
     consumedGrants: [
       ...consumedGrants,
       ...hitEnded.consumedGrants,
-      ...decoyStrike.endedGrants,
+      ...uses.endedGrants,
       ...damageEnded.endedEffects,
       ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])

@@ -19,6 +19,11 @@ import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { characterConsequenceDtoSchema } from '../shared/consequenceRolls.js'
 import {
+  MAX_D20_ADDED_DICE,
+  d20AddedDiceDtoSchema,
+  damageAddedDieDtoSchema
+} from '../shared/d20AddedDice.js'
+import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
   characterSheetReadInputSchema,
@@ -283,6 +288,15 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     ),
     rangeLabel: z.optional(stringSchema),
     attackBonus: z.optional(integerSchema),
+    // Dice the Character's active grants add to this attack's roll (Bless's d4).
+    attackAddedDice: z.optional(d20AddedDiceDtoSchema),
+    // Dice active grants add to this row's damage: the Character's own, and those an effect it
+    // placed adds only against that effect's holder (Hunter's Mark's d6 against its mark).
+    damageAddedDice: z.optional(
+      z
+        .array(z.extend(damageAddedDieDtoSchema, { againstHolderOnly: z.boolean() }))
+        .check(z.maxLength(MAX_D20_ADDED_DICE))
+    ),
     attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({
@@ -441,13 +455,18 @@ const characterSheetVehicleExtraDtoSchema = lazySchema(() =>
 )
 
 /**
- * A creature a spell cast from the Sheet conjured (D190). Only `CAST_SPELL` creates one, so its kind
- * is never an add option. Its stat block values are the ones the cast resolved against the caster.
+ * A creature a spell cast conjured (D190). Only a cast creates one, so its kind is never an add
+ * option. Its stat block values are the ones the cast resolved against the caster.
  */
 const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
   z.extend(characterSheetExtraCommonDtoSchema, {
     kind: z.literal('SPELL_SUMMON'),
     spellId: stringSchema.check(z.minLength(1)),
+    /**
+     * Set when an Encounter cast made the summon: its owned Run actor is the record, so the Sheet
+     * reads it live and neither edits nor dismisses it.
+     */
+    encounterActorId: z.optional(z.guid()),
     originKind: z.literal('SUMMONED'),
     originLabel: stringSchema.check(z.minLength(1)),
     /** The summon is the Sheet's Concentration and ends with it. */

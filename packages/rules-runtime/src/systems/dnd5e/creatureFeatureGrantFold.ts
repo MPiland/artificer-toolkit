@@ -201,7 +201,7 @@ export function resolveDnd5eCreatureWeaponBonuses(input: {
     },
     attackAbility: null,
     activation: input.activation,
-    spellId: null
+    spell: null
   }
   const attackDomain = dnd5eAttackModifierDomain(input.attackKind)
   return {

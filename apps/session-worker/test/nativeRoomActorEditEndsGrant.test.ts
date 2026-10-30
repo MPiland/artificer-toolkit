@@ -30,7 +30,7 @@ function woundedWolfRoom() {
     moverActorId: HOLDER_ID,
     positions: { [HOLDER_ID]: { x: 150, y: 150 } },
     seed: async ({ effects, encounterId, occurredAt }) => {
-      for (const [id, endOnEvents] of [
+      for (const [id, endEvents] of [
         [UNTIL_HEALED_ID, ['ON_HIT_POINTS_REGAINED']],
         [LASTING_ID, []]
       ] as const) {
@@ -38,7 +38,13 @@ function woundedWolfRoom() {
           encounterId,
           sourceActorId: HOLDER_ID,
           holderActorId: HOLDER_ID,
-          lifecycle: { endOnEvents: [...endOnEvents] }
+          lifecycle: {
+            endTriggers: endEvents.map((code) => ({
+              event: 'LIFECYCLE' as const,
+              timing: 'END' as const,
+              code
+            }))
+          }
         })
         await effects.create({
           id,

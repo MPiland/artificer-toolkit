@@ -337,6 +337,8 @@ registerCampaignContentUsage('sceneDefinitions', 'scenesPerCampaign')
 // Scene vision reads active Characters only. Drafts are left untracked, so an autosave neither
 // stales Scene vision nor pays trigger reads of the old and new payload (ADR 0036 S8).
 registerScope('characters', (_, document) => characterScope(document.id))
+// Every structural write advances the build record's structure clock; the head changes only with identity.
+registerScope('characterBuildStates', (_, document) => characterScope(document.characterId))
 registerScope('characterPlayStates', (_, document) => characterScope(document.characterId))
 registerScope('campaignCharacterStates', (_, document) => characterScope(document.characterId))
 registerScope('characterActiveRuleEffects', (_, document) => characterScope(document.characterId))

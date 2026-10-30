@@ -441,7 +441,6 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   const record = records[0]!
   const play = plays[0]!
   const draft = drafts[0]!
-  assert.equal(typeof record.updatedAt, 'string')
   assert.equal(typeof draft.updatedAt, 'string')
   assert.equal(typeof play.streamVersion, 'number')
   const { _id: _recordId, _creationTime: _recordCreationTime, ...storedRecord } = record
@@ -449,6 +448,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   const builds = expected.characterBuildStates!.filter((row) => row.characterId === characterId)
   assert.equal(builds.length, 1)
   const build = builds[0]!
+  assert.equal(typeof build.updatedAt, 'string')
   const { _id: _buildId, _creationTime: _buildCreationTime, ...storedBuild } = build
   const collections = characterCollectionSchemas
   const readCollection = <Value>(table: string, schema: { parse: (input: unknown) => Value }) =>
@@ -540,11 +540,14 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
   assert.deepEqual(character.state, { ...original.state, currency })
   const actualRecords = actual.characters!.filter((row) => row._id === record._id)
   assert.equal(actualRecords.length, 1)
-  const updatedAt = actualRecords[0]!.updatedAt
+  // The structure clock lives on the build record (ADR 0035 Amendment 12).
+  const actualBuilds = actual.characterBuildStates!.filter((row) => row._id === build._id)
+  assert.equal(actualBuilds.length, 1)
+  const updatedAt = actualBuilds[0]!.updatedAt
   assert.ok(typeof updatedAt === 'string')
   assert.equal(new Date(updatedAt).toISOString(), updatedAt)
   assert.ok(Date.parse(updatedAt) >= fenceTimeMs)
-  assert.ok(Date.parse(updatedAt) > Date.parse(record.updatedAt as string))
+  assert.ok(Date.parse(updatedAt) > Date.parse(build.updatedAt as string))
   // The prune rewrites the structure (status, label, currency) and advances the play stream; the
   // play content itself is unchanged.
   const written = encodeCharacterRecord(stored, {
@@ -560,8 +563,7 @@ export function reconcileCampaignDeletionPersonalExpected(input: {
       : {
           ...row,
           label: character.label,
-          status: 'DRAFT',
-          updatedAt
+          status: 'DRAFT'
         }
   )
   const operational = encodeCharacterOperationalStructure({

@@ -295,6 +295,7 @@ export async function planAreaOutcomes(args: {
         occurredAt,
         applications,
         damageReleases: damageEnded.releases,
+        grantedMaximumHitPoints: effects.hitPointMaximumRaise,
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
         forceTargetVersionAdvance:
           prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesFailedCounterSpend),

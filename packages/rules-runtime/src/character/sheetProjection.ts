@@ -29,13 +29,18 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
-import { sheetSpellSummonConcentration, sheetSpellSummonExtra } from './sheetSpellSummon.js'
+import {
+  encounterSpellSummonExtra,
+  sheetSpellSummonConcentration,
+  sheetSpellSummonExtra,
+  type EncounterSpellSummon
+} from './sheetSpellSummon.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
-import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
-import { listActiveGrantListings } from '../activeGrantListings.js'
+import { heldConcentration, listActiveGrantListings } from '../activeGrantListings.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
@@ -70,7 +75,8 @@ import type {
 } from './characterSheetRuleProjection.js'
 import {
   projectCharacterRuleActionMechanic,
-  type CharacterRuleActionPresentationReferences
+  type CharacterRuleActionPresentationReferences,
+  type CharacterRuleRowEffects
 } from './characterRuleActionProjection.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { createCharacterSheetMechanicPresentationSources } from './characterSheetMechanicPresentation.js'
@@ -478,6 +484,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
+  rowEffects: CharacterRuleRowEffects
   abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
@@ -515,7 +522,7 @@ function buildActiveSpellGroups(params: {
           )
         }
         const projectedMechanics = policyCastMechanics.mechanics.map((mechanic) =>
-          projectCharacterRuleActionMechanic(mechanic, params.actionReferences)
+          projectCharacterRuleActionMechanic(mechanic, params.actionReferences, params.rowEffects)
         )
         const displayName = source.customName ?? spell.label
         const primaryEffect = getSpellPrimaryEffect(projectedMechanics, castLevel)
@@ -707,13 +714,35 @@ interface ProjectCharacterSheetBundleParams {
     ActiveRuleEffectRecord,
     'id' | 'createdOrdinal' | 'definition' | 'lifecycle'
   >[]
-  /** The Concentration this Character maintains, live in a Run or carried over from one (SPELLS-5.11). */
-  concentration: ConcentrationListingDto | null
+  /**
+   * The effects the Concentration this Character maintains keeps alive, live in a Run or carried
+   * over from one (SPELLS-5.11); null when it maintains none. They name the Concentration, and the
+   * damage dice they grant against their holders join the Character's rows (SPELLS-8.6).
+   */
+  concentrationEffects: ProjectCharacterSheetBundleParams['activeEffects'] | null
+  /** The summons this Character's Run actor owns in an active Run, listed in Extras (SPELLS-34.2). */
+  encounterSummons?: readonly EncounterSpellSummon[]
 }
 
 interface CharacterSheetProjectionBundle {
   sheet: CharacterSheetResponseDto
   ruleProjection: CharacterSheetRuleProjection
+}
+
+/** The Sheet's option for one Equipment catalogue entry. */
+export function projectCharacterSheetEquipmentOption(
+  equipment: Pick<
+    CharacterBuilderEquipmentCatalogRecord,
+    'id' | 'label' | 'isContainer' | 'maxStack' | 'requiresAttunement'
+  >
+) {
+  return {
+    id: equipment.id,
+    label: equipment.label,
+    isContainer: equipment.isContainer,
+    ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
+    requiresAttunement: equipment.requiresAttunement
+  }
 }
 
 export function projectCharacterSheetBundle(
@@ -745,6 +774,7 @@ export function projectCharacterSheetBundle(
     ])
   )
   const proficiencyBonus = ruleProjection.derivedStats.proficiencyBonus
+  const rowEffects = { active: params.activeEffects, placed: params.concentrationEffects ?? [] }
   const hitPointMaximumReductions = listHitPointMaximumReductions(params.activeEffects)
   const maxHitPoints = effectiveHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(ruleProjection.derivedStats.maxHitPoints),
@@ -937,9 +967,20 @@ export function projectCharacterSheetBundle(
       }
     ]
   })
-  const summonExtras = (character.state.spellSummons ?? []).map((summon) =>
-    sheetSpellSummonExtra(summon, formatExtraSpeedLabel(summon.speeds, resolution.registry.system))
-  )
+  const summonExtras = [
+    ...(character.state.spellSummons ?? []).map((summon) =>
+      sheetSpellSummonExtra(
+        summon,
+        formatExtraSpeedLabel(summon.speeds, resolution.registry.system)
+      )
+    ),
+    ...(params.encounterSummons ?? []).map((owned) =>
+      encounterSpellSummonExtra(
+        owned,
+        formatExtraSpeedLabel(owned.summon.speeds, resolution.registry.system)
+      )
+    )
+  ]
   const sheetExtras = {
     kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
     originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],
@@ -1099,7 +1140,8 @@ export function projectCharacterSheetBundle(
     }
     const mechanic = projectCharacterRuleActionMechanic(
       decision.mechanic,
-      mechanicPresentation.actionReferences
+      mechanicPresentation.actionReferences,
+      rowEffects
     )
     const sourceFeatureId =
       decision.mechanicsOwner.kind === 'FEATURE_OPTION'
@@ -1227,7 +1269,11 @@ export function projectCharacterSheetBundle(
     .map((spell) => {
       const policyReferenceMechanics = spellReferenceMechanicsBySpellId.get(spell.id)
       const spellMechanics = (policyReferenceMechanics?.mechanics ?? []).map((mechanic) =>
-        projectCharacterRuleActionMechanic(mechanic, mechanicPresentation.actionReferences)
+        projectCharacterRuleActionMechanic(
+          mechanic,
+          mechanicPresentation.actionReferences,
+          rowEffects
+        )
       )
       const sources = (spellSourcesBySpellId.get(spell.id) ?? []).map((source) => {
         const sourceKey = createCharacterSpellSourceKey(source.source)
@@ -1288,6 +1334,7 @@ export function projectCharacterSheetBundle(
       ruleEvaluation.output.spellReferenceMechanics
     ),
     actionReferences: mechanicPresentation.actionReferences,
+    rowEffects,
     abilityByCode
   })
   const displayedProficiencyKeys = new Set<string>()
@@ -1390,8 +1437,9 @@ export function projectCharacterSheetBundle(
         })
       ),
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
-      concentration:
-        params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
+      concentration: params.concentrationEffects
+        ? heldConcentration(params.concentrationEffects)
+        : sheetSpellSummonConcentration(character.state.spellSummons),
       consequences: character.state.consequences ?? [],
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
@@ -1485,13 +1533,7 @@ export function projectCharacterSheetBundle(
         value: formatSenseRange(sense)
       })),
       conditionOptions,
-      equipmentOptions: resolution.catalog.equipment.map((equipment) => ({
-        id: equipment.id,
-        label: equipment.label,
-        isContainer: equipment.isContainer,
-        ...(equipment.maxStack ? { maxStack: equipment.maxStack } : {}),
-        requiresAttunement: equipment.requiresAttunement
-      })),
+      equipmentOptions: resolution.catalog.equipment.map(projectCharacterSheetEquipmentOption),
       currencyOptions
     },
     notes: projectCharacterSheetNotes(character)

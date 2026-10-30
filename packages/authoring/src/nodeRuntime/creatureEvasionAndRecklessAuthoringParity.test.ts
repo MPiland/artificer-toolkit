@@ -17,7 +17,7 @@ import { priest } from '@artificer-toolkit/source-data/srd/creatures/priest.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-33.T5afp (D156, D187a): the Assassin's Evasion is the `INCOMING_DAMAGE` save-for-half

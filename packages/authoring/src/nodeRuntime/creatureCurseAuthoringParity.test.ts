@@ -7,7 +7,7 @@ import { lamia } from '@artificer-toolkit/source-data/srd/creatures/lamia.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
@@ -67,7 +67,7 @@ describe('a creature’s ally die that ends with its source through the creature
   it('keeps the Knight’s Leadership exactly as authored, with no closed rule', async () => {
     const feature = knight.features?.find(({ label }) => label.startsWith('Leadership'))
     expect(JSON.stringify(feature)).not.toContain('CLOSED_RULE')
-    expect(leadershipBlock(knight).lifecycle?.endOnTriggers).toEqual([
+    expect(leadershipBlock(knight).lifecycle?.endTriggers).toEqual([
       { event: 'INCAPACITATED', of: 'SOURCE' }
     ])
     const result = await normalize(knight)

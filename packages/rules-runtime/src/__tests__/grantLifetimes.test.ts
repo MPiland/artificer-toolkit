@@ -246,30 +246,51 @@ describe('grant plans', () => {
     expect(srdPlan(antitoxin(), {})).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       tickAnchor: 'HOLDER',
-      modifierGrantContribution: { consumeOnFirstEvents: [] }
+      modifierGrantContribution: { endTriggers: [] }
     })
   })
 
   it('carries a consume-on-attack-roll lifecycle into the plan', () => {
-    expect(srdPlan(antitoxin(), { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] })).toMatchObject({
-      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] }
+    expect(
+      srdPlan(antitoxin(), {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+      })
+    ).toMatchObject({
+      modifierGrantContribution: {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+      }
     })
   })
 
   it('carries a sorted, unique list of consume events into the plan', () => {
     expect(
       srdPlan(antitoxin(), {
-        consumeOnFirstEvents: ['ON_ATTACK_ROLL', 'ON_ABILITY_CHECK', 'ON_ATTACK_ROLL']
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' },
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
+        ]
       })
     ).toMatchObject({
-      modifierGrantContribution: { consumeOnFirstEvents: ['ON_ABILITY_CHECK', 'ON_ATTACK_ROLL'] }
+      modifierGrantContribution: {
+        endTriggers: [
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+          { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
+        ]
+      }
     })
   })
 
   it.each<[string, PathLifecycleAuthored]>([
-    ['an end event', { endOnEvents: ['ON_CAST_SPELL'] }],
+    [
+      'an end event',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }] }
+    ],
     ['a recurring kind', { recurringKind: 'NONE' }],
-    ['a spell-cast consume event', { consumeOnFirstEvents: ['ON_CAST_SPELL'] }]
+    [
+      'a spell-cast consume event',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_CAST_SPELL' }] }
+    ]
   ])('stays manual with %s', (_label, lifecycle) => {
     expect(plansFor(antitoxin(), lifecycle)).toEqual([])
   })
@@ -306,8 +327,8 @@ describe('grant plans', () => {
     expect(
       srdPlan(onlyEffect(viciousMockery.effects), {
         turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
-      }).modifierGrantContribution?.consumeOnFirstEvents
-    ).toEqual(['ON_ATTACK_ROLL'])
+      }).modifierGrantContribution?.endTriggers
+    ).toEqual([{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }])
   })
 
   it.each([
@@ -430,10 +451,14 @@ describe('stored grants', () => {
 
   it('store the consume-on-attack-roll event', () => {
     const { definition } = storedGrant({
-      lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      lifecycle: {
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+      },
       currentActorId: null
     })
-    expect(definition.recurrence.consumeOnFirstEvents).toEqual(['ON_ATTACK_ROLL'])
+    expect(definition.recurrence.endTriggers).toEqual([
+      { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }
+    ])
   })
 
   describe('created on the anchor actor’s own turn', () => {
@@ -720,13 +745,13 @@ describe('a Rage made on the Barbarian’s own turn', () => {
       initialRemaining: 10,
       tickAnchor: 'HOLDER',
       modifierGrantContribution: {
-        endOnEvents: ['ON_IDLE_TURN'],
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }],
         endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
         holderEnd: { activation: 'BONUS_ACTION' }
       }
     })
     expect(stored(TARGET_ID).definition.recurrence).toMatchObject({
-      endOnEvents: ['ON_IDLE_TURN'],
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }],
       endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
       holderEnd: { activation: 'BONUS_ACTION' }
     })
@@ -841,7 +866,10 @@ describe('a creature form that ends on Unconscious (Wild Shape, SPELLS-4.T2s)', 
 
 describe('a grant that ends on an idle turn (SRD Rage)', () => {
   const idle = grantRecord(
-    storedGrant({ lifecycle: { endOnEvents: ['ON_IDLE_TURN'] }, currentActorId: null }),
+    storedGrant({
+      lifecycle: { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }] },
+      currentActorId: null
+    }),
     { id: 0xc374, holderId: TARGET_ID }
   )
   const antitoxinRecord = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
@@ -1043,7 +1071,10 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
 
 describe('a grant that ends on incapacitation', () => {
   const incapacitation = grantRecord(
-    storedGrant({ lifecycle: { endOnEvents: ['ON_INCAPACITATED'] }, currentActorId: null }),
+    storedGrant({
+      lifecycle: { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
+      currentActorId: null
+    }),
     { id: 0xc373, holderId: TARGET_ID }
   )
 
@@ -1117,8 +1148,13 @@ describe('a grant that ends when its source is incapacitated (Knight Leadership)
 
 describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', () => {
   const ITEM_ID = testUuid(0xc3a1)
-  const bound = (endOnEvents: 'ON_CHOSEN_ITEM_RELEASED'[]) => {
-    const record = grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
+  const bound = (endEvents: 'ON_CHOSEN_ITEM_RELEASED'[]) => {
+    const endTriggers = endEvents.map((code) => ({
+      event: 'LIFECYCLE' as const,
+      timing: 'END' as const,
+      code
+    }))
+    const record = grantRecord(storedGrant({ lifecycle: { endTriggers }, currentActorId: null }), {
       id: 0xc3a2,
       holderId: TARGET_ID
     })
@@ -1166,7 +1202,16 @@ describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', 
 describe('discoverEncounterEventHooks', () => {
   const held = (id: number, events: ('ON_ATTACK_ROLL' | 'ON_ABILITY_CHECK')[]) =>
     grantRecord(
-      storedGrant({ lifecycle: { consumeOnFirstEvents: events }, currentActorId: null }),
+      storedGrant({
+        lifecycle: {
+          endTriggers: events.map((code) => ({
+            event: 'LIFECYCLE' as const,
+            timing: 'CONSUME' as const,
+            code
+          }))
+        },
+        currentActorId: null
+      }),
       {
         id,
         holderId: TARGET_ID
@@ -1248,84 +1293,109 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
   const rows: [string, Partial<EncounterEffectRecurrence>, EncounterEvent, EncounterEvent][] = [
     [
       'ON_ATTACK_ROLL',
-      { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }] },
       action({ attackRoll: true }),
       action({ spellCast: true })
     ],
-    ['ON_HIT', { consumeOnFirstEvents: ['ON_HIT'] }, { kind: 'HIT' }, attacked],
-    ['ON_ATTACKED', { consumeOnFirstEvents: ['ON_ATTACKED'] }, attacked, { kind: 'HIT' }],
+    [
+      'ON_HIT',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_HIT' }] },
+      { kind: 'HIT' },
+      attacked
+    ],
+    [
+      'ON_ATTACKED',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACKED' }] },
+      attacked,
+      { kind: 'HIT' }
+    ],
     [
       'ON_ABILITY_CHECK',
-      { consumeOnFirstEvents: ['ON_ABILITY_CHECK'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' }] },
       { kind: 'TEST', test: 'CHECK', ability: { code: 'STRENGTH' } },
       { kind: 'TEST', test: 'SAVE', ability: { code: 'STRENGTH' } }
     ],
     [
       'ON_SAVING_THROW',
-      { consumeOnFirstEvents: ['ON_SAVING_THROW'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_SAVING_THROW' }] },
       { kind: 'TEST', test: 'SAVE', ability: { code: 'CONSTITUTION' } },
       { kind: 'TEST', test: 'CHECK', ability: { code: 'CONSTITUTION' } }
     ],
     [
       'ON_CAST_SPELL',
-      { consumeOnFirstEvents: ['ON_CAST_SPELL'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_CAST_SPELL' }] },
       action({ spellCast: true }),
       action({ attackRoll: true })
     ],
-    ['ON_TAKE_ACTION', { endOnEvents: ['ON_TAKE_ACTION'] }, action({}), { kind: 'MOVED' }],
+    [
+      'ON_TAKE_ACTION',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_TAKE_ACTION' }] },
+      action({}),
+      { kind: 'MOVED' }
+    ],
     [
       'ON_HIT_POINTS_REGAINED',
-      { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_HIT_POINTS_REGAINED' }] },
       { kind: 'HIT_POINTS_REGAINED' },
       { kind: 'IDLE_TURN' }
     ],
     [
       'ON_INCAPACITATED',
-      { endOnEvents: ['ON_INCAPACITATED'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_INCAPACITATED' }] },
       { kind: 'INCAPACITATED', of: 'HOLDER' },
       { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([SOURCE_ID]) }
     ],
-    ['ON_IDLE_TURN', { endOnEvents: ['ON_IDLE_TURN'] }, { kind: 'IDLE_TURN' }, { kind: 'MOVED' }],
+    [
+      'ON_IDLE_TURN',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }] },
+      { kind: 'IDLE_TURN' },
+      { kind: 'MOVED' }
+    ],
     [
       'ON_LEAVING_AREA',
-      { endOnEvents: ['ON_LEAVING_AREA'] },
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LEAVING_AREA' }] },
       { kind: 'AREA_LEFT' },
       { kind: 'MOVED' }
     ],
-    ['ON_MOVE', { endOnEvents: ['ON_MOVE'] }, { kind: 'MOVED' }, { kind: 'AREA_LEFT' }],
+    [
+      'ON_MOVE',
+      { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' }] },
+      { kind: 'MOVED' },
+      { kind: 'AREA_LEFT' }
+    ],
     [
       'DAMAGE_TAKEN from the source side',
-      { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }] },
+      { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: null }] },
       damaged(SOURCE_ID, [FIRE]),
       damaged(OTHER_ID, [FIRE])
     ],
     [
       'DAMAGE_TAKEN of a type',
-      { endOnTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }] },
+      { endTriggers: [{ event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: [FIRE] }] },
       damaged(OTHER_ID, [FIRE]),
       damaged(OTHER_ID, [null])
     ],
     [
       'ATTACK_ROLL against an enemy',
-      { endOnTriggers: [{ event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' }] },
+      { endTriggers: [{ event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' }] },
       action({ attackRoll: true, againstEnemy: true }),
       action({ attackRoll: true })
     ],
     [
       'SPELL_CAST against an enemy',
-      { endOnTriggers: [{ event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }] },
+      { endTriggers: [{ event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }] },
       action({ spellCast: true, againstEnemy: true }),
       action({ attackRoll: true, againstEnemy: true })
     ],
     [
       'ACTION_USED_ON_HOLDER',
-      { endOnTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [HELP] }] },
+      { endTriggers: [{ event: 'ACTION_USED_ON_HOLDER', actionDefinitionIds: [HELP] }] },
       { kind: 'ACTION_USED_ON_HOLDER', basicActionDefinitionId: HELP },
       { kind: 'ACTION_USED_ON_HOLDER', basicActionDefinitionId: SRD_BASIC_ACTION_IDS.DODGE }
     ],
     [
       'INCAPACITATED of the source',
-      { endOnTriggers: [{ event: 'INCAPACITATED', of: 'SOURCE' }] },
+      { endTriggers: [{ event: 'INCAPACITATED', of: 'SOURCE' }] },
       { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([SOURCE_ID]) },
       { kind: 'INCAPACITATED', of: 'SOURCE', sourceActorIds: new Set([OTHER_ID]) }
     ],
@@ -1349,13 +1419,20 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
 
   // A rest is the Sheet's event, so the Sheet reads its subscription rather than the discovery.
   it('ends an effect subscribed to ON_LONG_REST on a long rest alone', () => {
-    const effect = subscribed({ endOnEvents: ['ON_LONG_REST'] })
+    const effect = subscribed({
+      endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' }]
+    })
     expect(activeEffectEndsOnRest(effect, 'LONG')).toBe(true)
     expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
   })
 
   it('reads an effect with no state contributions through the same subscriptions', () => {
-    const stored = subscribed({ endOnEvents: ['ON_LONG_REST', 'ON_MOVE'] }).definition
+    const stored = subscribed({
+      endTriggers: [
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_LONG_REST' },
+        { event: 'LIFECYCLE', timing: 'END', code: 'ON_MOVE' }
+      ]
+    }).definition
     const effect: ActiveRuleEffectRecord = {
       ...plain,
       definition: activeRuleEffectDefinitionDtoSchema.parse({ ...stored, stateContributions: [] })
@@ -1450,7 +1527,9 @@ describe('discoverEncounterEventHooks for an ability check (D156)', () => {
   it('spends an effect with no grant in the test’s domain whenever it lists the event', () => {
     const wholly = grantRecord(
       storedGrant({
-        lifecycle: { consumeOnFirstEvents: ['ON_ABILITY_CHECK'] },
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' }]
+        },
         currentActorId: null
       }),
       { id: 0xc366, holderId: TARGET_ID }
@@ -1652,11 +1731,20 @@ describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
 })
 
 describe('discoverEncounterEventHooks on an end event', () => {
-  const ending = (id: number, endOnEvents: ('ON_HIT_POINTS_REGAINED' | 'ON_INCAPACITATED')[]) =>
-    grantRecord(storedGrant({ lifecycle: { endOnEvents }, currentActorId: null }), {
-      id,
-      holderId: TARGET_ID
-    })
+  const ending = (id: number, endEvents: ('ON_HIT_POINTS_REGAINED' | 'ON_INCAPACITATED')[]) =>
+    grantRecord(
+      storedGrant({
+        lifecycle: {
+          endTriggers: endEvents.map((code) => ({
+            event: 'LIFECYCLE' as const,
+            timing: 'END' as const,
+            code
+          }))
+        },
+        currentActorId: null
+      }),
+      { id, holderId: TARGET_ID }
+    )
 
   it('lists the effects that end on the event and nothing else', () => {
     const regained = ending(0xc350, ['ON_HIT_POINTS_REGAINED'])
@@ -1684,7 +1772,9 @@ describe('discoverEncounterEventHooks on an end event', () => {
   it('lists an effect once when it consumes and ends on the same event', () => {
     const consuming = grantRecord(
       storedGrant({
-        lifecycle: { consumeOnFirstEvents: ['ON_ATTACK_ROLL'] },
+        lifecycle: {
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
+        },
         currentActorId: null
       }),
       { id: 0xc352, holderId: TARGET_ID }
@@ -1693,7 +1783,12 @@ describe('discoverEncounterEventHooks on an end event', () => {
       ...consuming,
       definition: {
         ...consuming.definition,
-        recurrence: { ...consuming.definition.recurrence, endOnEvents: ['ON_ATTACK_ROLL' as const] }
+        recurrence: {
+          ...consuming.definition.recurrence,
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' as const }
+          ]
+        }
       }
     }
     expect(
@@ -1712,7 +1807,14 @@ describe('discoverEncounterEventHooks on an end event', () => {
         ...attacking.definition,
         recurrence: {
           ...attacking.definition.recurrence,
-          endOnEvents: ['ON_ATTACK_ROLL' as const, 'ON_CAST_SPELL' as const]
+          endTriggers: [
+            {
+              event: 'LIFECYCLE' as const,
+              timing: 'END' as const,
+              code: 'ON_ATTACK_ROLL' as const
+            },
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_CAST_SPELL' as const }
+          ]
         }
       }
     }

@@ -1,21 +1,63 @@
+import type { SpellSummonStatBlockValues } from '@artificer-toolkit/shared/authored'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
-import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { creatureSnapshotSize } from './encounterActionEffects.js'
 import { summonBody } from './encounterActorBody.js'
+import type { EncounterActorFormCreature } from './encounterActorForm.js'
+import { snapshotStatBlock } from './encounterProjection.js'
+import type { FormSummonStats } from './spellSummonStatBlock.js'
 import { summonHitPoints } from './summonHitPoints.js'
 
 /**
- * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block,
- * and the Scene token that stands at `point`. The summon fights on the caster's side and is
- * controlled through its owner, so its own controller list is empty. Its snapshot keeps the stat
- * block's body rules (`encounterActorBody`).
+ * The stat values a form summon lists, read from the System Creature the caster chose. It lives on
+ * the Encounter side so the Sheet-reachable `resolveSpellSummonStatBlock` imports no Encounter module.
+ */
+export function formSummonStats(
+  creature: Pick<EncounterActorFormCreature, 'systemId' | 'snapshot'>
+): FormSummonStats {
+  const stats = snapshotStatBlock({ kind: 'CREATURE', ...creature })
+  const size = creatureSnapshotSize(creature)
+  const { snapshot } = creature
+  const payload =
+    typeof snapshot === 'object' && snapshot !== null && 'payload' in snapshot
+      ? snapshot.payload
+      : null
+  const passivePerception =
+    typeof payload === 'object' && payload !== null && 'passivePerception' in payload
+      ? payload.passivePerception
+      : null
+  return {
+    ...(size ? { size } : {}),
+    armorClass: stats?.armorClass ?? null,
+    ...(stats?.abilityScores ? { abilityScores: stats.abilityScores } : {}),
+    ...(stats?.speeds.length ? { speeds: stats.speeds } : {}),
+    ...(typeof passivePerception === 'number' ? { passivePerception } : {})
+  }
+}
+
+/**
+ * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block or
+ * from the System Creature of the form the caster chose, and the Scene token that stands at `point`.
+ * The summon fights on the caster's side and is controlled through its owner, so its own controller
+ * list is empty. A stat block summon's snapshot keeps its body rules (`encounterActorBody`); a form
+ * summon is that Creature, of the Creature Type the caster chose when the spell offers one. Either
+ * keeps the values a spell cast resolved, which the owner's Sheet lists it by
+ * (`ownedEncounterSpellSummons`).
  */
 export function buildEncounterSummon(input: {
-  summon: Pick<CompiledActionSummonPlacement, 'statBlock'>
+  summon:
+    | { kind: 'STAT_BLOCK'; statBlock: SummonStatBlockDto }
+    | { kind: 'CREATURE'; creature: EncounterActorFormCreature; creatureTypeId: string | null }
+  /**
+   * The values a spell cast resolved for the creature (`resolveSpellSummonStatBlock`); null when no
+   * spell made it, and no Sheet lists it.
+   */
+  spellSummon: SpellSummonStatBlockValues | null
   caster: EncounterRunActorState
   /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
   casterHitPointMaximum: number
@@ -30,6 +72,7 @@ export function buildEncounterSummon(input: {
 }): LiveSessionSummonedToken {
   const {
     summon,
+    spellSummon,
     caster,
     casterHitPointMaximum,
     label,
@@ -38,16 +81,25 @@ export function buildEncounterSummon(input: {
     edgeLength,
     occurredAt
   } = input
-  const maxHitPoints = summonHitPoints(summon.statBlock, casterHitPointMaximum)
+  const body =
+    summon.kind === 'STAT_BLOCK'
+      ? statBlockSummonBody({
+          statBlock: summon.statBlock,
+          maxHitPoints: summonHitPoints(summon.statBlock, casterHitPointMaximum),
+          systemId: caster.systemId,
+          label
+        })
+      : creatureSummonBody(summon.creature, summon.creatureTypeId)
+  const { maxHitPoints } = body
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
     encounterId: caster.encounterId,
     sideId: caster.sideId,
-    kind: 'CUSTOM',
-    sourceId: null,
-    sourceRevision: null,
+    kind: body.kind,
+    sourceId: body.sourceId,
+    sourceRevision: body.sourceRevision,
     label,
-    systemId: caster.systemId,
+    systemId: body.systemId,
     stableTieKey: crypto.randomUUID(),
     public: caster.public,
     controllerUserIds: [],
@@ -65,13 +117,7 @@ export function buildEncounterSummon(input: {
     initiative: null,
     manualOrder: null,
     owner: { ownerActorId: caster.id, sourceEffectId },
-    snapshot: {
-      kind: 'CUSTOM',
-      label,
-      maxHitPoints,
-      systemId: caster.systemId,
-      body: summonBody(summon.statBlock)
-    },
+    snapshot: { ...body.snapshot, ...(spellSummon ? { summon: spellSummon } : {}) },
     createdAt: occurredAt,
     updatedAt: occurredAt
   })
@@ -91,5 +137,38 @@ export function buildEncounterSummon(input: {
       vision: null,
       width: edgeLength
     }
+  }
+}
+
+function statBlockSummonBody(input: {
+  statBlock: SummonStatBlockDto
+  maxHitPoints: number
+  systemId: string | null
+  label: string
+}) {
+  const { statBlock, maxHitPoints, systemId, label } = input
+  return {
+    kind: 'CUSTOM' as const,
+    sourceId: null,
+    sourceRevision: null,
+    systemId,
+    maxHitPoints,
+    snapshot: { kind: 'CUSTOM', label, maxHitPoints, systemId, body: summonBody(statBlock) }
+  }
+}
+
+/** The chosen Creature as it stands, but of the Creature Type the caster chose, when one was. */
+function creatureSummonBody(creature: EncounterActorFormCreature, creatureTypeId: string | null) {
+  const snapshot = creature.snapshot as { payload: Record<string, unknown> }
+  return {
+    kind: 'CREATURE' as const,
+    sourceId: creature.sourceId,
+    sourceRevision: creature.sourceRevision,
+    systemId: creature.systemId,
+    maxHitPoints: creature.maxHitPoints,
+    snapshot:
+      creatureTypeId === null
+        ? snapshot
+        : { ...snapshot, payload: { ...snapshot.payload, creatureTypeId } }
   }
 }

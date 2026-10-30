@@ -60,7 +60,7 @@ describe('SRD grant turn anchors (D99)', () => {
       () => spell('Vicious Mockery'),
       {
         turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
-        consumeOnFirstEvents: ['ON_ATTACK_ROLL']
+        endTriggers: [{ event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ATTACK_ROLL' }]
       }
     ],
     [

@@ -148,12 +148,19 @@ export function directResultSequence(
       !entry.targetingOverride
   )
   if (results.length !== entries.length) return null
-  // The sequence's result block states one duration for all its results, but only a result that
-  // holds a lasting effect has a use for it: the others (END_EFFECTS) are instant.
+  // The sequence's result block states one duration, lifecycle and chosen item for all its results,
+  // but only a result that holds a lasting effect has a use for them: the others (END_EFFECTS) are
+  // instant.
   return results.map((entry) => {
     const alone = singleEntryAction(action, entry)
     if (holdsLastingEffect(alone)) return alone
-    const { duration: _duration, maintenanceDefinitionId: _maintenance, ...instant } = entry
+    const {
+      duration: _duration,
+      lifecycle: _lifecycle,
+      chosenItem: _chosenItem,
+      maintenanceDefinitionId: _maintenance,
+      ...instant
+    } = entry
     return singleEntryAction(action, instant)
   })
 }

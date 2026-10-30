@@ -4,11 +4,13 @@ Living handoff for SPELLS-34 (a summon cast shows the creature on the caster's s
 
 ## Current task
 
-SPELLS-34.T1: sheet summons persist as `state.spellSummons[]` and read as a `SPELL_SUMMON` Extras member; a Concentration summon is the sheet's Concentration. Closes SPELLS-34.3 and SPELLS-34.4.
+SPELLS-34.T3a: Find Familiar in an Encounter (closes SPELLS-34.2 for form summons). T1 and T2 merged.
 
 ## Next
 
-SPELLS-34.T2: Encounter summons in Extras and summon attacks on both paths (after SPELLS-4.T2v2a2c3, T2v2a3, T2v2b and SPELLS-34.T1).
+SPELLS-34.T3b (its own session): the Sheet cast of a form summon, its picker, and a long rest keeping an untimed
+summon. Out of scope (not registered): Sheet familiars joining a Run, and the 1-hour casting time (the SRD data keeps a
+1-action activation).
 
 ## Rulings (orchestrator, binding)
 
@@ -49,6 +51,45 @@ SPELLS-34.T2: Encounter summons in Extras and summon attacks on both paths (afte
   - `characterPlayState.test.ts`: property round-trip.
   - `apis/convex/characters/sheetSpellSummons.test.ts`: the Sheet journey (.1, .3).
   - `CharacterSheetExtras.test.tsx`: the UI.
+
+## T2 contents (in CI on `ci/spells-34-t2`)
+
+- **One stat block resolver:** `rules-runtime/spellSummonStatBlock.ts` resolves the shared
+  `SpellSummonStatBlockValues` (shared `character/state.ts`, schema `spellSummonStatBlockValuesDtoSchema`) from the
+  compiled summon placement. That covers AC, ability scores, speeds, passive Perception, Concentration and `actions`.
+  The actions are the plan's CONJURED repeat-source offers: the trigger label (for example "Melee Spell Attack") and
+  the activation label. The Sheet entry (`CharacterSpellSummonState extends` it) and the Encounter actor both store
+  its output.
+- **Encounter actor as the record:** `buildEncounterSummon` takes `spellSummon` (null when no spell made the summon)
+  and keeps it on the actor snapshot as `summon`. The Worker's area commit resolves it for spell casts.
+- **Sheet read view:** `ownedEncounterSpellSummons` reads the caster's owned, undefeated actors whose snapshot holds a
+  summon. `encounterSpellSummonExtra` maps one to a `SPELL_SUMMON` Extra with `encounterActorId`, so its id is the
+  actor id and its HP is the actor's live HP. `projectCharacterSheet` takes them as `encounterSummons`.
+- **Worker:** `roomCharacterSummons.ts` reads them from the room's ACTIVE Runs. The Sheet feed keys its push on their
+  hit points, because actor changes do not bump the Character's stream. The entry leaves with the actor (Concentration
+  end, expiry, revert) or when 0 HP defeats it.
+- **Web:** the Summons row lists attacks. An Encounter summon shows read-only HP and no Dismiss.
+- **Proofs:**
+  - `characterSpellCastActions.test.ts`: Arcane Hand on both paths, with the Clenched Fist action from one plan (.1, .2).
+  - `apis/convex/characters/sheetSpellSummons.test.ts`: Sheet entries list their attacks (.1).
+  - `CharacterSheetExtras.test.tsx`: the read-only Encounter row with its attacks (.1, .2).
+  - Journey, `session-worker/test/nativeRoomCoreOptionSpells.test.ts` (room Arcane Hand): the owner's pushed Sheet
+    lists the cast hand with live HP, follows the GM's HP edit and drops it at 0 HP and on Concentration end (.2, .3).
+
+## T3a contents (in CI on `ci/spells-34-t3a`)
+
+- **Authoring:** a `SUMMON` authors `forms` (System Creatures) and optional `creatureTypeIds` instead of a stat block
+  (`creatureFormOutcomeFields` node map). SRD Find Familiar authors its 15 forms and celestial/fey/fiend, no duration.
+- **Compile:** the placement is a union (stat block or forms); an untimed summon compiles with `initialRemaining: null`.
+- **Choice and command:** the POINT choice lists `summonForms` and `creatureTypes`; the POINT target carries `formId`
+  and `creatureTypeId`. The VTT action drawer shows a form select and a Creature Type control.
+- **Worker:** `readSummonBody` validates the picks and reads the corpus Creature; `buildEncounterSummon` builds a
+  CREATURE actor of the chosen type, owned by the caster. See [rules-runtime](../architecture/rules-runtime.md).
+- **Proofs:**
+  - `characterSpellCastActions.test.ts`: the forms compile, the refusals, and the built familiar's Extras entry.
+  - `authoring/nodeRuntime/summonFormsAuthoringParity.test.ts`: SRD and a homebrew companion survive the node map.
+  - Journey, `nativeRoomCoreOptionSpells.test.ts` (room Find Familiar): the cast cat as FEY in the owner's Extras with
+    live HP, through two turns, gone at 0 HP; the pick refusals (.2).
 
 ## Known limits
 

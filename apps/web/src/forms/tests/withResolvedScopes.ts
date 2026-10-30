@@ -1,7 +1,7 @@
 import { resolveNestedRuntimeScopes } from '@artificer-toolkit/authoring/nodeRuntime'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
-import { createSrdNodeRuntimeReader } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
+import { createSrdNodeRuntimeReader } from '@artificer-toolkit/authoring/tests/srdSourceReader'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /** Adds the child scopes the real resolver returns for every populated group in `model`. */

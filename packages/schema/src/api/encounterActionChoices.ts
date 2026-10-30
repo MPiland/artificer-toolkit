@@ -10,7 +10,11 @@ import {
 } from './encounterRuleCommands.js'
 import { activationCodeSchema, equipmentGripSchema } from '../shared/enums.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
-import { shapeMeasurementDtoSchema } from '../shared/shape.js'
+import {
+  directedAreaTargetDtoSchema,
+  pointAreaTargetDtoSchema,
+  shapeMeasurementDtoSchema
+} from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import { targetingSelfDtoSchema } from '../effects/targeting.js'
 import { effectOfferRangeDtoSchema, repeatOfferTargetSchema } from '../effects/effectOffer.js'
@@ -57,17 +61,6 @@ const choosesUnaffectedShape = lazySchemaParts(() => ({
 const sideBandShape = lazySchemaParts(() => ({
   sideBand: z.optional(z.strictObject({ distance: shapeMeasurementDtoSchema }))
 }))
-
-/** An area centered on a point the client picks. */
-const pointTargetSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('POINT'),
-    area: z.discriminatedUnion('kind', [
-      z.strictObject({ kind: z.literal('RADIUS'), radius: shapeMeasurementDtoSchema }),
-      z.strictObject({ kind: z.literal('CUBE'), edgeLength: shapeMeasurementDtoSchema })
-    ])
-  })
-)
 
 /**
  * A radius centered on the caster, measured from the edge of their space (a Self sphere, cylinder
@@ -251,7 +244,25 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
             message: 'A list that repeats creatures names its cap.'
           })
         ),
-      z.extend(pointTargetSchema, choosesUnaffectedShape()),
+      z.extend(pointAreaTargetDtoSchema, {
+        ...choosesUnaffectedShape(),
+        /**
+         * The Creatures a summon of a chosen form may be, one of which the caster picks (Find
+         * Familiar); its area is then the System's default size, and the Worker places the picked
+         * Creature's own space. Absent for any other point.
+         */
+        summonForms: z.optional(
+          z
+            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
+            .check(z.minLength(1))
+        ),
+        /** The Creature Types the caster picks one of for the summoned form; absent for none. */
+        creatureTypes: z.optional(
+          z
+            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
+            .check(z.minLength(1))
+        )
+      }),
       z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),
       z.extend(ringTargetSchema, choosesUnaffectedShape()),
@@ -267,7 +278,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
               id: postgresUuidSchema,
               label: choiceOptionLabelSchema,
               target: z.discriminatedUnion('kind', [
-                pointTargetSchema,
+                pointAreaTargetDtoSchema,
                 casterCenteredTargetSchema,
                 wallTargetSchema,
                 ringTargetSchema
@@ -277,25 +288,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
           .check(z.minLength(2)),
         ...choosesUnaffectedShape()
       }),
-      /**
-       * An area that starts on the caster's own token and extends toward a direction: a cone, a
-       * line, or a cube from the caster's side (a cube authored with a Self range).
-       */
-      z.strictObject({
-        kind: z.literal('DIRECTED'),
-        area: z.discriminatedUnion('kind', [
-          z.strictObject({ kind: z.literal('CONE'), length: shapeMeasurementDtoSchema }),
-          z.strictObject({
-            kind: z.literal('LINE'),
-            length: shapeMeasurementDtoSchema,
-            width: z.optional(shapeMeasurementDtoSchema)
-          }),
-          z.strictObject({
-            kind: z.literal('CUBE_FROM_SIDE'),
-            edgeLength: shapeMeasurementDtoSchema
-          })
-        ])
-      })
+      directedAreaTargetDtoSchema
     ]),
     /**
      * The ammunition in stock that fits this weapon attack, for the client to pick from; absent for
