@@ -13,7 +13,8 @@ import type {
 import { useAppForm } from '#forms/app-form/AppForm'
 import { readAuthoringStep } from '#forms/layout/authoringSearch'
 import {
-  useAuthoringForm,
+  useAuthoringActions,
+  useAuthoringNavigation,
   type AuthoringFormActionHandlers
 } from '#forms/layout/AuthoringFormContext'
 import {
@@ -59,8 +60,8 @@ export function CharacterBuilderFormRuntime({
   const evaluation = useCharacterBuilderEvaluation(session)
   const previewMutation = useMutation({ mutationFn: evaluation.preview })
   const commitMutation = useCommitCharacterBuilderMutation()
-  const { activeStepId, goToStep, updateAuthoringFormActions, updateAuthoringFormState } =
-    useAuthoringForm()
+  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
+  const { activeStepId, goToStep } = useAuthoringNavigation()
 
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {

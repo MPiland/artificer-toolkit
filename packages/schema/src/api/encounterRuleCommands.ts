@@ -273,6 +273,11 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     target: resolveEncounterActionTargetDtoSchema,
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
+     * The current actor that commands this attack (DELEGATED_ATTACK): it forgoes one attack of its
+     * Attack action, and `actorId`, a creature it summoned, makes the attack with its reaction.
+     */
+    delegatingActorId: z.optional(uuidSchema),
+    /**
      * Set only on a root the rules raise themselves, never on one a player submits: the committed
      * command whose result raised it. Admission proves the link against that command's receipt.
      */

@@ -1,4 +1,6 @@
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { readEncounterEffect } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
   characterActor,
@@ -714,6 +716,37 @@ describe('seeded SRD Creature hit riders in the room', () => {
       [conditionId('GRAPPLED'), conditionId('RESTRAINED')].sort()
     )
     expect(activeEffects).toHaveLength(1)
+  })
+
+  it('drains a Creature’s hit point maximum through the reduction effect it holds, not its stored maximum (SPELLS-8.T16)', async () => {
+    // A natural 19 hits for 1d6 + 2 necrotic, the die rolling 4; the Ogre's save rolls a natural 1.
+    const wight = seededSrdCreature('Wight')
+    const ogre = seededSrdCreature('Ogre')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: wight }),
+        srdCreatureActor({ id: CREATURE_TARGET_ID, creature: ogre })
+      ],
+      ownerFeatureId: creatureFeature(wight, 'Life Drain').id,
+      autoRoll: 'GAME_MASTER',
+      rolls: [18, 3, 0]
+    })
+    const { answer } = await room.startAction(CREATURE_TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { actors, activeEffects } = await readRoomHistory(room.room.base.stub)
+    const row = actors.find(({ id }) => id === CREATURE_TARGET_ID)
+    if (!row) throw new Error('The Ogre is missing from the Run.')
+    const target = readStoredRunActor(row)
+    if (target.kind !== 'CREATURE') throw new Error('Expected the Ogre Creature actor.')
+    expect(target).toMatchObject({
+      maxHitPoints: ogre.hitPoints,
+      currentHitPoints: ogre.hitPoints - 6
+    })
+    const effects = activeEffects.map(readEncounterEffect)
+    expect(effects.flatMap(({ definition }) => definition.stateContributions)).toEqual([
+      expect.objectContaining({ kind: 'HIT_POINT_MAXIMUM_REDUCTION', amount: 6 })
+    ])
+    expect(effectiveHitPointMaximum(target.maxHitPoints, effects)).toBe(ogre.hitPoints - 6)
   })
 
   it('grapples and restrains the Character with the Chain Devil’s Chain, holding 2d6 piercing for each of its turns (SPELLS-33.T6a3)', async () => {

@@ -483,6 +483,18 @@ export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * What a delegated attack (DELEGATED_ATTACK) cost the actor that commanded it: the Action that opened
+ * its Attack action, if this attack opened it, and the attack it forwent. Undo restores both.
+ */
+export const encounterDelegatingActorSpendDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actorId: uuidSchema,
+    actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    attackActionTransition: encounterAttackActionTransitionDtoSchema
+  })
+)
+
 /** One committed Creature loadout change: Disarm, or an item the target dropped (Heat Metal). */
 export const encounterActorItemUseStateTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -539,6 +551,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
+      /** Present when the source attacked in place of an attack of its commanding actor's Attack action. */
+      delegatingActorSpend: z.optional(encounterDelegatingActorSpendDtoSchema),
       legendaryResistance: z._default(
         z.nullable(
           z.strictObject({
@@ -617,7 +631,9 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
         let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
-        let maximum = value.targetTransition.before.maximumHitPoints
+        let maximum =
+          value.targetTransition.before.maximumHitPoints +
+          (value.targetTransition.grantedMaximumHitPoints ?? 0)
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
         const scalarValues = {

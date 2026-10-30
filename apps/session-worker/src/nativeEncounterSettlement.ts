@@ -114,6 +114,12 @@ export function planNativeLiveEncounterSettlement(input: {
   actionEconomy: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
   actionEconomyOverridden: boolean
   attackAction: EncounterAttackActionTransitionDto | null
+  /** The commanding actor's allowance and Attack action a delegated attack spends (DELEGATED_ATTACK). */
+  delegation: {
+    actorId: string
+    consumption: Awaited<ReturnType<typeof prepareEncounterActionEconomy>>
+    attackAction: EncounterAttackActionTransitionDto
+  } | null
   maintenance: Awaited<ReturnType<typeof prepareNativeLiveActionMaintenance>>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
 }) {
@@ -194,6 +200,20 @@ export function planNativeLiveEncounterSettlement(input: {
           : actor
     ])
   )
+  if (input.delegation) {
+    const { actorId, consumption, attackAction } = input.delegation
+    const commander = actors.get(actorId)
+    if (!commander) throw new Error('Encounter settlement actor is unavailable.')
+    actors.set(
+      actorId,
+      applyEncounterAttackActionTransition(
+        consumption
+          ? consumeEncounterActionEconomy({ actor: commander, consumption, overridden: false })
+          : commander,
+        attackAction
+      )
+    )
+  }
   const activeEffectsByActorId = new Map(
     [...input.activeEffectsByActorId].map(([actorId, records]) => [
       actorId,
@@ -290,6 +310,7 @@ export function projectNativeLiveMaintenanceOwners(input: {
   const { maintenance, createdEffects } = input
   const actors = new Map(input.actors.map((actor) => [actor.id, actor]))
   const projectedTargets = new Map(input.projectedTargets)
+
   const activeEffectsByActorId = new Map(
     [...input.activeEffectsByActorId].map(([actorId, effects]) => [actorId, [...effects]])
   )

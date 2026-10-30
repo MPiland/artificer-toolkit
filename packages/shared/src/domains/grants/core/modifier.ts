@@ -296,6 +296,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   DAMAGE_MIRROR: [MODIFIER_KIND.ENABLE],
 
+  DELEGATED_ATTACK: [MODIFIER_KIND.ENABLE],
+
   END_EVENT_EXEMPTION: [MODIFIER_KIND.ENABLE],
   INCOMING_DAMAGE: [MODIFIER_KIND.ENABLE],
 
@@ -681,6 +683,14 @@ export type ModifierDamageInterceptionAuthored = {
 }
 
 /**
+ * The holder can forgo one attack of its Attack action, and a creature it summoned with one of
+ * these authored effect ids attacks with its reaction instead (Pact of the Chain).
+ */
+export type ModifierDelegatedAttackAuthored = {
+  effectIds: string[]
+}
+
+/**
  * The holder's own active effects with these authored ids do not end on these lifecycle events
  * (Persistent Rage: Rage no longer ends on `ON_IDLE_TURN`). Their other end conditions still apply.
  */
@@ -730,13 +740,15 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? ModifierAttackDecoysAuthored
       : V extends 'DAMAGE_INTERCEPTION'
         ? ModifierDamageInterceptionAuthored
-        : V extends 'END_EVENT_EXEMPTION'
-          ? ModifierEndEventExemptionAuthored
-          : V extends 'INCOMING_ATTACK_GATE'
-            ? ModifierIncomingAttackGateAuthored
-            : V extends 'INCOMING_DAMAGE'
-              ? ModifierIncomingDamageAuthored
-              : undefined
+        : V extends 'DELEGATED_ATTACK'
+          ? ModifierDelegatedAttackAuthored
+          : V extends 'END_EVENT_EXEMPTION'
+            ? ModifierEndEventExemptionAuthored
+            : V extends 'INCOMING_ATTACK_GATE'
+              ? ModifierIncomingAttackGateAuthored
+              : V extends 'INCOMING_DAMAGE'
+                ? ModifierIncomingDamageAuthored
+                : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'

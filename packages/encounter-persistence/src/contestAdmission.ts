@@ -41,6 +41,12 @@ function normalizeRoot(command: ContestRootCommand): ContestRootCommand {
       commandId: command.commandId.toLowerCase(),
       actorId: command.actorId.toLowerCase()
     }
+  // A delegated attack (DELEGATED_ATTACK) is an ordinary attack; a contest never charges a commander.
+  if (command.delegatingActorId !== undefined)
+    rejectDomain(
+      'SOURCE_REQUIREMENTS_NOT_MET',
+      'A delegated attack is one ordinary attack at one creature.'
+    )
   const { target } = command
   // A contest takes one creature; a point-origin area has no contest.
   if (target.kind !== 'ACTOR')

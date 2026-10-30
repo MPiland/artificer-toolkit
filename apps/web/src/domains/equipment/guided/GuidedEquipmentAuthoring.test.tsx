@@ -18,7 +18,8 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 }))
 vi.mock('#forms/AuthoringArtworkControl', () => ({ AuthoringArtworkControl: () => null }))
 vi.mock('#forms/layout/AuthoringFormContext', () => ({
-  useAuthoringForm: () => ({ cancel: vi.fn(), cancelHref: '/equipment', cancelLabel: 'Cancel' })
+  useAuthoringActions: () => ({ cancel: vi.fn() }),
+  useAuthoringSession: () => ({ cancelHref: '/equipment', cancelLabel: 'Cancel' })
 }))
 
 const session = authoredFormFactories.equipment.createSession?.({

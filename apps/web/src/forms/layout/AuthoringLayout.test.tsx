@@ -2,7 +2,8 @@ import { act, fireEvent, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { AuthoringLayoutContent } from './AuthoringLayout'
-import type { AuthoringFormActionHandlers } from './AuthoringFormContext'
+import type { AuthoringFormStoreContextValue } from './AuthoringFormContext'
+import { useAuthoredFormInstance } from './useAuthoredFormInstance'
 
 type TestSession = {
   initialValues: { label: string }
@@ -11,12 +12,17 @@ type TestSession = {
 
 const mocks = vi.hoisted(() => ({
   authoring: {} as Record<string, unknown>,
-  updateAuthoringFormActions: vi.fn<(actions: AuthoringFormActionHandlers) => void>(),
-  saveDraftValues: vi.fn<(values: object) => Promise<boolean>>()
+  formStore: undefined as AuthoringFormStoreContextValue | undefined,
+  saveDraft: undefined as (() => Promise<void>) | undefined,
+  saveDraftValues: vi.fn<(values: object) => Promise<boolean>>(),
+  session: undefined as TestSession | undefined
 }))
 
 vi.mock('./AuthoringFormContext', () => ({
-  useAuthoringForm: () => mocks.authoring
+  useAuthoringActions: () => mocks.authoring,
+  useAuthoringFormStore: () => mocks.formStore,
+  useAuthoringNavigation: () => mocks.authoring,
+  useAuthoringSession: () => mocks.authoring
 }))
 vi.mock('./useAuthoringExperience', () => ({
   useAuthoringExperience: () => ({
@@ -92,8 +98,8 @@ function session(key: string, label: string): TestSession {
 }
 
 function setSession({ key, initialValues }: TestSession) {
+  mocks.session = { key, initialValues }
   mocks.authoring = {
-    activateValues: vi.fn(),
     authoredSession: {
       domain: 'spell',
       fallbackLabel: 'Untitled Item',
@@ -114,25 +120,35 @@ function setSession({ key, initialValues }: TestSession) {
       systemRequired: false,
       systems: []
     },
-    clearValidationIssues: vi.fn(),
     hasActiveDraft: false,
     isDraft: false,
     mode: 'create',
-    saveDraftValues: mocks.saveDraftValues,
     subjectKindLabel: 'Spell',
     subjectLabel: 'Spell',
-    updateAuthoringFormActions: mocks.updateAuthoringFormActions,
     visibleSteps: []
   }
 }
 
+/** Owns the session's real authored form, as `AuthoringFormProvider` does, around the layout. */
+function LayoutHarness() {
+  const { form, saveDraft } = useAuthoredFormInstance({
+    activateValues: async () => undefined,
+    clearValidationIssues: () => undefined,
+    saveDraftValues: mocks.saveDraftValues,
+    session: mocks.session
+  })
+  mocks.formStore = { form, isMutating: false }
+  mocks.saveDraft = saveDraft
+  return <AuthoringLayoutContent />
+}
+
 function renderLayout(initial: TestSession) {
   setSession(initial)
-  const view = renderWithAppProviders(<AuthoringLayoutContent />)
+  const view = renderWithAppProviders(<LayoutHarness />)
   return {
     switchSession(next: TestSession) {
       setSession(next)
-      view.rerender(<AuthoringLayoutContent />)
+      view.rerender(<LayoutHarness />)
     }
   }
 }
@@ -141,15 +157,13 @@ function labelInput() {
   return screen.getByRole<HTMLInputElement>('textbox', { name: 'Label' })
 }
 
-function lastActions() {
-  const actions = mocks.updateAuthoringFormActions.mock.lastCall?.[0]
-  if (!actions) throw new Error('Expected the layout to register form actions.')
-  return actions
+function saveDraft() {
+  if (!mocks.saveDraft) throw new Error('Expected the authored form to be mounted.')
+  return mocks.saveDraft()
 }
 
 describe('AuthoringLayout session defaults', () => {
   beforeEach(() => {
-    mocks.updateAuthoringFormActions.mockClear()
     mocks.saveDraftValues.mockReset().mockResolvedValue(true)
   })
 
@@ -177,7 +191,7 @@ describe('AuthoringLayout session defaults', () => {
     fireEvent.change(labelInput(), { target: { value: 'Saved label' } })
 
     await act(async () => {
-      await lastActions().onSaveDraft?.()
+      await saveDraft()
     })
     expect(mocks.saveDraftValues).toHaveBeenCalledWith({ label: 'Saved label' })
     expect(labelInput()).toHaveValue('Saved label')
@@ -208,7 +222,7 @@ describe('AuthoringLayout guided state', () => {
     fireEvent.change(labelInput(), { target: { value: '   ' } })
 
     await act(async () => {
-      await lastActions().onSaveDraft?.()
+      await saveDraft()
     })
 
     expect(mocks.saveDraftValues).not.toHaveBeenCalled()

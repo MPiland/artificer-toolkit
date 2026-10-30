@@ -1,14 +1,8 @@
 import { createContext, useContext } from 'react'
-import type { ReactNode } from 'react'
-import type {
-  NodeRuntimePathDto,
-  NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema/api/nodeRuntime'
+import type { Context, Dispatch, ReactNode, SetStateAction } from 'react'
 import type { AuthoredValidationIssueDto } from '@artificer-toolkit/schema/api/content'
 import type {
   AuthoringProgressSummary,
-  AuthoringStepDirtyMap,
-  AuthoringStepProgressStatus,
   AuthoringStepStatusMap,
   AuthoringStepWarningMap
 } from '../validation/authoringProgress'
@@ -18,10 +12,13 @@ import type {
 } from '../factories/authoredFormFactories.types'
 import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import type {
+  useAuthoringResolvedModel,
   VisibleAuthoringStep,
   VisibleAuthoringSteps
 } from '../hooks/useAuthoringResolvedModel'
-import type { AuthoringNavigationNode, AuthoringNavigationTarget } from './authoringNavigation'
+import type { GroupEditorTransaction } from '../rendering/FormRenderer.context'
+import type { AuthoringNavigationState } from './authoringNavigation'
+import type { AuthoredForm } from './useAuthoredFormInstance'
 
 export type AuthoringFormMode = 'create' | 'view' | 'edit'
 
@@ -37,15 +34,9 @@ type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | v
 export type AuthoringFormActionHandlers = {
   onActivate?: AuthoringFormAction
   onCancel?: AuthoringFormAction
-  onClearPaths?: (paths: readonly NodeRuntimePathDto[]) => void
-  onCopy?: AuthoringFormAction
   onDelete?: AuthoringFormAction
   onDiscardDraft?: AuthoringFormAction
-  onNextStep?: AuthoringFormAction
-  onPreviousStep?: AuthoringFormAction
   onResetForm?: AuthoringFormAction
-  onResetStep?: AuthoringFormAction
-  onStepChange?: (stepId: string) => void
   onSaveDraft?: AuthoringFormAction
 }
 
@@ -84,23 +75,14 @@ export type AuthoringFormStatePatch = {
   hasChanges?: boolean
   hasStepChanges?: boolean
   hasActiveDraft?: boolean
-  firstBlockingStepId?: string
-  firstBlockingStatus?: Exclude<AuthoringStepProgressStatus, 'complete'>
   isDraft?: boolean
-  isFirstStep?: boolean
-  isLastStep?: boolean
   mapId?: string
   mode?: AuthoringFormMode
-  navigationTargets?: readonly AuthoringNavigationTarget[]
-  navigationTree?: readonly AuthoringNavigationNode[]
-  providedModel?: NodeRuntimeResolveResponseDto
   readOnly?: boolean
   resolveModel?: boolean
-  resolvedModel?: NodeRuntimeResolveResponseDto
   resetStepLabel?: string
   resetFormLabel?: string
   saveDraftLabel?: string
-  stepDirty?: AuthoringStepDirtyMap
   stepStatuses?: AuthoringStepStatusMap
   stepWarnings?: AuthoringStepWarningMap
   progressSummary?: AuthoringProgressSummary
@@ -112,7 +94,6 @@ export type AuthoringFormStatePatch = {
   visitedStepIds?: ReadonlySet<string>
   isSubmitting?: boolean
   isDeleting?: boolean
-  stagedEditorOpen?: boolean
 }
 
 export type AuthoringFormSessionState = Pick<
@@ -130,13 +111,7 @@ export type AuthoringFormSessionState = Pick<
   | 'domainData'
   | 'fallbackLabel'
   | 'fieldPathPrefix'
-  | 'firstBlockingStatus'
-  | 'firstBlockingStepId'
   | 'mapId'
-  | 'navigationTargets'
-  | 'navigationTree'
-  | 'providedModel'
-  | 'resolvedModel'
   | 'progressSummary'
   | 'subjectLabel'
   | 'systemId'
@@ -160,15 +135,12 @@ export type AuthoringFormSessionState = Pick<
       | 'hasStepChanges'
       | 'hasActiveDraft'
       | 'isDraft'
-      | 'isFirstStep'
-      | 'isLastStep'
       | 'mode'
       | 'readOnly'
       | 'resolveModel'
       | 'resetStepLabel'
       | 'resetFormLabel'
       | 'saveDraftLabel'
-      | 'stepDirty'
       | 'stepStatuses'
       | 'stepWarnings'
       | 'subjectKindLabel'
@@ -176,28 +148,61 @@ export type AuthoringFormSessionState = Pick<
       | 'visitedStepIds'
       | 'isSubmitting'
       | 'isDeleting'
-      | 'stagedEditorOpen'
     >
   >
 
-export type AuthoringFormContextValue = AuthoringFormSessionState & {
+/** Step navigation derived from the resolved model and the form's debounced state. */
+export type AuthoringFormNavigationState = Omit<
+  AuthoringNavigationState,
+  'navigationTree' | 'progressSummary'
+> & {
+  /** Every step is complete and the model resolved. */
+  isComplete: boolean
+  navigationTree: AuthoringNavigationState['navigationTree'] | undefined
+  progressSummary: AuthoringProgressSummary | undefined
+  visibleSteps: VisibleAuthoringSteps
+}
+
+/** The submit, finalize, reset and saving flags, read from the form store. */
+export type AuthoringFormStatus = {
+  canFinalize: boolean
+  canResetForm: boolean
+  canResetStep: boolean
+  canSubmit: boolean
+  hasChanges: boolean
+  hasStepChanges: boolean
+  isSubmitting: boolean
+}
+
+type AuthoringNavigationFields =
+  | 'activeNavigationTargetId'
+  | 'activeSectionId'
+  | 'activeStepId'
+  | 'activeStepLabel'
+  | 'fieldPathPrefix'
+  | 'progressSummary'
+  | 'stepStatuses'
+  | 'visibleSteps'
+  | 'visitedStepIds'
+
+/** Labels, permissions and records of the registered session. */
+export type AuthoringSessionContextValue = Omit<
+  AuthoringFormSessionState,
+  AuthoringNavigationFields | keyof AuthoringFormStatus
+> & {
+  cancelHref?: string
+  isDiscardingDraft: boolean
+}
+
+export type AuthoringActionsContextValue = {
   activate: AuthoringFormAction
   activateValues: AuthoringFormValuesAction
-  activeNavigationTarget: AuthoringNavigationTarget | undefined
-  activeStep: VisibleAuthoringStep | undefined
   cancel: AuthoringFormAction
-  cancelHref?: string
   clearValidationIssues: (fieldName: string) => void
-  clearPaths: (paths: readonly NodeRuntimePathDto[]) => void
   copy: AuthoringFormAction
   copySource: (subjectId: string) => Promise<void>
   deleteRecord: AuthoringFormAction
   discardDraft: AuthoringFormAction
-  goToNavigationTarget: (targetId: string) => void
-  goToStep: (stepId: string) => void
-  goToNextStep: AuthoringFormAction
-  goToPreviousStep: AuthoringFormAction
-  isDiscardingDraft: boolean
   registerDomain: (registration: AuthoredFormDomain | AuthoringDomainRegistration) => void
   resetForm: AuthoringFormAction
   resetStep: AuthoringFormAction
@@ -205,15 +210,78 @@ export type AuthoringFormContextValue = AuthoringFormSessionState & {
   saveDraftValues: AuthoringFormValuesAction
   updateAuthoringFormActions: (actions: AuthoringFormActionHandlers) => void
   updateAuthoringFormState: (patch: AuthoringFormStatePatch) => void
-  visibleSteps: VisibleAuthoringSteps
 }
 
-export const AuthoringFormContext = createContext<AuthoringFormContextValue | null>(null)
+export type AuthoringNavigationContextValue = AuthoringFormNavigationState & {
+  activeNavigationTarget: AuthoringFormNavigationState['navigationTargets'][number] | undefined
+  activeStep: VisibleAuthoringStep | undefined
+  activeStepId?: string
+  activeStepLabel?: string
+  fieldPathPrefix?: string
+  goToNavigationTarget: (targetId: string) => void
+  goToNextStep: AuthoringFormAction
+  goToPreviousStep: AuthoringFormAction
+  goToStep: (stepId: string) => void
+  isFirstStep: boolean
+  isLastStep: boolean
+  visitedStepIds: ReadonlySet<string>
+}
 
-export function useAuthoringForm() {
-  const value = useContext(AuthoringFormContext)
-  if (!value) {
-    throw new Error('useAuthoringForm must be used inside AuthoringFormProvider.')
-  }
+export type AuthoringFormStoreContextValue = {
+  /** Flags the character builder still pushes into the session (RELIABILITY-10.T1c). */
+  builderStatus?: AuthoringFormStatus
+  form: AuthoredForm
+  /** An activate, save or discard request is in flight. */
+  isMutating: boolean
+}
+
+export type AuthoringResolution = Pick<
+  ReturnType<typeof useAuthoringResolvedModel>,
+  'error' | 'isRetrying' | 'model' | 'refetch'
+>
+
+export type AuthoringStagedEditorContextValue = {
+  groupEditor: GroupEditorTransaction | undefined
+  setGroupEditor: Dispatch<SetStateAction<GroupEditorTransaction | undefined>>
+}
+
+export const AuthoringSessionContext = createContext<AuthoringSessionContextValue | null>(null)
+export const AuthoringActionsContext = createContext<AuthoringActionsContextValue | null>(null)
+export const AuthoringNavigationContext = createContext<AuthoringNavigationContextValue | null>(
+  null
+)
+export const AuthoringFormStoreContext = createContext<AuthoringFormStoreContextValue | null>(null)
+export const AuthoringResolutionContext = createContext<AuthoringResolution | null>(null)
+export const AuthoringStagedEditorContext = createContext<AuthoringStagedEditorContextValue | null>(
+  null
+)
+
+function useProvidedContext<TValue>(context: Context<TValue | null>, hookName: string) {
+  const value = useContext(context)
+  if (!value) throw new Error(`${hookName} must be used inside AuthoringFormProvider.`)
   return value
+}
+
+export function useAuthoringSession() {
+  return useProvidedContext(AuthoringSessionContext, 'useAuthoringSession')
+}
+
+export function useAuthoringActions() {
+  return useProvidedContext(AuthoringActionsContext, 'useAuthoringActions')
+}
+
+export function useAuthoringNavigation() {
+  return useProvidedContext(AuthoringNavigationContext, 'useAuthoringNavigation')
+}
+
+export function useAuthoringFormStore() {
+  return useProvidedContext(AuthoringFormStoreContext, 'useAuthoringFormStore')
+}
+
+export function useAuthoringResolution() {
+  return useProvidedContext(AuthoringResolutionContext, 'useAuthoringResolution')
+}
+
+export function useAuthoringStagedEditor() {
+  return useProvidedContext(AuthoringStagedEditorContext, 'useAuthoringStagedEditor')
 }

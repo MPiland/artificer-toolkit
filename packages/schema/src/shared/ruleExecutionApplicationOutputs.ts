@@ -43,6 +43,7 @@ import {
   encounterActionEconomyTransitionDtoSchema,
   encounterAreaActionApplicationOutputDtoSchema,
   encounterActorMechanicsBatchApplicationOutputDtoSchema,
+  encounterDelegatingActorSpendDtoSchema,
   escapeCheckApplicationOutputDtoSchema,
   sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
@@ -111,6 +112,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       actionEconomyTransition: z.nullable(encounterActionEconomyTransitionDtoSchema),
       /** Present when the attack opened or filled the actor's Attack action; undo restores `before`. */
       attackActionTransition: z.optional(encounterAttackActionTransitionDtoSchema),
+      /** Present when the source attacked in place of an attack of its commanding actor's Attack action. */
+      delegatingActorSpend: z.optional(encounterDelegatingActorSpendDtoSchema),
       /** The target's reaction decision on this attack; its spend belongs to the target, not the source. */
       reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
       /** The target also failed a counter against this cast (D127): its slot spend rides in this batch's Character write. */
@@ -166,7 +169,9 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
         let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null
-        let maximum = value.targetTransition.before.maximumHitPoints
+        let maximum =
+          value.targetTransition.before.maximumHitPoints +
+          (value.targetTransition.grantedMaximumHitPoints ?? 0)
         let deathSaves = value.targetTransition.before.deathSaves
         const conditions = new Set(value.targetTransition.before.conditionIds)
         const scalarValues = {

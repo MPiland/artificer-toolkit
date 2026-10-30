@@ -4,7 +4,8 @@ import { Alert, Button, Group, Stack, Text } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import { parseStandaloneDiceConfiguration } from '@artificer-toolkit/shared/rolls'
 import { withForm } from '#forms/app-form/AppForm'
-import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import {} from '#forms/layout/AuthoringFormContext'
+import { useAuthoringFormStatus } from '#forms/layout/useAuthoringFormStatus'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
@@ -61,7 +62,7 @@ export const GuidedSpellAuthoring = withForm({
     const [screen, setScreen] = useState(!isExistingDraft && draft ? 3 : 0)
     const hasEffects = Boolean(effects?.length)
     const [hadEffects, setHadEffects] = useState(hasEffects)
-    const { canFinalize } = useAuthoringForm()
+    const { canFinalize } = useAuthoringFormStatus()
     const canContinueBasics = Boolean(label && magicSchoolId)
 
     useEffect(() => {

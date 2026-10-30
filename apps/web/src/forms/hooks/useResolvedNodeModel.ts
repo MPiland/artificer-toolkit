@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import type {
-  NodeRuntimePathDto,
-  NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { useMemo, useState } from 'react'
+import { replaceEqualDeep } from '@tanstack/react-query'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import { fingerprintNodeRuntimeRequest, useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
+/** Callers pass debounced values (`useDebouncedFormState`); each request resolves at once. */
 interface UseResolvedNodeModelOptions {
   mapId: string
   values: Record<string, unknown>
@@ -12,8 +11,6 @@ interface UseResolvedNodeModelOptions {
   ancestors?: Record<string, unknown>[]
   systemId?: string
   enabled?: boolean
-  debounceMs?: number
-  onClearPaths?: (paths: readonly NodeRuntimePathDto[]) => void
 }
 
 export function useResolvedNodeModel({
@@ -22,9 +19,7 @@ export function useResolvedNodeModel({
   parentValues,
   ancestors,
   systemId,
-  enabled = true,
-  debounceMs = 150,
-  onClearPaths
+  enabled = true
 }: UseResolvedNodeModelOptions) {
   const request = useMemo(
     () => ({
@@ -36,38 +31,23 @@ export function useResolvedNodeModel({
     }),
     [ancestors, mapId, parentValues, systemId, values]
   )
-  const [debouncedRequest, setDebouncedRequest] = useState(request)
-  const requestFingerprint = useMemo(() => fingerprintNodeRuntimeRequest(request), [request])
-  const debouncedRequestFingerprint = useMemo(
-    () => fingerprintNodeRuntimeRequest(debouncedRequest),
-    [debouncedRequest]
+  // Copy fields (names, descriptions) never change a resolution, so editing only them keeps the
+  // resolved request and sends nothing.
+  const fingerprint = useMemo(() => fingerprintNodeRuntimeRequest(request), [request])
+  const [resolvedRequest, setResolvedRequest] = useState({ fingerprint, request })
+  if (resolvedRequest.fingerprint !== fingerprint) setResolvedRequest({ fingerprint, request })
+  const query = useNodeRuntimeResolve(resolvedRequest.request, enabled && Boolean(systemId))
+  // Each request has its own query, so an unchanged resolution would arrive as a new object; sharing
+  // it keeps the previous model's identity and its readers do not re-render. While a refresh is
+  // pending the previous model stays as it was.
+  const shareModel = useMemo(() => {
+    let previous: NodeRuntimeResolveResponseDto | undefined
+    return (next: NodeRuntimeResolveResponseDto) => (previous = replaceEqualDeep(previous, next))
+  }, [])
+  const model = useMemo(
+    () => (query.data ? shareModel(query.data) : undefined),
+    [query.data, shareModel]
   )
-
-  useEffect(() => {
-    if (requestFingerprint === debouncedRequestFingerprint) return undefined
-    const timeout = window.setTimeout(() => setDebouncedRequest(request), debounceMs)
-    return () => window.clearTimeout(timeout)
-  }, [debounceMs, debouncedRequestFingerprint, request, requestFingerprint])
-
-  const query = useNodeRuntimeResolve(debouncedRequest, enabled && Boolean(systemId))
-  const model = useMemo<NodeRuntimeResolveResponseDto | undefined>(() => {
-    if (!query.data) return undefined
-    if (!query.isPlaceholderData) return query.data
-
-    return {
-      ...query.data,
-      clearPaths: []
-    }
-  }, [query.data, query.isPlaceholderData])
-  const clearPathKey = query.isPlaceholderData
-    ? ''
-    : (query.data?.clearPaths.map((path: NodeRuntimePathDto) => path.join('.')).join('|') ?? '')
-
-  useEffect(() => {
-    if (query.isPlaceholderData) return
-    if (!onClearPaths || !query.data?.clearPaths.length) return
-    onClearPaths(query.data.clearPaths)
-  }, [clearPathKey, onClearPaths, query.data, query.isPlaceholderData])
 
   return { model, error: query.error, isFetching: query.isFetching, refetch: query.refetch }
 }

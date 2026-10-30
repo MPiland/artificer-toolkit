@@ -100,7 +100,8 @@ export async function writeRoomCharacterPlay(input: {
       expectedRole: 'OWNER'
     },
     observed,
-    transaction
+    transaction,
+    { reconcile: false }
   )
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
   if (

@@ -1,7 +1,13 @@
 import { useMemo, type CSSProperties, type MouseEvent } from 'react'
 import { Button } from '@mantine/core'
 import { X } from 'lucide-react'
-import { useAuthoringForm } from '../../AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringNavigation,
+  useAuthoringSession,
+  useAuthoringStagedEditor
+} from '../../AuthoringFormContext'
+import { useAuthoringFormStatus } from '../../useAuthoringFormStatus'
 import { useAuthoringLayout } from '../../AuthoringLayoutContext'
 import { Rail } from '#ui'
 import { StatusSummary } from '../StatusSummary/StatusSummary'
@@ -9,18 +15,11 @@ import { toAuthoringNavigationRailItems, toAuthoringRailSummaries } from '../Ste
 import * as styles from './Footer.css'
 
 export function Footer() {
-  const {
-    cancel,
-    cancelHref,
-    cancelLabel,
-    hasChanges,
-    mode,
-    navigationTree,
-    progressSummary,
-    stagedEditorOpen,
-    stepStatuses,
-    visitedStepIds
-  } = useAuthoringForm()
+  const { cancelHref, cancelLabel, mode } = useAuthoringSession()
+  const { cancel } = useAuthoringActions()
+  const { navigationTree, progressSummary, stepStatuses, visitedStepIds } = useAuthoringNavigation()
+  const { hasChanges } = useAuthoringFormStatus()
+  const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
   const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation, visibleSteps } =
     useAuthoringLayout()
   const navigationProgressItems = navigationTree?.length
