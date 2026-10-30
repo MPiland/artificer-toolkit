@@ -82,10 +82,7 @@ export function compiledTestSpellCast(input: {
         slotPools: [],
         fusionStrategy: 'NONE' as const
       }
-    } satisfies Pick<
-      CharacterRulePolicyOutput,
-      'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
-    >,
+    },
     spellsById: new Map([[spell.id, compileSpell(spell)]]),
     firstSequence: 10,
     characterLevel: 1
