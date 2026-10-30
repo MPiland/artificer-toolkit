@@ -737,6 +737,14 @@
               ],
               "note": "AC confirmed by the user 2026-10-22. Closed 2026-10-24 by PLATFORM-13.T19, PLATFORM-13.T20.",
               "text": "A validation lane is never blocked by a lock whose owner process has died: the next waiter reclaims it, and a lock held by a live process is never taken."
+            },
+            {
+              "id": "PLATFORM-13.15",
+              "text": "A failed CI browser journey uploads its Playwright log, and the vtt-browser journey passes without a rerun.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-30: vtt-browser failed twice that day (runs 41068941213 and the T4v2b sync tip) and passed on rerun, with no playwright.log in the evidence."
             }
           ],
           "wsjf": {
@@ -1136,6 +1144,21 @@
               },
               "text": "Bug: on zod 4.6.7 the content snapshot builder's readScopeKind query exceeds the self-hosted 1 s query limit (run 40980096246), so snapshot builds never finish. Find the cost at its source (schema parsing on the read path, read volume), fix it with a red-first read-budget or compute test, and lift the app zod 4.4.3 hold.",
               "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list."
+            },
+            {
+              "id": "PLATFORM-13.T26",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-13.15"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 2,
+                "after": []
+              },
+              "text": "Bug: vtt-browser fails intermittently in Browser journeys (shard 5) and CI drops its Playwright log. Add the suite log under local-convex-proofs to the evidence artifact, find the cause from the next failure or a repeat run, and fix it at the source. A slice that changes .github/workflows merges by hand."
             }
           ]
         },
@@ -18317,6 +18340,9 @@
                 "apps/apis/convex/characters/sheetRestStandingEffect.test.ts",
                 "packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts",
                 "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
+              ],
+              "journeys": [
+                "delegated-attack-browser"
               ]
             },
             {
@@ -19560,7 +19586,7 @@
             },
             {
               "id": "SPELLS-31.T4v2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19574,7 +19600,7 @@
                 ]
               },
               "text": "Delegated attack, web half: the action-choices read (actionChoiceReads.ts) lists a delegate's attacks under its caster, and the web action drawer picks the familiar's attack for the caster's command. Browser journey.",
-              "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29."
+              "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29. Merged in m563 (eb5dfedd5)."
             }
           ]
         },

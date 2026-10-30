@@ -285765,6 +285765,7 @@ export declare const api: {
             attackSlot: { number: number; total: number } | null;
             componentsLabel?: string;
             damageLabel?: string;
+            delegateActorId?: string;
             grip: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
@@ -287528,6 +287529,7 @@ export declare const api: {
             attackSlot: { number: number; total: number } | null;
             componentsLabel?: string;
             damageLabel?: string;
+            delegateActorId?: string;
             grip: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
