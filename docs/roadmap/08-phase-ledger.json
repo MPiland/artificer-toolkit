@@ -16055,7 +16055,7 @@
                 "tc": 5,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T4v", "SPELLS-34.T3"]
+                "after": ["SPELLS-31.T4v", "SPELLS-34.T3a"]
               },
               "text": "Delegated attack: a generic caster grant \"forgo one attack of the Attack action; a creature you summoned with one of effectIds attacks with its reaction\" (owner link). The caster's command carries the delegate actor, resolves the delegate's own creature attack, charges the caster's attack and the delegate's reaction, and undoes as one command (replay and checksum pins). The web action menu can pick the familiar's attack. Pact of the Chain authored with it; deletes CLASS_WARLOCK_PACT_OF_CHAIN (D156). No Warlock names in code; authoring-parity proof.",
               "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced."
@@ -17815,16 +17815,30 @@
             },
             {
               "status": "TODO",
-              "id": "SPELLS-34.T3",
+              "id": "SPELLS-34.T3a",
               "closes": ["SPELLS-34.2"],
               "wsjf": {
                 "bv": 8,
                 "tc": 8,
                 "rr": 5,
-                "size": 3
+                "size": 5
               },
-              "text": "Bug: Find Familiar compiles REFUSED (MANIFEST CREATURE with no form, find-familiar.ts:68-72; srdEffectCompile.golden.txt:1164), so no familiar appears in the room. Make it a SUMMON with a choice of SRD corpus creature form and a creature-type override, linked to its caster (owner actor and source effect), on both the Sheet and room paths. Generic: no spell names in code; authoring-parity proof.",
-              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md)."
+              "text": "Bug: Find Familiar compiles REFUSED (MANIFEST CREATURE with no form, find-familiar.ts:68-72; srdEffectCompile.golden.txt:1164). Authoring, compiler and room: the compiler accepts an untimed SUMMON; the POINT target carries a choice of SRD corpus creature form and a creature-type override; buildEncounterSummon builds the actor from a corpus creature, linked to its caster (owner actor and source effect); the room picker chooses the form. Generic: no spell names in code; authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md). Split at sizing (option a): Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "SPELLS-34.T3b",
+              "status": "TODO",
+              "closes": ["SPELLS-34.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-34.T3a"]
+              },
+              "text": "Sheet path for corpus-form summons: the Sheet CAST_SPELL carries the form and creature-type choice with a Sheet picker, the summon is linked to its caster, and a long rest keeps an untimed summon instead of dropping every summon. Sheet familiars joining a Run and Find Familiar's 1-hour casting time stay out of scope. Red-first proofs.",
+              "note": "Split from SPELLS-34.T3 at sizing (option a). Approved by the user on 2026-10-29."
             }
           ]
         }
@@ -20795,11 +20809,11 @@
                 "bv": 5,
                 "tc": 5,
                 "rr": 5,
-                "size": 3,
+                "size": 5,
                 "after": ["RELIABILITY-21.T16"]
               },
               "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes. Also give the queued post-commit Builder store margin on CI: its max under 700 ms on the builder journey (T16 measured 1038/1160 ms, one store timing out and falling back to a live read), by trimming its read volume (765 KB to 1.05 MB across 128 to 378 documents) as well as the parse.",
-              "note": "Approved by the user on 2026-10-29."
+              "note": "Approved by the user on 2026-10-29. Size 3 -> 5 for the Builder store margin rider: Approved by the user on 2026-10-29."
             },
             {
               "id": "RELIABILITY-21.T26",
