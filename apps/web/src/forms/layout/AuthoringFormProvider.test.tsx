@@ -1,16 +1,56 @@
 import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { useNavigate, useRouter, useRouterState } from '@tanstack/react-router'
-import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeResolveResponseDto
+} from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { TestRouterProvider } from '#test/TestRouterProvider'
-import { useAuthoringForm } from './AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringFormStore,
+  useAuthoringNavigation,
+  useAuthoringSession
+} from './AuthoringFormContext'
+import { useAuthoringFormStatus } from './useAuthoringFormStatus'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
-import type { AuthoringNavigationTarget } from './authoringNavigation'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
+
+/** A label the fake resolver answers without the Details step, as a structural edit would. */
+const WITHOUT_DETAILS_LABEL = 'Without details'
+
+// The node-runtime resolver is the network: it answers every authored session with the provider
+// step fixture below.
+vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#app/query/createAppQueryClient')>()
+  return {
+    ...actual,
+    createAppQueryClient: (...args: Parameters<typeof actual.createAppQueryClient>) => {
+      const client = actual.createAppQueryClient(...args)
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
+        queryFn: ({ queryKey }) => {
+          const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+          return compactNodeRuntimeResponse(
+            values.label === WITHOUT_DETAILS_LABEL
+              ? {
+                  ...providerStepModel,
+                  steps: providerStepModel.steps.filter((step) => step.id !== 'details')
+                }
+              : providerStepModel
+          )
+        }
+      })
+      return client
+    }
+  }
+})
 
 const RACE_CREATE_REGISTRATION = {
   data: { system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] },
@@ -71,9 +111,11 @@ describe('AuthoringFormProvider domain registration', () => {
     const user = userEvent.setup()
 
     render(
-      <ProviderHarness>
-        <StepStateProbe />
-      </ProviderHarness>
+      <TestRouterProvider initialPath='/races/new'>
+        <AuthoringFormProvider {...RACE_CREATE_REGISTRATION}>
+          <StepStateProbe />
+        </AuthoringFormProvider>
+      </TestRouterProvider>
     )
 
     await waitFor(() => {
@@ -456,8 +498,8 @@ function ProviderHarness({ children }: { children: ReactNode }) {
 }
 
 function DomainRegistrationProbe() {
-  const authoring = useAuthoringForm()
-  const { registerDomain } = authoring
+  const { domain, fallbackLabel, mapId, subjectKindLabel } = useAuthoringSession()
+  const { registerDomain } = useAuthoringActions()
 
   useEffect(() => {
     registerDomain('race')
@@ -465,17 +507,17 @@ function DomainRegistrationProbe() {
 
   return (
     <>
-      <div data-testid='domain'>{authoring.domain}</div>
-      <div data-testid='map-id'>{authoring.mapId}</div>
-      <div data-testid='subject-kind'>{authoring.subjectKindLabel}</div>
-      <div data-testid='fallback-label'>{authoring.fallbackLabel}</div>
+      <div data-testid='domain'>{domain}</div>
+      <div data-testid='map-id'>{mapId}</div>
+      <div data-testid='subject-kind'>{subjectKindLabel}</div>
+      <div data-testid='fallback-label'>{fallbackLabel}</div>
     </>
   )
 }
 
 function RegistrationProbe() {
-  const authoring = useAuthoringForm()
-  const { registerDomain } = authoring
+  const { domain, mapId, subjectKindLabel } = useAuthoringSession()
+  const { registerDomain } = useAuthoringActions()
 
   useEffect(() => {
     registerDomain('spell')
@@ -483,17 +525,17 @@ function RegistrationProbe() {
 
   return (
     <>
-      <div data-testid='domain'>{authoring.domain}</div>
-      <div data-testid='map-id'>{authoring.mapId}</div>
-      <div data-testid='subject-kind'>{authoring.subjectKindLabel}</div>
+      <div data-testid='domain'>{domain}</div>
+      <div data-testid='map-id'>{mapId}</div>
+      <div data-testid='subject-kind'>{subjectKindLabel}</div>
     </>
   )
 }
 
 function DomainDataRegistrationProbe() {
-  const authoring = useAuthoringForm()
-  const { registerDomain } = authoring
-  const initialValues = authoring.authoredSession?.initialValues
+  const { authoredSession } = useAuthoringSession()
+  const { registerDomain } = useAuthoringActions()
+  const initialValues = authoredSession?.initialValues
   const initialSessionId = initialValues && 'id' in initialValues ? initialValues.id : undefined
   const sessionId =
     typeof initialSessionId === 'string' || typeof initialSessionId === 'number'
@@ -506,9 +548,9 @@ function DomainDataRegistrationProbe() {
 
   return (
     <>
-      <div data-testid='session-key'>{authoring.authoredSession?.key}</div>
+      <div data-testid='session-key'>{authoredSession?.key}</div>
       <div data-testid='session-id'>{sessionId}</div>
-      <div data-testid='system-id'>{authoring.authoredSession?.systemId}</div>
+      <div data-testid='system-id'>{authoredSession?.systemId}</div>
       <button type='button' onClick={() => registerDomain(RACE_CREATE_REGISTRATION)}>
         Register again
       </button>
@@ -517,21 +559,15 @@ function DomainDataRegistrationProbe() {
 }
 
 function StepStateProbe() {
-  const authoring = useAuthoringForm()
-  const { goToNextStep, goToPreviousStep, updateAuthoringFormState } = authoring
-
-  useEffect(() => {
-    updateAuthoringFormState({
-      resolvedModel: providerStepModel
-    })
-  }, [updateAuthoringFormState])
+  const { activeStepLabel, goToNextStep, goToPreviousStep, isFirstStep, isLastStep, visibleSteps } =
+    useAuthoringNavigation()
 
   return (
     <>
-      <div data-testid='active-step'>{authoring.activeStepLabel}</div>
-      <div data-testid='step-count'>{authoring.visibleSteps.length}</div>
-      <div data-testid='first-step'>{String(authoring.isFirstStep)}</div>
-      <div data-testid='last-step'>{String(authoring.isLastStep)}</div>
+      <div data-testid='active-step'>{activeStepLabel}</div>
+      <div data-testid='step-count'>{visibleSteps.length}</div>
+      <div data-testid='first-step'>{String(isFirstStep)}</div>
+      <div data-testid='last-step'>{String(isLastStep)}</div>
       <button type='button' onClick={() => void goToNextStep()}>
         Next
       </button>
@@ -542,20 +578,39 @@ function StepStateProbe() {
   )
 }
 
+/**
+ * Makes the session dirty the way its owner does: an authored session through an edit in a mounted
+ * field of its form, the Character Builder through the flags it still pushes (RELIABILITY-10.T1c).
+ */
+function SessionChanges({ hasChanges }: { hasChanges: boolean }) {
+  const { authoringKind } = useAuthoringSession()
+  const { updateAuthoringFormState } = useAuthoringActions()
+  const { form } = useAuthoringFormStore()
+
+  // A mount-time edit: the session's form must keep it rather than reset over it.
+  useEffect(() => {
+    if (authoringKind === 'character-builder') {
+      updateAuthoringFormState({ hasChanges })
+      return
+    }
+    if (hasChanges) form.setFieldValue('label', 'Changed label')
+  }, [authoringKind, form, hasChanges, updateAuthoringFormState])
+
+  return authoringKind === 'character-builder' ? null : (
+    <form.Field name='label'>{() => null}</form.Field>
+  )
+}
+
 function UnsavedNavigationProbe() {
-  const authoring = useAuthoringForm()
   const navigate = useNavigate()
   const router = useRouter()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  const { updateAuthoringFormState } = authoring
-
-  useEffect(() => {
-    updateAuthoringFormState({ hasChanges: true })
-  }, [updateAuthoringFormState])
+  const { hasChanges } = useAuthoringFormStatus()
 
   return (
     <>
-      <div data-testid='has-changes'>{String(authoring.hasChanges)}</div>
+      <SessionChanges hasChanges />
+      <div data-testid='has-changes'>{String(hasChanges)}</div>
       <div data-testid='pathname'>{pathname}</div>
       <div data-testid='history-pathname'>{router.history.location.pathname}</div>
       <button type='button' onClick={() => void navigate({ to: '/spells' })}>
@@ -566,20 +621,18 @@ function UnsavedNavigationProbe() {
 }
 
 function CancelProbe({ hasChanges }: { hasChanges: boolean }) {
-  const authoring = useAuthoringForm()
+  const { cancelHref } = useAuthoringSession()
+  const { cancel } = useAuthoringActions()
   const router = useRouter()
-  const { updateAuthoringFormState } = authoring
-
-  useEffect(() => {
-    updateAuthoringFormState({ hasChanges })
-  }, [hasChanges, updateAuthoringFormState])
+  const { hasChanges: sessionHasChanges } = useAuthoringFormStatus()
 
   return (
     <>
-      <div data-testid='cancel-href'>{authoring.cancelHref}</div>
-      <div data-testid='has-changes'>{String(authoring.hasChanges)}</div>
+      <SessionChanges hasChanges={hasChanges} />
+      <div data-testid='cancel-href'>{cancelHref}</div>
+      <div data-testid='has-changes'>{String(sessionHasChanges)}</div>
       <div data-testid='history-pathname'>{router.history.location.pathname}</div>
-      <button type='button' onClick={() => void authoring.cancel()}>
+      <button type='button' onClick={() => void cancel()}>
         Cancel form
       </button>
     </>
@@ -587,22 +640,20 @@ function CancelProbe({ hasChanges }: { hasChanges: boolean }) {
 }
 
 function CharacterUrlNavigationProbe() {
-  const authoring = useAuthoringForm()
+  const { activeStepId, goToStep, visitedStepIds } = useAuthoringNavigation()
   const router = useRouter()
   const search = useRouterState({ select: (state) => state.location.search })
   const historyState = useRouterState({ select: (state) => state.location.state })
 
   return (
     <>
-      <div data-testid='active-step-id'>{authoring.activeStepId}</div>
+      <div data-testid='active-step-id'>{activeStepId}</div>
       <div data-testid='active-step-visited'>
-        {String(
-          Boolean(authoring.activeStepId && authoring.visitedStepIds.has(authoring.activeStepId))
-        )}
+        {String(Boolean(activeStepId && visitedStepIds.has(activeStepId)))}
       </div>
       <div data-testid='search'>{JSON.stringify(search)}</div>
       <div data-testid='history-state'>{JSON.stringify(historyState)}</div>
-      <button type='button' onClick={() => authoring.goToStep('CLASSES')}>
+      <button type='button' onClick={() => goToStep('CLASSES')}>
         Go to classes
       </button>
       <button
@@ -618,57 +669,26 @@ function CharacterUrlNavigationProbe() {
   )
 }
 
-const authoredNavigationTargets = [
-  createAuthoringTarget('basics'),
-  createAuthoringTarget('details')
-]
-
 function AuthoredUrlNavigationProbe() {
-  const authoring = useAuthoringForm()
+  const { activeNavigationTarget, goToNavigationTarget, visitedStepIds } = useAuthoringNavigation()
+  const { form } = useAuthoringFormStore()
   const search = useRouterState({ select: (state) => state.location.search })
-  const [includeDetails, setIncludeDetails] = useState(true)
-
-  useEffect(() => {
-    authoring.updateAuthoringFormState({
-      hasChanges: true,
-      navigationTargets: includeDetails
-        ? authoredNavigationTargets
-        : authoredNavigationTargets.slice(0, 1)
-    })
-  }, [authoring.updateAuthoringFormState, includeDetails])
+  const activeNavigationTargetId = activeNavigationTarget?.id
 
   return (
     <>
-      <div data-testid='active-target-id'>{authoring.activeNavigationTargetId}</div>
+      <SessionChanges hasChanges />
+      <div data-testid='active-target-id'>{activeNavigationTargetId}</div>
       <div data-testid='active-target-visited'>
-        {String(
-          Boolean(
-            authoring.activeNavigationTargetId &&
-            authoring.visitedStepIds.has(authoring.activeNavigationTargetId)
-          )
-        )}
+        {String(Boolean(activeNavigationTargetId && visitedStepIds.has(activeNavigationTargetId)))}
       </div>
       <div data-testid='search'>{JSON.stringify(search)}</div>
-      <button
-        type='button'
-        onClick={() => authoring.goToNavigationTarget('step:race:root:details')}
-      >
+      <button type='button' onClick={() => goToNavigationTarget('step:race:root:details')}>
         Go to details
       </button>
-      <button type='button' onClick={() => setIncludeDetails(false)}>
+      <button type='button' onClick={() => form.setFieldValue('label', WITHOUT_DETAILS_LABEL)}>
         Remove details target
       </button>
     </>
   )
-}
-
-function createAuthoringTarget(stepId: string): AuthoringNavigationTarget {
-  return {
-    id: `step:race:root:${stepId}`,
-    kind: 'step',
-    label: stepId,
-    mapId: 'race',
-    ownedFieldPaths: [],
-    stepId
-  }
 }

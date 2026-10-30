@@ -1,5 +1,5 @@
 import { Alert, Text } from '@mantine/core'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringSession } from '../layout/AuthoringFormContext'
 import {
   findAuthoringValidationTarget,
   type AuthoringNavigationTarget
@@ -14,7 +14,7 @@ export function AuthoringValidationAlert({
   target,
   validationTargets
 }: AuthoringValidationAlertProps) {
-  const { validationIssues } = useAuthoringForm()
+  const { validationIssues } = useAuthoringSession()
   if (!target) return null
 
   const issues = validationIssues.filter(

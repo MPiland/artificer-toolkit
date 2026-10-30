@@ -15,7 +15,7 @@ import {
 } from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAppForm } from '../app-form/AppForm'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringActions } from '../layout/AuthoringFormContext'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 import { FormRenderer } from '../rendering/FormRenderer'
 
@@ -49,7 +49,7 @@ afterEach(cleanup)
 
 /** The root the structural-change guard verifies edits against, as the authoring page registers it. */
 function RegisterRoot({ model }: { model: NodeRuntimeResolveResponseDto }) {
-  const { updateAuthoringFormState } = useAuthoringForm()
+  const { updateAuthoringFormState } = useAuthoringActions()
   useEffect(() => {
     updateAuthoringFormState({ mapId: model.mapId, systemId: srdSystemRecord.id })
   }, [model.mapId, updateAuthoringFormState])

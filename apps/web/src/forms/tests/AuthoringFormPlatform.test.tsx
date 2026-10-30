@@ -1,21 +1,32 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { useEffect, useState, type ReactElement } from 'react'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useSelector } from '@tanstack/react-form'
-import type {
-  NodeRuntimeNodeDto,
-  NodeRuntimeResolveResponseDto
+import { useRouter } from '@tanstack/react-router'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeNodeDto,
+  type NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   resolveArrayAuthoringMeta,
   resolveInputAuthoringMeta,
   resolveObjectAuthoringMeta
 } from '@artificer-toolkit/shared/maps'
-import { AuthoringLayout } from '#forms'
-import { useAppForm, withForm } from '#forms/app-form/AppForm'
-import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
-import { FormRenderer } from '#forms/rendering/FormRenderer'
+import {
+  authoredRouteStoryRecords,
+  createEditLoaderData,
+  seedStorySystemId
+} from '#domains/authoredRouteStory.fixtures'
+import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
+import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
+import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { useAuthoringFormStore, useAuthoringResolution } from '#forms/layout/AuthoringFormContext'
 import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem
@@ -25,6 +36,53 @@ import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
 import { toAuthoringRailSummaries } from '../layout/Steps/Steps.utils'
 import { getAuthoringProgress } from '../validation/authoringProgress'
 import { withResolvedScopes } from './withResolvedScopes'
+
+const convexMocks = vi.hoisted(() => ({
+  mutation: vi.fn(),
+  nodeRuntimeResolve: vi.fn(),
+  query: vi.fn()
+}))
+
+vi.mock('convex/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('convex/react')>()),
+  useAction: () => vi.fn(),
+  useConvex: () => convexMocks,
+  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+  useMutation: () => vi.fn(),
+  useQuery: () => ({ assetId: null, revision: 0 })
+}))
+
+vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#app/query/createAppQueryClient')>()
+  return {
+    ...actual,
+    createAppQueryClient: () => {
+      const client = actual.createAppQueryClient()
+      client.setQueryDefaults(['convexQuery'], {
+        queryFn: () => {
+          throw new Error('Unexpected native query in the authoring platform harness.')
+        }
+      })
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
+        queryFn: ({ queryKey }) => convexMocks.nodeRuntimeResolve(queryKey)
+      })
+      return client
+    }
+  }
+})
+
+beforeAll(warmFixtureAuthoredSources, 60_000)
+
+beforeEach(() => {
+  convexMocks.mutation.mockReset().mockResolvedValue({
+    subjectId: authoredRouteStoryRecords.creature.id,
+    label: 'Fire Lace'
+  })
+  convexMocks.nodeRuntimeResolve.mockReset()
+  convexMocks.query
+    .mockReset()
+    .mockResolvedValue({ values: {}, clearedPaths: [], refusedPaths: [] })
+})
 
 type TestFormValues = {
   category: string | undefined
@@ -44,12 +102,12 @@ type TestFormValues = {
 const testDefaults: TestFormValues = {
   category: undefined,
   description: '',
-  id: 'test-1',
+  id: authoredRouteStoryRecords.creature.id,
   level: 1,
   name: '',
   notes: '',
   order: 1,
-  systemId: 'system-1'
+  systemId: seedStorySystemId
 }
 
 const inputAuthoring = resolveInputAuthoringMeta(undefined)
@@ -494,105 +552,85 @@ const simpleArrayModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
-const AuthoringRenderer = FormRenderer({
-  defaultValues: testDefaults
-})
-
+/**
+ * Renders the creature authoring session (real provider, layout and renderer). The synthetic
+ * `defaultValues` become the loaded creature record, so they reach the form through the session's
+ * own initial values. The fake node-runtime resolve answers with the synthetic `model` resolved
+ * against the form's own values. `onCancel` fires when the session navigates to another page,
+ * which is what Cancel does.
+ */
 function TestAuthoringForm({
-  canSaveDraft = false,
-  defaultValues: defaultValuesInput = testDefaults,
-  model: modelInput = testModel,
-  onCancel = vi.fn(),
-  onSaveDraft = vi.fn()
+  defaultValues = testDefaults,
+  model = testModel,
+  onCancel = vi.fn()
 }: {
-  canSaveDraft?: boolean
   defaultValues?: TestFormValues
   model?: NodeRuntimeResolveResponseDto
   onCancel?: () => void
-  onSaveDraft?: () => void
 }) {
-  const defaultValues = useMemo(() => structuredClone(defaultValuesInput), [defaultValuesInput])
-  const model = useMemo(() => structuredClone(modelInput), [modelInput])
-  const form = useAppForm({
-    defaultValues,
-    onSubmit: async () => undefined
+  useState(() => {
+    convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey: readonly unknown[]) => {
+      const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+      return compactNodeRuntimeResponse(
+        await withResolvedScopes({ ...structuredClone(model), mapId: 'creature' }, values)
+      )
+    })
   })
+  // The synthetic values are not a full creature; the session only reads them back as form values.
+  // The seed creature's own features are cleared so the models' collections start from the test's values.
+  const record = {
+    ...authoredRouteStoryRecords.creature,
+    features: [],
+    ...structuredClone(defaultValues)
+  } as unknown as CreatureAuthoredDto
+  const { authoringData } = createEditLoaderData('creature', 'ownedActive', record)
 
   return (
-    <AuthoringLayout>
-      <form.AppForm>
-        <TestAuthoringContent
-          canSaveDraft={canSaveDraft}
-          form={form}
-          model={model}
-          onCancel={onCancel}
-          onSaveDraft={onSaveDraft}
-        />
-      </form.AppForm>
-    </AuthoringLayout>
+    <AuthoringFormProvider data={authoringData} domain='creature' mode='edit'>
+      <ResolvedFormContent onCancel={onCancel} />
+    </AuthoringFormProvider>
   )
 }
 
-const TestAuthoringContent = withForm({
-  defaultValues: testDefaults,
-  props: {} as {
-    canSaveDraft: boolean
-    model: NodeRuntimeResolveResponseDto
-    onCancel: () => void
-    onSaveDraft: () => void
-  },
-  render: function TestAuthoringContent({ canSaveDraft, form, model, onCancel, onSaveDraft }) {
-    const { providedModel, updateAuthoringFormActions, updateAuthoringFormState } =
-      useAuthoringForm()
-    const nameValue = useSelector(form.store, (state) => state.values.name)
-    const formValues = useSelector(form.store, (state) => state.values)
-    const [resolvedModel, setResolvedModel] = useState<NodeRuntimeResolveResponseDto>()
+function ResolvedFormContent({ onCancel }: { onCancel: () => void }) {
+  const { model } = useAuthoringResolution()
 
-    useEffect(() => {
-      let current = true
-      void withResolvedScopes(model, formValues).then((resolved) => {
-        if (current) setResolvedModel(resolved)
-      })
-      return () => {
-        current = false
-      }
-    }, [formValues, model])
+  if (!model) return null
 
-    const statePatch = useMemo(
-      () => ({
-        authoringKind: 'authored-form' as const,
-        canSaveDraft,
-        cancelLabel: 'Cancel',
-        mapId: 'test-authoring-form',
-        mode: 'edit' as const,
-        providedModel: resolvedModel,
-        readOnly: false,
-        resolveModel: false,
-        subjectKindLabel: 'Test Form'
+  return (
+    <>
+      <LeavePageSpy onLeave={onCancel} />
+      <FormValueOutputs />
+      <AuthoringLayoutContent />
+    </>
+  )
+}
+
+function LeavePageSpy({ onLeave }: { onLeave: () => void }) {
+  const router = useRouter()
+
+  useEffect(
+    () =>
+      router.subscribe('onBeforeNavigate', ({ pathChanged }) => {
+        if (pathChanged) onLeave()
       }),
-      [canSaveDraft, resolvedModel]
-    )
-    const actions = useMemo(() => ({ onCancel, onSaveDraft }), [onCancel, onSaveDraft])
+    [onLeave, router]
+  )
 
-    useEffect(() => {
-      updateAuthoringFormState(statePatch)
-    }, [statePatch, updateAuthoringFormState])
+  return null
+}
 
-    useEffect(() => {
-      updateAuthoringFormActions(actions)
-    }, [actions, updateAuthoringFormActions])
+function FormValueOutputs() {
+  const { form } = useAuthoringFormStore()
+  const formValues = useSelector(form.store, (state) => state.values)
 
-    if (!providedModel) return null
-
-    return (
-      <>
-        <AuthoringRenderer form={form} />
-        <output aria-label='name value'>{nameValue}</output>
-        <output aria-label='form values'>{JSON.stringify(formValues)}</output>
-      </>
-    )
-  }
-})
+  return (
+    <>
+      <output aria-label='name value'>{'name' in formValues ? String(formValues.name) : ''}</output>
+      <output aria-label='form values'>{JSON.stringify(formValues)}</output>
+    </>
+  )
+}
 
 async function renderForm(ui: ReactElement) {
   const result = render(ui)
@@ -676,7 +714,10 @@ describe('authoring form platform', () => {
     expect(screen.getByRole('textbox', { name: /notes/i })).toBeInTheDocument()
     const actionBar = within(screen.getByTestId('authoring-action-bar'))
     expect(actionBar.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
-    expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
+    // Completion is derived from the debounced form state, so Activate enables once typing pauses.
+    await waitFor(() =>
+      expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
+    )
   })
 
   it('updates TanStack form state when fields change', async () => {
@@ -768,7 +809,6 @@ describe('authoring form platform', () => {
     await renderForm(
       <TestRouterProvider>
         <TestAuthoringForm
-          canSaveDraft
           defaultValues={{ ...testDefaults, outcomes: [] }}
           model={summaryGroupModel}
         />
@@ -812,7 +852,7 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={summaryGroupModel} />
+        <TestAuthoringForm defaultValues={initialValues} model={summaryGroupModel} />
       </TestRouterProvider>
     )
 
@@ -867,11 +907,7 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <TestAuthoringForm
-          canSaveDraft
-          defaultValues={initialValues}
-          model={summaryGroupWithNameModel}
-        />
+        <TestAuthoringForm defaultValues={initialValues} model={summaryGroupWithNameModel} />
       </TestRouterProvider>
     )
 
@@ -911,7 +947,7 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <TestAuthoringForm canSaveDraft defaultValues={initialValues} model={focusedGroupModel} />
+        <TestAuthoringForm defaultValues={initialValues} model={focusedGroupModel} />
       </TestRouterProvider>
     )
 

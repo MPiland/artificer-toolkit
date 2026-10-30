@@ -1,9 +1,16 @@
 import { useEffect } from 'react'
-import { useAuthoringForm } from './AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringSession,
+  useAuthoringStagedEditor
+} from './AuthoringFormContext'
+import { useAuthoringFormStatus } from './useAuthoringFormStatus'
 
 export function useAuthoringSaveShortcut() {
-  const { canSaveDraft, hasChanges, isSubmitting, readOnly, saveDraft, stagedEditorOpen } =
-    useAuthoringForm()
+  const { canSaveDraft, readOnly } = useAuthoringSession()
+  const { saveDraft } = useAuthoringActions()
+  const { hasChanges, isSubmitting } = useAuthoringFormStatus()
+  const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
 
   useEffect(() => {
     if (readOnly || !canSaveDraft) return

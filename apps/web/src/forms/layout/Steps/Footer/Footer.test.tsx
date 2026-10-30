@@ -5,12 +5,20 @@ import { Footer } from './Footer'
 
 const mocks = vi.hoisted(() => ({
   cancel: vi.fn(),
-  useAuthoringForm: vi.fn(),
+  authoringState: vi.fn(),
   useAuthoringLayout: vi.fn()
 }))
 
 vi.mock('../../AuthoringFormContext', () => ({
-  useAuthoringForm: mocks.useAuthoringForm
+  useAuthoringActions: () => mocks.authoringState(),
+  useAuthoringNavigation: () => mocks.authoringState(),
+  useAuthoringSession: () => mocks.authoringState(),
+  useAuthoringStagedEditor: () => ({
+    groupEditor: mocks.authoringState().stagedEditorOpen ? {} : undefined
+  })
+}))
+vi.mock('../../authoringStateStatus', () => ({
+  authoringStateStatus: () => mocks.authoringState()
 }))
 
 vi.mock('../../AuthoringLayoutContext', () => ({
@@ -24,7 +32,7 @@ describe('authoring rail Cancel action', () => {
       isWideDesktop: false,
       visibleSteps: [{ id: 'basics' }]
     })
-    mocks.useAuthoringForm.mockReturnValue(createAuthoringState({ stagedEditorOpen: false }))
+    mocks.authoringState.mockReturnValue(createAuthoringState({ stagedEditorOpen: false }))
   })
 
   it('renders a real collection link and routes normal clicks through the provider action', () => {
@@ -56,7 +64,7 @@ describe('authoring rail Cancel action', () => {
   })
 
   it('disables Cancel while a staged editor is open', () => {
-    mocks.useAuthoringForm.mockReturnValue(createAuthoringState({ stagedEditorOpen: true }))
+    mocks.authoringState.mockReturnValue(createAuthoringState({ stagedEditorOpen: true }))
 
     render(
       <TestRouterProvider>
@@ -73,7 +81,7 @@ describe('authoring rail Cancel action', () => {
       isWideDesktop: true,
       visibleSteps: [{ id: 'basics' }, { id: 'properties' }, { id: 'mechanics' }]
     })
-    mocks.useAuthoringForm.mockReturnValue({
+    mocks.authoringState.mockReturnValue({
       ...createAuthoringState({ stagedEditorOpen: false }),
       mode: 'edit',
       navigationTree: ['basics', 'properties', 'mechanics'].map((id) => ({

@@ -104,6 +104,9 @@ export function TestRouterProvider({
   const [{ client, convex, queryClient, router }] = useState(() =>
     createTestRouter(initialPath, user, convexClient)
   )
+  // The app's RouterProvider loads the router on every history change; a navigation released
+  // after a blocker resolves commits later than its own load, so the harness follows history too.
+  useEffect(() => router.history.subscribe(() => void router.load()), [router])
   useEffect(
     () => () => {
       queryClient.clear()

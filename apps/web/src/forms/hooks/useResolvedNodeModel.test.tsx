@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { getFunctionName } from 'convex/server'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   nodeRuntimeResolveRequestDtoSchema,
@@ -13,13 +13,12 @@ import {
 import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import { useResolvedNodeModel } from './useResolvedNodeModel'
 
-const initialModel = createModel('Initial', [['stalePath']])
+const initialModel = createModel('Initial', [['initialPath']])
 const nextModel = createModel('Next', [['freshPath']])
 
 describe('useResolvedNodeModel', () => {
-  it('keeps the previous model mounted while a resolver refresh is pending', async () => {
+  it('keeps the previous model unchanged while a resolver refresh is pending', async () => {
     const user = userEvent.setup()
-    const onClearPaths = vi.fn()
     let requestCount = 0
     let releaseNextResolve: (() => void) | undefined
 
@@ -44,7 +43,7 @@ describe('useResolvedNodeModel', () => {
         }
       }
     })
-    render(<ResolvedModelHarness onClearPaths={onClearPaths} />, {
+    render(<ResolvedModelHarness />, {
       wrapper: ({ children }) => (
         <QueryClientProvider client={client}>{children}</QueryClientProvider>
       )
@@ -54,14 +53,12 @@ describe('useResolvedNodeModel', () => {
       expect(screen.getByTestId('model-label')).toHaveTextContent('Initial')
     })
     expect(screen.getByTestId('clear-path-count')).toHaveTextContent('1')
-    expect(onClearPaths).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: /change structural value/i }))
     await waitFor(() => expect(requestCount).toBe(2))
 
     expect(screen.getByTestId('model-label')).toHaveTextContent('Initial')
-    expect(screen.getByTestId('clear-path-count')).toHaveTextContent('0')
-    expect(onClearPaths).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('clear-path-count')).toHaveTextContent('1')
 
     releaseNextResolve?.()
 
@@ -69,22 +66,14 @@ describe('useResolvedNodeModel', () => {
       expect(screen.getByTestId('model-label')).toHaveTextContent('Next')
     })
     expect(screen.getByTestId('clear-path-count')).toHaveTextContent('1')
-    expect(onClearPaths).toHaveBeenCalledTimes(2)
-    expect(onClearPaths).toHaveBeenLastCalledWith([['freshPath']])
     client.clear()
   })
 })
 
-function ResolvedModelHarness({
-  onClearPaths
-}: {
-  onClearPaths: (paths: readonly NodeRuntimePathDto[]) => void
-}) {
+function ResolvedModelHarness() {
   const [mode, setMode] = useState('initial')
   const { model } = useResolvedNodeModel({
-    debounceMs: 0,
     mapId: 'feature',
-    onClearPaths,
     systemId: 'system-1',
     values: { mode }
   })

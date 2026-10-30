@@ -4,7 +4,13 @@ import { ActionIcon, Tooltip } from '@mantine/core'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import { useLocation } from '@tanstack/react-router'
-import { useAuthoringForm } from '../../AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringNavigation,
+  useAuthoringSession,
+  useAuthoringStagedEditor
+} from '../../AuthoringFormContext'
+import { useAuthoringFormStatus } from '../../useAuthoringFormStatus'
 import { getAuthoringStepHref } from '../../authoringSearch'
 
 type ActionBarProps = {
@@ -14,23 +20,20 @@ type ActionBarProps = {
 }
 
 export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: ActionBarProps) {
+  const { activateLabel, authoringKind, readOnly } = useAuthoringSession()
+  const { activate } = useAuthoringActions()
   const {
     activeNavigationTarget,
     activeStep,
-    activate,
-    activateLabel,
-    authoringKind,
-    canFinalize,
     goToNextStep,
     goToPreviousStep,
     isFirstStep,
     isLastStep,
-    isSubmitting,
     navigationTargets,
-    readOnly,
-    visibleSteps,
-    stagedEditorOpen
-  } = useAuthoringForm()
+    visibleSteps
+  } = useAuthoringNavigation()
+  const { canFinalize, isSubmitting } = useAuthoringFormStatus()
+  const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
   const currentHref = useLocation({ select: (location) => location.href })
   const destinations =
     authoringKind === 'character-builder' ? visibleSteps : (navigationTargets ?? [])

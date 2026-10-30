@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -25,7 +25,7 @@ import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/nodeRun
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout, AuthoringLayoutContent } from '../layout/AuthoringLayout'
 import { AuthoringFormProvider } from '../layout/AuthoringFormProvider'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringActions } from '../layout/AuthoringFormContext'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 
 const convexMocks = vi.hoisted(() => ({
@@ -34,6 +34,20 @@ const convexMocks = vi.hoisted(() => ({
   query: vi.fn(),
   useContentCatalogue: vi.fn()
 }))
+
+/** Renders of each resolved input control, keyed by its label. */
+const fieldRenders = vi.hoisted(() => new Map<string, number>())
+
+// Counts renders of the real field control without changing what it renders.
+vi.mock('../rendering/ResolvedInputControl', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../rendering/ResolvedInputControl')>()
+  return {
+    ResolvedInputControl: (props: Parameters<typeof actual.ResolvedInputControl>[0]) => {
+      fieldRenders.set(props.node.label, (fieldRenders.get(props.node.label) ?? 0) + 1)
+      return <actual.ResolvedInputControl {...props} />
+    }
+  }
+})
 
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
@@ -120,6 +134,7 @@ const nativeRaceCatalogueItems = [
 beforeAll(warmFixtureAuthoredSources, 60_000)
 
 beforeEach(() => {
+  fieldRenders.clear()
   convexMocks.mutation.mockReset().mockResolvedValue(authoredRouteStoryDrafts.race)
   convexMocks.nodeRuntimeResolve.mockReset().mockImplementation(resolveNodeRuntimeQuery)
   convexMocks.query.mockReset().mockImplementation(resolveNormalization)
@@ -259,6 +274,43 @@ describe('non-character authored domain layout coverage', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Moon Blade' })).toBeInTheDocument()
   })
+
+  it('re-renders only the typed field per keystroke and its siblings once per pause (AC 10.2)', async () => {
+    useFixtureNodeRuntimeResolver()
+
+    render(
+      <TestRouterProvider user={createAdvancedAuthoringUser()}>
+        {renderCreateLayout('equipment')}
+      </TestRouterProvider>
+    )
+
+    const name = await screen.findByRole('textbox', { name: 'Name' })
+    await waitFor(() => expect(fieldRenders.size).toBeGreaterThan(1))
+    const siblingLabels = [...fieldRenders.keys()].filter((label) => label !== 'Name')
+    // TanStack Form builds every field's derived meta (its errors array) on the form's first
+    // change, so each field renders once then; later keystrokes keep sibling meta identity.
+    fireEvent.change(name, { target: { value: 'M' } })
+    await settleFieldRenders()
+    fieldRenders.clear()
+
+    // One synchronous change per keystroke: the burst ends well inside one debounce pause.
+    const typed = 'Moon Blade'
+    for (let length = 2; length <= typed.length; length += 1) {
+      fireEvent.change(name, { target: { value: typed.slice(0, length) } })
+    }
+
+    expect(name).toHaveValue(typed)
+    expect(fieldRenders.get('Name')).toBeGreaterThanOrEqual(typed.length - 1)
+    expect(siblingLabels.filter((label) => fieldRenders.has(label))).toEqual([])
+
+    await settleFieldRenders()
+
+    expect(siblingLabels.length).toBeGreaterThan(0)
+    expect(
+      siblingLabels.filter((label) => (fieldRenders.get(label) ?? 0) > 1),
+      'siblings rendered more than once after the pause'
+    ).toEqual([])
+  }, 20_000)
 
   it('rejects a blank name when saving or activating instead of defaulting to "Untitled"', async () => {
     const user = userEvent.setup()
@@ -775,6 +827,21 @@ async function chooseSpellSchool(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByRole('option', { name: 'Evocation' }))
 }
 
+/** Waits for in-flight resolutions and a quiet debounce window, so a load spike cannot split a pause. */
+async function settleFieldRenders() {
+  const countRenders = () => [...fieldRenders.values()].reduce((total, count) => total + count, 0)
+  let renders: number
+  do {
+    renders = countRenders()
+    await act(async () => {
+      await Promise.allSettled(
+        convexMocks.nodeRuntimeResolve.mock.results.map((result) => result.value)
+      )
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    })
+  } while (countRenders() !== renders)
+}
+
 function useFixtureNodeRuntimeResolver() {
   convexMocks.nodeRuntimeResolve.mockImplementation(resolveNodeRuntimeQuery)
 }
@@ -954,7 +1021,7 @@ function renderCreateSpellWithResetTrigger() {
 }
 
 function SpellResetHarness() {
-  const { resetForm } = useAuthoringForm()
+  const { resetForm } = useAuthoringActions()
 
   return (
     <>

@@ -47,8 +47,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId,
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 
@@ -78,8 +77,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId: 'background',
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 
@@ -105,8 +103,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId: 'background',
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 
@@ -134,8 +131,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId: 'background',
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 
@@ -168,8 +164,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId: 'background',
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 
@@ -197,8 +192,7 @@ describe('useStructuralChangeGuard', () => {
       useStructuralChangeGuard({
         form,
         rootMapId: 'feature',
-        rootSystemId: 'system-5e',
-        rootValues: form.state.values
+        rootSystemId: 'system-5e'
       })
     )
 

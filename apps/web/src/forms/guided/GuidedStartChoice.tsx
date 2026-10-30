@@ -6,7 +6,7 @@ import { CatchBoundary } from '@tanstack/react-router'
 import { Copy, Sparkles } from 'lucide-react'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { getSpell } from '#app/data/spells/queries'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringActions } from '../layout/AuthoringFormContext'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from './GuidedAuthoringFrame'
 import { toGuidedCopySources, type GuidedCopySource } from './guidedCopySources'
@@ -183,7 +183,7 @@ function GuidedCopySourcePicker({
   const nouns = DOMAIN_NOUNS[domain]
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
   const [copying, setCopying] = useState(false)
-  const { copySource } = useAuthoringForm()
+  const { copySource } = useAuthoringActions()
   const selectedSource = useMemo(
     () => sources.find((source) => source.id === selectedSourceId),
     [selectedSourceId, sources]
