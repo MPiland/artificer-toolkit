@@ -17,8 +17,8 @@ vi.mock('../../AuthoringFormContext', () => ({
     groupEditor: mocks.authoringState().stagedEditorOpen ? {} : undefined
   })
 }))
-vi.mock('../../authoringStateStatus', () => ({
-  authoringStateStatus: () => mocks.authoringState()
+vi.mock('../../useAuthoringFormStatus', () => ({
+  useAuthoringFormStatus: () => mocks.authoringState()
 }))
 
 vi.mock('../../AuthoringLayoutContext', () => ({

@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./AuthoringFormContext', () => ({
   useAuthoringActions: () => mocks.authoring,
   useAuthoringFormStore: () => mocks.formStore,
+  useAuthoringNavigation: () => mocks.authoring,
   useAuthoringSession: () => mocks.authoring
 }))
 vi.mock('./useAuthoringExperience', () => ({

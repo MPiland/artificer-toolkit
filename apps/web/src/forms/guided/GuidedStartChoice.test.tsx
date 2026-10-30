@@ -25,7 +25,8 @@ vi.mock('@tanstack/react-query', async (importOriginal) => ({
 }))
 
 vi.mock('../layout/AuthoringFormContext', () => ({
-  useAuthoringActions: () => ({ copySource: mocks.copySource })
+  useAuthoringActions: () => ({ cancel: vi.fn(), copySource: mocks.copySource }),
+  useAuthoringSession: () => ({ cancelHref: undefined, cancelLabel: undefined })
 }))
 
 const source = authoredCatalogueItemSchema.parse({
