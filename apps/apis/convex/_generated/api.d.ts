@@ -41612,7 +41612,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -70827,7 +70827,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -100051,7 +100051,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -129266,7 +129266,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -158516,7 +158516,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -187731,7 +187731,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -216786,7 +216786,7 @@ export declare const api: {
                   | {
                       id: string;
                       kind: "DEATH";
-                      minimumLevel: number;
+                      minimumLevel: number | null;
                       order: number;
                     }
                 >;
@@ -245866,7 +245866,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
@@ -275081,7 +275081,7 @@ export declare const api: {
                     | {
                         id: string;
                         kind: "DEATH";
-                        minimumLevel: number;
+                        minimumLevel: number | null;
                         order: number;
                       }
                   >;
