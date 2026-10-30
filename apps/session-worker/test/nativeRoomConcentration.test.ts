@@ -33,6 +33,7 @@ const CHARACTER_ID = testUuid(0x802)
 const DEPENDENT_HOLDER_ID = testUuid(0x803)
 const INDEPENDENT_EFFECT_ID = testUuid(0x5300)
 const HOLDER_ID = testUuid(0x804)
+const HELD_DIE_ID = testUuid(0x5301)
 
 afterEach(() => {
   closeTrackedSockets()
@@ -239,14 +240,28 @@ function creatureHolderRoom(
     rolls?: number[]
     creature?: Parameters<typeof srdCreatureActor>[0]['creature']
     seed?: Parameters<typeof actionRoom>[0]['seed']
+    /** The Bite's damage, and whether massive damage is on: a second save in the same chain. */
+    biteDamage?: number
+    massiveDamage?: true
+    autoRoll?: 'GAME_MASTER' | 'BOTH'
   }
 ) {
-  const attacker = biteWolf('ATTACK')
-  const { hidden, rolls = [18], creature = plainWolf, seed, ...holderOptions } = holder
+  const {
+    hidden,
+    rolls = [18],
+    creature = plainWolf,
+    seed,
+    biteDamage,
+    massiveDamage,
+    autoRoll = 'GAME_MASTER',
+    ...holderOptions
+  } = holder
+  const attacker = biteWolf('ATTACK', biteDamage === undefined ? {} : { damage: biteDamage })
   return actionRoom({
-    autoRoll: 'GAME_MASTER',
+    autoRoll,
     rolls,
     seed,
+    optionalCombatKinds: massiveDamage ? ['MASSIVE_DAMAGE'] : [],
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
       {
@@ -804,5 +819,116 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toMatchObject([
       { outcome: 'SAVE_SUCCESS', d20: { total: 11 } }
     ])
+  })
+  it('pauses on the held die for a holder whose save is auto-rolled', async () => {
+    // The attack die shows 19; the server rolls the holder's natural 8.
+    const room = await creatureHolderRoom({
+      autoRoll: 'BOTH',
+      rolls: [18, 7],
+      seed: seedModifierGrant({
+        sourceActorId: HOLDER_ID,
+        holderActorId: HOLDER_ID,
+        lifecycle: {},
+        effect: heldSaveDieEffect(),
+        sourceLabel: resistance.label
+      })
+    })
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    expect(decision.pending).toMatchObject({ d20: { selectedNatural: 8, total: 9 } })
+    expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toEqual([])
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: decision.pending.requestId
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toMatchObject([
+      { outcome: 'SAVE_FAILURE' }
+    ])
+  })
+
+  describe('with a second save in the same chain (Concentration, then massive damage)', () => {
+    /** A Bite of 6 owes the 11-hit-point holder a Concentration save and a massive-damage save. */
+    const chainRoom = () =>
+      creatureHolderRoom({
+        biteDamage: 6,
+        massiveDamage: true,
+        seed: seedModifierGrant({
+          sourceActorId: HOLDER_ID,
+          holderActorId: HOLDER_ID,
+          lifecycle: {},
+          effect: heldSaveDieEffect(),
+          sourceLabel: resistance.label,
+          id: HELD_DIE_ID
+        })
+      })
+
+    /** The GM enters a natural 8 for the next save: the window it opens, or null once none opens. */
+    async function nextSave(room: Awaited<ReturnType<typeof chainRoom>>) {
+      const save = await room.pendingDecision()
+      if (save.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a save.')
+      const { request } = save.pending
+      const rolled = await room.resolve(save, {
+        kind: 'ENTER_DICE',
+        requestId: request.requestId,
+        rawFaces: [8],
+        rollMode: request.rollMode
+      })
+      expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+      const next = await readPendingActionDecision(room.room.base.stub)
+      return next?.pending.kind === 'D20_WINDOW' ? await room.pendingDecision() : null
+    }
+
+    const holdsDie = async (room: Awaited<ReturnType<typeof chainRoom>>) =>
+      (await readRoomHistory(room.room.base.stub)).activeEffects.some(
+        (effect) => effect.id === HELD_DIE_ID
+      )
+
+    it('filters out a die spent in the first window, so the second save opens none', async () => {
+      const room = await chainRoom()
+      expect(await holdsDie(room)).toBe(true)
+      await room.startAction(HOLDER_ID)
+      const window = await nextSave(room)
+      if (window?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the first window.')
+      const used = await room.resolve(window, {
+        kind: 'D20_WINDOW_USE',
+        requestId: window.pending.requestId,
+        optionId: window.pending.options[0]!.optionId,
+        faces: [4]
+      })
+      expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+      expect(await holdsDie(room)).toBe(false)
+      // The second save's d20 meets no window: the spent die is not offered again.
+      expect(await nextSave(room)).toBeNull()
+    })
+
+    it('offers a declined die again at the second save', async () => {
+      const room = await chainRoom()
+      expect(await holdsDie(room)).toBe(true)
+      await room.startAction(HOLDER_ID)
+      const first = await nextSave(room)
+      if (first?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the first window.')
+      const declined = await room.resolve(first, {
+        kind: 'D20_WINDOW_DECLINE',
+        requestId: first.pending.requestId
+      })
+      expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+      expect(await holdsDie(room)).toBe(true)
+
+      const second = await nextSave(room)
+      if (second?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the second window.')
+      expect(second.pending.options).toMatchObject([{ label: 'Resistance', count: 1, faces: 4 }])
+      expect(second.pending.requestId).not.toBe(first.pending.requestId)
+      const used = await room.resolve(second, {
+        kind: 'D20_WINDOW_USE',
+        requestId: second.pending.requestId,
+        optionId: second.pending.options[0]!.optionId,
+        faces: [4]
+      })
+      expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+      expect(await holdsDie(room)).toBe(false)
+    })
   })
 })

@@ -67,6 +67,7 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { activeAfterRollSavingThrowDice } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import {
   encounterSavingThrowAddedDice,
@@ -75,7 +76,6 @@ import {
 import {
   encounterD20WindowSelection,
   damageSaveWindowCommand,
-  encounterHeldSaveDice,
   openEncounterD20Window,
   settleEncounterD20Window
 } from '@artificer-toolkit/rules-runtime/encounterD20Window'
@@ -174,7 +174,9 @@ export async function planNativeLiveConcentration(input: {
   const endedGrants: ActiveRuleEffectRecord[] = []
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
   // The d20 window the answered save's roll opened (D168): the same occurrence pends on it.
-  let window = null as ServerKernelRuleExecutionPendingSnapshotDto | null
+  const windowPause: { window: ServerKernelRuleExecutionPendingSnapshotDto | null } = {
+    window: null
+  }
   let resumed: {
     result: ReturnType<typeof completeNativeConcentrationResult>
     mutated: boolean
@@ -190,7 +192,7 @@ export async function planNativeLiveConcentration(input: {
       concentrationEnds,
       endedGrants,
       pending,
-      window,
+      window: windowPause.window,
       resumed,
       nextState: state
     }
@@ -426,7 +428,7 @@ export async function planNativeLiveConcentration(input: {
       concentrationEnds,
       endedGrants,
       pending,
-      window,
+      window: windowPause.window,
       resumed,
       nextState: state
     }
@@ -611,13 +613,13 @@ export async function planNativeLiveConcentration(input: {
       heldDice: heldSaveDice(site.effects, site.abilityDefinitionId),
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
     })
-    window = opened.snapshot
+    windowPause.window = opened.snapshot
     return { kind: 'OPENED' }
   }
 
   /** The dice a holder keeps for after the d20 of a save with this ability, none yet spent. */
   function heldSaveDice(effects: readonly ActiveRuleEffectRecord[], abilityDefinitionId: string) {
-    return encounterHeldSaveDice(
+    return activeAfterRollSavingThrowDice(
       effects.filter(({ id }) => !spentDiceIds.has(id)),
       abilityScoreCapabilityRegistry.require(state.gameSystemId).abilityCode(abilityDefinitionId)
     )
@@ -1143,7 +1145,7 @@ export async function planNativeLiveConcentration(input: {
     concentrationEnds,
     endedGrants,
     pending,
-    window,
+    window: windowPause.window,
     resumed,
     nextState
   }

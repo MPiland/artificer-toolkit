@@ -21,10 +21,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
-import {
-  activeAfterRollAbilityCheckDice,
-  activeAfterRollSavingThrowDice
-} from './character/activeEffectGrantTotals.js'
+import { activeAfterRollAbilityCheckDice } from './character/activeEffectGrantTotals.js'
 import { encounterBasicActionCheckTrigger } from './encounterBasicActionCheck.js'
 import { encounterConcealmentCheckTrigger } from './encounterConcealmentCheck.js'
 import { damageSaveRollTrigger } from './encounterConcentration.js'
@@ -93,12 +90,6 @@ export function encounterHeldCheckDice(
     )
   )
 }
-
-/** The dice a holder's active effects hold for after its d20 of a saving throw with one ability. */
-export const encounterHeldSaveDice: (
-  effects: Parameters<typeof activeAfterRollSavingThrowDice>[0],
-  abilityCode: string
-) => EncounterD20WindowHeldDie[] = activeAfterRollSavingThrowDice
 
 /** The options offered for one roll: each held die, identified by the roll it was offered for. */
 export function encounterD20WindowOptions(

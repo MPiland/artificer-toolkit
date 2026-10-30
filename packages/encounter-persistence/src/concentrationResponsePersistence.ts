@@ -605,8 +605,15 @@ export async function persistEncounterConcentrationWindowOpen(
     checksumCanonicalJson(rolled.continuation) !== checksumCanonicalJson(pending.continuation) ||
     rolled.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
     rolled.d20.requestId !== pending.continuation.request.requestId ||
-    (resolution.kind === 'ENTER_DICE' &&
-      checksumCanonicalJson(resolution.rawFaces) !== checksumCanonicalJson(rolled.d20.rawFaces))
+    opened.window.context.pause.payload.appRollId !== (admission.appRoll?.rollId ?? null) ||
+    // The frozen faces are the roller's own: the entered dice, or the app roll the server read.
+    checksumCanonicalJson(
+      resolution.kind === 'ENTER_DICE'
+        ? resolution.rawFaces
+        : resolution.kind === 'SYSTEM_ROLL'
+          ? resolution.faces
+          : null
+    ) !== checksumCanonicalJson(rolled.d20.rawFaces)
   )
     throw new Error('Live Session concentration window does not match its pending evidence.')
   await callbacks.validateReadFence(
