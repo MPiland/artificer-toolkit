@@ -24,7 +24,7 @@ import {
   checkpointLiveRoom,
   executeInRoom,
   executeSceneInRoom,
-  invalidateRoomInputs,
+  deliverQueuedRoomControl,
   RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -519,7 +519,7 @@ it('lets the GM give a member control of a Character and take it back, moving th
   const grantee = await createPartyPlayer(base.t, base.campaign)
   await grantee.join()
   const sync = async () => {
-    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await deliverQueuedRoomControl(base.t)
     await checkpointLiveRoom(base.campaign.id)
   }
   await sync()

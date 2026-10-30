@@ -25,7 +25,7 @@ import {
   checkpointLiveRoom,
   executeInRoom,
   expectRedactedRoomRefusal,
-  invalidateRoomInputs,
+  deliverQueuedRoomControl,
   roomErrorLogs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -427,7 +427,7 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
     conditionId: base.secretOverlay.id,
     expectedVersion: base.secretOverlay.version
   })
-  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+  await deliverQueuedRoomControl(base.t)
   await checkpointLiveRoom(base.campaign.id)
   const ownerAfterDmRemoval = await base.owner.caller.query(api.encounters.projectionReads.get, {
     encounterId: base.run.id
@@ -451,7 +451,7 @@ it('applies and expires an effect-owned Sheet condition while retaining independ
     expectedVersion: 0,
     notes: 'secret Campaign condition restored'
   })
-  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+  await deliverQueuedRoomControl(base.t)
   const setSecondActor = await executeInRoom(base.owner.caller, {
     command: {
       type: 'SET_CURRENT_ACTOR',
@@ -562,7 +562,7 @@ it('retains a same-type Sheet condition after its real rule effect expires', asy
     conditionId: base.secretOverlay.id,
     expectedVersion: base.secretOverlay.version
   })
-  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+  await deliverQueuedRoomControl(base.t)
   const input = action(base)
   const pending = await executeInRoom(base.owner.caller, {
     command: input
@@ -619,7 +619,7 @@ it('rejects a pending condition action after its Campaign overlay changes withou
     expectedVersion: base.secretOverlay.version,
     notes: 'changed while condition action was pending'
   })
-  await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+  await deliverQueuedRoomControl(base.t)
   const beforeResponse = await stored(base)
   await expectRedactedRoomRefusal(
     executeInRoom(base.owner.caller, diceResponse(base.run.id, initial, 1)),

@@ -30,8 +30,8 @@ import {
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import {
   checkpointLiveRoom,
+  deliverQueuedRoomControl,
   executeInRoom,
-  invalidateRoomInputs,
   RoomCommandRefusal,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -200,8 +200,7 @@ describe('Encounter actor control', () => {
       expectedMembershipAccessStartedAt: base.campaign.createdAt,
       commandId: crypto.randomUUID()
     })
-    // Convex's scheduler sends the room this notice; convex-test runs none.
-    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await deliverQueuedRoomControl(base.t)
     await checkpointLiveRoom(base.campaign.id)
     const projection = await base.t.run(async (ctx) => {
       const row = await ctx.db
