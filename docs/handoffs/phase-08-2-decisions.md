@@ -1936,3 +1936,10 @@ The request returns once deletion is scheduled.
 - Deleting in the departure transaction: it risks the 1 s limit.
 - Delaying the departure notice: it forks the departure code.
 - Leaving the actor frozen: it breaks D74.
+
+### D200: summon turn timing (user decision, 2026-10-30, approved scope growth)
+
+- Amends D190a. A summon is authored with one turn timing: on its owner's turn (the default), right after its owner, or its own initiative roll. D190a's rule stands for the first: the owner is the command actor and pays as authored, as Spiritual Weapon needs. A summon with its own turn is run by its owner's player and has its own economy.
+- Why: SRD 5.1 gives Find Familiar and the Conjure spells their own initiative, and a summon's turn in the order, with a prompt, is hard to forget at the table.
+- Multi-creature Conjure spells create one group token with one shared turn for now. The GM tracks losses on it and the player rolls one attack per surviving creature. This is a labelled simplification: in the SRD each creature keeps its own hit points and attacks, and it shares only the group's initiative. Separate tokens with one group roll are a future enhancement.
+- Registered as SPELLS-35 (T1 to T7, 29 points, T7 provisional).

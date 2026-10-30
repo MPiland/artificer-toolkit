@@ -700,6 +700,10 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Retire unused size codes (RULES-2.T9f1):** the dnd5e size table still lists FINE, DIMUNITIVE (misspelled), GIANT and COLOSSAL, which no SRD content uses. Removing them needs a data check and a reseed.
 - **Non-d20 check resolution (RULES-2.T12, D195):** the neutral check settlement is d20-shaped (ADR 0039 decision 2), so the portability tracer's Fate-like check runs its graph through it. A second System with its own dice (4dF, dice pools) needs a settlement seam that takes the roll shape from the System, which means an ADR 0039 amendment.
 
+### Multi-creature summons as separate tokens (D200, 2026-10-30)
+
+A multi-creature Conjure spell makes one token per creature, each with its own hit points and attacks, sharing one group initiative roll. Until then these spells make one group token.
+
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.

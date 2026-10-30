@@ -21905,6 +21905,199 @@
               "note": "Approved by the user on 2026-10-30."
             }
           ]
+        },
+        {
+          "id": "SPELLS-35",
+          "title": "Summons take their own turns when authored",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 3,
+            "rr": 3,
+            "size": 20
+          },
+          "acs": [
+            {
+              "id": "SPELLS-35.1",
+              "text": "A summon is authored with one turn timing: on its owner's turn (the default, as today), right after its owner, or its own initiative roll; the owner's player runs a summon that has its own turn, with the action drawer and End turn.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.2",
+              "text": "A summon authored to act right after its owner takes its turn immediately after the owner's, in side and individual initiative, and keeps that place across rounds.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.3",
+              "text": "A summon authored to roll its own initiative rolls when it arrives and joins the order at that score; Find Familiar plays this way, and its attacks stay refused on its own turn while a delegated attack still resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.4",
+              "text": "A summon that ends while it is the current actor or next in the order leaves the initiative order cleanly, the round continues, and undoing the cast or the end restores the order.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.5",
+              "text": "The owner's player gets a clear prompt when their summon's turn starts, so a summon's turn is not forgotten.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.6",
+              "text": "A multi-creature Conjure spell (Conjure Animals, Conjure Minor Elementals, Conjure Woodland Beings) creates one group token for the chosen creature and count, with one shared turn; the GM tracks losses on it and the player rolls one attack per surviving creature.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-30."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "SPELLS-35.T1",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-34.T4"
+                ]
+              },
+              "text": "Authored turn timing: generic field on the SUMMON outcome (schema manifest, shared manifest, node map, compiler plan, authoring parity), carried on the actor owner with absence meaning owner's turn; `takesInitiativeTurns` reads it. No behaviour change for existing summons. Amends D190a; update rules-runtime.md and persistence.md.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 1,
+                "after": [
+                  "SPELLS-35.T1"
+                ]
+              },
+              "text": "Web control: `isEncounterActorMine` walks the owner so the current summon gives its owner's player the drawer and End turn. Red-first.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T3",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.4"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-35.T1"
+                ]
+              },
+              "text": "Summon end with the cursor: `removeConjuredActors` updates participants and the cursor via the actor-removal path; cover the sweep at turn advance, the revert path and the SUMMONS_ENDED receipt. Prove or fix the suspected throw at actorReinforcementCommand.ts:243 with an owned actor and the staged-cohort check at turnCommandAdmission.ts:193-202.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T4",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.2"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-35.T2",
+                  "SPELLS-35.T3"
+                ]
+              },
+              "text": "Right after owner: owner-anchored insert into the order, for side, individual and scored rounds, stable under each-round staging; RESOLVE_ACTION receipt carries the initiative state so undo restores it. Room journey.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T5",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.3"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 8,
+                "after": [
+                  "SPELLS-35.T4"
+                ]
+              },
+              "text": "Own roll: roll at cast with roll evidence, join through the reinforcement sort, handle a roll that pauses the cast. Author Find Familiar with it, and restore the attack refusal on a summon's own turn (SPELLS-34.T4 removed the gate as unreachable). Author a turn for stat-block summons whose only attacks are owner offers. Room journey.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T6",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.5"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-35.T2"
+                ]
+              },
+              "text": "Turn prompt: a visible prompt to the owner's player when their summon's turn starts. Browser journey.",
+              "note": "Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-35.T7",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-35.6"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-35.T5"
+                ]
+              },
+              "text": "Group token: one token per cast with creature pick and count, using the summon form path; count is manual after the cast. Size is provisional: seam-audit and re-score before the card, including how far the SPELLS-34.T3b form picker reaches.",
+              "note": "Approved by the user on 2026-10-30."
+            }
+          ]
         }
       ]
     },
