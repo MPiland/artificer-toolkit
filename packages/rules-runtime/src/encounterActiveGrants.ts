@@ -1316,7 +1316,7 @@ export function encounterSavingThrowAddedDice(
 export function encounterSavingThrowAfterRollDice(
   gameSystemId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
-): Record<string, D20AddedDieDto[]> {
+): Record<string, Pick<D20AddedDieDto, 'count' | 'faces' | 'sign'>[]> {
   return Object.fromEntries(
     Object.entries(
       abilityScoreCapabilityRegistry.require(gameSystemId).abilityDefinitionIdByCode

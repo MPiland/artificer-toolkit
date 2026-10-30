@@ -494,7 +494,7 @@ function requirePolicyContinuationMatch(input: {
 
 /** Whether the rolled dice are the policy's, plus (for a d20 window) the one die it spent after them. */
 function addedDiceFollowPolicy(
-  addedDice: readonly { count: number; faces: number; sign: 1 | -1 }[],
+  addedDice: readonly { count: number; faces: number; sign: 'ADD' | 'SUBTRACT' }[],
   policy: ServerRuleExecutionD20PolicyDto,
   windowDie: boolean
 ) {
