@@ -1572,6 +1572,41 @@ it('freezes an unassigned Character actor before a checkpoint barrier that follo
   ).toBe(true)
 })
 
+it('reconciles a departure before a queued checkpoint barrier when a second notice lands during the reload (D74)', async () => {
+  const room = await sheetRoom()
+  room.commitUnassignment()
+  // The eager reload is reading when the barrier queues behind it; a second notice then lands
+  // during that read, so its own reload queues behind the barrier.
+  const releaseAuthorization = room.holdAuthorization()
+  const readsBefore = authorizationReads(room)
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  await vi.waitFor(() => expect(authorizationReads(room)).toBe(readsBefore + 1))
+  const pendingBarrier = room.stub.fetch(
+    new Request(`https://live-session.internal${LIVE_SESSION_CHECKPOINT_BARRIER_PATH}`, {
+      method: 'POST'
+    })
+  )
+  await new Promise((resolve) => setTimeout(resolve, 50))
+  expect((await control(room, { type: 'INVALIDATE_INPUTS', scopes: ['CAMPAIGN'] })).status).toBe(
+    200
+  )
+  releaseAuthorization()
+  const barrier = await pendingBarrier
+  expect(barrier.status).toBe(200)
+  expect(
+    room.checkpoints
+      .at(-1)
+      ?.records.changes.some(
+        (change) =>
+          change.table === 'encounterRunActors' &&
+          change.key.includes(room.actorId) &&
+          change.nextChecksum !== null
+      )
+  ).toBe(true)
+})
+
 it('makes no Convex call for an idle member, however long the quiet (Amendment 17)', async () => {
   const room = await sheetRoom()
   const callsAfterConnect = room.calls.length

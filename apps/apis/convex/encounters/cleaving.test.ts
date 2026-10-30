@@ -70,7 +70,7 @@ import {
   checkpointLiveRoom,
   closeRoom,
   executeInRoom,
-  invalidateRoomInputs,
+  deliverQueuedRoomControl,
   queueRoomRolls,
   readRoomRollCards,
   readRoomTimeline,
@@ -1160,7 +1160,7 @@ describe('native Cleaving action settlement', () => {
       }
     })
     // A note is not a live play command: it commits in Convex, and the room reloads the Character.
-    await invalidateRoomInputs(base.campaign.id, ['CHARACTER'])
+    await deliverQueuedRoomControl(base.t)
     const before = await records(base)
     await expectUnavailableRefusal(
       executeInRoom(base.other.caller, { command: response(base, pending) }),

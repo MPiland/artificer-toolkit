@@ -58,6 +58,7 @@ import {
   executeInRoom,
   executeSceneInRoom,
   executeSheetInRoom,
+  deliverQueuedRoomControl,
   invalidateRoomInputs,
   readRoomTimeline,
   useLocalRoomWorker
@@ -853,7 +854,7 @@ describe('native Character movement-decision authority', () => {
       campaignId: value.campaign.id,
       characterId: value.second.id
     })
-    await invalidateRoomInputs(value.campaign.id, ['CAMPAIGN'])
+    await deliverQueuedRoomControl(value.base.t)
     // D74: the room freezes the unassigned Character's actor in the reconcile the notice starts, and
     // a checkpoint orders behind it, so the baseline already carries the freeze.
     await checkpointLiveRoom(value.campaign.id)
