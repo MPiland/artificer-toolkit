@@ -38,4 +38,5 @@ Projection after derivation costs under 1 ms per section. Rules evaluation does 
   - a write that queues the derivation, until that derivation runs;
   - live-table checkpoint writes to a held Character's play state;
   - Campaign or source changes outside a Character write (catalogue edits, membership changes, published content) change the fingerprint.
+- Derivation trusts verified documents (RELIABILITY-21.T25, AC RELIABILITY-21.20). Publish and seed parse a publication or System document once, before they checksum and store it. A Sheet derivation verifies the stored checksum and uses the typed document without parsing it again; a mismatch is refused. The parse was about 20 of 72 ms of CPU per store locally (publication about 13 ms, System about 7 ms), 5 to 6 times that on CI. The queued store also reuses the fingerprint it read to decide whether to run, so it fingerprints the Character's inputs once instead of twice.
 - No migration: pre-launch local data is reset after merge (D196). A Character without stored sections reads live until its next write.

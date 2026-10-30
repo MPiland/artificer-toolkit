@@ -14,7 +14,20 @@ import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { vehicleAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/vehicle'
 
-/** Validate current authored data at the Convex read and Session DO hydration boundaries. */
+/**
+ * A stored current document whose checksum the caller already verified. Publish and seed parse a
+ * document before they checksum and store it, so a matching checksum proves the typed shape and a
+ * read does not parse it again. A caller that has not verified the checksum must use
+ * `parsePublicationDocument`.
+ */
+export function readVerifiedPublicationDocument(
+  subjectKind: AuthoredPublishDraftInput['subjectKind'],
+  verifiedDocument: unknown
+): AuthoredPublicationDocument {
+  return { subjectKind, document: verifiedDocument } as AuthoredPublicationDocument
+}
+
+/** Validate current authored data at the publish and Session DO hydration boundaries. */
 export function parsePublicationDocument(
   subjectKind: 'BACKGROUND',
   document: unknown
