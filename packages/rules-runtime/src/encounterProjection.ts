@@ -434,6 +434,7 @@ function projectGmFacts(
               temporary: actor.tempHitPoints,
               maximum: actor.maxHitPoints,
               conditions: actor.conditions,
+              consequences: [],
               dead: false
             }
       // A Character without state is deleted and its actor awaits removal by the room (D74).
@@ -467,6 +468,7 @@ function projectGmFacts(
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,
         conditions: conditionRows(current.conditions),
+        consequences: current.consequences,
         defeated: actor.kind === 'CHARACTER' ? current.dead : actor.defeated,
         absence: actor.absence,
         resources: actor.resources,

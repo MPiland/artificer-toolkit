@@ -92,6 +92,9 @@ export function buildVttTokenPresentations(input: {
     const statuses = actor
       ? [
           ...actorConditionStatuses(actor.conditions, input.conditionTypes),
+          ...actor.consequences.map(({ id, label }) =>
+            statusFromValues(`consequence:${id}`, 'INJURY', label)
+          ),
           ...actor.activeGrants.map((grant) => {
             // Another actor's grant (a mark) names who gave it.
             const source =
