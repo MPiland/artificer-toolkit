@@ -39,11 +39,16 @@ const caster = encounterRunActorStateSchema.parse({
 
 const CARRIER_ID = crypto.randomUUID()
 
-const build = (statBlock: SummonStatBlockDto, cannotAttack = false) =>
+const build = (
+  statBlock: SummonStatBlockDto,
+  cannotAttack = false,
+  turnTiming?: 'AFTER_OWNER' | 'OWN_INITIATIVE'
+) =>
   buildEncounterSummon({
     summon: { kind: 'STAT_BLOCK', statBlock },
     spellSummon: null,
     cannotAttack,
+    turnTiming,
     caster,
     casterHitPointMaximum: 40,
     label: 'Spiritual Weapon',
@@ -65,6 +70,15 @@ describe('buildEncounterSummon', () => {
       controllerUserIds: [],
       owner: { ownerActorId: caster.id, sourceEffectId: CARRIER_ID },
       initiative: null
+    })
+  })
+
+  it('keeps an authored turn timing on its owner link, and none by default (D200)', () => {
+    expect(build({}).actor.owner).toEqual({ ownerActorId: caster.id, sourceEffectId: CARRIER_ID })
+    expect(build({}, false, 'OWN_INITIATIVE').actor.owner).toEqual({
+      ownerActorId: caster.id,
+      sourceEffectId: CARRIER_ID,
+      turnTiming: 'OWN_INITIATIVE'
     })
   })
 

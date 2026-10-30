@@ -41,7 +41,7 @@ import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { creatureInnateConditionRows } from './encounterInnateConditions.js'
 import { encounterFacingRule } from './encounterFacing.js'
 import { healthBand } from './encounterPlayerProjection.js'
-import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
+import { validateInitiativeCursor, type ActorOwnerLink } from './encounterInitiativeCursor.js'
 
 export { projectPlayerEncounterProjection } from './encounterPlayerProjection.js'
 
@@ -73,7 +73,7 @@ export function projectCurrentEncounterGmFacts(input: {
 
 function requireCurrentInitiativeRound(
   state: EncounterRunState,
-  actors: readonly { id: string; owner?: { ownerActorId: string } | null }[],
+  actors: readonly { id: string; owner?: ActorOwnerLink | null }[],
   initiativeRoundState: EncounterInitiativeRoundStateDto | null
 ) {
   if (state.status === 'ACTIVE') {

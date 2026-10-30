@@ -485,7 +485,9 @@ owner; nothing is rewritten. A summoning cast sets `owner` on the actor it creat
 
 An owned actor takes no initiative turn: it acts on its owner's turn (D190a). The initiative cohort is the Run's
 unowned actors, with one home, `takesInitiativeTurns` in `validateInitiativeCursor`
-(`packages/rules-runtime/src/encounterInitiativeCursor.ts`). Initiative staging, reinforcement, removal,
+(`packages/rules-runtime/src/encounterInitiativeCursor.ts`). An owner link may carry `turnTiming` (`AFTER_OWNER`
+or `OWN_INITIATIVE`, D200); absence means the owner's turn, and only `OWN_INITIATIVE` joins the cohort. The field is
+optional on the stored `owner`, so existing Runs are unchanged and need no migration. Initiative staging, reinforcement, removal,
 reorder, correction and turn settlement pass the actors they already read in the same transaction, owners
 included, and the cursor leaves the owned ones out; no caller adds a read for it. `stableActors` lists each owned
 actor right after its owner (SPELLS-4.T2v2a3d).
