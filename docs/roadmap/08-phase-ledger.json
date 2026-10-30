@@ -19540,7 +19540,7 @@
               "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-31.T4v2a",
               "closes": [
                 "SPELLS-31.1"
@@ -19556,7 +19556,7 @@
                 ]
               },
               "text": "Delegated attack, room half: a generic DELEGATED_ATTACK caster grant \"forgo one attack of the Attack action; a creature you summoned with one of effectIds attacks with its reaction\" (owner link). The caster's command carries delegateActorId and is admitted against the owner link; the attack is prepared as the delegate's own creature attack; settlement charges the caster's attack and the delegate's reaction, and undoes as one command (replay and checksum pins). Pact of the Chain authored with it; deletes CLASS_WARLOCK_PACT_OF_CHAIN (D156). Room journey. No Warlock names in code; authoring-parity proof.",
-              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced. Split at sizing (option a): Approved by the user on 2026-10-29."
+              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced. Split at sizing (option a): Approved by the user on 2026-10-29. Merged in m559 (a6644b367)."
             },
             {
               "id": "SPELLS-31.T4v2b",
@@ -21791,6 +21791,14 @@
               "origin": [],
               "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-24 by SPELLS-34.T1.",
               "id": "SPELLS-34.4"
+            },
+            {
+              "id": "SPELLS-34.5",
+              "text": "A summon whose authored form says it cannot attack is refused the Attack action and attack offers on its own turn, while a delegated attack its owner grants (Pact of the Chain) still resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-30 from the SPELLS-31.T4v2a review (Find Familiar: \"A familiar can't attack\"). Approved by the user on 2026-10-30."
             }
           ],
           "wsjf": {
@@ -21876,6 +21884,25 @@
               },
               "text": "Sheet path for corpus-form summons: the Sheet CAST_SPELL carries the form and creature-type choice with a Sheet picker, the summon is linked to its caster, and a long rest keeps an untimed summon instead of dropping every summon. Sheet familiars joining a Run and Find Familiar's 1-hour casting time stay out of scope. Red-first proofs.",
               "note": "Split from SPELLS-34.T3 at sizing (option a). Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "SPELLS-34.T4",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-34.5"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-34.T3a",
+                  "SPELLS-31.T4v2a"
+                ]
+              },
+              "text": "Bug: a summoned familiar can take the Attack action on its own turn although Find Familiar says it cannot attack. Add a generic authored flag on the SUMMON form (or summon) that refuses the actor's own attacks at admission and in the action-choices read; DELEGATED_ATTACK still resolves through it. Author Find Familiar with it. No spell names in code; red-first room test plus authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-30."
             }
           ]
         }
