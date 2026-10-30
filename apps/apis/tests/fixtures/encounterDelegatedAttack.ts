@@ -22,11 +22,11 @@ export function createDelegatedAttackFeatures(copies: ReadonlyMap<string, Author
       availableAtLevel: 1,
       order: 90,
       grants: {
-        modifiers: (pact.grants?.modifiers ?? []).map((modifier) => ({
-          ...modifier,
-          id: crypto.randomUUID(),
-          payload: { effectIds: [effectId] }
-        }))
+        modifiers: (pact.grants?.modifiers ?? []).flatMap((modifier) =>
+          modifier.valueDomainCode === 'DELEGATED_ATTACK'
+            ? [{ ...modifier, id: crypto.randomUUID(), payload: { effectIds: [effectId] } }]
+            : []
+        )
       }
     }
   ]
