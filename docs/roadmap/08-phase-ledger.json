@@ -662,14 +662,15 @@
             {
               "id": "PLATFORM-13.T2",
               "text": "Dependency refresh to latest before the final pre-staging lifecycle run.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.5"],
               "wsjf": {
                 "bv": 1,
                 "tc": 2,
                 "rr": 8,
                 "size": 3
-              }
+              },
+              "note": "Merged in m555 (213364f64)."
             },
             {
               "id": "PLATFORM-13.T4",
