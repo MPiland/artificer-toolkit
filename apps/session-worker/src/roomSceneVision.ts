@@ -7,10 +7,9 @@ import {
   deriveActorSceneVision
 } from '@artificer-toolkit/rules-runtime/actorSenses'
 import { creatureEmittedLight } from '@artificer-toolkit/rules-runtime/creatureLight'
-import { withCharacterActiveGrants } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { encounterActorMovementPassage } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
-import { evaluateInstalledCharacterPolicy } from '@artificer-toolkit/rules-runtime/platformCharacterPolicy'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import {
   sceneSessionVisionCompositionSchema,
   type SceneSessionVisionComposition
@@ -196,19 +195,18 @@ export async function composeRoomSceneVision(input: {
       facts.character.systemId !== campaign.gameSystemId
     )
       throw new Error('Character vision source is stale.')
-    const { snapshot, output } = facts.ruleEvaluation
+    const { snapshot } = facts.ruleEvaluation
     // Sense grants the Character holds (the Darkvision spell) fold in like its own features.
-    const grantFacts = withCharacterActiveGrants(
-      facts.ruleEvaluation.facts,
-      await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId }, { ownerVerified: true })
-    )
-    const policy =
-      grantFacts === facts.ruleEvaluation.facts
-        ? output
-        : evaluateInstalledCharacterPolicy({
-            gameSystemId: campaign.gameSystemId,
-            facts: grantFacts
-          })
+    const policy = evaluateCharacterActiveGrantRules({
+      gameSystemId: campaign.gameSystemId,
+      evaluation: facts.ruleEvaluation,
+      activeEffects: await listActiveRuleEffects(
+        ctx,
+        { kind: 'CHARACTER', characterId },
+        { ownerVerified: true }
+      ),
+      vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+    }).output
     const system = facts.prepared.context.registry.system
     if (
       snapshot.characterId !== characterId ||

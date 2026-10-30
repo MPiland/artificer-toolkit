@@ -39,9 +39,8 @@ export type CompiledModifierGrant = CompiledGrantBase & {
    * The engine evaluates this at two points:
    * - CHARACTER-subject contexts: gate whether the grant is collected at all
    *   (e.g. character must have SPELL_OBTAINED: Eldritch Blast)
-   * - Non-CHARACTER subject contexts (SPELL, EQUIPMENT, etc.): tag the
-   *   modifier entry with scope IDs so the character sheet can display
-   *   where the modifier applies (e.g. scopeSpellIds: [ELDRITCH_BLAST_ID])
+   * - SPELL and EQUIPMENT contexts: deferred conditions decided against the
+   *   cast spell or the attacking item (e.g. Eldritch Blast only)
    */
   restrictions?: FacetAuthored
 }

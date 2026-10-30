@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { CharacterRestPreviewRequestDto } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import type { CharacterSheetCurrencyOptionDto } from '@artificer-toolkit/schema/api/characterSheetData'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { DEFAULT_CHARACTER_PARTY_VISIBILITY } from '@artificer-toolkit/schema/api/healthDisplay'
 import {
   characterSheetStateSchema,
@@ -39,6 +40,7 @@ import {
 } from '../character/contextPreparation.js'
 import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
 import { createSnapshotReaders } from '../character/snapshotReaders.js'
+import { evaluateCharacterActiveGrantRules } from '../character/characterRuleEvaluation.js'
 import { prepareCharacterSheetFromContext } from '../character/sheetPreparation.js'
 import { projectCharacterSheetBundle } from '../character/sheetProjection.js'
 import { buildCharacterRestPreview } from '../character/sheetRest.js'
@@ -255,6 +257,10 @@ export async function prepareFixtureSheet(input: {
   gameSystem?: SystemAuthoredDto
   /** The Campaign's currency options, as a Campaign Sheet read adds them. */
   campaignCurrencyOptions?: readonly CharacterSheetCurrencyOptionDto[]
+  /** The Character's active effects, as the Sheet reads them from its store. */
+  activeEffects?: readonly ActiveRuleEffectRecord[]
+  /** The effects the Character's Concentration keeps alive, as the Sheet reads them. */
+  concentrationEffects?: readonly ActiveRuleEffectRecord[]
 }) {
   const { character } = input
   const context = await prepareFixtureContext(character, input.documents, input.gameSystem)
@@ -296,9 +302,14 @@ export async function prepareFixtureSheet(input: {
     adjustments: prepared.adjustments,
     additionalCurrencyOptions: input.campaignCurrencyOptions,
     presentation: prepared.prepared.context.presentation,
-    ruleEvaluation: prepared.ruleEvaluation,
-    activeEffects: [],
-    concentration: null
+    ruleEvaluation: evaluateCharacterActiveGrantRules({
+      gameSystemId: prepared.prepared.character.systemId,
+      evaluation: prepared.ruleEvaluation,
+      activeEffects: input.activeEffects ?? [],
+      vocabularySnapshot: prepared.prepared.context.vocabularySnapshot
+    }),
+    activeEffects: input.activeEffects ?? [],
+    concentrationEffects: input.concentrationEffects ?? null
   })
   return { ...prepared, sheet, ruleProjection, sheetState }
 }

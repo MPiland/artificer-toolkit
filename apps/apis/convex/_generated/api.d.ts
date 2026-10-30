@@ -2555,8 +2555,22 @@ export declare const api: {
               label: string;
               mechanic?: {
                 activation?: { amount: number; kind: string };
+                attackAddedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
+                damageAddedDice?: Array<{
+                  againstHolderOnly: boolean;
+                  count: number;
+                  damageTypeId: string | null;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -3274,8 +3288,22 @@ export declare const api: {
                 hitOrDcLabel?: string;
                 mechanics?: Array<{
                   activation?: { amount: number; kind: string };
+                  attackAddedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   attackBonus?: number;
                   attackRollMode?: string;
+                  damageAddedDice?: Array<{
+                    againstHolderOnly: boolean;
+                    count: number;
+                    damageTypeId: string | null;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   effectId: string;
                   outcomes: Array<
                     | {
@@ -3403,8 +3431,22 @@ export declare const api: {
               materialDescription?: string;
               mechanics?: Array<{
                 activation?: { amount: number; kind: string };
+                attackAddedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
+                damageAddedDice?: Array<{
+                  againstHolderOnly: boolean;
+                  count: number;
+                  damageTypeId: string | null;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -17236,8 +17278,22 @@ export declare const api: {
               label: string;
               mechanic?: {
                 activation?: { amount: number; kind: string };
+                attackAddedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
+                damageAddedDice?: Array<{
+                  againstHolderOnly: boolean;
+                  count: number;
+                  damageTypeId: string | null;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -17955,8 +18011,22 @@ export declare const api: {
                 hitOrDcLabel?: string;
                 mechanics?: Array<{
                   activation?: { amount: number; kind: string };
+                  attackAddedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   attackBonus?: number;
                   attackRollMode?: string;
+                  damageAddedDice?: Array<{
+                    againstHolderOnly: boolean;
+                    count: number;
+                    damageTypeId: string | null;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   effectId: string;
                   outcomes: Array<
                     | {
@@ -18084,8 +18154,22 @@ export declare const api: {
               materialDescription?: string;
               mechanics?: Array<{
                 activation?: { amount: number; kind: string };
+                attackAddedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
+                damageAddedDice?: Array<{
+                  againstHolderOnly: boolean;
+                  count: number;
+                  damageTypeId: string | null;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -19922,8 +20006,22 @@ export declare const api: {
                   label: string;
                   mechanic?: {
                     activation?: { amount: number; kind: string };
+                    attackAddedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     attackBonus?: number;
                     attackRollMode?: string;
+                    damageAddedDice?: Array<{
+                      againstHolderOnly: boolean;
+                      count: number;
+                      damageTypeId: string | null;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     effectId: string;
                     outcomes: Array<
                       | {
@@ -20190,8 +20288,22 @@ export declare const api: {
                     hitOrDcLabel?: string;
                     mechanics?: Array<{
                       activation?: { amount: number; kind: string };
+                      attackAddedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       attackBonus?: number;
                       attackRollMode?: string;
+                      damageAddedDice?: Array<{
+                        againstHolderOnly: boolean;
+                        count: number;
+                        damageTypeId: string | null;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       effectId: string;
                       outcomes: Array<
                         | {
@@ -20319,8 +20431,22 @@ export declare const api: {
                   materialDescription?: string;
                   mechanics?: Array<{
                     activation?: { amount: number; kind: string };
+                    attackAddedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     attackBonus?: number;
                     attackRollMode?: string;
+                    damageAddedDice?: Array<{
+                      againstHolderOnly: boolean;
+                      count: number;
+                      damageTypeId: string | null;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     effectId: string;
                     outcomes: Array<
                       | {
@@ -20611,8 +20737,22 @@ export declare const api: {
                     hitOrDcLabel?: string;
                     mechanics?: Array<{
                       activation?: { amount: number; kind: string };
+                      attackAddedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       attackBonus?: number;
                       attackRollMode?: string;
+                      damageAddedDice?: Array<{
+                        againstHolderOnly: boolean;
+                        count: number;
+                        damageTypeId: string | null;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       effectId: string;
                       outcomes: Array<
                         | {
@@ -20749,8 +20889,22 @@ export declare const api: {
                   materialDescription?: string;
                   mechanics?: Array<{
                     activation?: { amount: number; kind: string };
+                    attackAddedDice?: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     attackBonus?: number;
                     attackRollMode?: string;
+                    damageAddedDice?: Array<{
+                      againstHolderOnly: boolean;
+                      count: number;
+                      damageTypeId: string | null;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     effectId: string;
                     outcomes: Array<
                       | {

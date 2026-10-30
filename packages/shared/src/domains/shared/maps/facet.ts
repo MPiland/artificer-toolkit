@@ -7,8 +7,7 @@ import {
   type FacetConditionAuthored,
   type FacetAuthored,
   type FacetContextAuthored,
-  type FacetGroupAuthored,
-  type ScopedFacetAuthored
+  type FacetGroupAuthored
 } from '#authored'
 import {
   ACTIVATION_OPTIONS,
@@ -31,6 +30,7 @@ import {
 import { EFFECT_ID_NODE_MAP } from './effectId.js'
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
+import { createFacetScopedNodeMap } from './facetScoped.js'
 import {
   LOGIC_CONDITION_AUTHORING,
   LOGIC_CONTEXT_AUTHORING,
@@ -222,330 +222,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
   }
 )
 
-const facetScopedNode = buildNodeMap<ScopedFacetAuthored>()
-
-export const FACET_SCOPED_NODE_MAP = facetScopedNode.define('facetScoped', (api) => {
-  const { map, nodes, cond, data, logic } = api
-  const { and, not } = logic
-  const local = cond.local()
-
-  const { selectSingle, selectMulti, groupArray } = nodes
-  const { table } = data
-
-  map
-    .set(
-      'subject',
-      selectSingle(
-        ['subject'],
-        'Context',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: NODE_SUBJECT_OPTIONS
-        },
-        {
-          order: 1,
-          requiredIf: true
-        }
-      )
-    )
-    .set(
-      'authoringModeKind',
-      selectSingle(
-        ['authoringModeKind'],
-        'Authoring Mode',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: AUTHORING_MODE_KIND_OPTIONS
-        },
-        {
-          order: 2,
-          showIf: not(local.field(['subject']).eq('CHARACTER'))
-        }
-      )
-    )
-    .set(
-      'classIds',
-      selectMulti(
-        ['classIds'],
-        'Classes',
-        {
-          kind: 'DATA',
-          relationship: table('classes', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('CLASS'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'featureIds',
-      selectMulti(
-        ['featureIds'],
-        'Features',
-        {
-          kind: 'DATA',
-          relationship: table('features', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('FEATURE'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'spellIds',
-      selectMulti(
-        ['spellIds'],
-        'Spells',
-        {
-          kind: 'DATA',
-          relationship: table('spells', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('SPELL'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'equipmentIds',
-      selectMulti(
-        ['equipmentIds'],
-        'Equipment',
-        {
-          kind: 'DATA',
-          relationship: table('equipment', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('EQUIPMENT'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'featIds',
-      selectMulti(
-        ['featIds'],
-        'Feats',
-        {
-          kind: 'DATA',
-          relationship: table('feats', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('FEAT'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'raceIds',
-      selectMulti(
-        ['raceIds'],
-        'Races',
-        {
-          kind: 'DATA',
-          relationship: table('races', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('RACE'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'backgroundIds',
-      selectMulti(
-        ['backgroundIds'],
-        'Backgrounds',
-        {
-          kind: 'DATA',
-          relationship: table('backgrounds', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('BACKGROUND'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'optionIds',
-      selectMulti(
-        ['optionIds'],
-        'Options',
-        {
-          kind: 'DATA',
-          relationship: table('options', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('OPTION'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'ancestryOptionIds',
-      selectMulti(
-        ['ancestryOptionIds'],
-        'Ancestry Options',
-        {
-          kind: 'DATA',
-          relationship: table('race_ancestry_options', {
-            selectColumns: ['id', 'label']
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('RACE_ANCESTRY_OPTION'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'resourceIds',
-      selectMulti(
-        ['resourceIds'],
-        'Resources',
-        {
-          kind: 'DATA',
-          relationship: {
-            kind: 'TABLE',
-            table: 'class_resources',
-            selectColumns: ['id', 'label']
-          }
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('RESOURCE'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'subclassIds',
-      selectMulti(
-        ['subclassIds'],
-        'Subclasses',
-        {
-          kind: 'DATA',
-          relationship: table('classes', {
-            selectColumns: ['id', 'label'],
-            where: (col) => col('category').eq('SUBCLASS')
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('SUBCLASS'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'subraceIds',
-      selectMulti(
-        ['subraceIds'],
-        'Subraces',
-        {
-          kind: 'DATA',
-          relationship: table('races', {
-            selectColumns: ['id', 'label'],
-            where: (col) => col('category').eq('SUBRACE')
-          })
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('SUBRACE'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'proficiencyKind',
-      selectSingle(
-        ['proficiencyKind'],
-        'Proficiency Kind',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: PROFICIENCY_KIND_OPTIONS
-        },
-        {
-          order: 3,
-          requiredIf: true,
-          showIf: and([
-            local.field(['subject']).eq('PROFICIENCY_GRANT'),
-            local.field(['authoringModeKind']).eq('SELECTED')
-          ])
-        }
-      )
-    )
-    .set(
-      'groups',
-      groupArray(['groups'], 'Groups', () => FACET_BODY_GROUP_NODE_MAP, {
-        presentation: 'inline',
-        ...LOGIC_OPTION_AUTHORING
-      })
-    )
-})
+export const FACET_SCOPED_NODE_MAP = createFacetScopedNodeMap(FACET_BODY_GROUP_NODE_MAP)
 
 const FACET_EXISTS_NODE_MAP = createFacetExistsNodeMap('facetExists', 'PARENT', FACET_BODY_NODE_MAP)
 const FACET_BODY_EXISTS_NODE_MAP = createFacetExistsNodeMap(
@@ -1110,18 +787,27 @@ function createFacetPredicateNodeMap(
           'Magic Schools',
           {
             kind: 'DATA',
-            relationship: chain((s) =>
-              s
-                .input('spells', {
-                  whereColumn: 'id',
-                  valueColumn: 'magic_school_id',
-                  input: p.id(['spellIds'])
-                })
-                .mapValues('magic_schools', {
-                  whereColumn: 'id',
-                  valueColumn: 'id',
-                  selectColumns: CODE_COLUMNS
-                })
+            // Any spell can be of any school; selected spells offer only their own schools.
+            relationship: condition((c) =>
+              c
+                .if(p.scope(['spellIds']).all)
+                .then((o) => o.table('magic_schools', { selectColumns: CODE_COLUMNS }))
+                .else((o) =>
+                  o.chain((s) =>
+                    s
+                      .input('spells', {
+                        whereColumn: 'id',
+                        valueColumn: 'magic_school_id',
+                        input: p.id(['spellIds'])
+                      })
+                      .mapValues('magic_schools', {
+                        whereColumn: 'id',
+                        valueColumn: 'id',
+                        selectColumns: CODE_COLUMNS
+                      })
+                      .end()
+                  )
+                )
                 .end()
             )
           },
@@ -1813,114 +1499,123 @@ function createFacetPredicateNodeMap(
           'Damage Types',
           {
             kind: 'DATA',
-            relationship: chain((s) =>
-              s
-                .condition((c) =>
-                  c
-                    .if(
-                      or([
-                        p.field(['subject']).eq('FEATURE'),
-                        p.field(['relationCode']).eq('FEATURE')
-                      ])
-                    )
-                    .then((o) =>
-                      o.mapValues('feature_effects', {
-                        whereColumn: 'feature_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['featureIds'])
+            // Any spell can deal any type; selected sources offer only the types they deal.
+            relationship: condition((c) =>
+              c
+                .if(and([p.field(['subject']).eq('SPELL'), p.scope(['spellIds']).all]))
+                .then((o) => o.table('damage_types', { selectColumns: CODE_COLUMNS }))
+                .else((o) =>
+                  o.chain((s) =>
+                    s
+                      .condition((c) =>
+                        c
+                          .if(
+                            or([
+                              p.field(['subject']).eq('FEATURE'),
+                              p.field(['relationCode']).eq('FEATURE')
+                            ])
+                          )
+                          .then((o) =>
+                            o.mapValues('feature_effects', {
+                              whereColumn: 'feature_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['featureIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('FEAT'))
+                          .then((o) =>
+                            o.mapValues('feat_effects', {
+                              whereColumn: 'feat_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['featIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('SPELL'))
+                          .then((o) =>
+                            o.mapValues('spell_effects', {
+                              whereColumn: 'spell_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['spellIds'])
+                            })
+                          )
+                          .elseIf(
+                            or([
+                              p.field(['subject']).eq('OPTION'),
+                              p.field(['relationCode']).eq('OPTION')
+                            ])
+                          )
+                          .then((o) =>
+                            o.mapValues('option_effects', {
+                              whereColumn: 'option_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['optionIds'])
+                            })
+                          )
+                          .elseIf(p.field(['subject']).eq('EQUIPMENT'))
+                          .then((o) =>
+                            o.mapValues('equipment_effects', {
+                              whereColumn: 'equipment_id',
+                              valueColumn: 'effect_id',
+                              input: p.id(['equipmentIds'])
+                            })
+                          )
+                          .end()
+                      )
+                      .union((u) =>
+                        u
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'id'
+                              })
+                              .mapValues('effect_path_choice_options', {
+                                whereColumn: 'path_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .branch((b) =>
+                            b
+                              .mapValues('effect_paths', {
+                                whereColumn: 'effect_id',
+                                valueColumn: 'id'
+                              })
+                              .mapValues('effect_path_roll_table_rows', {
+                                whereColumn: 'path_id',
+                                valueColumn: 'result_block_id'
+                              })
+                              .mapValues('effect_result_block_outcomes', {
+                                whereColumn: 'result_block_id',
+                                valueColumn: 'outcome_id'
+                              })
+                              .end()
+                          )
+                          .end()
+                      )
+                      .mapValues('damages', {
+                        whereColumn: 'id',
+                        valueColumn: 'damage_type_id'
                       })
-                    )
-                    .elseIf(p.field(['subject']).eq('FEAT'))
-                    .then((o) =>
-                      o.mapValues('feat_effects', {
-                        whereColumn: 'feat_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['featIds'])
-                      })
-                    )
-                    .elseIf(p.field(['subject']).eq('SPELL'))
-                    .then((o) =>
-                      o.mapValues('spell_effects', {
-                        whereColumn: 'spell_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['spellIds'])
-                      })
-                    )
-                    .elseIf(
-                      or([
-                        p.field(['subject']).eq('OPTION'),
-                        p.field(['relationCode']).eq('OPTION')
-                      ])
-                    )
-                    .then((o) =>
-                      o.mapValues('option_effects', {
-                        whereColumn: 'option_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['optionIds'])
-                      })
-                    )
-                    .elseIf(p.field(['subject']).eq('EQUIPMENT'))
-                    .then((o) =>
-                      o.mapValues('equipment_effects', {
-                        whereColumn: 'equipment_id',
-                        valueColumn: 'effect_id',
-                        input: p.id(['equipmentIds'])
-                      })
-                    )
-                    .end()
+                      .end()
+                  )
                 )
-                .union((u) =>
-                  u
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'id'
-                        })
-                        .mapValues('effect_path_choice_options', {
-                          whereColumn: 'path_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .branch((b) =>
-                      b
-                        .mapValues('effect_paths', {
-                          whereColumn: 'effect_id',
-                          valueColumn: 'id'
-                        })
-                        .mapValues('effect_path_roll_table_rows', {
-                          whereColumn: 'path_id',
-                          valueColumn: 'result_block_id'
-                        })
-                        .mapValues('effect_result_block_outcomes', {
-                          whereColumn: 'result_block_id',
-                          valueColumn: 'outcome_id'
-                        })
-                        .end()
-                    )
-                    .end()
-                )
-                .mapValues('damages', {
-                  whereColumn: 'id',
-                  valueColumn: 'damage_type_id'
-                })
                 .end()
             )
           },

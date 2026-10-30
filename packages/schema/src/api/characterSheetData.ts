@@ -19,6 +19,11 @@ import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { characterConsequenceDtoSchema } from '../shared/consequenceRolls.js'
 import {
+  MAX_D20_ADDED_DICE,
+  d20AddedDiceDtoSchema,
+  damageAddedDieDtoSchema
+} from '../shared/d20AddedDice.js'
+import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
   characterSheetReadInputSchema,
@@ -283,6 +288,15 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     ),
     rangeLabel: z.optional(stringSchema),
     attackBonus: z.optional(integerSchema),
+    // Dice the Character's active grants add to this attack's roll (Bless's d4).
+    attackAddedDice: z.optional(d20AddedDiceDtoSchema),
+    // Dice active grants add to this row's damage: the Character's own, and those an effect it
+    // placed adds only against that effect's holder (Hunter's Mark's d6 against its mark).
+    damageAddedDice: z.optional(
+      z
+        .array(z.extend(damageAddedDieDtoSchema, { againstHolderOnly: z.boolean() }))
+        .check(z.maxLength(MAX_D20_ADDED_DICE))
+    ),
     attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({

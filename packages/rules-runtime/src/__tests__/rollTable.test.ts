@@ -213,6 +213,7 @@ function cast(
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
         save: dc === null ? null : { abilityDefinitionId: CHARISMA, dc },

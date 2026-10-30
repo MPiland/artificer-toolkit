@@ -133,6 +133,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackDomain: null,
     attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
@@ -3282,8 +3283,7 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
         ability: null,
         state: 'APPLIED' as const,
         scope: 'GLOBAL' as const,
-        deferredRequirements: [],
-        scopeSpellIds: []
+        deferredRequirements: []
       }
     ]
   })

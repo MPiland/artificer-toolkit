@@ -103,3 +103,62 @@ export const playRowTitle = style({
     }
   }
 })
+
+export const actionRowName = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      display: 'flex',
+      gap: '6px',
+      minWidth: 0
+    }
+  }
+})
+
+globalStyle(`${actionRowName} > :first-child`, {
+  '@layer': {
+    [app]: {
+      minWidth: 0
+    }
+  }
+})
+
+export const activeBonusBadge = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'center',
+      appearance: 'none',
+      background: foundationVars.color.accent.soft,
+      border: `1px solid ${foundationVars.color.accent.border}`,
+      borderRadius: '999px',
+      color: foundationVars.color.text.primary,
+      cursor: 'pointer',
+      display: 'inline-flex',
+      flex: 'none',
+      font: 'inherit',
+      fontSize: '0.66rem',
+      fontWeight: 700,
+      gap: '2px',
+      lineHeight: 1,
+      padding: '2px 6px',
+      selectors: {
+        '&:focus-visible': {
+          boxShadow: foundationVars.shadow.focus,
+          outline: 0
+        }
+      }
+    }
+  }
+})
+
+export const activeBonusList = style({
+  '@layer': {
+    [app]: {
+      display: 'grid',
+      gap: '8px',
+      listStyle: 'none',
+      margin: 0,
+      padding: 0
+    }
+  }
+})

@@ -186,6 +186,10 @@ export function buildCharacterDerivedRuleFacts(
         (adjustment.field === 'MAGIC_BONUS' || adjustment.field === 'MISC_BONUS')
     )
 
+    const skillSubjectIds = [...skillAliases.entries()]
+      .filter(([, canonicalSkillId]) => canonicalSkillId === skillId)
+      .map(([alias]) => alias)
+
     return {
       skillId,
       governingAbilityId: defaultAbilityId,
@@ -197,11 +201,7 @@ export function buildCharacterDerivedRuleFacts(
             abilityIndex: abilityRecordIndex(snapshot.abilities, governingOverride.value)
           }
         : null,
-      proficiencySubjectIds: [
-        ...[...skillAliases.entries()]
-          .filter(([, canonicalSkillId]) => canonicalSkillId === skillId)
-          .map(([alias]) => alias)
-      ],
+      proficiencySubjectIds: skillSubjectIds,
       proficiencyOverride: proficiencyOverride
         ? {
             sourceId: proficiencyOverride.id,
@@ -215,7 +215,10 @@ export function buildCharacterDerivedRuleFacts(
           sourceId: `skill-proficiency:${skillId}`,
           operation: 'ADD' as const
         },
-        ...modifierBonuses('SKILL_MODIFIER', { skillId }, false),
+        // A skill grant names the skill by any of its ids (the System's check id, or its code).
+        ...skillSubjectIds.flatMap((subjectId) =>
+          modifierBonuses('SKILL_MODIFIER', { skillId: subjectId }, false)
+        ),
         ...manualBonuses.flatMap((adjustment) =>
           typeof adjustment.value === 'number' ? [fixedBonus(adjustment.id, adjustment.value)] : []
         )

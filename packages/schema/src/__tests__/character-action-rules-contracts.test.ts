@@ -23,6 +23,7 @@ const mechanic = {
   activation: { kind: 'ACTION', amount: 1 },
   rangeLabel: 'Self',
   attackKind: null,
+  attackDomain: null,
   attackAbility: null,
   attackBonus: null,
   attackRollMode: null,

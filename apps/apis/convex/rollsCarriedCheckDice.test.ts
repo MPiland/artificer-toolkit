@@ -2,14 +2,25 @@
 import { describe, expect, it } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
+import { divineFavor } from '@artificer-toolkit/source-data/srd/spells/divine-favor.js'
 import { glibness } from '@artificer-toolkit/source-data/srd/spells/glibness.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
+import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
-import { setupCharacterRun } from '../tests/fixtures/encounterCharacter'
+import { equipAllCharacterItems, setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
+import { loadCharacterEncounterInitiative } from './characters/encounterInitiative'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
 
-type CarriedSpell = typeof guidance | typeof resistance | typeof glibness
+type CarriedSpell =
+  | typeof guidance
+  | typeof resistance
+  | typeof glibness
+  | typeof bless
+  | typeof divineFavor
+  | typeof passWithoutTrace
 
 /** The spell's one effect, its die limited to `ability` when given. */
 function carriedEffect(spell: CarriedSpell, ability?: 'DEXTERITY') {
@@ -89,7 +100,53 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
       source: { kind: 'SAVING_THROW', label: `${save.label} saving throw` }
     })
   }
-  return { effectCount, abilityCheck, strengthCheck, initiative, savingThrow }
+  const attackRow = async () => {
+    const sheet = (await player.caller.query(api.characters.sheet.get, { id: character.id }))!
+    const row = sheet.actions.items.find((action) => action.mechanic?.attackBonus != null)
+    if (row?.mechanic?.attackBonus == null) throw new Error('The Character has no attack row.')
+    return { label: row.label, mechanic: row.mechanic, attackBonus: row.mechanic.attackBonus }
+  }
+  const attack = async () => {
+    const { label, mechanic, attackBonus } = await attackRow()
+    return player.caller.mutation(api.rolls.execute, {
+      characterId: character.id,
+      rollMode: mechanic.attackRollMode,
+      expression:
+        attackBonus === 0 ? '1d20' : `1d20 ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`,
+      source: { kind: 'ATTACK', label: `${label} attack` }
+    })
+  }
+  const damage = async () => {
+    const { label, mechanic } = await attackRow()
+    const outcome = mechanic.outcomes.find((each) => each.kind === 'DAMAGE')
+    if (outcome?.kind !== 'DAMAGE') throw new Error('The attack row deals no damage.')
+    return player.caller.mutation(api.rolls.execute, {
+      characterId: character.id,
+      expression: outcome.expression,
+      source: { kind: 'DAMAGE', label: `${label} damage` }
+    })
+  }
+  const initiativeSource = () =>
+    t.run((ctx) =>
+      loadCharacterEncounterInitiative(ctx, base.owner.userId, {
+        characterId: character.id,
+        campaignId: base.campaign.id,
+        systemId: base.campaign.gameSystemId
+      })
+    )
+  const equipWeapons = () => equipAllCharacterItems(base)
+  return {
+    damage,
+    initiativeSource,
+    effectCount,
+    abilityCheck,
+    strengthCheck,
+    initiative,
+    savingThrow,
+    equipWeapons,
+    attackRow,
+    attack
+  }
 }
 
 const d4Terms = (record: { evidence: { terms: readonly { die: number }[] } }) =>
@@ -183,5 +240,100 @@ describe('a carried d20 floor on a Sheet roll', () => {
       expect(d20Of(record).subtotal).toBe(d20Of(record).rolls[0])
       expect(record.ruleCheck).toBeUndefined()
     }
+  })
+})
+
+/** SPELLS-8.6: the Sheet's attack row shows the die an active grant (Bless) adds, and its roll adds it. */
+describe('an active attack-roll die on the Sheet', () => {
+  it('shows the die on the attack row and adds it to every attack roll, unspent', async () => {
+    const { equipWeapons, attackRow, attack, effectCount } = await characterCarrying(bless)
+    await equipWeapons()
+    expect((await attackRow()).mechanic.attackAddedDice).toEqual([
+      { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
+    ])
+    for (const record of [await attack(), await attack()]) {
+      expect(d4Terms(record)).toHaveLength(1)
+      expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
+    }
+    expect(await effectCount()).toBe(1)
+  })
+})
+
+/** SPELLS-8.6: a die an active grant adds to the Character's own damage (Divine Favor) joins its damage roll. */
+describe('an active damage die on the Sheet', () => {
+  it('adds the die the damage row shows to every damage roll, unspent', async () => {
+    const { equipWeapons, attackRow, damage, effectCount } = await characterCarrying(divineFavor)
+    await equipWeapons()
+    expect((await attackRow()).mechanic.damageAddedDice).toEqual([
+      expect.objectContaining({ label: divineFavor.label, count: 1, faces: 4, sign: 'ADD' })
+    ])
+    for (const record of [await damage(), await damage()]) {
+      expect(d4Terms(record).length).toBeGreaterThanOrEqual(1)
+      expect(record.normalizedExpression).toMatch(/\+ 1d4$/)
+    }
+    expect(await effectCount()).toBe(1)
+  })
+})
+
+/** SPELLS-8.6: initiative reads the Character's active grants, as its Sheet does (Pass without Trace's Stealth). */
+describe('an active check bonus on initiative', () => {
+  it('counts a held Stealth bonus in the check totals declared-action initiative reads', async () => {
+    const plain = await characterCarrying(guidance)
+    const stealthy = await characterCarrying(passWithoutTrace)
+    const before = (await plain.initiativeSource()).initiativeActorFacts.checkTotals
+    const after = (await stealthy.initiativeSource()).initiativeActorFacts.checkTotals
+    const changed = Object.keys(after).filter((id) => after[id] !== before[id])
+    expect(changed).toHaveLength(1)
+    expect(after[changed[0]!]).toBe(before[changed[0]!]! + 10)
+  })
+})
+
+/**
+ * SPELLS-8.6: a mark the Character's carried Concentration keeps on another creature shows on its
+ * attack rows as the die it adds against that creature only (the Convex fill of the placed effects).
+ */
+describe("a carried mark on the Sheet's attack rows", () => {
+  it('lists the die the mark adds to damage against the marked creature', async () => {
+    const base = await setupCharacterRun()
+    const { t, run, actor, character, player } = base
+    await equipAllCharacterItems(base)
+    const damageDice = async () =>
+      (await player.caller.query(api.characters.sheet.get, {
+        id: character.id
+      }))!.actions.items.find((action) => action.mechanic?.attackBonus != null)?.mechanic
+        ?.damageAddedDice
+    expect(await damageDice()).toBeUndefined()
+    await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: actor.id,
+          holderActorId: crypto.randomUUID(),
+          lifecycle: {},
+          effect: huntersMark.effects![0]!,
+          sourceLabel: huntersMark.label,
+          rounds: 600,
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: null,
+          concentrationCasterCharacterId: character.id,
+          expiresAtCampaignMinute: 60
+        }
+      })
+    )
+    expect(await damageDice()).toEqual([
+      {
+        label: huntersMark.label,
+        count: 1,
+        faces: 6,
+        sign: 'ADD',
+        damageTypeId: null,
+        againstHolderOnly: true
+      }
+    ])
   })
 })
