@@ -7,11 +7,14 @@ import { useEffect } from 'react'
 import IAlertCircle from '#assets/icons/IAlertCircle'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import IMapOff from '#assets/icons/IMapOff'
-import { captureClientException } from '#app/observability/sentry.client'
 import { routeLoadingMessage } from './routeLoadingMessages'
 
+// Imported lazily so the browser Sentry SDK, whose Worker export pulls in @sentry/node, stays out of
+// the Worker SSR bundle (ADR 0037) without relying on the Start compiler pruning a static import.
 const captureRouteError = createClientOnlyFn((error: unknown) => {
-  captureClientException(error)
+  void import('#app/observability/sentry.client').then(({ captureClientException }) =>
+    captureClientException(error)
+  )
 })
 
 export function RouteNotFound() {
