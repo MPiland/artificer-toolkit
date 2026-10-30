@@ -48,8 +48,10 @@ import { applyCharacterNoteCommand } from './sheetNotes.js'
 import {
   buildSheetSpellSummon,
   withoutConcentrationSummons,
-  type StatBlockSummonPlacement
+  type SheetSummonFormCreature
 } from './sheetSpellSummon.js'
+import { summonFormPick } from '../spellSummonStatBlock.js'
+import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { applySpellSlotExchange, planSpellSlotExchange } from './sheetSpellSlotExchange.js'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
@@ -192,7 +194,8 @@ export function resolveSpellCastSource(
   return { source, spell }
 }
 
-function resolveAvailableSpellCast(
+/** The cast a CAST_SPELL makes: the Spell, its level and the slot it spends, when it is available. */
+export function resolveAvailableSpellCast(
   sheet: CharacterSheetResponseDto,
   command: Extract<CharacterSheetStateCommand, { type: 'CAST_SPELL' }>
 ): {
@@ -482,7 +485,9 @@ export function applyCharacterSheetCommand(
     spellSummonPlacement?: (cast: {
       spellId: string
       castLevel: number
-    }) => StatBlockSummonPlacement | null
+    }) => CompiledActionSummonPlacement | null
+    /** The System Creatures a CAST_SPELL's picked summon form may be, by Creature id. */
+    summonFormCreatures?: ReadonlyMap<string, SheetSummonFormCreature>
     extraDefaults?: {
       creatures: ReadonlyMap<
         string,
@@ -1004,15 +1009,20 @@ export function applyCharacterSheetCommand(
       // A new Concentration replaces the one a summon holds.
       if (cast.spell.attributes?.includes('CONCENTRATION'))
         next.state.spellSummons = withoutConcentrationSummons(next.state.spellSummons)
-      const placement = context.spellSummonPlacement?.({
-        spellId: cast.spell.id,
-        castLevel: cast.castLevel
-      })
+      const placement =
+        context.spellSummonPlacement?.({ spellId: cast.spell.id, castLevel: cast.castLevel }) ??
+        null
+      const pick = summonFormPick(placement, command)
+      if (pick && 'refusal' in pick) throw new CharacterSheetCommandError(pick.refusal)
+      const formCreature = pick && context.summonFormCreatures?.get(pick.form.creatureId)
+      if (pick && !formCreature)
+        throw new CharacterSheetCommandError('That creature form is not available.')
       if (placement)
         next.state.spellSummons = [
           ...(next.state.spellSummons ?? []),
           buildSheetSpellSummon({
             placement,
+            form: pick && formCreature ? { pick, creature: formCreature } : null,
             casterHitPointMaximum: sheet.overview.maxHitPoints,
             spellId: cast.spell.id,
             label: cast.spell.label,

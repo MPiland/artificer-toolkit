@@ -3046,6 +3046,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     })
     const sheetSummon = buildSheetSpellSummon({
       placement,
+      form: null,
       casterHitPointMaximum: 40,
       spellId: authored.id,
       label: authored.label,

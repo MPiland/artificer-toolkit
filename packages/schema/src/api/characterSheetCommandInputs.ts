@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyIdentityDtoSchema } from '../shared/characterCurrency.js'
+import { summonPicksShape } from './summonPickOptions.js'
 
 import {
   characterResourceOwnerRefDtoSchema,
@@ -314,7 +315,8 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         type: z.literal('CAST_SPELL'),
         spellId: stringSchema,
         sourceId: z.optional(stringSchema),
-        slotKey: z.optional(stringSchema)
+        slotKey: z.optional(stringSchema),
+        ...summonPicksShape()
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('SET_PREPARED_SPELLS'),

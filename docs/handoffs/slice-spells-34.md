@@ -91,7 +91,21 @@ summon. Out of scope (not registered): Sheet familiars joining a Run, and the 1-
   - Journey, `nativeRoomCoreOptionSpells.test.ts` (room Find Familiar): the cast cat as FEY in the owner's Extras with
     live HP, through two turns, gone at 0 HP; the pick refusals (.2).
 
+## T3b contents
+
+- **Sheet cast:** CAST_SPELL carries `formId` and `creatureTypeId`. `readSheetSpellSummonPlacement` compiles a loaded
+  Sheet's casts once; `sheetCommands` reads the picked corpus Creature before the pure reducer runs.
+- **Shared refusals:** `summonFormPick` and `summonPickOptions` (rules-runtime) serve the room and the Sheet.
+- **Picker:** the Spell panel's cast modes list `summonForms` and `creatureTypes`. `components/summonPicks` is the room's
+  picker, now shared with `CharacterSheetSpellPanelContent`.
+- **Linked summon:** the Extras entry stays in its caster's state and records `form` (Creature and picked type).
+- **Long rest:** a summon with no duration is `untimed` and stays; a timed one still ends.
+- **Proofs:** `sheetSpellSummons.test.ts` (journey), `characterRestPure.test.ts`, `CharacterSheetInspector.test.tsx`.
+
 ## Known limits
+
+- The spell list's quick-cast has no picker, so a forms summon cast from it is refused. The Spell panel casts it.
+- A Spell panel read compiles the Sheet's casts once per load, on every Sheet write that derives a panel.
 
 - A carried Concentration from an Encounter and a Sheet summon's Concentration can both exist. The overview prefers the
   carried one. A Sheet cast does not end a carried effect, because Sheet casts start no effects.
