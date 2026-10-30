@@ -12739,10 +12739,10 @@
             {
               "id": "SPELLS-8.6",
               "text": "The Sheet shows attack and damage rows that match what the room rolls: active grants and modifiers (Bless, Hunter's Mark, Shillelagh's die and magical trait), proficiencies (pact weapon) and ability modifiers are folded in by the same shared code the room uses.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-8.T15 (m553); see each task's proof."],
               "origin": [],
-              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies."
+              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies. Closed 2026-10-30 by SPELLS-8.T15."
             }
           ],
           "wsjf": {
@@ -12796,7 +12796,7 @@
             {
               "id": "SPELLS-8.T4",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Every SRD APPLY_GRANT spell casts in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.3"],
               "wsjf": {
                 "bv": 5,
@@ -12805,7 +12805,7 @@
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
               },
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m553 (3c2b1c425)."
             },
             {
               "id": "SPELLS-8.T5",
@@ -12952,7 +12952,7 @@
             },
             {
               "id": "SPELLS-8.T15",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.6"],
               "wsjf": {
                 "bv": 13,
@@ -12960,7 +12960,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
+              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn.",
+              "note": "Merged in m553 (3c2b1c425)."
             },
             {
               "status": "TODO",
@@ -15779,7 +15780,7 @@
             },
             {
               "id": "SPELLS-31.T5i",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15789,7 +15790,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user approved the split (side-session-notes/spells-31-t5i-ruling-packet.md). T5i builds G1 (spell facets in modifiers, damage bonuses on save spells, the ALL + MAGIC_SCHOOL fail-open bug), Empowered Evocation and Elemental Affinity."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user approved the split (side-session-notes/spells-31-t5i-ruling-packet.md). T5i builds G1 (spell facets in modifiers, damage bonuses on save spells, the ALL + MAGIC_SCHOOL fail-open bug), Empowered Evocation and Elemental Affinity. Merged in m553 (3c2b1c425)."
             },
             {
               "id": "SPELLS-31.T5j",
