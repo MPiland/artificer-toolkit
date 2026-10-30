@@ -52,7 +52,8 @@ import {
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
-import { sizeSpaceFeet } from '@artificer-toolkit/rules-runtime/systemSizes'
+import { defaultSize, sizeSpaceFeet } from '@artificer-toolkit/rules-runtime/systemSizes'
+import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import {
   repeatOfferFreeUseKey,
@@ -405,7 +406,7 @@ export async function readEncounterActionChoices(
             entry?.kind === 'CHARACTER_ACTION' &&
               entry.schemaVersion === 4 &&
               entry.compilation.summonPlacement
-              ? sizeSpaceFeet(state.gameSystemId, entry.compilation.summonPlacement.statBlock.size)
+              ? await summonChoice(tx, state.gameSystemId, entry.compilation.summonPlacement)
               : undefined
           ),
           warnings: [
@@ -897,6 +898,32 @@ function ammunitionChoices(
         quantity
       })
     )
+  }
+}
+
+/**
+ * What a summon cast asks the client to pick: the point its creature stands at, filling the space
+ * of its stat block's size, or, for a summon of a chosen form, the form and the Creature Type it
+ * takes. A form's own size is read only when the Worker places it, so its preview fills the space
+ * of the System's default size.
+ */
+async function summonChoice(
+  tx: EncounterTurnReadTransaction,
+  gameSystemId: string,
+  placement: CompiledActionSummonPlacement
+) {
+  if ('statBlock' in placement)
+    return { feet: sizeSpaceFeet(gameSystemId, placement.statBlock.size) }
+  const offered = new Set(placement.creatureTypeIds)
+  const creatureTypes = offered.size
+    ? (await tx.ports.requireSystem(gameSystemId)).creatureTypes.filter(({ id }) => offered.has(id))
+    : []
+  if (creatureTypes.length !== offered.size)
+    throw new Error('A summon offers a Creature Type its System does not define.')
+  return {
+    feet: sizeSpaceFeet(gameSystemId, defaultSize(gameSystemId)),
+    forms: placement.forms,
+    creatureTypes
   }
 }
 

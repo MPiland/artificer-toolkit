@@ -372,11 +372,13 @@ export async function settleAreaCommit(args: {
     lead.source.kind === 'CHARACTER_ACTION' && lead.source.candidate.mechanicsOwner.kind === 'SPELL'
       ? lead.source.candidate.mechanicsOwner.id
       : null
+  const formCreature = summon?.body.kind === 'CREATURE' ? summon.body : null
+  const summonLabel = summon?.placement.label ?? formCreature?.label ?? sourceLabel
   const summonedTokens =
     summon && casterTarget
       ? [
           buildEncounterSummon({
-            summon: summon.placement,
+            summon: summon.body,
             spellSummon:
               summonSpellId === null
                 ? null
@@ -384,11 +386,12 @@ export async function settleAreaCommit(args: {
                     placement: summon.placement,
                     casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
                     spellId: summonSpellId,
-                    label: sourceLabel
+                    label: summonLabel,
+                    ...(formCreature ? { formCreature: formCreature.creature } : {})
                   }),
             caster,
             casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
-            label: summon.placement.label ?? sourceLabel,
+            label: summonLabel,
             point: summon.point,
             edgeLength: summon.edgeLength,
             sourceEffectId: zoneSourceGrant!.id,

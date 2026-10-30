@@ -40,7 +40,7 @@ const CARRIER_ID = crypto.randomUUID()
 
 const build = (statBlock: Parameters<typeof buildEncounterSummon>[0]['summon']['statBlock']) =>
   buildEncounterSummon({
-    summon: { statBlock },
+    summon: { kind: 'STAT_BLOCK', statBlock },
     spellSummon: null,
     caster,
     casterHitPointMaximum: 40,

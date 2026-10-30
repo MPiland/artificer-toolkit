@@ -2210,6 +2210,20 @@ body that does not occupy its space neither blocks voluntary movement through or
 arrival, teleport and return to play ask the same through `encounterTokenOccupiesSpace` (a token bound to no actor occupies).
 SPECIAL damageability is the GM's to adjudicate.
 
+**Form summons (current, SPELLS-34.T3a).** A `SUMMON` may author `forms` (System Creatures, `maxTargets` 1) and
+optional `creatureTypeIds` instead of a stat block; exactly one of the two is required. It compiles to the forms
+variant of the placement union, `{ summonOutcomeId, label, entry, forms: [{ id, label, creatureId }], creatureTypeIds }`
+(forms in authored order, types sorted); readers narrow with `'statBlock' in placement`. A summon may also be untimed:
+its carrier has `initialRemaining: null` and `recurrenceStage: 'NONE'`, so it lasts until the creature drops to 0 hit
+points or the carrier ends otherwise; an untimed summon may not hold carrier offers. The POINT choice lists
+`summonForms` and `creatureTypes`, its cube the System's default size (the room checks the chosen Creature's real size),
+and the POINT command carries `formId` and `creatureTypeId`. Preparation (`readSummonBody`, Session Worker) refuses a
+missing or unknown form, a missing or unoffered type, a type for a summon that offers none and a form for a stat
+block summon (422 `TARGET_UNAVAILABLE`). `buildEncounterSummon` takes a body union: `STAT_BLOCK` makes the CUSTOM actor
+above; `CREATURE` makes a CREATURE actor from the corpus Creature (`readFormCreature`), owned by the caster, with the
+chosen type replacing `payload.creatureTypeId`. `resolveSpellSummonStatBlock` reads that Creature's stat block for the
+values the owner's Sheet lists, and the Run actor stays the only record of its hit points.
+
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
 capability discovery and entry-point compile. The Encounter's movement targets and the Convex Sheet command both call

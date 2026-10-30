@@ -262,7 +262,10 @@ describe('Creature mechanics batch plan', () => {
   it('settles an area that damages a creature and an invulnerable summon beside it: the summon takes none (SPELLS-4.T2v2a3c)', () => {
     const summon = (damageabilityKind: 'NORMAL' | 'INVULNERABLE') => ({
       ...buildEncounterSummon({
-        summon: { statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } } },
+        summon: {
+          kind: 'STAT_BLOCK',
+          statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } }
+        },
         spellSummon: null,
         caster: creatureActor({ id: CHARACTER_ID, snapshot: {} }),
         casterHitPointMaximum: 20,

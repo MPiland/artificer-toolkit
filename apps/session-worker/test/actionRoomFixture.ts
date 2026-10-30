@@ -716,7 +716,14 @@ export async function actionRoom(config: ActionRoomConfig) {
     /** The acting actor's area action on the Scene as the room holds it now. */
     async startAreaCommand(
       target:
-        | { kind: 'POINT'; point: { x: number; y: number }; unaffectedActorIds?: string[] }
+        | {
+            kind: 'POINT'
+            point: { x: number; y: number }
+            unaffectedActorIds?: string[]
+            /** The summon form and creature type a summon that authors forms takes. */
+            formId?: string
+            creatureTypeId?: string
+          }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
         | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string }
         | {

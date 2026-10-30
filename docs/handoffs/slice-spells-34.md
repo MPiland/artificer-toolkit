@@ -4,12 +4,13 @@ Living handoff for SPELLS-34 (a summon cast shows the creature on the caster's s
 
 ## Current task
 
-SPELLS-34.T2: Encounter summons in Extras and summon attacks on both paths. Closes SPELLS-34.1, SPELLS-34.2 and
-SPELLS-34.3. T1 (merged) closed SPELLS-34.4.
+SPELLS-34.T3a: Find Familiar in an Encounter (closes SPELLS-34.2 for form summons). T1 and T2 merged.
 
 ## Next
 
-None: T2 is the PBI's last task.
+SPELLS-34.T3b (its own session): the Sheet cast of a form summon, its picker, and a long rest keeping an untimed
+summon. Out of scope (not registered): Sheet familiars joining a Run, and the 1-hour casting time (the SRD data keeps a
+1-action activation).
 
 ## Rulings (orchestrator, binding)
 
@@ -74,6 +75,21 @@ None: T2 is the PBI's last task.
   - `CharacterSheetExtras.test.tsx`: the read-only Encounter row with its attacks (.1, .2).
   - Journey, `session-worker/test/nativeRoomCoreOptionSpells.test.ts` (room Arcane Hand): the owner's pushed Sheet
     lists the cast hand with live HP, follows the GM's HP edit and drops it at 0 HP and on Concentration end (.2, .3).
+
+## T3a contents (in CI on `ci/spells-34-t3a`)
+
+- **Authoring:** a `SUMMON` authors `forms` (System Creatures) and optional `creatureTypeIds` instead of a stat block
+  (`creatureFormOutcomeFields` node map). SRD Find Familiar authors its 15 forms and celestial/fey/fiend, no duration.
+- **Compile:** the placement is a union (stat block or forms); an untimed summon compiles with `initialRemaining: null`.
+- **Choice and command:** the POINT choice lists `summonForms` and `creatureTypes`; the POINT target carries `formId`
+  and `creatureTypeId`. The VTT action drawer shows a form select and a Creature Type control.
+- **Worker:** `readSummonBody` validates the picks and reads the corpus Creature; `buildEncounterSummon` builds a
+  CREATURE actor of the chosen type, owned by the caster. See [rules-runtime](../architecture/rules-runtime.md).
+- **Proofs:**
+  - `characterSpellCastActions.test.ts`: the forms compile, the refusals, and the built familiar's Extras entry.
+  - `authoring/nodeRuntime/summonFormsAuthoringParity.test.ts`: SRD and a homebrew companion survive the node map.
+  - Journey, `nativeRoomCoreOptionSpells.test.ts` (room Find Familiar): the cast cat as FEY in the owner's Extras with
+    live HP, through two turns, gone at 0 HP; the pick refusals (.2).
 
 ## Known limits
 

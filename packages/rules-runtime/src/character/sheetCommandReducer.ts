@@ -45,9 +45,12 @@ import {
 import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
-import { buildSheetSpellSummon, withoutConcentrationSummons } from './sheetSpellSummon.js'
+import {
+  buildSheetSpellSummon,
+  withoutConcentrationSummons,
+  type StatBlockSummonPlacement
+} from './sheetSpellSummon.js'
 import { applySpellSlotExchange, planSpellSlotExchange } from './sheetSpellSlotExchange.js'
-import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
@@ -479,7 +482,7 @@ export function applyCharacterSheetCommand(
     spellSummonPlacement?: (cast: {
       spellId: string
       castLevel: number
-    }) => CompiledActionSummonPlacement | null
+    }) => StatBlockSummonPlacement | null
     extraDefaults?: {
       creatures: ReadonlyMap<
         string,

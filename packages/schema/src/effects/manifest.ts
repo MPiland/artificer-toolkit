@@ -210,6 +210,7 @@ export const summonStatBlockDtoSchema = lazySchema(() =>
     occupiesSpace: z.optional(z.boolean())
   })
 )
+export type SummonStatBlockDto = z.infer<typeof summonStatBlockDtoSchema>
 
 export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
   z.lazy(() => {
@@ -355,6 +356,10 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       }),
       z.extend(baseSchema, {
         manifestKind: z.literal('SUMMON'),
+        /** System Creatures the caster picks one of at cast, in place of a stat block (a familiar). */
+        forms: z.optional(authoredNestedCollectionSchema(manifestCreatureFormDtoSchema)),
+        /** Creature Types the caster picks one of to replace the chosen form's. */
+        creatureTypeIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),

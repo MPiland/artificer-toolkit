@@ -20,8 +20,12 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
+import type {
+  CompiledActionSummonPlacement,
+  CompiledActionTargetPolicy
+} from '@artificer-toolkit/schema/projections/characterMechanics'
 import {
   encounterActionCurrentnessChecksum,
   prepareEncounterActionMechanics,
@@ -53,7 +57,10 @@ import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZ
 import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtime/encounterActorForm'
-import { encounterActiveEffectPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import {
+  creatureSnapshotSize,
+  encounterActiveEffectPlan
+} from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
 import {
   deadCharacterIdsOfTargets,
@@ -324,11 +331,15 @@ export async function prepareAreaScene(
         : target.kind === 'RING'
           ? [target.center]
           : []
+  const summonBody = await readSummonBody(input, summonPlacement)
   const summonArea =
-    summonPlacement && target.kind === 'POINT'
+    summonBody && target.kind === 'POINT'
       ? evaluateEncounterSummonTarget({
           gameSystemId: state.gameSystemId,
-          statBlock: summonPlacement.statBlock,
+          statBlock:
+            summonBody.kind === 'CREATURE'
+              ? { size: creatureSnapshotSize(summonBody.creature) ?? undefined }
+              : summonBody.statBlock,
           range: targetPolicy.range,
           point: target.point,
           grid,
@@ -399,8 +410,13 @@ export async function prepareAreaScene(
     source,
     targetPolicy,
     summon:
-      summonPlacement && summonArea && 'shape' in summonArea
-        ? { placement: summonPlacement, point: origin, edgeLength: summonArea.shape.edgeLength }
+      summonPlacement && summonBody && summonArea && 'shape' in summonArea
+        ? {
+            placement: summonPlacement,
+            body: summonBody,
+            point: origin,
+            edgeLength: summonArea.shape.edgeLength
+          }
         : null,
     scene: { ...scene, grid },
     area: { ...area, origin },
@@ -416,6 +432,60 @@ export async function prepareAreaScene(
           unaffectedActorIds
         }
       : null
+  }
+}
+
+const summonFormRefusal = (message: string) =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'TARGET_UNAVAILABLE',
+    message
+  })
+
+/**
+ * The body a summon conjures: its own stat block, or for a summon that authors forms the one the
+ * caster picked, read from the System creature corpus, with the creature type the caster picked when
+ * the summon offers several. Only a summon that authors forms takes either pick.
+ */
+async function readSummonBody(
+  input: AreaPlanInput,
+  placement: CompiledActionSummonPlacement | null
+): Promise<
+  | { kind: 'STAT_BLOCK'; statBlock: SummonStatBlockDto }
+  | {
+      kind: 'CREATURE'
+      creature: EncounterActorFormCreature
+      creatureTypeId: string | null
+      label: string
+    }
+  | null
+> {
+  const { target } = input.command
+  const formId = target.kind === 'POINT' ? target.formId : undefined
+  const creatureTypeId = target.kind === 'POINT' ? target.creatureTypeId : undefined
+  if (!placement || 'statBlock' in placement) {
+    if (formId !== undefined || creatureTypeId !== undefined)
+      throw summonFormRefusal('This action takes no creature form.')
+    return placement ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock } : null
+  }
+  const form = placement.forms.find((candidate) => candidate.id === formId)
+  if (!form) throw summonFormRefusal('This summon needs one of its creature forms.')
+  if (
+    placement.creatureTypeIds.length
+      ? creatureTypeId === undefined || !placement.creatureTypeIds.includes(creatureTypeId)
+      : creatureTypeId !== undefined
+  )
+    throw summonFormRefusal(
+      placement.creatureTypeIds.length
+        ? 'Pick one of the creature types this summon offers.'
+        : "This summon keeps its form's creature type."
+    )
+  if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
+  return {
+    kind: 'CREATURE',
+    creature: await input.readFormCreature(input.state.gameSystemId, form.creatureId),
+    creatureTypeId: creatureTypeId ?? null,
+    label: form.label
   }
 }
 

@@ -11,12 +11,14 @@ import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 
 /**
- * The creature an action summons: its first ON_USE entry is a timed SUMMON manifest, whose stat
- * block rides the plan and whose carrier effect ends the summon with its duration or the
- * Concentration the cast opens. A second ON_USE entry may be an empty APPLY_GRANT of the same
- * duration whose effect offers the carrier holds. Null for any other action. A summon that
- * authors anything the plan does not carry (behaviors, a missing stat block or duration, a third
- * entry) is refused rather than partly honored.
+ * The creature an action summons: its first ON_USE entry is a SUMMON manifest, whose stat block (or
+ * the System Creature forms the caster picks one of) rides the plan and whose carrier effect ends
+ * the summon with its duration or the Concentration the cast opens. A summon of no duration lasts
+ * until it falls or is dismissed; only a timed one may hold offers. A second ON_USE entry may be an
+ * empty APPLY_GRANT of the same duration whose effect offers the carrier holds. Null for any other
+ * action. A summon that authors anything the plan does not carry (behaviors, neither or both of a
+ * stat block and forms, a form of more than one creature, a third entry) is refused rather than
+ * partly honored.
  */
 export function compileDnd5eSummonPlacement(
   action: Dnd5eCompiledEffectActionSource
@@ -43,7 +45,18 @@ export function compileDnd5eSummonPlacement(
   const { outcome } = entry
   if (outcome.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'SUMMON')
     unsupported('A summon is the only outcome of its action’s use.')
-  if (!outcome.statBlock) unsupported('A summon authors the stat block of its creature.')
+  const forms = outcome.forms ?? []
+  const creatureTypeIds = outcome.creatureTypeIds ?? []
+  if (outcome.statBlock ? forms.length > 0 || creatureTypeIds.length > 0 : forms.length === 0)
+    unsupported('A summon authors the stat block of its creature or the forms it may take.')
+  if (
+    forms.some(
+      ({ id, creatureId, maxTargets }) =>
+        maxTargets !== 1 || !UUID.test(id) || !UUID.test(creatureId)
+    ) ||
+    creatureTypeIds.some((id) => !UUID.test(id))
+  )
+    unsupported('A summon form is one System Creature.')
   if (outcome.behaviors?.length)
     unsupported('A summoned creature’s own behaviors are not yet modelled.')
   if (outcome.attachmentKind || outcome.shape)
@@ -53,7 +66,7 @@ export function compileDnd5eSummonPlacement(
   // its carrier grant holds.
   const { effectOffers, ...otherLifecycle } = entry.lifecycle ?? {}
   if (
-    initialRemaining === null ||
+    (entry.duration && initialRemaining === null) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     (effectOffers !== undefined &&
       (!carrierEntry ||
@@ -62,13 +75,20 @@ export function compileDnd5eSummonPlacement(
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id)
   )
-    unsupported('A summon lasts a bounded duration and authors no lifecycle of its own.')
-  const summon = {
-    summonOutcomeId: outcome.id,
-    label: outcome.label ?? null,
-    statBlock: outcome.statBlock
-  }
+    unsupported('A summon lasts a bounded duration or none, and authors no lifecycle of its own.')
+  const identity = { summonOutcomeId: outcome.id, label: outcome.label ?? null }
+  const summon = outcome.statBlock
+    ? { ...identity, statBlock: outcome.statBlock }
+    : {
+        ...identity,
+        forms: [...forms]
+          .sort((left, right) => left.order - right.order)
+          .map(({ id, label, creatureId }) => ({ id, label, creatureId })),
+        creatureTypeIds: [...new Set(creatureTypeIds)].sort()
+      }
   if (carrierEntry) {
+    if (initialRemaining === null)
+      unsupported('Only a summon of a bounded duration holds offers on its carrier.')
     // The carrier may also hold what its owner can do through the summon: an empty grant whose
     // offers (a CONJURED repeat) last exactly as long as the creature.
     const plan = modifierGrantEntryPlan({
@@ -95,13 +115,13 @@ export function compileDnd5eSummonPlacement(
     }
   }
   // The bare carrier holds nothing but the summon's duration, counted on its caster's turns as
-  // the grant tick planner counts a carrier grant.
+  // the grant tick planner counts a carrier grant; an untimed one never ticks.
   const plan = {
     authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'summon',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN' as const,
+    recurrenceStage: initialRemaining === null ? ('NONE' as const) : ('END_OF_TURN' as const),
     tickAnchor: 'SOURCE' as const,
     initialRemaining,
     adapterFacts: {},

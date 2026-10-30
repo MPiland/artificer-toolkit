@@ -1,7 +1,7 @@
 import { encounterActorBody, summonBody } from './encounterActorBody.js'
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
+import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import type {
-  CompiledActionSummonPlacement,
   CompiledActionTargetPolicy,
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
@@ -300,15 +300,26 @@ export function encounterActionChoiceTarget(
   /** The action is used on an item its creature has equipped (Shillelagh, Heat Metal). */
   choosesItem?: boolean,
   /**
-   * The edge in feet of the square the creature the action summons fills (`sizeSpaceFeet`): the
-   * caster picks the point it stands at (T2v2a2).
+   * The creature the action summons: the edge in feet of the square it fills (`sizeSpaceFeet`), as
+   * the caster picks the point it stands at (T2v2a2), and the forms and Creature Types the caster
+   * picks one of for a summon of a chosen Creature (SPELLS-34.T3a).
    */
-  summonFeet?: number | null
+  summon?: {
+    feet: number | null
+    forms?: readonly { id: string; label: string }[]
+    creatureTypes?: readonly { id: string; label: string }[]
+  } | null
 ): EncounterActionChoiceDto['target'] {
-  if (summonFeet)
+  if (summon?.feet)
     return {
       kind: 'POINT',
-      area: { kind: 'CUBE', edgeLength: { amount: summonFeet, unit: 'FEET' } }
+      area: { kind: 'CUBE', edgeLength: { amount: summon.feet, unit: 'FEET' } },
+      ...(summon.forms?.length
+        ? { summonForms: summon.forms.map(({ id, label }) => ({ id, label })) }
+        : {}),
+      ...(summon.creatureTypes?.length
+        ? { creatureTypes: summon.creatureTypes.map(({ id, label }) => ({ id, label })) }
+        : {})
     }
   const itemChoice = choosesItem ? { choosesItem: true as const } : {}
   const forms = formContribution?.forms
@@ -482,7 +493,7 @@ export function evaluateEncounterAreaTargetPolicy(input: {
  */
 export function evaluateEncounterSummonTarget(input: {
   gameSystemId: string
-  statBlock: Pick<CompiledActionSummonPlacement['statBlock'], 'size' | 'occupiesSpace'>
+  statBlock: Pick<SummonStatBlockDto, 'size' | 'occupiesSpace'>
   range: CompiledActionTargetPolicy['range']
   point: ScenePoint
   grid: SceneGrid
