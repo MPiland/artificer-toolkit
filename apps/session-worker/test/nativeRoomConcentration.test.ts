@@ -820,8 +820,8 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       { outcome: 'SAVE_SUCCESS', d20: { total: 11 } }
     ])
   })
-  it('pauses on the held die for a holder whose save is auto-rolled', async () => {
-    // The attack die shows 19; the server rolls the holder's natural 8.
+  it('prompts a holder with a held die even when its save is auto-rolled, then opens the window on the app roll', async () => {
+    // The attack die shows 19; the holder's "Roll dice" makes the server roll its natural 8.
     const room = await creatureHolderRoom({
       autoRoll: 'BOTH',
       rolls: [18, 7],
@@ -835,6 +835,10 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     })
     const { answer } = await room.startAction(HOLDER_ID)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const save = await room.pendingDecision()
+    if (save.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    const rolled = await room.rollDice(save)
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
     if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
     expect(decision.pending).toMatchObject({ d20: { selectedNatural: 8, total: 9 } })
@@ -900,8 +904,9 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       })
       expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
       expect(await holdsDie(room)).toBe(false)
-      // The second save's d20 meets no window: the spent die is not offered again.
-      expect(await nextSave(room)).toBeNull()
+      // The second save no longer holds a die, so it is rolled at once: nothing prompts a d20.
+      const next = await readPendingActionDecision(room.room.base.stub)
+      expect(['D20_EVIDENCE', 'D20_WINDOW']).not.toContain(next?.pending.kind)
     })
 
     it('offers a declined die again at the second save', async () => {

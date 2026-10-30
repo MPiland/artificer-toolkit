@@ -43,6 +43,7 @@ import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtim
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { insertRunCommand } from './timelineEntries.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -431,6 +432,12 @@ export async function persistEncounterConcentrationResponse(
       output,
       occurredAt: input.occurredAt
     })
+  // The die a d20 window spent and the grants the damage ended come back with the action's undo.
+  await addResponseChangesToRoot(ctx, {
+    campaignId: campaign.id,
+    actionOccurrenceId: context.parentOccurrenceId,
+    endedGrants: input.endedGrants
+  })
   const nextState = commitMutated
     ? encounterRunStateSchema.parse({
         ...state,
