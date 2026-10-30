@@ -37,6 +37,8 @@ import {
   evaluateEncounterWeaponDraw
 } from '@artificer-toolkit/rules-runtime/encounterWeaponDraw'
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { encounterAttackDelegated } from '@artificer-toolkit/rules-runtime/encounterDelegatedAttack'
+import { encounterActorGrantModifiers } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
 import { readEncounterActorDefeated, readZeroHitPointActorIds } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -254,6 +256,43 @@ export async function readEncounterActionChoices(
       | null
       | undefined
   ) => options && { options: offeredCastChoiceOptions(options, activeOptionalRules) }
+  const discoverCreatureActions = async (
+    source: Parameters<typeof discoverEncounterFeatureActions>[0]['actor']
+  ) => {
+    const system = await tx.ports.requireSystem(state.gameSystemId)
+    return discoverEncounterFeatureActions({
+      actor: source,
+      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions:
+        'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : [],
+      spells: await readEncounterSpellPins(tx, state.id)
+    })
+  }
+  // What a creature's action shows, whether the creature acts itself or in the actor's place.
+  const creatureActionChoice = (
+    action: Awaited<ReturnType<typeof discoverCreatureActions>>['available'][number]
+  ) => {
+    const targetPolicy = buildCompiledActionTargetPolicy(action)
+    return {
+      id: action.actionId,
+      label: action.label,
+      ...encounterActionChoiceRange(targetPolicy),
+      ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
+      grip: action.grip
+        ? {
+            value: action.grip,
+            attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
+          }
+        : null,
+      wieldConflict: null,
+      target: encounterActionChoiceTarget(
+        targetPolicy,
+        null,
+        null,
+        offeredCastChoice(castChoiceOptions(action.compiledEffect))
+      )
+    }
+  }
   if (actor.kind === 'CHARACTER' && creature === null) {
     const facts = actorTarget?.characterFacts
     const mechanics = actorTarget?.characterReactionSource?.mechanics
@@ -428,14 +467,7 @@ export async function readEncounterActionChoices(
       })
     )
   } else if (creature) {
-    const system = await tx.ports.requireSystem(state.gameSystemId)
-    const discovered = discoverEncounterFeatureActions({
-      actor: creature,
-      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
-      abilityDefinitions:
-        'abilities' in system ? system.abilities.map(({ id, code }) => ({ id, code })) : [],
-      spells: await readEncounterSpellPins(tx, state.id)
-    })
+    const discovered = await discoverCreatureActions(creature)
     // A Legendary Action is taken only at the end of another creature's turn (SRD 5.1), in its
     // Legendary window, never from the owner's own action drawer; the room refuses it too.
     const legendaryFeatureIds = encounterLegendaryActionFeatureIds(creature)
@@ -471,19 +503,8 @@ export async function readEncounterActionChoices(
               activationCode: action.mechanicFacts.invocation.activation?.code ?? null,
               triggerCode: action.mechanicFacts.invocation.triggerCode
             })
-          const targetPolicy = buildCompiledActionTargetPolicy(action)
           return {
-            id: action.actionId,
-            label: action.label,
-            ...encounterActionChoiceRange(targetPolicy),
-            ...(action.attackMechanic ? { attackBonus: action.attackMechanic.attackBonus } : {}),
-            grip: action.grip
-              ? {
-                  value: action.grip,
-                  attackKey: `${action.ownerFeatureId}:${action.featureOptionId ?? ''}:${action.mechanicFacts.invocation.triggerCode}`
-                }
-              : null,
-            wieldConflict: null,
+            ...creatureActionChoice(action),
             ...handReleaseChoice(
               handReleaseFor(
                 creatureActionDrawWeapon(
@@ -496,12 +517,6 @@ export async function readEncounterActionChoices(
               )
             ),
             attackSlot: economy.attackSlot,
-            target: encounterActionChoiceTarget(
-              targetPolicy,
-              null,
-              null,
-              offeredCastChoice(castChoiceOptions(action.compiledEffect))
-            ),
             warnings: economy.warnings
           }
         })
@@ -612,6 +627,48 @@ export async function readEncounterActionChoices(
     return escape ? [{ effect, heldActorId: null, ...escape }] : []
   })
   const runActors = await readRunActors(tx, state)
+  // The attacks of the creatures that attack in the actor's place (D156): each takes the slot it
+  // forgoes in the actor's Attack action and warns on the creature's own reaction. The room decides.
+  const delegatedAttacks: EncounterActionChoiceDto[] = []
+  if (actor.kind !== 'CUSTOM') {
+    const holderModifiers = encounterActorGrantModifiers(
+      actor,
+      actorTarget?.characterFacts?.ruleEvaluation.output ?? null
+    )
+    const holderEffects = await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
+    for (const delegate of runActors) {
+      if (
+        delegate.kind !== 'CREATURE' ||
+        !encounterAttackDelegated({ holder: actor, delegate, holderModifiers, holderEffects }) ||
+        (await readEncounterActorDefeated(tx, delegate))
+      )
+        continue
+      const { economy: reaction } = await evaluateActionAttackAction(tx, {
+        actor: delegate,
+        state,
+        campaign,
+        activation: { code: 'REACTION', amount: 1 },
+        triggerCode: ''
+      })
+      const { available } = await discoverCreatureActions(delegate)
+      for (const action of available.filter(({ attackMechanic }) => attackMechanic)) {
+        const choice = creatureActionChoice(action)
+        const forgone = await readEconomy(
+          { code: 'ACTION', amount: 1 },
+          action.mechanicFacts.invocation.triggerCode,
+          true
+        )
+        if (choice.target.kind !== 'ACTOR' || !forgone.attackSlot) continue
+        delegatedAttacks.push({
+          ...choice,
+          delegateActorId: delegate.id,
+          sourceLabel: delegate.label,
+          attackSlot: forgone.attackSlot,
+          warnings: [...forgone.warnings, ...encounterActionEconomyWarnings(reaction, 'REACTION')]
+        })
+      }
+    }
+  }
   // The holds on creatures within reach that the actor may break for them (ATTACK-7.9).
   const rescues =
     actor.kind === 'CUSTOM' ? [] : await readEncounterRescues(tx, state, actor, runActors)
@@ -753,7 +810,7 @@ export async function readEncounterActionChoices(
             lastTargetIds: lastAttack.targetIds
           }
         : null,
-    actions,
+    actions: [...actions, ...delegatedAttacks],
     defaultActionId: encounterDefaultAttackActionId({
       choices: actions.map((action) => ({
         id: action.id,

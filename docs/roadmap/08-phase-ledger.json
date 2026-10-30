@@ -18317,6 +18317,9 @@
                 "apps/apis/convex/characters/sheetRestStandingEffect.test.ts",
                 "packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts",
                 "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
+              ],
+              "journeys": [
+                "delegated-attack-browser"
               ]
             },
             {
@@ -19560,7 +19563,7 @@
             },
             {
               "id": "SPELLS-31.T4v2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19574,7 +19577,7 @@
                 ]
               },
               "text": "Delegated attack, web half: the action-choices read (actionChoiceReads.ts) lists a delegate's attacks under its caster, and the web action drawer picks the familiar's attack for the caster's command. Browser journey.",
-              "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29."
+              "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29. Merged in m563 (eb5dfedd5)."
             }
           ]
         },

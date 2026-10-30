@@ -828,6 +828,57 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
     )
   })
 
+  it('sends a delegated attack as the creature’s, commanded by the acting actor, measured from the creature', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const [, delegate] = tabletopGmEncounter.actors
+    const [casterToken, delegateToken] = tabletopLiveScene.tokens
+    renderDrawer(onResolve, {
+      choices: validatedChoices([
+        {
+          id: 'delegate-claws',
+          delegateActorId: delegate!.id,
+          label: 'Claws',
+          sourceLabel: delegate!.label,
+          rangeLabel: '5 ft',
+          attackBonus: 4,
+          grip: null,
+          wieldConflict: null,
+          warnings: [],
+          target: { kind: 'ACTOR', self: 'REFUSED' },
+          attackSlot: { number: 1, total: 1 }
+        }
+      ]),
+      optionalRules: [{ definitionId: '99999999-9999-4999-8999-999999999921', label: 'Disarm' }],
+      actorIdByTokenId: new Map([
+        [casterToken!.id, tabletopGmEncounter.currentActorId!],
+        [delegateToken!.id, delegate!.id]
+      ])
+    })
+
+    await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+    expect(await screen.findByRole('option', { name: /Claws.*Vault Warden/ })).toBeVisible()
+    await user.keyboard('{ArrowDown}{Enter}')
+    await user.click(screen.getByRole('combobox', { name: 'Target' }))
+    // The creature refuses itself, and the actor commanding it stays a target like any other.
+    expect(await screen.findByRole('option', { name: /Ember/ })).toBeVisible()
+    expect(screen.queryByRole('option', { name: /Vault Warden/ })).not.toBeInTheDocument()
+    await user.keyboard('{ArrowDown}{Enter}')
+    expect(screen.queryByRole('combobox', { name: 'Optional rule' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        actorId: delegate!.id,
+        delegatingActorId: tabletopGmEncounter.currentActorId,
+        actionId: 'delegate-claws',
+        target: { kind: 'ACTOR', actorId: tabletopGmEncounter.currentActorId },
+        optionalCombatIntent: null,
+        sceneContext: expect.objectContaining({ sourceTokenId: delegateToken!.id })
+      })
+    )
+  })
+
   it('never offers the current holder as the new one', async () => {
     const user = userEvent.setup()
     renderDrawer(vi.fn(), { effectOffers: effectOfferChoices })
