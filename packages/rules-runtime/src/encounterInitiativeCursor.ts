@@ -1,3 +1,4 @@
+import type { EncounterActorOwnerDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 
 export function orderedInitiativeRows<
@@ -59,7 +60,7 @@ export function readSideOrder(state: EncounterInitiativeRoundStateDto, orderErro
 }
 
 /** The owner link of a Run actor, as the initiative order reads it. */
-export type ActorOwnerLink = { ownerActorId: string; turnTiming?: 'AFTER_OWNER' | 'OWN_INITIATIVE' }
+export type ActorOwnerLink = Pick<EncounterActorOwnerDto, 'ownerActorId' | 'turnTiming'>
 
 /**
  * Whether a Run actor is rolled into the initiative order: an owned actor acts on its owner's turn

@@ -130,6 +130,8 @@ export const encounterActorOwnerDtoSchema = lazySchema(() =>
   })
 )
 
+export type EncounterActorOwnerDto = z.infer<typeof encounterActorOwnerDtoSchema>
+
 /**
  * The GM's per-actor reveal (ATTACK-17.3): a public actor whose token a player cannot see is
  * listed to that player only when revealed, as an "Unseen creature" (`UNNAMED`) or by name (`NAMED`).
