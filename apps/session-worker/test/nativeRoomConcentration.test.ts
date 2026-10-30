@@ -837,11 +837,16 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
     const save = await room.pendingDecision()
     if (save.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
-    const rolled = await room.rollDice(save)
+    expect((await room.rollDice(save)).type).toBe('COMMAND_COMMITTED')
+    const [appRoll] = (await readRoomHistory(room.room.base.stub)).evidenceRolls
+    const rolled = await room.resolve(save, {
+      kind: 'SYSTEM_ROLL',
+      requestId: save.pending.request.requestId,
+      rollId: appRoll!.id
+    })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW')
-      throw new Error(`Expected the d20 window: ${JSON.stringify(decision.pending)}`)
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
     expect(decision.pending).toMatchObject({ d20: { selectedNatural: 8, total: 9 } })
     expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toEqual([])
     const settled = await room.resolve(decision, {
