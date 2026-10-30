@@ -4,7 +4,8 @@ import { SystemChoiceAlert } from '#forms/layout/SystemChoiceAlert'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import {
-  useAuthoringForm,
+  useAuthoringActions,
+  useAuthoringSession,
   type AuthoringFormActionHandlers,
   type AuthoringFormStatePatch
 } from '#forms/layout/AuthoringFormContext'
@@ -32,7 +33,8 @@ export function CharacterBuilderAuthoringRuntime({
   const [openAttempt, setOpenAttempt] = useState(0)
   const [failedAttempt, setFailedAttempt] = useState<number>()
   const draftOpenFailed = failedAttempt === openAttempt
-  const { cancelHref, updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+  const { cancelHref } = useAuthoringSession()
+  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
 
   useEffect(() => {
     if (session.draft || session.notFound || !session.systemId) return

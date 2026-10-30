@@ -1,35 +1,25 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useSelector } from '@tanstack/react-form'
-import type {
-  NodeRuntimePathDto,
-  NodeRuntimeResolveResponseDto
-} from '@artificer-toolkit/schema/api/nodeRuntime'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
-import { clearResolvedNodeFormPaths, toResolvedNodeValues } from '../node-map/nodeFormUtils'
+import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
 import {
-  getVisibleAuthoringSteps,
-  useAuthoringResolvedModel,
-  type VisibleAuthoringSteps
-} from '../hooks/useAuthoringResolvedModel'
-import { getAuthoringProgress, type FieldMetaSnapshot } from '../validation/authoringProgress'
+  useAuthoringNavigation,
+  useAuthoringResolution,
+  useAuthoringSession,
+  useAuthoringStagedEditor
+} from '../layout/AuthoringFormContext'
+import { toResolvedNodeValues } from '../node-map/nodeFormUtils'
+import { useAuthoringResolvedModel } from '../hooks/useAuthoringResolvedModel'
+import { RESOLUTION_DEBOUNCE_MS, useDebouncedFormState } from '../hooks/useDebouncedFormState'
 import { withForm } from '../app-form/AppForm'
 import {
   getAuthoringFieldValue,
   toAuthoringFieldName,
-  prefixRuntimePaths,
   toTypedAuthoringFieldName
 } from '../utils/pathUtils'
 import {
-  buildAuthoringNavigationTree,
   isNavigableAuthoringGroupNode,
   type AuthoringNavigationTarget
 } from '../layout/authoringNavigation'
-import {
-  toEditorValues,
-  hasVisibleStepChanges,
-  resetVisibleStepFields,
-  isRenderableNode
-} from './FormRenderer.utils'
+import { toEditorValues, isRenderableNode } from './FormRenderer.utils'
 import { useStructuralChangeGuard, type StructuralChangeGuard } from './useStructuralChangeGuard'
 import {
   AuthoringRendererInteractionsProvider,
@@ -60,7 +50,6 @@ type SharedRendererProps = {
   ancestors?: readonly Record<string, unknown>[]
   canvasContent?: ReactNode
   currentStepId?: string
-  debounceMs?: number
   fieldPathPrefix?: string
   mapId?: string
   model?: NodeRuntimeResolveResponseDto
@@ -74,8 +63,6 @@ type SharedRendererProps = {
   structuralChangeGuard?: StructuralChangeGuard
   updateAuthoringState?: boolean
 }
-
-const EMPTY_VISIBLE_STEPS: VisibleAuthoringSteps = []
 
 function isSameAuthoringLabel(left: string, right: string) {
   return left.trim().toLocaleLowerCase() === right.trim().toLocaleLowerCase()
@@ -95,7 +82,6 @@ export function FormRenderer<TValues extends object>({
       ancestors,
       canvasContent,
       currentStepId,
-      debounceMs = 150,
       fieldPathPrefix,
       form,
       mapId,
@@ -110,37 +96,30 @@ export function FormRenderer<TValues extends object>({
       structuralChangeGuard: inheritedStructuralChangeGuard,
       updateAuthoringState = true
     }) {
-      const authoring = useAuthoringForm()
-      const { updateAuthoringFormActions, updateAuthoringFormState } = authoring
+      const session = useAuthoringSession()
+      const navigation = useAuthoringNavigation()
+      const providerResolution = useAuthoringResolution()
+      const stagedEditor = useAuthoringStagedEditor()
       const [expandedInlineRowIds, setExpandedInlineRowIds] = useState<ReadonlySet<string>>(
         () => new Set()
       )
-      const [groupEditor, setGroupEditor] = useState<GroupEditorTransaction>()
+      const [localGroupEditor, setLocalGroupEditor] = useState<GroupEditorTransaction>()
       const [groupRemoval, setGroupRemoval] = useState<GroupRemoval>()
       const resolvedFieldPathPrefix = fieldPathPrefix
-      const resolvedMapId = mapId ?? authoring.mapId
-      const resolvedReadOnly = readOnly ?? authoring.readOnly
-      const resolvedResolveModel = resolveModel ?? authoring.resolveModel
-      const resolvedSystemId = systemId ?? authoring.systemId
+      const resolvedMapId = mapId ?? session.mapId
+      const resolvedReadOnly = readOnly ?? session.readOnly
+      const resolvedResolveModel = resolveModel ?? session.resolveModel
+      const resolvedSystemId = systemId ?? session.systemId
       const rendersNavigationTarget = updateAuthoringState || renderNavigationTarget
-      const formValues = useSelector(form.store, (state) => state.values)
+      const formValues = useDebouncedFormState(form, RESOLUTION_DEBOUNCE_MS).values
       const rootValues = useMemo(() => toResolvedNodeValues(formValues), [formValues])
       const localStructuralChangeGuard = useStructuralChangeGuard({
         form,
-        rootMapId: authoring.mapId,
-        rootSystemId: authoring.systemId,
-        rootValues
+        rootMapId: session.mapId,
+        rootSystemId: session.systemId
       })
       const structuralChangeGuard = inheritedStructuralChangeGuard ?? localStructuralChangeGuard
       const ownsStructuralChangeGuard = inheritedStructuralChangeGuard === undefined
-
-      const canSubmit = useSelector(form.store, (state) => state.canSubmit)
-      const fieldMeta = useSelector(
-        form.store,
-        (state) => state.fieldMeta as Partial<Record<string, FieldMetaSnapshot>>
-      )
-      const hasChanges = useSelector(form.store, (state) => state.isDirty)
-      const isSubmitting = useSelector(form.store, (state) => state.isSubmitting)
       const values = useMemo(() => {
         if (!resolvedFieldPathPrefix) return rootValues
 
@@ -150,66 +129,45 @@ export function FormRenderer<TValues extends object>({
         () => (parentValues ? [parentValues, ...(ancestors ?? [])] : ancestors),
         [ancestors, parentValues]
       )
-      const {
-        model: activeModel,
-        error: resolutionError,
-        isFetching: isResolving,
-        refetch: retryResolution
-      } = useAuthoringResolvedModel({
+      // The layout's root renderer shares the provider's resolution; nested and standalone
+      // renderers resolve their own scope.
+      const ownResolution = useAuthoringResolvedModel({
         ancestors,
-        debounceMs,
         mapId: resolvedMapId ?? 'pending',
-        model: model ?? (mapId ? undefined : authoring.providedModel),
-        resolveModel:
-          Boolean(resolvedMapId) &&
-          resolvedResolveModel &&
-          !model &&
-          !(mapId ? false : authoring.providedModel),
+        model,
+        resolveModel: !updateAuthoringState && Boolean(resolvedMapId) && resolvedResolveModel,
         parentValues,
         systemId: resolvedSystemId,
         values
       })
-      const fallbackVisibleSteps = useMemo(
-        () => (updateAuthoringState ? EMPTY_VISIBLE_STEPS : getVisibleAuthoringSteps(activeModel)),
-        [activeModel, updateAuthoringState]
-      )
-      const navigationState = useMemo(
-        () =>
-          rendersNavigationTarget && resolvedMapId && activeModel
-            ? buildAuthoringNavigationTree({
-                ancestors,
-                fieldMeta,
-                fieldPathPrefix: resolvedFieldPathPrefix,
-                mapId: resolvedMapId,
-                model: activeModel,
-                parentValues,
-                values: rootValues,
-                validationIssues: authoring.validationIssues,
-                warnings: authoring.stepWarnings
-              })
-            : undefined,
-        [
-          activeModel,
-          ancestors,
-          authoring.stepWarnings,
-          authoring.validationIssues,
-          fieldMeta,
-          parentValues,
-          resolvedMapId,
-          rootValues,
-          rendersNavigationTarget,
-          resolvedFieldPathPrefix
-        ]
-      )
+      const {
+        model: activeModel,
+        error: resolutionError,
+        isRetrying,
+        refetch: retryResolution
+      } = updateAuthoringState ? providerResolution : ownResolution
+      const validationTargets = navigation.navigationTargets
       const activeTarget =
-        navigationTarget ??
-        (updateAuthoringState
-          ? (navigationState?.navigationTargets.find(
-              (target) => target.id === authoring.activeNavigationTargetId
-            ) ??
-            (navigationState ? undefined : authoring.activeNavigationTarget) ??
-            navigationState?.navigationTargets[0])
-          : undefined)
+        navigationTarget ?? (updateAuthoringState ? navigation.activeNavigationTarget : undefined)
+      const activeCanvasMapId =
+        activeTarget?.kind === 'step' ? activeTarget.mapId : activeTarget?.canvasMapId
+      const activeCanvasFieldPathPrefix =
+        activeTarget?.kind === 'step'
+          ? activeTarget.fieldPathPrefix
+          : activeTarget?.canvasFieldPathPrefix
+      const delegatesNavigationTarget = Boolean(
+        rendersNavigationTarget &&
+        activeTarget &&
+        activeCanvasMapId &&
+        (activeCanvasMapId !== resolvedMapId ||
+          activeCanvasFieldPathPrefix !== resolvedFieldPathPrefix)
+      )
+      const registersStagedEditorState = rendersNavigationTarget && !delegatesNavigationTarget
+      // The canvas renderer shares its staged editor with the provider, so cancel waits for it.
+      const groupEditor = registersStagedEditorState ? stagedEditor.groupEditor : localGroupEditor
+      const setGroupEditor = registersStagedEditorState
+        ? stagedEditor.setGroupEditor
+        : setLocalGroupEditor
       useEffect(() => {
         if (
           !rendersNavigationTarget ||
@@ -250,21 +208,7 @@ export function FormRenderer<TValues extends object>({
             ...snapshot
           }
         })
-      }, [activeTarget, form, rendersNavigationTarget])
-      const activeCanvasMapId =
-        activeTarget?.kind === 'step' ? activeTarget.mapId : activeTarget?.canvasMapId
-      const activeCanvasFieldPathPrefix =
-        activeTarget?.kind === 'step'
-          ? activeTarget.fieldPathPrefix
-          : activeTarget?.canvasFieldPathPrefix
-      const delegatesNavigationTarget = Boolean(
-        rendersNavigationTarget &&
-        activeTarget &&
-        activeCanvasMapId &&
-        (activeCanvasMapId !== resolvedMapId ||
-          activeCanvasFieldPathPrefix !== resolvedFieldPathPrefix)
-      )
-      const registersStagedEditorState = rendersNavigationTarget && !delegatesNavigationTarget
+      }, [activeTarget, form, rendersNavigationTarget, setGroupEditor])
       const targetStepId =
         currentStepId ??
         (activeTarget?.kind === 'step'
@@ -277,102 +221,12 @@ export function FormRenderer<TValues extends object>({
               activeTarget.canvasFieldPathPrefix === resolvedFieldPathPrefix
             ? activeTarget.canvasStepId
             : undefined)
-      const visibleSteps = updateAuthoringState ? authoring.visibleSteps : fallbackVisibleSteps
+      const visibleSteps = updateAuthoringState ? navigation.visibleSteps : ownResolution.steps
       const currentStep = targetStepId
         ? visibleSteps.find((step) => step.id === targetStepId)
         : updateAuthoringState
-          ? authoring.activeStep
+          ? navigation.activeStep
           : visibleSteps[0]
-      const currentStepHasChanges = useSelector(form.store, (state) =>
-        hasVisibleStepChanges(
-          form,
-          currentStep?.sections ?? [],
-          resolvedFieldPathPrefix,
-          state.fieldMeta
-        )
-      )
-      const progress = useMemo(
-        () =>
-          getAuthoringProgress({
-            fieldMeta,
-            fieldPathPrefix: resolvedFieldPathPrefix,
-            model: activeModel,
-            values,
-            warnings: authoring.stepWarnings
-          }),
-        [activeModel, authoring.stepWarnings, resolvedFieldPathPrefix, fieldMeta, values]
-      )
-
-      const resetCurrentStep = useCallback(() => {
-        resetVisibleStepFields(form, currentStep?.sections ?? [], resolvedFieldPathPrefix)
-      }, [currentStep, form, resolvedFieldPathPrefix])
-
-      const resetCurrentForm = useCallback(() => {
-        form.reset?.()
-      }, [form])
-
-      const clearPaths = useCallback(
-        (paths: readonly NodeRuntimePathDto[]) => {
-          if (resolvedFieldPathPrefix) {
-            clearResolvedNodeFormPaths(form, prefixRuntimePaths(resolvedFieldPathPrefix, paths))
-            return
-          }
-
-          clearResolvedNodeFormPaths(form, paths)
-        },
-        [form, resolvedFieldPathPrefix]
-      )
-      const statePatch = useMemo(
-        () => ({
-          canFinalize:
-            !resolutionError &&
-            canSubmit &&
-            (navigationState
-              ? Object.values(navigationState.stepStatuses).every((status) => status === 'complete')
-              : progress.canFinalize),
-          canResetForm: hasChanges && !resolvedReadOnly,
-          canResetStep: currentStep != null && !resolvedReadOnly,
-          canSubmit,
-          fieldPathPrefix: resolvedFieldPathPrefix,
-          firstBlockingStepId: progress.firstBlockingStepId,
-          firstBlockingStatus: progress.firstBlockingStatus,
-          hasChanges,
-          hasStepChanges: currentStepHasChanges,
-          isSubmitting,
-          navigationTargets: navigationState?.navigationTargets,
-          navigationTree: navigationState?.navigationTree,
-          progressSummary: navigationState?.progressSummary ?? progress.summary,
-          readOnly: resolvedReadOnly,
-          resolvedModel: activeModel,
-          resetFormLabel: 'Reset Form',
-          resetStepLabel: 'Reset Step',
-          stepDirty: progress.stepDirty,
-          stepStatuses: navigationState?.stepStatuses ?? progress.stepStatuses,
-          systemId: resolvedSystemId
-        }),
-        [
-          activeModel,
-          currentStep,
-          currentStepHasChanges,
-          navigationState,
-          progress,
-          resolvedFieldPathPrefix,
-          resolvedReadOnly,
-          resolvedSystemId,
-          resolutionError,
-          canSubmit,
-          hasChanges,
-          isSubmitting
-        ]
-      )
-      const actions = useMemo(
-        () => ({
-          onClearPaths: clearPaths,
-          onResetForm: resetCurrentForm,
-          onResetStep: resetCurrentStep
-        }),
-        [clearPaths, resetCurrentForm, resetCurrentStep]
-      )
       const renderChild = useCallback<RenderChildAuthoringSchema>(
         (options) => {
           const childModel =
@@ -383,7 +237,6 @@ export function FormRenderer<TValues extends object>({
             <Renderer
               {...options}
               form={form}
-              debounceMs={debounceMs}
               model={childModel}
               resolveModel={resolvedResolveModel && childModel === undefined}
               systemId={resolvedSystemId}
@@ -392,14 +245,7 @@ export function FormRenderer<TValues extends object>({
             />
           )
         },
-        [
-          activeModel,
-          debounceMs,
-          form,
-          resolvedResolveModel,
-          resolvedSystemId,
-          structuralChangeGuard
-        ]
+        [activeModel, form, resolvedResolveModel, resolvedSystemId, structuralChangeGuard]
       )
       const rendererScope = useMemo<AuthoringRendererScope>(
         () => ({
@@ -432,31 +278,13 @@ export function FormRenderer<TValues extends object>({
           setGroupEditor,
           setGroupRemoval
         }),
-        [expandedInlineRowIds, groupEditor, groupRemoval]
+        [expandedInlineRowIds, groupEditor, groupRemoval, setGroupEditor]
       )
 
-      const shouldUpdateAuthoringState =
-        updateAuthoringState && Boolean(resolvedMapId && (activeModel || resolutionError))
-
-      useEffect(() => {
-        if (!shouldUpdateAuthoringState) return
-        updateAuthoringFormState(statePatch)
-      }, [shouldUpdateAuthoringState, statePatch, updateAuthoringFormState])
-
-      useEffect(() => {
-        if (!shouldUpdateAuthoringState) return
-        updateAuthoringFormActions(actions)
-      }, [actions, shouldUpdateAuthoringState, updateAuthoringFormActions])
-
       useEffect(() => {
         if (!registersStagedEditorState) return
-        updateAuthoringFormState({ stagedEditorOpen: Boolean(groupEditor) })
-      }, [groupEditor, registersStagedEditorState, updateAuthoringFormState])
-
-      useEffect(() => {
-        if (!registersStagedEditorState) return
-        return () => updateAuthoringFormState({ stagedEditorOpen: false })
-      }, [registersStagedEditorState, updateAuthoringFormState])
+        return () => stagedEditor.setGroupEditor(undefined)
+      }, [registersStagedEditorState, stagedEditor.setGroupEditor])
 
       const structuralChangeConfirmationModal = ownsStructuralChangeGuard ? (
         <Modal
@@ -487,7 +315,7 @@ export function FormRenderer<TValues extends object>({
             mt='sm'
             type='button'
             variant='default'
-            loading={isResolving}
+            loading={isRetrying}
             onClick={() => void retryResolution()}
           >
             Retry
@@ -501,9 +329,7 @@ export function FormRenderer<TValues extends object>({
             {resolutionAlert}
             <AuthoringValidationAlert
               target={updateAuthoringState ? activeTarget : undefined}
-              validationTargets={
-                navigationState?.navigationTargets ?? authoring.navigationTargets ?? []
-              }
+              validationTargets={validationTargets}
             />
             {canvasContent}
             {structuralChangeConfirmationModal}
@@ -551,7 +377,6 @@ export function FormRenderer<TValues extends object>({
               currentStepId={
                 activeTarget.kind === 'step' ? activeTarget.stepId : activeTarget.canvasStepId
               }
-              debounceMs={debounceMs}
               fieldPathPrefix={activeCanvasFieldPathPrefix}
               mapId={activeCanvasMapId}
               model={delegatedModel}
@@ -582,14 +407,12 @@ export function FormRenderer<TValues extends object>({
       const renderedSections = renderedSteps
         .flatMap((step) => step.sections)
         .filter((section) => section.nodes.some(isRenderableNode))
-      const validationTargets =
-        navigationState?.navigationTargets ?? authoring.navigationTargets ?? []
       const renderedValidationTarget = updateAuthoringState
         ? activeTarget
-        : authoring.activeNavigationTarget?.kind === 'step' &&
-            authoring.activeNavigationTarget.mapId === resolvedMapId &&
-            authoring.activeNavigationTarget.fieldPathPrefix === resolvedFieldPathPrefix
-          ? authoring.activeNavigationTarget
+        : navigation.activeNavigationTarget?.kind === 'step' &&
+            navigation.activeNavigationTarget.mapId === resolvedMapId &&
+            navigation.activeNavigationTarget.fieldPathPrefix === resolvedFieldPathPrefix
+          ? navigation.activeNavigationTarget
           : undefined
       const soleRenderedSection = renderedSections.length === 1 ? renderedSections[0] : undefined
       const soleRenderableNodes = soleRenderedSection?.nodes.filter(isRenderableNode) ?? []
@@ -641,13 +464,13 @@ export function FormRenderer<TValues extends object>({
                   rendersNavigationTarget && isSameAuthoringLabel(section.label, currentStep.label)
                 const showSectionHeader = !stepOwnsSectionLabel
                 const isAdvancedBasics =
-                  resolvedMapId === authoring.mapId &&
+                  resolvedMapId === session.mapId &&
                   resolvedFieldPathPrefix === undefined &&
-                  authoring.authoredSession !== undefined &&
+                  session.authoredSession !== undefined &&
                   isSameAuthoringLabel(section.label, 'Basics') &&
                   section === renderedSections[0]
                 const sectionNodes =
-                  isAdvancedBasics && authoring.authoredSession?.domain === 'spell'
+                  isAdvancedBasics && session.authoredSession?.domain === 'spell'
                     ? [...section.nodes].sort(
                         (left, right) =>
                           ['label', 'level', 'description'].indexOf(String(left.path[0] ?? '')) -
@@ -695,7 +518,7 @@ export function FormRenderer<TValues extends object>({
                                 resolvedFieldPathPrefix,
                                 node.path
                               )
-                              const overviewTarget = navigationState?.navigationTargets.find(
+                              const overviewTarget = validationTargets.find(
                                 (target) =>
                                   target.kind === 'overview' &&
                                   target.collectionFieldName === collectionFieldName

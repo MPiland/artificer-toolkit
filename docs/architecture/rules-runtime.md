@@ -2182,6 +2182,18 @@ actor list so a player who controls an actor's owner controls, and sees, the own
 `owner` on each actor. Nothing here is System-specific: the economy an owned actor spends is named for the
 concept (the owner's economy) and a System's data picks the action type (T2v2a3).
 
+### Delegated attacks (current, SPELLS-31.T4v2a, D156)
+
+A `DELEGATED_ATTACK` `ENABLE` modifier (`{effectIds}`) lets a creature the holder summoned with one of those effects
+attack with its reaction in place of one attack of the holder's Attack action. The `RESOLVE_ACTION` command names
+the attacker as `actorId` and the holder as `delegatingActorId`; the turn check uses the holder.
+`encounterAttackDelegated` (`encounterDelegatedAttack.ts`) decides the grant from the owner link, the holder's
+active carrier effect and the holder's grant fold. The session worker refuses unless the prepared action is a
+creature attack roll. The economy step charges the attacker's REACTION and the holder's Attack action (replacing an
+attack, ACTION 1). The holder's spend travels as `delegatingActorSpend` on the receipt batch:
+`actionCommitPersistence` applies it, `actionRevert` returns it, and it is part of the currentness checksum only
+when present, so existing pins are unchanged. Contests and system triggers refuse a delegation.
+
 ### Summon placement (current compile only, SPELLS-4.T2v2a2a)
 
 A spell whose one ON_USE outcome is a timed `SUMMON` manifest with a stat block compiles to `compilation.summonPlacement`

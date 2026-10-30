@@ -8,7 +8,11 @@ import {
 } from '@artificer-toolkit/shared/core'
 import { useAppForm } from '#forms/app-form/AppForm'
 import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
-import { useAuthoringForm, type AuthoringFormStatePatch } from '#forms/layout/AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringNavigation,
+  type AuthoringFormStatePatch
+} from '#forms/layout/AuthoringFormContext'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
   characterBuilderDraftPayloadFixture,
@@ -1729,7 +1733,7 @@ function CharacterBuilderTestHarness({
   showAbilityMethodTestToggle: boolean
   showProseEditTestToggle: boolean
 }) {
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringForm()
+  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
   const form = useAppForm({
     defaultValues: toCharacterFormValues(payload),
     onSubmit: async () => undefined
@@ -1842,7 +1846,7 @@ function CharacterBuilderTestHarness({
 }
 
 function CharacterBuilderStateProbe() {
-  const { stepStatuses } = useAuthoringForm()
+  const { stepStatuses } = useAuthoringNavigation()
   return <output aria-label='builder step statuses'>{JSON.stringify(stepStatuses)}</output>
 }
 

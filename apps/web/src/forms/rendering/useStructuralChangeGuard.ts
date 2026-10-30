@@ -39,14 +39,12 @@ type UseStructuralChangeGuardOptions<TValues extends object> = {
   form: ResolvedNodeClearableForm<TValues>
   rootMapId?: string
   rootSystemId?: string
-  rootValues: Record<string, unknown>
 }
 
 export function useStructuralChangeGuard<TValues extends object>({
   form,
   rootMapId,
-  rootSystemId,
-  rootValues
+  rootSystemId
 }: UseStructuralChangeGuardOptions<TValues>): StructuralChangeGuard {
   const convex = useConvex()
   const [pending, setPending] = useState(false)
@@ -98,6 +96,7 @@ export function useStructuralChangeGuard<TValues extends object>({
         return
       }
 
+      const rootValues = toResolvedNodeValues(form.state.values)
       const baseValuesFingerprint = fingerprintAuthoringValues(rootValues)
       const prospectiveValues = setAuthoringFieldValue(
         rootValues,
@@ -162,7 +161,7 @@ export function useStructuralChangeGuard<TValues extends object>({
           if (requestSequence.current === requestId) setPending(false)
         })
     },
-    [convex, form, rootMapId, rootSystemId, rootValues]
+    [convex, form, rootMapId, rootSystemId]
   )
 
   useEffect(

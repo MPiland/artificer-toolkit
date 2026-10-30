@@ -46,6 +46,7 @@ import {
   ABILITY_CODE
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
+import { pactBoonFeature } from './warlock-pact-boon.js'
 import { lifedrinkerEffect, pactOfTheBladeEffect } from './warlock-pact-weapon.js'
 import {
   abilityScoreImprovementOptions,
@@ -61,7 +62,6 @@ const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
 if (!goldCurrencyId)
   throw new Error('SRD GP currency vocabulary entry required for class source data.')
 
-const allCantripIds = srdSpells.filter((spell) => spell.level === 0).map((spell) => spell.id)
 const allFirstLevelRitualSpellIds = srdSpells
   .filter((spell) => spell.level === 1 && spell.attributes?.includes(SPELL_ATTRIBUTE.RITUAL))
   .map((spell) => spell.id)
@@ -1941,73 +1941,7 @@ export const warlock: ClassAuthored = {
         }
       ]
     },
-    // L3 — Pact Boon
-    {
-      id: classRowId(W, 3, 21),
-      label: 'Pact Boon',
-      description:
-        'At 3rd level, your otherworldly patron bestows a gift upon you for your loyal service. You gain one of the following features of your choice.',
-      availableAtLevel: 3,
-      order: 3,
-      optionChoices: [{ level: 3, count: 1 }],
-      options: [
-        {
-          id: classRowId(W, 3, 22),
-          label: 'Pact of the Chain',
-          description:
-            "You learn the find familiar spell and can cast it as a ritual. The spell doesn't count against your number of spells known.\n\nWhen you cast the spell, you can choose one of the normal forms for your familiar or one of the following special forms: imp, pseudodragon, quasit, or sprite.\n\nAdditionally, when you take the Attack action, you can forgo one of your own attacks to allow your familiar to make one attack of its own with its reaction.",
-          grants: {
-            spells: [
-              {
-                id: classRowId(W, 3, 23),
-                grantKind: GRANT_KIND.SPELL_GRANT,
-                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                scalingKind: SCALING.NONE,
-                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                spellIds: [SPELL_IDS.FIND_FAMILIAR],
-                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.RITUAL],
-                order: 0
-              }
-            ]
-          },
-          effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_CHAIN)],
-          order: 0
-        },
-        {
-          id: classRowId(W, 3, 24),
-          label: 'Pact of the Blade',
-          description:
-            "You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it. You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.\n\nYour pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.\n\nYou can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can't affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.",
-          // The weapon is one the warlock holds: creating it in any form, its disappearance 5 feet away
-          // and the bonding ritual stay description (D156). It lasts until used again or let go.
-          effects: [PACT_OF_THE_BLADE],
-          order: 1
-        },
-        {
-          id: classRowId(W, 3, 25),
-          label: 'Pact of the Tome',
-          description:
-            "Your patron gives you a grimoire called a Book of Shadows. When you gain this feature, choose three cantrips from any class's spell list (the three needn't be from the same list). While the book is on your person, you can cast those cantrips at will. They don't count against your number of cantrips known. If they don't appear on the warlock spell list, they are nonetheless warlock spells for you.\n\nIf you lose your Book of Shadows, you can perform a 1-hour ceremony to receive a replacement from your patron. This ceremony can be performed during a short or long rest, and it destroys the previous book. The book turns to ash when you die.",
-          grants: {
-            spells: [
-              {
-                id: classRowId(W, 3, 55),
-                grantKind: GRANT_KIND.SPELL_GRANT,
-                selectionKind: AUTHORING_SELECTION_KIND.CHOSEN,
-                count: 3,
-                selectionDuplicatePolicy: AUTHORING_SELECTION_DUPLICATE_POLICY.UNIQUE,
-                scalingKind: SCALING.NONE,
-                authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
-                spellIds: allCantripIds,
-                attributes: [SPELL_GRANT_ATTRIBUTE.KNOWN, SPELL_GRANT_ATTRIBUTE.CAST_AT_WILL],
-                order: 0
-              }
-            ]
-          },
-          order: 2
-        }
-      ]
-    },
+    pactBoonFeature((group, entry) => classRowId(W, group, entry), PACT_OF_THE_BLADE),
     // L4 — Ability Score Improvement
     {
       id: classRowId(W, 3, 26),

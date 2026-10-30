@@ -184,7 +184,6 @@
 00000000-0000-0000-c00b-601100000000 CHARACTER:classes Lifedrinker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-601200000000 CHARACTER:classes One with Shadows | SINGLE_GRAPH 63436da6082c3dd72ff7cfadd4062abe3e0332e4862d2d809f44c2c7f961ee91 nodes=1 outputs=2
 00000000-0000-0000-c00b-601500000000 CHARACTER:classes Voice of the Chain Master | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c00b-601700000000 CHARACTER:classes Pact of the Chain | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-601800000000 CHARACTER:classes Pact of the Blade | SINGLE_GRAPH 3389073f89146c788513a45a90c983da47229630ab1ac71c74b20e0259253794 nodes=2 outputs=1
 00000000-0000-0000-c00b-602500000000 CHARACTER:classes Eldritch Master | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

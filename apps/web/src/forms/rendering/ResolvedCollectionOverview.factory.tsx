@@ -12,7 +12,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { withForm } from '../app-form/AppForm'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringNavigation } from '../layout/AuthoringFormContext'
 import { getAuthoringFieldValue, toTypedAuthoringArrayFieldName } from '../utils/pathUtils'
 import {
   getArrayItemDrawerTargetId,
@@ -71,7 +71,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
       target,
       validationTargets
     }) {
-      const authoring = useAuthoringForm()
+      const { goToNavigationTarget, navigationTargets } = useAuthoringNavigation()
       const presentationContext = useAuthoringPresentationContext()
       const { model, readOnly } = useAuthoringRendererScope()
       const { groupEditor, setGroupEditor } = useAuthoringRendererInteractions()
@@ -98,9 +98,9 @@ export function createResolvedCollectionOverview<TValues extends object>(default
         })
         if (!targetId) return
 
-        authoring.goToNavigationTarget(targetId)
+        goToNavigationTarget(targetId)
         setPendingNavigationRowIndex(undefined)
-      }, [authoring, collectionFieldName, model, node, pendingNavigationRowIndex])
+      }, [collectionFieldName, goToNavigationTarget, model, node, pendingNavigationRowIndex])
 
       useEffect(() => {
         if (
@@ -205,7 +205,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                 )
               }
             }
-            const overviewTargetId = authoring.navigationTargets?.find(
+            const overviewTargetId = navigationTargets.find(
               (candidate) =>
                 candidate.kind === 'overview' &&
                 candidate.collectionFieldName === collectionFieldName
@@ -232,7 +232,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
               }
               const opener = editorForField.opener
               setGroupEditor(undefined)
-              if (overviewTargetId) authoring.goToNavigationTarget(overviewTargetId)
+              if (overviewTargetId) goToNavigationTarget(overviewTargetId)
               window.setTimeout(() => {
                 const targetOpener = drawerTarget
                   ? document.getElementById(
@@ -394,7 +394,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                                       ...snapshot
                                     })
                                   }
-                                  if (targetId) authoring.goToNavigationTarget(targetId)
+                                  if (targetId) goToNavigationTarget(targetId)
                                 }}
                               >
                                 {rowCells.length > 0 ? (
@@ -465,7 +465,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                                               ...snapshot
                                             })
                                             if (targetId) {
-                                              authoring.goToNavigationTarget(targetId)
+                                              goToNavigationTarget(targetId)
                                             }
                                           }
                                         })
@@ -513,7 +513,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                                               overviewTargetId
                                             ) {
                                               setGroupEditor(undefined)
-                                              authoring.goToNavigationTarget(overviewTargetId)
+                                              goToNavigationTarget(overviewTargetId)
                                             }
                                             field.removeValue(index)
                                           }
@@ -592,7 +592,7 @@ export function createResolvedCollectionOverview<TValues extends object>(default
                                   rowIndex
                                 })
                             if (targetId) {
-                              authoring.goToNavigationTarget(targetId)
+                              goToNavigationTarget(targetId)
                             } else if (!usesDrawer) {
                               setPendingNavigationRowIndex(rowIndex)
                             }

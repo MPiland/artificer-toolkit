@@ -299,6 +299,13 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** The holder's creature summoned with one of these authored effect ids can attack in place of one of its attacks. */
+export const delegatedAttackPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectIds: z.array(postgresUuidSchema).check(z.minLength(1))
+  })
+)
+
 /** The holder's own active effects with these authored ids do not end on these lifecycle events. */
 export const endEventExemptionPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -602,6 +609,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
     damageInterceptionPayloadDtoSchema,
+    delegatedAttackPayloadDtoSchema,
     endEventExemptionPayloadDtoSchema,
     incomingDamagePayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
@@ -900,6 +908,12 @@ const buildModifierGrantVariants = () =>
       damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'DELEGATED_ATTACK',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      delegatedAttackPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'END_EVENT_EXEMPTION',
       'ENABLE',

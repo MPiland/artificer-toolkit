@@ -17,7 +17,8 @@ vi.mock('@tanstack/react-router', () => ({
   useRouter: () => mocks.router
 }))
 vi.mock('./AuthoringFormContext', () => ({
-  useAuthoringForm: () => ({ cancel: vi.fn() })
+  useAuthoringActions: () => ({ cancel: vi.fn() }),
+  useAuthoringSession: () => ({})
 }))
 
 function ModeSwitch() {

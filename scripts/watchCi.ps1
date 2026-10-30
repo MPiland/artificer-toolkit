@@ -3,13 +3,19 @@
 # already failed.
 # One `gh run list` call per poll, every 120 seconds, to stay inside the shared API rate limit.
 #   pwsh -NoProfile -File scripts/watchCi.ps1 [-Ref HEAD]
-# Exit 0: all green. Exit 1: a run failed (its failed steps are printed, with the download command for
-# updated snapshots, or for generated-file drift the auto-fix could not commit; a type error cancels the
-# Tests run early and counts as a failure). Exit 2: the latest run was cancelled with no failed job.
+# Exit 0: every run concluded success. Exit 1: a run failed or ended in any other non-success conclusion
+# (its failed steps are printed, with the download command for updated snapshots, or for generated-file
+# drift the auto-fix could not commit; a type error cancels the Tests run early and counts as a failure),
+# or a `gh` or `git` call failed (no network, auth, rate limit). Exit 2: the latest run was cancelled with
+# no failed job.
 # When Live fails on generated-file drift, or Lint is the only failing Tests job, that workflow's auto-fix
 # job commits the fixes to the branch; the script prints AUTO-FIX <sha> and follows that commit (exit
 # codes then refer to it).
 param([string]$Ref = 'HEAD')
+
+# A failed `gh` call must end the watch: read as an empty run list, it once reported green.
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 
 $sha = git rev-parse $Ref
 $started = Get-Date
@@ -23,22 +29,24 @@ while ($true) {
   if ($latest | Where-Object workflowName -eq 'Tests') { $testsSeenAt ??= Get-Date }
 
   # Tests cancels its own run on a type error (job "Cancel the run on a type error"); a cancelled run with a
-  # failed job is that failure, not a superseded run. An unreadable job list is polled again.
+  # failed job is that failure, not a superseded run. Any other conclusion but success (timed_out,
+  # startup_failure, action_required, ...) is a failure too.
   $cancelledRuns = @($latest | Where-Object { $_.status -eq 'completed' -and $_.conclusion -eq 'cancelled' })
   $failedJobs = @{}
   foreach ($run in $cancelledRuns) {
     $failedJobs[$run.databaseId] = gh run view $run.databaseId --json jobs --jq '[.jobs[] | select(.conclusion=="failure")] | length'
   }
-  if ($failedJobs.Values -contains $null) { [Threading.Thread]::Sleep(120000); continue }
   $failed = $latest | Where-Object {
-    $_.status -eq 'completed' -and ($_.conclusion -eq 'failure' -or ($_.conclusion -eq 'cancelled' -and $failedJobs[$_.databaseId] -ne '0'))
+    $_.status -eq 'completed' -and ($_.conclusion -notin 'success', 'cancelled' -or ($_.conclusion -eq 'cancelled' -and $failedJobs[$_.databaseId] -ne '0'))
   }
   foreach ($run in $failed) {
     $steps = gh run view $run.databaseId --json jobs --jq '.jobs[] | select(.conclusion=="failure") | "\(.name): \([.steps[] | select(.conclusion=="failure") | .name] | join(", "))"'
     "FAILED $($run.workflowName) $($run.databaseId)"
     $steps
     if ($steps -match '^Typecheck') {
-      gh run view $run.databaseId --log-failed | Select-String 'error TS\d+' | Select-Object -First 40 | ForEach-Object Line
+      # Read the whole log first: stopping gh mid-pipeline would surface as a failed gh call.
+      $log = gh run view $run.databaseId --log-failed
+      $log | Select-String 'error TS\d+' | Select-Object -First 40 | ForEach-Object Line
     }
     $drift = [bool]($steps -match 'Generated files match the commit')
     $lintOnly = $run.workflowName -eq 'Tests' -and @($steps).Count -gt 0 -and -not (@($steps) | Where-Object { $_ -notmatch '^Lint: ' })
@@ -81,7 +89,7 @@ while ($true) {
 
   # Live backend is path-filtered, and an auto-fix dispatch starts no Browser journeys run; a workflow that
   # has not appeared 3 minutes after Tests was not triggered for this commit.
-  $settled = $testsSeenAt -and (($latest.Count -ge 3) -or ((Get-Date) - $testsSeenAt).TotalMinutes -ge 3)
+  $settled = ($latest.workflowName -contains 'Tests') -and (($latest.Count -ge 3) -or ((Get-Date) - $testsSeenAt).TotalMinutes -ge 3)
   if ($settled -and -not ($latest | Where-Object status -ne 'completed')) {
     $latest | ForEach-Object { "GREEN $($_.workflowName) $($_.databaseId)" }
     exit 0

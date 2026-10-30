@@ -132,10 +132,12 @@ export function encounterActionCurrentnessChecksum(input: {
   >
   actionEconomy: EncounterActionEconomyConsumption | null
   attackAction: EncounterAttackActionTransitionDto | null
+  /** The commanding actor's spend on a delegated attack (DELEGATED_ATTACK). */
+  delegation?: object | null
   maintenance: object | null
   sceneContext: object | null
 }) {
-  const { prepared, actionEconomy, attackAction, maintenance, sceneContext } = input
+  const { prepared, actionEconomy, attackAction, delegation, maintenance, sceneContext } = input
   const { characterFacts: sourceCharacterFacts, ...sourceCurrentnessFacts } = prepared.sourceFacts
   const { characterFacts: targetCharacterFacts, ...targetCurrentnessFacts } = prepared.targetFacts
   return checksumRuleDocument({
@@ -148,6 +150,7 @@ export function encounterActionCurrentnessChecksum(input: {
     featureUsed: prepared.featureUsed,
     actionEconomy,
     ...(attackAction ? { attackAction } : {}),
+    ...(delegation ? { delegation } : {}),
     ...(maintenance ? { maintenance } : {}),
     ...(sceneContext ? { sceneContext } : {})
   })

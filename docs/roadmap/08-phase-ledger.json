@@ -588,9 +588,11 @@
           "acs": [
             {
               "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21.",
+              "status": "DONE",
+              "proof": [
+                "Closed by PLATFORM-13.T16undefined), PLATFORM-13.T11undefined), PLATFORM-13.T12undefined), PLATFORM-13.T13undefined), PLATFORM-13.T21 (m554), PLATFORM-13.T22 (m558); see each task's proof."
+              ],
+              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21. Closed 2026-10-30 by PLATFORM-13.T16, PLATFORM-13.T11, PLATFORM-13.T12, PLATFORM-13.T13, PLATFORM-13.T21, PLATFORM-13.T22.",
               "origin": [
                 "CP-S1"
               ],
@@ -1067,7 +1069,7 @@
               "note": "Merged in m554 (a843899d2)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "PLATFORM-13.T22",
               "closes": [
                 "PLATFORM-13.2"
@@ -1079,7 +1081,7 @@
                 "size": 1
               },
               "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path. Rider: remove the stray BEL control byte and literal `n in the comment at packages/shared/src/domains/core/valueDomain.ts:501 (from 371b19b81).",
-              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
+              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29. Merged in m558 (214537231)."
             },
             {
               "id": "PLATFORM-13.T23",
@@ -19538,7 +19540,7 @@
               "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-31.T4v2a",
               "closes": [
                 "SPELLS-31.1"
@@ -19554,7 +19556,7 @@
                 ]
               },
               "text": "Delegated attack, room half: a generic DELEGATED_ATTACK caster grant \"forgo one attack of the Attack action; a creature you summoned with one of effectIds attacks with its reaction\" (owner link). The caster's command carries delegateActorId and is admitted against the owner link; the attack is prepared as the delegate's own creature attack; settlement charges the caster's attack and the delegate's reaction, and undoes as one command (replay and checksum pins). Pact of the Chain authored with it; deletes CLASS_WARLOCK_PACT_OF_CHAIN (D156). Room journey. No Warlock names in code; authoring-parity proof.",
-              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced. Split at sizing (option a): Approved by the user on 2026-10-29."
+              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced. Split at sizing (option a): Approved by the user on 2026-10-29. Merged in m559 (a6644b367)."
             },
             {
               "id": "SPELLS-31.T4v2b",
@@ -21789,6 +21791,14 @@
               "origin": [],
               "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-24 by SPELLS-34.T1.",
               "id": "SPELLS-34.4"
+            },
+            {
+              "id": "SPELLS-34.5",
+              "text": "A summon whose authored form says it cannot attack is refused the Attack action and attack offers on its own turn, while a delegated attack its owner grants (Pact of the Chain) still resolves.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-30 from the SPELLS-31.T4v2a review (Find Familiar: \"A familiar can't attack\"). Approved by the user on 2026-10-30."
             }
           ],
           "wsjf": {
@@ -21874,6 +21884,25 @@
               },
               "text": "Sheet path for corpus-form summons: the Sheet CAST_SPELL carries the form and creature-type choice with a Sheet picker, the summon is linked to its caster, and a long rest keeps an untimed summon instead of dropping every summon. Sheet familiars joining a Run and Find Familiar's 1-hour casting time stay out of scope. Red-first proofs.",
               "note": "Split from SPELLS-34.T3 at sizing (option a). Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "SPELLS-34.T4",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-34.5"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-34.T3a",
+                  "SPELLS-31.T4v2a"
+                ]
+              },
+              "text": "Bug: a summoned familiar can take the Attack action on its own turn although Find Familiar says it cannot attack. Add a generic authored flag on the SUMMON form (or summon) that refuses the actor's own attacks at admission and in the action-choices read; DELEGATED_ATTACK still resolves through it. Author Find Familiar with it. No spell names in code; red-first room test plus authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-30."
             }
           ]
         }
@@ -23838,10 +23867,12 @@
             },
             {
               "text": "Typing into one authoring field re-renders only that field and the components whose displayed flag changed: no component subscribes to all values or all field meta, node resolution reads values through a debounced store subscription outside render, and step status and progress come from narrow selectors.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-10.T1b (m558); see each task's proof."
+              ],
               "origin": [],
-              "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090).",
+              "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090). Closed 2026-10-30 by RELIABILITY-10.T1b.",
               "id": "RELIABILITY-10.2",
               "journeys": [
                 "publication-browser"
@@ -23888,7 +23919,7 @@
             },
             {
               "id": "RELIABILITY-10.T1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-10.2"
               ],
@@ -23902,7 +23933,7 @@
                 ]
               },
               "text": "One resolution owner reads values through a debounced form.store subscription outside render; chrome reads step status, progress and navigation through narrow selectors; FormRenderer push-up effects deleted; AuthoringFormContext split into stable actions, navigation and mode contexts; render-count test on a real authored form plus a Profiler before/after in local-validation.",
-              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29. Merged in m558 (214537231)."
             },
             {
               "id": "RELIABILITY-10.T1c",

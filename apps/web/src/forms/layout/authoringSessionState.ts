@@ -12,7 +12,6 @@ import type {
 import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
 import { areAuthoringStepIdsEqual } from './authoringSearch'
 
-const EMPTY_STEP_DIRTY = {}
 const EMPTY_STEP_STATUSES = {}
 const EMPTY_STEP_WARNINGS = {}
 
@@ -45,26 +44,16 @@ export function isSameSession(left: AuthoringFormSessionState, right: AuthoringF
     left.hasChanges === right.hasChanges &&
     left.hasStepChanges === right.hasStepChanges &&
     left.hasActiveDraft === right.hasActiveDraft &&
-    left.firstBlockingStepId === right.firstBlockingStepId &&
-    left.firstBlockingStatus === right.firstBlockingStatus &&
     left.isDraft === right.isDraft &&
-    left.isFirstStep === right.isFirstStep &&
-    left.isLastStep === right.isLastStep &&
     left.isDeleting === right.isDeleting &&
     left.isSubmitting === right.isSubmitting &&
     left.mapId === right.mapId &&
     left.mode === right.mode &&
-    left.navigationTargets === right.navigationTargets &&
-    left.navigationTree === right.navigationTree &&
-    left.providedModel === right.providedModel &&
     left.readOnly === right.readOnly &&
     left.resolveModel === right.resolveModel &&
-    left.resolvedModel === right.resolvedModel &&
     left.resetFormLabel === right.resetFormLabel &&
     left.resetStepLabel === right.resetStepLabel &&
     left.saveDraftLabel === right.saveDraftLabel &&
-    left.stagedEditorOpen === right.stagedEditorOpen &&
-    isSameRecord(left.stepDirty, right.stepDirty) &&
     isSameRecord(left.stepStatuses, right.stepStatuses) &&
     isSameRecord(left.stepWarnings, right.stepWarnings) &&
     isSameProgressSummary(left.progressSummary, right.progressSummary) &&
@@ -100,10 +89,6 @@ function getDomainRegistration(
     draftSaveStatus: undefined,
     fallbackLabel: factory.fallbackLabel,
     mapId: factory.mapId,
-    navigationTargets: undefined,
-    navigationTree: undefined,
-    providedModel: undefined,
-    resolvedModel: undefined,
     subjectKindLabel: factory.subjectKindLabel,
     validationIssues: [],
     ...(authoredSession
@@ -197,25 +182,16 @@ export function createCharacterBuilderRegistration(
     domainData: undefined,
     fallbackLabel: 'Untitled Character',
     fieldPathPrefix: undefined,
-    firstBlockingStatus: undefined,
-    firstBlockingStepId: undefined,
     hasChanges: false,
     hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
     hasStepChanges: false,
     isDraft: nextCharacterSession?.isDraft ?? false,
-    isFirstStep: true,
-    isLastStep: true,
     mapId: undefined,
     mode,
-    navigationTargets: undefined,
-    navigationTree: undefined,
     progressSummary: undefined,
-    providedModel: undefined,
     readOnly: nextCharacterSession?.readOnly ?? false,
     resolveModel: false,
-    resolvedModel: undefined,
     saveDraftLabel: 'Save Draft',
-    stepDirty: EMPTY_STEP_DIRTY,
     stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Character',
@@ -320,18 +296,14 @@ function createDefaultSession(): AuthoringFormSessionState {
     hasStepChanges: false,
     hasActiveDraft: false,
     isDraft: false,
-    isFirstStep: true,
-    isLastStep: true,
     isDeleting: false,
     isSubmitting: false,
-    stagedEditorOpen: false,
     mode: 'create',
     readOnly: false,
     resolveModel: true,
     resetFormLabel: 'Reset Form',
     resetStepLabel: 'Reset Step',
     saveDraftLabel: 'Save Draft',
-    stepDirty: EMPTY_STEP_DIRTY,
     stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Item',
@@ -360,23 +332,7 @@ export function resolveRequestedNavigation(
     }
   }
 
-  const targets = session.navigationTargets ?? []
-  if (targets.length === 0) {
-    return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
-  }
-
-  const target =
-    targets.find((entry) => areAuthoringStepIdsEqual(entry.id, requestedStepId)) ?? targets[0]
-  if (!target) return session
-
-  return {
-    ...session,
-    activeNavigationTargetId: target.id,
-    activeStepId: target.stepId ?? target.canvasStepId,
-    activeStepLabel: target.canvasLabel ?? target.label,
-    fieldPathPrefix: target.fieldPathPrefix,
-    visitedStepIds: addVisitedStep(session.visitedStepIds, target.id)
-  }
+  return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
 }
 
 export function addVisitedStep(current: ReadonlySet<string>, stepId: string): ReadonlySet<string> {

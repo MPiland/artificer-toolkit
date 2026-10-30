@@ -2,7 +2,13 @@ import type { ReactNode } from 'react'
 import { ActionIcon, Button, Menu, Tooltip } from '@mantine/core'
 import { Ellipsis, Eye, PanelLeft, RotateCcw, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
-import { useAuthoringForm } from '../AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringSession,
+  useAuthoringStagedEditor
+} from '../AuthoringFormContext'
+
+import { useAuthoringFormStatus } from '../useAuthoringFormStatus'
 import * as styles from './Actions.css'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 
@@ -76,8 +82,9 @@ export function StepsNavigationAction() {
 }
 
 export function ResetActionMenu() {
-  const { readOnly, canResetStep, canResetForm, hasStepChanges, hasChanges, resetStep } =
-    useAuthoringForm()
+  const { readOnly } = useAuthoringSession()
+  const { resetStep } = useAuthoringActions()
+  const { canResetForm, canResetStep, hasChanges, hasStepChanges } = useAuthoringFormStatus()
   const { toggleResetFormConfirm } = useAuthoringLayout()
   if (readOnly || (!canResetStep && !canResetForm)) return null
 
@@ -113,15 +120,10 @@ export function ResetActionMenu() {
 }
 
 export function SaveDraftAction() {
-  const {
-    readOnly,
-    canSaveDraft,
-    hasChanges,
-    saveDraftLabel,
-    saveDraft,
-    isSubmitting,
-    stagedEditorOpen
-  } = useAuthoringForm()
+  const { canSaveDraft, readOnly, saveDraftLabel } = useAuthoringSession()
+  const { saveDraft } = useAuthoringActions()
+  const { hasChanges, isSubmitting } = useAuthoringFormStatus()
+  const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
   if (readOnly || !canSaveDraft) return null
 
   return (
@@ -139,8 +141,10 @@ export function SaveDraftAction() {
 }
 
 export function ActivateAction() {
-  const { activate, activateLabel, canFinalize, isSubmitting, readOnly, stagedEditorOpen } =
-    useAuthoringForm()
+  const { activateLabel, readOnly } = useAuthoringSession()
+  const { activate } = useAuthoringActions()
+  const { canFinalize, isSubmitting } = useAuthoringFormStatus()
+  const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
   if (readOnly) return null
 
   return (
@@ -176,7 +180,8 @@ export function PreviewToggleAction() {
 }
 
 export function OverflowActionMenu() {
-  const { canDelete, isDeleting, deleteRecord, deleteLabel } = useAuthoringForm()
+  const { canDelete, deleteLabel, isDeleting } = useAuthoringSession()
+  const { deleteRecord } = useAuthoringActions()
   if (!canDelete) return null
 
   return (

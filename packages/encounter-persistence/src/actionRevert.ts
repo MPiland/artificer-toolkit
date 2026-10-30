@@ -727,25 +727,38 @@ export async function revertLastEncounterAction(
       if (!owner) revertUnavailable(FEATURE_CHARGES_CHANGED)
       updateActor(owner.id, { resources: returnSpentFeatureCharge(owner, feature).resources })
     }
-    const economy = spend.actionEconomyTransition
-    if (economy) {
-      const owner = actorsById.get(source.id)!
-      if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
-        revertUnavailable("The actor's action economy changed after this action; adjust manually.")
-      updateActor(owner.id, {
-        resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
-      })
+    // The allowance and Attack action the source spent, and the commander's on a delegated attack.
+    const returnEconomy = (
+      actorId: string,
+      {
+        actionEconomyTransition: economy,
+        attackActionTransition: attackAction
+      }: Pick<typeof spend, 'actionEconomyTransition' | 'attackActionTransition'>
+    ) => {
+      const owner = actorsById.get(actorId)
+      if (!owner) throw new Error('Stored Encounter action actors are unavailable.')
+      if (economy) {
+        if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
+          revertUnavailable(
+            "The actor's action economy changed after this action; adjust manually."
+          )
+        updateActor(actorId, {
+          resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
+        })
+      }
+      if (attackAction) {
+        const restored = revertEncounterAttackActionTransition(
+          actorsById.get(actorId)!,
+          attackAction
+        )
+        if (!restored)
+          revertUnavailable("The actor's Attack action changed after this action; adjust manually.")
+        updateActor(actorId, { resources: restored.resources })
+      }
     }
-    const attackAction = spend.attackActionTransition
-    if (attackAction) {
-      const restored = revertEncounterAttackActionTransition(
-        actorsById.get(source.id)!,
-        attackAction
-      )
-      if (!restored)
-        revertUnavailable("The actor's Attack action changed after this action; adjust manually.")
-      updateActor(source.id, { resources: restored.resources })
-    }
+    returnEconomy(source.id, spend)
+    const delegated = batch?.delegatingActorSpend
+    if (delegated) returnEconomy(delegated.actorId, delegated)
     // Each mark this action armed or engaged goes back to what it was; an actor engaged earlier stays so.
     for (const { actorId, before } of root.idleTurnMarkChanges) {
       const marked = actorsById.get(actorId)

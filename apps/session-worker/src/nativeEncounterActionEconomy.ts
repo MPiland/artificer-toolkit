@@ -10,9 +10,12 @@ import {
   evaluateEncounterActionEconomy,
   type ActionEconomyInput
 } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { GrantedAttackCharge } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { encounterActorGrantModifiers } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
+import { encounterAttackDelegated } from '@artificer-toolkit/rules-runtime/encounterDelegatedAttack'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -41,7 +44,7 @@ export function captureActionEconomyDefinitions(
  * command may acknowledge it.
  */
 export async function evaluateNativeLiveActionEconomy(input: {
-  prepared: Pick<Prepared, 'source' | 'actor'>
+  prepared: Pick<Prepared, 'source' | 'actor' | 'makesAttackRoll'>
   state: EncounterRunState
   actionId: string
   /** The acting actor's own facts. */
@@ -56,6 +59,16 @@ export async function evaluateNativeLiveActionEconomy(input: {
    * use (`useKey`); any other spends its own allowance (`activation`, Frenzy's Bonus Action).
    */
   weaponAttackOffer?: GrantedAttackCharge | null
+  /**
+   * The current actor that commands this attack (DELEGATED_ATTACK, D156), its facts and its active
+   * effects: the acting creature it summoned spends its reaction, and the commander one attack of
+   * its Attack action.
+   */
+  delegation?: {
+    actor: Prepared['actor']
+    target: (EconomyTarget & Pick<MovementTarget, 'characterFacts'>) | undefined
+    effects: Parameters<typeof encounterAttackDelegated>[0]['holderEffects']
+  } | null
 }) {
   const { prepared } = input
   const invocation =
@@ -78,19 +91,79 @@ export async function evaluateNativeLiveActionEconomy(input: {
       economy: null,
       suppressed: false,
       attackAction: null,
-      grantedUseKey
+      grantedUseKey,
+      delegation: null
     }
   if (activation.amount === null)
     throw new Error('The selected action activation is not normalized.')
   const featureId =
     prepared.source.kind === 'CREATURE' ? prepared.source.capability.ownerFeatureId : undefined
   const targetSize = systemCoreCodeSchema.safeParse(input.targetSize)
+  const definitions = captureActionEconomyDefinitions(input.capture)
+  if (input.delegation) {
+    const { actor, target, effects } = input.delegation
+    if (
+      prepared.source.kind !== 'CREATURE' ||
+      !prepared.makesAttackRoll ||
+      !encounterAttackDelegated({
+        holder: actor,
+        delegate: prepared.actor,
+        holderModifiers: encounterActorGrantModifiers(
+          actor,
+          target?.characterFacts?.ruleEvaluation.output ?? null
+        ),
+        holderEffects: effects
+      })
+    )
+      rejectDomain(
+        'SOURCE_REQUIREMENTS_NOT_MET',
+        'Only a creature the current actor summoned, under a grant that lets it attack in that actor’s place, makes this attack.'
+      )
+    const forgone = await evaluateEncounterAttackAction({
+      actor,
+      state: input.state,
+      target,
+      loadTarget: async () => target,
+      definitions,
+      triggerCode: invocation.triggerCode,
+      replacesAttack: true,
+      targetIds: input.targetIds,
+      activation: { code: 'ACTION', amount: 1 }
+    })
+    if (!forgone.attackAction || forgone.slot === null)
+      rejectDomain(
+        'SOURCE_REQUIREMENTS_NOT_MET',
+        'The commanding actor has no attack of its Attack action left to forgo.'
+      )
+    return {
+      activationCode: 'REACTION',
+      economy: await evaluateEncounterActionEconomy({
+        actor: prepared.actor,
+        state: input.state,
+        target: input.sourceTarget,
+        loadTarget: async () => input.sourceTarget,
+        definitions,
+        activation: { code: 'REACTION', amount: 1 }
+      }),
+      suppressed: false,
+      grantedUseKey: null,
+      attackAction: null,
+      delegation: {
+        actorId: actor.id,
+        consumption: forgone.economy?.consumption ?? null,
+        attackAction: encounterAttackActionTransition(forgone.attackAction, {
+          actionId: input.actionId,
+          targetIds: [...input.targetIds]
+        })
+      }
+    }
+  }
   const economyInput = {
     actor: prepared.actor,
     state: input.state,
     target: input.sourceTarget,
     loadTarget: async () => input.sourceTarget,
-    definitions: captureActionEconomyDefinitions(input.capture)
+    definitions
   }
   const evaluated = await evaluateEncounterAttackAction({
     ...economyInput,
@@ -147,6 +220,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
     economy,
     suppressed,
     grantedUseKey: offered && 'useKey' in offered ? offered.useKey : grantedUseKey,
+    delegation: null,
     attackAction: openedAttackAction
       ? encounterAttackActionTransition(openedAttackAction, {
           actionId: input.actionId,

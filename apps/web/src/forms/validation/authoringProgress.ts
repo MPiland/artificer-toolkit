@@ -10,7 +10,7 @@ import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoring
 import { isRecord } from '../utils/valueGuards'
 
 export type AuthoringStepProgressStatus = 'complete' | 'incomplete' | 'warning' | 'error'
-export type AuthoringStepDirtyMap = Partial<Record<string, boolean>>
+type AuthoringStepDirtyMap = Partial<Record<string, boolean>>
 export type AuthoringStepWarningMap = Partial<Record<string, boolean>>
 export type AuthoringStepStatusMap = Partial<Record<string, AuthoringStepProgressStatus>>
 
