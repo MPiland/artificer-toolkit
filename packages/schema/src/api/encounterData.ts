@@ -119,13 +119,18 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
  * The actor that commands this one. Control is derived from it, never copied onto the owned actor
  * (`actorOwnerChain`): whoever controls the owner controls the owned actor. `sourceEffectId` is the
  * active effect that created it (a summon spell); a pet or companion no effect created omits it.
+ * `turnTiming` is when a summon authored to act apart from its owner's turn takes it (D200); absent
+ * means on the owner's turn.
  */
 export const encounterActorOwnerDtoSchema = lazySchema(() =>
   z.strictObject({
     ownerActorId: uuidSchema,
-    sourceEffectId: z.optional(uuidSchema)
+    sourceEffectId: z.optional(uuidSchema),
+    turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE']))
   })
 )
+
+export type EncounterActorOwnerDto = z.infer<typeof encounterActorOwnerDtoSchema>
 
 /**
  * The GM's per-actor reveal (ATTACK-17.3): a public actor whose token a player cannot see is
