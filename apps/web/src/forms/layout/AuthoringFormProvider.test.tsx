@@ -23,8 +23,8 @@ import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
-/** A label the fake resolver answers without the Details step, as a structural edit would. */
-const WITHOUT_DETAILS_LABEL = 'Without details'
+/** A structural value the fake resolver answers without the Details step. Copy fields (label) send no request. */
+const WITHOUT_DETAILS_VARIANT = 'without-details'
 
 // The node-runtime resolver is the network: it answers every authored session with the provider
 // step fixture below.
@@ -38,7 +38,7 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
         queryFn: ({ queryKey }) => {
           const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
           return compactNodeRuntimeResponse(
-            values.label === WITHOUT_DETAILS_LABEL
+            values.variant === WITHOUT_DETAILS_VARIANT
               ? {
                   ...providerStepModel,
                   steps: providerStepModel.steps.filter((step) => step.id !== 'details')
@@ -686,7 +686,7 @@ function AuthoredUrlNavigationProbe() {
       <button type='button' onClick={() => goToNavigationTarget('step:race:root:details')}>
         Go to details
       </button>
-      <button type='button' onClick={() => form.setFieldValue('label', WITHOUT_DETAILS_LABEL)}>
+      <button type='button' onClick={() => form.setFieldValue('variant', WITHOUT_DETAILS_VARIANT)}>
         Remove details target
       </button>
     </>

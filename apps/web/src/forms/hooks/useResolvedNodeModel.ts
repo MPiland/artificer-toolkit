@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { replaceEqualDeep } from '@tanstack/react-query'
 import type { NodeRuntimeResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
+import { fingerprintNodeRuntimeRequest, useNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 
 /** Callers pass debounced values (`useDebouncedFormState`); each request resolves at once. */
 interface UseResolvedNodeModelOptions {
@@ -31,7 +31,12 @@ export function useResolvedNodeModel({
     }),
     [ancestors, mapId, parentValues, systemId, values]
   )
-  const query = useNodeRuntimeResolve(request, enabled && Boolean(systemId))
+  // Copy fields (names, descriptions) never change a resolution, so editing only them keeps the
+  // resolved request and sends nothing.
+  const fingerprint = useMemo(() => fingerprintNodeRuntimeRequest(request), [request])
+  const [resolvedRequest, setResolvedRequest] = useState({ fingerprint, request })
+  if (resolvedRequest.fingerprint !== fingerprint) setResolvedRequest({ fingerprint, request })
+  const query = useNodeRuntimeResolve(resolvedRequest.request, enabled && Boolean(systemId))
   // Each request has its own query, so an unchanged resolution would arrive as a new object; sharing
   // it keeps the previous model's identity and its readers do not re-render. While a refresh is
   // pending the previous model stays as it was.

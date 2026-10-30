@@ -68,20 +68,58 @@ describe('useResolvedNodeModel', () => {
     expect(screen.getByTestId('clear-path-count')).toHaveTextContent('1')
     client.clear()
   })
+
+  it('keeps the resolved request when only copy fields change', async () => {
+    const user = userEvent.setup()
+    const requests: unknown[] = []
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          queryFn: async ({ queryKey }) => {
+            requests.push(nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2]).values)
+            return compactNodeRuntimeResponse(initialModel)
+          }
+        }
+      }
+    })
+    render(<ResolvedModelHarness />, {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      )
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('model-label')).toHaveTextContent('Initial')
+    })
+    await user.click(screen.getByRole('button', { name: /rename/i }))
+    await user.click(screen.getByRole('button', { name: /change structural value/i }))
+
+    await waitFor(() => expect(requests).toHaveLength(2))
+    expect(requests).toEqual([
+      { label: 'Initial name', mode: 'initial' },
+      { label: 'Renamed', mode: 'next' }
+    ])
+    client.clear()
+  })
 })
 
 function ResolvedModelHarness() {
   const [mode, setMode] = useState('initial')
+  const [label, setLabel] = useState('Initial name')
   const { model } = useResolvedNodeModel({
     mapId: 'feature',
     systemId: 'system-1',
-    values: { mode }
+    values: { label, mode }
   })
 
   return (
     <div>
       <button type='button' onClick={() => setMode('next')}>
         Change structural value
+      </button>
+      <button type='button' onClick={() => setLabel('Renamed')}>
+        Rename
       </button>
       <div data-testid='model-label'>{model?.steps[0]?.label ?? 'none'}</div>
       <div data-testid='clear-path-count'>{model?.clearPaths.length ?? 0}</div>
