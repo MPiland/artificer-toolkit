@@ -3,12 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthoringSaveShortcut } from './useAuthoringSaveShortcut'
 
 const mocks = vi.hoisted(() => ({
-  saveDraft: vi.fn(),
-  useAuthoringForm: vi.fn()
+  groupEditor: undefined as object | undefined,
+  saveDraft: vi.fn()
 }))
 
 vi.mock('./AuthoringFormContext', () => ({
-  useAuthoringForm: mocks.useAuthoringForm
+  useAuthoringActions: () => ({ saveDraft: mocks.saveDraft }),
+  useAuthoringSession: () => ({ canSaveDraft: true, readOnly: false }),
+  useAuthoringStagedEditor: () => ({ groupEditor: mocks.groupEditor })
+}))
+vi.mock('./useAuthoringFormStatus', () => ({
+  useAuthoringFormStatus: () => ({ hasChanges: true, isSubmitting: false })
 }))
 
 function ShortcutProbe() {
@@ -19,14 +24,7 @@ function ShortcutProbe() {
 describe('authoring save shortcut', () => {
   beforeEach(() => {
     mocks.saveDraft.mockReset()
-    mocks.useAuthoringForm.mockReturnValue({
-      canSaveDraft: true,
-      hasChanges: true,
-      isSubmitting: false,
-      readOnly: false,
-      saveDraft: mocks.saveDraft,
-      stagedEditorOpen: false
-    })
+    mocks.groupEditor = undefined
   })
 
   it('saves the current draft with Ctrl+S', () => {
@@ -38,14 +36,7 @@ describe('authoring save shortcut', () => {
   })
 
   it('does not save while the staged editor owns uncommitted changes', () => {
-    mocks.useAuthoringForm.mockReturnValue({
-      canSaveDraft: true,
-      hasChanges: true,
-      isSubmitting: false,
-      readOnly: false,
-      saveDraft: mocks.saveDraft,
-      stagedEditorOpen: true
-    })
+    mocks.groupEditor = {}
     render(<ShortcutProbe />)
 
     fireEvent.keyDown(window, { ctrlKey: true, key: 's' })

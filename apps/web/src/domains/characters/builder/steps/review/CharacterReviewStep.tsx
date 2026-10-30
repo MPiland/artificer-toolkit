@@ -1,7 +1,7 @@
 import { Button, Text } from '@mantine/core'
 import { useLocation } from '@tanstack/react-router'
 import { withForm } from '#forms/app-form/AppForm'
-import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import { useAuthoringNavigation } from '#forms/layout/AuthoringFormContext'
 import { characterBuilderSteps, type CharacterBuilderStepId } from '../../core/stepNavigation'
 import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import * as sharedStyles from '../../shared/builderShared.css'
@@ -18,7 +18,7 @@ export const CharacterReviewStep = withForm({
   defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterReview({ payload }) {
-    const authoring = useAuthoringForm()
+    const { goToStep } = useAuthoringNavigation()
     const currentHref = useLocation({ select: (location) => location.href })
     const summary = payload.resolution.summary
     const groupedMessages = buildReviewGroups(payload)
@@ -80,7 +80,7 @@ export const CharacterReviewStep = withForm({
                     onClick={(event) => {
                       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
                       event.preventDefault()
-                      authoring.goToStep(stepId)
+                      goToStep(stepId)
                     }}
                   >
                     Review step

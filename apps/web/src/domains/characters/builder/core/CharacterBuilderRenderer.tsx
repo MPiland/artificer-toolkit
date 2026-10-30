@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Text } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
 import { withForm } from '#forms/app-form/AppForm'
-import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import {
+  useAuthoringActions,
+  useAuthoringNavigation,
+  useAuthoringSession
+} from '#forms/layout/AuthoringFormContext'
 import { EMPTY_CHARACTER_FORM_VALUES, toCharacterFormValues } from '../shared/formNormalization'
 import {
   getCharacterBuilderDeferredResolutionFingerprint,
@@ -35,8 +39,9 @@ export const CharacterBuilderRenderer = withForm({
   defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderRendererProps,
   render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
-    const authoring = useAuthoringForm()
-    const { updateAuthoringFormState } = authoring
+    const { activeStepId } = useAuthoringNavigation()
+    const { readOnly } = useAuthoringSession()
+    const { updateAuthoringFormState } = useAuthoringActions()
     const values = useSelector(form.store, (state) => state.values)
     const immediateResolutionFingerprint = useSelector(form.store, (state) =>
       getCharacterBuilderImmediateResolutionFingerprint(state.values)
@@ -45,7 +50,7 @@ export const CharacterBuilderRenderer = withForm({
       getCharacterBuilderDeferredResolutionFingerprint(state.values)
     )
     const activeStep = getCharacterBuilderStep(
-      authoring.activeStepId ?? payload.resolution.recommendedSectionId
+      activeStepId ?? payload.resolution.recommendedSectionId
     )
     const payloadFormValues = useMemo(() => toCharacterFormValues(payload), [payload])
     const resolutionPending =
@@ -75,7 +80,7 @@ export const CharacterBuilderRenderer = withForm({
     }, [])
 
     useEffect(() => {
-      if (authoring.readOnly || !resolutionPending) {
+      if (readOnly || !resolutionPending) {
         setIsResolving(false)
         return
       }
@@ -98,7 +103,7 @@ export const CharacterBuilderRenderer = withForm({
 
       return () => window.clearTimeout(timeoutId)
     }, [
-      authoring.readOnly,
+      readOnly,
       deferredResolutionFingerprint,
       immediateResolutionFingerprint,
       onResolve,
@@ -154,31 +159,31 @@ export const CharacterBuilderRenderer = withForm({
           aria-labelledby='character-builder-active-step-title'
         >
           {activeStep.id === 'BASICS' ? (
-            <CharacterBasicsStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterBasicsStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'RACE' ? (
-            <CharacterRaceStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterRaceStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'CLASSES' ? (
-            <CharacterClassesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterClassesStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'BACKGROUND' ? (
-            <CharacterBackgroundStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterBackgroundStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'DETAILS' ? (
-            <CharacterDetailsStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterDetailsStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'NOTES' ? (
-            <CharacterNotesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterNotesStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'ABILITIES' ? (
-            <CharacterAbilitiesStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterAbilitiesStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'EQUIPMENT' ? (
-            <CharacterEquipmentStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterEquipmentStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
           {activeStep.id === 'REVIEW' ? (
-            <CharacterReviewStep form={form} payload={payload} readOnly={authoring.readOnly} />
+            <CharacterReviewStep form={form} payload={payload} readOnly={readOnly} />
           ) : null}
         </div>
       </div>

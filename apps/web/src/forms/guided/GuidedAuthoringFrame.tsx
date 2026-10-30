@@ -1,6 +1,6 @@
 import { useEffect, useRef, type MouseEvent, type ReactNode } from 'react'
 import { Button, Group, Text } from '@mantine/core'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringActions, useAuthoringSession } from '../layout/AuthoringFormContext'
 import * as styles from './guidedAuthoring.css'
 
 type GuidedAuthoringFrameProps = {
@@ -29,7 +29,8 @@ export function GuidedAuthoringFrame({
   title
 }: GuidedAuthoringFrameProps) {
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const { cancel, cancelHref, cancelLabel } = useAuthoringForm()
+  const { cancelHref, cancelLabel } = useAuthoringSession()
+  const { cancel } = useAuthoringActions()
   const hasProgress = stepIndex !== undefined && steps !== undefined
 
   useEffect(() => {

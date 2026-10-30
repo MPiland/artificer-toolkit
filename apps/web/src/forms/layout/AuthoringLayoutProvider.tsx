@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useDisclosure, useMediaQuery } from '@mantine/hooks'
-import { useAuthoringForm } from './AuthoringFormContext'
+import { useAuthoringNavigation, useAuthoringSession } from './AuthoringFormContext'
 import {
   AuthoringLayoutContext,
   type AuthoringLayoutContextValue,
@@ -15,19 +15,10 @@ import {
 import { AUTHORING_COMPACT_WORKSPACE_QUERY } from './authoringWorkspace.constants'
 
 export function AuthoringLayoutProvider({ children }: { children: ReactNode }) {
-  const {
-    subjectKindLabel,
-    subjectLabel,
-    hasActiveDraft,
-    activeNavigationTarget,
-    activeStep,
-    activeStepId,
-    activeStepLabel,
-    characterSession,
-    visibleSteps,
-    mode,
-    isDraft
-  } = useAuthoringForm()
+  const { characterSession, hasActiveDraft, isDraft, mode, subjectKindLabel, subjectLabel } =
+    useAuthoringSession()
+  const { activeNavigationTarget, activeStep, activeStepId, activeStepLabel, visibleSteps } =
+    useAuthoringNavigation()
   const isWideDesktop = !useMediaQuery(AUTHORING_COMPACT_WORKSPACE_QUERY, false)
   const [
     stepsNavigationOpen,

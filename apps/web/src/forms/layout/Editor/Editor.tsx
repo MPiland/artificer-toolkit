@@ -1,5 +1,5 @@
 import { Alert, Button } from '@mantine/core'
-import { useAuthoringForm } from '../AuthoringFormContext'
+import { useAuthoringActions, useAuthoringSession } from '../AuthoringFormContext'
 import { ActionBar } from './ActionBar/ActionBar'
 import { Header } from '../Header/Header'
 import * as styles from './Editor.css'
@@ -16,7 +16,8 @@ export function Editor({
   showStepNavigation?: boolean
   title?: ReactNode
 }) {
-  const { subjectKindLabel, readOnly, canCopy, copyLabel, copy } = useAuthoringForm()
+  const { canCopy, copyLabel, readOnly, subjectKindLabel } = useAuthoringSession()
+  const { copy } = useAuthoringActions()
 
   return (
     <section id='authoring-form' className={styles.canvas}>

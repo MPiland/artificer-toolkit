@@ -3,18 +3,20 @@ import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
 import { useAuthoringLayout } from './AuthoringLayoutContext'
 
 vi.mock('./AuthoringFormContext', () => ({
-  useAuthoringForm: () => ({
+  useAuthoringSession: () => ({
     subjectKindLabel: 'Spell',
     subjectLabel: 'Fireball',
     hasActiveDraft: false,
+    characterSession: undefined,
+    mode: 'create',
+    isDraft: false
+  }),
+  useAuthoringNavigation: () => ({
     activeNavigationTarget: undefined,
     activeStep: undefined,
     activeStepId: undefined,
     activeStepLabel: undefined,
-    characterSession: undefined,
-    visibleSteps: [],
-    mode: 'create',
-    isDraft: false
+    visibleSteps: []
   })
 }))
 

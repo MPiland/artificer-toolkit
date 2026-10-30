@@ -8,7 +8,6 @@ export type VisibleAuthoringStep = VisibleAuthoringSteps[number]
 
 export function useAuthoringResolvedModel({
   ancestors,
-  debounceMs = 150,
   mapId,
   model,
   parentValues,
@@ -17,7 +16,6 @@ export function useAuthoringResolvedModel({
   values
 }: {
   ancestors?: readonly Record<string, unknown>[]
-  debounceMs?: number
   mapId: string
   model?: NodeRuntimeResolveResponseDto
   parentValues?: Record<string, unknown>
@@ -32,17 +30,20 @@ export function useAuthoringResolvedModel({
     parentValues,
     ancestors: resolvedAncestors,
     systemId,
-    enabled: resolveModel && !model,
-    debounceMs
+    enabled: resolveModel && !model
   })
   const activeModel = model ?? resolution.model
   const visibleSteps = useMemo(() => getVisibleAuthoringSteps(activeModel), [activeModel])
 
+  const error = resolveModel && !model ? resolution.error : null
+
   return {
     model: activeModel,
     steps: visibleSteps,
-    error: resolveModel && !model ? resolution.error : null,
-    isFetching: resolution.isFetching,
+    error,
+    // Only a failed resolution's retry is shown as loading; ordinary refetches change nothing a
+    // reader renders, so readers do not re-render when one starts.
+    isRetrying: Boolean(error) && resolution.isFetching,
     refetch: resolution.refetch
   }
 }
