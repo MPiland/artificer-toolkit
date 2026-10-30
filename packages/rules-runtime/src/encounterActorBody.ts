@@ -48,8 +48,8 @@ export function encounterActorBody(actor: { snapshot: unknown }): {
 }
 
 /**
- * Whether the actor's summon says it makes no attack of its own. Command admission and the
- * action-choices read refuse its attacks on this; a delegated attack is its owner's and passes.
+ * Whether the actor's summon says it makes no attack of its own. Reaction discovery and the
+ * opportunity-attack facts leave its attacks out on this; a delegated attack is its owner's.
  */
 export function encounterActorCannotAttack(actor: { snapshot: unknown }): boolean {
   return storedBody(actor).cannotAttack === true
