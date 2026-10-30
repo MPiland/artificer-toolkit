@@ -138,6 +138,30 @@ function raceFeatures(race: RaceAuthored | undefined, kind: 'RACE' | 'SUBRACE') 
   }))
 }
 
+function spellGrantFeature(spellIds: readonly string[]): FeatureAuthored {
+  return {
+    id: '7e57a000-0000-4000-8000-0000000005d3',
+    label: 'Obtained Spells',
+    description: 'Grants the spells a test Character starts with.',
+    availableAtLevel: 1,
+    order: 0,
+    grants: {
+      spells: [
+        {
+          id: '7e57a000-0000-4000-8000-0000000005d4',
+          grantKind: 'SPELL_GRANT',
+          selectionKind: 'GRANTED',
+          scalingKind: 'NONE',
+          authoringModeKind: 'SELECTED',
+          spellIds: [...spellIds],
+          attributes: [],
+          order: 0
+        }
+      ]
+    }
+  }
+}
+
 export type SrdCharacterInput = {
   abilities?: Partial<Record<Ability, number>>
   race?: string
@@ -156,6 +180,8 @@ export type SrdCharacterInput = {
   extraEquipment?: readonly EquipmentAuthored[]
   /** Authored Features beyond the SRD, which `features` may then acquire by id. */
   extraFeatures?: readonly FeatureAuthored[]
+  /** Spells the Character has obtained, through a Feature of its first class granting them. */
+  obtainedSpellIds?: readonly string[]
   /** Builds the Character's resource pools from its sources, with these uses; none when absent. */
   resourceUsage?: readonly CharacterResourceUsage[]
 }
@@ -177,9 +203,13 @@ export type SrdCharacter = {
 
 /** Evaluates an SRD Character through the real fact builders and the installed D&D policy. */
 export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
+  const spellGrantFeatures = input.obtainedSpellIds
+    ? [spellGrantFeature(input.obtainedSpellIds)]
+    : []
+  const extraFeatures = [...(input.extraFeatures ?? []), ...spellGrantFeatures]
   const registry =
-    input.extraEquipment || input.extraFeatures
-      ? registryWith(input.extraEquipment ?? [], input.extraFeatures ?? [])
+    input.extraEquipment || extraFeatures.length > 0
+      ? registryWith(input.extraEquipment ?? [], extraFeatures)
       : srdRegistry
   const equipmentRecords = [...SRD.equipment, ...(input.extraEquipment ?? [])]
   const race = input.race === undefined ? undefined : srdByLabel(SRD.races, input.race)
@@ -242,6 +272,15 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     features: [
       ...raceFeatures(race, 'RACE'),
       ...raceFeatures(subrace, 'SUBRACE'),
+      ...spellGrantFeatures.map((feature): SnapshotFeature => {
+        const { classId } = classes[0]!
+        return {
+          acquisitionId: `acquired:${feature.id}`,
+          featureId: feature.id,
+          source: { kind: 'CLASS', classId, classLevel: 1 },
+          timing: { kind: 'CLASS_LEVEL', classId, classLevel: 1 }
+        }
+      }),
       ...(input.features ?? [])
     ],
     equipmentItems: items

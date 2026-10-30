@@ -165,8 +165,8 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
 
   REPLACE_RANGE_KIND: {
     code: MODIFIER_KIND.REPLACE_RANGE_KIND,
-    label: 'Replace Range Kind',
-    description: 'Replace the range kind.'
+    label: 'Replace Range',
+    description: 'Replace the range.'
   },
 
   REPLACE_DURATION_KIND: {
@@ -781,7 +781,9 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                 : K extends 'REPLACE_DAMAGE_TYPE'
                   ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
                   : K extends 'REPLACE_RANGE_KIND'
-                    ? { rangeKind: RangeKind }
+                    ?
+                        | { rangeKind: Exclude<RangeKind, 'DISTANCE'> }
+                        | ({ rangeKind: 'DISTANCE' } & ModifierLengthAuthored)
                     : K extends 'REPLACE_DURATION_KIND'
                       ? { durationKind: DurationKind }
                       : K extends 'REPLACE_SHAPE_KIND'

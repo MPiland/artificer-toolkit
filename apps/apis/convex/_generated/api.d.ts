@@ -41609,6 +41609,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -70815,6 +70821,12 @@ export declare const api: {
                         defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
                         id: string;
                         kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
                         minimumLevel: number | null;
                         order: number;
                       }
@@ -100036,6 +100048,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -129242,6 +129260,12 @@ export declare const api: {
                         defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
                         id: string;
                         kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
                         minimumLevel: number | null;
                         order: number;
                       }
@@ -158489,6 +158513,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -187698,6 +187728,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -216744,6 +216780,12 @@ export declare const api: {
                       defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
                       id: string;
                       kind: "DAMAGE_DEFENSE";
+                      minimumLevel: number | null;
+                      order: number;
+                    }
+                  | {
+                      id: string;
+                      kind: "DEATH";
                       minimumLevel: number | null;
                       order: number;
                     }
@@ -245821,6 +245863,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -275027,6 +275075,12 @@ export declare const api: {
                         defense: "RESISTANCE" | "IMMUNITY" | "VULNERABILITY";
                         id: string;
                         kind: "DAMAGE_DEFENSE";
+                        minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
                         minimumLevel: number | null;
                         order: number;
                       }
