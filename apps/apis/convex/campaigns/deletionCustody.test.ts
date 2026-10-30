@@ -699,7 +699,9 @@ describe('native Campaign custody deletion', () => {
       // owner's Source builds against the local R2 fixture and uploads objects, so only objects of
       // other scopes are compared.
       // A build that ran before the deletion leaves its objects behind, superseded at the deletion.
-      const supersededAt = Date.parse(String(after.tables.campaignDeletionJobs?.[0]?.updatedAt))
+      const supersededAt = Date.parse(
+        String(rowString(after.tables.campaignDeletionJobs?.[0], 'updatedAt'))
+      )
       const expectedRows = (name: string) =>
         name === 'contentSnapshotObjects'
           ? campaignObjects(expected[name])?.map((row) =>
