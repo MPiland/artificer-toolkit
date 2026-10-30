@@ -72,24 +72,28 @@
     "format:check": "oxfmt --check"
   },
   "dependencies": {
-    "@chromatic-com/storybook": "^5.4.0"
+    "@chromatic-com/storybook": "^5.6.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "5.0.0",
-    "@types/node": "^25.6.1",
+    "@types/node": "^25.9.9",
     "@typescript/analyze-trace": "^0.11.1",
-    "oxc-parser": "^0.153.0",
-    "oxfmt": "^0.72.0",
-    "oxlint": "^1.87.0",
-    "oxlint-tsgolint": "^7.0.2003",
+    "oxc-parser": "^0.156.0",
+    "oxfmt": "^0.75.0",
+    "oxlint": "^1.90.0",
+    "oxlint-tsgolint": "^7.0.2005",
     "rimraf": "^6.1.3",
     "tsx": "^4.23.15",
-    "turbo": "^2.11.7",
-    "vitest": "^4.1.11"
+    "turbo": "^2.11.10",
+    "vitest": "^4.1.12"
   },
   "resolutions": {
+    "@better-auth/core/zod": "4.5.4",
+    "@convex-dev/better-auth/zod": "4.5.4",
     "@convex-dev/react-query@npm:0.1.0": "patch:@convex-dev/react-query@npm%3A0.1.0#~/.yarn/patches/convex-react-query-npm-0.1.0-stale-query-removal.patch",
-    "convex@npm:1.46.0": "patch:convex@npm%3A1.46.0#~/.yarn/patches/convex-npm-1.46.0-4174a5f4e7.patch",
+    "auth/zod": "4.5.4",
+    "better-auth/zod": "4.5.4",
+    "convex@npm:1.48.0": "patch:convex@npm%3A1.48.0#~/.yarn/patches/convex-npm-1.48.0-4174a5f4e7.patch",
     "prosemirror-model": "1.25.12"
   },
   "packageManager": "yarn@4.18.1"
