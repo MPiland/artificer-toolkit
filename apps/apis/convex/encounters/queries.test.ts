@@ -272,6 +272,7 @@ describe('native Encounter reads', () => {
       initiative: null,
       manualOrder: null,
       conditions: ownerCreature!.conditions,
+      consequences: [],
       activeGrants: [],
       // Only an actor's controllers see its Concentration (SPELLS-5.11).
       concentration: null,

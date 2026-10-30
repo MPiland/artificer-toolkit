@@ -419,6 +419,47 @@ export const CurrentTurnAndReactionHalosDifferByShape: Story = {
   }
 }
 
+// VTT_UI-2.1: an accepted consequence is a named status on the token, drawn and described like any other.
+const consequenceLabel = 'Shattered knee'
+const consequencePresentations = buildTabletopPresentations({
+  actorIdByTokenId: new Map([
+    [emberToken!.id, emberActor.id],
+    [wardenToken!.id, wardenActor.id]
+  ]),
+  boundTokenControl: new Map(),
+  currentUserId: tabletopCurrentUserId,
+  encounter: {
+    ...presentationEncounter,
+    actors: [
+      {
+        ...emberActor,
+        activeGrants: [],
+        conditions: [],
+        consequences: [{ id: '77777777-7777-4777-8777-777777777791', label: consequenceLabel }]
+      },
+      wardenActor
+    ]
+  },
+  pending: null,
+  scene: presentationScene
+})
+
+export const AcceptedConsequenceShowsAsNamedStatus: Story = {
+  args: { presentations: consequencePresentations },
+  play: async ({ canvasElement }) => {
+    const { description, diagnostics } = await renderedScene(canvasElement)
+    const ember = consequencePresentations[emberToken!.id]!
+    await expect(ember.statuses.filter(({ kind }) => kind === 'INJURY')).toMatchObject([
+      { category: 'HARMFUL', label: consequenceLabel }
+    ])
+    await expectDrawnPresentation(drawnToken(diagnostics, emberToken!.id), ember)
+    await expect(description).toContain(`${consequenceLabel}`)
+    await expect(
+      consequencePresentations[wardenToken!.id]!.statuses.some(({ kind }) => kind === 'INJURY')
+    ).toBe(false)
+  }
+}
+
 export const DefeatedToken: Story = {
   play: async ({ canvasElement }) => {
     const { description, diagnostics } = await renderedScene(canvasElement)
