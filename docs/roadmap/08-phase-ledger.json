@@ -1093,7 +1093,7 @@
             },
             {
               "id": "PLATFORM-13.T23",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.5"
               ],
@@ -1107,7 +1107,7 @@
                 ]
               },
               "text": "Bump convex-test 0.0.60 to latest (0.0.66). Bug: social/developmentRetention calls .paginate() twice in one query, which the real backend rejects (surfaces at lib/domainRejectionTransport.ts:10); fix the product query, with the bumped harness as its red proof. Fix the ~12 Convex test files whose fixtures assume Date.now() inside a mutation equals the fake system time (convex-test 0.0.63 monotonic commit clock): measure from stored timestamps, never loosen an assertion. Failure list: platform-13-t2-convex-test-0.0.66.md in the shared notes folder.",
-              "note": "Orchestrator ruling (a) on PLATFORM-13.T2, 2026-10-29: T2 stays a dependency refresh with convex-test held at 0.0.60."
+              "note": "Orchestrator ruling (a) on PLATFORM-13.T2, 2026-10-29: T2 stays a dependency refresh with convex-test held at 0.0.60. Merged in m567 (6b43784ed)."
             },
             {
               "id": "PLATFORM-13.T24",
@@ -1129,7 +1129,7 @@
             },
             {
               "id": "PLATFORM-13.T25",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.5"
               ],
@@ -1142,8 +1142,26 @@
                   "PLATFORM-13.T2"
                 ]
               },
-              "text": "Bug: on zod 4.6.7 the content snapshot builder's readScopeKind query exceeds the self-hosted 1 s query limit (run 40980096246), so snapshot builds never finish. Find the cost at its source (schema parsing on the read path, read volume), fix it with a red-first read-budget or compute test, and lift the app zod 4.4.3 hold.",
-              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list."
+              "text": "Bug: on zod 4.6.7 the content snapshot builder's readScopeKind query exceeds the self-hosted 1 s query limit (run 41093918890), so snapshot builds never finish. Find the cost at its source (schema parsing on the read path, read volume), fix it with a red-first read-budget or compute test. The zod lift moved to PLATFORM-13.T27.",
+              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list. Merged in m567 (6b43784ed)."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-13.5"
+              ],
+              "id": "PLATFORM-13.T27",
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": [
+                  "PLATFORM-13.T25"
+                ]
+              },
+              "text": "Lift the app zod 4.4.3 hold, and add a first-use schema cost probe that reports what a cold schema parse costs inside a query, so the 1 s limit is measured rather than met by accident.",
+              "note": "Split from T25 by user ruling on 2026-10-30 (keep 4.4.3, merge only the readScopeKind move)."
             },
             {
               "id": "PLATFORM-13.T26",
@@ -1158,7 +1176,8 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Bug: vtt-browser fails intermittently in Browser journeys (shard 5) and CI drops its Playwright log. Add the suite log under local-convex-proofs to the evidence artifact, find the cause from the next failure or a repeat run, and fix it at the source. A slice that changes .github/workflows merges by hand."
+              "text": "Bug: vtt-browser fails intermittently in Browser journeys (shard 5) and CI drops its Playwright log. Add the suite log under local-convex-proofs to the evidence artifact, find the cause from the next failure or a repeat run, and fix it at the source. A slice that changes .github/workflows merges by hand.",
+              "note": "Log upload merged by hand in m568 (97d01f7fb). Stays open: 4 repeats passed, so the cause is unfound until a real failure carries the Playwright log. T23 also saw disarm-browser fail once with \"The Session room connection is closed.\"; track it here."
             }
           ]
         },
@@ -15479,9 +15498,11 @@
         {
           "id": "SPELLS-8",
           "title": "Cast spells in an Encounter",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterPlayer.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -15978,22 +15999,7 @@
               "proof": "Tests 40704526302, Live backend 40704531604, Browser journeys 40711987111 on c54b7c9; generic DAMAGE_DEFENSE condition mechanic, Petrified resistance with authoring-parity proof."
             },
             {
-              "id": "SPELLS-10.T1b",
-              "status": "TODO",
-              "closes": [
-                "SPELLS-10.2"
-              ],
-              "wsjf": {
-                "bv": 5,
-                "tc": 3,
-                "rr": 3,
-                "size": 5
-              },
-              "text": "Generic HIT_POINT_MAXIMUM fraction condition mechanic (Exhaustion 4 halves max HP), applied everywhere max HP is derived: the Sheet (heals, rest, HP edits) and the Encounter (room and encounter-persistence writers), per user ruling R1 2026-10-28 (Sheet and Encounter, unlike D94 speed); authoring-parity proof and tests at the Sheet and room seams.",
-              "note": "Registered 2026-10-28 (user yes)."
-            },
-            {
-              "id": "SPELLS-10.T1c",
+              "id": "SPELLS-10.T1b1",
               "status": "TODO",
               "closes": [
                 "SPELLS-10.2"
@@ -16004,8 +16010,43 @@
                 "rr": 3,
                 "size": 3
               },
-              "text": "Generic DEATH condition-level mechanic: reaching the authored level (Exhaustion 6) writes death at once, with no death saves (HP 0, death saves DEAD), with undo restoring the prior state; hooked on Sheet SET_EXHAUSTION and condition edits so SPELLS-10.T2 reuses it. Per user ruling R2 2026-10-28 (write when reached, not derived on read).",
-              "note": "Registered 2026-10-28 (user yes)."
+              "text": "Resolve on write, Sheet half: Generic HIT_POINT_MAXIMUM fraction condition mechanic (Exhaustion 4 halves max HP), applied everywhere max HP is derived: the Sheet (heals, rest, HP edits) and the Encounter (room and encounter-persistence writers), per user ruling R1 2026-10-28 (Sheet and Encounter, unlike D94 speed); authoring-parity proof and tests at the Sheet and room seams.",
+              "note": "Registered 2026-10-28 (user yes). Split at sizing (option B, resolve on write): Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/architecture/rules-runtime.md"
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-10.2"
+              ],
+              "id": "SPELLS-10.T1b2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-10.T1b1"
+                ]
+              },
+              "text": "Resolve on write, Encounter half: the room and encounter-persistence writers apply the stored maximum fraction, with room tests.",
+              "activeWorkbook": "docs/architecture/rules-runtime.md",
+              "note": "Split from T1b. Approved by the user on 2026-10-30."
+            },
+            {
+              "id": "SPELLS-10.T1c",
+              "status": "DONE",
+              "closes": [
+                "SPELLS-10.2"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 3,
+                "size": 3
+              },
+              "text": "Generic DEATH condition-level mechanic: reaching the authored level (Exhaustion 6) writes death at once, with no death saves (HP 0, death saves DEAD); there is no undo, and a wrong death is corrected by hand (lower the level, edit HP above 0), so the mechanic takes `minimumLevel` of at least 2; hooked on Sheet SET_EXHAUSTION and condition edits so SPELLS-10.T2 reuses it. Per user ruling R2 2026-10-28 (write when reached, not derived on read).",
+              "note": "Registered 2026-10-28 (user yes). Merged in m567 (6b43784ed)."
             },
             {
               "id": "SPELLS-10.T2",
@@ -16163,7 +16204,7 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Open at return: oldest ends or caster chooses (orchestrator recommends choose)."
             },
             {
               "id": "SPELLS-12.T2",
@@ -17843,9 +17884,11 @@
         {
           "id": "SPELLS-27",
           "title": "Effects end on their authored end events",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterEffects.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -18540,15 +18583,88 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": [
                   "SPELLS-31.T4c1a",
                   "SPELLS-31.T4c1p",
                   "RULES-2.T4a"
                 ]
               },
-              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "text": "Slice 1 of the save result window: triggered pause core plus the damage-save chain (Concentration, effect repeat saves, massive damage). D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Growth to about 13-14 across T4c1b to T4c1b5. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/architecture/rules-runtime.md"
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T4c1b2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4c1b"
+                ]
+              },
+              "text": "Save window: the action TEST stop, in its own slice.",
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T4c1b3",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c1b2"
+                ]
+              },
+              "text": "Save window: the remaining sites where a roller answers the save.",
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T4c1b4",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4c1b3"
+                ]
+              },
+              "text": "Save window: auto-rolled sites (area, movement reaction, spatial). Several die-holders on one area resolve their windows in initiative order.",
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T4c1b5",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c1b4"
+                ]
+              },
+              "text": "Fold the bespoke Legendary Resistance pause into the shared result window.",
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -18650,7 +18766,7 @@
             },
             {
               "id": "SPELLS-31.T4f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18658,14 +18774,32 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-4.T2f"
                 ]
               },
-              "text": "Join SPELLS-4.T2f: Stillness of Mind, Cleansing Touch, Lay on Hands (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "text": "Join SPELLS-4.T2f: Stillness of Mind and Cleansing Touch. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m567 (6b43784ed)."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T4f2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4f"
+                ]
+              },
+              "text": "Generic pool option for every pool: an amount source and who splits it, with Lay on Hands and the other pool features moved onto it. Each conversion has an authoring-parity proof and deletes its kind. Split again if this exceeds size 5.",
+              "note": "Split from T4f. Approved by the user on 2026-10-30."
             },
             {
               "id": "SPELLS-31.T4i",
@@ -19198,7 +19332,45 @@
                   "SPELLS-31.T1"
                 ]
               },
-              "text": "New option (ruling at start): cast-time metamagic choice with a resource cost; Careful, Twinned, Heightened, Subtle Spell, Sculpt Spells. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Generic CAST_MODIFIER option with a resource cost, `castModifierId` on the cast, spend in the cast transaction, revert with the cast, and Subtle Spell. Authoring-parity proof; deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/architecture/rules-runtime.md",
+              "note": "Growth from 5 to about 12 across T5g, T5g2 and T5g3. Approved by the user on 2026-10-30."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T5g2",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T5g"
+                ]
+              },
+              "text": "Careful, Sculpt and Heightened on CAST_MODIFIER, with per-target outcomes sealed in the pending context: Careful auto-succeeds the save (half damage still applies), Sculpt takes no damage, Heightened gives disadvantage on one first save. Parity proofs; deletes their kinds.",
+              "note": "Split from T5g. Approved by the user on 2026-10-30."
+            },
+            {
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "id": "SPELLS-31.T5g3",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T5g2"
+                ]
+              },
+              "text": "Twinned: a second target on a single-target cast, with a derived eligibility check. Parity proof; deletes its kind.",
+              "note": "Split from T5g. Approved by the user on 2026-10-30."
             },
             {
               "id": "SPELLS-31.T5h",
@@ -19527,11 +19699,12 @@
                 ]
               },
               "text": "Merge ON_HIT riders into Character spell casts and allow SPELL-scoped rider restrictions (G4); Repelling Blast as FORCED_MOVEMENT UP_TO 10 ft. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29.",
+              "activeWorkbook": "docs/architecture/rules-runtime.md"
             },
             {
               "id": "SPELLS-31.T5i3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19545,7 +19718,7 @@
                 ]
               },
               "text": "Widen REPLACE_RANGE_KIND to a full range and consume it (G2); Eldritch Spear. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29. Merged in m567 (6b43784ed)."
             },
             {
               "id": "SPELLS-31.T5i4",
@@ -21765,9 +21938,12 @@
         {
           "id": "SPELLS-34",
           "title": "Summons appear on the sheet Extras tab",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/apis/tests/developmentDrafts.ts",
+            "apps/web/tests/live-backend/nativeSceneLive.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -21953,10 +22129,12 @@
             {
               "id": "SPELLS-35.1",
               "text": "A summon is authored with one turn timing: on its owner's turn (the default, as today), right after its owner, or its own initiative roll; the owner's player runs a summon that has its own turn, with the action drawer and End turn.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-35.T1 (m564), SPELLS-35.T2 (m567); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Closed 2026-10-30 by SPELLS-35.T1, SPELLS-35.T2."
             },
             {
               "id": "SPELLS-35.2",
@@ -21977,10 +22155,12 @@
             {
               "id": "SPELLS-35.4",
               "text": "A summon that ends while it is the current actor or next in the order leaves the initiative order cleanly, the round continues, and undoing the cast or the end restores the order.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-35.T3a (m567), SPELLS-35.T3b (m567); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Closed 2026-10-30 by SPELLS-35.T3a, SPELLS-35.T3b."
             },
             {
               "id": "SPELLS-35.5",
@@ -22020,7 +22200,7 @@
             },
             {
               "id": "SPELLS-35.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.1"
               ],
@@ -22034,11 +22214,29 @@
                 ]
               },
               "text": "Web control: `isEncounterActorMine` walks the owner so the current summon gives its owner's player the drawer and End turn. Red-first.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Merged in m567 (6b43784ed)."
             },
             {
-              "id": "SPELLS-35.T3",
-              "status": "TODO",
+              "status": "DONE",
+              "closes": [
+                "SPELLS-35.4"
+              ],
+              "id": "SPELLS-35.T3a",
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-35.T1"
+                ]
+              },
+              "text": "Initiative cohort: rolls, declarations and pins cover only actors that take their own initiative turns (`takesInitiativeTurns`), so an owner-turn summon is in no round.",
+              "note": "Split from T3. Merged in m567 (6b43784ed)."
+            },
+            {
+              "id": "SPELLS-35.T3b",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.4"
               ],
@@ -22048,11 +22246,11 @@
                 "rr": 3,
                 "size": 5,
                 "after": [
-                  "SPELLS-35.T1"
+                  "SPELLS-35.T3a"
                 ]
               },
               "text": "Summon end with the cursor: `removeConjuredActors` updates participants and the cursor via the actor-removal path; cover the sweep at turn advance, the revert path and the SUMMONS_ENDED receipt. Prove or fix the suspected throw at actorReinforcementCommand.ts:243 with an owned actor and the staged-cohort check at turnCommandAdmission.ts:193-202.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Split at start: T3a filters initiative to actors that take turns; T3b ends the summon. A current summon that ends stands until a keyed system ADVANCE_TURN ends its turn. SUMMONS_ENDED has no revert; undoing the end means undoing the cast (user rulings 2026-10-30). Merged in m567 (6b43784ed)."
             },
             {
               "id": "SPELLS-35.T4",
@@ -22067,7 +22265,7 @@
                 "size": 5,
                 "after": [
                   "SPELLS-35.T2",
-                  "SPELLS-35.T3"
+                  "SPELLS-35.T3b"
                 ]
               },
               "text": "Right after owner: owner-anchored insert into the order, for side, individual and scored rounds, stable under each-round staging; RESOLVE_ACTION receipt carries the initiative state so undo restores it. Room journey.",
@@ -24072,9 +24270,12 @@
         {
           "id": "RELIABILITY-10",
           "title": "Authoring forms have one state owner and re-render only what changed",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/nativeAuthoring.ts",
+            "apps/apis/tests/developmentDrafts.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -25723,21 +25924,22 @@
                 "bv": 3,
                 "tc": 1,
                 "rr": 1,
-                "size": 2,
+                "size": 3,
                 "after": [
                   "VTT_UI-2.T1",
                   "ATTACK-15.T2"
                 ]
               },
               "text": "Injuries on tokens: show a Character's accepted lingering injury as a status (named in the status list) once ATTACK-15 records injuries on the Character and projects them into the Encounter actor. Proof: presentation model test and a window journey. Closes AC 2.1 and sets the journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Option A: the injury label shows to anyone who can see the actor, details stay on the Sheet, an unnamed revealed actor carries nothing. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/architecture/rules-runtime.md"
             }
           ]
         },
         {
           "id": "VTT_UI-3",
           "title": "Previews, perception and footprints",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx"
           ],
