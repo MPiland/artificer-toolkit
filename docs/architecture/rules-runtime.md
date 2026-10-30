@@ -2523,7 +2523,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -2570,6 +2570,20 @@ predicate, `effectReadsMoveToward`) binds the TEXT fact `dnd5e.attack-move-towar
 without it (no Scene, or a reaction or opportunity attack, which have no turn record) the group fails whichever
 the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
 segments records only its last segment.
+
+**Bound by an Effect (SPELLS-31.T4v).** `BOUND_BY_EFFECT {effectIds}` in an `EQUIPMENT` context is the fourth
+circumstance check, the printed "your pact weapon" gate (Lifedrinker). It passes when one of the attacker's active
+Effects named in `effectIds` binds the attacking item: an active grant whose `bindsChosenItem` grant is bound to
+that item instance (`itemBindingEffectIds`, `encounterActiveGrants`). `prepareEncounterActionMechanics` computes the
+list for a `CHARACTER_ACTION` attack made with equipment and puts it in `sourceDerivedFacts.attackItemBindingEffectIds`;
+`bindFacts` emits it as the TEXT fact `dnd5e.attack-item-bindings` (a JSON list of authored Effect ids). Without
+the fact the list is empty, so an INCLUDE check fails and an EXCLUDE check passes. The binding itself is authored:
+Pact of the Blade is an ACTION Effect on a chosen held melee weapon that first ends its own earlier binding
+(`END_EFFECTS SAME_EFFECT`), then binds the weapon with a `WEAPON_PROFICIENCY` `ENABLE` grant and the `MAGICAL`
+attack trait, until dispelled or the weapon is released (`ON_CHOSEN_ITEM_RELEASED`). A `WEAPON_PROFICIENCY`
+grant makes the holder proficient with attacks its modifier applies to (`resolveAttackBonus` in
+`systems/dnd5e/characterActionMechanics`, `max(listed, granted)`, so expertise is kept). Only the room folds active
+grants into the Character policy (`withCharacterActiveGrants`); the Sheet shows the unbound bonus.
 
 A Charge is a passive attack rider that names the Feature whose attack it rides (`ridesFeatureId`, T5n2), so it
 never rides the creature's other attacks of the same trigger. `mergeOnHitRiders(effect, riders, attackFeatureId)`
