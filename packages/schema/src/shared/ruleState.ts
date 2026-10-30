@@ -176,11 +176,17 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
      * (SPELLS-10.T1c). Level 2 is the floor: a condition applied at level 1 is raised by no one, so
      * a death there would not fire.
      */
-    z.strictObject({
-      ...conditionMechanicFields(),
-      kind: z.literal('DEATH'),
-      minimumLevel: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20))
-    })
+    z
+      .strictObject({
+        ...conditionMechanicFields(),
+        kind: z.literal('DEATH')
+      })
+      .check(
+        z.refine(({ minimumLevel }) => minimumLevel !== null && minimumLevel >= 2, {
+          path: ['minimumLevel'],
+          message: 'A DEATH mechanic needs a minimum level of at least 2.'
+        })
+      )
   ])
 )
 
