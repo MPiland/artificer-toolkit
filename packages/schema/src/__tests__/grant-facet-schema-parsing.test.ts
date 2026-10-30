@@ -121,6 +121,26 @@ describe('grant and facet schema parsing', () => {
     ).toBe(false)
   })
 
+  it('replaces a range with a kind, or a distance that names its length (SPELLS-31.T5i3)', () => {
+    const parseRange = (payload: unknown) =>
+      modifierGrantDtoSchema.safeParse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'grant',
+        order: 1,
+        selectionKind: 'GRANTED',
+        scope: 'GLOBAL',
+        valueDomainCode: 'RANGE',
+        domain: {},
+        modifierKind: 'REPLACE_RANGE_KIND',
+        payload
+      }).success
+
+    expect(parseRange({ rangeKind: 'TOUCH' })).toBe(true)
+    expect(parseRange({ rangeKind: 'DISTANCE', amount: 300, unit: 'FEET' })).toBe(true)
+    expect(parseRange({ rangeKind: 'DISTANCE' })).toBe(false)
+    expect(parseRange({ rangeKind: 'TOUCH', amount: 300, unit: 'FEET' })).toBe(false)
+  })
+
   it('has no RANGE SET_VALUE modifier variant: only the range kind can be replaced', () => {
     const base = {
       grantKind: 'MODIFIER_GRANT',
@@ -209,7 +229,6 @@ describe('grant and facet schema parsing', () => {
             {},
             { limitKind: 'FIXED_AMOUNT', scalingKind: 'NONE', amount: 2 }
           ],
-          ['RANGE', 'REPLACE_RANGE_KIND', {}, { rangeKind: 'TOUCH' }],
           ['DURATION', 'SET_VALUE', {}, { durationKind: 'MINUTE', amount: 10 }],
           ['DURATION', 'REPLACE_DURATION_KIND', {}, { durationKind: 'HOUR' }],
           ['SHAPE', 'REPLACE_SHAPE_KIND', {}, { shapeKind: 'CONE' }],
