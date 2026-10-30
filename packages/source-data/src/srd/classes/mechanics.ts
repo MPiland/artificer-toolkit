@@ -44,8 +44,6 @@ export function selfActionEffect(input: {
   ids: { effect: string; range: string; path: string; result: string }
   activation: ActivationCode
   resourceUse?: { chargeId: string; cost: number }
-  /** A cost the caster may pay on casting a spell; makes the ruling a passive cast modifier, never an action. */
-  castModifier?: { chargeId: string; cost: number }
   lifecycle?: NonNullable<FixedResultBlock['lifecycle']>
   outcome: FixedResultBlock['outcomes'][number]
 }): EffectAuthored {
@@ -93,6 +91,8 @@ export function gmRulingEffect(input: {
   instructions: string
   reasonCode: ManualAdjudicationReason
   resourceUse?: { chargeId: string; cost: number }
+  /** A cost the caster may pay on casting a spell; makes the ruling a passive cast modifier, never an action. */
+  castModifier?: { chargeId: string; cost: number }
   /** The action the ruling takes; one with a resource cost and no action given is free. */
   activationCode?: Exclude<ActivationCode, 'FREE'>
 }): EffectAuthored {
