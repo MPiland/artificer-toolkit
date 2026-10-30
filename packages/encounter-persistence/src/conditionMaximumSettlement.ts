@@ -24,8 +24,8 @@ const sameFraction = (
   (left?.denominator ?? 0) === (right?.denominator ?? 0)
 
 /** Conditions compare by content; an absent list is an empty one. */
-const sameConditions = (left: readonly unknown[] = [], right: readonly unknown[] = []) =>
-  JSON.stringify(left) === JSON.stringify(right)
+const sameConditions = (left: unknown, right: unknown) =>
+  JSON.stringify(left ?? []) === JSON.stringify(right ?? [])
 
 /**
  * The one resolve-and-clamp every writer of a holder's conditions goes through (SPELLS-10.T1b): it
