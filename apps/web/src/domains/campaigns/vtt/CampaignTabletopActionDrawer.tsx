@@ -62,6 +62,8 @@ import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreatu
 import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
+import { CampaignTabletopSummonPicks } from './CampaignTabletopSummonPicks'
+import { summonPicks } from './summonPicks.model'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
@@ -323,21 +325,7 @@ export function CampaignTabletopActionDrawer({
     ...choiceActorsTarget,
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
-  // A summon that authors forms conjures the form picked, and takes the creature type picked when it
-  // offers several; the first of each is preselected.
-  const summonTarget = choiceTarget?.kind === 'POINT' ? choiceTarget : null
-  const chosenSummonForm =
-    summonTarget?.summonForms?.find((form) => form.id === pickedFormId) ??
-    summonTarget?.summonForms?.[0] ??
-    null
-  const chosenCreatureType =
-    summonTarget?.creatureTypes?.find((type) => type.id === pickedCreatureTypeId) ??
-    summonTarget?.creatureTypes?.[0] ??
-    null
-  const summonChoices = {
-    ...(chosenSummonForm ? { formId: chosenSummonForm.id } : {}),
-    ...(chosenCreatureType ? { creatureTypeId: chosenCreatureType.id } : {})
-  }
+  const summonChoices = summonPicks(choiceTarget, pickedFormId, pickedCreatureTypeId)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
@@ -1081,31 +1069,13 @@ export function CampaignTabletopActionDrawer({
                   }}
                 />
               ) : null}
-              {summonTarget?.summonForms ? (
-                <Select
-                  aria-label='Summon form'
-                  allowDeselect={false}
-                  data={summonTarget.summonForms.map((form) => ({
-                    label: form.label,
-                    value: form.id
-                  }))}
+              {choiceTarget?.kind === 'POINT' ? (
+                <CampaignTabletopSummonPicks
+                  target={choiceTarget}
+                  {...summonChoices}
                   disabled={selectionControlsDisabled}
-                  searchable
-                  value={chosenSummonForm?.id ?? null}
-                  onChange={setPickedFormId}
-                />
-              ) : null}
-              {summonTarget?.creatureTypes ? (
-                <SegmentedControl
-                  aria-label='Creature type'
-                  data={summonTarget.creatureTypes.map((type) => ({
-                    label: type.label,
-                    value: type.id
-                  }))}
-                  disabled={selectionControlsDisabled}
-                  fullWidth
-                  value={chosenCreatureType?.id}
-                  onChange={setPickedCreatureTypeId}
+                  onFormChange={setPickedFormId}
+                  onCreatureTypeChange={setPickedCreatureTypeId}
                 />
               ) : null}
               {choiceActorsTarget?.choosesCreatureForm ? (

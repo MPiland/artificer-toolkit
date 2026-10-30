@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterActorBody } from '../encounterActorBody.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
@@ -38,7 +39,7 @@ const caster = encounterRunActorStateSchema.parse({
 
 const CARRIER_ID = crypto.randomUUID()
 
-const build = (statBlock: Parameters<typeof buildEncounterSummon>[0]['summon']['statBlock']) =>
+const build = (statBlock: SummonStatBlockDto) =>
   buildEncounterSummon({
     summon: { kind: 'STAT_BLOCK', statBlock },
     spellSummon: null,
