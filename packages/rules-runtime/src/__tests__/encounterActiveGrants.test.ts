@@ -699,7 +699,7 @@ describe('Character holder of an active grant', () => {
   })
 
   it('raises its maximum hit points by Aid and clamps current hit points when it ends', () => {
-    expect(effectiveHitPointMaximum(12, [aid()])).toBe(17)
+    expect(effectiveHitPointMaximum(12, [aid()], null)).toBe(17)
     const hitpoints = { current: 17, temp: 0, hitDice: [], deathSaves: NO_DEATH_SAVES }
     const planned = planEncounterMaintenanceOwner({
       owner: { kind: 'CHARACTER', characterId: HOLDER_ID },

@@ -746,7 +746,9 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(effects.flatMap(({ definition }) => definition.stateContributions)).toEqual([
       expect.objectContaining({ kind: 'HIT_POINT_MAXIMUM_REDUCTION', amount: 6 })
     ])
-    expect(effectiveHitPointMaximum(target.maxHitPoints, effects)).toBe(ogre.hitPoints - 6)
+    expect(effectiveHitPointMaximum(target.maxHitPoints, effects, target.maximumFraction)).toBe(
+      ogre.hitPoints - 6
+    )
   })
 
   it('grapples and restrains the Character with the Chain Devil’s Chain, holding 2d6 piercing for each of its turns (SPELLS-33.T6a3)', async () => {

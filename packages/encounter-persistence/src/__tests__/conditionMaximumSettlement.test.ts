@@ -93,7 +93,7 @@ describe('settling a holder’s condition maximum (SPELLS-10.T1b)', () => {
     const halved = await settleCreature([], exhausted(4))
     const lifted = await settleCreatureConditionMaximum(ctx, {
       before: halved,
-      actor: { ...halved, conditions: exhausted(3) },
+      actor: Object.assign(creature(exhausted(3), 10), { maximumFraction: HALF }),
       ownerUserId: OWNER_USER_ID,
       gameSystemId: SRD_SYSTEM_ID
     })
@@ -110,7 +110,7 @@ describe('settling a holder’s condition maximum (SPELLS-10.T1b)', () => {
           throw new Error('read a definition')
         }
       }
-    } as typeof ctx
+    } as unknown as typeof ctx
     expect(
       await settleCreatureConditionMaximum(throwing, {
         before: { ...unchanged, conditions: undefined } as never,
