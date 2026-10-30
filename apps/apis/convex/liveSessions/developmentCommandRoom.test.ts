@@ -86,3 +86,55 @@ it('keeps an idle room open while a caller waits out a re-authentication', async
   socket.receive(stateSync(4))
   await expect(ready).resolves.toBeUndefined()
 })
+
+// PLATFORM-13.T26: disarm-browser failed with "The Session room connection is closed." (run 41139390839).
+// A pushed frame re-armed the idle close without cancelling the earlier timer, which then closed the
+// room under a read that had started since.
+it('closes an idle room only once, five seconds after it last went idle', async () => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+  const sockets: FakeSocket[] = []
+  const room = openCommandRoom({
+    url: `ws://127.0.0.1:8787/live-session/${campaignId}`,
+    origin: 'http://localhost:3000',
+    issueTicket: async () => ({ expiresAt: '2026-09-24T12:01:00.000Z', ticket: 'signed-ticket' }),
+    accessToken: async () => 'token',
+    onClosed: () => {},
+    openSocket: () => {
+      const socket = new FakeSocket()
+      sockets.push(socket)
+      return socket
+    }
+  })
+  const rejected = room.executeEncounter({
+    type: 'ADVANCE_TURN',
+    encounterId,
+    commandId,
+    expectedVersion: 4
+  })
+  await settle()
+  const [socket] = sockets
+  socket.dispatchEvent(new Event('open'))
+  await settle()
+  socket.receive({ campaignId, type: 'TRANSIENT_READY' })
+  socket.receive(stateSync(3))
+  socket.receive({
+    code: 'STALE_STATE',
+    commandId,
+    currentSequence: 3,
+    message: 'The Encounter changed; review the current state and try again.',
+    reason: null,
+    warnings: null,
+    type: 'COMMAND_REJECTED'
+  })
+  await expect(rejected).rejects.toThrow(/STALE_STATE/)
+
+  vi.advanceTimersByTime(3_000)
+  socket.receive({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+  const read = room.readEncounterSession()
+  await settle()
+  // The first idle period ended here, but the read started after it.
+  vi.advanceTimersByTime(2_500)
+  expect(socket.closedWith).toBeNull()
+  socket.receive({ session: { held: false }, type: 'ENCOUNTER_SESSION' })
+  await expect(read).resolves.toEqual({ held: false })
+})
