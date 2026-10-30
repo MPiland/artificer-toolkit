@@ -95,10 +95,11 @@ describe("a live mark on the room's Sheet (SPELLS-8.6)", () => {
 
 describe("a die the Character adds to all its damage on the room's Sheet roll (SPELLS-8.6)", () => {
   it('adds the die the damage row shows to the damage roll', async () => {
-    const room = await markingRoom(false, async ({ effects, encounterId }) => {
+    const room = await markingRoom(false, async ({ effects, encounterId, occurredAt }) => {
+      // An effect on the Character's actor is a row of the Character, loaded with it.
       await effects.create({
         id: crypto.randomUUID(),
-        owner: { kind: 'CHARACTER', characterId: CHARACTER_ID },
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: ACTOR_ID },
         definition: plannedModifierGrant({
           encounterId,
           sourceActorId: ACTOR_ID,
@@ -109,7 +110,8 @@ describe("a die the Character adds to all its damage on the room's Sheet roll (S
           rounds: 10,
           lifetimeScope: 'OWNER'
         }).definition,
-        lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+        lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+        occurredAt
       })
     })
     const { player, label, mechanic } = await attackRow(room)
