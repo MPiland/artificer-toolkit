@@ -281,9 +281,11 @@ it.each([
         systemId: fresh.inputs.owner.systemId,
         label: fresh.inputs.owner.label,
         status: fresh.inputs.owner.status,
-        createdAt: fresh.inputs.owner.createdAt,
-        updatedAt: fresh.inputs.owner.updatedAt
+        createdAt: fresh.inputs.owner.createdAt
       })
+      // The structure clock lives on the build record, which the held inputs carry.
+      expect(store.documents('characters')[0]).not.toHaveProperty('updatedAt')
+      expect(part.inputs.owner.updatedAt).toBe(fresh.inputs.owner.updatedAt)
       // Aggregate hashes are derived at assembly, so the reloaded head carries none.
       expect(store.documents('characters')[0]).not.toHaveProperty('checksum')
       expect(store.documents('characters')[0]).not.toHaveProperty('sheetStateChecksum')

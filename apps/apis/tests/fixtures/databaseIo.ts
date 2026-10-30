@@ -28,7 +28,7 @@ function documentBytes(value: unknown) {
 /**
  * Counts every document a transaction reads through `db` at its JSON size, per table (a `get` is
  * counted under `get`), and every write at the JSON size of the value written, under the insert's
- * table or the write method. Wrap it beneath any trigger layer so trigger reads count too.
+ * table, the table an explicit-table write names, or else the write method. Wrap it beneath any trigger layer so trigger reads count too.
  */
 export function countDatabaseIo<T extends object>(db: T, totals: DatabaseIoTotals): T {
   const seen = new Set<string>()
@@ -57,8 +57,12 @@ export function countDatabaseIo<T extends object>(db: T, totals: DatabaseIoTotal
         add(totals.reads, table, documentBytes(document), String(document._id))
   }
   const countWrite = (method: string, args: readonly unknown[]) => {
-    const table = method === 'insert' && typeof args[0] === 'string' ? args[0] : method
-    const value = method === 'insert' || method === 'replace' || method === 'patch' ? args[1] : null
+    // `replace`, `patch` and `delete` name their table only in the explicit-table form, which
+    // takes one argument more than the id form.
+    const named = method === 'insert' || args.length === (method === 'delete' ? 2 : 3)
+    const table = named && typeof args[0] === 'string' ? args[0] : method
+    const valueIndex = method === 'insert' || !named ? 1 : 2
+    const value = method === 'delete' ? null : args[valueIndex]
     add(totals.writes, table, value === null ? 0 : documentBytes(value), undefined)
   }
   const wrap = <U extends object>(target: U, table: string): U =>

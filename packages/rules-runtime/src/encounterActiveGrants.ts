@@ -128,6 +128,20 @@ function encounterActiveGrantFoldSources(
   })
 }
 
+/** The authored Effects active on a holder that bind one of its items, sorted. */
+export function itemBindingEffectIds(
+  effects: readonly ActiveRuleEffectRecord[],
+  itemInstanceId: string
+): string[] {
+  return [
+    ...new Set(
+      listActiveEffectGrants(effects).flatMap(({ authoredEffectId, boundItem }) =>
+        boundItem?.itemInstanceId === itemInstanceId ? [authoredEffectId] : []
+      )
+    )
+  ].sort()
+}
+
 /**
  * The Character's policy facts with the holder's Active Effect grants folded as sources; the same
  * facts object when the holder carries none.

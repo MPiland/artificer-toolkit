@@ -81,7 +81,7 @@ export async function executeCharacterNoteCommand(
   if (command.expectedVersion !== play.streamVersion)
     throw new Error('Character Sheet changed; refresh before applying this command.')
   const occurredAt = new Date(
-    Math.max(Date.now(), Date.parse(active.updatedAt) + 1, Date.parse(play.updatedAt) + 1)
+    Math.max(Date.now(), Date.parse(buildFields.updatedAt) + 1, Date.parse(play.updatedAt) + 1)
   ).toISOString()
   const next = applyCharacterNoteCommand({ state }, command, { now: () => occurredAt })
   const streamVersion = play.streamVersion + 1

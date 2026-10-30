@@ -875,6 +875,7 @@ const buildModifierGrantVariants = () =>
       emptyDomainDtoSchema,
       weaponDamageDiePayloadDtoSchema
     ),
+    buildModifierGrantVariant('WEAPON_PROFICIENCY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('FREE_OPPORTUNITY_REACTION', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),

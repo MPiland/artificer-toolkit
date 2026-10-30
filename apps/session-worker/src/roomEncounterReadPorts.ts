@@ -187,9 +187,7 @@ export async function roomEncounterReadTransaction(input: {
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique()
       if (!part.inputs || !head) return null
-      // Every structural write advances the head's structure clock; callers check identity.
-      if (head.updatedAt !== part.inputs.owner.updatedAt)
-        throw new Error('Room Character structure is stale.')
+      // The head carries identity only, and the inputs carry its structure; callers check identity.
       const play = await db
         .query('characterPlayStates')
         .withIndex('by_characterId', (q) => q.eq('characterId', id))

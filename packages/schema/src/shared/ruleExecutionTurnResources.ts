@@ -6,6 +6,8 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS, authoredShortTextSchema } from './authoredLimits.js'
 import { deathSavesAfterRoll, isCharacterDead } from './characterDeathSaves.js'
+import { aimedAreaTargetDtoSchema } from './shape.js'
+import { areaAimDtoSchema } from './spatialFacts.js'
 import {
   d20AddedDiceDtoSchema,
   d20AddedDiceTotal,
@@ -241,10 +243,15 @@ export const legendaryActionChoiceOptionDtoSchema = lazySchema(() =>
       /** The exact execution plan the option runs. */
       actionSourceChecksum: checksumSchema,
       /**
-       * Set for an area the owner centers on itself: the turn hands the selected option to the area
-       * coordinator as a rule-raised action between the outgoing turn's end and the next turn.
+       * Set for an area option: the turn hands the selected option to the area coordinator as a
+       * rule-raised action between the outgoing turn's end and the next turn.
        */
       delegated: z.optional(z.literal(true)),
+      /**
+       * The authored area of an aimed area option, for the client to aim: a point it is centered on,
+       * or a direction from its owner. Absent for an area the owner centers on itself.
+       */
+      area: z.optional(aimedAreaTargetDtoSchema),
       chargeId: uuidSchema,
       featureCost: positiveIntegerSchema,
       poolBefore: nonNegativeIntegerSchema,
@@ -271,6 +278,12 @@ export const legendaryActionChoiceOptionDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['targetActorIds'],
             message: 'Legendary Action targets must be unique and canonical.'
+          })
+        if (option.area && !option.delegated)
+          refinement.addIssue({
+            code: 'custom',
+            path: ['area'],
+            message: 'Only a delegated Legendary Action option is aimed.'
           })
         if (
           option.featureCost > option.poolBefore ||
@@ -340,8 +353,15 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
       selectionChecksum: checksumSchema,
       resolution: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('DECLINED') }),
-        /** A delegated option, which its own rule-raised action resolves after this commit. */
-        z.strictObject({ kind: z.literal('DELEGATED'), selectedOptionId: checksumSchema }),
+        /**
+         * A delegated option, which its own rule-raised action resolves after this commit, with the
+         * aim its controller gave an aimed area.
+         */
+        z.strictObject({
+          kind: z.literal('DELEGATED'),
+          selectedOptionId: checksumSchema,
+          aim: z.optional(areaAimDtoSchema)
+        }),
         z.strictObject({
           kind: z.literal('EXECUTED'),
           selectedOptionId: checksumSchema,
@@ -396,6 +416,12 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['resolution', 'kind'],
             message: 'Only a delegated Legendary Action option is delegated, and it always is.'
+          })
+        if (resolution.kind === 'DELEGATED' && resolution.aim?.kind !== option.area?.kind)
+          context.addIssue({
+            code: 'custom',
+            path: ['resolution', 'aim'],
+            message: 'A delegated Legendary Action option is aimed exactly as its area asks.'
           })
         if (resolution.kind !== 'EXECUTED') return
         const application = resolution.application

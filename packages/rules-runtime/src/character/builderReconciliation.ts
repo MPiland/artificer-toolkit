@@ -89,6 +89,13 @@ export async function reconcileCharacterBuilderCharacter(params: {
       startingEquipment: selectedBackground?.startingEquipment
     })
   ]
+  // Selection settling never changes classes or hit-point levels. Eligibility and hit-point
+  // progression are independent policy outputs, so each eligibility pass also answers progression.
+  const hitPointProgression = prepareCharacterHitpointProgression(
+    nextCharacter,
+    registry.classes,
+    existingCharacter
+  )
   let finalRuleState: FeatureOptionEligibility<Awaited<ReturnType<typeof params.evaluate>>>
   // Each changing pass only removes selections; dependent options and grants must settle together.
   while (true) {
@@ -108,7 +115,11 @@ export async function reconcileCharacterBuilderCharacter(params: {
     finalRuleState = await resolveFeatureOptionEligibility({
       character: nextCharacter,
       grantedFeatures,
-      evaluate: (candidate, eligibilityFacets) => params.evaluate(candidate, { eligibilityFacets }),
+      evaluate: (candidate, eligibilityFacets) =>
+        params.evaluate(candidate, {
+          eligibilityFacets,
+          hitPointProgression: hitPointProgression.facts
+        }),
       additionalEligibilityFacets: startingEquipmentEligibilityFacets,
       requireEvaluation: true
     })
@@ -159,17 +170,10 @@ export async function reconcileCharacterBuilderCharacter(params: {
     nextCharacter.intent.resourceGrants = resourceGrants.length ? resourceGrants : undefined
     if (!changed) break
   }
-  if (!finalRuleState.ruleEvaluation) {
+  const hitPointRuleEvaluation = finalRuleState.ruleEvaluation
+  if (!hitPointRuleEvaluation) {
     throw new Error('Character rules evaluation did not produce an effective Builder state.')
   }
-  const hitPointProgression = prepareCharacterHitpointProgression(
-    nextCharacter,
-    registry.classes,
-    existingCharacter
-  )
-  const hitPointRuleEvaluation = await params.evaluate(nextCharacter, {
-    hitPointProgression: hitPointProgression.facts
-  })
   nextCharacter.intent.hitpoints.levels = applyCharacterHitpointProgression(
     hitPointProgression,
     hitPointRuleEvaluation.output.hitPointProgression

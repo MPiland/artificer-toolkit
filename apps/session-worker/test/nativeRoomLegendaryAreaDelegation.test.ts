@@ -55,13 +55,46 @@ const dragon: CreatureAuthored = {
   features: [...(plainWolf.features ?? []), legendary]
 }
 
+/**
+ * A homebrew breath authored from the Wing Attack (SPELLS-15): the same save, damage and prone, as a
+ * 30 ft cone the dragon aims.
+ */
+const breath: CreatureAuthored = {
+  ...dragon,
+  features: dragon.features?.map((feature) =>
+    feature.id === legendary.id
+      ? {
+          ...feature,
+          options: feature.options?.map((option) => ({
+            ...option,
+            effects: option.effects?.map((effect) =>
+              effect.invocation.kind === 'ACTION' && effect.invocation.shape
+                ? {
+                    ...effect,
+                    invocation: {
+                      ...effect.invocation,
+                      shape: {
+                        id: effect.invocation.shape.id,
+                        shapeKind: 'CONE' as const,
+                        length: { amount: 30, unit: 'FEET' as const }
+                      }
+                    }
+                  }
+                : effect
+            )
+          }))
+        }
+      : feature
+  )
+}
+
 /** The near Wolf ends its turn 5 ft from the dragon; the far Wolf, 65 ft off, is next. */
-function wingRoom() {
+function wingRoom(creature: CreatureAuthored = dragon) {
   return movementRoom({
     actors: [
       srdCreatureActor({ id: NEAR_WOLF_ID, creature: plainWolf }),
       srdCreatureActor({ id: FAR_WOLF_ID, creature: plainWolf }),
-      srdCreatureActor({ id: DRAGON_ID, creature: dragon })
+      srdCreatureActor({ id: DRAGON_ID, creature })
     ],
     moverActorId: NEAR_WOLF_ID,
     positions: {
@@ -139,6 +172,59 @@ describe('a room ADVANCE_TURN that delegates a Legendary area option (SPELLS-33.
     expect(continuation.commandType).toBe('ADVANCE_TURN')
     expect(receiptOf(advanceId).encounterVersion).toBeLessThan(root.encounterVersion)
     expect(root.encounterVersion).toBeLessThan(continuation.encounterVersion)
+    const state = readRunState(after.runs[0]!)
+    expect(state.currentActorId).toBe(FAR_WOLF_ID)
+    expect(state.delegatedLegendaryAction).toBeUndefined()
+  }, 120000)
+
+  it('resolves an aimed breath where its controller aims it (SPELLS-15)', async () => {
+    const room = await wingRoom(breath)
+    const before = await readRoomHistory(room.base.stub)
+    const advanceId = crypto.randomUUID()
+    const advanced = await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    expect(advanced.type, JSON.stringify(advanced)).toBe('COMMAND_COMMITTED')
+    const choice = await readLegendaryChoice(room.base.stub)
+    const [cone] = choice?.options ?? []
+    expect(cone).toMatchObject({
+      targetActorIds: [DRAGON_ID],
+      delegated: true,
+      area: { kind: 'DIRECTED', area: { kind: 'CONE', length: { amount: 30, unit: 'FEET' } } }
+    })
+    // From the east edge of the dragon's token, toward the near Wolf.
+    const aim = { kind: 'DIRECTED', origin: { x: 200, y: 150 }, toward: { x: 500, y: 150 } }
+    const unaimed = await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: cone!.optionId,
+      targetActorId: DRAGON_ID
+    })
+    expect(unaimed.answer.type).not.toBe('COMMAND_COMMITTED')
+    const { answer } = await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: cone!.optionId,
+      targetActorId: DRAGON_ID,
+      aim
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.base.stub)
+    // The near Wolf in the cone fails its DC 25 save; the far Wolf, 65 ft off, is beyond it.
+    expect(readActorHitPoints(after, NEAR_WOLF_ID)).toBeLessThan(
+      readActorHitPoints(before, NEAR_WOLF_ID)
+    )
+    expect(readActorConditionIds(after, NEAR_WOLF_ID)).toContain(PRONE_ID)
+    expect(readActorHitPoints(after, FAR_WOLF_ID)).toBe(readActorHitPoints(before, FAR_WOLF_ID))
+    const root = after.receipts.find(
+      ({ commandId }) => commandId === systemTriggerCommandId(advanceId, DRAGON_ID, cone!.actionId)
+    )
+    expect(root?.commandType).toBe('RESOLVE_ACTION')
     const state = readRunState(after.runs[0]!)
     expect(state.currentActorId).toBe(FAR_WOLF_ID)
     expect(state.delegatedLegendaryAction).toBeUndefined()

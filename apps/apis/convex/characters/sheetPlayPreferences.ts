@@ -14,6 +14,7 @@ import { readCharacterHead, readCharacterPlay, readCharacterPlayRow } from './st
 import { readCharacterCampaign } from './sourceReads'
 import { readCharacterCommandReplay, writeCharacterCommandReceipt } from './sheetCommandReceipts'
 import { assertConvexOwnsCharacterPlay } from '../liveSessions/authorityGuard'
+import { scheduleCharacterSheetSections } from './sheetSections'
 
 /** Projection preferences replace only typed play state; current mechanical values stay intact. */
 export async function executeCharacterPlayPreferenceCommand(
@@ -78,9 +79,8 @@ export async function executeCharacterPlayPreferenceCommand(
     if (command.inspired) state.inspiration = true
     else delete state.inspiration
   } else state.partyVisibility = command.visibility
-  const occurredAt = new Date(
-    Math.max(Date.now(), Date.parse(head.updatedAt) + 1, Date.parse(play.updatedAt) + 1)
-  ).toISOString()
+  // A preference changes play only, so only the play clock orders it.
+  const occurredAt = new Date(Math.max(Date.now(), Date.parse(play.updatedAt) + 1)).toISOString()
   const streamVersion = play.streamVersion + 1
   await ctx.db.replace(
     playId,
@@ -92,6 +92,7 @@ export async function executeCharacterPlayPreferenceCommand(
       updatedAt: occurredAt
     })
   )
+  await scheduleCharacterSheetSections(ctx, head.id)
   return writeCharacterCommandReceipt(ctx, {
     ...scope,
     streamVersion,

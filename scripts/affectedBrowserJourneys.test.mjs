@@ -337,15 +337,17 @@ describe('shardProofs', () => {
     expect(reversed.map((shard) => names(shard).reverse())).toEqual(shards.map(names))
   })
 
+  // A fixed label, so the case holds while the live file has no known bugs.
+  const dispatchLabels = { 'builder-browser': 'RELIABILITY-21.T16' }
   it.each([
     ['a gating proof', 'auth-browser', false],
-    ['a known-bug proof', Object.keys(KNOWN_BUG_PROOFS)[0], true],
+    ['a known-bug proof', 'builder-browser', true],
     ['a native proof', 'movement', false]
   ])('runs a dispatched %s alone', (_, proof, knownBug) => {
-    expect(shardProofs([proof], KNOWN_BUG_PROOFS, PROOF_SECONDS)).toEqual([
+    expect(shardProofs([proof], dispatchLabels, PROOF_SECONDS)).toEqual([
       expect.objectContaining({
         knownBug,
-        proofs: [{ proof, knownBug: KNOWN_BUG_PROOFS[proof] ?? '' }]
+        proofs: [{ proof, knownBug: dispatchLabels[proof] ?? '' }]
       })
     ])
   })

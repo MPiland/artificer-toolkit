@@ -6,7 +6,9 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
+  SCALING,
   SUBJECT,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
@@ -21,6 +23,10 @@ function schoolId(code: string): string {
     throw new Error(`SRD magic school vocabulary entry for ${code} required for spell source data.`)
   return entry.id
 }
+const EAT_EFFECT_KEY = 0x220
+const EAT_EFFECT_ID = spellChildId(SPELL_IDS.GOODBERRY, EAT_EFFECT_KEY, 1)
+const EAT_PATH_KEY = 0x222
+
 export const goodberry: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.GOODBERRY,
@@ -68,11 +74,67 @@ export const goodberry: SpellAuthored = {
               durationKind: DURATION_KIND.DAY,
               amount: 1
             },
+            // The ten berries: each one fed as an action heals 1 hit point and spends a use.
+            lifecycle: {
+              uses: 10,
+              effectOffers: [
+                {
+                  kind: 'REPEAT_SOURCE_PATH' as const,
+                  offeredTo: 'SOURCE' as const,
+                  activation: ACTIVATION_CODE.ACTION,
+                  effectId: EAT_EFFECT_ID,
+                  target: 'INVOCATION' as const
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GOODBERRY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GOODBERRY' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: EAT_EFFECT_ID,
+      order: 2,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.ACTIVATED,
+        activation: {
+          code: ACTIVATION_CODE.ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.GOODBERRY, EAT_EFFECT_KEY + 1, 1),
+          rangeKind: RANGE_KIND.TOUCH
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.GOODBERRY, EAT_PATH_KEY, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.GOODBERRY, EAT_PATH_KEY, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.GOODBERRY, EAT_PATH_KEY, 2),
+                effectKind: EFFECT_KIND.HEAL,
+                valueKind: 'FIXED',
+                scalingKind: SCALING.NONE,
+                amount: 1
               }
             ]
           }

@@ -196,7 +196,7 @@ a fallback persistence path for native Characters.
 flowchart LR
   Identity["Better Auth session / public owner UUID"] --> Draft["characters/drafts create / save / discard"]
   Binding["systems: verified System UUID + checksum"] --> Draft
-  Active["characters: active document + updatedAt"] -->|"read only"| Draft
+  Active["characters + characterBuildStates.updatedAt"] -->|"read only"| Draft
   Draft --> Work["characterDrafts: private payloadJson + checksum"]
   Draft --> Route["authoredRouteIds: CHARACTER UUID / compact alias"]
 ```
@@ -699,10 +699,10 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
 
 | Record                 | Owner                                             | Holds                                                                                                                                                 | Concurrency clock |
 | ---------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `characters`           | Builder and structural Sheet writes               | Identity, portrait, complete structure checksums                                                                                                      | `updatedAt`       |
-| `characterBuildStates` | Builder and Sheet adjustments                     | Profile, intent, adjustments, movement preference, optional collection presence                                                                       | Head `updatedAt`  |
+| `characters`           | Builder identity and portrait writes              | Identity, portrait                                                                                                                                    | None              |
+| `characterBuildStates` | Builder and Sheet adjustments                     | Structure clock, profile, intent, adjustments, movement preference, optional collection presence                                                      | `updatedAt`       |
 | `characterPlayStates`  | Sheet, rests, Encounter mechanics, GM adjustments | typed `state` (below), checksum, `maximumHitPoints`, `speeds` (feet per speed type), identity                                                         | `streamVersion`   |
-| Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Head `updatedAt`  |
+| Owned collections      | Existing Builder/Sheet owners                     | Inventory items, currency groups, class spell state, spell customizations, Creature/Vehicle instances, equipment relationships, notes and note groups | Build `updatedAt` |
 
 - **Contract.** `packages/schema/src/projections/characterPlayState.ts` names the play fields
   (`characterPlayStateSchema`): the state's hit points (current, temporary, hit dice), resources,
@@ -722,8 +722,10 @@ for rules, Builder, export and room captures; it is no longer stored in the muta
   `shared/character/sheetRest` value validator, never the complete Character mechanics barrel.
   Development data is reset and seeded with the local lifecycle; no compatibility reader is retained.
 - **One writer.** `writeCharacterRecord` splits the document and Sheet state it is given, diffs
-  individual owned records by ID and checksum, and advances the structure `updatedAt` only when
-  structure changes. All changes share the caller's transaction. A play write replaces only the
+  individual owned records by ID and checksum, and advances the build record's structure `updatedAt`
+  only when structure changes. It replaces the `characters` head only when identity or portrait
+  fields change, so a Sheet command leaves the head every Campaign read joins untouched
+  (ADR 0035 Amendment 12, RELIABILITY-21.16). All changes share the caller's transaction. A play write replaces only the
   small play record. The Encounter persistence port reaches this same function.
 - **Readers merge.** `readCharacterRow` assembles all indexed operational records; the Sheet projection, rules
   evaluation, Encounter facts and the live-session INPUTS capture (one joined `owner` row, from which
@@ -745,8 +747,8 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
 
 1. **Play commands** (Sheet commands, rests, GM adjustments, Encounter mechanics) check
    `expectedVersion` against `characterPlayStates.streamVersion` and advance it by one per
-   transaction. They do not read `characters.updatedAt` for concurrency.
-2. **Builder commits** check the draft's `baseActiveUpdatedAt` against `characters.updatedAt`. The
+   transaction. They do not read the structure `updatedAt` for concurrency.
+2. **Builder commits** check the draft's `baseActiveUpdatedAt` against `characterBuildStates.updatedAt`. The
    commit overlays the live play state onto the draft's candidate before preparation, so a Builder
    save preserves current HP, slots and resources spent while the draft was open. It advances the
    play stream only when the commit itself changes play content (a new Character, hit dice
@@ -757,7 +759,7 @@ Two clocks, so a Builder save and a play change do not conflict on one version:
    equal to the new maximum. The comparison uses the Character-only maximum, so a Campaign hit point
    adjustment is not visible to the Builder; readers still clamp to the effective maximum.
 4. **Structure changes made by the Sheet** (inventory, currency, Sheet adjustments, spell
-   customizations, movement preference) advance `characters.updatedAt`, so a stale Builder draft
+   customizations, movement preference) advance `characterBuildStates.updatedAt`, so a stale Builder draft
    still conflicts with them.
 5. **Single-use items** (D102) are a play record overlay, `itemUsage`, not a structure edit. The
    effective quantity is the stored quantity minus `used`; `readCharacterRecord` returns it and hides
@@ -855,7 +857,9 @@ and writes remain transitional; this list integration is not Campaign or release
 flowchart LR
   Request["characters/sheetSlices:get — UUID or alias, optional Campaign, slice"] --> Owner["Current viewer + active Character + route checks"]
   Owner --> Notes["NOTES: play version, Build notebook, note/group records"]
-  Owner --> Current["Mechanical slices: current published sources + complete active state"]
+  Owner --> Stored{"Stored section current? (ADR 0041)"}
+  Stored -- yes --> Result
+  Stored -- no --> Current["Mechanical slices: current published sources + complete active state"]
   Current --> Prepare["Shared structural repair + readiness, read-only"]
   Prepare --> Policy["Installed TypeScript Character policy"]
   Policy --> Projection["Neutral Sheet projector"]
@@ -866,9 +870,25 @@ flowchart LR
 The queries read committed Character state. A working draft contributes only its presence
 flag, never proposed structure, play state or private notes. UUID and route-alias lookups share the
 same owner/route integrity checks; missing, draft-only and other-owner Characters return null, and
-anonymous callers are denied. The current-source preparation and policy run synchronously on every
-read. An unresolved structural source blocks the Sheet instead of serving a stored stale projection.
-This query does not persist repairs, advance the stream or consume a draft.
+anonymous callers are denied. Every Character write derives the Sheet once and stores its slices,
+listed panels and preparation options per viewer ([ADR 0041](../adr/0041-stored-character-sheet-sections.md)):
+inline when one of the Sheet's own writers (Sheet commands, the GM overlay refresh, the Encounter
+port) evaluated the Sheet itself, otherwise (Builder commit, resolution-scope commands, focused
+preference and note writes, other Character writers) through the queued
+`characters/sheetSectionDerivation:store` mutation. A listed Spell the Character does not
+reference has no stored panel, because the Sheet evaluates only referenced Spells. An owner's preparation options read their
+content-snapshot manifest from the current heads.
+Stored rows leave out the stream version, and reads add it back from the Character's play record,
+so a write rewrites only the sections whose content changed: an HP change rewrites each viewer's
+COMMON slice (about 10 KB), bounded at 12 KB per viewer apart from the 800 B play-record budget.
+That one stored write per viewer replaces six or more query invalidations, each of which re-derived
+the whole Sheet (about 350 ms).
+After the same authority checks, a read serves its stored section while the fingerprint of every
+input the derivation read (Character, draft and route, System, source and Campaign content heads,
+the Campaign fields and state the Sheet reads, rule effects) still matches; otherwise it runs the
+current-source preparation and policy as before. A miss is therefore slower but never stale: an
+unresolved structural source still blocks the Sheet. This query does not persist repairs, advance
+the stream or consume a draft.
 
 The shared read envelope and DTOs live in `schema/api/characterSheetSlices`. The backend's Builder context loader retains
 the selected Creature/Vehicle maps for the final policy/projection call without adding those records
@@ -881,9 +901,8 @@ NOTES validates only the head, play and Build records and complete ordered note/
 the Build's checksummed collection counts, with no
 inventory, spell, extras or authored-source reads and no mechanics evaluation. It is owner-only;
 Campaign GM and party projections cannot request private notes. Both explicit and implicit assignment
-authority retain the Campaign deletion fence. The mechanical slices still assemble and evaluate the
-complete Character before selecting their DTO; narrowing HP and mechanical storage reads remains
-completion work. The complete Sheet endpoint remains a transitional native-proof consumer.
+authority retain the Campaign deletion fence. A stored mechanical slice reads no authored content;
+a miss assembles and evaluates the complete Character before selecting its DTO. The complete Sheet endpoint remains a transitional native-proof consumer.
 
 ### Native personal Sheet commands — partial local implementation
 

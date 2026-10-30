@@ -1,6 +1,7 @@
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetCampaignContext } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import type { prepareCharacterRuleSources } from '@artificer-toolkit/rules-runtime/character/characterRuleSnapshot'
+import type { CharacterSheetBuilderPreparation } from '@artificer-toolkit/rules-runtime/character/sheetPreparation'
 import type { QueryCtx } from '../_generated/server'
 import { readCampaignCurrencyOptions } from '../campaigns/currencySystemDocuments'
 import {
@@ -33,20 +34,23 @@ export type CharacterSheetSourceContext = {
   ownerUserId: string
   context: CharacterSourceContext
   sourcePreparation?: ReturnType<typeof prepareCharacterRuleSources>
+  builderPreparation?: CharacterSheetBuilderPreparation<CharacterSourceContext>
 }
 
-/** Loads authorized stored inputs without Builder readiness or Character rule evaluation. */
-export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow = CharacterRow>(
+/**
+ * The ACTIVE Character the caller may read on the Sheet, its draft and route, without source reads:
+ * its owner, or the GM of its Campaign when `campaignId` is given. Null when it is not theirs.
+ */
+export async function readAuthorizedCharacterSheetState<
+  TRow extends CharacterRecordRow = CharacterRow
+>(
   ctx: QueryCtx,
   userId: string,
   lookupId: string,
   campaignId?: string,
-  sourceContext?: CharacterSheetSourceContext,
-  catalogScope: 'active' | 'resolution' = 'active',
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
   /** The row this transaction just wrote, evaluated without reading it back. */
-  written?: TRow,
-  referenceSpellIds: readonly string[] = []
+  written?: TRow
 ) {
   const id = await resolveCharacterId(ctx, lookupId)
   if (!id) return null
@@ -71,6 +75,34 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   const route = await readVisibleAuthoredRouteId(ctx, { subjectId: id })
   if (!route || route.subjectKind !== 'CHARACTER' || route.ownerUserId !== active.userId)
     throw new Error('Stored Character route identity mismatch.')
+  if (active.status !== 'ACTIVE')
+    throw new Error('Character requires Builder repair before the Sheet can be read.')
+  return { id, active, draft, route }
+}
+
+/** Loads authorized stored inputs without Builder readiness or Character rule evaluation. */
+export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow = CharacterRow>(
+  ctx: QueryCtx,
+  userId: string,
+  lookupId: string,
+  campaignId?: string,
+  sourceContext?: CharacterSheetSourceContext,
+  catalogScope: 'active' | 'resolution' = 'active',
+  authorityScope?: import('../campaigns/authority').CampaignInternalScope,
+  /** The row this transaction just wrote, evaluated without reading it back. */
+  written?: TRow,
+  referenceSpellIds: readonly string[] = []
+) {
+  const authorized = await readAuthorizedCharacterSheetState(
+    ctx,
+    userId,
+    lookupId,
+    campaignId,
+    authorityScope,
+    written
+  )
+  if (!authorized) return null
+  const { id, active, draft, route } = authorized
   // Validated DTOs use literal starting-equipment sources for the authored string enum.
   const character = readCharacterRecord(active) as CharacterAuthored
   if (
@@ -82,8 +114,6 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
         sourceContext.context.sourceAccess.campaign?.id !== campaignId.toLowerCase()))
   )
     throw new Error('Character Sheet source context binding mismatch.')
-  if (active.status !== 'ACTIVE')
-    throw new Error('Character requires Builder repair before the Sheet can be read.')
   const sheetState = readCharacterSheetState(active)
   let reusableSources = sourceContext
   if (sourceContext) {
@@ -130,6 +160,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
       reusableSources = {
         ...sourceContext,
         sourcePreparation: undefined,
+        builderPreparation: undefined,
         context: {
           ...context,
           currentSpellsById,

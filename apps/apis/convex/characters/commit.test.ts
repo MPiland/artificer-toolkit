@@ -3,6 +3,7 @@ import { writeCharacterRecord } from '../../tests/fixtures/characterRecords'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { api } from '../_generated/api'
 import { readCharacterRecord, readCharacterRow } from './stateDocuments'
+import { writeCharacterOperationalStructure } from './operationalWrites'
 import { input } from '../../tests/fixtures/characters'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
 
@@ -194,13 +195,25 @@ describe('native Character commit', () => {
         .unique()
     )
     if (!active) throw new Error('Missing active row')
-    await t.run((ctx) =>
-      ctx.db.patch(active._id, {
-        updatedAt: new Date(Date.parse(active.updatedAt) + 1000).toISOString()
+    // The structure clock lives on the build record.
+    await t.run(async (ctx) => {
+      const row = await readCharacterRow(ctx, first.character.id)
+      if (!row) throw new Error('Missing active record')
+      await writeCharacterOperationalStructure(ctx, row, {
+        ...row,
+        updatedAt: new Date(Date.parse(row.updatedAt) + 1000).toISOString()
       })
+    })
+    const build = await t.run((ctx) =>
+      ctx.db
+        .query('characterBuildStates')
+        .withIndex('by_characterId', (q) => q.eq('characterId', first.character.id))
+        .unique()
     )
+    if (!build) throw new Error('Missing build row')
     const unchanged = await t.run((ctx) => ctx.db.get(active._id))
     if (!unchanged) throw new Error('Missing unchanged active row')
+    const unchangedBuild = await t.run((ctx) => ctx.db.get(build._id))
     await expect(
       owner.caller.mutation(api.characters.commit.commit, {
         expectedDraftId: edit.id,
@@ -212,6 +225,7 @@ describe('native Character commit', () => {
       edit
     )
     expect(await t.run((ctx) => ctx.db.get(active._id))).toEqual(unchanged)
+    expect(await t.run((ctx) => ctx.db.get(build._id))).toEqual(unchangedBuild)
     await owner.caller.mutation(api.characters.drafts.discard, {
       id: first.character.id,
       expectedDraftId: edit.id

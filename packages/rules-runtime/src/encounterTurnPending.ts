@@ -174,7 +174,7 @@ export function projectNativeLegendaryPending(input: {
       kind: 'LEGENDARY_ACTION_CHOICE',
       ownerActorId: context.choice.ownerActorId,
       options: context.choice.options.map(
-        ({ optionId, actionId, ownerFeatureId, label, featureCost, targetActorIds }) => ({
+        ({ optionId, actionId, ownerFeatureId, label, featureCost, targetActorIds, area }) => ({
           optionId,
           actionId,
           ownerFeatureId,
@@ -182,7 +182,8 @@ export function projectNativeLegendaryPending(input: {
           featureCost,
           targetActorIds: targetActorIds.filter(
             (actorId) => !input.visibleActorIds || input.visibleActorIds.has(actorId)
-          )
+          ),
+          ...(area ? { area } : {})
         })
       ),
       allowedResponses: ['DECLINE', 'LEGENDARY_OPTION']

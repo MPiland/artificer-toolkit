@@ -17,6 +17,8 @@ export type Dnd5eAttackCircumstances = {
   moveToward: MoveToward | null
   /** The creature type of the target; null for a target with none, such as a Character. */
   targetCreatureTypeId: string | null
+  /** The authored Effects active on the attacker that bind the attacking item (Pact of the Blade). */
+  attackItemBindingEffectIds: readonly string[]
 }
 
 type Restrictions = FacetAuthored
@@ -28,8 +30,10 @@ type MoveTowardCondition = Extract<Condition, { predicateCode: 'MOVED_TOWARD_TAR
 type CreatureTypeCondition = Extract<Condition, { predicateCode: 'CREATURE_TYPE' }>
 type EnemyNearCondition = Extract<Condition, { predicateCode: 'ENEMY_NEAR_TARGET' }>
 type DamageTypeCondition = Extract<Condition, { predicateCode: 'DAMAGE_TYPE' }>
+type BoundByEffectCondition = Extract<Condition, { predicateCode: 'BOUND_BY_EFFECT' }>
 type CircumstanceCondition =
   | RollModeCondition
+  | BoundByEffectCondition
   | EnemyNearCondition
   | MoveTowardCondition
   | CreatureTypeCondition
@@ -44,6 +48,10 @@ function isMoveTowardCondition(condition: Condition): condition is MoveTowardCon
 
 function isCreatureTypeCondition(condition: Condition): condition is CreatureTypeCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'CREATURE_TYPE'
+}
+
+function isBoundByEffectCondition(condition: Condition): condition is BoundByEffectCondition {
+  return condition.kind === 'PREDICATE' && condition.predicateCode === 'BOUND_BY_EFFECT'
 }
 
 /** A check on the damage the attack deals, settled with the weapon's own checks. */
@@ -74,8 +82,8 @@ function damageTypeChecksMet(group: Group, dealtDamageTypeIds: ReadonlySet<strin
 
 /**
  * The checks an attack decides at the moment it rolls, rather than from the weapon it holds: its
- * net roll mode, the enemies near its target, how far it closed on its target, and the creature
- * type of the target.
+ * net roll mode, the enemies near its target, how far it closed on its target, the creature type of
+ * the target, and the Active Effects that bind its weapon, which begin and end during play.
  */
 function isCircumstanceCondition(
   context: Context,
@@ -85,6 +93,7 @@ function isCircumstanceCondition(
     (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ROLL_MODE') ||
     isEnemyNearCondition(condition) ||
     isMoveTowardCondition(condition) ||
+    (context.subject === 'EQUIPMENT' && isBoundByEffectCondition(condition)) ||
     (context.subject === 'CREATURE' && isCreatureTypeCondition(condition))
   )
 }
@@ -122,12 +131,12 @@ const WEAPON_CHECK_KINDS: ReadonlySet<string> = new Set([
 
 /**
  * Resolves the weapon checks of an attack's restrictions against the weapon it is made with, and
- * its damage-type checks against the damage types its hit deals, leaving only the circumstance checks (roll mode, nearby enemies, target creature type), which are
- * decided when the attack rolls. A group whose weapon checks fail can never hold and is dropped; a
- * group with nothing left to decide always holds, as does a facet without groups. Returns `null`
- * when the restrictions can never be met and `undefined` when they always are. Only the attacking
- * item's own checks are evaluated: a check the item cannot
- * answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
+ * its damage-type checks against the damage types its hit deals, leaving only the circumstance
+ * checks (roll mode, nearby enemies, target creature type, binding Effects), which are decided when
+ * the attack rolls. A group whose weapon checks fail can never hold and is dropped; a group with
+ * nothing left to decide always holds, as does a facet without groups. Returns `null` when the
+ * restrictions can never be met and `undefined` when they always are. Only the attacking item's own
+ * checks are evaluated: a check the item cannot answer (`ATTACK_ABILITY`, another subject's check) fails its group whatever its constraint.
  */
 function reduceRestrictions(
   restrictions: Restrictions,
@@ -219,6 +228,10 @@ function circumstanceMet(
     matches =
       condition.authoringModeKind === 'ALL' ||
       (targetCreatureTypeId !== null && condition.creatureTypeIds.includes(targetCreatureTypeId))
+  } else if (isBoundByEffectCondition(condition)) {
+    matches = condition.effectIds.some((id) =>
+      circumstances.attackItemBindingEffectIds.includes(id)
+    )
   } else if (isEnemyNearCondition(condition)) {
     // Without a Scene the check has no answer, so it fails whatever its constraint.
     if (!circumstances.enemyProximity) return false

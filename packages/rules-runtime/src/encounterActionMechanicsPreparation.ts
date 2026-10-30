@@ -23,6 +23,7 @@ import {
   featureModifiersReadHolderLight,
   featureModifiersReadTargetTurn,
   creatureAttackAbility,
+  itemBindingEffectIds,
   encounterAttackAddedDice,
   conditionImmunityIdsAgainstSource,
   type EncounterHolderLight,
@@ -732,6 +733,11 @@ export async function prepareEncounterActionMechanics<
     attackKind !== null && input.loadTurnUses && compiledReads?.turnUses
       ? await input.loadTurnUses()
       : null
+  // The Active Effects that bind a Character's weapon decide its paths restricted to them.
+  const attackItemBindingEffectIds =
+    attackKind !== null && source.kind === 'CHARACTER_ACTION' && source.candidate.equipment
+      ? itemBindingEffectIds(sourceFacts.activeEffects, source.candidate.equipment.itemInstanceId)
+      : []
   const sightContributors = (seen: EncounterAttackPerception) =>
     attackKind === null
       ? seen.targetSeesAttacker === 'SEES'
@@ -877,6 +883,7 @@ export async function prepareEncounterActionMechanics<
         ...(enemyProximity ? { attackEnemyProximity: enemyProximity } : {}),
         ...(moveToward ? { attackMoveToward: moveToward } : {}),
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
+        ...(attackItemBindingEffectIds.length > 0 ? { attackItemBindingEffectIds } : {}),
         ...(attackSuppressedInfluences.length > 0 ? { attackSuppressedInfluences } : {}),
         attackAddedDice: encounterAttackAddedDice(
           sourceFacts.activeEffects,

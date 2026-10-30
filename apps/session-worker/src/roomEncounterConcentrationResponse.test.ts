@@ -218,6 +218,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   const {
     _id,
     _creationTime,
+    updatedAt: _updatedAt,
     documentJson: _documentJson,
     sheetState: _sheetState,
     checksum: _checksum,

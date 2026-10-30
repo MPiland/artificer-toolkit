@@ -13,7 +13,7 @@ import {
   compileEncounterFeatureActionPlan
 } from './encounterActionEntryPointCompiler.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
-import { encounterActionTargetKind } from './encounterAreaAction.js'
+import { encounterActionChoiceTarget, encounterActionTargetKind } from './encounterAreaAction.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
@@ -46,9 +46,10 @@ function compileOrNull<T>(compile: () => T): T | null {
 
 /**
  * The option for one candidate: the action it runs, planned exactly as the action runs, and the
- * actors it may target. An area centered on its owner is delegated to the area coordinator, so it
- * is offered only to an owner with a token in a Scene. Null when the System cannot execute its
- * authored shape from a turn yet (an aimed area, or a shape its compiler does not plan yet).
+ * actors it may target. An area option (centered on its owner, at a point or in a direction) is
+ * delegated to the area coordinator, so it is offered only to an owner with a token in a Scene.
+ * Null when the System cannot execute its authored shape from a turn yet (a list of chosen
+ * creatures, or a shape its compiler does not plan yet).
  */
 function optionForCandidate(
   candidate: EncounterLegendaryActionCandidate,
@@ -62,8 +63,15 @@ function optionForCandidate(
   if (!plan) return null
   const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)
   const targetKind = encounterActionTargetKind(targetPolicy)
-  const delegated = targetKind === 'CASTER_CENTERED'
-  // An aimed area (a point, a direction or chosen creatures) is not offered from a turn yet.
+  const choiceTarget = encounterActionChoiceTarget(targetPolicy)
+  // An area aimed at a point or in a direction carries its area for the client to aim; a list of
+  // chosen creatures is not offered from a turn yet.
+  const area =
+    (choiceTarget.kind === 'POINT' || choiceTarget.kind === 'DIRECTED') &&
+    choiceTarget.kind === targetKind
+      ? choiceTarget
+      : undefined
+  const delegated = targetKind === 'CASTER_CENTERED' || area !== undefined
   if (
     delegated
       ? !tokenBoundActorIds.has(candidate.ownerActorId)
@@ -83,8 +91,8 @@ function optionForCandidate(
         facing: null
       })
   if (ownerWarnings === null) return null
-  // The owner may target itself unless the action must name another creature (D99); an area its
-  // owner centers on itself names only its owner.
+  // The owner may target itself unless the action must name another creature (D99); an area option
+  // names only its owner.
   const ownerIsTargetable = !ownerWarnings.some((warning) => warning.code === 'TARGET_DISPOSITION')
   const targetActorIds =
     delegated || targetPolicy.range.rangeKind === 'SELF'
@@ -99,6 +107,7 @@ function optionForCandidate(
     targetActorIds,
     actionSourceChecksum: checksumRuleDocument(plan),
     ...(delegated ? { delegated: true as const } : {}),
+    ...(area ? { area } : {}),
     chargeId: resource.chargeId,
     featureCost: candidate.featureCost,
     poolBefore: candidate.poolBefore,
@@ -124,7 +133,7 @@ export async function discoverTurnLegendaryWindows(input: {
   actors: readonly EncounterRunActorState[]
   deadCharacterIds: DeadCharacterIds
   movementTargets?: ReadonlyMap<string, MovementTarget>
-  /** The actors with a token in a Scene, which an area centered on its owner needs. */
+  /** The actors with a token in a Scene, which an area option needs. */
   tokenBoundActorIds: ReadonlySet<string>
   loadTargets(actorIds: readonly string[]): Promise<ReadonlyMap<string, MovementTarget>>
   loadSystem(): Promise<SystemAuthoredDto>
