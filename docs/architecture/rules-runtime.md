@@ -2194,6 +2194,11 @@ attack, ACTION 1). The holder's spend travels as `delegatingActorSpend` on the r
 `actionCommitPersistence` applies it, `actionRevert` returns it, and it is part of the currentness checksum only
 when present, so existing pins are unchanged. Contests and system triggers refuse a delegation.
 
+The action-choices read lists each delegated attack under the holder (SPELLS-31.T4v2b): an entry with
+`delegateActorId` set, carrying the delegate's attack, its `attackSlot` and warnings read from the holder's Attack
+action. The Actions drawer sends such an entry with `actorId` the delegate and `delegatingActorId` the holder,
+measures from the delegate's token and offers no optional rules. The room stays the only admission check.
+
 A `SUMMON` manifest may author `cannotAttack` (SPELLS-34.T4; the SRD familiar does). It compiles onto
 `summonPlacement.cannotAttack`, and `buildEncounterSummon` keeps it in the actor's `body`, on a form summon too;
 `encounterActorCannotAttack` is its one reader. Such an actor offers no attack as a reaction
