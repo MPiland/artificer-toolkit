@@ -4283,9 +4283,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
       ) || targetDerivedFacts[ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY] === false
     const addedDice = derivedAddedDice(targetDerivedFacts.savingThrowAddedDice, abilityDefinitionId)
+    const heldDice = derivedAddedDice(
+      targetDerivedFacts.savingThrowAfterRollDice,
+      abilityDefinitionId
+    )
     const facts = {
       ...baseFacts,
-      ...dnd5eAddedDiceFacts(addedDice, attemptAllowed),
+      ...dnd5eAddedDiceFacts(addedDice, attemptAllowed, heldDice),
       [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
       [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
       [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: succeedsUnrolled

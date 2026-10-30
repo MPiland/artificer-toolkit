@@ -167,7 +167,8 @@ export async function evaluateMassiveDamageSaveEvidence(input: {
   context: NativeMassiveDamageSaveContext
   rule: MassiveDamageRule | null
   continuation: ServerRuleExecutionContinuationDto
-  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  resolution?: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  window?: Parameters<typeof settleDamageSaveD20>[0]['window']
   expectedOccurrenceId: string
 }) {
   const { context, rule } = input

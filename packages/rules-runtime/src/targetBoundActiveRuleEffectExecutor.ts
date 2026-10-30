@@ -492,11 +492,27 @@ function requirePolicyContinuationMatch(input: {
   }
 }
 
+/** Whether the rolled dice are the policy's, plus (for a d20 window) the one die it spent after them. */
+function addedDiceFollowPolicy(
+  addedDice: readonly { count: number; faces: number; sign: 1 | -1 }[],
+  policy: ServerRuleExecutionD20PolicyDto,
+  windowDie: boolean
+) {
+  const frozen = policy.addedDice ?? []
+  const shapes = addedDice.map(({ count, faces, sign }) => ({ count, faces, sign }))
+  return (
+    (shapes.length === frozen.length || (windowDie && shapes.length === frozen.length + 1)) &&
+    checksumRuleDocument(shapes.slice(0, frozen.length)) === checksumRuleDocument(frozen)
+  )
+}
+
 function d20EvidenceForCompletion(input: {
   policy: ServerRuleExecutionD20PolicyDto | null
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   occurrenceId: string
   roll?: D20Roll
+  /** A d20 window's die follows the policy's own dice (D168). */
+  windowDie?: boolean
 }): ServerRuleExecutionD20EvidenceDto | null {
   const { policy, execution, occurrenceId, roll } = input
   if (!policy && roll === undefined) return null
@@ -530,8 +546,7 @@ function d20EvidenceForCompletion(input: {
   if (
     rawFaces.length !== rollModeKeepFaceCount(keep) ||
     rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20) ||
-    checksumRuleDocument(addedDice.map(({ count, faces, sign }) => ({ count, faces, sign }))) !==
-      checksumRuleDocument(policy.addedDice ?? [])
+    !addedDiceFollowPolicy(addedDice, policy, input.windowDie === true)
   )
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 raw faces are invalid.'
@@ -569,6 +584,7 @@ function complete(input: {
   execution: Extract<ServerRuleExecutionResultDto, { status: 'COMPLETE' }>
   graph: CompiledRuleGraph
   roll?: D20Roll
+  windowDie?: boolean
 }): TargetBoundActiveRuleEffectExecutionResult {
   const { prepared, execution, graph } = input
   requireTraceBinding({ execution, definition: prepared.definition })
@@ -619,6 +635,7 @@ function complete(input: {
       policy: prepared.evidencePolicy,
       execution,
       occurrenceId: prepared.occurrenceId,
+      windowDie: input.windowDie,
       ...(input.roll ? { roll: input.roll } : {})
     })
   }
@@ -740,6 +757,8 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
       | ({ requestId: string } & D20Roll)
       | { requestId: string; value: number; d20: D20Roll | null }
     expectedEvidencePolicy?: ServerRuleExecutionD20PolicyDto | null
+    /** The d20 was seen in a window that may have added a die after the policy's own (D168). */
+    afterWindow?: boolean
   }
 ): Promise<
   TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
@@ -800,6 +819,7 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
         continuation: input.continuation,
         natural: rollModeKeptFace(roll!.keep, roll!.rawFaces),
         addedDice: roll!.addedDice,
+        mayAddDice: input.afterWindow,
         resume: resumeStep
       })
   const resumed = { result, graph: graph! }
@@ -815,6 +835,7 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     prepared,
     execution: resumed.result,
     graph: resumed.graph,
+    windowDie: input.afterWindow,
     ...(roll ? { roll } : {})
   })
 }
@@ -833,6 +854,8 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
   /** The resolved d20 when the pending request is the damage die of a save; null otherwise. */
   diceStage: D20Roll | null
   answer: EncounterEvidenceAnswer
+  /** The d20 a window settled (D168), resuming the save in place of the answer's own faces. */
+  windowRoll?: D20Roll
   random: (maxExclusive: number) => number
 }): Promise<{
   result: TargetBoundActiveRuleEffectExecutionResult | TargetBoundActiveRuleEffectExecutionPaused
@@ -874,13 +897,15 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     request.nodeId !== policy.requestNodeId
   )
     throw new EncounterConflictError('The evidence request is stale.')
-  const { rawFaces, rollMode, keep, addedDice } = settleEncounterD20Answer({
-    gameSystemId: continuation.graph.source.gameSystemId,
-    d20: policy,
-    answer,
-    rollD20: () => input.random(20) + 1,
-    random: input.random
-  })
+  const { rawFaces, rollMode, keep, addedDice } =
+    input.windowRoll ??
+    settleEncounterD20Answer({
+      gameSystemId: continuation.graph.source.gameSystemId,
+      d20: policy,
+      answer,
+      rollD20: () => input.random(20) + 1,
+      random: input.random
+    })
   const d20 = { rollMode, keep, rawFaces, addedDice }
   return {
     d20,
@@ -888,7 +913,8 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
       ...effectInput,
       continuation,
       resolution: { requestId: answer.requestId, ...d20 },
-      expectedEvidencePolicy: policy
+      expectedEvidencePolicy: policy,
+      afterWindow: input.windowRoll !== undefined
     })
   }
 }

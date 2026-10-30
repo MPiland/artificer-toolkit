@@ -94,6 +94,7 @@ export async function answerNativeD20Check(input: {
       occurrenceId: pending.snapshot.occurrenceId,
       gameSystemId: input.gameSystemId,
       source,
+      command: source.context,
       rolled,
       appRollId,
       heldDice,

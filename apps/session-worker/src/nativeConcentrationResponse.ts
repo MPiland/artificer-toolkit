@@ -5,8 +5,10 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import {
   liveSessionEncounterConcentrationCommitInputSchema,
+  liveSessionEncounterConcentrationWindowInputSchema,
   type LiveSessionEncounterConcentrationCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
+import { damageSaveWindowResume } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -57,7 +59,10 @@ export async function planNativeLiveConcentrationResponse(
   if (admission.kind !== 'CONCENTRATION_RESPONSE')
     throw new Error('Concentration response is unavailable.')
   if (admission.result) return { kind: 'REPLAY' as const, result: admission.result }
-  const { state, snapshot, parentApplications } = admission
+  const { state, parentApplications } = admission
+  // The save as it paused, and the d20 window that follows its roll when that is what pends (D168).
+  const resumed = admission.snapshot ? damageSaveWindowResume(admission.snapshot) : null
+  const snapshot = resumed?.save ?? admission.snapshot
   if (
     !snapshot ||
     snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
@@ -148,8 +153,34 @@ export async function planNativeLiveConcentrationResponse(
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random,
-    resume: { snapshot, context, response, appRoll: admission.appRoll, applicationIndex }
+    resume: {
+      snapshot,
+      context,
+      response,
+      appRoll: admission.appRoll,
+      applicationIndex,
+      ...(resumed
+        ? { window: { context: resumed.window.context, continuation: resumed.window.continuation } }
+        : {})
+    }
   })
+  // The roll opened a window: the same occurrence pends on it and nothing else settles.
+  if (planned.window)
+    return {
+      kind: 'D20_WINDOW_PAUSE' as const,
+      input: liveSessionEncounterConcentrationWindowInputSchema.parse({
+        ...scope,
+        concentrationResponse: response,
+        revisions,
+        occurredAt,
+        snapshot: snapshot.deferredCleaving
+          ? serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+              ...planned.window,
+              deferredCleaving: snapshot.deferredCleaving
+            })
+          : planned.window
+      })
+    }
   if (!planned.resumed) throw new Error('Concentration response did not complete.')
   const nextFacts =
     planned.nextState.version !== state.version

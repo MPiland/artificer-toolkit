@@ -1,4 +1,7 @@
-import type { LiveSessionEncounterConcentrationCommitInput } from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
+import type {
+  LiveSessionEncounterConcentrationCommitInput,
+  LiveSessionEncounterConcentrationWindowInput
+} from '@artificer-toolkit/schema/api/liveSessionEncounterConcentration'
 import type { ActionSceneRequestDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { LiveSessionEncounterRulesResponse } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -25,6 +28,13 @@ import {
 import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
+  chosenEncounterD20WindowOption,
+  damageSaveWindowCommand,
+  damageSaveWindowResume,
+  encounterD20WindowSelectedIndex,
+  encounterD20WindowSelection
+} from '@artificer-toolkit/rules-runtime/encounterD20Window'
+import {
   encounterMassiveDamageRule,
   massiveDamageRulePinned
 } from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
@@ -45,6 +55,8 @@ import { concentrationTargetPinChanged } from './concentrationTargetPin.js'
 import { readEffectRepeatSaveRow, releaseEffectRepeatSave } from './effectRepeatSavePersistence.js'
 import { readLiveConcentrationResponseAdmission } from './liveConcentrationResponseAdmission.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
+import { projectNativeD20WindowPending } from './basicActionCheckPending.js'
+import { writePendingSnapshot } from './pendingSnapshots.js'
 import type { readEncounterMaintenanceCapture } from './maintenanceCapture.js'
 import type { applyLiveConcentrationCleanup } from './concentrationCleanupPersistence.js'
 import type { persistEncounterConcentrationChildren } from './concentrationChildrenPersistence.js'
@@ -90,7 +102,7 @@ export async function persistEncounterConcentrationResponse(
   if (admission.kind === 'REPLAY') return admission.result
   const { state, run, campaign, membership, occurrence, pending, fingerprint, resolution } =
     admission
-  const { context, continuation, snapshot } = pending
+  const { context, continuation, snapshot, window } = pending
   const response = input.concentrationResponse
   const execution = input.execution
   if (execution.status !== 'COMPLETE' || execution.applicationOutputs.kind !== 'DAMAGE_SAVE_CHECK')
@@ -123,19 +135,54 @@ export async function persistEncounterConcentrationResponse(
       checksumCanonicalJson(context.targetCharacter) ||
     checksumCanonicalJson(output.trigger) !== checksumCanonicalJson(context.trigger) ||
     output.savingThrowAbilityDefinitionId !== save.savingThrowAbilityDefinitionId ||
-    output.d20.requestId !== resolution.requestId ||
     output.d20.requestId !== continuation.request.requestId ||
+    (!window && output.d20.requestId !== resolution.requestId) ||
     output.d20.rollMode !== save.rollMode ||
     output.d20.keep !== save.keep ||
     output.d20.modifier !== save.modifier ||
     output.d20.contributorChecksum !== save.contributorChecksum ||
     checksumCanonicalJson(output.d20.contributors) !== checksumCanonicalJson(save.contributors) ||
-    (resolution.kind === 'ENTER_DICE' &&
+    (!window &&
+      resolution.kind === 'ENTER_DICE' &&
       checksumCanonicalJson(resolution.rawFaces) !== checksumCanonicalJson(output.d20.rawFaces)) ||
     execution.outputs.total !== output.d20.total ||
     execution.outputs.resultPath !== (failed ? 'ON_SAVE_FAIL' : 'ON_SAVE_SUCCESS')
   )
     throw new Error('Live Session concentration result does not match its pending evidence.')
+  // The decision on a held die: the settled d20 is the frozen roll plus exactly the die it spent.
+  let spentDieEffectId: string | null = null
+  let windowSelectedIndex = 0
+  if (window) {
+    const offered = window.context.pause.payload
+    const selection = encounterD20WindowSelection(resolution)
+    const option = chosenEncounterD20WindowOption(offered, selection)
+    const { rolled } = offered
+    if (!('continuation' in rolled)) throw new Error('The concentration window is unavailable.')
+    const frozenDice = rolled.d20.addedDice ?? []
+    const settledDice = output.d20.addedDice ?? []
+    const spent = settledDice.at(frozenDice.length)
+    if (
+      output.d20.selectedNatural !== rolled.d20.selectedNatural ||
+      checksumCanonicalJson(output.d20.rawFaces) !== checksumCanonicalJson(rolled.d20.rawFaces) ||
+      checksumCanonicalJson(settledDice.slice(0, frozenDice.length)) !==
+        checksumCanonicalJson(frozenDice) ||
+      settledDice.length !== frozenDice.length + (option ? 1 : 0) ||
+      (option &&
+        (!spent ||
+          spent.label !== option.label ||
+          spent.count !== option.count ||
+          spent.faces !== option.faces ||
+          spent.sign !== option.sign ||
+          spent.rolledFaces.length !== option.count ||
+          spent.rolledFaces.some((face) => face < 1 || face > option.faces) ||
+          (selection.kind === 'USE' &&
+            selection.faces &&
+            checksumCanonicalJson(selection.faces) !== checksumCanonicalJson(spent.rolledFaces))))
+    )
+      throw new Error('Live Session concentration window does not match its pending evidence.')
+    spentDieEffectId = option?.effectId ?? null
+    windowSelectedIndex = encounterD20WindowSelectedIndex(offered, selection)
+  }
   if (context.source === 'CONCENTRATION' && output.source === 'CONCENTRATION') {
     if (
       execution.evidence.source.definitionId !== context.concentrationDefinition.id ||
@@ -409,6 +456,7 @@ export async function persistEncounterConcentrationResponse(
       concentrationEnds: input.concentrationEnds,
       endedGrants: input.endedGrants,
       answeredCheck: output,
+      ...(spentDieEffectId ? { answeredWindowDieEffectId: spentDieEffectId } : {}),
       pendingConcentration: nextPending
     })
   ).actors
@@ -478,7 +526,10 @@ export async function persistEncounterConcentrationResponse(
       transition: 'RESUME',
       expectedAggregateVersion: response.expectedVersion,
       expectedOccurrenceVersion: response.expectedOccurrenceVersion,
-      response: { requestId: resolution.requestId, value: output.d20.selectedNatural },
+      response: {
+        requestId: resolution.requestId,
+        value: window ? windowSelectedIndex : output.d20.selectedNatural
+      },
       optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
     }
   })
@@ -516,5 +567,68 @@ export async function persistEncounterConcentrationResponse(
     campaign,
     membership,
     result: encounterCommandResultDtoSchema.parse({ ...result, projection })
+  })
+}
+
+/**
+ * Pauses an admitted concentration check on the d20 window its roll opened (D168). The same
+ * occurrence now pends on the window, so only its pending snapshot changes: nothing settles, and the
+ * Run, the occurrence version and the command ledger stay as they were.
+ */
+export async function persistEncounterConcentrationWindowOpen(
+  ctx: EncounterCharacterWriteTransaction,
+  input: LiveSessionEncounterConcentrationWindowInput,
+  callbacks: Pick<Parameters<typeof persistEncounterConcentrationResponse>[2], 'validateReadFence'>
+): Promise<EncounterCommandResultDto> {
+  const admission = await readLiveConcentrationResponseAdmission(ctx, input)
+  if (admission.kind === 'REPLAY') return admission.result
+  const { state, campaign, membership, occurrence, pending, resolution, actors } = admission
+  const opened = damageSaveWindowResume(input.snapshot)
+  const rolled = opened?.window.context.pause.payload.rolled
+  if (
+    pending.window ||
+    !opened ||
+    !rolled ||
+    !('continuation' in rolled) ||
+    input.snapshot.occurrenceId !== occurrence.id ||
+    input.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
+    checksumCanonicalJson(opened.save.applicationContext) !==
+      checksumCanonicalJson(pending.context) ||
+    checksumCanonicalJson(opened.save.deferredCleaving ?? null) !==
+      checksumCanonicalJson(pending.snapshot.deferredCleaving ?? null) ||
+    checksumCanonicalJson(opened.window.context.source) !==
+      checksumCanonicalJson({ kind: 'DAMAGE_SAVE_CHECK', context: pending.context }) ||
+    checksumCanonicalJson({
+      commandId: opened.window.context.commandId,
+      commandFingerprint: opened.window.context.commandFingerprint
+    }) !== checksumCanonicalJson(damageSaveWindowCommand(occurrence.id, pending.context)) ||
+    checksumCanonicalJson(rolled.continuation) !== checksumCanonicalJson(pending.continuation) ||
+    rolled.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
+    rolled.d20.requestId !== pending.continuation.request.requestId ||
+    (resolution.kind === 'ENTER_DICE' &&
+      checksumCanonicalJson(resolution.rawFaces) !== checksumCanonicalJson(rolled.d20.rawFaces))
+  )
+    throw new Error('Live Session concentration window does not match its pending evidence.')
+  await callbacks.validateReadFence(
+    state,
+    actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : [])),
+    input.revisions
+  )
+  await ctx.db.patch(occurrence._id, {
+    pendingSnapshotChecksum: await writePendingSnapshot(ctx, occurrence, input.snapshot)
+  })
+  return presentEncounterResultForMember(ctx, {
+    campaign,
+    membership,
+    result: encounterCommandResultDtoSchema.parse({
+      projection: await readEncounterGmProjection(ctx, state),
+      roll: null,
+      occurrence: {
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        status: 'PENDING',
+        pending: projectNativeD20WindowPending(occurrence, input.snapshot)
+      }
+    })
   })
 }

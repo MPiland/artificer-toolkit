@@ -7,6 +7,7 @@ import {
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -15,6 +16,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { characterInForm } from './characterFormFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
+import { heldSaveDieEffect, seedModifierGrant } from './grantSeed.js'
 import { dependentEffectDefinition } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -236,13 +238,15 @@ function creatureHolderRoom(
     hidden?: boolean
     rolls?: number[]
     creature?: Parameters<typeof srdCreatureActor>[0]['creature']
+    seed?: Parameters<typeof actionRoom>[0]['seed']
   }
 ) {
   const attacker = biteWolf('ATTACK')
-  const { hidden, rolls = [18], creature = plainWolf, ...holderOptions } = holder
+  const { hidden, rolls = [18], creature = plainWolf, seed, ...holderOptions } = holder
   return actionRoom({
     autoRoll: 'GAME_MASTER',
     rolls,
+    seed,
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
       {
@@ -694,5 +698,111 @@ describe('room Concentration checks held by a Creature', () => {
     const after = await readRoomHistory(room.room.base.stub)
     expect(concentrationChecks(after)).toMatchObject([{ outcome: 'SAVE_SUCCESS' }])
     expect(after.maintainedStates).toHaveLength(1)
+  })
+})
+
+describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31.T4c1b)', () => {
+  /** The Wolf holder keeps the Resistance die, authored to be offered once the d20 is seen. */
+  const heldDieRoom = (die = heldSaveDieEffect()) =>
+    creatureHolderRoom({
+      seed: seedModifierGrant({
+        sourceActorId: HOLDER_ID,
+        holderActorId: HOLDER_ID,
+        lifecycle: {},
+        effect: die,
+        sourceLabel: resistance.label
+      })
+    })
+
+  /** The GM answers the holder's save with a natural 8: 8 + 1 is 9, one short of the DC 10. */
+  async function openWindow(room: Awaited<ReturnType<typeof heldDieRoom>>) {
+    const { answer } = await room.startAction(HOLDER_ID)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const save = await room.pendingDecision()
+    if (save.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    const { request } = save.pending
+    const rolled = await room.resolve(save, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [8],
+      rollMode: request.rollMode
+    })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    return { decision, pending: decision.pending }
+  }
+
+  it('offers the die once the d20 is seen, and spending it saves the Concentration and ends the effect', async () => {
+    const room = await heldDieRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    const { decision, pending } = await openWindow(room)
+    expect(pending).toMatchObject({
+      rollerActorId: HOLDER_ID,
+      d20: { selectedNatural: 8, total: 9 },
+      options: [{ label: 'Resistance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    // Nothing settled while the window pends: the Concentration and the held die both remain.
+    const paused = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(paused)).toEqual([])
+    expect(paused.maintainedStates).toHaveLength(1)
+
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    // 8 + 1 + the d4 of 3 is 12: above the DC 10.
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([
+      {
+        outcome: 'SAVE_SUCCESS',
+        d20: {
+          selectedNatural: 8,
+          total: 12,
+          addedDice: [{ label: 'Resistance', rolledFaces: [3] }]
+        }
+      }
+    ])
+    expect(after.maintainedStates).toHaveLength(1)
+    expect(after.occurrences.map((occurrence) => occurrence.state)).not.toContain('PENDING')
+    // The held die is spent; the Concentration's dependent effect remains.
+    expect(after.activeEffects).toHaveLength(before.activeEffects.length - 1)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+  })
+
+  it('keeps the roll and the die when the holder declines, so the 9 fails the save', async () => {
+    const room = await heldDieRoom()
+    const { decision, pending } = await openWindow(room)
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: pending.requestId
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([
+      { outcome: 'SAVE_FAILURE', d20: { selectedNatural: 8, total: 9 } }
+    ])
+    expect(after.maintainedStates).toEqual([])
+  })
+
+  it('offers a homebrew die authored differently (two dice) through the same path', async () => {
+    const room = await heldDieRoom(heldSaveDieEffect({ count: 2 }))
+    const { decision, pending } = await openWindow(room)
+    expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [1, 1]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    // 8 + 1 + 2 is 11: above the DC 10.
+    expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toMatchObject([
+      { outcome: 'SAVE_SUCCESS', d20: { total: 11 } }
+    ])
   })
 })

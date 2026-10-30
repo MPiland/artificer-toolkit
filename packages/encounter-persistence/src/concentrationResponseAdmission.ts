@@ -21,6 +21,11 @@ import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterReadTransaction } from './ports.js'
 
+const answersWindow = <TResolution extends { kind: string }>(
+  resolution: TResolution
+): resolution is Extract<TResolution, { kind: 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }> =>
+  resolution.kind === 'D20_WINDOW_USE' || resolution.kind === 'D20_WINDOW_DECLINE'
+
 /** Admits one concentration child response without preparing facts or writing state. */
 export async function readNativeConcentrationResponseAdmission(
   ctx: EncounterReadTransaction,
@@ -105,12 +110,16 @@ export async function readNativeConcentrationResponseAdmission(
       metadata.transition !== 'RESUME' ||
       metadata.expectedAggregateVersion !== response.expectedVersion ||
       metadata.expectedOccurrenceVersion !== response.expectedOccurrenceVersion ||
-      (response.resolution.kind !== 'ENTER_DICE' && response.resolution.kind !== 'SYSTEM_ROLL') ||
-      metadata.response.requestId !== response.resolution.requestId ||
-      metadata.response.value !== payload.applicationOutputs.d20.selectedNatural ||
-      (response.resolution.kind === 'ENTER_DICE' &&
-        checksumCanonicalJson(response.resolution.rawFaces) !==
-          checksumCanonicalJson(payload.applicationOutputs.d20.rawFaces))
+      // A window's decision records its own request and the chosen option's index, not the d20.
+      (answersWindow(response.resolution)
+        ? metadata.response.requestId !== response.resolution.requestId
+        : (response.resolution.kind !== 'ENTER_DICE' &&
+            response.resolution.kind !== 'SYSTEM_ROLL') ||
+          metadata.response.requestId !== response.resolution.requestId ||
+          metadata.response.value !== payload.applicationOutputs.d20.selectedNatural ||
+          (response.resolution.kind === 'ENTER_DICE' &&
+            checksumCanonicalJson(response.resolution.rawFaces) !==
+              checksumCanonicalJson(payload.applicationOutputs.d20.rawFaces)))
     )
       throw new Error('The concentration occurrence is unavailable.')
     const result = await replayEncounterCommandResult(ctx, state, prior)
@@ -130,7 +139,7 @@ export async function readNativeConcentrationResponseAdmission(
     occurrence,
     await readPendingSnapshot(ctx, occurrence)
   )
-  const { context, snapshot } = pending
+  const { context, snapshot, stored, window } = pending
   if (!authorized(context.application.targetActorId))
     throw new Error('The concentration occurrence is unavailable.')
   const reservedCommand = await ctx.db
@@ -149,7 +158,10 @@ export async function readNativeConcentrationResponseAdmission(
     occurrence.expectedEncounterVersion !== state.version ||
     occurrence.version !== response.expectedOccurrenceVersion ||
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
-    (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
+    // The roller's d20 while the save awaits it; the decision on a held die while its window does.
+    (window
+      ? !answersWindow(resolution) || resolution.requestId !== stored.request.requestId
+      : resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
   )
     throw new Error('The concentration occurrence is unavailable.')
   const pendingOccurrences = await ctx.db
