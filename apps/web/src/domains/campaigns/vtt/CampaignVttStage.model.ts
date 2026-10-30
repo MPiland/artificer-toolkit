@@ -307,7 +307,7 @@ export function readActiveTurn(
   const encounter = state?.encounter?.status === 'ACTIVE' ? state.encounter : undefined
   const currentActor = encounter?.actors.find((actor) => actor.id === encounter.currentActorId)
   const currentActorMine = currentActor
-    ? isEncounterActorMine(campaign, currentUserId, currentActor)
+    ? isEncounterActorMine(campaign, currentUserId, currentActor, encounter?.actors ?? [])
     : false
   const turnMovement = currentActorMine
     ? state?.turnMovement.find((entry) => entry.actorId === currentActor?.id)

@@ -567,7 +567,12 @@ export function CampaignVttStage({
     return new Map(
       [...actorIdByTokenId].map(([tokenId, actorId]) => {
         const actor = activeEncounter?.actors.find((candidate) => candidate.id === actorId)
-        return [tokenId, actor ? isEncounterActorMine(viewer, viewerUserId, actor) : false]
+        return [
+          tokenId,
+          actor
+            ? isEncounterActorMine(viewer, viewerUserId, actor, activeEncounter?.actors ?? [])
+            : false
+        ]
       })
     )
   }, [activeEncounter?.actors, actorIdByTokenId, campaign, gmPreviewUserId, viewerUserId])
@@ -645,7 +650,12 @@ export function CampaignVttStage({
       renderedScene &&
       destinationTokenId &&
       destinationSource &&
-      isEncounterActorMine(campaign, currentUserId, destinationSource)
+      isEncounterActorMine(
+        campaign,
+        currentUserId,
+        destinationSource,
+        activeEncounter?.actors ?? []
+      )
         ? forcedMovementDestinationPick({
             pending: destinationPending,
             scene: renderedScene,
