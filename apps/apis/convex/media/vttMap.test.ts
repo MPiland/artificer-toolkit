@@ -584,6 +584,8 @@ it('releases ready map bytes only after both published definition and initial li
       .unique()
     await ctx.db.delete(scene!._id)
   })
+  // Past the last commit, so the next mutation's clock is the one this test reads.
+  vi.setSystemTime(Date.now() + 1_000)
   await base.t.mutation(internal.media.assets.cleanup, {
     assetId: intent.assetId
   })

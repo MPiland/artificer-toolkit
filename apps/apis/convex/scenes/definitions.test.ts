@@ -230,6 +230,8 @@ it('starts a fresh recovery grace when an old map loses its last definition refe
   expect(await base.t.run((ctx) => ctx.db.get(replacementRow))).toMatchObject({
     status: 'READY'
   })
+  // Past the last commit, so the next mutation's clock is the one this test reads.
+  vi.setSystemTime(Date.now() + 1_000)
   await base.owner.caller.mutation(remove, {
     ...readInput(base, initial),
     expectedVersion: 2

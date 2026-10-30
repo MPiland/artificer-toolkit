@@ -348,7 +348,7 @@ describe('native import upload claims', () => {
       expiresAt: expiresAt + 1
     })
     expect(await stored(t, storageId)).not.toBeNull()
-    vi.advanceTimersByTime(15 * 60_000)
+    vi.advanceTimersByTime(expiresAt - Date.now())
     await t.finishInProgressScheduledFunctions()
 
     expect(await stored(t, storageId)).toBeNull()
