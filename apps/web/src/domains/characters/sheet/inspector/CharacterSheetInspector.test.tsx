@@ -1308,7 +1308,7 @@ describe('Character Sheet inspector', () => {
       />
     )
 
-    await user.click(screen.getByLabelText('Summon form'))
+    await user.click(screen.getAllByLabelText('Summon form')[0]!)
     await user.click(await screen.findByRole('option', { name: 'Cat' }))
     await user.click(screen.getByRole('radio', { name: 'Fey' }))
     await user.click(screen.getAllByRole('button', { name: 'Cast' })[0]!)
