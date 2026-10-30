@@ -82,8 +82,8 @@ afterAll(() => {
 
 describe('Character Sheet inspector', () => {
   beforeEach(() => {
-    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(320)
-    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(400)
+    vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(320)
+    vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400)
   })
   afterEach(() => vi.restoreAllMocks())
 

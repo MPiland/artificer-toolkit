@@ -46,6 +46,29 @@ const nodeOnlySentryModule = /[\\/]node_modules[\\/]@sentry[\\/]node(-core)?[\\/
 const browserOnlyHtmlParserModule =
   /[\\/]node_modules[\\/]html-dom-parser[\\/](?:esm|lib)[\\/]client[\\/]/
 
+type ImporterInfo = { importers: readonly string[]; dynamicImporters: readonly string[] } | null
+
+// Shortest importer path from an offending module back to app source, so a failure names its cause.
+function importChain(moduleId: string, getModuleInfo: (id: string) => ImporterInfo): string[] {
+  const previous = new Map<string, string | undefined>([[moduleId, undefined]])
+  const queue = [moduleId]
+  for (const id of queue) {
+    if (!id.includes('node_modules')) {
+      const chain: string[] = []
+      for (let step: string | undefined = id; step; step = previous.get(step)) chain.push(step)
+      return chain.reverse()
+    }
+    const info = getModuleInfo(id)
+    for (const importer of [...(info?.importers ?? []), ...(info?.dynamicImporters ?? [])]) {
+      if (!previous.has(importer)) {
+        previous.set(importer, id)
+        queue.push(importer)
+      }
+    }
+  }
+  return [moduleId]
+}
+
 function workerBundleGuard(): Plugin {
   return {
     name: 'artificer:worker-bundle-guard',
@@ -59,8 +82,10 @@ function workerBundleGuard(): Plugin {
           : []
       )
       if (offenders.length > 0) {
+        const firstOffender = offenders[0].slice(offenders[0].indexOf(': ') + 2)
         this.error(
-          `The Worker bundle includes a Node SDK or browser DOM parser:\n${offenders.join('\n')}`
+          `The Worker bundle includes a Node SDK or browser DOM parser:\n${offenders.join('\n')}\n` +
+            `Import chain: ${importChain(firstOffender, (id) => this.getModuleInfo(id)).join(' <- ')}`
         )
       }
     }
