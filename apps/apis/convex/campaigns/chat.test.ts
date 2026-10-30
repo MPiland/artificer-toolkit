@@ -466,14 +466,14 @@ describe('native Campaign text chat', () => {
     await expect(
       other.caller.mutation(edit, { campaignId: campaign.id, entryId: entry.id, body: 'nope' })
     ).rejects.toThrow()
-    vi.setSystemTime(new Date(baseTime.getTime() + 15 * 60_000))
+    vi.setSystemTime(new Date(Date.parse(entry.createdAt) + 15 * 60_000))
     const edited = await owner.caller.mutation(edit, {
       campaignId: campaign.id,
       entryId: entry.id,
       body: 'edited'
     })
     expect(edited).toMatchObject({ id: entry.id, body: 'edited', editedAt: expect.any(String) })
-    vi.setSystemTime(new Date(baseTime.getTime() + 15 * 60_000 + 1))
+    vi.setSystemTime(new Date(Date.parse(entry.createdAt) + 15 * 60_000 + 1))
     await expect(
       owner.caller.mutation(edit, {
         campaignId: campaign.id,

@@ -34,9 +34,9 @@ describe('native Campaign inventory audit window', () => {
       gameSystemId: srdSystemRecord.id,
       primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
     })
-    const now = Date.parse('2026-09-07T12:00:00.000Z')
+    const now = Date.now() + 60_000
     const cutoff = now - 180 * 24 * 60 * 60 * 1000
-    const times = [cutoff - 1, cutoff, cutoff, cutoff + 1, now]
+    const times = [cutoff - 1, cutoff, cutoff, cutoff + 1_000, now]
     const ids = times.map(
       (_, index) => `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`
     )
@@ -147,7 +147,7 @@ it('traverses 51 qualified and masked audit rows, preserving history and current
     gameSystemId: srdSystemRecord.id,
     primaryRulesCatalogueId: SRD_RULES_CATALOGUE.id
   })
-  const now = Date.parse('2026-09-07T12:00:00.000Z')
+  const now = Date.now() + 60_000
   const cutoff = now - 180 * 24 * 60 * 60 * 1000
   const denominationId = crypto.randomUUID()
   const campaignCurrencySystemId = crypto.randomUUID()
@@ -155,7 +155,7 @@ it('traverses 51 qualified and masked audit rows, preserving history and current
   const custody = { kind: 'CAMPAIGN', campaignId: campaign.id, ownerId: campaign.id }
   const rows = Array.from({ length: 52 }, (_, index) => {
     const time =
-      index === 0 ? cutoff - 1 : index <= 2 ? cutoff : cutoff + 1 + Math.floor((index - 3) / 5)
+      index === 0 ? cutoff - 1_001 : index <= 2 ? cutoff : cutoff + 1 + Math.floor((index - 3) / 5)
     const payload =
       index % 2 === 0
         ? {
@@ -214,7 +214,8 @@ it('traverses 51 qualified and masked audit rows, preserving history and current
     .slice(1)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
   vi.useFakeTimers({ toFake: ['Date'] })
-  vi.setSystemTime(now)
+  // A commit moves the next read's clock past it, so each read below gets a clock ahead of them.
+  vi.setSystemTime(now - 2_000)
   try {
     await expect(other.caller.query(audit, { campaignId: campaign.id })).rejects.toThrow(
       'Campaign not found.'
@@ -262,11 +263,13 @@ it('traverses 51 qualified and masked audit rows, preserving history and current
       expect(ids).toEqual(expected.map((row) => row.id))
       expect(new Set(ids).size).toBe(51)
     }
+    vi.setSystemTime(now - 1_000)
     await readAll()
     await owner.caller.mutation(api.campaigns.archive.archive, {
       campaignId: campaign.id,
       expectedVersion: 0
     })
+    vi.setSystemTime(now)
     await readAll()
     vi.setSystemTime(now + 1)
     await expect(
