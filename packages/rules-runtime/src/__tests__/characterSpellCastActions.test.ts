@@ -611,6 +611,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
   const policyOutput: CharacterRulePolicyOutput = {
     ...character.output,
     ...policy,
+    grantFold: character.output.grantFold,
     actionDecisions: built.decisions
   }
   const compiled = compileCharacterActionEntryPoints({
@@ -761,6 +762,7 @@ describe('a cast paid from a spell-source pool', () => {
     const policy = policyFor([cast], authoredById, () => (paysPact ? 'PACT' : null))
     return {
       ...policy,
+      grantFold: character.output.grantFold,
       resources: [pool(rawUsed)],
       spellSlots: { ...policy.spellSlots, slotPools: paysPact ? [pactPool] : [] }
     }
@@ -800,6 +802,7 @@ describe('a cast paid from a spell-source pool', () => {
         policyOutput: {
           ...character.output,
           ...pooledPolicy(cast, rawUsed),
+          grantFold: character.output.grantFold,
           actionDecisions: built.decisions
         },
         resourceUsage:

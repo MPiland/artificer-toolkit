@@ -88,6 +88,28 @@ const W = 11 // warlock class index for ID generation
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
+/** A restriction to Eldritch Blast, whose three rows take the ids from `entry` on. */
+function eldritchBlastOnly(entry: number) {
+  return {
+    id: classRowId(W, 4, entry),
+    groups: [
+      {
+        id: classRowId(W, 4, entry + 1),
+        order: 0,
+        contexts: [
+          {
+            id: classRowId(W, 4, entry + 2),
+            order: 0,
+            subject: 'SPELL' as const,
+            authoringModeKind: 'SELECTED' as const,
+            spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+          }
+        ]
+      }
+    ]
+  }
+}
+
 function selfClassRuleEffect(
   entry: number,
   ruleKind: ClosedRuleKind,
@@ -742,25 +764,7 @@ export const warlock: ClassAuthored = {
                 order: 0,
                 // Scope this modifier to Eldritch Blast only — without this restriction
                 // the CHA bonus would apply to all spell attacks on the character sheet.
-                restrictions: {
-                  id: classRowId(W, 4, 5),
-                  groups: [
-                    {
-                      id: classRowId(W, 4, 6),
-                      order: 0,
-                      contexts: [
-                        {
-                          id: classRowId(W, 4, 7),
-                          order: 0,
-                          subject: 'SPELL' as const,
-                          authoringModeKind: 'SELECTED' as const,
-                          spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                          // conditions omitted — subject selection is the complete restriction
-                        }
-                      ]
-                    }
-                  ]
-                }
+                restrictions: eldritchBlastOnly(5)
               }
             ]
           },
@@ -1219,24 +1223,7 @@ export const warlock: ClassAuthored = {
                   unit: MEASUREMENT_UNIT_CODE.FEET
                 },
                 order: 0,
-                restrictions: {
-                  id: classRowId(W, 4, 13),
-                  groups: [
-                    {
-                      id: classRowId(W, 4, 14),
-                      order: 0,
-                      contexts: [
-                        {
-                          id: classRowId(W, 4, 15),
-                          order: 0,
-                          subject: 'SPELL' as const,
-                          authoringModeKind: 'SELECTED' as const,
-                          spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                        }
-                      ]
-                    }
-                  ]
-                }
+                restrictions: eldritchBlastOnly(13)
               }
             ]
           },
