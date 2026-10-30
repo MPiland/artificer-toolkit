@@ -23,6 +23,10 @@ const sameFraction = (
   (left?.numerator ?? 0) === (right?.numerator ?? 0) &&
   (left?.denominator ?? 0) === (right?.denominator ?? 0)
 
+/** Conditions compare by content; an absent list is an empty one. */
+const sameConditions = (left: readonly unknown[] = [], right: readonly unknown[] = []) =>
+  JSON.stringify(left) === JSON.stringify(right)
+
 /**
  * The one resolve-and-clamp every writer of a holder's conditions goes through (SPELLS-10.T1b): it
  * stores the share of its maximum the conditions leave and holds current hit points within it. A
@@ -40,7 +44,7 @@ export async function settleCreatureConditionMaximum(
 ): Promise<EncounterRunActorState> {
   const { before, actor } = input
   if (actor.kind === 'CHARACTER' || before.kind === 'CHARACTER') return actor
-  if (JSON.stringify(before.conditions) === JSON.stringify(actor.conditions)) return actor
+  if (sameConditions(before.conditions, actor.conditions)) return actor
   const fraction = await creatureHitPointMaximumFraction({
     conditionRows: actor.conditions ?? [],
     gameSystemId: input.gameSystemId,
@@ -75,8 +79,8 @@ export async function settleCharacterConditionMaximum(
 ): Promise<CharacterState> {
   const { before, state } = input
   if (
-    JSON.stringify([before.conditions, before.exhaustion]) ===
-    JSON.stringify([state.conditions, state.exhaustion])
+    sameConditions(before.conditions, state.conditions) &&
+    (before.exhaustion?.level ?? 0) === (state.exhaustion?.level ?? 0)
   )
     return state
   const fraction = await characterHitPointMaximumFraction({
