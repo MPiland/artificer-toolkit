@@ -4,7 +4,7 @@ import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { normalizeCharacterGrantRestrictions } from '../../character/characterGrantFoldRestrictionFacts.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
-import { dnd5eItemRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
+import { dnd5eActionRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
 
 export type Dnd5eAttackRollMode = string
 
@@ -162,7 +162,12 @@ function reduceRestrictions(
       continue
     if (
       conditions.length > 0 &&
-      !dnd5eItemRequirementsMet(weaponChecks, { item, attackAbility: null, activation: null })
+      !dnd5eActionRequirementsMet(weaponChecks, {
+        item,
+        attackAbility: null,
+        activation: null,
+        spell: null
+      })
     )
       continue
     const contexts = circumstanceContexts(group)

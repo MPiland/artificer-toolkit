@@ -1,14 +1,20 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   RANGE_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { ABILITY_CODE, SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -19,6 +25,9 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const WZ = 12
+
+const evocationSchoolId = SRD_MAGIC_SCHOOLS.find((school) => school.code === 'EVOCATION')?.id
+if (!evocationSchoolId) throw new Error('SRD evocation magic school vocabulary entry required.')
 
 export const schoolOfEvocation: ClassAuthored = {
   id: SUBCLASS_IDS.EVOCATION_SCHOOL,
@@ -91,21 +100,51 @@ export const schoolOfEvocation: ClassAuthored = {
         'Beginning at 10th level, you can add your Intelligence modifier to one damage roll of any wizard evocation spell you cast.',
       availableAtLevel: 10,
       order: 3,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(WZ, 20, 4),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(WZ, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(WZ, 20, 4),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+            domain: { attackDomain: 'SPELL' as const },
+            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { ability: ABILITY_CODE.INTELLIGENCE },
+            order: 0,
+            // Any evocation spell you cast: whether one from another class's list counts as a
+            // "wizard" spell is a GM ruling.
+            restrictions: {
+              id: classRowId(WZ, 21, 4),
+              groups: [
+                {
+                  id: classRowId(WZ, 0x30, 1),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(WZ, 0x30, 2),
+                      order: 0,
+                      subject: 'SPELL' as const,
+                      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                      conditions: [
+                        {
+                          id: classRowId(WZ, 0x30, 3),
+                          order: 0,
+                          kind: 'PREDICATE' as const,
+                          constraint: 'INCLUDE' as const,
+                          predicateCode: 'MAGIC_SCHOOL' as const,
+                          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                          magicSchoolIds: [evocationSchoolId]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_EMPOWERED_EVOCATION
-        })
-      ]
+          }
+        ]
+      }
     },
     {
       id: classRowId(WZ, 11, 5),

@@ -159,7 +159,6 @@ function piecesEffect(pieces: readonly PolarityPiece[], senseCount: number): Lis
                   domain: {},
                   ...(piece.payload ? { payload: piece.payload } : {}),
                   restrictions: [],
-                  scopeSpellIds: [],
                   scopeResourceIds: []
                 })
               ),

@@ -37,6 +37,8 @@ export function buildCharacterSpellActionRuleFacts(params: {
       )
       return {
         spellId,
+        level: spell.level,
+        magicSchoolId: spell.magicSchoolId,
         readsCastLevel: effects.some(effectReadsSpellCastLevel),
         effects: effects.map((effect) => ({
           effectId: effect.id,
