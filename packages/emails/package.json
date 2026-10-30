@@ -26,10 +26,10 @@
     "react": "19.3.1"
   },
   "devDependencies": {
-    "@react-email/ui": "6.11.5",
+    "@react-email/ui": "6.11.6",
     "@types/react": "19.3.0",
     "react-dom": "19.3.1",
-    "react-email": "6.11.5",
+    "react-email": "6.11.6",
     "typescript": "^7.0.2"
   }
 }
