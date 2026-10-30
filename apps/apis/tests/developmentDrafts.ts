@@ -2709,6 +2709,7 @@ try {
     process.argv.includes('--encounter-hide-browser') ||
     process.argv.includes('--encounter-player-browser') ||
     process.argv.includes('--encounter-heat-metal-browser') ||
+    process.argv.includes('--encounter-delegated-attack-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2742,6 +2743,7 @@ try {
     const hideBrowser = process.argv.includes('--encounter-hide-browser')
     const playerBrowser = process.argv.includes('--encounter-player-browser')
     const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
+    const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
     const lifecycle =
       lifecycleSuite ||
       movementBrowser ||
@@ -2753,6 +2755,7 @@ try {
       hideBrowser ||
       playerBrowser ||
       heatMetalBrowser ||
+      delegatedAttackBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
@@ -2773,7 +2776,7 @@ try {
       'BACKGROUND',
       'CLASS',
       'RACE',
-      ...(playerBrowser || heatMetalBrowser ? (['SPELL'] as const) : [])
+      ...(playerBrowser || heatMetalBrowser || delegatedAttackBrowser ? (['SPELL'] as const) : [])
     ] as const) {
       publicationAuthors.push({
         client: player.client,
@@ -2788,6 +2791,8 @@ try {
     const { shield } = await import('@artificer-toolkit/source-data/srd/spells/shield.js')
     const { thunderwave } = await import('@artificer-toolkit/source-data/srd/spells/thunderwave.js')
     const { heatMetal } = await import('@artificer-toolkit/source-data/srd/spells/heat-metal.js')
+    const { findFamiliar } =
+      await import('@artificer-toolkit/source-data/srd/spells/find-familiar.js')
     const spellCharacter = playerBrowser
       ? await createDevelopmentSpellCharacter(player.client, characterId, [shield, thunderwave])
       : heatMetalBrowser
@@ -2797,7 +2802,15 @@ try {
             [heatMetal],
             [{ spellLevel: 2, slotCount: 1 }]
           )
-        : null
+        : delegatedAttackBrowser
+          ? await createDevelopmentSpellCharacter(
+              player.client,
+              characterId,
+              [findFamiliar],
+              [{ spellLevel: 1, slotCount: 1 }],
+              (await import('./fixtures/encounterDelegatedAttack')).createDelegatedAttackFeatures
+            )
+          : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3111,8 +3124,7 @@ try {
           }
         })
       }
-      if (heatMetalBrowser) {
-        if (!spellCharacter) throw new Error('The Heat Metal journey needs its spell Character.')
+      const publishJourneyOgre = async () => {
         publicationAuthors.push({
           client: owner.client,
           userId: owner.identity.userId,
@@ -3135,6 +3147,56 @@ try {
           subjectId: draft.subjectId,
           expectedDraftUpdatedAt: draft.updatedAt
         })
+        return ogre
+      }
+      if (delegatedAttackBrowser) {
+        if (!spellCharacter) throw new Error('The delegated journey needs its spell Character.')
+        const ogre = await publishJourneyOgre()
+        const { verifyEncounterDelegatedAttack } =
+          await import('./developmentEncounterDelegatedAttack')
+        await verifyEncounterDelegatedAttack({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          creatureSourceId: ogre.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterDelegatedAttackBrowser } =
+              await import('../../web/tests/live-backend/encounterDelegatedAttack')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterDelegatedAttackBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/delegated-attack-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (heatMetalBrowser) {
+        if (!spellCharacter) throw new Error('The Heat Metal journey needs its spell Character.')
+        const ogre = await publishJourneyOgre()
         const { verifyEncounterHeatMetal } = await import('./developmentEncounterHeatMetal')
         await verifyEncounterHeatMetal({
           owner: owner.client,
