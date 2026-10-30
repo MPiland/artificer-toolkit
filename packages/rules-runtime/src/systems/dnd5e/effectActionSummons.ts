@@ -79,7 +79,10 @@ export function compileDnd5eSummonPlacement(
   const identity = {
     summonOutcomeId: outcome.id,
     label: outcome.label ?? null,
-    ...(outcome.cannotAttack ? { cannotAttack: true as const } : {})
+    ...(outcome.cannotAttack ? { cannotAttack: true as const } : {}),
+    ...(outcome.turnTiming && outcome.turnTiming !== 'OWNER_TURN'
+      ? { turnTiming: outcome.turnTiming }
+      : {})
   }
   const summon = outcome.statBlock
     ? { ...identity, statBlock: outcome.statBlock }

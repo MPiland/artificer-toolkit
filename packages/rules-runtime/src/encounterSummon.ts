@@ -60,6 +60,8 @@ export function buildEncounterSummon(input: {
   spellSummon: SpellSummonStatBlockValues | null
   /** The summon says its creature makes no attack of its own. */
   cannotAttack?: boolean
+  /** When the creature acts, if apart from its owner's turn (D200). */
+  turnTiming?: NonNullable<EncounterRunActorState['owner']>['turnTiming']
   caster: EncounterRunActorState
   /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
   casterHitPointMaximum: number
@@ -76,6 +78,7 @@ export function buildEncounterSummon(input: {
     summon,
     spellSummon,
     cannotAttack,
+    turnTiming,
     caster,
     casterHitPointMaximum,
     label,
@@ -120,7 +123,7 @@ export function buildEncounterSummon(input: {
     gmNotes: null,
     initiative: null,
     manualOrder: null,
-    owner: { ownerActorId: caster.id, sourceEffectId },
+    owner: { ownerActorId: caster.id, sourceEffectId, ...(turnTiming ? { turnTiming } : {}) },
     snapshot: {
       ...body.snapshot,
       ...(cannotAttack ? { body: summonBody(statBlock, true) } : {}),

@@ -393,6 +393,7 @@ export async function settleAreaCommit(args: {
                     ...(formCreature ? { formStats: formSummonStats(formCreature.creature) } : {})
                   }),
             cannotAttack: summon.placement.cannotAttack,
+            turnTiming: summon.placement.turnTiming,
             caster,
             casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
             label: summonLabel,

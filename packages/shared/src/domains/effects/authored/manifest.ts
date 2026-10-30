@@ -36,6 +36,14 @@ export const SUMMON_VISIBILITY_KIND = {
   SPECIAL: 'SPECIAL'
 } as const
 
+/** When a summon acts (D200): on its owner's turn (the default), right after its owner, or on its own initiative roll. */
+export const SUMMON_TURN_TIMING = {
+  OWNER_TURN: 'OWNER_TURN',
+  AFTER_OWNER: 'AFTER_OWNER',
+  OWN_INITIATIVE: 'OWN_INITIATIVE'
+} as const
+
+export type SummonTurnTiming = keyof typeof SUMMON_TURN_TIMING
 export type SummonDamageabilityKind = keyof typeof SUMMON_DAMAGEABILITY_KIND
 export type SummonVisibilityKind = keyof typeof SUMMON_VISIBILITY_KIND
 export type SummonAbilityScoreCode = string
@@ -299,6 +307,7 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   retainsProficiencies?: boolean
   creatureTypeIds?: never
   cannotAttack?: never
+  turnTiming?: never
   statBlock?: never
   behaviors?: never
 }
@@ -314,6 +323,8 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   creatureTypeIds?: string[]
   /** The creature makes no attack of its own; one its owner's grant delegates still resolves. */
   cannotAttack?: boolean
+  /** When the creature acts; absent means on its owner's turn (D200). */
+  turnTiming?: SummonTurnTiming
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
@@ -327,6 +338,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   forms?: never
   creatureTypeIds?: never
   cannotAttack?: never
+  turnTiming?: never
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never

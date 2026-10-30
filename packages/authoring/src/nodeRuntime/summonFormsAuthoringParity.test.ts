@@ -65,6 +65,21 @@ describe('a summon of System Creature forms through the effect node map (SPELLS-
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
+  it.each(['OWNER_TURN', 'AFTER_OWNER', 'OWN_INITIATIVE'] as const)(
+    'keeps a homebrew summon authored to act %s, so an author sets a turn timing (D200)',
+    async (turnTiming) => {
+      const authored = homebrewCompanion()
+      const path = authored.effects?.[0]?.paths[0]
+      const summon = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (summon?.effectKind !== 'MANIFEST' || summon.manifestKind !== 'SUMMON')
+        throw new Error('The companion must author a summon.')
+      summon.turnTiming = turnTiming
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+    }
+  )
+
   it('keeps whether a homebrew summon can attack, so an author sets what the SRD familiar does', async () => {
     const authored = homebrewCompanion()
     const path = authored.effects?.[0]?.paths[0]

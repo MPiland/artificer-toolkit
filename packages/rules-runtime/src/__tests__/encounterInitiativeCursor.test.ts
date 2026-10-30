@@ -4,6 +4,7 @@ import { stableActors } from '../encounterActorState.js'
 import {
   readSideOrder,
   readTurnCursor,
+  takesInitiativeTurns,
   validateInitiativeCursor
 } from '../encounterInitiativeCursor.js'
 import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
@@ -135,6 +136,16 @@ describe('validateInitiativeCursor', () => {
   })
 })
 
+describe('takesInitiativeTurns', () => {
+  it('rolls an unowned actor and a summon authored for its own initiative, not other owned actors (D200)', () => {
+    const owner = { ownerActorId: ACTOR_A }
+    expect(takesInitiativeTurns({})).toBe(true)
+    expect(takesInitiativeTurns({ owner })).toBe(false)
+    expect(takesInitiativeTurns({ owner: { ...owner, turnTiming: 'AFTER_OWNER' } })).toBe(false)
+    expect(takesInitiativeTurns({ owner: { ...owner, turnTiming: 'OWN_INITIATIVE' } })).toBe(true)
+  })
+})
+
 describe('createStagedInitiativeRoundState', () => {
   it('stages no participant for an owned actor', () => {
     const summonId = crypto.randomUUID()
@@ -146,6 +157,24 @@ describe('createStagedInitiativeRoundState', () => {
       policy: initiativePolicySnapshot({ procedure: 'SIDE_ROLL', cadence: 'ENCOUNTER_START' })
     })
     expect(staged.participants.map(({ actorId }) => actorId)).toEqual([ACTOR_A])
+  })
+
+  it('stages a participant for a summon authored for its own initiative (D200)', () => {
+    const summonId = crypto.randomUUID()
+    const staged = preparingRound({
+      actors: [
+        { id: ACTOR_A, sideId: SIDE_HEROES },
+        {
+          id: summonId,
+          sideId: SIDE_HEROES,
+          owner: { ownerActorId: ACTOR_A, turnTiming: 'OWN_INITIATIVE' }
+        }
+      ],
+      policy: initiativePolicySnapshot({ procedure: 'SIDE_ROLL', cadence: 'ENCOUNTER_START' })
+    })
+    expect(staged.participants.map(({ actorId }) => actorId).sort()).toEqual(
+      [ACTOR_A, summonId].sort()
+    )
   })
 })
 

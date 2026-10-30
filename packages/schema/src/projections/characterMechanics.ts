@@ -682,6 +682,8 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
     summonOutcomeId: serverUuidIdentityDtoSchema,
     label: z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(160))),
     cannotAttack: z.optional(z.literal(true)),
+    /** When the creature acts, if apart from its owner's turn (D200). */
+    turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE'])),
     entry: compiledActionActiveEffectPlanSchema
   }
   return z.union([
