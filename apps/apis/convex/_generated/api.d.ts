@@ -289694,7 +289694,11 @@ export declare const api: {
                       | "GROUP_LEADER_INCAPACITATED"
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   resources:
                     | string
@@ -289856,7 +289860,11 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -291927,7 +291935,11 @@ export declare const api: {
                       | "GROUP_LEADER_INCAPACITATED"
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   resources:
                     | string
@@ -292089,7 +292101,11 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -293438,7 +293454,11 @@ export declare const api: {
                   | "GROUP_LEADER_INCAPACITATED"
                   | "GROUP_LEADER_TAKEN_PRISONER";
               }>;
-              owner?: { ownerActorId: string; sourceEffectId?: string };
+              owner?: {
+                ownerActorId: string;
+                sourceEffectId?: string;
+                turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+              };
               public: boolean;
               resources:
                 | string
@@ -293599,7 +293619,11 @@ export declare const api: {
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
               label: string;
               manualOrder: number | null;
-              owner?: { ownerActorId: string; sourceEffectId?: string };
+              owner?: {
+                ownerActorId: string;
+                sourceEffectId?: string;
+                turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+              };
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
@@ -293859,7 +293883,11 @@ export declare const api: {
                       | "GROUP_LEADER_INCAPACITATED"
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   resources:
                     | string
@@ -294021,7 +294049,11 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
-                  owner?: { ownerActorId: string; sourceEffectId?: string };
+                  owner?: {
+                    ownerActorId: string;
+                    sourceEffectId?: string;
+                    turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                  };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -295096,7 +295128,11 @@ export declare const api: {
                 | "GROUP_LEADER_INCAPACITATED"
                 | "GROUP_LEADER_TAKEN_PRISONER";
             }>;
-            owner?: { ownerActorId: string; sourceEffectId?: string };
+            owner?: {
+              ownerActorId: string;
+              sourceEffectId?: string;
+              turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+            };
             public: boolean;
             resources:
               | string
@@ -304442,7 +304478,11 @@ export declare const internal: {
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
-                owner?: { ownerActorId: string; sourceEffectId?: string };
+                owner?: {
+                  ownerActorId: string;
+                  sourceEffectId?: string;
+                  turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
+                };
                 sourceId: string | null;
               }>;
               encounterId: string;
