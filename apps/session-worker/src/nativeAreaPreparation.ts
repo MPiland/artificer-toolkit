@@ -467,9 +467,10 @@ async function readSummonBody(
     target.kind === 'POINT' ? { formId: target.formId, creatureTypeId: target.creatureTypeId } : {}
   )
   if (pick && 'refusal' in pick) throw summonFormRefusal(pick.refusal)
-  if (!pick) return placement && 'statBlock' in placement
-    ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock }
-    : null
+  if (!pick)
+    return placement && 'statBlock' in placement
+      ? { kind: 'STAT_BLOCK', statBlock: placement.statBlock }
+      : null
   if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
   return {
     kind: 'CREATURE',

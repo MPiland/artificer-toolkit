@@ -768,11 +768,10 @@ function buildProficiencyPanel(
     if (!kind || existing.has(`${kind}:${equipment.id}`)) return []
     return [{ kind, targetId: equipment.id, label: equipment.label }]
   })
-  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap(
-    (language) =>
-      existing.has(`LANGUAGE:${language.id}`)
-        ? []
-        : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
+  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap((language) =>
+    existing.has(`LANGUAGE:${language.id}`)
+      ? []
+      : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
   )
 
   return {

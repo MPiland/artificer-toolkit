@@ -23,6 +23,11 @@ export const summonPickOptionsShape = lazySchemaParts(() => ({
   creatureTypes: summonPickOptionsSchema()
 }))
 
+export interface SummonPickOptionsDto {
+  summonForms?: { id: string; label: string }[]
+  creatureTypes?: { id: string; label: string }[]
+}
+
 /** The form and Creature Type a summon cast picked; absent for a cast that picks neither. */
 export const summonPicksShape = lazySchemaParts(() => ({
   formId: z.optional(postgresUuidSchema),
