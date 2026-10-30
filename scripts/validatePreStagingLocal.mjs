@@ -759,8 +759,7 @@ const browserProofModes = [
   'character-sheet-browser',
   'character-sheet-spells-browser',
   'v15-workload',
-  // Last: it starts its own Worker on the lifecycle Worker's port.
-  'vtt-browser'
+  'vtt-browser' // Last: it starts its own Worker on the lifecycle Worker's port.
 ]
 function localProofStage(proof, kind) {
   const proofName =

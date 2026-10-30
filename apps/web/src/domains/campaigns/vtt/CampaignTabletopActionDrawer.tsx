@@ -293,8 +293,7 @@ export function CampaignTabletopActionDrawer({
   const actionId = pickedActionId === undefined ? preselectedActionId : pickedActionId
   const selectedAction = actions.find((action) => action.id === actionId) ?? null
   // A creature attacking in the current actor's place acts from its own token (D156).
-  const delegateActorId = selectedAction?.delegateActorId ?? null
-  const actingActorId = delegateActorId ?? currentActorId
+  const actingActorId = selectedAction?.delegateActorId ?? currentActorId
   const choiceTarget = selectedAction?.target
   // A defeated creature isn't a target (D63; the server still warns if one is named), and neither is
   // the acting creature when the action refuses itself (Help, First Aid).
@@ -397,8 +396,8 @@ export function CampaignTabletopActionDrawer({
     areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none, and they
   // replace an attack the actor makes itself, so a delegated attack takes none.
-  const offersOptionalRules = !namesNoCreature && delegateActorId === null
-  const optionalRuleId = offersOptionalRules ? pickedOptionalRuleId : null
+  const optionalRuleId =
+    namesNoCreature || selectedAction?.delegateActorId ? null : pickedOptionalRuleId
   const sceneTokens = scene?.tokens ?? NO_TOKENS
   const sceneGrid = scene?.grid ?? null
   const sourceToken = useMemo(
@@ -881,8 +880,8 @@ export function CampaignTabletopActionDrawer({
         encounterId: encounter.id,
         commandId: crypto.randomUUID(),
         expectedVersion,
-        actorId: delegateActorId ?? currentActor.id,
-        ...(delegateActorId ? { delegatingActorId: currentActor.id } : {}),
+        actorId: selectedAction.delegateActorId ?? currentActor.id,
+        ...(selectedAction.delegateActorId ? { delegatingActorId: currentActor.id } : {}),
         actionId: selectedAction.id,
         target,
         sceneContext: namesNoCreature ? null : sceneContext,
@@ -1324,7 +1323,7 @@ export function CampaignTabletopActionDrawer({
                   ))}
                 </List>
               ) : null}
-              {optionalRules.length && offersOptionalRules ? (
+              {optionalRules.length && !namesNoCreature && !selectedAction?.delegateActorId ? (
                 <Select
                   clearable
                   comboboxProps={{ withinPortal: false }}
