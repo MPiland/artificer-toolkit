@@ -10,7 +10,7 @@ import {
 
 import { useAuthoringFormStatus } from '../useAuthoringFormStatus'
 import * as styles from './Actions.css'
-import { useAuthoringLayout } from '../AuthoringLayoutContext'
+import { useAuthoringPanels, useAuthoringPreview } from '../AuthoringLayoutContext'
 
 type HeaderIconActionProps = {
   ariaControls?: string
@@ -63,7 +63,7 @@ function HeaderIconAction({
 }
 
 export function StepsNavigationAction() {
-  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation } = useAuthoringLayout()
+  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation } = useAuthoringPanels()
   if (isWideDesktop) return null
 
   const label = stepsNavigationOpen ? 'Hide steps' : 'Show steps'
@@ -85,7 +85,7 @@ export function ResetActionMenu() {
   const { readOnly } = useAuthoringSession()
   const { resetStep } = useAuthoringActions()
   const { canResetForm, canResetStep, hasChanges, hasStepChanges } = useAuthoringFormStatus()
-  const { toggleResetFormConfirm } = useAuthoringLayout()
+  const { toggleResetFormConfirm } = useAuthoringPanels()
   if (readOnly || (!canResetStep && !canResetForm)) return null
 
   return (
@@ -161,7 +161,8 @@ export function ActivateAction() {
 }
 
 export function PreviewToggleAction() {
-  const { isWideDesktop, previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { isWideDesktop, previewOpen, togglePreview } = useAuthoringPanels()
+  const { previewContent } = useAuthoringPreview()
   if (isWideDesktop || !previewContent) return null
 
   const label = previewOpen ? 'Hide preview' : 'Show preview'

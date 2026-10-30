@@ -15,7 +15,6 @@ import {
 } from '#test/nodeRuntimeResolver'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { useAppForm } from '../app-form/AppForm'
-import { useAuthoringActions } from '../layout/AuthoringFormContext'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 import { FormRenderer } from '../rendering/FormRenderer'
 
@@ -47,15 +46,6 @@ const { attackSlots: authoredSet, ...bareMultiattack } = multiattack
 
 afterEach(cleanup)
 
-/** The root the structural-change guard verifies edits against, as the authoring page registers it. */
-function RegisterRoot({ model }: { model: NodeRuntimeResolveResponseDto }) {
-  const { updateAuthoringFormState } = useAuthoringActions()
-  useEffect(() => {
-    updateAuthoringFormState({ mapId: model.mapId, systemId: srdSystemRecord.id })
-  }, [model.mapId, updateAuthoringFormState])
-  return null
-}
-
 /** The Creature feature editor, resolved by the real resolver as the server does, with a Save button. */
 function FeatureEditor({
   initialModel,
@@ -81,13 +71,13 @@ function FeatureEditor({
   return (
     <AuthoringLayout>
       <form.AppForm>
-        <RegisterRoot model={model} />
         <Renderer
           form={form}
           mapId={model.mapId}
           model={model}
           renderAllSteps
           resolveModel={false}
+          systemId={srdSystemRecord.id}
           updateAuthoringState={false}
         />
         <button type='button' onClick={() => void form.handleSubmit()}>

@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Text } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
+import { useRouterState } from '@tanstack/react-router'
 import { withForm } from '#forms/app-form/AppForm'
-import {
-  useAuthoringActions,
-  useAuthoringNavigation,
-  useAuthoringSession
-} from '#forms/layout/AuthoringFormContext'
+import { useAuthoringNavigation, useAuthoringSession } from '#forms/layout/AuthoringFormContext'
+import { readAuthoringStep } from '#forms/layout/authoringSearch'
 import { EMPTY_CHARACTER_FORM_VALUES, toCharacterFormValues } from '../shared/formNormalization'
 import {
   getCharacterBuilderDeferredResolutionFingerprint,
   getCharacterBuilderImmediateResolutionFingerprint
 } from '../state/resolutionFingerprints'
 import type { CharacterBuilderRendererProps } from './CharacterBuilderRenderer.types'
-import {
-  getCharacterBuilderProgressState,
-  getCharacterBuilderStep
-} from '../state/characterBuilderAuthoringState'
+import { getCharacterBuilderStep } from '../state/characterBuilderAuthoringState'
+import { characterBuilderSteps } from './stepNavigation'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
   CHARACTER_BUILDER_TIMING_MEASURE,
@@ -38,10 +34,15 @@ import { CharacterReviewStep } from '../steps/review/CharacterReviewStep'
 export const CharacterBuilderRenderer = withForm({
   defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderRendererProps,
-  render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
-    const { activeStepId } = useAuthoringNavigation()
+  render: function RenderCharacterBuilder({
+    form,
+    onResolve,
+    onStepChange,
+    payload,
+    resolveDebounceMs = 150
+  }) {
+    const { activeStepId, goToStep } = useAuthoringNavigation()
     const { readOnly } = useAuthoringSession()
-    const { updateAuthoringFormState } = useAuthoringActions()
     const values = useSelector(form.store, (state) => state.values)
     const immediateResolutionFingerprint = useSelector(form.store, (state) =>
       getCharacterBuilderImmediateResolutionFingerprint(state.values)
@@ -59,10 +60,6 @@ export const CharacterBuilderRenderer = withForm({
       deferredResolutionFingerprint !==
         getCharacterBuilderDeferredResolutionFingerprint(payloadFormValues)
     const [isResolving, setIsResolving] = useState(false)
-    const progressState = useMemo(
-      () => getCharacterBuilderProgressState(payload, isResolving ? payloadFormValues : values),
-      [isResolving, payload, payloadFormValues, values]
-    )
     const latestValuesRef = useRef(values)
     useEffect(() => {
       latestValuesRef.current = values
@@ -133,10 +130,26 @@ export const CharacterBuilderRenderer = withForm({
       })
     }, [activeStep.id])
 
-    // Submit, finalize and saving flags have one writer, CharacterBuilderStateSync.
     useEffect(() => {
-      updateAuthoringFormState(progressState)
-    }, [progressState, updateAuthoringFormState])
+      void onStepChange()
+    }, [activeStepId, onStepChange])
+
+    // Open on the recommended step once, unless the URL named a step or the user left the first.
+    const urlStepId = useRouterState({
+      select: (state) => readAuthoringStep(state.location.search)
+    })
+    const openedRecommendedStepRef = useRef(false)
+    const recommendedStepId = payload.resolution.recommendedSectionId
+    useEffect(() => {
+      if (!recommendedStepId || openedRecommendedStepRef.current) return
+      openedRecommendedStepRef.current = true
+      if (
+        urlStepId === undefined &&
+        activeStepId === characterBuilderSteps[0].id &&
+        activeStepId !== recommendedStepId
+      )
+        goToStep(recommendedStepId)
+    }, [activeStepId, goToStep, recommendedStepId, urlStepId])
 
     return (
       <div ref={markBuilderShellReady} className={styles.builderRoot}>

@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Builder shell remount on draft open (RELIABILITY-10.T1c):** panels survive a draft opening, but the shell remounts once, so rail scroll and focus reset. Keeping them needs the form, autosave and evaluation hooks to accept a null draft. The create flow also remounts, through its `/edit` navigation.
 - **Ending effects on chosen-creature lists (SPELLS-4.T2n3):** END_EFFECTS is refused on CHOSEN_CREATURES targets (effectActionCompiler.ts offList) and the Worker end-effects plan handles one target, so Heroes' Feast's "cured of poison" on its partakers is a GM ruling. A partaker still poisoned when the 10-minute feast resolves in a Run is rare, and the GM ends the condition from the Sheet. Mass Heal's cures are the other case.
 - **Pool division among chosen creatures (SPELLS-31.T4n):** Preserve Life (5 x cleric level, each creature healed to at most half its hit point maximum, no undead or construct) and Mass Heal's 700-point pool are GM rulings or uncompiled, because no engine piece divides a hit-point pool among a chosen set of targets with a per-creature cap. A pool-division engine piece (the caster splits the pool at cast time, the engine clamps each share to the cap and the target exclusions) would author both from core options; see `rules-2-t6e-refusal-classification.md:131` for Mass Heal. Rare: a Life Cleric uses Channel Divinity on it a few times a day and the GM can apply the split by hand.
 
@@ -699,6 +700,10 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Save scopes by damage type and by illusion (SPELLS-32.T4j):** Dwarven Resilience gives advantage only on saves against the POISONED condition, not on saves against poison damage such as a breath weapon. Duergar Resilience covers saves against magic but has no separate illusion scope. Automating them needs a save scope keyed on the effect's damage type and an illusion school or tag on the source.
 - **Retire unused size codes (RULES-2.T9f1):** the dnd5e size table still lists FINE, DIMUNITIVE (misspelled), GIANT and COLOSSAL, which no SRD content uses. Removing them needs a data check and a reseed.
 - **Non-d20 check resolution (RULES-2.T12, D195):** the neutral check settlement is d20-shaped (ADR 0039 decision 2), so the portability tracer's Fate-like check runs its graph through it. A second System with its own dice (4dF, dice pools) needs a settlement seam that takes the roll shape from the System, which means an ADR 0039 amendment.
+
+### Multi-creature summons as separate tokens (D200, 2026-10-30)
+
+A multi-creature Conjure spell makes one token per creature, each with its own hit points and attacks, sharing one group initiative roll. Until then these spells make one group token.
 
 ## Other future enhancements (parked)
 

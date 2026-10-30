@@ -125,16 +125,16 @@ describe('useCharacterSheetRollController', () => {
 
     let outcome!: Promise<RollRecordDto | undefined>
     act(() => {
-      outcome = result.current.executeRoll(request)
+      outcome = result.current.rolls.executeRoll(request)
     })
-    expect(result.current.presentationPending).toBe(true)
+    expect(result.current.presentation.presentationPending).toBe(true)
 
-    act(() => result.current.dismissRoll(true))
+    act(() => result.current.presentation.dismissRoll(true))
     await expect(outcome).resolves.toBeUndefined()
 
     act(() => resolveNetwork(createRoll('late-roll')))
     await waitFor(() => expect(rollMutationMocks.discard).toHaveBeenCalledWith('late-roll'))
-    expect(result.current.presentedRoll).toBeUndefined()
+    expect(result.current.presentation.presentedRoll).toBeUndefined()
   })
 
   it('replaces an unrevealed roll and accepts only the matching presentation reveal', async () => {
@@ -151,20 +151,20 @@ describe('useCharacterSheetRollController', () => {
     let firstOutcome!: Promise<RollRecordDto | undefined>
     let secondOutcome!: Promise<RollRecordDto | undefined>
     act(() => {
-      firstOutcome = result.current.executeRoll(request)
+      firstOutcome = result.current.rolls.executeRoll(request)
     })
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('first-roll'))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('first-roll'))
     act(() => {
-      secondOutcome = result.current.executeRoll(request)
+      secondOutcome = result.current.rolls.executeRoll(request)
     })
     await expect(firstOutcome).resolves.toBeUndefined()
     await waitFor(() => expect(rollMutationMocks.discard).toHaveBeenCalledWith('first-roll'))
     act(() => resolveSecond(createRoll('second-roll')))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('second-roll'))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('second-roll'))
 
-    act(() => result.current.revealRoll('first-roll'))
-    expect(result.current.presentationPending).toBe(true)
-    act(() => result.current.revealRoll('second-roll'))
+    act(() => result.current.presentation.revealRoll('first-roll'))
+    expect(result.current.presentation.presentationPending).toBe(true)
+    act(() => result.current.presentation.revealRoll('second-roll'))
     await expect(secondOutcome).resolves.toMatchObject({ id: 'second-roll' })
   })
 
@@ -176,9 +176,11 @@ describe('useCharacterSheetRollController', () => {
 
     let outcome!: Promise<RollRecordDto | undefined>
     act(() => {
-      outcome = result.current.executeRoll(request)
+      outcome = result.current.rolls.executeRoll(request)
     })
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('unmounted-roll'))
+    await waitFor(() =>
+      expect(result.current.presentation.presentedRoll?.id).toBe('unmounted-roll')
+    )
     unmount()
     await expect(outcome).resolves.toBeUndefined()
     await waitFor(() => expect(rollMutationMocks.discard).toHaveBeenCalledWith('unmounted-roll'))
@@ -191,12 +193,14 @@ describe('useCharacterSheetRollController', () => {
       { wrapper: createWrapper() }
     )
 
-    act(() => result.current.setDestination('PRIVATE'))
+    act(() => result.current.destinations.setDestination('PRIVATE'))
     let outcome!: Promise<RollRecordDto | undefined>
     act(() => {
-      outcome = result.current.executeRoll(manualRequest)
+      outcome = result.current.rolls.executeRoll(manualRequest)
     })
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('campaign-private-roll'))
+    await waitFor(() =>
+      expect(result.current.presentation.presentedRoll?.id).toBe('campaign-private-roll')
+    )
     expect(rollMutationMocks.executeCampaignPrivate).toHaveBeenCalledWith({
       campaignId,
       characterId,
@@ -204,7 +208,7 @@ describe('useCharacterSheetRollController', () => {
     })
     expect(rollMutationMocks.execute).not.toHaveBeenCalled()
     expect(rollMutationMocks.executeTable).not.toHaveBeenCalled()
-    act(() => result.current.revealRoll('campaign-private-roll'))
+    act(() => result.current.presentation.revealRoll('campaign-private-roll'))
     await expect(outcome).resolves.toMatchObject({ id: 'campaign-private-roll' })
   })
 
@@ -212,8 +216,8 @@ describe('useCharacterSheetRollController', () => {
     const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
       wrapper: createWrapper()
     })
-    expect(result.current.destination).toBe('PRIVATE')
-    expect(result.current.destinationOptions).toEqual([])
+    expect(result.current.destinations.destination).toBe('PRIVATE')
+    expect(result.current.destinations.destinationOptions).toEqual([])
   })
 
   it('defaults a player Campaign roll to the table and can send it to the GM', async () => {
@@ -224,14 +228,18 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
     )
-    expect(result.current.destination).toBe('TABLE')
-    expect(optionLabels(result.current.destinationOptions)).toEqual(['Table', 'To GM', 'Just me'])
+    expect(result.current.destinations.destination).toBe('TABLE')
+    expect(optionLabels(result.current.destinations.destinationOptions)).toEqual([
+      'Table',
+      'To GM',
+      'Just me'
+    ])
 
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('table-roll'))
-    act(() => result.current.setDestination('GM'))
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-roll'))
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('table-roll'))
+    act(() => result.current.destinations.setDestination('GM'))
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('gm-roll'))
     for (const destination of ['TABLE', 'GM'])
       expect(rollMutationMocks.executeTable).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -240,7 +248,7 @@ describe('useCharacterSheetRollController', () => {
           roll: { characterId, ...request }
         })
       )
-    expect(result.current.presentedRollPrivate).toBe(false)
+    expect(result.current.presentation.presentedRollPrivate).toBe(false)
     expect(rollMutationMocks.executeCampaignPrivate).not.toHaveBeenCalled()
   })
 
@@ -250,16 +258,21 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
-    expect(result.current.destination).toBe('TABLE')
-    expect(optionLabels(result.current.destinationOptions)).toEqual(['Public', 'Private'])
+    expect(result.current.destinations.destination).toBe('TABLE')
+    expect(optionLabels(result.current.destinations.destinationOptions)).toEqual([
+      'Public',
+      'Private'
+    ])
 
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-public-roll'))
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() =>
+      expect(result.current.presentation.presentedRoll?.id).toBe('gm-public-roll')
+    )
     expect(rollMutationMocks.executeTable).toHaveBeenCalledWith(
       expect.objectContaining({ campaignId, destination: 'TABLE' })
     )
     expect(rollMutationMocks.executeGmPrivate).not.toHaveBeenCalled()
-    expect(result.current.presentedRollPrivate).toBe(false)
+    expect(result.current.presentation.presentedRollPrivate).toBe(false)
   })
 
   it('remembers the GM private choice on the profile and rolls privately with a retry nonce', async () => {
@@ -268,14 +281,16 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
-    act(() => result.current.setDestination('PRIVATE'))
-    await waitFor(() => expect(result.current.destination).toBe('PRIVATE'))
+    act(() => result.current.destinations.setDestination('PRIVATE'))
+    await waitFor(() => expect(result.current.destinations.destination).toBe('PRIVATE'))
     expect(rollMutationMocks.setGmRollVisibility).toHaveBeenCalledWith({
       gmRollVisibility: 'PRIVATE'
     })
 
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-private-roll'))
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() =>
+      expect(result.current.presentation.presentedRoll?.id).toBe('gm-private-roll')
+    )
     expect(rollMutationMocks.executeGmPrivate).toHaveBeenCalledWith(
       expect.objectContaining({ campaignId, clientNonce: expect.any(String) })
     )
@@ -288,7 +303,7 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper('PRIVATE') }
     )
-    expect(result.current.destination).toBe('PRIVATE')
+    expect(result.current.destinations.destination).toBe('PRIVATE')
   })
 
   it('keeps player hit-die rolls on Table or To GM, never Just me', async () => {
@@ -297,16 +312,19 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: false }),
       { wrapper: createWrapper() }
     )
-    expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Table', 'To GM'])
-    act(() => result.current.setDestination('PRIVATE'))
-    expect(result.current.stateRollDestination).toBe('TABLE')
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('hit-die-roll'))
+    expect(optionLabels(result.current.destinations.stateRollDestinationOptions)).toEqual([
+      'Table',
+      'To GM'
+    ])
+    act(() => result.current.destinations.setDestination('PRIVATE'))
+    expect(result.current.destinations.stateRollDestination).toBe('TABLE')
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('hit-die-roll'))
     expect(rollMutationMocks.executeTable).toHaveBeenCalledWith(
       expect.objectContaining({ destination: 'TABLE' })
     )
-    act(() => result.current.setDestination('GM'))
-    expect(result.current.stateRollDestination).toBe('GM')
+    act(() => result.current.destinations.setDestination('GM'))
+    expect(result.current.destinations.stateRollDestination).toBe('GM')
     expect(rollMutationMocks.executeCampaignPrivate).not.toHaveBeenCalled()
   })
 
@@ -316,10 +334,15 @@ describe('useCharacterSheetRollController', () => {
       () => useCharacterSheetRollController(characterId, { id: campaignId, isGm: true }),
       { wrapper: createWrapper() }
     )
-    expect(optionLabels(result.current.stateRollDestinationOptions)).toEqual(['Public', 'Private'])
-    expect(result.current.stateRollDestination).toBe('TABLE')
-    act(() => void result.current.executeRoll(request))
-    await waitFor(() => expect(result.current.presentedRoll?.id).toBe('gm-hit-die-roll'))
+    expect(optionLabels(result.current.destinations.stateRollDestinationOptions)).toEqual([
+      'Public',
+      'Private'
+    ])
+    expect(result.current.destinations.stateRollDestination).toBe('TABLE')
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() =>
+      expect(result.current.presentation.presentedRoll?.id).toBe('gm-hit-die-roll')
+    )
     expect(rollMutationMocks.executeGmPrivate).not.toHaveBeenCalled()
   })
 })

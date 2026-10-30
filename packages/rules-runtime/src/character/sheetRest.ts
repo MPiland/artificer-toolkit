@@ -453,8 +453,9 @@ export function applyCompletedCharacterRest(params: {
     )
     next.state.hitpoints.hitDice = characterHitDice.hitDice
     next.state.spellSlots = undefined
-    // A long rest ends every creature a spell cast from the Sheet conjured (D190).
-    next.state.spellSummons = undefined
+    // A long rest ends every creature a spell cast from the Sheet conjured for a duration (D190).
+    const untimedSummons = next.state.spellSummons?.filter((summon) => summon.untimed)
+    next.state.spellSummons = untimedSummons?.length ? untimedSummons : undefined
     recoveredHitDice = characterHitDice.recovered
     const exhaustionAfter = params.restPolicy.exhaustionAfterLongRest
     next.state.exhaustion =

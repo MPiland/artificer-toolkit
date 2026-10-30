@@ -40,6 +40,7 @@ import { createEncounterInitiativeDefinitions } from './encounterInitiative'
 import {
   attachRoomWorker,
   checkpointLiveRoom,
+  deliverQueuedRoomControl,
   executeInRoom,
   executeSheetInRoom,
   seedRoomContentSnapshots
@@ -331,6 +332,8 @@ export async function sheetCommand(
     id: fixture.character.id,
     command: input
   })
+  // The mutation queues the room's input notice; deliver it before the next room command.
+  await deliverQueuedRoomControl(fixture.t)
 }
 
 export async function storedCharacter(fixture: Fixture, characterId = fixture.character.id) {

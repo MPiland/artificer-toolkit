@@ -15,6 +15,7 @@ import {
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { summonPickOptionsShape } from './summonPickOptions.js'
 
 // PostgreSQL accepts UUID-shaped deterministic SRD IDs whose version bits are zero.
 const uuidSchema = lazySchema(() => z.guid())
@@ -441,7 +442,8 @@ const spellPanelDtoSchema = lazySchema(() =>
         slotKey: z.optional(identifierSchema),
         castLevel: z.optional(integerSchema.check(z.nonnegative())),
         available: booleanSchema,
-        unavailableReason: z.optional(stringSchema)
+        unavailableReason: z.optional(stringSchema),
+        ...summonPickOptionsShape()
       })
     ),
     calculations: z.object({

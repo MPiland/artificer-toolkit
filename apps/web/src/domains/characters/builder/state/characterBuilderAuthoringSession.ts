@@ -3,12 +3,14 @@ import type {
   CharacterEditAuthoringData
 } from '#app/routes/-routeLoaderData'
 import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
-import type { CharacterBuilderRouteMode } from '#forms/layout/authoredFormRouteContext'
+import type { AuthoringFormMode } from '#forms/layout/AuthoringFormContext'
 import { isRecord } from '#app/forms/utils/valueGuards'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { toCharacterFormValues } from '../shared/formNormalization'
 
-export type CharacterBuilderAuthoringSession = {
+export type CharacterBuilderRouteMode = Extract<AuthoringFormMode, 'create' | 'edit'>
+
+type CharacterBuilderAuthoringSession = {
   characterId?: string
   draft: CharacterEditAuthoringData['draft'] | null
   fallbackLabel: string

@@ -307,4 +307,43 @@ describe('Sheet rest cleanup', () => {
     expect(await rest(shortRest)).toEqual(character.state.spellSummons)
     expect(await rest(longRest)).toBeUndefined()
   })
+
+  it('keeps an untimed summon through a long rest and ends a timed one (SPELLS-34.2)', async () => {
+    const { params } = await playedFighter({ resourceUsed: true })
+    const summon = (id: string) => ({
+      id,
+      spellId: 'spell-summon',
+      summonOutcomeId: 'summon',
+      label: 'Familiar',
+      concentration: false,
+      armorClass: 12,
+      maximumHitPoints: 2,
+      currentHitPoints: 2,
+      castAt: '2026-10-23T00:00:00.000Z'
+    })
+    const untimed = { ...summon('00000000-0000-4000-8000-000000000a03'), untimed: true as const }
+    const character = {
+      ...params.character,
+      state: {
+        ...params.character.state,
+        spellSummons: [summon('00000000-0000-4000-8000-000000000a04'), untimed]
+      }
+    }
+    const preview = await buildCharacterRestPreview({ ...params, character, input: longRest })
+
+    expect(
+      applyCompletedCharacterRest({
+        character,
+        sheet: params.sheet,
+        restPolicy: params.restPolicy,
+        preview,
+        command: {
+          ...longRest,
+          type: 'COMPLETE_REST',
+          commandId: crypto.randomUUID(),
+          previewFingerprint: preview.previewFingerprint
+        }
+      }).character.state.spellSummons
+    ).toEqual([untimed])
+  })
 })

@@ -9,7 +9,7 @@ import type { OutcomeNodeMapApi } from './path.js'
  * The fields only a MANIFEST / CREATURE outcome has (D130, D191): the forms it offers, which
  * Creatures qualify, and what the wearer keeps of its own (excess damage, ability scores,
  * proficiencies). A MANIFEST / SUMMON outcome may offer forms too, and the Creature Types the caster
- * picks one of for the summoned form (SPELLS-34.T3a).
+ * picks one of for the summoned form (SPELLS-34.T3a), and may say its creature cannot attack.
  */
 export function registerCreatureFormOutcomeFields(
   map: OutcomeNodeMapApi['map'],
@@ -50,6 +50,7 @@ export function registerCreatureFormOutcomeFields(
         { showIf: manifestsSummon }
       )
     )
+    .set('cannotAttack', toggle(['cannotAttack'], 'Cannot Attack', { showIf: manifestsSummon }))
     .set(
       'formFilter',
       groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {

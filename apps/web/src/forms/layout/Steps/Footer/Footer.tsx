@@ -8,7 +8,7 @@ import {
   useAuthoringStagedEditor
 } from '../../AuthoringFormContext'
 import { useAuthoringFormStatus } from '../../useAuthoringFormStatus'
-import { useAuthoringLayout } from '../../AuthoringLayoutContext'
+import { useAuthoringPanels } from '../../AuthoringLayoutContext'
 import { Rail } from '#ui'
 import { StatusSummary } from '../StatusSummary/StatusSummary'
 import { toAuthoringNavigationRailItems, toAuthoringRailSummaries } from '../Steps.utils'
@@ -17,11 +17,11 @@ import * as styles from './Footer.css'
 export function Footer() {
   const { cancelHref, cancelLabel, mode } = useAuthoringSession()
   const { cancel } = useAuthoringActions()
-  const { navigationTree, progressSummary, stepStatuses, visitedStepIds } = useAuthoringNavigation()
+  const { navigationTree, progressSummary, stepStatuses, visibleSteps, visitedStepIds } =
+    useAuthoringNavigation()
   const { hasChanges } = useAuthoringFormStatus()
   const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
-  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation, visibleSteps } =
-    useAuthoringLayout()
+  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation } = useAuthoringPanels()
   const navigationProgressItems = navigationTree?.length
     ? toAuthoringNavigationRailItems({
         mode,

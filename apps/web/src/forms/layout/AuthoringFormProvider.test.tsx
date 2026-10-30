@@ -16,11 +16,12 @@ import {
   useAuthoringActions,
   useAuthoringFormStore,
   useAuthoringNavigation,
-  useAuthoringSession
+  useAuthoringSession,
+  type AuthoringHostedForm
 } from './AuthoringFormContext'
 import { useAuthoringFormStatus } from './useAuthoringFormStatus'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
-import { characterBuilderPayloadFixture } from '#domains/characters/builder/fixtures/characterBuilder.fixtures'
+import { characterBuilderVisibleSteps } from '#domains/characters/builder/state/characterBuilderAuthoringState'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
 /** A structural value the fake resolver answers without the Details step. Copy fields (label) send no request. */
@@ -51,6 +52,47 @@ vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
     }
   }
 })
+
+/** A Character Builder form as its route hosts it: the builder owns the form and passes the chrome down. */
+function characterBuilderHostedForm({
+  cancelHref = '/characters',
+  hasChanges
+}: {
+  cancelHref?: string
+  hasChanges: boolean
+}): AuthoringHostedForm {
+  return {
+    actions: {},
+    cancelHref,
+    labels: {
+      activateLabel: 'Activate',
+      canDelete: true,
+      canSaveDraft: true,
+      deleteLabel: 'Discard draft',
+      hasActiveDraft: false,
+      isDraft: true,
+      mode: 'create',
+      readOnly: false,
+      saveDraftLabel: 'Save Draft',
+      subjectKindLabel: 'Character'
+    },
+    navigation: {
+      isComplete: false,
+      progressSummary: undefined,
+      stepStatuses: {},
+      visibleSteps: characterBuilderVisibleSteps
+    },
+    status: {
+      canFinalize: false,
+      canResetForm: hasChanges,
+      canResetStep: false,
+      canSubmit: false,
+      hasChanges,
+      hasStepChanges: false,
+      isSubmitting: false
+    }
+  }
+}
 
 const RACE_CREATE_REGISTRATION = {
   data: { system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] },
@@ -148,7 +190,9 @@ describe('AuthoringFormProvider unsaved navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <ShellReturnHrefContext value='/spells'>
-          <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
+          <AuthoringFormProvider
+            hostedForm={characterBuilderHostedForm({ cancelHref: '/spells', hasChanges: false })}
+          >
             <CancelProbe hasChanges={false} />
           </AuthoringFormProvider>
         </ShellReturnHrefContext>
@@ -213,7 +257,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
+        <AuthoringFormProvider hostedForm={characterBuilderHostedForm({ hasChanges: true })}>
           <CancelProbe hasChanges />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -299,7 +343,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [] }} kind='character-builder' mode='create'>
+        <AuthoringFormProvider hostedForm={characterBuilderHostedForm({ hasChanges: true })}>
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -324,15 +368,7 @@ describe('AuthoringFormProvider URL navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds?source=owned&step=RACE'>
-        <AuthoringFormProvider
-          data={{
-            characterId: characterBuilderPayloadFixture.character.id,
-            draft: null,
-            activeCharacter: characterBuilderPayloadFixture.character
-          }}
-          kind='character-builder'
-          mode='edit'
-        >
+        <AuthoringFormProvider hostedForm={characterBuilderHostedForm({ hasChanges: false })}>
           <CharacterUrlNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -579,26 +615,19 @@ function StepStateProbe() {
 }
 
 /**
- * Makes the session dirty the way its owner does: an authored session through an edit in a mounted
- * field of its form, the Character Builder through the flags it still pushes (RELIABILITY-10.T1c).
+ * Makes an authored session dirty through an edit in a mounted field of its form. A hosted form
+ * (the Character Builder) passes its changes in `hostedForm.status` instead.
  */
 function SessionChanges({ hasChanges }: { hasChanges: boolean }) {
-  const { authoringKind } = useAuthoringSession()
-  const { updateAuthoringFormState } = useAuthoringActions()
+  const { isHostedForm } = useAuthoringSession()
   const { form } = useAuthoringFormStore()
 
   // A mount-time edit: the session's form must keep it rather than reset over it.
   useEffect(() => {
-    if (authoringKind === 'character-builder') {
-      updateAuthoringFormState({ hasChanges })
-      return
-    }
-    if (hasChanges) form.setFieldValue('label', 'Changed label')
-  }, [authoringKind, form, hasChanges, updateAuthoringFormState])
+    if (!isHostedForm && hasChanges) form.setFieldValue('label', 'Changed label')
+  }, [form, hasChanges, isHostedForm])
 
-  return authoringKind === 'character-builder' ? null : (
-    <form.Field name='label'>{() => null}</form.Field>
-  )
+  return isHostedForm ? null : <form.Field name='label'>{() => null}</form.Field>
 }
 
 function UnsavedNavigationProbe() {

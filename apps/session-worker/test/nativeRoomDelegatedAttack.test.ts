@@ -165,6 +165,23 @@ async function delegatedAttack(
   return { command, answer: await room.send(command) }
 }
 
+/** The familiar's own attack at the Wolf, no delegation; the room's answer, not yet checked. */
+async function ownAttack(room: ChainRoom, familiarId: string, actionId: string) {
+  return room.send({
+    type: 'RESOLVE_ACTION',
+    acceptedWieldConflict: null,
+    acknowledgedWarnings: RANGE,
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version(),
+    actorId: familiarId,
+    target: { kind: 'ACTOR', actorId: WOLF_ID },
+    actionId,
+    optionalCombatIntent: null,
+    sceneContext: null
+  })
+}
+
 /** Rolls and settles every roll the pending action asks for. */
 async function settlePendingAction(room: ChainRoom) {
   const { stub } = room.room.base
@@ -326,5 +343,25 @@ describe('room Pact of the Chain delegated attack (SPELLS-31.T4v2a)', () => {
     const offTurn = await delegatedAttack(room, summoned.familiar.id, summoned.clawsId)
     expect(offTurn.answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(offTurn.answer)).toContain('NOT_CURRENT_ACTOR')
+  }, 180000)
+})
+
+describe('a familiar that cannot attack (SPELLS-34.T4)', () => {
+  it('refuses its own attack, while its Warlock may still delegate one', async () => {
+    const room = await chainRoom()
+    const { familiar, clawsId } = await summonFamiliar(room)
+    expect(await currentActorId(room)).toBe(CHARACTER_ACTOR_ID)
+
+    const refused = await ownAttack(room, familiar.id, clawsId)
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused)).toContain('NOT_CURRENT_ACTOR')
+
+    const delegated = await delegatedAttack(room, familiar.id, clawsId)
+    expect(delegated.answer.type, JSON.stringify(delegated.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    expect(await settledBatch(room, delegated.command.commandId)).toMatchObject({
+      sourceActorId: familiar.id,
+      targetActorId: WOLF_ID
+    })
   }, 180000)
 })

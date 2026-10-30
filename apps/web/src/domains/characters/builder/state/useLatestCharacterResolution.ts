@@ -12,15 +12,18 @@ type InFlightCharacterResolution = {
  * Resolves Builder values through `resolve`, coalescing identical in-flight requests and applying
  * only the latest response of the current draft generation. Without `resolve` (evaluation inputs
  * still loading) a request does nothing; the Builder re-requests once `resolve` changes.
+ * `onUnresolved` names the values whose latest request cannot produce a payload.
  */
 export function useLatestCharacterResolution({
   generation,
   resolve,
-  onResolved
+  onResolved,
+  onUnresolved
 }: {
   generation: string
   resolve: ((character: CharacterFormValues) => Promise<CharacterBuilderPayloadDto>) | null
   onResolved: (payload: CharacterBuilderPayloadDto) => void
+  onUnresolved: (fingerprint: string) => void
 }) {
   const inFlightRef = useRef<InFlightCharacterResolution | null>(null)
   const latestRequestIdRef = useRef(0)
@@ -38,8 +41,12 @@ export function useLatestCharacterResolution({
 
   return useCallback(
     (character: CharacterFormValues) => {
-      if (!resolve) return Promise.resolve()
-      const fingerprint = `${generation}:${getCharacterBuilderResolutionFingerprint(character)}`
+      const valuesFingerprint = getCharacterBuilderResolutionFingerprint(character)
+      if (!resolve) {
+        onUnresolved(valuesFingerprint)
+        return Promise.resolve()
+      }
+      const fingerprint = `${generation}:${valuesFingerprint}`
       const currentRequest = inFlightRef.current
       if (currentRequest?.fingerprint === fingerprint) return currentRequest.promise
 
@@ -57,6 +64,8 @@ export function useLatestCharacterResolution({
         })
         .catch(() => {
           // Evaluation failures are surfaced by the Builder's content status and on finalize.
+          if (mountedRef.current && requestId === latestRequestIdRef.current)
+            onUnresolved(valuesFingerprint)
         })
         .finally(() => {
           if (inFlightRef.current === inFlight) inFlightRef.current = null
@@ -65,6 +74,6 @@ export function useLatestCharacterResolution({
       inFlightRef.current = inFlight
       return inFlight.promise
     },
-    [generation, onResolved, resolve]
+    [generation, onResolved, onUnresolved, resolve]
   )
 }

@@ -2,20 +2,12 @@ import type { AuthoredFormDomain } from '../factories/authoredFormFactories.type
 import type { AuthoringFormMode } from './AuthoringFormContext'
 
 export type AuthoredFormRouteMode = Extract<AuthoringFormMode, 'create' | 'edit'>
-export type CharacterBuilderRouteMode = Extract<AuthoringFormMode, 'create' | 'edit'>
 
 type AuthoredFormRouteContext = {
   authoring: {
     kind: 'authored-form'
     domain: AuthoredFormDomain
     mode: AuthoredFormRouteMode
-  }
-}
-
-type CharacterBuilderRouteContext = {
-  authoring: {
-    kind: 'character-builder'
-    mode: CharacterBuilderRouteMode
   }
 }
 
@@ -31,17 +23,6 @@ export function createAuthoredFormRouteContext(
     authoring: {
       kind: 'authored-form',
       domain,
-      mode
-    }
-  }
-}
-
-export function createCharacterBuilderRouteContext(
-  mode: CharacterBuilderRouteMode
-): CharacterBuilderRouteContext {
-  return {
-    authoring: {
-      kind: 'character-builder',
       mode
     }
   }

@@ -8,27 +8,30 @@ import {
   spellSummonStatBlockValuesDtoSchema,
   type CharacterSpellSummonStateDto
 } from '@artificer-toolkit/schema/subjects/characterState'
-import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
+import {
+  resolveSpellSummonStatBlock,
+  type FormSummonStats,
+  type SummonFormPick
+} from '../spellSummonStatBlock.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
-export type StatBlockSummonPlacement = Extract<
-  CompiledActionSummonPlacement,
-  { statBlock: unknown }
->
+/** A System Creature a Sheet summon of a chosen form may become, read before the reducer runs. */
+export interface SheetSummonFormCreature {
+  stats: FormSummonStats
+  maxHitPoints: number
+}
 
 /**
  * The summon plan of a cast the Sheet makes, read from the same compile an Encounter offers its casts
- * from (D190): the compiled cast of `spellId` at `castLevel` that conjures a creature from its stat
- * block, else null. The Sheet does not yet conjure a chosen form (SPELLS-34.T3b), so such a cast
- * casts with no summon there, as it did before its forms compiled.
+ * from (D190): the compiled cast of `spellId` at `castLevel` that conjures a creature, else null.
  */
 export function sheetSpellCastSummonPlacement(input: {
   casts: Pick<CharacterSpellCastActions, 'candidates' | 'compiledActionEntryPoints'>
   spellCastCandidates: CharacterRulePolicyInput['spellCastCandidates']
   spellId: string
   castLevel: number
-}): StatBlockSummonPlacement | null {
+}): CompiledActionSummonPlacement | null {
   const castIds = new Set(
     input.spellCastCandidates
       .filter((cast) => cast.spellId === input.spellId && cast.castLevel === input.castLevel)
@@ -47,30 +50,58 @@ export function sheetSpellCastSummonPlacement(input: {
       'summonPlacement' in entry.compilation &&
       entry.compilation.summonPlacement
     )
-      return 'statBlock' in entry.compilation.summonPlacement
-        ? entry.compilation.summonPlacement
-        : null
+      return entry.compilation.summonPlacement
   return null
 }
 
 /**
  * The creature a Sheet cast conjures outside an Encounter: the plan's stat block resolved against the
- * caster once, at cast time. It is the Sheet's Concentration when the plan maintains one.
+ * caster once, at cast time, or the System Creature of the form the caster picked
+ * (`summonFormPick`), of the Creature Type picked for it. It is the Sheet's Concentration when the
+ * plan maintains one, and stays through a long rest when the plan has no duration.
  */
 export function buildSheetSpellSummon(input: {
-  placement: StatBlockSummonPlacement
+  placement: CompiledActionSummonPlacement
+  /** The picked form and its Creature, for a summon of a chosen form. */
+  form: {
+    pick: SummonFormPick
+    creature: SheetSummonFormCreature
+  } | null
   casterHitPointMaximum: number
   spellId: string
-  /** The creature's name: the stat block's own, else the spell's. */
+  /** The creature's name when the plan gives none: the picked form's, else the spell's. */
   label: string
   id: string
   castAt: string
 }): CharacterSpellSummonStateDto {
-  const maximumHitPoints = summonHitPoints(input.placement.statBlock, input.casterHitPointMaximum)
+  const { placement, form } = input
+  if ('statBlock' in placement === (form !== null))
+    throw new Error('A summon of a chosen form is built from its picked Creature, and only it.')
+  const maximumHitPoints =
+    'statBlock' in placement
+      ? summonHitPoints(placement.statBlock, input.casterHitPointMaximum)
+      : form!.creature.maxHitPoints
   return {
     id: input.id,
-    ...resolveSpellSummonStatBlock(input),
+    ...resolveSpellSummonStatBlock({
+      placement,
+      casterHitPointMaximum: input.casterHitPointMaximum,
+      spellId: input.spellId,
+      label: form?.pick.form.label ?? input.label,
+      ...(form ? { formStats: form.creature.stats } : {})
+    }),
     ...(maximumHitPoints > 0 ? { maximumHitPoints, currentHitPoints: maximumHitPoints } : {}),
+    ...(form
+      ? {
+          form: {
+            creatureId: form.pick.form.creatureId,
+            ...(form.pick.creatureTypeId === null
+              ? {}
+              : { creatureTypeId: form.pick.creatureTypeId })
+          }
+        }
+      : {}),
+    ...(placement.entry.initialRemaining === null ? { untimed: true as const } : {}),
     castAt: input.castAt
   }
 }

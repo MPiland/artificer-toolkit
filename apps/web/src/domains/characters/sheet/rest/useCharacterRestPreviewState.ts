@@ -6,7 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { useCharacterRestPreviewMutation } from '#app/data/characters/mutations'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
-import { useCharacterSheetRoll } from '../dice/rollContext'
+import { useCharacterSheetRoll, useCharacterSheetRollPresentation } from '../dice/rollContext'
 
 export function useCharacterRestPreviewState({
   onComplete,
@@ -28,7 +28,8 @@ export function useCharacterRestPreviewState({
     sheet.meta.campaignId
   )
   const previewRequestSequence = useRef(0)
-  const rollController = useCharacterSheetRoll()
+  const rolls = useCharacterSheetRoll()
+  const rollPresentation = useCharacterSheetRollPresentation()
   const [preview, setPreview] = useState<CharacterRestPreviewResponseDto>()
   const [selectedHitDice, setSelectedHitDice] = useState<
     CharacterRestPreviewRequestDto['selectedHitDice']
@@ -44,8 +45,8 @@ export function useCharacterRestPreviewState({
   const interactionPending =
     pending ||
     previewMutation.isPending ||
-    Boolean(rollController?.pending) ||
-    Boolean(rollController?.presentationPending)
+    Boolean(rolls?.pending) ||
+    Boolean(rollPresentation?.presentationPending)
 
   async function requestPreview(
     overrides: Partial<CharacterRestPreviewRequestDto> = {}
@@ -174,7 +175,7 @@ export function useCharacterRestPreviewState({
   }
 
   async function requestRoll() {
-    if (!rollController || !preview?.canonicalExpression) {
+    if (!rolls || !preview?.canonicalExpression) {
       setPreviewError('The dice roller is not available. Close the rest panel and try again.')
       return
     }
@@ -188,7 +189,7 @@ export function useCharacterRestPreviewState({
       manualHealingAccepted: false
     })
     const rollRequestSequence = previewRequestSequence.current
-    const roll = await rollController.executeRoll({
+    const roll = await rolls.executeRoll({
       expression: preview.canonicalExpression,
       source: {
         kind: 'HIT_DIE',
@@ -244,7 +245,7 @@ export function useCharacterRestPreviewState({
   function cancelPreview() {
     previewRequestSequence.current += 1
     setRollId(undefined)
-    if (rollController?.presentationPending) rollController.dismissRoll(true)
+    if (rollPresentation?.presentationPending) rollPresentation.dismissRoll(true)
   }
 
   return {

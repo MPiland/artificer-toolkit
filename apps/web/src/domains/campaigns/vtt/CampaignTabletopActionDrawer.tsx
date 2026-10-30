@@ -54,6 +54,8 @@ import {
   wallAreaBoundsInSceneCoordinates
 } from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
+import { SummonPicks } from '#app/components/summonPicks/SummonPicks'
+import { summonPicks } from '#app/components/summonPicks/summonPicks.model'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
@@ -62,8 +64,6 @@ import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreatu
 import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
 import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
-import { CampaignTabletopSummonPicks } from './CampaignTabletopSummonPicks'
-import { summonPicks } from './summonPicks.model'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import {
@@ -327,7 +327,8 @@ export function CampaignTabletopActionDrawer({
     ...choiceActorsTarget,
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
-  const summonChoices = summonPicks(choiceTarget, pickedFormId, pickedCreatureTypeId)
+  const pointTarget = choiceTarget?.kind === 'POINT' ? choiceTarget : null
+  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
@@ -1072,8 +1073,8 @@ export function CampaignTabletopActionDrawer({
                 />
               ) : null}
               {choiceTarget?.kind === 'POINT' ? (
-                <CampaignTabletopSummonPicks
-                  target={choiceTarget}
+                <SummonPicks
+                  options={choiceTarget}
                   {...summonChoices}
                   disabled={selectionControlsDisabled}
                   onFormChange={setPickedFormId}

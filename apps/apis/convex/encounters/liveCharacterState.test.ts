@@ -22,8 +22,8 @@ import { api } from '../_generated/api'
 import {
   checkpointLiveRoom,
   checkpointRoom,
+  deliverQueuedRoomControl,
   executeInRoom,
-  invalidateRoomInputs,
   queueRoomRolls,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -53,7 +53,7 @@ async function builderEdit(
     mode: 'edit',
     character: change(current)
   })
-  await invalidateRoomInputs(fixture.campaign.id, ['CHARACTER'])
+  await deliverQueuedRoomControl(fixture.t)
 }
 
 function projectedHero(fixture: Fixture, result: CommandResult) {

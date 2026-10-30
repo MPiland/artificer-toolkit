@@ -19,25 +19,40 @@ export type CharacterSheetRollDestinationOption = {
   value: CharacterSheetRollDestination
 }
 
-export type CharacterSheetRollController = {
+/** Rolling dice from the sheet: what roll controls and the manual roller read. */
+export type CharacterSheetRolls = {
   clearManualRoll: () => void
-  destination: CharacterSheetRollDestination
-  destinationOptions: readonly CharacterSheetRollDestinationOption[]
-  dismissRoll: (discard?: boolean) => void
   executeRoll: (request: CharacterSheetRollRequest) => Promise<RollRecordDto | undefined>
   hasManualRoll: boolean
   pending: boolean
   pendingRequest?: CharacterSheetRollRequest
+}
+
+/** Where rolls go, and the choices the roller offers. */
+export type CharacterSheetRollDestinations = {
+  destination: CharacterSheetRollDestination
+  destinationOptions: readonly CharacterSheetRollDestinationOption[]
+  setDestination: (destination: CharacterSheetRollDestination) => void
+  /** Rolls that change Character state (hit dice) always stay visible to the GM. */
+  stateRollDestination: CharacterSheetRollDestination
+  stateRollDestinationOptions: readonly CharacterSheetRollDestinationOption[]
+}
+
+/** The presented roll card: its owner renders it, and a rest waits on it or cancels it. */
+export type CharacterSheetRollPresentation = {
+  dismissRoll: (discard?: boolean) => void
   presentationPending: boolean
   presentedRoll?: RollRecordDto
   presentedRollPrivate: boolean
   revealRoll: (rollId: string) => void
   /** Posts a GM-retained private roll to the table: its card (FULL) or only that the GM rolled. */
   revealPrivateRoll: (input: RevealCampaignRollInput) => Promise<CampaignChatEntryDto>
-  setDestination: (destination: CharacterSheetRollDestination) => void
-  /** Rolls that change Character state (hit dice) always stay visible to the GM. */
-  stateRollDestination: CharacterSheetRollDestination
-  stateRollDestinationOptions: readonly CharacterSheetRollDestinationOption[]
+}
+
+export type CharacterSheetRollController = {
+  destinations: CharacterSheetRollDestinations
+  presentation: CharacterSheetRollPresentation
+  rolls: CharacterSheetRolls
 }
 
 export type ManualDieRow = {

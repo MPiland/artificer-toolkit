@@ -20,7 +20,7 @@ type ActionBarProps = {
 }
 
 export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: ActionBarProps) {
-  const { activateLabel, authoringKind, readOnly } = useAuthoringSession()
+  const { activateLabel, domain, isHostedForm, readOnly } = useAuthoringSession()
   const { activate } = useAuthoringActions()
   const {
     activeNavigationTarget,
@@ -35,10 +35,10 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
   const { canFinalize, isSubmitting } = useAuthoringFormStatus()
   const stagedEditorOpen = Boolean(useAuthoringStagedEditor().groupEditor)
   const currentHref = useLocation({ select: (location) => location.href })
-  const destinations =
-    authoringKind === 'character-builder' ? visibleSteps : (navigationTargets ?? [])
-  const activeId =
-    authoringKind === 'character-builder' ? activeStep?.id : activeNavigationTarget?.id
+  const destinations = isHostedForm ? visibleSteps : (navigationTargets ?? [])
+  const activeId = isHostedForm ? activeStep?.id : activeNavigationTarget?.id
+  // A registered authored form activates from its last step; a hosted form only advances.
+  const activatesHere = Boolean(domain) && isLastStep
   const activeIndex = destinations.findIndex((entry) => entry.id === activeId)
   const previousStepId = activeIndex > 0 ? destinations[activeIndex - 1]?.id : undefined
   const nextStepId = activeIndex >= 0 ? destinations[activeIndex + 1]?.id : undefined
@@ -98,8 +98,8 @@ export function ActionBar({ className, padding = 'flush', surface = 'canvas' }: 
           </Tooltip>
         </div>
         <div className={styles.end}>
-          <Tooltip label={authoringKind === 'authored-form' && isLastStep ? activateLabel : 'Next'}>
-            {authoringKind === 'authored-form' && isLastStep ? (
+          <Tooltip label={activatesHere ? activateLabel : 'Next'}>
+            {activatesHere ? (
               <ActionIcon
                 aria-label={activateLabel}
                 className={styles.primaryButton}

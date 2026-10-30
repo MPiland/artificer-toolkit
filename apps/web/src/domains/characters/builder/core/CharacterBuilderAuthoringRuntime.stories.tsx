@@ -14,7 +14,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { getCharacterBuilderActiveCharacter } from '#app/data/characters/queries'
 import { getContentSnapshotManifest } from '#app/data/contentSnapshots/queries'
 import { getSystem } from '#app/data/systems/queries'
-import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
+import { CharacterBuilderAuthoringRuntime } from './CharacterBuilderAuthoringRuntime'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
 import { selectAuthoringTarget } from '#domains/authoredRouteStory.play'
 import type {
@@ -87,9 +87,8 @@ class BuilderEvaluationWorker extends EventTarget {
 
 const meta = {
   title: 'Domains/Characters/Builder Native Draft',
-  component: AuthoringLayout,
+  component: CharacterBuilderAuthoringRuntime,
   args: {
-    kind: 'character-builder',
     mode: 'edit',
     data: {
       characterId: character.id,
@@ -148,7 +147,7 @@ const meta = {
       })
     }
   }
-} satisfies Meta<typeof AuthoringLayout>
+} satisfies Meta<typeof CharacterBuilderAuthoringRuntime>
 
 export default meta
 type Story = StoryObj<typeof meta>

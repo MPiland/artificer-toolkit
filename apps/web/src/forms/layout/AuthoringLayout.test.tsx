@@ -33,9 +33,6 @@ vi.mock('./useAuthoringExperience', () => ({
 }))
 vi.mock('./useAuthoringSaveShortcut', () => ({ useAuthoringSaveShortcut: () => undefined }))
 vi.mock('#app/shell', () => ({ useShellHeaderSupplement: () => undefined }))
-vi.mock('#domains/characters/builder/core/CharacterBuilderAuthoringRuntime', () => ({
-  CharacterBuilderAuthoringRuntime: () => null
-}))
 vi.mock('./Steps/Steps', () => ({ Steps: () => null }))
 vi.mock('./Previews/Previews', () => ({ Previews: () => null }))
 vi.mock('./Actions/ResetFormConfirmation', () => ({ ResetFormConfirmation: () => null }))

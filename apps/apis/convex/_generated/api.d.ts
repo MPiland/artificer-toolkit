@@ -2204,7 +2204,9 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                creatureTypeId?: string;
                 expectedVersion: number;
+                formId?: string;
                 slotKey?: string;
                 sourceId?: string;
                 spellId: string;
@@ -4847,6 +4849,7 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
+              creatureTypes?: Array<{ id: string; label: string }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -4855,6 +4858,7 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
+              summonForms?: Array<{ id: string; label: string }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -11136,6 +11140,7 @@ export declare const api: {
               concentration: boolean;
               currentHitPoints?: number;
               customName?: string;
+              form?: { creatureId: string; creatureTypeId?: string };
               id: string;
               label: string;
               maximumHitPoints?: number;
@@ -11150,6 +11155,7 @@ export declare const api: {
               spellId: string;
               summonOutcomeId: string;
               tempHitPoints?: number;
+              untimed?: true;
             }>;
             vehicleEquipment?: Record<
               string,
@@ -11532,6 +11538,7 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
+                form?: { creatureId: string; creatureTypeId?: string };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -11546,6 +11553,7 @@ export declare const api: {
                 spellId: string;
                 summonOutcomeId: string;
                 tempHitPoints?: number;
+                untimed?: true;
               }>;
               vehicleEquipment?: Record<
                 string,
@@ -11927,6 +11935,7 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
+                form?: { creatureId: string; creatureTypeId?: string };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -11941,6 +11950,7 @@ export declare const api: {
                 spellId: string;
                 summonOutcomeId: string;
                 tempHitPoints?: number;
+                untimed?: true;
               }>;
               vehicleEquipment?: Record<
                 string,
@@ -12513,6 +12523,7 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
+                  form?: { creatureId: string; creatureTypeId?: string };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -12527,6 +12538,7 @@ export declare const api: {
                   spellId: string;
                   summonOutcomeId: string;
                   tempHitPoints?: number;
+                  untimed?: true;
                 }>;
                 vehicleEquipment?: Record<
                   string,
@@ -13107,6 +13119,7 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
+                  form?: { creatureId: string; creatureTypeId?: string };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -13121,6 +13134,7 @@ export declare const api: {
                   spellId: string;
                   summonOutcomeId: string;
                   tempHitPoints?: number;
+                  untimed?: true;
                 }>;
                 vehicleEquipment?: Record<
                   string,
@@ -13704,6 +13718,7 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
+                form?: { creatureId: string; creatureTypeId?: string };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -13718,6 +13733,7 @@ export declare const api: {
                 spellId: string;
                 summonOutcomeId: string;
                 tempHitPoints?: number;
+                untimed?: true;
               }>;
               vehicleEquipment?: Record<
                 string,
@@ -14284,6 +14300,7 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
+                  form?: { creatureId: string; creatureTypeId?: string };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -14298,6 +14315,7 @@ export declare const api: {
                   spellId: string;
                   summonOutcomeId: string;
                   tempHitPoints?: number;
+                  untimed?: true;
                 }>;
                 vehicleEquipment?: Record<
                   string,
@@ -15566,6 +15584,7 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
+              creatureTypes?: Array<{ id: string; label: string }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -15574,6 +15593,7 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
+              summonForms?: Array<{ id: string; label: string }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -19565,7 +19585,9 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                creatureTypeId?: string;
                 expectedVersion: number;
+                formId?: string;
                 slotKey?: string;
                 sourceId?: string;
                 spellId: string;

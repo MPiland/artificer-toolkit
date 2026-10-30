@@ -1,10 +1,10 @@
 import { CloseButton } from '@mantine/core'
-import { useAuthoringLayout } from '../../AuthoringLayoutContext'
+import { useAuthoringPanels } from '../../AuthoringLayoutContext'
 import * as styles from './Header.css'
 import { Rail } from '#ui'
 
 export function Header() {
-  const { isWideDesktop, toggleStepsNavigation } = useAuthoringLayout()
+  const { isWideDesktop, toggleStepsNavigation } = useAuthoringPanels()
 
   return (
     <Rail.Header className={styles.header}>
