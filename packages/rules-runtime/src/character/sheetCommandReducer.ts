@@ -1,4 +1,4 @@
-import { applyConditionMaximum, type ConditionMaximum } from '../conditionHitPointMaximum.js'
+import { applyConditionMaximum, type ConditionMaximum } from '../hitPointMaximumFraction.js'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
