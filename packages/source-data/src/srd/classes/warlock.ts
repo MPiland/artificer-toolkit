@@ -88,6 +88,36 @@ const W = 11 // warlock class index for ID generation
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
+/** A requirement that the Character has Eldritch Blast, whose four rows take the ids from `entry` on. */
+function eldritchBlastObtained(group: number, entry: number) {
+  return {
+    id: classRowId(W, group, entry),
+    groups: [
+      {
+        id: classRowId(W, group, entry + 1),
+        order: 0,
+        contexts: [
+          {
+            id: classRowId(W, group, entry + 2),
+            order: 0,
+            subject: 'CHARACTER' as const,
+            conditions: [
+              {
+                id: classRowId(W, group, entry + 3),
+                order: 0,
+                kind: 'PREDICATE' as const,
+                constraint: 'INCLUDE' as const,
+                predicateCode: 'SPELL_OBTAINED' as const,
+                spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
 /** A restriction to Eldritch Blast, whose three rows take the ids from `entry` on. */
 function eldritchBlastOnly(entry: number) {
   return {
@@ -724,32 +754,7 @@ export const warlock: ClassAuthored = {
           description:
             'When you cast eldritch blast, add your Charisma modifier to the damage it deals on a hit.',
           // Requires Eldritch Blast cantrip (CHARACTER context, SPELL_OBTAINED predicate)
-          restrictions: {
-            id: classRowId(W, 4, 1),
-            groups: [
-              {
-                id: classRowId(W, 4, 2),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 4, 3),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 4, 4),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
+          restrictions: eldritchBlastObtained(4, 1),
           grants: {
             modifiers: [
               {
@@ -910,32 +915,7 @@ export const warlock: ClassAuthored = {
           description:
             'When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.',
           // Requires Eldritch Blast. Push effect is a combat action modifier not representable as a grant.
-          restrictions: {
-            id: classRowId(W, 4, 9),
-            groups: [
-              {
-                id: classRowId(W, 4, 10),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 4, 11),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 4, 12),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
+          restrictions: eldritchBlastObtained(4, 9),
           effects: [
             closedRuleEffect({
               id: classRowId(W, 0x60, 5),
@@ -1181,32 +1161,7 @@ export const warlock: ClassAuthored = {
           label: 'Eldritch Spear',
           description: 'When you cast eldritch blast, its range is 300 feet.',
           // Requires Eldritch Blast cantrip.
-          restrictions: {
-            id: classRowId(W, 6, 14),
-            groups: [
-              {
-                id: classRowId(W, 6, 15),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 6, 16),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 6, 17),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
+          restrictions: eldritchBlastObtained(6, 14),
           grants: {
             modifiers: [
               {
