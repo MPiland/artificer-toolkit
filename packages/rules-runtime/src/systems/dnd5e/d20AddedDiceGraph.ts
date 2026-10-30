@@ -35,6 +35,17 @@ export function derivedAddedDice(diceByKey: unknown, key: string): D20AddedDieDt
   return dice === undefined ? [] : d20AddedDiceDtoSchema.parse(dice)
 }
 
+/** A target's saving-throw dice for one ability: those added at the roll, and those held until the d20 is seen. */
+export function derivedSaveDice(
+  derivedFacts: Record<string, unknown>,
+  abilityDefinitionId: string
+) {
+  return {
+    addedDice: derivedAddedDice(derivedFacts.savingThrowAddedDice, abilityDefinitionId),
+    heldDice: derivedAddedDice(derivedFacts.savingThrowAfterRollDice, abilityDefinitionId)
+  }
+}
+
 /** The added-dice node that follows a test's d20 node, whose total the test op adds. */
 export function dnd5eAddedDiceNode(d20NodeId: string): RuleGraphDefinition['nodes'][number] {
   return {

@@ -66,6 +66,10 @@ export const d20WindowRolledDtoSchema = lazySchema(() =>
   z.union([d20RolledCheckDtoSchema, d20RolledSaveDtoSchema])
 )
 export type D20RolledCheckDto = z.infer<typeof d20RolledCheckDtoSchema>
+/** Whether a window's frozen roll is a completed check (rather than a save awaiting its graph). */
+export const isD20RolledCheck = (
+  rolled: z.infer<typeof d20WindowRolledDtoSchema>
+): rolled is D20RolledCheckDto => 'execution' in rolled
 export type D20WindowRolledDto = z.infer<typeof d20WindowRolledDtoSchema>
 
 /** Seals a window's options to the roll it froze: a check's graph result, or a save's paused graph. */

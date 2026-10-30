@@ -20,7 +20,10 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
-import type { D20RolledCheckDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import {
+  isD20RolledCheck,
+  type D20RolledCheckDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -77,7 +80,7 @@ const isCheckWindow = (
   context.source.kind !== 'DAMAGE_SAVE_CHECK' &&
   isCheckWindowPayload(context.pause.payload)
 export const isCheckWindowPayload = (payload: WindowPayload): payload is CheckWindowPayload =>
-  'execution' in payload.rolled
+  isD20RolledCheck(payload.rolled)
 
 const mismatch = () => new Error('Live Session check result does not match its pending evidence.')
 

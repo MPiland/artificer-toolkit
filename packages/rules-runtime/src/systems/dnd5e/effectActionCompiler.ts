@@ -109,7 +109,12 @@ import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
-import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
+import {
+  dnd5eAddedDiceFacts,
+  dnd5eAddedDiceNode,
+  derivedAddedDice,
+  derivedSaveDice
+} from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { foldD20Operands } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
@@ -3923,10 +3928,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }))
         .sort(compareCanonicalD20Contributors)
       const contributorChecksum = checksumRuleDocument(contributors)
-      const addedDice = derivedAddedDice(
-        targetDerivedFacts.savingThrowAddedDice,
-        nestedSaveAbilityDefinitionId
-      )
+      const { addedDice } = derivedSaveDice(targetDerivedFacts, nestedSaveAbilityDefinitionId)
       return {
         facts: {
           ...baseFacts,
@@ -4063,10 +4065,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       })
       const { modifier, rollMode, contributors } = targetSave
       const contributorChecksum = checksumRuleDocument(contributors)
-      const addedDice = derivedAddedDice(
-        targetDerivedFacts.savingThrowAddedDice,
-        save.abilityDefinitionId
-      )
+      const { addedDice } = derivedSaveDice(targetDerivedFacts, save.abilityDefinitionId)
       const folded = foldD20Operands(foldedBonuses, modifier, save.dc, addedDice)
       return {
         facts: {
@@ -4282,11 +4281,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       defenses.some(
         (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
       ) || targetDerivedFacts[ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY] === false
-    const addedDice = derivedAddedDice(targetDerivedFacts.savingThrowAddedDice, abilityDefinitionId)
-    const heldDice = derivedAddedDice(
-      targetDerivedFacts.savingThrowAfterRollDice,
-      abilityDefinitionId
-    )
+    const { addedDice, heldDice } = derivedSaveDice(targetDerivedFacts, abilityDefinitionId)
     const facts = {
       ...baseFacts,
       ...dnd5eAddedDiceFacts(addedDice, attemptAllowed, heldDice),

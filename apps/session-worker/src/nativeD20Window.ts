@@ -2,7 +2,10 @@ import type { EncounterSettledAppRollDto } from '@artificer-toolkit/schema/api/e
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
-import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import {
+  isD20RolledCheck,
+  type D20RolledCheckDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { rollEncounterCheck } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
@@ -30,7 +33,7 @@ export async function answerNativeD20Check(input: {
   command: ResolveRuleOccurrenceInputDto
   appRoll: EncounterSettledAppRollDto | null
   /** The check the d20 belongs to, as a window names it. */
-  source: EncounterD20WindowPendingContextDto['source']
+  source: Exclude<EncounterD20WindowPendingContextDto['source'], { kind: 'DAMAGE_SAVE_CHECK' }>
   pending: {
     snapshot: { occurrenceId: string }
     continuation: ServerRuleExecutionContinuationDto
@@ -52,6 +55,7 @@ export async function answerNativeD20Check(input: {
       random
     })
     const { rolled, appRollId } = window.pause.payload
+    if (!isD20RolledCheck(rolled)) throw new Error(input.refusal)
     return {
       kind: 'SETTLED' as const,
       rolled: { ...rolled, d20: settled.d20 },
@@ -66,7 +70,7 @@ export async function answerNativeD20Check(input: {
       }
     }
   }
-  const rolled: D20WindowPausePayloadDto['rolled'] = {
+  const rolled: D20RolledCheckDto = {
     ...(await rollEncounterCheck({
       gameSystemId: input.gameSystemId,
       runtime,

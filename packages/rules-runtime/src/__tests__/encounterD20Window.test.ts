@@ -55,7 +55,7 @@ describe('the roll a damage save freezes at its d20 window', () => {
   const roll = {
     rawFaces: [4, 17],
     rollMode: 'ADVANTAGE' as const,
-    keep: 'HIGHEST' as const,
+    keep: 'HIGHER' as const,
     natural: 17,
     addedDice: []
   }

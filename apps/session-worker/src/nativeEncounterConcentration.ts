@@ -174,7 +174,7 @@ export async function planNativeLiveConcentration(input: {
   const endedGrants: ActiveRuleEffectRecord[] = []
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
   // The d20 window the answered save's roll opened (D168): the same occurrence pends on it.
-  let window: ServerKernelRuleExecutionPendingSnapshotDto | null = null
+  let window = null as ServerKernelRuleExecutionPendingSnapshotDto | null
   let resumed: {
     result: ReturnType<typeof completeNativeConcentrationResult>
     mutated: boolean
