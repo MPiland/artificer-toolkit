@@ -294,6 +294,23 @@ export function assignedCharacterTokenId(input: {
   return input.tokens.find((token) => token.characterId === assignedCharacterId)?.id ?? null
 }
 
+type EncounterActors = NonNullable<EncounterSessionStateDto['encounter']>['actors']
+
+/** Whether the viewer acts for the actor bound to each Scene token. */
+export function controlledActorByTokenId(
+  campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
+  viewerUserId: string,
+  actors: EncounterActors,
+  actorIdByTokenId: ReadonlyMap<string, string>
+): Map<string, boolean> {
+  return new Map(
+    [...actorIdByTokenId].map(([tokenId, actorId]) => {
+      const actor = actors.find((candidate) => candidate.id === actorId)
+      return [tokenId, !!actor && isEncounterActorMine(campaign, viewerUserId, actor, actors)]
+    })
+  )
+}
+
 /**
  * The Run's current turn as the stage offers it: the current actor, whether the viewer acts for it
  * (the GM for every actor, a player for an actor they control), and that actor's movement readout

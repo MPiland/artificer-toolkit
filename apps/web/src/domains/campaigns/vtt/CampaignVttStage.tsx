@@ -54,6 +54,7 @@ import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/cha
 import {
   assignedCharacterTokenId,
   characterControlAssignments,
+  controlledActorByTokenId,
   controlledCharacters,
   createSceneAnnotation,
   createSceneBarrier,
@@ -554,6 +555,7 @@ export function CampaignVttStage({
     ]
   )
   const viewerUserId = gmPreviewUserId ?? currentUserId
+  const encounterActors = activeEncounter?.actors ?? []
   // Bound tokens move for their actor's controllers (a GM preview checks as the previewed player).
   const boundTokenControl = useMemo(() => {
     const viewer = gmPreviewUserId
@@ -564,18 +566,8 @@ export function CampaignVttStage({
               ?.assignedCharacter ?? null
         }
       : campaign
-    return new Map(
-      [...actorIdByTokenId].map(([tokenId, actorId]) => {
-        const actor = activeEncounter?.actors.find((candidate) => candidate.id === actorId)
-        return [
-          tokenId,
-          actor
-            ? isEncounterActorMine(viewer, viewerUserId, actor, activeEncounter?.actors ?? [])
-            : false
-        ]
-      })
-    )
-  }, [activeEncounter?.actors, actorIdByTokenId, campaign, gmPreviewUserId, viewerUserId])
+    return controlledActorByTokenId(viewer, viewerUserId, encounterActors, actorIdByTokenId)
+  }, [encounterActors, actorIdByTokenId, campaign, gmPreviewUserId, viewerUserId])
   const scenePresentationControl =
     campaign.role === 'OWNER' ? (
       <Select
@@ -638,7 +630,7 @@ export function CampaignVttStage({
   // A forced movement waiting on its source is picked on the board by whoever acts for it (D157).
   const destinationPending =
     pendingOccurrence?.kind === 'FORCED_MOVEMENT_DESTINATION' ? pendingOccurrence : null
-  const destinationSource = activeEncounter?.actors.find(
+  const destinationSource = encounterActors.find(
     ({ id }) => id === destinationPending?.sourceActorId
   )
   const destinationTokenId = [...actorIdByTokenId].find(
@@ -650,12 +642,7 @@ export function CampaignVttStage({
       renderedScene &&
       destinationTokenId &&
       destinationSource &&
-      isEncounterActorMine(
-        campaign,
-        currentUserId,
-        destinationSource,
-        activeEncounter?.actors ?? []
-      )
+      isEncounterActorMine(campaign, currentUserId, destinationSource, encounterActors)
         ? forcedMovementDestinationPick({
             pending: destinationPending,
             scene: renderedScene,
