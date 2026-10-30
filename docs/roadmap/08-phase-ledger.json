@@ -17844,7 +17844,7 @@
               }
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-34.T3a",
               "closes": ["SPELLS-34.2"],
               "wsjf": {
@@ -17854,7 +17854,7 @@
                 "size": 5
               },
               "text": "Bug: Find Familiar compiles REFUSED (MANIFEST CREATURE with no form, find-familiar.ts:68-72; srdEffectCompile.golden.txt:1164). Authoring, compiler and room: the compiler accepts an untimed SUMMON; the POINT target carries a choice of SRD corpus creature form and a creature-type override; buildEncounterSummon builds the actor from a corpus creature, linked to its caster (owner actor and source effect); the room picker chooses the form. Generic: no spell names in code; authoring-parity proof.",
-              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md). Split at sizing (option a): Approved by the user on 2026-10-29."
+              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md). Split at sizing (option a): Approved by the user on 2026-10-29. Merged in m556 (18db2cdc3)."
             },
             {
               "id": "SPELLS-34.T3b",
