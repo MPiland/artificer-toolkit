@@ -31,7 +31,7 @@ import {
   closeRoom,
   executeInRoom,
   executeSceneInRoom,
-  invalidateRoomInputs,
+  deliverQueuedRoomControl,
   queueRoomRolls,
   readRoomTimeline,
   useLocalRoomWorker
@@ -620,11 +620,11 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
     })
   const damagedHitPoints = await moverHitPoints()
   // The controller leaves the Campaign through the real mutation (D81). A Run the room holds
-  // keeps its actors in the room (D74), so Convex sends the notice convex-test's scheduler does not.
+  // keeps its actors in the room (D74), so the notice the mutation queues reaches the room first.
   await value.player.caller.mutation(api.campaigns.assignments.unassign, {
     campaignId: value.base.campaign.id
   })
-  await invalidateRoomInputs(value.base.campaign.id, ['CAMPAIGN'])
+  await deliverQueuedRoomControl(value.base.t)
   // The room reloads authorization before it admits the answer, so the departed player is no
   // longer the actor's controller; the Character-unavailable refusal is for commands that read it.
   await expect(

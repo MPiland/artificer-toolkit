@@ -846,7 +846,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   #queueMembershipReload(): Promise<void> {
     const reload = this.#commandChain.then(async () => {
       try {
-        await this.#refreshAuthorization()
+        const current = this.#journal.readCurrent()
+        if (!current || current.status !== 'ACTIVE') return
+        await this.#reloadAuthorization(current.authorityEpoch)
         await this.#reconcileCurrentActorDepartures()
       } catch (error) {
         console.error('Live Session membership reload failed.', error)
@@ -894,7 +896,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       const value = origin ? attachment(origin) : null
       if (!value) return
       try {
-        const authorization = await this.#refreshAuthorization()
+        const authorization = await this.#reloadAuthorization(current.authorityEpoch)
         if (this.#aggregateNeedsReload) await reloadRoomAggregate(this.#host, value)
         else if (
           this.#sceneCache.current() &&
@@ -1138,14 +1140,28 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
   /**
    * Reloads the authorization cache for the room's active epoch and closes every socket whose member
    * left, changed role or started a new membership epoch; they reconnect with a fresh admission.
+   * A notice that lands during the read leaves the cache stale, so it reads again inside the same
+   * chain task: the departures that notice names are never left behind work queued meanwhile.
    */
   async #refreshAuthorization(): Promise<LiveSessionRoomAuthorization> {
     const current = this.#journal.readCurrent()
     if (!current || current.status !== 'ACTIVE') throw new Error('Live Session authority changed.')
-    const authorization = await restoreLocalPlayAuthorization(
-      this.#host,
-      await this.#authorization.refresh(current.authorityEpoch)
-    )
+    let read = await this.#authorization.refresh(current.authorityEpoch)
+    while (!this.#authorization.current(current.authorityEpoch))
+      read = await this.#authorization.refresh(current.authorityEpoch)
+    return this.#enforceAuthorization(await restoreLocalPlayAuthorization(this.#host, read))
+  }
+
+  /**
+   * A notice's reload: no read when one that started after every notice already made the cache
+   * current, as the reread above does for the notices that land during it.
+   */
+  async #reloadAuthorization(authorityEpoch: string): Promise<LiveSessionRoomAuthorization> {
+    const cached = this.#authorization.current(authorityEpoch)
+    return cached ? this.#enforceAuthorization(cached) : this.#refreshAuthorization()
+  }
+
+  #enforceAuthorization(authorization: LiveSessionRoomAuthorization): LiveSessionRoomAuthorization {
     for (const socket of this.ctx.getWebSockets()) {
       const value = attachment(socket)
       const member =
