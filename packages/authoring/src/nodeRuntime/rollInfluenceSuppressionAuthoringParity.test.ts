@@ -22,7 +22,7 @@ import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * RULES-2.T9b: suppressing a roll influence is one authored option, not an Elusive rule. An

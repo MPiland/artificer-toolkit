@@ -18,7 +18,7 @@ import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-32.T5 (D156): Halfling Lucky, Relentless Endurance and Savage Attacks are authored from the

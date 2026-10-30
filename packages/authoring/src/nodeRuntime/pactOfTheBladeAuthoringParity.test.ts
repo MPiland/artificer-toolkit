@@ -27,7 +27,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-31.T4v (D156, D187a): Pact of the Blade and Lifedrinker are authored from core options. The

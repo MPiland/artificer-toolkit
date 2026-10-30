@@ -3,7 +3,13 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { internal } from '../_generated/api'
 import { importedSubject, publicationFixture } from '../../tests/fixtures/publication'
 
@@ -94,14 +100,17 @@ describe('import runner preflight Equipment (SHEET-8)', () => {
         systemId: srdSystemRecord.id,
         damageTypes: entries(srdSystemRecord.damageTypes),
         rarities: entries(srdSystemRecord.rarities),
-        currencies: entries(srdSystemRecord.currencies),
-        speeds: entries(srdSystemRecord.speeds),
-        skills: entries(srdSystemRecord.skills),
-        heritages: entries(srdSystemRecord.heritages)
+        goldCurrencyId: SRD_GOLD_CURRENCY_ID,
+        walkSpeedId: SRD_WALK_SPEED_ID,
+        stealthSkillId: SRD_STEALTH_SKILL_ID,
+        dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID
       }
     ])
     expect(snapshot.systemVocabularies[0]?.rarities.length).toBeGreaterThan(0)
-    expect(snapshot.systemVocabularies[0]?.currencies.map(({ code }) => code)).toContain('GP')
+    const gold = srdSystemRecord.currencies.find(
+      ({ id }) => id === snapshot.systemVocabularies[0]?.goldCurrencyId
+    )
+    expect(gold?.code).toBe('GP')
   }, 15_000)
 
   it('refuses a repeated Equipment id', async () => {
