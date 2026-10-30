@@ -1,18 +1,12 @@
 import { authoredFormFactories } from '../factories/authoredFormFactories'
 import type { ConvexReactClient } from 'convex/react'
 import type { AuthoredFormDomain } from '../factories/authoredFormFactories.types'
-import { createCharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
-import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
-import { characterBuilderVisibleSteps } from '#domains/characters/builder/state/characterBuilderAuthoringState'
 import type {
   AuthoringDomainRegistration,
   AuthoringFormSessionState,
   AuthoringFormStatePatch
 } from './AuthoringFormContext'
-import type { CharacterBuilderRouteMode } from './authoredFormRouteContext'
-import { areAuthoringStepIdsEqual } from './authoringSearch'
 
-const EMPTY_STEP_STATUSES = {}
 const EMPTY_STEP_WARNINGS = {}
 
 export function isSameSession(left: AuthoringFormSessionState, right: AuthoringFormSessionState) {
@@ -22,31 +16,21 @@ export function isSameSession(left: AuthoringFormSessionState, right: AuthoringF
     left.activeStepId === right.activeStepId &&
     left.activeStepLabel === right.activeStepLabel &&
     left.authoredSession === right.authoredSession &&
-    left.authoringKind === right.authoringKind &&
     left.activateLabel === right.activateLabel &&
     left.canCopy === right.canCopy &&
     left.canDelete === right.canDelete &&
-    left.canFinalize === right.canFinalize &&
-    left.canResetStep === right.canResetStep &&
-    left.canResetForm === right.canResetForm &&
     left.canSaveDraft === right.canSaveDraft &&
-    left.canSubmit === right.canSubmit &&
     left.copyLabel === right.copyLabel &&
     left.cancelLabel === right.cancelLabel &&
-    left.characterData === right.characterData &&
-    left.characterSession === right.characterSession &&
     left.deleteLabel === right.deleteLabel &&
     left.draftSaveStatus === right.draftSaveStatus &&
     left.domain === right.domain &&
     left.domainData === right.domainData &&
     left.fallbackLabel === right.fallbackLabel &&
     left.fieldPathPrefix === right.fieldPathPrefix &&
-    left.hasChanges === right.hasChanges &&
-    left.hasStepChanges === right.hasStepChanges &&
     left.hasActiveDraft === right.hasActiveDraft &&
     left.isDraft === right.isDraft &&
     left.isDeleting === right.isDeleting &&
-    left.isSubmitting === right.isSubmitting &&
     left.mapId === right.mapId &&
     left.mode === right.mode &&
     left.readOnly === right.readOnly &&
@@ -54,14 +38,11 @@ export function isSameSession(left: AuthoringFormSessionState, right: AuthoringF
     left.resetFormLabel === right.resetFormLabel &&
     left.resetStepLabel === right.resetStepLabel &&
     left.saveDraftLabel === right.saveDraftLabel &&
-    isSameRecord(left.stepStatuses, right.stepStatuses) &&
     isSameRecord(left.stepWarnings, right.stepWarnings) &&
-    isSameProgressSummary(left.progressSummary, right.progressSummary) &&
     left.subjectKindLabel === right.subjectKindLabel &&
     left.subjectLabel === right.subjectLabel &&
     left.systemId === right.systemId &&
     left.validationIssues === right.validationIssues &&
-    left.visibleSteps === right.visibleSteps &&
     isSameSet(left.visitedStepIds, right.visitedStepIds)
   )
 }
@@ -82,9 +63,6 @@ function getDomainRegistration(
     activeStepId: undefined,
     activeStepLabel: undefined,
     authoredSession,
-    authoringKind: 'authored-form',
-    characterData: undefined,
-    characterSession: undefined,
     domain,
     draftSaveStatus: undefined,
     fallbackLabel: factory.fallbackLabel,
@@ -144,125 +122,18 @@ export function applyDomainRegistration(
   }
 }
 
-export function createCharacterBuilderRegistration(
-  mode: CharacterBuilderRouteMode,
-  data: unknown,
-  characterSession?: CharacterBuilderAuthoringSession
-): AuthoringFormStatePatch {
-  const nextCharacterSession =
-    characterSession ??
-    (data === undefined
-      ? undefined
-      : createCharacterBuilderAuthoringSession({
-          data,
-          mode
-        }))
-
-  return {
-    activeSectionId: undefined,
-    activeNavigationTargetId: undefined,
-    activeStepId: undefined,
-    activeStepLabel: undefined,
-    activateLabel: 'Finalize Character',
-    authoredSession: undefined,
-    authoringKind: 'character-builder',
-    canCopy: false,
-    canDelete: false,
-    canFinalize: false,
-    canResetForm: false,
-    canResetStep: false,
-    canSaveDraft: Boolean(
-      nextCharacterSession && !nextCharacterSession.systemRequired && !nextCharacterSession.notFound
-    ),
-    canSubmit: false,
-    characterData: data,
-    characterSession: nextCharacterSession,
-    draftSaveStatus: undefined,
-    domain: undefined,
-    domainData: undefined,
-    fallbackLabel: 'Untitled Character',
-    fieldPathPrefix: undefined,
-    hasChanges: false,
-    hasActiveDraft: nextCharacterSession?.hasActiveDraft ?? false,
-    hasStepChanges: false,
-    isDraft: nextCharacterSession?.isDraft ?? false,
-    mapId: undefined,
-    mode,
-    progressSummary: undefined,
-    readOnly: nextCharacterSession?.readOnly ?? false,
-    resolveModel: false,
-    saveDraftLabel: 'Save Draft',
-    stepStatuses: EMPTY_STEP_STATUSES,
-    stepWarnings: EMPTY_STEP_WARNINGS,
-    subjectKindLabel: 'Character',
-    subjectLabel: nextCharacterSession?.subjectLabel,
-    systemId: nextCharacterSession?.systemId,
-    validationIssues: [],
-    // Progress arrives with the first browser evaluation (ADR 0036 S6).
-    visibleSteps: nextCharacterSession ? characterBuilderVisibleSteps : undefined,
-    visitedStepIds: new Set()
-  }
-}
-
-export function applyCharacterBuilderRegistration(
-  current: AuthoringFormSessionState,
-  registration: {
-    data?: unknown
-    mode: CharacterBuilderRouteMode
-    characterSession?: CharacterBuilderAuthoringSession
-  }
-): AuthoringFormSessionState {
-  return {
-    ...current,
-    ...createCharacterBuilderRegistration(
-      registration.mode,
-      registration.data,
-      registration.characterSession
-    )
-  }
-}
-
-export function getCharacterBuilderSessionSignature(
-  session?: CharacterBuilderAuthoringSession
-): string {
-  if (!session) return ''
-
-  return [
-    session.mode,
-    session.characterId ?? '',
-    session.initialValues?.id ?? '',
-    session.subjectLabel,
-    session.systemId ?? '',
-    session.formKey ?? '',
-    String(session.hasActiveDraft),
-    String(session.isDraft),
-    String(session.systemRequired),
-    String(session.notFound),
-    String(session.readOnly)
-  ].join('|')
-}
-
 export function createInitialSession(
   registration: {
     data?: unknown
     domain?: AuthoredFormDomain
-    kind?: 'authored-form' | 'character-builder'
     mode?: AuthoringFormSessionState['mode']
     requestedStepId?: string
   },
   convexClient?: ConvexReactClient
 ): AuthoringFormSessionState {
   const session = createDefaultSession()
-  if (registration.kind === 'character-builder') {
-    return resolveRequestedNavigation(
-      applyCharacterBuilderRegistration(session, {
-        data: registration.data,
-        mode: registration.mode === 'edit' ? 'edit' : 'create'
-      }),
-      registration.requestedStepId
-    )
-  }
-  if (!registration.domain) return session
+  // A hosted form's steps arrive as props; the requested step is its first active step.
+  if (!registration.domain) return { ...session, activeStepId: registration.requestedStepId }
 
   return resolveRequestedNavigation(
     applyDomainRegistration(
@@ -283,28 +154,20 @@ function createDefaultSession(): AuthoringFormSessionState {
     activateLabel: 'Activate',
     canCopy: false,
     canDelete: false,
-    canFinalize: false,
-    canResetForm: false,
-    canResetStep: false,
     canSaveDraft: false,
-    canSubmit: false,
     copyLabel: 'Duplicate to edit',
     cancelLabel: 'Cancel',
     deleteLabel: 'Delete',
     fallbackLabel: 'Untitled Item',
-    hasChanges: false,
-    hasStepChanges: false,
     hasActiveDraft: false,
     isDraft: false,
     isDeleting: false,
-    isSubmitting: false,
     mode: 'create',
     readOnly: false,
     resolveModel: true,
     resetFormLabel: 'Reset Form',
     resetStepLabel: 'Reset Step',
     saveDraftLabel: 'Save Draft',
-    stepStatuses: EMPTY_STEP_STATUSES,
     stepWarnings: EMPTY_STEP_WARNINGS,
     subjectKindLabel: 'Item',
     validationIssues: [],
@@ -316,22 +179,6 @@ export function resolveRequestedNavigation(
   session: AuthoringFormSessionState,
   requestedStepId: string | undefined
 ): AuthoringFormSessionState {
-  if (session.authoringKind === 'character-builder') {
-    const fallbackStepId = session.activeStepId
-    const activeStep =
-      session.visibleSteps?.find((step) => areAuthoringStepIdsEqual(step.id, requestedStepId)) ??
-      session.visibleSteps?.find((step) => step.id === fallbackStepId) ??
-      session.visibleSteps?.[0]
-    if (!activeStep) return session
-
-    return {
-      ...session,
-      activeStepId: activeStep.id,
-      activeStepLabel: activeStep.label,
-      visitedStepIds: addVisitedStep(session.visitedStepIds, activeStep.id)
-    }
-  }
-
   return requestedStepId ? { ...session, activeNavigationTargetId: requestedStepId } : session
 }
 
@@ -356,20 +203,4 @@ function isSameRecord<TValue>(
   if (leftKeys.length !== rightKeys.length) return false
 
   return leftKeys.every((key) => left[key] === right[key])
-}
-
-function isSameProgressSummary(
-  left: AuthoringFormSessionState['progressSummary'],
-  right: AuthoringFormSessionState['progressSummary']
-) {
-  if (left === right) return true
-  if (!left || !right) return false
-
-  return (
-    left.completeCount === right.completeCount &&
-    left.errorCount === right.errorCount &&
-    left.incompleteCount === right.incompleteCount &&
-    left.stepCount === right.stepCount &&
-    left.warningCount === right.warningCount
-  )
 }

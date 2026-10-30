@@ -1,4 +1,4 @@
-import { useAuthoringLayout } from '#app/forms/layout/AuthoringLayoutContext'
+import { useAuthoringPanels } from '#app/forms/layout/AuthoringLayoutContext'
 import { useCallback, useMemo } from 'react'
 import { useAuthoringNavigation, useAuthoringSession } from '../AuthoringFormContext'
 import { Rail } from '#ui'
@@ -12,19 +12,27 @@ import { toAuthoringNavigationRailItems, toAuthoringRailItems } from './Steps.ut
 import { useLocation } from '@tanstack/react-router'
 
 export function Steps() {
-  const {
-    isWideDesktop,
-    stepsNavigationOpen,
-    toggleStepsNavigation,
-    activeSections,
-    stepId,
-    visibleSteps
-  } = useAuthoringLayout()
+  const { isWideDesktop, stepsNavigationOpen, toggleStepsNavigation } = useAuthoringPanels()
   const currentHref = useLocation({ select: (location) => location.href })
 
   const { mode } = useAuthoringSession()
-  const { goToNavigationTarget, goToStep, navigationTree, stepStatuses, visitedStepIds } =
-    useAuthoringNavigation()
+  const {
+    activeNavigationTarget,
+    activeStep,
+    activeStepId,
+    goToNavigationTarget,
+    goToStep,
+    navigationTree,
+    stepStatuses,
+    visibleSteps,
+    visitedStepIds
+  } = useAuthoringNavigation()
+  const stepId = activeNavigationTarget?.id ?? activeStepId
+  const activeSections = useMemo(
+    () =>
+      activeStep?.sections.filter((section) => section.nodes.some((node) => node.visible)) ?? [],
+    [activeStep]
+  )
 
   const handleStepSelect = useCallback(
     (stepId: string) => {

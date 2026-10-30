@@ -6,25 +6,59 @@ import {
   characterBuilderPayloadFixture
 } from '../fixtures/characterBuilder.fixtures'
 import { toCharacterFormValues } from '../shared/formNormalization'
+import { getCharacterBuilderResolutionFingerprint } from './resolutionFingerprints'
 import { useLatestCharacterResolution } from './useLatestCharacterResolution'
 
-const mocks = { resolve: vi.fn() }
+const mocks = { onUnresolved: vi.fn(), resolve: vi.fn() }
 
 describe('useLatestCharacterResolution', () => {
   beforeEach(() => {
+    mocks.onUnresolved.mockReset()
     mocks.resolve.mockReset()
   })
 
   it('does nothing until an evaluator is ready', async () => {
     const onResolved = vi.fn()
     const { result } = renderHook(() =>
-      useLatestCharacterResolution({ generation: 'draft:create', resolve: null, onResolved })
+      useLatestCharacterResolution({
+        generation: 'draft:create',
+        resolve: null,
+        onResolved,
+        onUnresolved: mocks.onUnresolved
+      })
     )
 
     await act(
       async () => await result.current(toCharacterFormValues(characterBuilderPayloadFixture))
     )
 
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(mocks.onUnresolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('names values whose latest request failed, not superseded ones', async () => {
+    const onResolved = vi.fn()
+    mocks.resolve.mockRejectedValue(new Error('Evaluation failed'))
+    const { result } = renderHook(() =>
+      useLatestCharacterResolution({
+        generation: 'draft-generation:edit',
+        resolve: mocks.resolve,
+        onResolved,
+        onUnresolved: mocks.onUnresolved
+      })
+    )
+    const character = toCharacterFormValues(characterBuilderPayloadFixture)
+    const changedCharacter = structuredClone(character)
+    changedCharacter.intent.classes[0].classLevel += 1
+
+    await act(async () => {
+      await Promise.all([result.current(character), result.current(changedCharacter)])
+    })
+
+    expect(mocks.onUnresolved).toHaveBeenCalledTimes(1)
+    expect(mocks.onUnresolved).toHaveBeenCalledWith(
+      getCharacterBuilderResolutionFingerprint(changedCharacter)
+    )
     expect(onResolved).not.toHaveBeenCalled()
   })
 
@@ -36,7 +70,8 @@ describe('useLatestCharacterResolution', () => {
       useLatestCharacterResolution({
         generation: 'draft-generation:edit',
         resolve: mocks.resolve,
-        onResolved
+        onResolved,
+        onUnresolved: mocks.onUnresolved
       })
     )
     const character = toCharacterFormValues(characterBuilderPayloadFixture)
@@ -66,7 +101,8 @@ describe('useLatestCharacterResolution', () => {
       useLatestCharacterResolution({
         generation: 'draft-generation:edit',
         resolve: mocks.resolve,
-        onResolved
+        onResolved,
+        onUnresolved: mocks.onUnresolved
       })
     )
     const character = toCharacterFormValues(characterBuilderPayloadFixture)
@@ -99,7 +135,12 @@ describe('useLatestCharacterResolution', () => {
     mocks.resolve.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise)
     const { result, rerender, unmount } = renderHook(
       ({ generation }) =>
-        useLatestCharacterResolution({ generation, resolve: mocks.resolve, onResolved }),
+        useLatestCharacterResolution({
+          generation,
+          resolve: mocks.resolve,
+          onResolved,
+          onUnresolved: mocks.onUnresolved
+        }),
       { initialProps: { generation: 'first-generation:edit' } }
     )
     const character = toCharacterFormValues(characterBuilderPayloadFixture)

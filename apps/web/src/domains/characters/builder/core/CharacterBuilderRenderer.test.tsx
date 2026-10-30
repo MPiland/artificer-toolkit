@@ -1,17 +1,17 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characters'
 import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
 } from '@artificer-toolkit/shared/core'
 import { useAppForm } from '#forms/app-form/AppForm'
-import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
+import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
 import {
-  useAuthoringActions,
   useAuthoringNavigation,
-  type AuthoringFormStatePatch
+  type AuthoringHostedForm
 } from '#forms/layout/AuthoringFormContext'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import {
@@ -23,7 +23,8 @@ import { toCharacterFormValues } from '../shared/formNormalization'
 import { createStartingEquipmentDecision } from '../steps/equipment/startingEquipment'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
-  CHARACTER_BUILDER_TIMING_MEASURE
+  CHARACTER_BUILDER_TIMING_MEASURE,
+  startCharacterBuilderTiming
 } from './characterBuilder.performance'
 import {
   characterBuilderVisibleSteps,
@@ -1702,17 +1703,15 @@ function renderCharacterBuilderHarness({
   onResolve?: (character: CharacterFormValues) => Promise<void> | void
 }) {
   return renderWithAppProviders(
-    <AuthoringLayout>
-      <CharacterBuilderTestHarness
-        onResolve={onResolve}
-        payload={payload}
-        readOnly={readOnly}
-        resolveDebounceMs={resolveDebounceMs}
-        showAncestrySelectionTestToggle={showAncestrySelectionTestToggle}
-        showAbilityMethodTestToggle={showAbilityMethodTestToggle}
-        showProseEditTestToggle={showProseEditTestToggle}
-      />
-    </AuthoringLayout>
+    <CharacterBuilderTestHarness
+      onResolve={onResolve}
+      payload={payload}
+      readOnly={readOnly}
+      resolveDebounceMs={resolveDebounceMs}
+      showAncestrySelectionTestToggle={showAncestrySelectionTestToggle}
+      showAbilityMethodTestToggle={showAbilityMethodTestToggle}
+      showProseEditTestToggle={showProseEditTestToggle}
+    />
   )
 }
 
@@ -1733,114 +1732,120 @@ function CharacterBuilderTestHarness({
   showAbilityMethodTestToggle: boolean
   showProseEditTestToggle: boolean
 }) {
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
   const form = useAppForm({
     defaultValues: toCharacterFormValues(payload),
     onSubmit: async () => undefined
   })
-  const initialAuthoringState = useMemo(
-    () => ({
-      activeStepId: payload.resolution.recommendedSectionId,
-      visibleSteps: characterBuilderVisibleSteps,
-      ...getCharacterBuilderProgressState(payload, toCharacterFormValues(payload))
-    }),
-    [payload]
-  )
-
-  const statePatch = useMemo<AuthoringFormStatePatch>(
-    () => ({
-      ...initialAuthoringState,
-      activateLabel: 'Activate',
-      authoringKind: 'character-builder',
-      canSaveDraft: !readOnly,
-      mode: readOnly ? 'view' : 'edit',
-      readOnly,
-      saveDraftLabel: 'Save Draft',
-      subjectKindLabel: 'Character',
-      subjectLabel: payload.character.label || 'Untitled Character',
-      systemId: payload.character.systemId
-    }),
-    [initialAuthoringState, payload.character.label, payload.character.systemId, readOnly]
-  )
-  const actions = useMemo(
-    () => ({
-      onActivate: () => form.handleSubmit(),
-      onSaveDraft: () => undefined
-    }),
-    [form]
-  )
-
-  useEffect(() => {
-    updateAuthoringFormState(statePatch)
-  }, [statePatch, updateAuthoringFormState])
-
-  useEffect(() => {
-    updateAuthoringFormActions(actions)
-  }, [actions, updateAuthoringFormActions])
+  const hostedForm = useMemo<AuthoringHostedForm>(() => {
+    const progress = getCharacterBuilderProgressState(payload, toCharacterFormValues(payload))
+    return {
+      actions: {
+        onActivate: () => form.handleSubmit(),
+        onSaveDraft: () => undefined
+      },
+      cancelHref: '/characters',
+      labels: {
+        activateLabel: 'Activate',
+        canDelete: false,
+        canSaveDraft: !readOnly,
+        deleteLabel: 'Discard draft',
+        hasActiveDraft: false,
+        isDraft: false,
+        mode: readOnly ? 'view' : 'edit',
+        readOnly,
+        saveDraftLabel: 'Save Draft',
+        subjectKindLabel: 'Character',
+        subjectLabel: payload.character.label || 'Untitled Character',
+        systemId: payload.character.systemId
+      },
+      navigation: {
+        isComplete: false,
+        progressSummary: progress.progressSummary,
+        stepStatuses: progress.stepStatuses,
+        visibleSteps: characterBuilderVisibleSteps
+      },
+      onStepIntent: () =>
+        startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT),
+      status: {
+        canFinalize: false,
+        canResetForm: false,
+        canResetStep: false,
+        canSubmit: false,
+        hasChanges: false,
+        hasStepChanges: false,
+        isSubmitting: false
+      }
+    }
+  }, [form, payload, readOnly])
 
   return (
     <form.AppForm>
-      {showAbilityMethodTestToggle ? (
-        <button
-          type='button'
-          onClick={() => {
-            form.setFieldValue('intent.abilities', {
-              method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
-              state: {
-                assignments: [],
-                rollGroups: []
-              }
-            })
-          }}
-        >
-          Set Manual Ability Method
-        </button>
-      ) : null}
-      {showAncestrySelectionTestToggle ? (
-        <button
-          type='button'
-          onClick={() => {
-            form.setFieldValue('intent.ancestrySelections', [
-              {
-                id: 'ancestry-choice-forest',
-                ancestryId: 'ancestry-elf',
-                optionId: 'ancestry-forest',
-                source: {
-                  kind: 'SUBRACE',
-                  subraceId: 'subrace-sea-elf'
-                },
-                timing: {
-                  kind: 'IMMEDIATE'
-                }
-              }
-            ])
-          }}
-        >
-          Set Forest Ancestry
-        </button>
-      ) : null}
-      {showProseEditTestToggle ? (
-        <button
-          type='button'
-          onClick={() => form.setFieldValue('profile.notes', 'Updated table notes.')}
-        >
-          Update table notes
-        </button>
-      ) : null}
-      <CharacterBuilderRenderer
-        form={form}
-        payload={payload}
-        resolveDebounceMs={resolveDebounceMs}
-        onResolve={onResolve}
-      />
-      <form.Subscribe selector={(state) => state.isDirty}>
-        {(isDirty) => (
-          <output aria-label='builder dirty state' role='status'>
-            {String(isDirty)}
-          </output>
-        )}
-      </form.Subscribe>
-      <CharacterBuilderStateProbe />
+      <AuthoringFormProvider hostedForm={hostedForm}>
+        <AuthoringLayoutContent>
+          {showAbilityMethodTestToggle ? (
+            <button
+              type='button'
+              onClick={() => {
+                form.setFieldValue('intent.abilities', {
+                  method: CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED,
+                  state: {
+                    assignments: [],
+                    rollGroups: []
+                  }
+                })
+              }}
+            >
+              Set Manual Ability Method
+            </button>
+          ) : null}
+          {showAncestrySelectionTestToggle ? (
+            <button
+              type='button'
+              onClick={() => {
+                form.setFieldValue('intent.ancestrySelections', [
+                  {
+                    id: 'ancestry-choice-forest',
+                    ancestryId: 'ancestry-elf',
+                    optionId: 'ancestry-forest',
+                    source: {
+                      kind: 'SUBRACE',
+                      subraceId: 'subrace-sea-elf'
+                    },
+                    timing: {
+                      kind: 'IMMEDIATE'
+                    }
+                  }
+                ])
+              }}
+            >
+              Set Forest Ancestry
+            </button>
+          ) : null}
+          {showProseEditTestToggle ? (
+            <button
+              type='button'
+              onClick={() => form.setFieldValue('profile.notes', 'Updated table notes.')}
+            >
+              Update table notes
+            </button>
+          ) : null}
+          <CharacterBuilderRenderer
+            form={form}
+            payload={payload}
+            resolveDebounceMs={resolveDebounceMs}
+            onResolve={onResolve}
+            onStepChange={() => undefined}
+          />
+          <form.Subscribe selector={(state) => state.isDirty}>
+            {(isDirty) => (
+              <output aria-label='builder dirty state' role='status'>
+                {String(isDirty)}
+              </output>
+            )}
+          </form.Subscribe>
+          <CharacterBuilderStateProbe />
+        </AuthoringLayoutContent>
+      </AuthoringFormProvider>
     </form.AppForm>
   )
 }

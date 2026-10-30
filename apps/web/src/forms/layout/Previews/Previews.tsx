@@ -1,10 +1,11 @@
 import { Rail, useBreakpoints } from '#ui'
 import * as styles from './Previews.css'
-import { useAuthoringLayout } from '../AuthoringLayoutContext'
+import { useAuthoringPanels, useAuthoringPreview } from '../AuthoringLayoutContext'
 import { CloseButton, Drawer } from '@mantine/core'
 
 function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean }) {
-  const { previewContent, togglePreview } = useAuthoringLayout()
+  const { togglePreview } = useAuthoringPanels()
+  const { previewContent } = useAuthoringPreview()
 
   return (
     <Rail id='authoring-preview' aria-label='Authoring preview' className={styles.shell}>
@@ -26,7 +27,8 @@ function PreviewContent({ showCloseButton = false }: { showCloseButton?: boolean
 }
 
 export function Previews() {
-  const { isWideDesktop, previewContent, previewOpen, togglePreview } = useAuthoringLayout()
+  const { isWideDesktop, previewOpen, togglePreview } = useAuthoringPanels()
+  const { previewContent } = useAuthoringPreview()
   const { isMobile } = useBreakpoints()
 
   if (!previewContent) return null

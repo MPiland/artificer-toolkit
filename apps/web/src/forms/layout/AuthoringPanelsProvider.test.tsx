@@ -1,24 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
-import { useAuthoringLayout } from './AuthoringLayoutContext'
-
-vi.mock('./AuthoringFormContext', () => ({
-  useAuthoringSession: () => ({
-    subjectKindLabel: 'Spell',
-    subjectLabel: 'Fireball',
-    hasActiveDraft: false,
-    characterSession: undefined,
-    mode: 'create',
-    isDraft: false
-  }),
-  useAuthoringNavigation: () => ({
-    activeNavigationTarget: undefined,
-    activeStep: undefined,
-    activeStepId: undefined,
-    activeStepLabel: undefined,
-    visibleSteps: []
-  })
-}))
+import { AuthoringPanelsProvider } from './AuthoringPanelsProvider'
+import { useAuthoringPanels } from './AuthoringLayoutContext'
 
 const originalMatchMedia = window.matchMedia
 let compactViewport = false
@@ -30,7 +12,7 @@ function setCompactViewport(compact: boolean) {
 }
 
 function LayoutProbe() {
-  const layout = useAuthoringLayout()
+  const layout = useAuthoringPanels()
   return (
     <>
       <output data-testid='steps'>{String(layout.stepsNavigationOpen)}</output>
@@ -43,13 +25,13 @@ function LayoutProbe() {
 
 function renderProvider() {
   return render(
-    <AuthoringLayoutProvider>
+    <AuthoringPanelsProvider>
       <LayoutProbe />
-    </AuthoringLayoutProvider>
+    </AuthoringPanelsProvider>
   )
 }
 
-describe('AuthoringLayoutProvider viewport sync', () => {
+describe('AuthoringPanelsProvider viewport sync', () => {
   beforeEach(() => {
     changeListeners.clear()
     window.matchMedia = ((query: string) => ({

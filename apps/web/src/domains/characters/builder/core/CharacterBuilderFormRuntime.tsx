@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Stack } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { ConvexError } from 'convex/values'
-import { useNavigate, useRouterState } from '@tanstack/react-router'
-import { useMutation } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
+import { replaceEqualDeep, useMutation } from '@tanstack/react-query'
+import { useSelector } from '@tanstack/react-form'
 import type { CharacterBuilderPayloadDto } from '@artificer-toolkit/schema/api/characterBuilder'
 import { characterDraftSaveErrorDataSchema } from '@artificer-toolkit/schema/api/characterDrafts'
 import type {
@@ -11,36 +12,47 @@ import type {
   CharacterBuilderPreviewOutput
 } from '@artificer-toolkit/schema/api/characterBuilderQueries'
 import { useAppForm } from '#forms/app-form/AppForm'
-import { readAuthoringStep } from '#forms/layout/authoringSearch'
-import {
-  useAuthoringActions,
-  useAuthoringNavigation,
-  type AuthoringFormActionHandlers
+import type {
+  AuthoringDraftSaveStatus,
+  AuthoringHostedForm
 } from '#forms/layout/AuthoringFormContext'
+import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
+import { AuthoringLayoutShell } from '#forms/layout/AuthoringLayout'
 import {
   useCommitCharacterBuilderMutation,
   useSaveCharacterDraftMutation
 } from '#app/data/characters/mutations'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { ReadyCharacterBuilderAuthoringSession } from '../state/characterBuilderAuthoringSession'
-import { buildCharacterDraftSaveInput } from '../shared/formNormalization'
+import { buildCharacterDraftSaveInput, toCharacterFormValues } from '../shared/formNormalization'
 import { getInactiveAbilityIntentMethodLabels } from '../steps/abilities/abilityGeneration'
 import type { CharacterFormValues } from './characterBuilder.types'
 import { useLatestCharacterResolution } from '../state/useLatestCharacterResolution'
 import { useCharacterBuilderEvaluation } from '../state/useCharacterBuilderEvaluation'
 import { CharacterBuilderContentNotice } from '../evaluation/CharacterBuilderContentNotice'
-import { CharacterBuilderStateSync } from '../state/CharacterBuilderStateSync'
+import {
+  characterBuilderVisibleSteps,
+  getCharacterBuilderProgressState
+} from '../state/characterBuilderAuthoringState'
+import { getCharacterBuilderResolutionFingerprint } from '../state/resolutionFingerprints'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  startCharacterBuilderTiming
+} from './characterBuilder.performance'
 import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
 import { createDraftAutosave } from '../save/draftAutosave'
 import { CharacterDraftSaveNoticeModal } from '../save/CharacterDraftSaveNoticeModal'
 import { CharacterSavePreviewModal } from '../save/CharacterSavePreviewModal'
 
+const isSameProgress = <TProgress,>(left: TProgress, right: TProgress) =>
+  replaceEqualDeep(left, right) === left
+
 export function CharacterBuilderFormRuntime({
-  onCancel,
+  cancelHref,
   onDiscardDraft,
   session
 }: {
-  onCancel: () => Promise<void>
+  cancelHref: string
   onDiscardDraft: () => Promise<void>
   session: ReadyCharacterBuilderAuthoringSession
 }) {
@@ -60,8 +72,7 @@ export function CharacterBuilderFormRuntime({
   const evaluation = useCharacterBuilderEvaluation(session)
   const previewMutation = useMutation({ mutationFn: evaluation.preview })
   const commitMutation = useCommitCharacterBuilderMutation()
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
-  const { activeStepId, goToStep } = useAuthoringNavigation()
+  const [draftSaveStatus, setDraftSaveStatus] = useState<AuthoringDraftSaveStatus>()
 
   const handlePreviewFinalize = useCallback(
     async (value: CharacterFormValues) => {
@@ -112,7 +123,7 @@ export function CharacterBuilderFormRuntime({
         }
         return 'saved'
       },
-      onStatus: (draftSaveStatus) => updateAuthoringFormState({ draftSaveStatus })
+      onStatus: setDraftSaveStatus
     })
   )
   const autosaveEffectGeneration = useRef(0)
@@ -139,37 +150,18 @@ export function CharacterBuilderFormRuntime({
     }
   }, [autosave, form])
 
-  // A step change saves at once.
-  useEffect(() => {
-    void autosave.flush()
-  }, [activeStepId, autosave])
-
+  const [unresolvedFingerprint, setUnresolvedFingerprint] = useState<string>()
   const handleResolve = useLatestCharacterResolution({
     generation: `${session.draft.id}:${session.mode}`,
     resolve: evaluation.resolve,
-    onResolved: setPayload
+    onResolved: setPayload,
+    onUnresolved: setUnresolvedFingerprint
   })
 
   // The first ready local evaluation, and each content change after it, re-resolves current values.
   useEffect(() => {
     void handleResolve(form.state.values)
   }, [form, handleResolve])
-
-  // Open on the recommended step once, unless the URL named a step or the user already chose one.
-  const urlStepId = useRouterState({ select: (state) => readAuthoringStep(state.location.search) })
-  const openedStepRef = useRef({ activeStepId, handled: false })
-  const recommendedStepId = payload?.resolution.recommendedSectionId
-  useEffect(() => {
-    const opened = openedStepRef.current
-    if (!recommendedStepId || opened.handled) return
-    opened.handled = true
-    if (
-      urlStepId === undefined &&
-      activeStepId === opened.activeStepId &&
-      activeStepId !== recommendedStepId
-    )
-      goToStep(recommendedStepId)
-  }, [activeStepId, goToStep, recommendedStepId, urlStepId])
 
   const handleSaveDraftConfirmed = useCallback(async () => {
     setDraftSaveNoticeAcknowledged(true)
@@ -224,58 +216,122 @@ export function CharacterBuilderFormRuntime({
     await handlePreviewFinalize(form.state.values)
   }, [form, handlePreviewFinalize, payload])
 
-  const actions = useMemo<AuthoringFormActionHandlers>(
-    () => ({
-      onActivate: handleActivate,
-      onCancel,
-      onDiscardDraft,
-      onDelete: onDiscardDraft,
-      onResetForm: () => form.reset(),
-      onSaveDraft: handleSaveDraft
-    }),
-    [form, handleActivate, handleSaveDraft, onCancel, onDiscardDraft]
+  const canSubmit = useSelector(form.store, (state) => state.canSubmit)
+  const hasChanges = useSelector(form.store, (state) => state.isDirty)
+  const isFormSubmitting = useSelector(form.store, (state) => state.isSubmitting)
+  const liveLabel = useSelector(form.store, (state) => state.values.label)
+  const canFinalize = canSubmit && (payload?.view.review.ready ?? false)
+  const isSubmitting = isFormSubmitting || previewMutation.isPending || commitMutation.isPending
+
+  // While values await resolution, progress reads the last resolved values; values that could not
+  // resolve read live.
+  const resolvedValues = useMemo(() => payload && toCharacterFormValues(payload), [payload])
+  const resolvedFingerprint = useMemo(
+    () => resolvedValues && getCharacterBuilderResolutionFingerprint(resolvedValues),
+    [resolvedValues]
+  )
+  const progress = useSelector(
+    form.store,
+    (state) => {
+      if (!payload || !resolvedValues) return undefined
+      const fingerprint = getCharacterBuilderResolutionFingerprint(state.values)
+      const isResolving =
+        !session.readOnly &&
+        fingerprint !== resolvedFingerprint &&
+        fingerprint !== unresolvedFingerprint
+      return getCharacterBuilderProgressState(payload, isResolving ? resolvedValues : state.values)
+    },
+    { compare: isSameProgress }
   )
 
-  useEffect(() => {
-    updateAuthoringFormActions(actions)
-  }, [actions, updateAuthoringFormActions])
+  const hostedForm = useMemo<AuthoringHostedForm>(
+    () => ({
+      actions: {
+        onActivate: handleActivate,
+        onDelete: onDiscardDraft,
+        onDiscardDraft,
+        onResetForm: () => form.reset(),
+        onSaveDraft: handleSaveDraft
+      },
+      cancelHref,
+      labels: {
+        activateLabel: 'Activate',
+        canDelete: true,
+        canSaveDraft: true,
+        deleteLabel: 'Discard draft',
+        draftSaveStatus,
+        hasActiveDraft: session.hasActiveDraft,
+        isDraft: session.isDraft,
+        mode: session.mode,
+        readOnly: session.readOnly,
+        saveDraftLabel: 'Save Draft',
+        subjectKindLabel: session.subjectKindLabel,
+        subjectLabel: liveLabel.trim() || session.subjectLabel,
+        systemId: session.draft.systemId
+      },
+      navigation: {
+        isComplete: canFinalize,
+        progressSummary: progress?.progressSummary,
+        stepStatuses: progress?.stepStatuses ?? {},
+        visibleSteps: characterBuilderVisibleSteps
+      },
+      onStepIntent: () =>
+        startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT),
+      status: {
+        canFinalize,
+        canResetForm: hasChanges,
+        canResetStep: false,
+        canSubmit: canFinalize,
+        hasChanges,
+        hasStepChanges: false,
+        isSubmitting
+      }
+    }),
+    [
+      cancelHref,
+      canFinalize,
+      draftSaveStatus,
+      form,
+      handleActivate,
+      handleSaveDraft,
+      hasChanges,
+      isSubmitting,
+      liveLabel,
+      onDiscardDraft,
+      progress,
+      session.draft.systemId,
+      session.hasActiveDraft,
+      session.isDraft,
+      session.mode,
+      session.readOnly,
+      session.subjectKindLabel,
+      session.subjectLabel
+    ]
+  )
 
   return (
     <form.AppForm>
-      <form.Subscribe
-        selector={(state) => ({
-          canSubmit: state.canSubmit,
-          hasChanges: state.isDirty,
-          isSubmitting: state.isSubmitting,
-          subjectLabel: state.values.label
-        })}
-      >
-        {(formState) => (
-          <CharacterBuilderStateSync
-            canSubmit={formState.canSubmit}
-            hasChanges={formState.hasChanges}
-            isSubmitting={
-              formState.isSubmitting || previewMutation.isPending || commitMutation.isPending
-            }
-            payload={payload}
-            session={session}
-            subjectLabel={formState.subjectLabel}
-            updateAuthoringFormState={updateAuthoringFormState}
-          />
-        )}
-      </form.Subscribe>
-      <Stack>
-        <CharacterBuilderContentNotice
-          status={evaluation.status}
-          onRetry={() => {
-            evaluation.refetchInputs()
-            void handleResolve(form.state.values)
-          }}
-        />
-        {payload ? (
-          <CharacterBuilderRenderer form={form} payload={payload} onResolve={handleResolve} />
-        ) : null}
-      </Stack>
+      <AuthoringFormProvider hostedForm={hostedForm}>
+        <AuthoringLayoutShell>
+          <Stack>
+            <CharacterBuilderContentNotice
+              status={evaluation.status}
+              onRetry={() => {
+                evaluation.refetchInputs()
+                void handleResolve(form.state.values)
+              }}
+            />
+            {payload ? (
+              <CharacterBuilderRenderer
+                form={form}
+                payload={payload}
+                onResolve={handleResolve}
+                onStepChange={autosave.flush}
+              />
+            ) : null}
+          </Stack>
+        </AuthoringLayoutShell>
+      </AuthoringFormProvider>
       <CharacterSavePreviewModal
         isCommitting={commitMutation.isPending}
         opened={previewOpened}

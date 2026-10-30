@@ -19,7 +19,7 @@ import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { CharacterSheetRollDestination } from './CharacterSheetRollDestination'
 import type { ManualDieRow } from './dice.types'
 import { toManualRollRequest } from './dice.utils'
-import { useCharacterSheetRoll } from './rollContext'
+import { useCharacterSheetRoll, useCharacterSheetRollDestination } from './rollContext'
 import * as diceStyles from './dice.css'
 
 const dieSides = [4, 6, 8, 10, 12, 20, 100] as const
@@ -45,7 +45,8 @@ export function CharacterSheetManualRoll({
   const defaultRollMode = rollModes.find(({ keep }) => keep === 'FIRST') ?? rollModes[0]
   const [rollMode, setRollMode] = useState(defaultRollMode?.code)
   const [preferences, setPreferences] = useDicePresentationPreferences()
-  const controller = useCharacterSheetRoll()
+  const rolls = useCharacterSheetRoll()
+  const destinations = useCharacterSheetRollDestination()
   const totalDice = rows.reduce((sum, row) => sum + row.count, 0)
   const supportsD20Mode = rows.length === 1 && rows[0]?.count === 1 && rows[0].die === 20
 
@@ -56,16 +57,9 @@ export function CharacterSheetManualRoll({
     setRollMode(defaultRollMode?.code)
   }
 
-  if (!controller) return null
-  const {
-    clearManualRoll,
-    destination,
-    destinationOptions,
-    executeRoll,
-    hasManualRoll,
-    pending,
-    setDestination
-  } = controller
+  if (!rolls || !destinations) return null
+  const { clearManualRoll, executeRoll, hasManualRoll, pending } = rolls
+  const { destination, destinationOptions, setDestination } = destinations
 
   return (
     <Popover

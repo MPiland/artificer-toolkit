@@ -10,7 +10,11 @@ import { CharacterSheetFixtureView } from '../fixtures/CharacterSheetFixtureView
 import { createSheet } from '../tests/sheetTestHarness'
 
 vi.mock('../dice/useCharacterSheetRollController', () => ({
-  useCharacterSheetRollController: () => ({ pending: false })
+  useCharacterSheetRollController: () => ({
+    destinations: {},
+    presentation: {},
+    rolls: { pending: false }
+  })
 }))
 vi.mock('../dice/CharacterSheetManualRoll', () => ({ CharacterSheetManualRoll: () => null }))
 vi.mock('../dice/CharacterSheetRollHistory', () => ({ CharacterSheetRollHistory: () => null }))

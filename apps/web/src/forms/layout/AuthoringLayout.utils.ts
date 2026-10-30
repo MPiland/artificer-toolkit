@@ -1,16 +1,9 @@
-import type { ReactNode } from 'react'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 
 export function getAuthoringStatus(mode: string, isDraft: boolean) {
   if (mode === 'create') return { label: 'Draft' }
   if (isDraft) return { label: 'Draft' }
   return { label: 'Active' }
-}
-
-export function readReactNodeText(value: ReactNode): string | undefined {
-  if (typeof value === 'string') return value
-  if (typeof value === 'number') return String(value)
-  return undefined
 }
 
 export function getRulesetLabel(

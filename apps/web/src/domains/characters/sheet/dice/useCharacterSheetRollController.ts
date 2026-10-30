@@ -12,7 +12,10 @@ import { useCampaignChatRoom } from '#domains/campaigns/vtt/useCampaignChatRoom'
 import type {
   CharacterSheetRollController,
   CharacterSheetRollDestination,
-  CharacterSheetRollRequest
+  CharacterSheetRollDestinations,
+  CharacterSheetRollPresentation,
+  CharacterSheetRollRequest,
+  CharacterSheetRolls
 } from './dice.types'
 import {
   gmRollDestination,
@@ -129,15 +132,34 @@ export function useCharacterSheetRollController(
     }
   }, [])
 
-  return useMemo(
+  const destinations = useMemo<CharacterSheetRollDestinations>(
     () => ({
-      clearManualRoll: () => setManualRoll(undefined),
       destination: campaignId ? destination : 'PRIVATE',
       destinationOptions: !campaignId
         ? noRollDestinationOptions
         : isGm
           ? gmRollDestinationOptions
           : playerRollDestinationOptions,
+      setDestination: (nextDestination) => {
+        if (!campaignId) return
+        if (isGm) setGmRollVisibility(gmRollVisibility(nextDestination))
+        else setPlayerDestination(nextDestination)
+      },
+      stateRollDestination,
+      stateRollDestinationOptions
+    }),
+    [
+      campaignId,
+      destination,
+      isGm,
+      setGmRollVisibility,
+      stateRollDestination,
+      stateRollDestinationOptions
+    ]
+  )
+
+  const presentation = useMemo<CharacterSheetRollPresentation>(
+    () => ({
       dismissRoll: (discard = false) => {
         const discardedPendingRoll = settlePendingPresentation()
         const roll = transientRoll ?? manualRoll
@@ -146,6 +168,28 @@ export function useCharacterSheetRollController(
         if (discard && !discardedPendingRoll && roll && presentedRollPrivate)
           discardPrivateRoll(roll)
       },
+      presentationPending,
+      presentedRoll: transientRoll ?? manualRoll,
+      presentedRollPrivate,
+      revealRoll: (rollId) => {
+        const pending = pendingPresentation.current
+        if (pending?.roll?.id === rollId) settlePendingPresentation(pending.roll)
+      },
+      revealPrivateRoll
+    }),
+    [
+      discardMutation,
+      manualRoll,
+      presentationPending,
+      presentedRollPrivate,
+      revealPrivateRoll,
+      transientRoll
+    ]
+  )
+
+  const rolls = useMemo<CharacterSheetRolls>(
+    () => ({
+      clearManualRoll: () => setManualRoll(undefined),
       executeRoll: (request: CharacterSheetRollRequest) => {
         const target = request.source.kind === 'HIT_DIE' ? stateRollDestination : destination
         settlePendingPresentation()
@@ -206,22 +250,7 @@ export function useCharacterSheetRollController(
         ? mutation.variables
         : campaignMutation.isPending
           ? campaignMutation.variables?.request
-          : undefined,
-      presentationPending,
-      presentedRoll: transientRoll ?? manualRoll,
-      presentedRollPrivate,
-      revealRoll: (rollId) => {
-        const pending = pendingPresentation.current
-        if (pending?.roll?.id === rollId) settlePendingPresentation(pending.roll)
-      },
-      revealPrivateRoll,
-      setDestination: (nextDestination) => {
-        if (!campaignId) return
-        if (isGm) setGmRollVisibility(gmRollVisibility(nextDestination))
-        else setPlayerDestination(nextDestination)
-      },
-      stateRollDestination,
-      stateRollDestinationOptions
+          : undefined
     }),
     [
       campaignId,
@@ -229,18 +258,13 @@ export function useCharacterSheetRollController(
       characterId,
       destination,
       discardMutation,
-      isGm,
       manualRoll,
       mutation,
       preferences.animate3d,
-      presentationPending,
-      presentedRollPrivate,
       reducedMotion,
-      revealPrivateRoll,
-      setGmRollVisibility,
-      stateRollDestination,
-      stateRollDestinationOptions,
-      transientRoll
+      stateRollDestination
     ]
   )
+
+  return { destinations, presentation, rolls }
 }

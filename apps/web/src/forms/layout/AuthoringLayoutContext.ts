@@ -1,14 +1,11 @@
 import { createContext, useContext } from 'react'
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
-import type {
-  VisibleAuthoringStep,
-  VisibleAuthoringSteps
-} from '../hooks/useAuthoringResolvedModel'
-import type { AuthoringNavigationTarget } from './authoringNavigation'
+import type { Context, Dispatch, ReactNode, SetStateAction } from 'react'
 
 export type AuthoringPreviewContent = ReactNode | undefined
 
-type AuthoringLayoutToggles = {
+/** The workspace's structure, preview and reset-confirmation panels, synced to the viewport. */
+export type AuthoringPanelsContextValue = {
+  isWideDesktop: boolean
   stepsNavigationOpen: boolean
   toggleStepsNavigation: () => void
   previewOpen: boolean
@@ -17,35 +14,25 @@ type AuthoringLayoutToggles = {
   toggleResetFormConfirm: () => void
 }
 
-type AuthoringLayoutState = {
+/** The live preview the editor publishes for the preview rail. */
+export type AuthoringPreviewContextValue = {
   previewContent: AuthoringPreviewContent
   setPreviewContent: Dispatch<SetStateAction<AuthoringPreviewContent>>
 }
 
-type AuthoringLayoutConstants = {
-  isWideDesktop: boolean
-  title: string
-  label: string
-  status: { label: string }
-  visibleSteps: VisibleAuthoringSteps
-  activeStep: VisibleAuthoringStep | undefined
-  activeTarget: AuthoringNavigationTarget | undefined
-  stepId: string | undefined
-  activeSections: VisibleAuthoringStep['sections']
+export const AuthoringPanelsContext = createContext<AuthoringPanelsContextValue | null>(null)
+export const AuthoringPreviewContext = createContext<AuthoringPreviewContextValue | null>(null)
+
+function useProvidedContext<TValue>(context: Context<TValue | null>, hookName: string) {
+  const value = useContext(context)
+  if (!value) throw new Error(`${hookName} must be used inside AuthoringLayoutContent.`)
+  return value
 }
 
-export type AuthoringLayoutContextValue = AuthoringLayoutToggles &
-  AuthoringLayoutState &
-  AuthoringLayoutConstants
+export function useAuthoringPanels() {
+  return useProvidedContext(AuthoringPanelsContext, 'useAuthoringPanels')
+}
 
-export const AuthoringLayoutContext = createContext<AuthoringLayoutContextValue | undefined>(
-  undefined
-)
-
-export function useAuthoringLayout() {
-  const value = useContext(AuthoringLayoutContext)
-  if (!value) {
-    throw new Error('useAuthoringLayout must be used inside AuthoringLayoutProvider.')
-  }
-  return value
+export function useAuthoringPreview() {
+  return useProvidedContext(AuthoringPreviewContext, 'useAuthoringPreview')
 }

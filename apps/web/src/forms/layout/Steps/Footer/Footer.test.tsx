@@ -6,12 +6,15 @@ import { Footer } from './Footer'
 const mocks = vi.hoisted(() => ({
   cancel: vi.fn(),
   authoringState: vi.fn(),
-  useAuthoringLayout: vi.fn()
+  workspace: vi.fn()
 }))
 
 vi.mock('../../AuthoringFormContext', () => ({
   useAuthoringActions: () => mocks.authoringState(),
-  useAuthoringNavigation: () => mocks.authoringState(),
+  useAuthoringNavigation: () => ({
+    ...mocks.authoringState(),
+    visibleSteps: mocks.workspace().visibleSteps
+  }),
   useAuthoringSession: () => mocks.authoringState(),
   useAuthoringStagedEditor: () => ({
     groupEditor: mocks.authoringState().stagedEditorOpen ? {} : undefined
@@ -22,13 +25,13 @@ vi.mock('../../useAuthoringFormStatus', () => ({
 }))
 
 vi.mock('../../AuthoringLayoutContext', () => ({
-  useAuthoringLayout: mocks.useAuthoringLayout
+  useAuthoringPanels: () => mocks.workspace()
 }))
 
 describe('authoring rail Cancel action', () => {
   beforeEach(() => {
     mocks.cancel.mockReset()
-    mocks.useAuthoringLayout.mockReturnValue({
+    mocks.workspace.mockReturnValue({
       isWideDesktop: false,
       visibleSteps: [{ id: 'basics' }]
     })
@@ -77,7 +80,7 @@ describe('authoring rail Cancel action', () => {
   })
 
   it('uses the visible navigation statuses for rail progress', () => {
-    mocks.useAuthoringLayout.mockReturnValue({
+    mocks.workspace.mockReturnValue({
       isWideDesktop: true,
       visibleSteps: [{ id: 'basics' }, { id: 'properties' }, { id: 'mechanics' }]
     })

@@ -8,7 +8,11 @@ import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { playerRollDestinationOptions, playerStateRollDestinationOptions } from '../dice/dice.utils'
-import { CharacterSheetRollContext } from '../dice/rollContext'
+import {
+  CharacterSheetRollContext,
+  CharacterSheetRollDestinationContext,
+  CharacterSheetRollPresentationContext
+} from '../dice/rollContext'
 import { createRestPreview, createSheet, openHpControls } from '../tests/sheetTestHarness'
 import { CharacterSheetOverviewVitals } from '../vitals/CharacterSheetOverviewVitals'
 
@@ -80,27 +84,27 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          destinationOptions: playerRollDestinationOptions,
           clearManualRoll: vi.fn(),
-          destination: 'PRIVATE',
-          dismissRoll: vi.fn(),
           executeRoll,
-          revealPrivateRoll: vi.fn(),
           hasManualRoll: false,
-          pending: false,
-          presentationPending: false,
-          presentedRollPrivate: true,
-          revealRoll: vi.fn(),
-          setDestination: vi.fn(),
-          stateRollDestination: 'TABLE',
-          stateRollDestinationOptions: playerStateRollDestinationOptions
+          pending: false
         }}
       >
-        <CharacterSheetOverviewVitals
-          pending={false}
-          sheet={createSheet()}
-          submitCommand={submitCommand}
-        />
+        <CharacterSheetRollDestinationContext.Provider
+          value={{
+            destination: 'PRIVATE',
+            destinationOptions: playerRollDestinationOptions,
+            setDestination: vi.fn(),
+            stateRollDestination: 'TABLE',
+            stateRollDestinationOptions: playerStateRollDestinationOptions
+          }}
+        >
+          <CharacterSheetOverviewVitals
+            pending={false}
+            sheet={createSheet()}
+            submitCommand={submitCommand}
+          />
+        </CharacterSheetRollDestinationContext.Provider>
       </CharacterSheetRollContext.Provider>
     )
 
@@ -167,27 +171,27 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          destinationOptions: [],
           clearManualRoll: vi.fn(),
-          destination: 'PRIVATE',
-          dismissRoll: vi.fn(),
           executeRoll,
-          revealPrivateRoll: vi.fn(),
           hasManualRoll: false,
-          pending: false,
-          presentationPending: false,
-          presentedRollPrivate: true,
-          revealRoll: vi.fn(),
-          setDestination: vi.fn(),
-          stateRollDestination: 'PRIVATE',
-          stateRollDestinationOptions: []
+          pending: false
         }}
       >
-        <CharacterSheetOverviewVitals
-          pending={false}
-          sheet={createSheet()}
-          submitCommand={submitCommand}
-        />
+        <CharacterSheetRollDestinationContext.Provider
+          value={{
+            destination: 'PRIVATE',
+            destinationOptions: [],
+            setDestination: vi.fn(),
+            stateRollDestination: 'PRIVATE',
+            stateRollDestinationOptions: []
+          }}
+        >
+          <CharacterSheetOverviewVitals
+            pending={false}
+            sheet={createSheet()}
+            submitCommand={submitCommand}
+          />
+        </CharacterSheetRollDestinationContext.Provider>
       </CharacterSheetRollContext.Provider>
     )
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
@@ -223,6 +227,36 @@ describe('Character Sheet rests', () => {
     expect(refreshedInput.selectedHitDice).toEqual([{ die: 10, count: 1 }])
   })
 
+  it('holds the rest while a roll is presented and discards that roll on close', async () => {
+    const user = userEvent.setup()
+    const dismissRoll = vi.fn()
+    renderWithAppProviders(
+      <CharacterSheetRollPresentationContext.Provider
+        value={{
+          dismissRoll,
+          presentationPending: true,
+          presentedRollPrivate: true,
+          revealRoll: vi.fn(),
+          revealPrivateRoll: vi.fn()
+        }}
+      >
+        <CharacterSheetOverviewVitals
+          pending={false}
+          sheet={createSheet()}
+          submitCommand={vi.fn()}
+        />
+      </CharacterSheetRollPresentationContext.Provider>
+    )
+
+    await user.click(screen.getByRole('button', { name: /^short rest$/i }))
+    const apply = await screen.findByRole('button', { name: /take short rest/i })
+    await waitFor(() => expect(screen.getByText(/fighter d10/i)).toBeInTheDocument())
+    expect(apply).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Close short rest preview' }))
+    expect(dismissRoll).toHaveBeenCalledExactlyOnceWith(true)
+  })
+
   it('ignores a hit-die roll from an earlier rest overlay', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(true)
@@ -237,27 +271,27 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          destinationOptions: [],
           clearManualRoll: vi.fn(),
-          destination: 'PRIVATE',
-          dismissRoll: vi.fn(),
           executeRoll,
-          revealPrivateRoll: vi.fn(),
           hasManualRoll: false,
-          pending: false,
-          presentationPending: false,
-          presentedRollPrivate: true,
-          revealRoll: vi.fn(),
-          setDestination: vi.fn(),
-          stateRollDestination: 'PRIVATE',
-          stateRollDestinationOptions: []
+          pending: false
         }}
       >
-        <CharacterSheetOverviewVitals
-          pending={false}
-          sheet={createSheet()}
-          submitCommand={submitCommand}
-        />
+        <CharacterSheetRollDestinationContext.Provider
+          value={{
+            destination: 'PRIVATE',
+            destinationOptions: [],
+            setDestination: vi.fn(),
+            stateRollDestination: 'PRIVATE',
+            stateRollDestinationOptions: []
+          }}
+        >
+          <CharacterSheetOverviewVitals
+            pending={false}
+            sheet={createSheet()}
+            submitCommand={submitCommand}
+          />
+        </CharacterSheetRollDestinationContext.Provider>
       </CharacterSheetRollContext.Provider>
     )
     await user.click(screen.getByRole('button', { name: /^short rest$/i }))
