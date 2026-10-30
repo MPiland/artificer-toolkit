@@ -671,19 +671,37 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
 export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlacementSchema>
 
 /**
- * A creature an action summons: the stat block its spell authors, and the timed carrier effect that
- * ends the summon with the spell's duration or the Concentration the cast opens. The cast creates a
- * Run actor owned by the caster from the stat block and places it on the Scene at the point the
- * caster picks (T2v2a2).
+ * A creature an action summons: the stat block its spell authors, or the System Creature forms the
+ * caster picks one of (with the Creature Types it may give the form instead of its own), and the
+ * carrier effect that ends the summon with the spell's duration or the Concentration the cast opens;
+ * an untimed carrier lasts until the summon falls or is dismissed. The cast creates a Run actor owned
+ * by the caster and places it on the Scene at the point the caster picks (T2v2a2, SPELLS-34.T3a).
  */
-export const compiledActionSummonPlacementSchema = lazySchema(() =>
-  z.strictObject({
+export const compiledActionSummonPlacementSchema = lazySchema(() => {
+  const base = {
     summonOutcomeId: serverUuidIdentityDtoSchema,
     label: z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(160))),
-    statBlock: summonStatBlockDtoSchema,
     entry: compiledActionActiveEffectPlanSchema
-  })
-)
+  }
+  return z.union([
+    z.strictObject({ ...base, statBlock: summonStatBlockDtoSchema }),
+    z.strictObject({
+      ...base,
+      forms: z
+        .array(
+          z.strictObject({
+            id: serverUuidIdentityDtoSchema,
+            label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+            creatureId: serverUuidIdentityDtoSchema
+          })
+        )
+        .check(z.minLength(1))
+        .check(z.maxLength(32)),
+      /** Empty: the form keeps its own Creature Type. */
+      creatureTypeIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(32))
+    })
+  ])
+})
 
 export type CompiledActionSummonPlacement = z.infer<typeof compiledActionSummonPlacementSchema>
 

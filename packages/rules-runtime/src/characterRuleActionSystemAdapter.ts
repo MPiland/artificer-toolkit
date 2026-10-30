@@ -350,12 +350,11 @@ export type CharacterRuleActionZonePlacementPlan = Omit<
 }
 
 /** A creature an action summons; see `compiledActionSummonPlacementSchema`. */
-export type CharacterRuleActionSummonPlacementPlan = Omit<
-  CompiledActionSummonPlacement,
-  'entry'
-> & {
-  entry: CharacterRuleActionActiveEffectPlan
-}
+export type CharacterRuleActionSummonPlacementPlan = CompiledActionSummonPlacement extends infer P
+  ? P extends CompiledActionSummonPlacement
+    ? Omit<P, 'entry'> & { entry: CharacterRuleActionActiveEffectPlan }
+    : never
+  : never
 
 /** The zones an action places when its caster picks one at cast (D140). */
 export type CharacterRuleActionZoneChoicePlan = {

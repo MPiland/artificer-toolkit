@@ -164,7 +164,10 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
   it('flags nothing when the Wolf returns onto a summon that does not occupy its space (SPELLS-4.T2v2a3c)', async () => {
     // Owned with no carrier effect, so the orphan sweep after each command keeps it on the Scene.
     const { actor: conjured } = buildEncounterSummon({
-      summon: { statBlock: { occupiesSpace: false, hitPoints: { kind: 'FIXED', value: 10 } } },
+      summon: {
+        kind: 'STAT_BLOCK',
+        statBlock: { occupiesSpace: false, hitPoints: { kind: 'FIXED', value: 10 } }
+      },
       spellSummon: null,
       caster: character,
       casterHitPointMaximum: 20,

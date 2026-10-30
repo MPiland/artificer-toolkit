@@ -12,16 +12,23 @@ import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
+export type StatBlockSummonPlacement = Extract<
+  CompiledActionSummonPlacement,
+  { statBlock: unknown }
+>
+
 /**
  * The summon plan of a cast the Sheet makes, read from the same compile an Encounter offers its casts
- * from (D190): the compiled cast of `spellId` at `castLevel` that conjures a creature, else null.
+ * from (D190): the compiled cast of `spellId` at `castLevel` that conjures a creature from its stat
+ * block, else null. The Sheet does not yet conjure a chosen form (SPELLS-34.T3b), so such a cast
+ * casts with no summon there, as it did before its forms compiled.
  */
 export function sheetSpellCastSummonPlacement(input: {
   casts: Pick<CharacterSpellCastActions, 'candidates' | 'compiledActionEntryPoints'>
   spellCastCandidates: CharacterRulePolicyInput['spellCastCandidates']
   spellId: string
   castLevel: number
-}): CompiledActionSummonPlacement | null {
+}): StatBlockSummonPlacement | null {
   const castIds = new Set(
     input.spellCastCandidates
       .filter((cast) => cast.spellId === input.spellId && cast.castLevel === input.castLevel)
@@ -40,7 +47,9 @@ export function sheetSpellCastSummonPlacement(input: {
       'summonPlacement' in entry.compilation &&
       entry.compilation.summonPlacement
     )
-      return entry.compilation.summonPlacement
+      return 'statBlock' in entry.compilation.summonPlacement
+        ? entry.compilation.summonPlacement
+        : null
   return null
 }
 
@@ -49,7 +58,7 @@ export function sheetSpellCastSummonPlacement(input: {
  * caster once, at cast time. It is the Sheet's Concentration when the plan maintains one.
  */
 export function buildSheetSpellSummon(input: {
-  placement: CompiledActionSummonPlacement
+  placement: StatBlockSummonPlacement
   casterHitPointMaximum: number
   spellId: string
   /** The creature's name: the stat block's own, else the spell's. */

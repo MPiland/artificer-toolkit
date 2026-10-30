@@ -1,19 +1,18 @@
 import {
   summonBodyDtoSchema,
-  type summonStatBlockDtoSchema
+  type SummonStatBlockDto
 } from '@artificer-toolkit/schema/effects/manifest'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { z } from 'zod'
 
 type SummonBody = z.infer<typeof summonBodyDtoSchema>
-type SummonStatBlock = z.infer<typeof summonStatBlockDtoSchema>
 
 /**
  * The body a stat block gives the creature it conjures: damageable unless authored otherwise, and
  * filling its space only when the stat block says it does (the placement check reads the same).
  */
 export function summonBody(
-  statBlock: Pick<SummonStatBlock, 'damageabilityKind' | 'occupiesSpace'>
+  statBlock: Pick<SummonStatBlockDto, 'damageabilityKind' | 'occupiesSpace'>
 ): SummonBody {
   return {
     damageabilityKind: statBlock.damageabilityKind ?? 'NORMAL',

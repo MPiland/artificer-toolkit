@@ -482,7 +482,7 @@ describe('discoverEncounterMovementPassage with a body that does not occupy its 
   /** A creature conjured by `caster` at its token, on its side, with the stat block's space rule. */
   const conjured = (caster: EncounterRunActorState, occupiesSpace: boolean) =>
     buildEncounterSummon({
-      summon: { statBlock: { occupiesSpace } },
+      summon: { kind: 'STAT_BLOCK', statBlock: { occupiesSpace } },
       spellSummon: null,
       caster,
       casterHitPointMaximum: 10,

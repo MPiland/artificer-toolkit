@@ -244,7 +244,25 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
             message: 'A list that repeats creatures names its cap.'
           })
         ),
-      z.extend(pointAreaTargetDtoSchema, choosesUnaffectedShape()),
+      z.extend(pointAreaTargetDtoSchema, {
+        ...choosesUnaffectedShape(),
+        /**
+         * The Creatures a summon of a chosen form may be, one of which the caster picks (Find
+         * Familiar); its area is then the System's default size, and the Worker places the picked
+         * Creature's own space. Absent for any other point.
+         */
+        summonForms: z.optional(
+          z
+            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
+            .check(z.minLength(1))
+        ),
+        /** The Creature Types the caster picks one of for the summoned form; absent for none. */
+        creatureTypes: z.optional(
+          z
+            .array(z.strictObject({ id: postgresUuidSchema, label: choiceOptionLabelSchema }))
+            .check(z.minLength(1))
+        )
+      }),
       z.extend(casterCenteredTargetSchema, choosesUnaffectedShape()),
       z.extend(wallTargetSchema, choosesUnaffectedShape()),
       z.extend(ringTargetSchema, choosesUnaffectedShape()),

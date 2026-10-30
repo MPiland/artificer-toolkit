@@ -8,7 +8,8 @@ import type { OutcomeNodeMapApi } from './path.js'
 /**
  * The fields only a MANIFEST / CREATURE outcome has (D130, D191): the forms it offers, which
  * Creatures qualify, and what the wearer keeps of its own (excess damage, ability scores,
- * proficiencies).
+ * proficiencies). A MANIFEST / SUMMON outcome may offer forms too, and the Creature Types the caster
+ * picks one of for the summoned form (SPELLS-34.T3a).
  */
 export function registerCreatureFormOutcomeFields(
   map: OutcomeNodeMapApi['map'],
@@ -23,6 +24,10 @@ export function registerCreatureFormOutcomeFields(
     local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
     local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
   ])
+  const manifestsSummon = logic.and([
+    local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+    local.field(['manifestKind']).eq(MANIFEST_KIND.SUMMON)
+  ])
   const { table } = data
 
   map
@@ -30,8 +35,20 @@ export function registerCreatureFormOutcomeFields(
       'forms',
       groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
         presentation: 'summary',
-        showIf: manifestsCreature
+        showIf: logic.or([manifestsCreature, manifestsSummon])
       })
+    )
+    .set(
+      'creatureTypeIds',
+      selectMulti(
+        ['creatureTypeIds'],
+        'Creature Type Choices',
+        {
+          kind: 'DATA',
+          relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
+        },
+        { showIf: manifestsSummon }
+      )
     )
     .set(
       'formFilter',

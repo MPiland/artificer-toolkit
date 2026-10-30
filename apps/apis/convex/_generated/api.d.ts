@@ -286148,7 +286148,9 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
+                  creatureTypes?: Array<{ id: string; label: string }>;
                   kind: "POINT";
+                  summonForms?: Array<{ id: string; label: string }>;
                 }
               | {
                   area:
@@ -287909,7 +287911,9 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
+                  creatureTypes?: Array<{ id: string; label: string }>;
                   kind: "POINT";
+                  summonForms?: Array<{ id: string; label: string }>;
                 }
               | {
                   area:

@@ -46,9 +46,11 @@ import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
-import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { createSrdRulesRuntime, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterSummon } from '../encounterSummon.js'
+import { buildEncounterSummon, formSummonStats } from '../encounterSummon.js'
 import {
   buildSheetSpellSummon,
   encounterSpellSummonExtra,
@@ -2997,7 +2999,8 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
   it('builds the Sheet’s summon and the Encounter’s from the one compiled plan (D190, SPELLS-34.4)', () => {
     const authored = spell('Arcane Hand')
     const placement = compiledCast(authored)?.summonPlacement
-    if (!placement) throw new Error('Arcane Hand must compile a summon plan.')
+    if (!placement || !('statBlock' in placement))
+      throw new Error('Arcane Hand must compile a stat block summon plan.')
     const NOW = '2026-10-23T00:00:00.000Z'
     const caster = encounterRunActorStateSchema.parse({
       id: testUuid(1),
@@ -3031,7 +3034,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       label: authored.label
     })
     const { actor } = buildEncounterSummon({
-      summon: placement,
+      summon: { kind: 'STAT_BLOCK', statBlock: placement.statBlock },
       spellSummon,
       caster,
       casterHitPointMaximum: 40,
@@ -3083,6 +3086,143 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       armorClass: 20,
       hitPoints: { current: 40, maximum: 40, temp: 0 },
       actions: [clenchedFist]
+    })
+  })
+
+  describe('a summon of System Creature forms (SPELLS-34.T3a)', () => {
+    const FIND_FAMILIAR = spell('Find Familiar')
+    /** The spell's first summon outcome, as authored. */
+    const summonOutcome = (authored: SpellAuthored) => {
+      const path = authored.effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'SUMMON')
+        throw new Error(`${authored.label} must author its summon.`)
+      return outcome
+    }
+    /** Find Familiar with its summon outcome edited, the way a homebrew author would. */
+    const familiar = (edit: (outcome: ReturnType<typeof summonOutcome>) => void) => {
+      const authored = structuredClone(FIND_FAMILIAR)
+      edit(summonOutcome(authored))
+      return authored
+    }
+
+    it('compiles its forms and Creature Types onto an untimed carrier', () => {
+      const placement = compiledCast(FIND_FAMILIAR)?.summonPlacement
+      if (!placement || !('forms' in placement))
+        throw new Error('Find Familiar must compile a forms summon plan.')
+
+      expect(placement.forms).toHaveLength(15)
+      expect(placement.forms[1]).toEqual({
+        id: expect.any(String),
+        label: 'Cat',
+        creatureId: CREATURE_IDS.CAT
+      })
+      expect(placement.creatureTypeIds).toEqual(
+        [creatureTypeId('CELESTIAL'), creatureTypeId('FEY'), creatureTypeId('FIEND')].sort()
+      )
+      expect(placement.entry).toMatchObject({
+        initialRemaining: null,
+        recurrenceStage: 'NONE',
+        maintenance: null
+      })
+    })
+
+    it('lists the forms in their authored order, whatever order they are written in', () => {
+      const placement = compiledCast(
+        familiar((outcome) => {
+          outcome.forms = [...(outcome.forms ?? [])].reverse()
+        })
+      )?.summonPlacement
+      if (!placement || !('forms' in placement)) throw new Error('Expected a forms summon plan.')
+      expect(placement.forms.map(({ label }) => label).slice(0, 2)).toEqual(['Bat', 'Cat'])
+    })
+
+    it('refuses a summon that authors both a stat block and forms, neither, or more than one creature a form', () => {
+      const arcaneHandStatBlock = summonOutcome(spell('Arcane Hand')).statBlock
+      const refused = [
+        familiar((outcome) => {
+          outcome.statBlock = arcaneHandStatBlock
+        }),
+        familiar((outcome) => {
+          delete outcome.forms
+        }),
+        familiar((outcome) => {
+          delete outcome.forms
+          outcome.statBlock = arcaneHandStatBlock
+        }),
+        familiar((outcome) => {
+          outcome.forms = outcome.forms?.map((form, index) =>
+            index === 0 ? { ...form, maxTargets: 2 } : form
+          )
+        })
+      ]
+      for (const authored of refused) expect(compiledCastEntry(authored)).toBeNull()
+    })
+
+    it('builds the familiar from its corpus Creature, of the chosen Creature Type, linked to its caster', () => {
+      const placement = compiledCast(FIND_FAMILIAR)?.summonPlacement
+      if (!placement || !('forms' in placement)) throw new Error('Expected a forms summon plan.')
+      const NOW = '2026-10-29T00:00:00.000Z'
+      const caster = srdCreatureActor({ id: testUuid(0x34a1), creature: cat })
+      const catActor = srdCreatureActor({ id: testUuid(0x34a2), creature: cat })
+      if (
+        !('maxHitPoints' in catActor) ||
+        !catActor.systemId ||
+        !catActor.sourceId ||
+        catActor.sourceRevision === null
+      )
+        throw new Error('The cat must be a sourced Creature.')
+      const formCreature = {
+        systemId: catActor.systemId,
+        sourceId: catActor.sourceId,
+        sourceRevision: catActor.sourceRevision,
+        snapshot: catActor.snapshot,
+        maxHitPoints: catActor.maxHitPoints
+      }
+      const fey = creatureTypeId('FEY')
+      const spellSummon = resolveSpellSummonStatBlock({
+        placement,
+        casterHitPointMaximum: 40,
+        spellId: FIND_FAMILIAR.id,
+        label: 'Cat',
+        formStats: formSummonStats(formCreature)
+      })
+      const { actor } = buildEncounterSummon({
+        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
+        spellSummon,
+        caster,
+        casterHitPointMaximum: 40,
+        sourceEffectId: testUuid(0x34a3),
+        label: 'Cat',
+        point: { x: 0, y: 0 },
+        edgeLength: 100,
+        occurredAt: NOW
+      })
+
+      expect(actor).toMatchObject({
+        kind: 'CREATURE',
+        sourceId: CREATURE_IDS.CAT,
+        label: 'Cat',
+        maxHitPoints: cat.hitPoints,
+        currentHitPoints: cat.hitPoints,
+        owner: { ownerActorId: caster.id },
+        snapshot: { payload: { creatureTypeId: fey } }
+      })
+      if (!('maxHitPoints' in actor)) throw new Error('The familiar holds its own hit points.')
+      const extra = (familiarActor: typeof actor) => {
+        const [owned] = ownedEncounterSpellSummons([caster, familiarActor], caster.id)
+        if (!owned) throw new Error('The caster must own the familiar.')
+        return encounterSpellSummonExtra(owned, undefined)
+      }
+      expect(extra(actor)).toMatchObject({
+        encounterActorId: actor.id,
+        spellId: FIND_FAMILIAR.id,
+        concentration: false,
+        size: 'TINY',
+        hitPoints: { current: cat.hitPoints, maximum: cat.hitPoints, temp: 0 }
+      })
+      // The Run actor is the only record: its live hit points are what the Extras show.
+      expect(extra({ ...actor, currentHitPoints: 1 }).hitPoints).toMatchObject({ current: 1 })
     })
   })
 
@@ -3269,7 +3409,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       },
       entry: { initialRemaining: 10, maintenance: null }
     })
-    expect(cast?.summonPlacement?.statBlock).not.toHaveProperty('hitPoints')
+    expect(cast?.summonPlacement).not.toHaveProperty(['statBlock', 'hitPoints'])
   })
 })
 
