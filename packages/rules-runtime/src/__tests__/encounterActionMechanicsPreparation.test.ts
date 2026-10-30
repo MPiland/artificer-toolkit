@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ProjectableCharacterFacts } from '../encounterActionProjection.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
+import { summonBody } from '../encounterActorBody.js'
 import { featureChargeUsed } from '../encounterActorState.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { EncounterValidationError } from '../encounterErrors.js'
@@ -161,6 +162,38 @@ describe('encounter action discovery: attack rolls', () => {
         system: srdSystemRecord
       })
     ).toThrow(`Quill Volley is unavailable: ${missingAttackRoll}`)
+  })
+
+  it('offers no opportunity attack from a Creature its summon says cannot attack', () => {
+    const attack = quillVolley({ charges: 1, cost: 1, rangeFeet: 30 })
+    const familiar = creatureActor({ id: SOURCE_ID, label: 'Familiar', features: [attack] })
+    const free = creatureActor({ id: TARGET_ID, label: 'Quill Beast', features: [attack] })
+    const { state, movementTargets } = creatureEncounter<ProjectableCharacterFacts>([
+      {
+        ...familiar,
+        snapshot: {
+          ...(familiar.snapshot as Record<string, unknown>),
+          body: summonBody({ occupiesSpace: true }, true)
+        }
+      },
+      free
+    ])
+    const reactionFacts = buildEncounterMovementReactionFacts({
+      spells: new Map(),
+      state,
+      userId: SOURCE_ID,
+      campaignOwnerUserId: SOURCE_ID,
+      targets: movementTargets,
+      system: srdSystemRecord,
+      definitions: {
+        requireCurrent: async () => {
+          throw new Error('No reusable definitions are read.')
+        }
+      }
+    })
+    expect(
+      reactionFacts.encounterFeatureCapabilities.map((capability) => capability.encounterActorId)
+    ).toEqual([TARGET_ID])
   })
 
   it("keeps one Creature's invalid action from stopping the rest of the Encounter moving and acting", async () => {
