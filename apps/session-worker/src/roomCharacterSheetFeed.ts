@@ -2,7 +2,9 @@ import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persis
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
+import type { EncounterSpellSummon } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import { readRoomCharacterConcentration } from './roomCharacterConcentration.js'
+import { readRoomCharacterSummons } from './roomCharacterSummons.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
 import type { RoomEncounterStore } from './roomEncounterStore.js'
@@ -22,7 +24,7 @@ export interface FeedScope {
 
 interface Subscription {
   characterId: string
-  /** The play stream version and input revisions last pushed to this socket; null until the first push. */
+  /** The play stream version, input revisions and owned summons' hit points last pushed; null until the first push. */
   pushedKey: string | null
 }
 
@@ -96,6 +98,7 @@ export class RoomCharacterSheetFeed {
         pushedKey: string
         scope: FeedScope
         sockets: WebSocket[]
+        summons: EncounterSpellSummon[]
       }
     >()
     for (const [socket, subscription] of this.#subscriptions) {
@@ -115,7 +118,19 @@ export class RoomCharacterSheetFeed {
         this.drop(socket)
         continue
       }
-      const pushedKey = `${play.streamVersion}:${roomCharacterInputsKey(admitted.authorization, subscription.characterId)}`
+      // Run actors change outside the Character's stream, so their live hit points key the push too.
+      const summons = await readRoomCharacterSummons(
+        store,
+        scope.campaignId,
+        subscription.characterId
+      )
+      const summonsKey = summons
+        .map(
+          ({ actor }) =>
+            `${actor.id}/${actor.currentHitPoints}/${actor.maxHitPoints}/${actor.tempHitPoints}`
+        )
+        .join(',')
+      const pushedKey = `${play.streamVersion}:${roomCharacterInputsKey(admitted.authorization, subscription.characterId)}:${summonsKey}`
       if (pushedKey === subscription.pushedKey) continue
       // The viewer kind decides the redactions, so one projection serves each kind.
       const key = `${subscription.characterId}:${admitted.viewer}:${pushedKey}`
@@ -125,7 +140,8 @@ export class RoomCharacterSheetFeed {
         member,
         pushedKey,
         scope,
-        sockets: []
+        sockets: [],
+        summons
       }
       group.sockets.push(socket)
       stale.set(key, group)
@@ -136,7 +152,8 @@ export class RoomCharacterSheetFeed {
       member,
       pushedKey,
       scope,
-      sockets
+      sockets,
+      summons
     } of stale.values()) {
       // No transaction: preparation is read-only for product state (reconciliation writes need one), so a push never writes outside a journaled transaction; the next command's transaction reconciles and a later push shows it.
       const facts = await prepareRoomLiveCharacterSheet(
@@ -159,7 +176,8 @@ export class RoomCharacterSheetFeed {
           { ownerVerified: true }
         ),
         facts.campaignContext.viewer,
-        await readRoomCharacterConcentration(store, scope.campaignId, characterId)
+        await readRoomCharacterConcentration(store, scope.campaignId, characterId),
+        summons
       )
       const streamVersion = facts.active.play.streamVersion
       for (const socket of sockets) {

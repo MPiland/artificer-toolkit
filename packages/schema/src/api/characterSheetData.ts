@@ -441,13 +441,18 @@ const characterSheetVehicleExtraDtoSchema = lazySchema(() =>
 )
 
 /**
- * A creature a spell cast from the Sheet conjured (D190). Only `CAST_SPELL` creates one, so its kind
- * is never an add option. Its stat block values are the ones the cast resolved against the caster.
+ * A creature a spell cast conjured (D190). Only a cast creates one, so its kind is never an add
+ * option. Its stat block values are the ones the cast resolved against the caster.
  */
 const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
   z.extend(characterSheetExtraCommonDtoSchema, {
     kind: z.literal('SPELL_SUMMON'),
     spellId: stringSchema.check(z.minLength(1)),
+    /**
+     * Set when an Encounter cast made the summon: its owned Run actor is the record, so the Sheet
+     * reads it live and neither edits nor dismisses it.
+     */
+    encounterActorId: z.optional(z.guid()),
     originKind: z.literal('SUMMONED'),
     originLabel: stringSchema.check(z.minLength(1)),
     /** The summon is the Sheet's Concentration and ends with it. */
