@@ -289558,6 +289558,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -289845,6 +289846,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -291799,6 +291801,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -292086,6 +292089,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -293324,6 +293328,7 @@ export declare const api: {
                   | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                 >;
               }>;
+              consequences?: Array<{ id: string; label: string }>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
               defeated: boolean;
@@ -293604,6 +293609,7 @@ export declare const api: {
                 level?: number;
                 notes?: string;
               }>;
+              consequences?: Array<{ id: string; label: string }>;
               controllerUserIds: Array<string>;
               defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -293747,6 +293753,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -294034,6 +294041,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -294998,6 +295006,7 @@ export declare const api: {
                 | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
               >;
             }>;
+            consequences?: Array<{ id: string; label: string }>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
             defeated: boolean;
