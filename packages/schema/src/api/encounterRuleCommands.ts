@@ -5,7 +5,11 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
-import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
+import {
+  areaAimDtoSchema,
+  spatialPointDtoSchema,
+  type SpatialPointDto
+} from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
@@ -550,11 +554,15 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
       }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),
       z.strictObject({ kind: z.literal('PASSAGE_OPTION'), optionId: checksumSchema }),
-      /** A Legendary Action option and the actor it targets, from the option's targets. */
+      /**
+       * A Legendary Action option and the actor it targets, from the option's targets; an aimed area
+       * option also carries where it goes, as its area asks.
+       */
       z.strictObject({
         kind: z.literal('LEGENDARY_OPTION'),
         optionId: checksumSchema,
-        targetActorId: uuidSchema
+        targetActorId: uuidSchema,
+        aim: z.optional(areaAimDtoSchema)
       })
     ])
   })
