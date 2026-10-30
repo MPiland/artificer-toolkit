@@ -13,6 +13,7 @@ import {
 } from './encounterActorRuleOutput.js'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import { requireSnapshotIdentity } from './encounterActorState.js'
+import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
 
 function sortedIds(values: readonly string[]): string[] {
   return [...values].sort((left, right) => left.localeCompare(right))
@@ -43,7 +44,8 @@ export async function prepareEncounterInitiativeSources(input: {
   actors: readonly EncounterRunActorState[]
   loadCharacter(actor: EncounterRunCharacterActorState): Promise<CharacterEncounterInitiativeResult>
 }): Promise<InitiativeFactSources> {
-  const { state, actors } = input
+  const { state } = input
+  const actors = input.actors.filter(takesInitiativeTurns)
   if (input.campaignId !== state.campaignId)
     throw new Error('Encounter initiative Campaign authority does not match the Run.')
   requireActorSources(state, actors)
