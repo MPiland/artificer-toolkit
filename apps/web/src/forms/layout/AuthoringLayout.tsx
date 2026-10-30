@@ -59,7 +59,7 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
   )
 }
 
-function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
+export function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const { isWideDesktop } = useAuthoringPanels()
   const { setPreviewContent } = useAuthoringPreview()
   const {

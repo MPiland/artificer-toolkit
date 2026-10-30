@@ -5,7 +5,11 @@ import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import type { AuthoringHostedForm } from '#forms/layout/AuthoringFormContext'
 import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
-import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { AuthoringLayoutShell } from '#forms/layout/AuthoringLayout'
+import {
+  AuthoringPanelsProvider,
+  AuthoringPreviewProvider
+} from '#forms/layout/AuthoringPanelsProvider'
 import { useShellReturnHref } from '#app/shell/returnLocation'
 import {
   useCreateCharacterDraftMutation,
@@ -167,52 +171,56 @@ export function CharacterBuilderAuthoringRuntime({
     ]
   )
 
-  if (session.draft && session.initialValues && !session.notFound && !session.systemRequired) {
-    const readySession: ReadyCharacterBuilderAuthoringSession = {
-      ...session,
-      draft: session.draft,
-      initialValues: session.initialValues
-    }
+  const readySession: ReadyCharacterBuilderAuthoringSession | null =
+    session.draft && session.initialValues && !session.notFound && !session.systemRequired
+      ? { ...session, draft: session.draft, initialValues: session.initialValues }
+      : null
 
-    return (
-      <CharacterBuilderFormRuntime
-        key={session.formKey}
-        cancelHref={cancelHref}
-        session={readySession}
-        onDiscardDraft={handleDiscardDraft}
-      />
-    )
-  }
-
+  // Panels sit above the form runtime: its hooks need a draft, so it mounts once one opens.
   return (
-    <AuthoringFormProvider hostedForm={openingForm}>
-      <AuthoringLayoutContent>
-        {session.systemRequired ? (
-          <Stack>
-            <SystemChoiceAlert subjectPlural='characters' systems={session.systems} />
-            <Button onClick={() => void handleCancel()}>Back to characters</Button>
-          </Stack>
-        ) : !session.draft && !session.notFound ? (
-          <Stack>
-            {draftOpenFailed ? (
-              <>
-                <Alert color='red'>Could not open that character draft.</Alert>
-                <Button onClick={() => setOpenAttempt((attempt) => attempt + 1)}>Try again</Button>
-              </>
-            ) : (
-              <Text role='status'>Opening character draft…</Text>
-            )}
-            <Button variant='default' onClick={() => void handleCancel()}>
-              Back to characters
-            </Button>
-          </Stack>
+    <AuthoringPanelsProvider>
+      <AuthoringPreviewProvider>
+        {readySession ? (
+          <CharacterBuilderFormRuntime
+            key={readySession.formKey}
+            cancelHref={cancelHref}
+            session={readySession}
+            onDiscardDraft={handleDiscardDraft}
+          />
         ) : (
-          <Stack>
-            <Alert color='yellow'>That character could not be found.</Alert>
-            <Button onClick={() => void handleCancel()}>Back to characters</Button>
-          </Stack>
+          <AuthoringFormProvider hostedForm={openingForm}>
+            <AuthoringLayoutShell>
+              {session.systemRequired ? (
+                <Stack>
+                  <SystemChoiceAlert subjectPlural='characters' systems={session.systems} />
+                  <Button onClick={() => void handleCancel()}>Back to characters</Button>
+                </Stack>
+              ) : !session.draft && !session.notFound ? (
+                <Stack>
+                  {draftOpenFailed ? (
+                    <>
+                      <Alert color='red'>Could not open that character draft.</Alert>
+                      <Button onClick={() => setOpenAttempt((attempt) => attempt + 1)}>
+                        Try again
+                      </Button>
+                    </>
+                  ) : (
+                    <Text role='status'>Opening character draft…</Text>
+                  )}
+                  <Button variant='default' onClick={() => void handleCancel()}>
+                    Back to characters
+                  </Button>
+                </Stack>
+              ) : (
+                <Stack>
+                  <Alert color='yellow'>That character could not be found.</Alert>
+                  <Button onClick={() => void handleCancel()}>Back to characters</Button>
+                </Stack>
+              )}
+            </AuthoringLayoutShell>
+          </AuthoringFormProvider>
         )}
-      </AuthoringLayoutContent>
-    </AuthoringFormProvider>
+      </AuthoringPreviewProvider>
+    </AuthoringPanelsProvider>
   )
 }

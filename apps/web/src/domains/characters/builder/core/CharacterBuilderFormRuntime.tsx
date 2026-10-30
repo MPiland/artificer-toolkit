@@ -17,7 +17,7 @@ import type {
   AuthoringHostedForm
 } from '#forms/layout/AuthoringFormContext'
 import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
-import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { AuthoringLayoutShell } from '#forms/layout/AuthoringLayout'
 import {
   useCommitCharacterBuilderMutation,
   useSaveCharacterDraftMutation
@@ -32,8 +32,7 @@ import { useCharacterBuilderEvaluation } from '../state/useCharacterBuilderEvalu
 import { CharacterBuilderContentNotice } from '../evaluation/CharacterBuilderContentNotice'
 import {
   characterBuilderVisibleSteps,
-  getCharacterBuilderProgressState,
-  type CharacterBuilderProgressState
+  getCharacterBuilderProgressState
 } from '../state/characterBuilderAuthoringState'
 import { getCharacterBuilderResolutionFingerprint } from '../state/resolutionFingerprints'
 import {
@@ -44,6 +43,9 @@ import { CharacterBuilderRenderer } from './CharacterBuilderRenderer'
 import { createDraftAutosave } from '../save/draftAutosave'
 import { CharacterDraftSaveNoticeModal } from '../save/CharacterDraftSaveNoticeModal'
 import { CharacterSavePreviewModal } from '../save/CharacterSavePreviewModal'
+
+const isSameProgress = <TProgress,>(left: TProgress, right: TProgress) =>
+  replaceEqualDeep(left, right) === left
 
 export function CharacterBuilderFormRuntime({
   cancelHref,
@@ -148,10 +150,12 @@ export function CharacterBuilderFormRuntime({
     }
   }, [autosave, form])
 
+  const [unresolvedFingerprint, setUnresolvedFingerprint] = useState<string>()
   const handleResolve = useLatestCharacterResolution({
     generation: `${session.draft.id}:${session.mode}`,
     resolve: evaluation.resolve,
-    onResolved: setPayload
+    onResolved: setPayload,
+    onUnresolved: setUnresolvedFingerprint
   })
 
   // The first ready local evaluation, and each content change after it, re-resolves current values.
@@ -219,25 +223,26 @@ export function CharacterBuilderFormRuntime({
   const canFinalize = canSubmit && (payload?.view.review.ready ?? false)
   const isSubmitting = isFormSubmitting || previewMutation.isPending || commitMutation.isPending
 
-  // While values await resolution, progress reads the last resolved values.
+  // While values await resolution, progress reads the last resolved values; values that could not
+  // resolve read live.
   const resolvedValues = useMemo(() => payload && toCharacterFormValues(payload), [payload])
   const resolvedFingerprint = useMemo(
     () => resolvedValues && getCharacterBuilderResolutionFingerprint(resolvedValues),
     [resolvedValues]
   )
-  const [shareProgress] = useState(() => {
-    let previous: CharacterBuilderProgressState | undefined
-    return (next: CharacterBuilderProgressState) => (previous = replaceEqualDeep(previous, next))
-  })
-  const progress = useSelector(form.store, (state) => {
-    if (!payload || !resolvedValues) return undefined
-    const isResolving =
-      !session.readOnly &&
-      getCharacterBuilderResolutionFingerprint(state.values) !== resolvedFingerprint
-    return shareProgress(
-      getCharacterBuilderProgressState(payload, isResolving ? resolvedValues : state.values)
-    )
-  })
+  const progress = useSelector(
+    form.store,
+    (state) => {
+      if (!payload || !resolvedValues) return undefined
+      const fingerprint = getCharacterBuilderResolutionFingerprint(state.values)
+      const isResolving =
+        !session.readOnly &&
+        fingerprint !== resolvedFingerprint &&
+        fingerprint !== unresolvedFingerprint
+      return getCharacterBuilderProgressState(payload, isResolving ? resolvedValues : state.values)
+    },
+    { compare: isSameProgress }
+  )
 
   const hostedForm = useMemo<AuthoringHostedForm>(
     () => ({
@@ -307,7 +312,7 @@ export function CharacterBuilderFormRuntime({
   return (
     <form.AppForm>
       <AuthoringFormProvider hostedForm={hostedForm}>
-        <AuthoringLayoutContent>
+        <AuthoringLayoutShell>
           <Stack>
             <CharacterBuilderContentNotice
               status={evaluation.status}
@@ -325,7 +330,7 @@ export function CharacterBuilderFormRuntime({
               />
             ) : null}
           </Stack>
-        </AuthoringLayoutContent>
+        </AuthoringLayoutShell>
       </AuthoringFormProvider>
       <CharacterSavePreviewModal
         isCommitting={commitMutation.isPending}

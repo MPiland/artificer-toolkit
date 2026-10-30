@@ -1,11 +1,12 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   CharacterBuilderDraftDto,
   CharacterBuilderPayloadDto
 } from '@artificer-toolkit/schema/api/characters'
 import { CharacterBuilderAuthoringRuntime } from './CharacterBuilderAuthoringRuntime'
+import { AUTHORING_COMPACT_WORKSPACE_QUERY } from '#forms/layout/authoringWorkspace.constants'
 import { ConvexReactClient } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -99,6 +100,10 @@ describe('CharacterBuilderAuthoringRuntime', () => {
             }
           }
     )
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
 
   it('preserves unsaved intent and rejects stale resolution across same-generation loader updates', async () => {
@@ -198,11 +203,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     await user.type(await screen.findByRole('textbox', { name: /character name/i }), 'Unsaved name')
     payload.character.label = 'Reopened draft'
     rerender(
-      <CharacterBuilderAuthoringRuntime
-        data={editData(payload, 'new-generation')}
-
-        mode='edit'
-      />
+      <CharacterBuilderAuthoringRuntime data={editData(payload, 'new-generation')} mode='edit' />
     )
     await waitFor(() =>
       expect(screen.getByRole('textbox', { name: /character name/i })).toHaveValue('Reopened draft')
@@ -215,7 +216,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
-
         mode='create'
       />
     )
@@ -238,7 +238,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
-
         mode='create'
       />
     )
@@ -312,7 +311,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -333,6 +331,68 @@ describe('CharacterBuilderAuthoringRuntime', () => {
         performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
       ).toHaveLength(1)
     })
+  })
+
+  it('keeps a panel opened while the draft opens once the form runtime takes over', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === AUTHORING_COMPACT_WORKSPACE_QUERY,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined
+    }))
+    mocks.create.mockReturnValue(new Promise(() => undefined))
+    const { character } = characterBuilderPayloadFixture
+    const { rerender } = renderWithAppProviders(
+      <CharacterBuilderAuthoringRuntime
+        data={{
+          activeCharacter: character,
+          breadcrumbLabel: character.label,
+          characterId: character.id,
+          draft: null
+        }}
+        mode='edit'
+      />
+    )
+    expect(await screen.findByRole('status')).toHaveTextContent('Opening character draft…')
+    await user.click(await screen.findByRole('button', { name: 'Show steps' }))
+    expect(await screen.findByRole('button', { name: 'Close steps' })).toBeInTheDocument()
+
+    rerender(
+      <CharacterBuilderAuthoringRuntime
+        data={editData(characterBuilderPayloadFixture)}
+        mode='edit'
+      />
+    )
+
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Close steps' })).toBeInTheDocument()
+  })
+
+  it('counts live values once a resolve fails', async () => {
+    const user = userEvent.setup()
+    renderWithAppProviders(
+      <CharacterBuilderAuthoringRuntime
+        data={editData(characterBuilderDraftPayloadFixture)}
+        mode='edit'
+      />
+    )
+    await user.click(await screen.findByRole('link', { name: 'Basics' }))
+    const name = await screen.findByRole('textbox', { name: /character name/i })
+    const completed = await screen.findByLabelText(/^\d+ of \d+ steps complete$/)
+    const before = Number.parseInt(completed.getAttribute('aria-label') ?? '', 10)
+    mocks.resolve.mockRejectedValue(new Error('Evaluation failed'))
+
+    await user.clear(name)
+
+    await waitFor(() =>
+      expect(
+        Number.parseInt(
+          screen.getByLabelText(/^\d+ of \d+ steps complete$/).getAttribute('aria-label') ?? '',
+          10
+        )
+      ).toBe(before - 1)
+    )
   })
 
   it('measures step navigation from the rail to the committed panel', async () => {
@@ -383,7 +443,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -401,7 +460,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -436,7 +494,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -470,7 +527,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -515,7 +571,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -531,7 +586,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-
         mode='edit'
       />
     )
@@ -555,7 +609,6 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture, 'draft-generation', 'edit')}
-
         mode='edit'
       />,
       { convexClient }
