@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
-import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import {
+  createCharacterMechanicSourceKey,
+  createCharacterResourceOwnerKey,
+  toCharacterResourceOwnerKey
+} from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -3504,11 +3508,17 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
 describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
   const CHARGE_ID = 'modifier-charge'
   const MODIFIER_ID = testUuid(0xc10)
-  const owner = {
-    kind: 'AUTHORED_SOURCE' as const,
-    chargeId: CHARGE_ID,
-    sourceId: 'caster-feature'
+  const mechanicSource = {
+    kind: 'AUTHORED' as const,
+    sourceKind: 'FEATURE' as const,
+    definitionId: 'caster-feature',
+    sourceInstanceId: 'caster-feature'
   }
+  const owner = toCharacterResourceOwnerKey({
+    kind: 'AUTHORED_SOURCE',
+    chargeId: CHARGE_ID,
+    source: mechanicSource
+  })
   const poolId = createCharacterResourceOwnerKey(owner)
   const modifier = {
     modifierId: MODIFIER_ID,
@@ -3517,17 +3527,13 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
   }
   const pool = (rawUsed: number, maximum = 2): CharacterRulePolicyOutput['resources'][number] => ({
     ownerKind: 'AUTHORED_SOURCE',
+    sourceId: createCharacterMechanicSourceKey(mechanicSource),
     sequence: 0,
     poolId,
     resourceDefinitionId: CHARGE_ID,
     chargeId: CHARGE_ID,
     chargeCalculationId: poolId,
-    source: {
-      kind: 'AUTHORED',
-      sourceKind: 'FEATURE',
-      definitionId: 'caster-feature',
-      sourceInstanceId: 'caster-feature'
-    },
+    source: mechanicSource,
     state: 'RESOLVED',
     maximum,
     rawUsed,
