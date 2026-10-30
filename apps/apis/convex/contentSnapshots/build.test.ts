@@ -487,7 +487,7 @@ describe('content snapshot builds', () => {
     const { t, server, userSource, publish, head } = await setup()
     try {
       const id = await publish('RACE', homebrew(elf), {
-        invalidStoredFields: { size: 'NOT_A_SIZE' }
+        invalidStoredFields: { selectionMode: 'NOT_A_MODE' }
       })
       const page = await t.query(internal.contentSnapshots.heads.readScopeKind, {
         ...userSource,
@@ -495,7 +495,7 @@ describe('content snapshot builds', () => {
         paginationOpts: { numItems: 15, cursor: null }
       })
       expect(page).toMatchObject({ isDone: true })
-      expect(JSON.stringify(page)).toContain('NOT_A_SIZE')
+      expect(JSON.stringify(page)).toContain('NOT_A_MODE')
       expect(JSON.stringify(page)).toContain(id)
       await expect(t.action(internal.contentSnapshots.actions.build, userSource)).rejects.toThrow()
       expect((await head(userSource))?.kinds.RACE).toBeUndefined()
