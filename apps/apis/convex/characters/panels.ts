@@ -56,7 +56,8 @@ export function projectCharacterSheetPanel(
             return placement ? { ...mode, ...summonPickOptions(placement, creatureTypes) } : mode
           })
         }
-      : builtPanel  const allowedCommands =
+      : builtPanel
+  const allowedCommands =
     viewer === 'CHARACTER_OWNER'
       ? panel.allowedCommands
       : campaignStatus !== 'ACTIVE'
