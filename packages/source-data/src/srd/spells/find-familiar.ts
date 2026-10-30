@@ -69,6 +69,8 @@ export const findFamiliar: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.FIND_FAMILIAR, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.SUMMON,
+                // The familiar can't attack; a grant of its owner's may delegate an attack to it.
+                cannotAttack: true,
                 forms: [
                   {
                     id: spellChildId(SPELL_IDS.FIND_FAMILIAR, 0x214, 1),

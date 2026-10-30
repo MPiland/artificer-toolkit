@@ -187,7 +187,9 @@ const summonDamageabilityKindSchema = lazySchema(() =>
 export const summonBodyDtoSchema = lazySchema(() =>
   z.strictObject({
     damageabilityKind: summonDamageabilityKindSchema,
-    occupiesSpace: z.boolean()
+    occupiesSpace: z.boolean(),
+    /** The creature's summon says it makes no attack of its own. */
+    cannotAttack: z.optional(z.literal(true))
   })
 )
 
@@ -360,6 +362,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         forms: z.optional(authoredNestedCollectionSchema(manifestCreatureFormDtoSchema)),
         /** Creature Types the caster picks one of to replace the chosen form's. */
         creatureTypeIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+        /** The creature makes no attack of its own; one its owner's grant delegates still resolves. */
+        cannotAttack: z.optional(z.boolean()),
         statBlock: z.optional(summonStatBlockDtoSchema),
         behaviors: z.optional(authoredNestedCollectionSchema(manifestNestedBehaviorDtoSchema))
       }),

@@ -298,6 +298,7 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   /** The holder keeps its own proficiencies (Wild Shape); absent, the form's stat block replaces them (Polymorph). */
   retainsProficiencies?: boolean
   creatureTypeIds?: never
+  cannotAttack?: never
   statBlock?: never
   behaviors?: never
 }
@@ -311,6 +312,8 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   forms?: ManifestCreatureFormAuthored[]
   /** Creature Types the caster picks one of to replace the chosen form's; absent keeps the form's. */
   creatureTypeIds?: string[]
+  /** The creature makes no attack of its own; one its owner's grant delegates still resolves. */
+  cannotAttack?: boolean
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
@@ -323,6 +326,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   manifestKind: TKind
   forms?: never
   creatureTypeIds?: never
+  cannotAttack?: never
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never

@@ -12,16 +12,24 @@ type SummonBody = z.infer<typeof summonBodyDtoSchema>
  * filling its space only when the stat block says it does (the placement check reads the same).
  */
 export function summonBody(
-  statBlock: Pick<SummonStatBlockDto, 'damageabilityKind' | 'occupiesSpace'>
+  statBlock: Pick<SummonStatBlockDto, 'damageabilityKind' | 'occupiesSpace'>,
+  cannotAttack = false
 ): SummonBody {
   return {
     damageabilityKind: statBlock.damageabilityKind ?? 'NORMAL',
-    occupiesSpace: statBlock.occupiesSpace === true
+    occupiesSpace: statBlock.occupiesSpace === true,
+    ...(cannotAttack ? { cannotAttack: true as const } : {})
   }
 }
 
 /** Every actor no stat block conjured: a Character or Creature takes damage and fills its space. */
 const DEFAULT_BODY: SummonBody = { damageabilityKind: 'NORMAL', occupiesSpace: true }
+
+function storedBody({ snapshot }: { snapshot: unknown }): SummonBody {
+  return typeof snapshot === 'object' && snapshot !== null && 'body' in snapshot
+    ? summonBodyDtoSchema.parse(snapshot.body)
+    : DEFAULT_BODY
+}
 
 /**
  * The body rules a Run actor plays by, from the `body` its snapshot keeps (`buildEncounterSummon`).
@@ -32,15 +40,19 @@ export function encounterActorBody(actor: { snapshot: unknown }): {
   invulnerable: boolean
   occupiesSpace: boolean
 } {
-  const { snapshot } = actor
-  const stored =
-    typeof snapshot === 'object' && snapshot !== null && 'body' in snapshot
-      ? summonBodyDtoSchema.parse(snapshot.body)
-      : DEFAULT_BODY
+  const stored = storedBody(actor)
   return {
     invulnerable: stored.damageabilityKind === 'INVULNERABLE',
     occupiesSpace: stored.occupiesSpace
   }
+}
+
+/**
+ * Whether the actor's summon says it makes no attack of its own. Reaction discovery and the
+ * opportunity-attack facts leave its attacks out on this; a delegated attack is its owner's.
+ */
+export function encounterActorCannotAttack(actor: { snapshot: unknown }): boolean {
+  return storedBody(actor).cannotAttack === true
 }
 
 /**

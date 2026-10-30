@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterActorBody } from '../encounterActorBody.js'
+import { encounterActorBody, encounterActorCannotAttack } from '../encounterActorBody.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 
@@ -39,10 +39,11 @@ const caster = encounterRunActorStateSchema.parse({
 
 const CARRIER_ID = crypto.randomUUID()
 
-const build = (statBlock: SummonStatBlockDto) =>
+const build = (statBlock: SummonStatBlockDto, cannotAttack = false) =>
   buildEncounterSummon({
     summon: { kind: 'STAT_BLOCK', statBlock },
     spellSummon: null,
+    cannotAttack,
     caster,
     casterHitPointMaximum: 40,
     label: 'Spiritual Weapon',
@@ -85,6 +86,12 @@ describe('buildEncounterSummon', () => {
       body: { damageabilityKind: 'NORMAL', occupiesSpace: false }
     })
     expect(encounterActorBody(caster)).toEqual({ invulnerable: false, occupiesSpace: true })
+  })
+
+  it('keeps that its summon cannot attack, and no other actor reads so', () => {
+    expect(encounterActorCannotAttack(build({ occupiesSpace: true }, true).actor)).toBe(true)
+    expect(encounterActorCannotAttack(build({ occupiesSpace: true }).actor)).toBe(false)
+    expect(encounterActorCannotAttack(caster)).toBe(false)
   })
 
   it('reads hit points from the stat block against the caster, and is 0 when it names none', () => {

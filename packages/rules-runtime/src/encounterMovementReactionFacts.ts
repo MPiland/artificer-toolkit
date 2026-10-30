@@ -4,6 +4,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
+import { encounterActorCannotAttack } from './encounterActorBody.js'
 import { discoverEncounterFeatureActionCapabilities } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -60,7 +61,8 @@ export function buildEncounterMovementReactionFacts<
       [...targets].map(([actorId, target]) => [actorId, target.activeEffects])
     ),
     encounterFeatureCapabilities: actors.flatMap((actor) =>
-      actor.kind === 'CREATURE'
+      // A creature that cannot attack makes no opportunity attack.
+      actor.kind === 'CREATURE' && !encounterActorCannotAttack(actor)
         ? discoverEncounterFeatureActionCapabilities({
             actor,
             conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
