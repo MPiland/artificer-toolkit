@@ -19,13 +19,19 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { RoomInputs } from './roomInputs.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 
-/** The caller admits the command through RoomAuthorization before reading its target's facts. */
+/**
+ * The caller admits the command through RoomAuthorization before reading its target's facts. Inside
+ * a transaction the play is reconciled to the structure, unless the caller just wrote a play its
+ * own rules already settled (`reconcile: false`): an outcome's effects land after its hit points,
+ * so bounding them here would cut what its own grant allows (D156).
+ */
 export async function prepareRoomLiveCharacterSheet(
   store: RoomEncounterStore,
   room: RoomInputs,
   scope: LiveSessionCharacterRulesInput,
   observed: LiveSessionRulesRevisions | null,
-  transaction?: RoomTransaction
+  transaction?: RoomTransaction,
+  { reconcile = true }: { reconcile?: boolean } = {}
 ) {
   const initialInput = liveSessionCharacterRulesInputSchema.parse(scope)
   if (room.epoch !== initialInput.authorityEpoch)
@@ -58,7 +64,7 @@ export async function prepareRoomLiveCharacterSheet(
       objects
     })
   let facts = await prepare(part.inputs)
-  if (transaction) {
+  if (transaction && reconcile) {
     const play = await store.store
       .query('characterPlayStates')
       .withIndex('by_characterId', (q) => q.eq('characterId', initialInput.characterId))

@@ -658,6 +658,7 @@ export async function persistEncounterAreaCommit(
         targetActorId: actor.id
       })),
       effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
+      grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: false,
       ...(enterForm ? { enterForm } : {}),

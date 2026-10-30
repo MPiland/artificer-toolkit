@@ -70,12 +70,14 @@ type DomainFilter = (domain: CharacterGrantFoldModifier['domain']) => boolean
 
 /** The global active bonuses and penalties to one value domain whose domain `applies` accepts. */
 function* activeBonusGrants(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[],
   valueDomainCode: string,
   applies: DomainFilter
 ) {
-  for (const { modifiers } of listActiveEffectGrants(effects)) {
-    for (const modifier of modifiers) {
+  for (const { definition } of effects) {
+    for (const modifier of definition.stateContributions.flatMap((contribution) =>
+      contribution.kind === 'MODIFIER_GRANT' ? contribution.modifiers : []
+    )) {
       if (
         modifier.valueDomainCode === valueDomainCode &&
         (modifier.modifierKind === 'BONUS' || modifier.modifierKind === 'PENALTY') &&
@@ -92,7 +94,7 @@ function* activeBonusGrants(
  * whose domain `applies` accepts.
  */
 export function activeFixedGrantTotal(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  effects: readonly Pick<ActiveRuleEffectRecord, 'definition'>[],
   valueDomainCode: string,
   applies: DomainFilter = () => true
 ): number {
@@ -481,4 +483,16 @@ export function effectiveHitPointMaximum(
     Math.max(0, maximum + activeFixedGrantTotal(effects, 'HIT_POINTS_MAX')),
     listHitPointMaximumReductions(effects)
   )
+}
+
+/**
+ * How far the effects an outcome leaves on its target raise that target's maximum hit points. The
+ * outcome's own later results already see the raise (a SEQUENTIAL grant then heal, D156), though the
+ * effects are written after the target's mechanics batch, so the batch takes it as an input
+ * (`grantedMaximumHitPoints`). Only a raise counts.
+ */
+export function createdHitPointMaximumRaise(
+  created: readonly Pick<ActiveRuleEffectRecord, 'definition'>[]
+): number {
+  return Math.max(0, activeFixedGrantTotal(created, 'HIT_POINTS_MAX'))
 }
