@@ -3,7 +3,7 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { StagedInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
-import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
+import { takesInitiativeTurns, type ActorOwnerLink } from './encounterInitiativeCursor.js'
 import type { settleEncounterInitiativeRound } from './encounterInitiativeStateSettlement.js'
 
 type MutableInitiativeRepository = Parameters<
@@ -140,7 +140,7 @@ export function createStagedInitiativeRoundState(input: {
       actors: readonly {
         id: string
         sideId?: string
-        owner?: { ownerActorId: string } | null
+        owner?: ActorOwnerLink | null
       }[]
     }
   round: number

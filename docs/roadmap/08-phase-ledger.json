@@ -21939,7 +21939,7 @@
         {
           "id": "SPELLS-35",
           "title": "Summons take their own turns when authored",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -22002,7 +22002,7 @@
           "tasks": [
             {
               "id": "SPELLS-35.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.1"
               ],
@@ -22016,7 +22016,7 @@
                 ]
               },
               "text": "Authored turn timing: generic field on the SUMMON outcome (schema manifest, shared manifest, node map, compiler plan, authoring parity), carried on the actor owner with absence meaning owner's turn; `takesInitiativeTurns` reads it. No behaviour change for existing summons. Amends D190a; update rules-runtime.md and persistence.md.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Merged in m564 (1edb9093c)."
             },
             {
               "id": "SPELLS-35.T2",
