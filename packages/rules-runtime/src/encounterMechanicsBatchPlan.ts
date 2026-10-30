@@ -310,7 +310,7 @@ export function planEncounterMechanicsBatch(input: {
     return {
       updatedActor: changedActor ? encounterRunActorStateSchema.parse(changedActor) : formed,
       receiptApplications: folded.applications,
-      targetTransition: transition(actor.id, folded),
+      targetTransition: transition(actor.id, folded, batch.grantedMaximumHitPoints),
       characterStreamVersion: null,
       itemUseStateTransition: null,
       itemDegradationTransition: null,
@@ -717,7 +717,7 @@ export function planEncounterMechanicsBatch(input: {
   return {
     updatedActor,
     receiptApplications: folded.applications,
-    targetTransition: transition(actor.id, folded),
+    targetTransition: transition(actor.id, folded, batch.grantedMaximumHitPoints),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
     itemUseStateTransition: stowItemId === undefined ? null : itemTransition(stowItemId, afterStow),
     itemDegradationTransition,
@@ -896,12 +896,14 @@ function foldCharacterBatch(input: {
 
 function transition(
   actorId: string,
-  { before, after, inForm }: { before: TargetState; after: TargetState; inForm?: true }
+  { before, after, inForm }: { before: TargetState; after: TargetState; inForm?: true },
+  grantedMaximumHitPoints = 0
 ) {
   return {
     checksum: targetTransitionChecksum(actorId, before),
     before,
     after,
-    ...(inForm && { inForm })
+    ...(inForm && { inForm }),
+    ...(grantedMaximumHitPoints > 0 && { grantedMaximumHitPoints })
   }
 }

@@ -16,10 +16,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import {
-  createdHitPointMaximumRaise,
-  effectiveHitPointMaximum
-} from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
@@ -325,7 +322,7 @@ export async function persistEncounterActionCommit(
       targetActorId: target.id
     })),
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
-    grantedMaximumHitPoints: createdHitPointMaximumRaise(input.createdEffects),
+    grantedMaximumHitPoints: batch.targetTransition.grantedMaximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
     // A used reaction versions its Character even when it leaves no effect behind (Uncanny Dodge).
     forceVersionAdvance:

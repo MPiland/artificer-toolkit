@@ -645,10 +645,11 @@ describe('Creature mechanics batch plan', () => {
       { kind: 'HEAL', appliedAmount: 5, afterCurrentHitPoints: 16, maximumHitPoints: 16 }
     ])
     expect(plan.updatedActor).toMatchObject({ currentHitPoints: 16, maxHitPoints: 11 })
-    expect(plan.targetTransition.before.maximumHitPoints).toBe(11)
-    expect(plan.targetTransition.after).toMatchObject({
-      currentHitPoints: 16,
-      maximumHitPoints: 16
+    // The receipt records the raise, so its replay runs the heal against 16, not the stored 11.
+    expect(plan.targetTransition).toMatchObject({
+      before: { maximumHitPoints: 11 },
+      after: { currentHitPoints: 16, maximumHitPoints: 16 },
+      grantedMaximumHitPoints: 5
     })
   })
 
