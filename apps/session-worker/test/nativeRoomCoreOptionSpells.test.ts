@@ -12,6 +12,7 @@ import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/e
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -22,6 +23,7 @@ import { goodberry } from '@artificer-toolkit/source-data/srd/spells/goodberry.j
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heroesFeast } from '@artificer-toolkit/source-data/srd/spells/heroes-feast.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
+import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
@@ -996,8 +998,8 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
   const SUMMON_ID = testUuid(0xa35)
   const CARRIER_ID = testUuid(0xa36)
 
-  /** The summon acts first (20), then the Character (15) and the Wolf (10). */
-  const summonRoom = () => {
+  /** The summon acts first, then the Wolf and the Character; `carrierRounds` gives the Character a carrier effect for that many of its turns. */
+  const summonRoom = ({ carrierRounds }: { carrierRounds?: number } = {}) => {
     const wolf = biteWolf('ATTACK')
     return actionRoom({
       fallbackRoll: 0,
@@ -1011,10 +1013,30 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
             turnTiming: 'OWN_INITIATIVE' as const
           }
         },
-        { ...casterActor(), initiative: 15 },
-        { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 10 }
+        { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 15 },
+        { ...casterActor(), initiative: 10 }
       ],
-      ownerFeatureId: creatureFeature(wolf, 'Bite').id
+      ownerFeatureId: creatureFeature(wolf, 'Bite').id,
+      ...(carrierRounds !== undefined && {
+        seed: async ({ effects, encounterId, occurredAt }) => {
+          const [effect] = haste.effects ?? []
+          const grant = plannedModifierGrant({
+            encounterId,
+            sourceActorId: CHARACTER_ACTOR_ID,
+            holderActorId: CHARACTER_ACTOR_ID,
+            lifecycle: {},
+            effect,
+            rounds: carrierRounds
+          })
+          await effects.create({
+            id: CARRIER_ID,
+            owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CHARACTER_ACTOR_ID },
+            definition: grant.definition,
+            lifecycle: { schemaVersion: 1, remainingTicks: carrierRounds },
+            occurredAt
+          })
+        }
+      })
     })
   }
 
@@ -1044,7 +1066,7 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
 
     const run = await runOf(room)
     expect(run.actorIds).not.toContain(SUMMON_ID)
-    expect(run.currentActorId).toBe(CHARACTER_ACTOR_ID)
+    expect(run.currentActorId).toBe(WOLF_ID)
     const types = await commandTypes(room)
     expect(types.filter((type) => type === 'ADVANCE_TURN')).toHaveLength(1)
     expect(types.filter((type) => type === 'SUMMONS_ENDED')).toHaveLength(1)
@@ -1057,8 +1079,27 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
 
     const run = await runOf(room)
     expect(run.actorIds).not.toContain(SUMMON_ID)
-    expect(run.currentActorId).toBe(CHARACTER_ACTOR_ID)
+    expect(run.currentActorId).toBe(WOLF_ID)
     expect((await commandTypes(room)).filter((type) => type === 'ADVANCE_TURN')).toHaveLength(1)
+  }, 120000)
+
+  it('ends the turn of a summon that lands first after a wrap, once, and leaves a valid actor acting', async () => {
+    const room = await summonRoom({ carrierRounds: 1 })
+    // The carrier stands through the summon's and the Wolf's turns, then ends with the Character's.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect((await runOf(room)).currentActorId).toBe(CHARACTER_ACTOR_ID)
+    expect((await runOf(room)).actorIds).toContain(SUMMON_ID)
+    await room.advanceTurn()
+
+    const run = await runOf(room)
+    expect(run.round).toBe(2)
+    expect(run.actorIds).not.toContain(SUMMON_ID)
+    expect(run.currentActorId).toBe(WOLF_ID)
+    const types = await commandTypes(room)
+    // The three the table made, and the one the room made for the summon that landed first.
+    expect(types.filter((type) => type === 'ADVANCE_TURN')).toHaveLength(4)
+    expect(types.filter((type) => type === 'SUMMONS_ENDED')).toHaveLength(1)
   }, 120000)
 })
 
