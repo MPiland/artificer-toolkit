@@ -481,7 +481,8 @@ export function activeAttackCriticalRules(
 export function effectiveHitPointMaximum(
   maximum: number,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'createdOrdinal' | 'definition'>[],
-  maximumFraction?: HitPointMaximumFractionDto | null
+  /** Required so no caller can forget the share a condition holds; null is a whole maximum. */
+  maximumFraction: HitPointMaximumFractionDto | null | undefined
 ): number {
   return reduceHitPointMaximum(
     applyHitPointMaximumFraction(

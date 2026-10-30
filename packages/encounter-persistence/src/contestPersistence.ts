@@ -289,7 +289,11 @@ export async function persistEncounterContestCommit(
         effectiveMaximumHitPoints:
           source.kind === 'CHARACTER'
             ? await readLiveCharacterMaximumHitPoints(ctx, state, source.sourceId)
-            : effectiveHitPointMaximum(source.maxHitPoints, sourceEffects),
+            : effectiveHitPointMaximum(
+                source.maxHitPoints,
+                sourceEffects,
+                source.maximumFraction
+              ),
         forceVersionAdvance: false
       })
     : null

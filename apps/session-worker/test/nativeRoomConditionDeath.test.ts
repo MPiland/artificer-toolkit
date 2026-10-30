@@ -110,6 +110,24 @@ describe('authored condition-level death in the room (SPELLS-10.T1c)', () => {
     })
   })
 
+  it('a Character at the halving level cannot be healed past the halved maximum', async () => {
+    const room = await roomWith(characterActor({ id: HOLDER_ID, characterId: CHARACTER_ID }))
+    const { maximumHitPoints } = await characterPlay(room)
+
+    await gmSheet(room, { type: 'SET_EXHAUSTION', level: 4 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 1 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: maximumHitPoints })
+
+    expect((await characterPlay(room)).state.hitpoints.current).toBe(
+      Math.floor(maximumHitPoints / 2)
+    )
+
+    await gmSheet(room, { type: 'SET_EXHAUSTION', level: 3 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: maximumHitPoints })
+
+    expect((await characterPlay(room)).state.hitpoints.current).toBe(maximumHitPoints)
+  })
+
   it('a Creature at the authored level drops to 0 and loses its Concentration', async () => {
     const room = await roomWith(srdCreatureActor({ id: HOLDER_ID, creature: plainWolf }))
 

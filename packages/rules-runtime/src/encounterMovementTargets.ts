@@ -288,6 +288,7 @@ function nativeCharacterBatchInputs(
     baseMaximumHitPoints: resolveCharacterEffectiveMaximumHitPoints(
       characterFacts.ruleEvaluation.output.derivedStats.maxHitPoints.effective
     ),
+    maximumFraction: characterFacts.character.state.hitpoints.maximumFraction,
     effects: activeEffects,
     featureInterceptions: characterHeldDamageInterceptions(
       policyOutput,
@@ -448,7 +449,11 @@ export function buildMovementTarget<
     const { effectiveMaximumHitPoints, damageInterceptions } =
       form === null
         ? sheetInputs
-        : heldBatchInputs({ baseMaximumHitPoints: form.maxHitPoints, effects: activeEffects })
+        : heldBatchInputs({
+            baseMaximumHitPoints: form.maxHitPoints,
+            maximumFraction: null,
+            effects: activeEffects
+          })
     const sheetMaximumHitPoints = sheetInputs.effectiveMaximumHitPoints
     const conditionDefinitionIds = [...systemConditions].sort()
     // A form that cannot cast offers no spells; Concentration on one already held stays (D130).
@@ -652,6 +657,7 @@ export function buildMovementTarget<
     initialConditionRows: conditions.values,
     ...heldBatchInputs({
       baseMaximumHitPoints: actor.maxHitPoints,
+      maximumFraction: actor.maximumFraction,
       effects: activeEffects,
       featureInterceptions: featureHeldDamageInterceptions({
         modifiers: creatureFacts?.modifiers ?? [],

@@ -93,7 +93,11 @@ export async function applyRoomEncounterMechanicsBatch(input: {
   const heldInputs =
     character && form
       ? {
-          ...heldBatchInputs({ baseMaximumHitPoints: form.maxHitPoints, effects: heldEffects }),
+          ...heldBatchInputs({
+            baseMaximumHitPoints: form.maxHitPoints,
+            maximumFraction: null,
+            effects: heldEffects
+          }),
           sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
         }
       : {

@@ -118,7 +118,8 @@ export async function readEncounterMechanicsBatchTarget<CharacterSources>(
         ctx,
         { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: actor.id },
         { ownerVerified: true }
-      )
+      ),
+      actor.maximumFraction
     ) !== input.effectiveMaximumHitPoints
   )
     throw new Error('Encounter actor maximum hit points are stale.')

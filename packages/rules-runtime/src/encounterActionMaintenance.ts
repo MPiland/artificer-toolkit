@@ -160,7 +160,11 @@ export function settleCharacterEndedEffects(input: {
   const { hitpoints } = input.state
   const current = Math.min(
     hitpoints.current,
-    effectiveHitPointMaximum(input.maximumHitPoints, input.remaining)
+    effectiveHitPointMaximum(
+      input.maximumHitPoints,
+      input.remaining,
+      hitpoints.maximumFraction
+    )
   )
   const temporary = temporaryHitPointsAfterEffectsEnd(
     { amount: hitpoints.temp, sourceEffectId: hitpoints.tempSourceEffectId ?? null },
@@ -254,7 +258,7 @@ export function planEncounterMaintenanceOwner(input: {
       }
       const currentHitPoints = Math.min(
         actor.currentHitPoints,
-        effectiveHitPointMaximum(actor.maxHitPoints, input.remaining)
+        effectiveHitPointMaximum(actor.maxHitPoints, input.remaining, actor.maximumFraction)
       )
       const temporary = releasedTemporary(actor)
       if (
