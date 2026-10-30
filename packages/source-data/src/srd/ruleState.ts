@@ -250,7 +250,8 @@ const mechanicsByConditionCode: Readonly<
     { kind: 'SPEED', numerator: 1, denominator: 2, minimumLevel: 2 },
     { ...disadvantageOn({ kind: 'ATTACKS_BY' }), minimumLevel: 3 },
     { ...disadvantageOn({ kind: 'SAVES', abilityDefinitionIds: null }), minimumLevel: 3 },
-    { ...SPEED_ZERO, minimumLevel: 5 }
+    { ...SPEED_ZERO, minimumLevel: 5 },
+    { kind: 'DEATH', minimumLevel: 6 }
   ]
 }
 

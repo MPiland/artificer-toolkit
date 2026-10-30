@@ -6,6 +6,7 @@ import type {
   CharacterSheetCommandResponseDto
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { encodeCharacterRecord } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { NO_DEATH_SAVES } from '@artificer-toolkit/schema/subjects/characterState'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { readCharacterRecord } from './stateDocuments'
 
@@ -200,5 +201,43 @@ describe('native Character play-state commands', () => {
     )
     expect(after.receipts).toHaveLength(4)
     expect(after.character?.play.streamVersion).toBe(5)
+  })
+
+  it('dies at once on reaching the authored Exhaustion level, and an HP edit is the correction (SPELLS-10.T1c)', async () => {
+    const { owner, character } = await readySheetFixture()
+    const run = (command: CharacterSheetExecuteInput['command']) =>
+      owner.caller.mutation(execute, { id: character.id, command })
+    const overview = async () =>
+      (await owner.caller.query(api.characters.sheet.get, { id: character.id }))!.overview
+    const setLevel = (level: number, expectedVersion: number) =>
+      run({ type: 'SET_EXHAUSTION', commandId: crypto.randomUUID(), expectedVersion, level })
+
+    const standing = (await overview()).currentHitPoints
+    await setLevel(5, 1)
+    expect(await overview()).toMatchObject({
+      currentHitPoints: standing,
+      deathSaves: NO_DEATH_SAVES
+    })
+
+    await setLevel(6, 2)
+    expect(await overview()).toMatchObject({
+      currentHitPoints: 0,
+      deathSaves: { successes: 0, failures: 3, stable: false }
+    })
+
+    // Lowering the level changes nothing by itself; the D96 HP edit is what revives.
+    await setLevel(5, 3)
+    expect((await overview()).currentHitPoints).toBe(0)
+    await run({
+      type: 'SET_HIT_POINTS',
+      commandId: crypto.randomUUID(),
+      expectedVersion: 4,
+      current: standing
+    })
+    expect(await overview()).toMatchObject({
+      currentHitPoints: standing,
+      deathSaves: NO_DEATH_SAVES,
+      exhaustion: { level: 5 }
+    })
   })
 })

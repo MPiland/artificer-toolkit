@@ -1778,6 +1778,15 @@ A mechanic with `minimumLevel` applies from that level of a leveled condition: a
 level is a level of the System's Exhaustion condition, a Creature's condition row may record a level, and
 any other held condition is at level 1.
 
+A `DEATH` mechanic is written once, when an edit raises a condition onto it, not evaluated while held.
+`rules-runtime/conditionLevelDeath` answers that for the two kinds of writer: the Sheet's `SET_EXHAUSTION`,
+whose Convex and room hosts pass the answer to the pure reducer, and a GM's `UPDATE_ACTOR` condition edit
+on a Creature. A Character goes to 0 hit points with three death save failures (D96), a Creature to 0 and
+defeated (D63), and the existing Concentration ends follow. Only the crossing kills, so a Character revived
+at the level stays alive; a mistaken death is corrected by lowering the level and then editing hit points
+above 0. The schema refuses `DEATH` below level 2: conditions applied by an action or added on the Sheet
+sit at level 1 and pass through neither writer, so a death there would not fire.
+
 `rules-runtime/encounterConditionMechanics` evaluates them. `withEncounterConditionMechanics` pins the
 held conditions' current definitions on a movement target (`conditionDefinitions`) when the Worker loads
 it (`nativeEncounterTargets`), and `applyEncounterConditionMechanics` derives `conditionMechanics` and
