@@ -33,11 +33,11 @@ import {
   encounterSavingThrowAddedDice,
   encounterSourceSightSaveGrants,
   withActiveGrantSpeeds,
-  withCharacterActiveGrants,
   withCreatureActiveGrantSaves,
   withCreatureActiveGrantSkillTotal,
   withHolderStateGrantSaves
 } from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
 import { planEncounterMaintenanceOwner } from '../encounterActionMaintenance.js'
 import { rollModeSourceKey } from '../encounterRollModeReasons.js'
 import { buildMovementTarget } from '../encounterMovementTargets.js'

@@ -217,6 +217,7 @@ function run(
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
         save: { abilityDefinitionId: CONSTITUTION, dc: UNSAVEABLE_DC },

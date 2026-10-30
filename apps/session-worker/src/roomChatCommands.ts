@@ -172,6 +172,8 @@ export async function executeRoomCampaignChatCommand(input: {
       label: character?.label ?? username,
       system,
       resolved,
+      // The dice the Sheet row carries (Bless, Divine Favor) join its roll, as on Convex.
+      addedDice: resolved.addedDice,
       nextInt: input.random
     })
   }

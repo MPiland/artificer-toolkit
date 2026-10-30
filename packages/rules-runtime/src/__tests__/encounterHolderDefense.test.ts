@@ -11,10 +11,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
-import {
-  encounterAttackAgainstContributors,
-  withCharacterActiveGrants
-} from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
+import { encounterAttackAgainstContributors } from '../encounterActiveGrants.js'
 import { encounterAttackSightContributors } from '../encounterAttackPerception.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import { encounterHolderState, withEncounterHolderDefense } from '../encounterHolderDefense.js'

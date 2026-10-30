@@ -133,6 +133,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackDomain: null,
     attackAbility: null,
     attackBonus: null,
     attackRollMode: null,

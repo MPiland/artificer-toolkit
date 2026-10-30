@@ -2,10 +2,8 @@ import { v5 as uuidv5 } from 'uuid'
 import { innateConditionIds } from './encounterInnateConditions.js'
 import type {
   CharacterGrantFoldModifier,
-  CharacterGrantFoldOutput,
-  CharacterGrantFoldSource
+  CharacterGrantFoldOutput
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import {
   incomingDamagePayloadDtoSchema,
   type IncomingDamageProfileDto
@@ -36,7 +34,6 @@ import {
   listActiveEffectGrants,
   record
 } from './character/activeEffectGrantTotals.js'
-import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import {
   effectEventScope,
   isInEffectEventScope,
@@ -107,27 +104,6 @@ function activeGrantContributor(
   }
 }
 
-/** The Character grant fold's `ACTIVE_EFFECT` sources for the holder's grants. */
-function encounterActiveGrantFoldSources(
-  effects: readonly ActiveRuleEffectRecord[]
-): CharacterGrantFoldSource[] {
-  return listActiveEffectGrants(effects).map(({ effectId, modifiers, senses, boundItem }) => {
-    const mechanicSource = { kind: 'ACTIVE_EFFECT', activeEffectId: effectId } as const
-    return {
-      sourceId: createCharacterMechanicSourceKey(mechanicSource),
-      mechanicSource,
-      ...(boundItem && { boundSourceId: createCharacterMechanicSourceKey(boundItem) }),
-      sourceState: null,
-      restrictions: normalizeCharacterGrantRestrictions(undefined),
-      proficiencies: [],
-      senses: [...senses],
-      modifiers: [...modifiers],
-      feats: [],
-      spells: []
-    }
-  })
-}
-
 /** The authored Effects active on a holder that bind one of its items, sorted. */
 export function itemBindingEffectIds(
   effects: readonly ActiveRuleEffectRecord[],
@@ -140,20 +116,6 @@ export function itemBindingEffectIds(
       )
     )
   ].sort()
-}
-
-/**
- * The Character's policy facts with the holder's Active Effect grants folded as sources; the same
- * facts object when the holder carries none.
- */
-export function withCharacterActiveGrants(
-  facts: CharacterRulePolicyInput,
-  effects: readonly ActiveRuleEffectRecord[]
-): CharacterRulePolicyInput {
-  const activeEffects = encounterActiveGrantFoldSources(effects)
-  return activeEffects.length
-    ? { ...facts, grantFoldFacts: { ...facts.grantFoldFacts, activeEffects } }
-    : facts
 }
 
 /**
