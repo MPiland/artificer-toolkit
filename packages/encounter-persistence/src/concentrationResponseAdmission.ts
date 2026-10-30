@@ -18,13 +18,25 @@ import { isNativeConcentrationOccurrence } from './occurrenceOwner.js'
 import { rejectDomain } from './domainRejections.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import {
+  withEncounterAppRoll,
+  type EncounterResponseAnswer
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterReadTransaction } from './ports.js'
 
 const answersWindow = <TResolution extends { kind: string }>(
   resolution: TResolution
 ): resolution is Extract<TResolution, { kind: 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }> =>
   resolution.kind === 'D20_WINDOW_USE' || resolution.kind === 'D20_WINDOW_DECLINE'
+
+/** The answers a concentration save takes: its d20, or the decision on its d20 window. */
+const answersConcentration = (
+  resolution: EncounterResponseAnswer
+): resolution is Extract<
+  EncounterResponseAnswer,
+  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' | 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }
+> =>
+  resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL' || answersWindow(resolution)
 
 /** Admits one concentration child response without preparing facts or writing state. */
 export async function readNativeConcentrationResponseAdmission(
@@ -139,7 +151,7 @@ export async function readNativeConcentrationResponseAdmission(
     occurrence,
     await readPendingSnapshot(ctx, occurrence)
   )
-  const { context, snapshot, stored, window } = pending
+  const { context, snapshot, window } = pending
   if (!authorized(context.application.targetActorId))
     throw new Error('The concentration occurrence is unavailable.')
   const reservedCommand = await ctx.db
@@ -151,6 +163,8 @@ export async function readNativeConcentrationResponseAdmission(
   if (reservedCommand) rejectDomain('COMMAND_ID_REUSED')
   const appRoll = await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
   const resolution = withEncounterAppRoll(response.resolution, appRoll)
+  if (!answersConcentration(resolution))
+    throw new Error('The concentration occurrence is unavailable.')
   if (
     state.automationMode === 'MANUAL' ||
     state.status !== 'ACTIVE' ||
@@ -160,7 +174,7 @@ export async function readNativeConcentrationResponseAdmission(
     snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
     // The roller's d20 while the save awaits it; the decision on a held die while its window does.
     (window
-      ? !answersWindow(resolution) || resolution.requestId !== stored.request.requestId
+      ? !answersWindow(resolution) || resolution.requestId !== window.continuation.request.requestId
       : resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
   )
     throw new Error('The concentration occurrence is unavailable.')

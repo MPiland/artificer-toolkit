@@ -17,6 +17,7 @@ import {
 import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
 import { readCheckActionResponseAdmission } from './basicActionCheckAdmission.js'
 import {
+  isCheckWindowPayload,
   openedD20Window,
   pausedOnAnsweredD20,
   readCheckScope,
@@ -40,7 +41,8 @@ const mismatch = () => new Error('Live Session check result does not match its p
 /** The check action an occurrence waits on, and the d20 window its d20 paused on, if any. */
 function pausedCheckAction({ context }: CheckActionAdmission['pending']) {
   if (context.kind !== 'ENCOUNTER_D20_WINDOW') return { context, window: null }
-  if (context.source.kind !== 'CHECK_ACTION') throw mismatch()
+  if (context.source.kind !== 'CHECK_ACTION' || !isCheckWindowPayload(context.pause.payload))
+    throw mismatch()
   return { context: context.source.context, window: context.pause.payload }
 }
 
