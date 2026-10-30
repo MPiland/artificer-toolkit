@@ -618,6 +618,7 @@ describe('Creature mechanics batch plan', () => {
       afterCurrentHitPoints: 0
     })
     expect(plan.updatedActor).toMatchObject({ currentHitPoints: 0, maxHitPoints: 6 })
+    expect(plan.targetTransition.after.maximumHitPoints).toBe(0)
   })
 
   it('heals up to a maximum the same outcome raised, keeping the stored maximum (SPELLS-8.T16)', () => {
@@ -1582,7 +1583,12 @@ describe('0 hit points (D63)', () => {
       actor: creature({ current: 6, temporary: 0, max: 6 }),
       userId: USER_ID
     })
-    expect(drained.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
+    expect(drained.updatedActor).toMatchObject({
+      currentHitPoints: 0,
+      maxHitPoints: 6,
+      defeated: true
+    })
+    expect(drained.targetTransition.after.maximumHitPoints).toBe(0)
   })
 
   it('revives a defeated Creature that regains hit points', () => {
