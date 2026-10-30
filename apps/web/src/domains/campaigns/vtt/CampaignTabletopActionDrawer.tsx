@@ -396,14 +396,11 @@ export function CampaignTabletopActionDrawer({
     areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none, and they
   // replace an attack the actor makes itself, so a delegated attack takes none.
-  const optionalRuleId =
-    namesNoCreature || selectedAction?.delegateActorId ? null : pickedOptionalRuleId
+  const offersOptionalRules = !namesNoCreature && !selectedAction?.delegateActorId
+  const optionalRuleId = offersOptionalRules ? pickedOptionalRuleId : null
   const sceneTokens = scene?.tokens ?? NO_TOKENS
   const sceneGrid = scene?.grid ?? null
-  const sourceToken = useMemo(
-    () => sceneTokens.find((token) => actorIdByTokenId.get(token.id) === actingActorId),
-    [actorIdByTokenId, actingActorId, sceneTokens]
-  )
+  const sourceToken = sceneTokens.find((token) => actorIdByTokenId.get(token.id) === actingActorId)
   const sourceTokenId = sourceToken?.id ?? null
   // A directed area starts on the caster's own token, so it cannot be drawn without one.
   const areaSize = useMemo<VttAreaSize | null>(() => {
@@ -1323,7 +1320,7 @@ export function CampaignTabletopActionDrawer({
                   ))}
                 </List>
               ) : null}
-              {optionalRules.length && !namesNoCreature && !selectedAction?.delegateActorId ? (
+              {optionalRules.length && offersOptionalRules ? (
                 <Select
                   clearable
                   comboboxProps={{ withinPortal: false }}

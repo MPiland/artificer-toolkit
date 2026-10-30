@@ -759,8 +759,10 @@ const browserProofModes = [
   'character-sheet-browser',
   'character-sheet-spells-browser',
   'v15-workload',
-  'vtt-browser' // Last: it starts its own Worker on the lifecycle Worker's port.
+  // Last: it starts its own Worker on the lifecycle Worker's port.
+  'vtt-browser'
 ]
+const proofRunner = ['-NoProfile', '-NonInteractive', '-File', 'scripts/runLocalConvexProof.ps1']
 function localProofStage(proof, kind) {
   const proofName =
     proof === 'account-deletion-browser'
@@ -768,10 +770,7 @@ function localProofStage(proof, kind) {
       : `r08-${releaseProofAttempt}-${kind}-${proof}`
   return {
     ...stage(`r08-${kind}-${proof}`, `Native local ${kind} proof: ${proof}`, 'pwsh', [
-      '-NoProfile',
-      '-NonInteractive',
-      '-File',
-      'scripts/runLocalConvexProof.ps1',
+      ...proofRunner,
       '-Name',
       proofName,
       '-Proof',
