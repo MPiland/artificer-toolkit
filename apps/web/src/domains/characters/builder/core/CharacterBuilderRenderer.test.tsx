@@ -23,7 +23,8 @@ import { toCharacterFormValues } from '../shared/formNormalization'
 import { createStartingEquipmentDecision } from '../steps/equipment/startingEquipment'
 import {
   CHARACTER_BUILDER_TIMING_MARK,
-  CHARACTER_BUILDER_TIMING_MEASURE
+  CHARACTER_BUILDER_TIMING_MEASURE,
+  startCharacterBuilderTiming
 } from './characterBuilder.performance'
 import {
   characterBuilderVisibleSteps,
@@ -1763,6 +1764,8 @@ function CharacterBuilderTestHarness({
         stepStatuses: progress.stepStatuses,
         visibleSteps: characterBuilderVisibleSteps
       },
+      onStepIntent: () =>
+        startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT),
       status: {
         canFinalize: false,
         canResetForm: false,

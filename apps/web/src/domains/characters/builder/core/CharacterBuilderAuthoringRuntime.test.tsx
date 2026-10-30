@@ -17,7 +17,10 @@ import {
 import type { ContentSnapshotManifestDto } from '@artificer-toolkit/schema/api/contentSnapshots'
 import { normalizeCharacterForDraft } from '../shared/formNormalization'
 import type { BuilderEvaluationRequest } from '../evaluation/builderEvaluation.types'
-import { CHARACTER_BUILDER_TIMING_MARK } from './characterBuilder.performance'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  CHARACTER_BUILDER_TIMING_MEASURE
+} from './characterBuilder.performance'
 
 const mocks = vi.hoisted(() => ({
   commit: vi.fn(),
@@ -328,6 +331,27 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     await waitFor(() => {
       expect(
         performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED, 'mark')
+      ).toHaveLength(1)
+    })
+  })
+
+  it('measures step navigation from the rail to the committed panel', async () => {
+    const user = userEvent.setup()
+    performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT)
+    performance.clearMeasures(CHARACTER_BUILDER_TIMING_MEASURE.STEP_NAVIGATION)
+    renderWithAppProviders(
+      <CharacterBuilderAuthoringRuntime
+        data={editData(characterBuilderPayloadFixture)}
+        mode='edit'
+      />
+    )
+
+    const navigation = await screen.findByRole('navigation', { name: 'Authoring steps' })
+    await user.click(within(navigation).getByText('Race', { exact: true }).closest('a')!)
+
+    await waitFor(() => {
+      expect(
+        performance.getEntriesByName(CHARACTER_BUILDER_TIMING_MEASURE.STEP_NAVIGATION, 'measure')
       ).toHaveLength(1)
     })
   })
