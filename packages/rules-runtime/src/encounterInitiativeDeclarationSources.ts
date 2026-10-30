@@ -16,6 +16,7 @@ import { toCharacterInitiativeActorFacts } from './character/characterInitiative
 import type { CharacterRuleSpellPublication } from './character/contextPreparation.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
 import type { InitiativeDeclarationSource } from './encounterInitiativeDeclarationCompiler.js'
+import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
 import { assertCharacterFactsBoundToActor } from './encounterMovementTargets.js'
 
 type DeclarationSheetFacts = Pick<
@@ -49,7 +50,8 @@ export async function prepareEncounterInitiativeDeclarationSources<
     version: Pick<AuthoredVersionVector[number], 'versionId' | 'version' | 'checksum'>
   }>
 }): Promise<{ sources: readonly InitiativeDeclarationSourceWithController[] }> {
-  const { state, actors, system } = input
+  const { state, system } = input
+  const actors = input.actors.filter(takesInitiativeTurns)
   const sources: InitiativeDeclarationSourceWithController[] = []
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') {

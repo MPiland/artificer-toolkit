@@ -1,6 +1,5 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { v } from 'convex/values'
-import { internal } from '../_generated/api'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import { internalQuery } from '../lib/queries'
 import { internalMutation } from '../lib/mutations'
@@ -8,13 +7,12 @@ import {
   socialRetentionApplyInputSchema,
   socialRetentionApplyResultSchema,
   socialRetentionPreviewInputSchema,
-  socialRetentionPreviewResultSchema,
-  type SocialRetentionPreviewInput
+  socialRetentionPreviewResultSchema
 } from '@artificer-toolkit/schema/api/socialRetention'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
+import { deleteRetentionMatches, selectRetentionPage } from './retention'
 
 const fixtureCampaignName = 'Encounter execution fixture'
-const paginationLimits = { maximumRowsRead: 8, maximumBytesRead: 1024 * 1024 }
 
 const fixtureRetentionArgs = {
   userIds: v.array(v.string()),
@@ -73,31 +71,25 @@ async function fixtureScope(
 
 async function isFixturePage(
   ctx: QueryCtx | MutationCtx,
-  input: SocialRetentionPreviewInput,
+  page: Awaited<ReturnType<typeof selectRetentionPage>>['page'],
   scope: FixtureScope
 ) {
-  const pagination = { ...input.paginationOpts, ...paginationLimits }
-  if (input.phase === 'INVITATIONS') {
-    const page = await ctx.db.query('campaignInvites').paginate(pagination)
-    return page.page.every(
+  if (page.phase === 'INVITATIONS')
+    return page.rows.every(
       (row) =>
         scope.listingId !== null &&
         row.listingId === scope.listingId &&
         scope.userIds.has(row.createdBy) &&
         scope.userIds.has(row.recipientUserId)
     )
-  }
-  if (input.phase === 'APPLICATIONS') {
-    const page = await ctx.db.query('socialApplications').paginate(pagination)
-    return page.page.every(
+  if (page.phase === 'APPLICATIONS')
+    return page.rows.every(
       (row) =>
         scope.listingId !== null &&
         row.listingId === scope.listingId &&
         scope.profileIds.has(row.applicantProfileId)
     )
-  }
-  const page = await ctx.db.query('socialReports').paginate(pagination)
-  for (const row of page.page) {
+  for (const row of page.rows) {
     if (!scope.profileIds.has(row.reporterProfileId)) return false
     if (row.targetProfileId !== null && !scope.profileIds.has(row.targetProfileId)) return false
     if (row.targetListingId !== null && row.targetListingId !== scope.listingId) return false
@@ -147,11 +139,12 @@ export const previewFixturePage = internalQuery({
   handler: async (ctx, { userIds, campaignId, input }) => {
     const parsed = socialRetentionPreviewInputSchema.parse(input)
     const scope = await fixtureScope(ctx, userIds, campaignId)
-    const [result, fixtureOnly] = await Promise.all([
-      ctx.runQuery(internal.social.retention.preview, parsed),
-      isFixturePage(ctx, parsed, scope)
-    ])
-    return { ...result, fixtureOnly }
+    const { page, matches, summary } = await selectRetentionPage(ctx, parsed)
+    return {
+      ...summary,
+      eligible: matches.length,
+      fixtureOnly: await isFixturePage(ctx, page, scope)
+    }
   }
 })
 
@@ -161,8 +154,9 @@ export const applyFixturePage = internalMutation({
   handler: async (ctx, { userIds, campaignId, input }) => {
     const parsed = socialRetentionApplyInputSchema.parse(input)
     const scope = await fixtureScope(ctx, userIds, campaignId)
-    if (!(await isFixturePage(ctx, parsed, scope)))
+    const selection = await selectRetentionPage(ctx, parsed, true)
+    if (!(await isFixturePage(ctx, selection.page, scope)))
       throw new Error('Fixture retention page contains foreign records.')
-    return ctx.runMutation(internal.social.retention.apply, parsed)
+    return deleteRetentionMatches(ctx, selection)
   }
 })

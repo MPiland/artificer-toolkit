@@ -364,5 +364,9 @@ export async function insertReinforcementInitiative(input: {
   })
   const reinforced = orderedActors.find((candidate) => candidate.id === actor.id)
   if (!reinforced) throw new Error('Reinforced actor is unavailable.')
-  return { actor: reinforced, actors: orderedActors, state: result }
+  // An owned actor acting on its owner's turn is in no round; the order leaves it as it is.
+  const unordered = input.actors.filter(
+    (candidate) => !result.participants.some(({ actorId }) => actorId === candidate.id)
+  )
+  return { actor: reinforced, actors: [...orderedActors, ...unordered], state: result }
 }

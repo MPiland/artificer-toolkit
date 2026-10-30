@@ -54,10 +54,6 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-function atFixedTime() {
-  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-27T12:00:00.000Z') })
-}
-
 /** Receipt ledgers store `*Json` bodies canonically, so Convex reads them back key-sorted. */
 function canonicalReceiptJson(document: Record<string, unknown>) {
   return Object.fromEntries(
@@ -140,6 +136,9 @@ function golden(value: unknown) {
 
 async function conformance<Result>(base: PlayerControlFixture, operation: Operation<Result>) {
   const before = await snapshotStore(base)
+  // Ahead of every commit: a transaction's clock cannot run behind the last one.
+  const fixedTime = Date.now() + 60_000
+  const atFixedTime = () => vi.useFakeTimers({ toFake: ['Date'], now: fixedTime })
   const memory = createMemoryEncounterStore()
   for (const table of tables) memory.load(table, before[table])
 

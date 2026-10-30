@@ -449,9 +449,12 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       parent.field(['valueDomainCode']).eq('SPEED'),
       parent.field(['modifierKind']).eq('SET_VALUE')
     ])
-    const isLengthValue = and([
-      isLength,
-      or([not(isSpeedSetValue), local.field(['equalsSpeedId']).empty()])
+    const isLengthValue = or([
+      and([isLength, or([not(isSpeedSetValue), local.field(['equalsSpeedId']).empty()])]),
+      and([
+        parent.field(['modifierKind']).eq('REPLACE_RANGE_KIND'),
+        local.field(['rangeKind']).eq('DISTANCE')
+      ])
     ])
     const usesScalarMultiplier = or([
       local.field(['valueKind']).eq('PROFICIENCY_BONUS'),

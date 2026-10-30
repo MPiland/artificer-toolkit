@@ -2,6 +2,7 @@ import type {
   CharacterActionCandidate,
   CharacterActionRuleEntryPoint
 } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRulePolicyInput,
@@ -14,6 +15,7 @@ import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
+import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
@@ -35,7 +37,7 @@ type ActionDecision = CharacterRulePolicyOutput['actionDecisions'][number]
 type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
   'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
->
+> & { grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> }
 
 /**
  * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
@@ -216,13 +218,23 @@ export function buildCharacterSpellCastActions(input: {
     // An at-will grant's lockout keys every creature its casts target to the grant (D156).
     const perTargetLockout =
       access?.perTargetLockout && cast.castMode === 'AT_WILL' ? { grantId: access.grantId } : null
+    const range = dnd5eSpellRangeReplacement(policyOutput.grantFold, {
+      id: cast.spellId,
+      level: cast.spellLevel,
+      magicSchoolId: spell.magicSchoolId
+    })
     for (const [index, spellGroup] of effects.entries()) {
-      const group = mergeOnHitRiders(
-        withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? []),
-        input.onHitRiders ?? [],
-        undefined,
-        cast.spellId
-      )
+      const typedGroup = withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? [])
+      const rangedGroup = range
+        ? {
+            ...typedGroup,
+            invocation: {
+              ...typedGroup.invocation,
+              range: { id: typedGroup.invocation.range.id, ...range }
+            }
+          }
+        : typedGroup
+      const group = mergeOnHitRiders(rangedGroup, input.onHitRiders ?? [], undefined, cast.spellId)
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
       if (!mechanic) continue

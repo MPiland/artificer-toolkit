@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativeState'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { EncounterConflictError } from '@artificer-toolkit/rules-runtime/encounterErrors'
+import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 
 import { readRunActors, readRunState, changedFields } from './documents.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -133,7 +134,7 @@ export function createEncounterInitiativeStore(ctx: EncounterWriteContext) {
           runState.automationMode === 'MANUAL')
       )
         throw new EncounterConflictError('Only each-round advancement may replace a settled round.')
-      const actors = await readRunActors(ctx, runState)
+      const actors = (await readRunActors(ctx, runState)).filter(takesInitiativeTurns)
       const participants = [...staged.participants].sort((left, right) =>
         left.actorId.localeCompare(right.actorId)
       )

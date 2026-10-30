@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import { components, internal } from '../_generated/api'
 import { internalAction } from '../_generated/server'
+import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { CONTENT_SNAPSHOT_FIRST_RETRY_MS, CONTENT_SNAPSHOT_PAGE_MAX_ROOTS } from './heads'
 import {
   CONTENT_SNAPSHOT_BUILD_DELAY_MS,
@@ -76,9 +77,14 @@ export const build = internalAction({
             })
             return null
           }
-          // Parsed from the query's own serialization; the part build validates every root.
-          for (const json of page.sources)
-            sources.push(JSON.parse(json) as ContentSnapshotListSource)
+          // Subject schemas run here, past the 1 s query limit; the part build validates every root.
+          for (const json of page.sources) {
+            const { document, ...source } = JSON.parse(json) as ContentSnapshotListSource
+            sources.push({
+              ...source,
+              ...parsePublicationDocument(kind, document)
+            } as ContentSnapshotListSource)
+          }
           cursor = page.continueCursor
           isDone = page.isDone
         }

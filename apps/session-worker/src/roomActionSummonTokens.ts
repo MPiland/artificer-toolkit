@@ -105,7 +105,8 @@ export async function removeRoomSummonTokens(input: {
 /**
  * Ends the conjured creatures whose carrier effect the command just ended (D187b), after all its
  * other writes. The check is stateless, so a creature a path could not reap here goes with the next
- * command's sweep. Returns whether any creature was removed.
+ * command's sweep. Returns whether any creature was removed and whether one acting now was left
+ * standing for the room to end its turn (D200).
  */
 export const endRoomOrphanedSummons = (input: {
   ctx: EncounterWriteContext

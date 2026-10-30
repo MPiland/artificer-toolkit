@@ -45,6 +45,7 @@ export function compiledTestSpellCast(input: {
     onHitRiders: input.onHitRiders ?? [],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
+      grantFold: { modifiers: [] },
       resources: [],
       spellCastDecisions: [{ candidateId: cast.candidateId, ...input.decision }],
       spellCastMechanics: [
@@ -85,10 +86,7 @@ export function compiledTestSpellCast(input: {
         slotPools: [],
         fusionStrategy: 'NONE' as const
       }
-    } satisfies Pick<
-      CharacterRulePolicyOutput,
-      'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
-    >,
+    },
     spellsById: new Map([[spell.id, compileSpell(spell)]]),
     firstSequence: 10,
     characterLevel: 1
