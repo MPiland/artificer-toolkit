@@ -10,7 +10,7 @@ import type { CharacterFormValues } from '../core/characterBuilder.types'
 import { getAssignedAbilityCodes } from '../steps/abilities/abilityGeneration'
 import { isHitpointProgressionComplete } from '../steps/abilities/characterAbilities'
 
-export type CharacterBuilderProgressState = {
+type CharacterBuilderProgressState = {
   firstBlockingStatus?: Exclude<AuthoringStepProgressStatus, 'complete'>
   firstBlockingStepId?: CharacterBuilderStepId
   progressSummary: AuthoringProgressSummary

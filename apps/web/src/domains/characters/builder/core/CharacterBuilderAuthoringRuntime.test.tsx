@@ -371,28 +371,26 @@ describe('CharacterBuilderAuthoringRuntime', () => {
 
   it('counts live values once a resolve fails', async () => {
     const user = userEvent.setup()
+    mocks.resolve.mockResolvedValue(characterBuilderDraftPayloadFixture)
     renderWithAppProviders(
       <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
         mode='edit'
       />
     )
-    await user.click(await screen.findByRole('link', { name: 'Basics' }))
-    const name = await screen.findByRole('textbox', { name: /character name/i })
-    const completed = await screen.findByLabelText(/^\d+ of \d+ steps complete$/)
-    const before = Number.parseInt(completed.getAttribute('aria-label') ?? '', 10)
+    await user.click(await screen.findByRole('link', { name: 'Race' }))
+    const completedSteps = () =>
+      Number.parseInt(
+        screen.getByLabelText(/^\d+ of \d+ steps complete$/).getAttribute('aria-label') ?? '',
+        10
+      )
+    await screen.findByRole('button', { name: 'Choose Race' })
+    const before = completedSteps()
     mocks.resolve.mockRejectedValue(new Error('Evaluation failed'))
 
-    await user.clear(name)
+    await chooseRace(user, 'Sea Elf', 'Choose Race')
 
-    await waitFor(() =>
-      expect(
-        Number.parseInt(
-          screen.getByLabelText(/^\d+ of \d+ steps complete$/).getAttribute('aria-label') ?? '',
-          10
-        )
-      ).toBe(before - 1)
-    )
+    await waitFor(() => expect(completedSteps()).toBe(before + 1))
   })
 
   it('measures step navigation from the rail to the committed panel', async () => {
