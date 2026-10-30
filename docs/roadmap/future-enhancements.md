@@ -207,6 +207,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Added damage dice outside the single-target attack (D156, SPELLS-4.T2d):** Branding Smite ends on the first hit of a single-target attack; area and multi-target attack outcomes don't consume it, and outcome branches that return early add no damage dice. Smites and marks are nearly always used on one weapon attack.
 - **Reduce's damage floor (D156, SPELLS-4.T2d):** a reduced creature's damage floors at 0 (the System floor), where the SRD says 1. It only matters when a 1-damage hit rolls high on the d4.
 - **Bestow Curse's wasted action (D156, SPELLS-4.T2d):** the start-of-turn save that loses the turn's action is a GM ruling. It needs a held effect's turn-start save that repeats every turn and loses that turn's action on a failure. The other curse options resolve on their own.
+- **Spell-scoped damage modifiers (SPELLS-31.T5i1):**
+  - An untyped spell damage bonus adds once on each damage path, so a spell with both an attack path and a save path could show it on both. No SRD spell does this.
+  - Room roll-mode, critical and trait checks know only the spell's id, so a school, level or damage type condition there fails closed (the bonus is not offered). Damage bonuses, the case the SRD needs, read the full spell.
 
 ### Enlarge/Reduce size change (D156)
 
@@ -446,6 +449,10 @@ Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM
 ### Regenerate regrows limbs (D156)
 
 Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
+
+### Pact of the Blade leftovers (SPELLS-31.T4v, 2026-10-29)
+
+Pact of the Blade binds a melee weapon the Warlock already holds; conjuring a new weapon in a chosen form, the weapon vanishing 1 minute after it is more than 5 feet away, and the 1-hour ritual that bonds a magic weapon stay in the description. The bound proficiency and magical trait apply in the live room only, because the Sheet does not fold active-effect grants into its values (it also shows Shillelagh's base die). Folding every active grant into the Sheet's evaluation, the same fold the room uses (`withCharacterActiveGrants`), would fix both and change many Sheet values (Shield of Faith, Bless), so it is its own work item.
 
 ### Standing effects that never return or arm on obtain (SPELLS-31.2, 2026-10-25)
 

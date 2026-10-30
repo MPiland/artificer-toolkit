@@ -1,5 +1,6 @@
 import { v5 as uuidv5 } from 'uuid'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { AreaAimDto } from '@artificer-toolkit/schema/shared/spatialFacts'
 
 const NAMESPACE = '6b0c2f0e-3d0a-5c1e-9f55-0a7f1d9a4c21'
 
@@ -23,8 +24,9 @@ export function delegatedLegendaryContinuationCommandId(parentCommandId: string)
 /**
  * The root command for a rule the Encounter raises on a creature's behalf, such as a passive effect
  * on reaching 0 hit points or a Legendary Action delegated from a turn end. It aims at the holder's
- * own space: the committed parent command is the only caller of this builder, and admission proves
- * the link against that command's receipt.
+ * own space, or where the aim a delegated Legendary Action retained puts it: the committed parent
+ * command is the only caller of this builder, and admission proves the link against that command's
+ * receipt.
  */
 export function systemTriggerAreaCommand(input: {
   encounterId: string
@@ -34,6 +36,7 @@ export function systemTriggerAreaCommand(input: {
   actionId: string
   scene: { sceneId: string; expectedSceneVersion: number }
   trigger?: 'LEGENDARY_ACTION'
+  aim?: AreaAimDto
 }): ResolveEncounterActionInputDto {
   return {
     type: 'RESOLVE_ACTION',
@@ -42,7 +45,7 @@ export function systemTriggerAreaCommand(input: {
     commandId: systemTriggerCommandId(input.parentCommandId, input.holderActorId, input.actionId),
     actorId: input.holderActorId,
     actionId: input.actionId,
-    target: { kind: 'CASTER_CENTERED', ...input.scene },
+    target: { ...(input.aim ?? { kind: 'CASTER_CENTERED' }), ...input.scene },
     acceptedWieldConflict: null,
     acknowledgedWarnings: [],
     sceneContext: null,

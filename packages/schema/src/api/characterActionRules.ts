@@ -7,7 +7,12 @@ import {
 } from './characterGrantFoldRules.js'
 import { characterResourcesSchema } from './characterResourceRules.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
-import { attackKindSchema, equipmentGripSchema, modifierScopeKindSchema } from '../shared/enums.js'
+import {
+  attackDomainCodeSchema,
+  attackKindSchema,
+  equipmentGripSchema,
+  modifierScopeKindSchema
+} from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { higherLevelCheckDtoSchema, reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
@@ -443,8 +448,7 @@ const actionModifierGroupSchema = lazySchema(() =>
           ability: z.nullable(identitySchema),
           state: z.enum(['APPLIED', 'SUPPRESSED']),
           scope: modifierScopeKindSchema,
-          deferredRequirements: characterGrantFoldRestrictionSchema,
-          scopeSpellIds: z.array(identitySchema).check(z.maxLength(500))
+          deferredRequirements: characterGrantFoldRestrictionSchema
         })
       )
       .check(z.maxLength(1_000))
@@ -471,6 +475,8 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
       stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
     ),
     attackKind: z.nullable(attackKindSchema),
+    // The modifier domain the attack reads (its added dice), as the System classifies the attack.
+    attackDomain: z.nullable(attackDomainCodeSchema),
     // The ability the attack is made with, which an ability-scoped attack grant is read against.
     attackAbility: z.nullable(systemCoreCodeSchema),
     attackBonus: z.nullable(integerSchema),
@@ -702,6 +708,9 @@ export const characterSpellActionFactsSchema = lazySchema(() =>
     .array(
       z.strictObject({
         spellId: identitySchema,
+        /** The spell's own level (0 for a cantrip) and school, which spell-scoped modifiers read. */
+        level: integerSchema.check(z.gte(0)).check(z.lte(9)),
+        magicSchoolId: identitySchema,
         /** Whether a higher cast level changes what the spell does, so the Character may list those levels. */
         readsCastLevel: booleanSchema,
         effects: z

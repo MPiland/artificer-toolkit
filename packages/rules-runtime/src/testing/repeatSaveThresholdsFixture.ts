@@ -93,6 +93,7 @@ export async function plannedThresholdDefinition(
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
         save: { abilityDefinitionId: CONSTITUTION, dc: SAVE_DC },

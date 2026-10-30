@@ -4,7 +4,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { listActiveGrantListings } from '@artificer-toolkit/rules-runtime/activeGrantListings'
+import {
+  heldConcentration,
+  listActiveGrantListings
+} from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { listConcealment } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import {
@@ -13,7 +16,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readActorConcentration } from './concentrationListing.js'
+import { readActorConcentrationEffects } from './concentrationListing.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { readEncounterInitiativeRound } from './initiativeStore.js'
 import type { EncounterProjectionTransaction } from './ports.js'
@@ -54,11 +57,12 @@ async function withActiveGrants<Projection extends { actors: readonly { id: stri
         const effects = await listActiveRuleEffects(ctx, turnEffectOwner(actor, state.id), {
           ownerVerified: true
         })
+        const concentrationEffects = await readActorConcentrationEffects(ctx, { state, actor })
         return [
           actor.id,
           {
             activeGrants: listActiveGrantListings(effects),
-            concentration: await readActorConcentration(ctx, { state, actor }),
+            concentration: concentrationEffects && heldConcentration(concentrationEffects),
             concealment: listConcealment(effects)
           }
         ] as const

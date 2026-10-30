@@ -3,6 +3,7 @@ import { getCharacterSheetDisplayAdjustments } from '@artificer-toolkit/rules-ru
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
 import { requireCharacterPresentation } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import type { QueryCtx } from '../_generated/server'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 
@@ -38,6 +39,13 @@ export function projectCharacterSheetFacts(
 ) {
   // Sheet views read prose by id (D163); commit's evaluation context carries none.
   const { presentation } = requireCharacterPresentation(facts.prepared.context)
+  // The Sheet folds the Character's active grants exactly as the room does.
+  const ruleEvaluation = evaluateCharacterActiveGrantRules({
+    gameSystemId: facts.prepared.character.systemId,
+    evaluation: facts.ruleEvaluation,
+    activeEffects: facts.activeEffects,
+    vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+  })
   const { sheet, ruleProjection } = projectCharacterSheetBundle({
     character: facts.prepared.character,
     resolution: facts.prepared.resolution,
@@ -48,9 +56,9 @@ export function projectCharacterSheetFacts(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
-    ruleEvaluation: facts.ruleEvaluation,
+    ruleEvaluation,
     activeEffects: facts.activeEffects,
-    concentration: facts.concentration
+    concentrationEffects: facts.concentrationEffects
   })
   return {
     active: facts.active,
@@ -65,7 +73,7 @@ export function projectCharacterSheetFacts(
     ),
     evaluationInput: facts.evaluationInput,
     activeEffects: facts.activeEffects,
-    ruleEvaluation: facts.ruleEvaluation,
+    ruleEvaluation,
     ruleProjection,
     resolution: facts.prepared.resolution,
     spellsById: facts.prepared.context.spellsById,

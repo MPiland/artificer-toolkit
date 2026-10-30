@@ -357,8 +357,8 @@ const sorcererSpellLimits = [
   }
 ]
 
-// Sorcery Points charge — resets on long rest
-const sorceryPointsCharge = {
+// Sorcery Points charge — resets on long rest; subclass features spend it too.
+export const sorceryPointsCharge = {
   id: classRowId(S, 2, 1),
   limitKind: 'CLASS_LEVEL' as const,
   scalingKind: SCALING.NONE,

@@ -54,7 +54,7 @@ export function evaluateDnd5e2014CharacterActions(
       spellcasting: parsedInput.spellcasting,
       spellCastLevel: null,
       spellDamageBonus: 0,
-      spellId: null
+      spell: null
     }
     const boundResource =
       sourceAvailable && resourceUse !== null && resource !== null && resource.state === 'RESOLVED'
@@ -103,7 +103,7 @@ export function evaluateDnd5e2014CharacterActions(
       spellcasting,
       spellCastLevel: candidate.castLevel,
       spellDamageBonus: sourceMechanics?.damageBonus ?? 0,
-      spellId: candidate.spellId
+      spell: spell ?? null
     }
     return {
       sequence: candidate.sequence,
@@ -130,7 +130,7 @@ export function evaluateDnd5e2014CharacterActions(
         spellcasting: parsedInput.spellcasting,
         spellCastLevel: null,
         spellDamageBonus: 0,
-        spellId: spell.spellId
+        spell
       })
     )
   }))

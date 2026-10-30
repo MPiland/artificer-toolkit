@@ -1,4 +1,4 @@
-import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
+import type { FacetAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
@@ -21,7 +21,8 @@ import {
   UNCONDITIONAL_SNEAK_ATTACK_ID,
   gatedSneakAttack,
   riderGate,
-  unconditionalSneakAttack
+  unconditionalSneakAttack,
+  withStrengthRiderAmount
 } from '../testing/unconditionalSneakAttack.js'
 import {
   SRD,
@@ -48,16 +49,24 @@ function rogue(input: {
   withRider: boolean
   gate?: FacetAuthored
   weapon?: 'Longsword' | 'Rapier'
+  /** A rider in place of the unconditional one. */
+  rider?: FeatureAuthored
+  strength?: number
 }) {
   return evaluateSrdCharacter({
-    abilities: { STRENGTH: 16 },
+    abilities: { STRENGTH: input.strength ?? 16 },
     classes: [
       ...(input.fighterLevel ? [{ label: 'Fighter', level: input.fighterLevel }] : []),
       { label: 'Rogue', level: input.level }
     ],
     items: [{ label: input.weapon ?? 'Longsword', equipped: true }],
     extraFeatures: input.withRider
-      ? [input.gate ? gatedSneakAttack(ROGUE.id, input.gate) : unconditionalSneakAttack(ROGUE.id)]
+      ? [
+          input.rider ??
+            (input.gate
+              ? gatedSneakAttack(ROGUE.id, input.gate)
+              : unconditionalSneakAttack(ROGUE.id))
+        ]
       : [],
     features: input.withRider
       ? [
@@ -86,9 +95,13 @@ async function longswordHit(input: {
   influence?: 'ADVANTAGE' | 'DISADVANTAGE'
   /** What the Scene measured of the target's enemies; absent for an attack without a Scene. */
   enemyProximity?: EnemyProximity
+  rider?: FeatureAuthored
+  strength?: number
 }) {
   const character = rogue({
     level: input.level,
+    ...(input.rider === undefined ? {} : { rider: input.rider }),
+    ...(input.strength === undefined ? {} : { strength: input.strength }),
     ...(input.fighterLevel === undefined ? {} : { fighterLevel: input.fighterLevel }),
     ...(input.gate === undefined ? {} : { gate: input.gate }),
     ...(input.weapon === undefined ? {} : { weapon: input.weapon }),
@@ -288,6 +301,49 @@ describe('a passive Feature’s ON_HIT damage rides on the weapon hit (D119)', (
     expect(decision.mechanic.outcomes.filter((outcome) => outcome.kind === 'DAMAGE')).toHaveLength(
       1
     )
+  })
+})
+
+describe('a fixed rider sized by an ability modifier (SPELLS-31.T4v)', () => {
+  const NECROTIC = srdDamageTypeId('NECROTIC')
+  const RIDER_OUTCOME_ID = testUuid(0xc7)
+  const rider = withStrengthRiderAmount(unconditionalSneakAttack(ROGUE.id), {
+    outcomeId: RIDER_OUTCOME_ID,
+    damageTypeId: NECROTIC,
+    amount: 0
+  })
+  const riderExpressions = (strength: number) => {
+    const { decision } = itemAction(
+      rogue({ level: 1, withRider: true, rider, strength }),
+      'Longsword',
+      {
+        attackKind: 'MELEE',
+        grip: 'ONE_HANDED'
+      }
+    )
+    return decision.mechanic.outcomes.flatMap((outcome) =>
+      outcome.kind === 'DAMAGE' && outcome.damageTypeId === NECROTIC ? [outcome.expression] : []
+    )
+  }
+
+  it('states the amount and its bonuses as one whole number on the Sheet, never below 0', () => {
+    expect(riderExpressions(16)).toEqual(['3'])
+    // Strength 8 is -1, which no authored minimum lifts: the rider deals 0, not -1.
+    expect(riderExpressions(8)).toEqual(['0'])
+  })
+
+  it('deals the stated amount on a hit, and nothing when the modifier is negative', async () => {
+    // A proposal the floor took to 0 applies nothing, as a dice total floored to 0 does.
+    // Rogue 1, Longsword 1d8 + Strength; the rider rolls no dice.
+    const strong = await longswordHit({ level: 1, rider, strength: 16, rolls: [HIT, 3] })
+    expect(damage(strong).map(({ requested, damageTypeId }) => [requested, damageTypeId])).toEqual([
+      [4 + 3, SLASHING],
+      [3, NECROTIC]
+    ])
+    const weak = await longswordHit({ level: 1, rider, strength: 8, rolls: [HIT, 3] })
+    expect(damage(weak).map(({ requested, damageTypeId }) => [requested, damageTypeId])).toEqual([
+      [4 - 1, SLASHING]
+    ])
   })
 })
 

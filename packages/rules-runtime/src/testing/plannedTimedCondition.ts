@@ -56,6 +56,7 @@ export function compiledTestSpellCast(input: {
             activation: null,
             rangeLabel: null,
             attackKind: null,
+            attackDomain: null,
             attackAbility: null,
             attackBonus: null,
             attackRollMode: null,

@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import { serverAggregateChoicePendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { turnCoordinatorRootDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPending'
+import { turnLegendaryActionEvidenceDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionTurnResources'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_DND5E_LEGENDARY_ACTION_ELIGIBILITY_GRAPH_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/encounterLifecycle.js'
@@ -34,6 +35,7 @@ import {
   prepareTurnLegendaryActions
 } from '../encounterTurnLegendaryAction.js'
 import { discoverTurnLegendaryWindows } from '../encounterTurnLegendaryDiscovery.js'
+import { projectNativeLegendaryPending } from '../encounterTurnPending.js'
 import {
   evaluateLegendaryActionEligibility,
   requireLegendaryActionCapabilityDefinitionIds
@@ -1161,9 +1163,143 @@ describe('Legendary Action turn window', () => {
         resolution: { kind: 'DELEGATED', selectedOptionId: wing.optionId }
       }
     ])
-    expect(delegatedLegendaryOption(done.root)).toEqual(wing)
+    expect(delegatedLegendaryOption(done.root)).toEqual({ option: wing })
     // The delegated root spends the charges and rolls the saves, so the turn changes no one.
     expect(done.actors).toEqual(actors)
+  })
+
+  it('offers an aimed area option with its area and delegates it with the aim its controller gives', async () => {
+    // Homebrew variants of the SRD Wing Attack, with its save, damage and prone: a 60-foot cone the
+    // dragon breathes, and a 20-foot sphere centered on a point within 120 feet.
+    const wingAttack = srdLegendaryActions.options?.find((option) =>
+      option.label.startsWith('Wing Attack')
+    )
+    const [effect] = wingAttack?.effects ?? []
+    if (!wingAttack || effect?.invocation.kind !== 'ACTION' || !effect.invocation.shape)
+      throw new Error('Expected the SRD Wing Attack area.')
+    const { id: shapeId } = effect.invocation.shape
+    const cone = {
+      invocation: {
+        ...effect.invocation,
+        shape: {
+          id: shapeId,
+          shapeKind: 'CONE' as const,
+          length: { amount: 60, unit: 'FEET' as const }
+        }
+      },
+      area: { kind: 'DIRECTED', area: { kind: 'CONE', length: { amount: 60, unit: 'FEET' } } },
+      aim: { kind: 'DIRECTED' as const, origin: { x: 200, y: 150 }, toward: { x: 500, y: 150 } }
+    }
+    const burst = {
+      invocation: {
+        ...effect.invocation,
+        range: {
+          id: effect.invocation.range.id,
+          rangeKind: 'DISTANCE' as const,
+          amount: 120,
+          unit: 'FEET' as const
+        },
+        shape: {
+          id: shapeId,
+          shapeKind: 'SPHERE' as const,
+          radius: { amount: 20, unit: 'FEET' as const }
+        }
+      },
+      area: { kind: 'POINT', area: { kind: 'RADIUS', radius: { amount: 20, unit: 'FEET' } } },
+      aim: { kind: 'POINT' as const, point: { x: 400, y: 150 } }
+    }
+    for (const [variant, other] of [
+      [cone, burst],
+      [burst, cone]
+    ] as const) {
+      const actors = [
+        srdCreatureActor({
+          id: DRAGON_ID,
+          creature: {
+            ...ancientRedDragon,
+            features: ancientRedDragon.features?.map((feature) =>
+              feature.id === srdLegendaryActions.id
+                ? {
+                    ...feature,
+                    options: [
+                      { ...wingAttack, effects: [{ ...effect, invocation: variant.invocation }] }
+                    ]
+                  }
+                : feature
+            )
+          },
+          featureCharges: { [srdLegendaryActions.id]: 0 }
+        }),
+        wolfActor
+      ]
+      // The area coordinator aims it from the owner's token, so an owner without one is offered none.
+      expect(await offered({ actors, outgoingActorId: WOLF_ID })).toEqual([])
+      const tokenBoundActorIds = [DRAGON_ID]
+      const {
+        snapshot,
+        context,
+        tailAttack: option
+      } = await pausedChoice(actors, wingAttack.label, tokenBoundActorIds)
+      expect(option).toMatchObject({
+        targetActorIds: [DRAGON_ID],
+        delegated: true,
+        area: variant.area,
+        featureCost: 2
+      })
+      // The client sees the area it aims.
+      expect(
+        projectNativeLegendaryPending({
+          gameSystemId: SRD_SYSTEM_ID,
+          snapshot,
+          occurrenceId: OCCURRENCE_ID,
+          occurrenceVersion: 1,
+          encounterVersion: 1
+        })
+      ).toMatchObject({ options: [{ optionId: option.optionId, area: variant.area }] })
+      // An answer without the aim its area asks for, or with another kind of aim, is stale.
+      for (const aim of [undefined, other.aim])
+        await expect(
+          prepare({
+            actors,
+            turnRoot: context.root,
+            pending: snapshot,
+            resolution: {
+              kind: 'LEGENDARY_OPTION',
+              optionId: option.optionId,
+              targetActorId: DRAGON_ID,
+              ...(aim ? { aim } : {})
+            },
+            tokenBoundActorIds
+          })
+        ).rejects.toThrow('Legendary Action choice is stale.')
+      const done = await prepare({
+        actors,
+        turnRoot: context.root,
+        pending: snapshot,
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: option.optionId,
+          targetActorId: DRAGON_ID,
+          aim: variant.aim
+        },
+        tokenBoundActorIds
+      })
+      if (done.kind !== 'COMPLETE') throw new Error('The delegation settles the window.')
+      const delegation = {
+        choice: context.choice,
+        selectionChecksum: checksumRuleDocument(context.choice),
+        resolution: { kind: 'DELEGATED', selectedOptionId: option.optionId, aim: variant.aim }
+      }
+      expect(done.root.completedLegendaryActions).toEqual([delegation])
+      expect(delegatedLegendaryOption(done.root)).toEqual({ option, aim: variant.aim })
+      expect(done.actors).toEqual(actors)
+      // Retained evidence keeps the aim its area asks for.
+      const { aim: _aim, ...unaimed } = delegation.resolution
+      expect(
+        turnLegendaryActionEvidenceDtoSchema.safeParse({ ...delegation, resolution: unaimed })
+          .success
+      ).toBe(false)
+    }
   })
 
   it('checks each owner again before its window, after earlier windows this turn (D51)', async () => {

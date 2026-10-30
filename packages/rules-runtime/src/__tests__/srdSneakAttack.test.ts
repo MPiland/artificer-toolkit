@@ -36,7 +36,8 @@ const circumstances = (
   rollMode,
   enemyProximity: nearestFeet === undefined ? null : { nearestFeet },
   targetCreatureTypeId: null,
-  moveToward: null
+  moveToward: null,
+  attackItemBindingEffectIds: []
 })
 
 /** Whether the reduced Effect still owes its Sneak Attack entry for these circumstances. */

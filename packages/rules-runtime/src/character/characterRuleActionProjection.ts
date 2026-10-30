@@ -1,4 +1,7 @@
 import type { CharacterResolvedActionMechanic } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+
+import { activeAttackRollDice, activeDamageDiceTo } from './activeEffectGrantTotals.js'
 
 import type {
   CharacterSheetProjectedMechanic,
@@ -60,16 +63,44 @@ function projectOutcome(
   }
 }
 
+/** The effects whose dice join a Character's action rows. */
+export interface CharacterRuleRowEffects {
+  /** The Character's active effects; their attack and damage dice join the row as the room rolls them. */
+  active: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  /** Effects the Character placed; their dice join its damage only against their holders. */
+  placed: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+}
+
 export function projectCharacterRuleActionMechanic(
   mechanic: CharacterResolvedActionMechanic,
-  references: CharacterRuleActionPresentationReferences
+  references: CharacterRuleActionPresentationReferences,
+  effects: CharacterRuleRowEffects
 ): CharacterSheetProjectedMechanic {
+  const { attackDomain } = mechanic
+  const attackAddedDice =
+    attackDomain === null
+      ? []
+      : activeAttackRollDice(effects.active, attackDomain, mechanic.attackAbility)
+  const outcomes = mechanic.outcomes.map((outcome) => projectOutcome(outcome, references))
+  const damageAddedDice = outcomes.some((outcome) => outcome.kind === 'DAMAGE')
+    ? [
+        ...activeDamageDiceTo(effects.active, 'HOLDER_DEALS', attackDomain).map((die) => ({
+          ...die,
+          againstHolderOnly: false
+        })),
+        ...activeDamageDiceTo(effects.placed, 'SOURCE_DEALS_TO_HOLDER', attackDomain).map(
+          (die) => ({ ...die, againstHolderOnly: true })
+        )
+      ]
+    : []
   return {
     effectId: mechanic.effectId,
     trigger: mechanic.trigger,
     ...(mechanic.activation === null ? {} : { activation: mechanic.activation }),
     ...(mechanic.rangeLabel === null ? {} : { rangeLabel: mechanic.rangeLabel }),
     ...(mechanic.attackBonus === null ? {} : { attackBonus: mechanic.attackBonus }),
+    ...(attackAddedDice.length > 0 ? { attackAddedDice } : {}),
+    ...(damageAddedDice.length > 0 ? { damageAddedDice } : {}),
     ...(mechanic.attackRollMode === null ? {} : { attackRollMode: mechanic.attackRollMode }),
     ...(mechanic.save === null
       ? {}
@@ -80,6 +111,6 @@ export function projectCharacterRuleActionMechanic(
           }
         }),
     ...(mechanic.targetCountLevels ? { targetCountLevels: mechanic.targetCountLevels } : {}),
-    outcomes: mechanic.outcomes.map((outcome) => projectOutcome(outcome, references))
+    outcomes
   }
 }

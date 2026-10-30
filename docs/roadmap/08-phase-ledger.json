@@ -932,7 +932,7 @@
                 "rr": 8,
                 "size": 1
               },
-              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path.",
+              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path. Rider: remove the stray BEL control byte and literal `n in the comment at packages/shared/src/domains/core/valueDomain.ts:501 (from 371b19b81).",
               "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
             },
             {
@@ -11891,7 +11891,7 @@
             },
             {
               "id": "SPELLS-4.T2n3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -11901,7 +11901,7 @@
                 "after": ["SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-4.T2n4",
@@ -12739,10 +12739,10 @@
             {
               "id": "SPELLS-8.6",
               "text": "The Sheet shows attack and damage rows that match what the room rolls: active grants and modifiers (Bless, Hunter's Mark, Shillelagh's die and magical trait), proficiencies (pact weapon) and ability modifiers are folded in by the same shared code the room uses.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-8.T15 (m553); see each task's proof."],
               "origin": [],
-              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies."
+              "note": "Bug registered 2026-10-29 at the user's request: a core requirement that the Sheet shows attack rolls and damage accurately with buffs, modifiers and proficiencies. Closed 2026-10-30 by SPELLS-8.T15."
             }
           ],
           "wsjf": {
@@ -12796,7 +12796,7 @@
             {
               "id": "SPELLS-8.T4",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Every SRD APPLY_GRANT spell casts in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.3"],
               "wsjf": {
                 "bv": 5,
@@ -12805,7 +12805,7 @@
                 "size": 3,
                 "after": ["SPELLS-8.T1"]
               },
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m553 (3c2b1c425)."
             },
             {
               "id": "SPELLS-8.T5",
@@ -12952,7 +12952,7 @@
             },
             {
               "id": "SPELLS-8.T15",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.6"],
               "wsjf": {
                 "bv": 13,
@@ -12960,7 +12960,8 @@
                 "rr": 8,
                 "size": 3
               },
-              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
+              "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn.",
+              "note": "Merged in m553 (3c2b1c425)."
             },
             {
               "status": "TODO",
@@ -13454,7 +13455,7 @@
         {
           "id": "SPELLS-15",
           "title": "Area Legendary options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -13478,7 +13479,7 @@
           "tasks": [
             {
               "id": "SPELLS-15.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -13487,7 +13488,7 @@
                 "size": 5
               },
               "text": "Author area shape on legendary options and extend discovery.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-15.T2",
@@ -15592,7 +15593,7 @@
             },
             {
               "id": "SPELLS-31.T4v",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15608,7 +15609,7 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user ruled option C (size 8): build Pact of the Blade, the pact-weapon proficiency consumer (Sheet and room attack bonus), Lifedrinker and the Pact of the Chain familiar reaction attack; Voice of the Chain Master stays a GM ruling."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user ruled option C (size 8): build Pact of the Blade, the pact-weapon proficiency consumer (Sheet and room attack bonus), Lifedrinker and the Pact of the Chain familiar reaction attack; Voice of the Chain Master stays a GM ruling. Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-31.T5a",
@@ -15779,7 +15780,7 @@
             },
             {
               "id": "SPELLS-31.T5i",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15789,7 +15790,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user approved the split (side-session-notes/spells-31-t5i-ruling-packet.md). T5i builds G1 (spell facets in modifiers, damage bonuses on save spells, the ALL + MAGIC_SCHOOL fail-open bug), Empowered Evocation and Elemental Affinity."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user approved the split (side-session-notes/spells-31-t5i-ruling-packet.md). T5i builds G1 (spell facets in modifiers, damage bonuses on save spells, the ALL + MAGIC_SCHOOL fail-open bug), Empowered Evocation and Elemental Affinity. Merged in m553 (3c2b1c425)."
             },
             {
               "id": "SPELLS-31.T5j",
@@ -17739,10 +17740,10 @@
           "acs": [
             {
               "text": "Casting a summon spell from the sheet outside an Encounter adds a SUMMONED Extras entry built from the spell's summon stat block, showing AC, speed, attacks and current and maximum HP, with HP tracked on the sheet.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-34.T2 (m552); see each task's proof."],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-30 by SPELLS-34.T2.",
               "id": "SPELLS-34.1",
               "journeys": ["character-sheet-spells-browser"]
             },
@@ -17757,10 +17758,12 @@
             },
             {
               "text": "A summon leaves Extras when Concentration ends, when it is dismissed, or at 0 HP; outside the VTT a timed summon stays until dismissed or a long rest.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-34.T1 (m406), SPELLS-34.T2 (m552); see each task's proof."
+              ],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-30 by SPELLS-34.T1, SPELLS-34.T2.",
               "id": "SPELLS-34.3",
               "journeys": ["character-sheet-browser"]
             },
@@ -17800,8 +17803,8 @@
               "id": "SPELLS-34.T2",
               "text": "Encounter summons in Extras, and summon attacks on both paths: the owner's Extras show owned Run actors created by a summon cast, with live HP, as a read view that leaves with the actor; sheet and Encounter entries list the summon's spell-authored actions from the compiled plan.",
               "closes": ["SPELLS-34.1", "SPELLS-34.2", "SPELLS-34.3"],
-              "status": "TODO",
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "status": "DONE",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Merged in m552 (63dc0fd6c).",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -20411,6 +20414,14 @@
               "proof": [],
               "origin": [],
               "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI)."
+            },
+            {
+              "id": "RELIABILITY-21.21",
+              "text": "campaign-custody-browser passes without reruns: after the custody cleanup, the player reload's Campaign queries (contentShares:list, partyInventory currencies and items, vehicles list and definition options, inventoryOwners:version, queries:get) each stay well under the 1 s query limit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-29: failed in m544, m545, ci/merge-m549, m551 (twice) and on the ci/spells-8-t4 and ci/spells-31-t5i tips, with about 12 queries stalling at 0.8-1.0 s and four timing out."
             }
           ],
           "tasks": [
@@ -20789,6 +20800,19 @@
               },
               "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes. Also give the queued post-commit Builder store margin on CI: its max under 700 ms on the builder journey (T16 measured 1038/1160 ms, one store timing out and falling back to a live read), by trimming its read volume (765 KB to 1.05 MB across 128 to 378 documents) as well as the parse.",
               "note": "Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-21.T26",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.21"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: root-cause and fix the cost of the Campaign queries that stall on the campaign-custody player reload (campaignCustody.ts:225) at their source (indexes, narrower reads, shared reads); red-first read-budget or compute regression test; campaign-custody-browser proof run plus a full Tests run; before/after timings in the design notes. No retries, raised timeouts or loosened assertions.",
+              "note": "Blocks SPELLS-8.T4 (its tip carries the red campaign-custody run) and every batch merge."
             }
           ]
         }

@@ -136,6 +136,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'EQUIPMENT_CATEGORY',
     'EQUIPMENT_PROPERTY',
     'SOLE_WIELDED_WEAPON',
+    'BOUND_BY_EFFECT',
     'ATTACK_ABILITY',
     'ATTACK_ACTIVATION',
     'ATTACK_ROLL_MODE',

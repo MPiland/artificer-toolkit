@@ -51,6 +51,6 @@ export function projectCharacterTurnActions(
       }
     },
     activeEffects: facts.activeEffects,
-    concentration: null
+    concentrationEffects: null
   }).sheet.actions.items
 }
