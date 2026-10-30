@@ -13,10 +13,15 @@ const ACTOR_ID = '00000000-0000-4000-8000-0000000b5001'
 const OTHER_ID = '00000000-0000-4000-8000-0000000b5002'
 const SCENE_ID = '00000000-0000-4000-8000-0000000b5003'
 const TOKEN_ID = '00000000-0000-4000-8000-0000000b5004'
+const OWNER_ID = '00000000-0000-4000-8000-0000000b5006'
+const CARRIER_ID = '00000000-0000-4000-8000-0000000b5007'
+const OCCURRED_AT = '2026-10-30T00:00:00.000Z'
 const COMMAND_ID = '00000000-0000-4000-8000-0000000b5005'
 
-const conjured = (id: string) =>
-  creatureActor({ id, kind: 'CUSTOM', snapshot: { label: 'Spectral Hand' } })
+const conjured = (id: string) => ({
+  ...creatureActor({ id, kind: 'CUSTOM', snapshot: { label: 'Spectral Hand' } }),
+  owner: { ownerActorId: OWNER_ID, sourceEffectId: CARRIER_ID }
+})
 
 const runState = srdEncounterState({
   actors: [conjured(ACTOR_ID), conjured(OTHER_ID)],
@@ -45,9 +50,10 @@ describe('removing a conjured creature (D187b)', () => {
     const next = await removeConjuredActors(ctx, {
       state: { ...runState, actorIds: [ACTOR_ID, OTHER_ID] },
       commandId: COMMAND_ID,
-      actorIds: [ACTOR_ID]
+      actorIds: [ACTOR_ID],
+      occurredAt: OCCURRED_AT
     })
-    expect(next.actorIds).toEqual([OTHER_ID])
+    expect(next.state.actorIds).toEqual([OTHER_ID])
 
     expect(removed).toEqual([
       {
@@ -65,7 +71,7 @@ describe('removing a conjured creature (D187b)', () => {
     await expect(
       removeConjuredActors(
         { db: memory.store, ports: {} },
-        { state: runState, commandId: COMMAND_ID, actorIds: [ACTOR_ID] }
+        { state: runState, commandId: COMMAND_ID, actorIds: [ACTOR_ID], occurredAt: OCCURRED_AT }
       )
     ).rejects.toThrow('Only the Session room')
   })
@@ -78,7 +84,8 @@ describe('removing a conjured creature (D187b)', () => {
       removeConjuredActors(ctx, {
         state: runState,
         commandId: COMMAND_ID,
-        actorIds: [ACTOR_ID]
+        actorIds: [ACTOR_ID],
+        occurredAt: OCCURRED_AT
       })
     ).rejects.toThrow('no Scene token')
     expect(memory.documents('encounterRunActors')).toHaveLength(1)

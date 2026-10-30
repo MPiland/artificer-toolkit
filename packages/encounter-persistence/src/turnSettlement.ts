@@ -3,7 +3,10 @@ import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ru
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import {
+  takesInitiativeTurns,
+  validateInitiativeCursor
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import type { EncounterReadPorts } from './ports.js'
 import type { EncounterDocument, EncounterWriteContext } from './store.js'
@@ -107,7 +110,12 @@ export async function readNativeTurnSettlement(input: {
       staged.stagedRoundState.round.encounterId !== state.id ||
       staged.stagedRoundState.round.round !== root.initiative.round ||
       checksumCanonicalJson([...staged.beforePin.actorIds].sort()) !==
-        checksumCanonicalJson([...state.actorIds].sort()) ||
+        checksumCanonicalJson(
+          durableActors
+            .filter(takesInitiativeTurns)
+            .map((actor) => actor.id)
+            .sort()
+        ) ||
       staged.stagedRoundState.participants.some(
         (participant) =>
           durableActors.find((actor) => actor.id === participant.actorId)?.sideId !==

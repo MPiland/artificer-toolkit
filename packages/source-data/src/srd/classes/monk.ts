@@ -793,11 +793,44 @@ export const monk: ClassAuthored = {
       availableAtLevel: 7,
       order: 13,
       effects: [
-        selfClassRuleEffect(
-          14,
-          CLOSED_RULE_KIND.CLASS_MONK_STILLNESS_OF_MIND,
-          ACTIVATION_CODE.ACTION
-        )
+        {
+          id: classRowId(M, 0x60, 14),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(M, 0x69, 14), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 14),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 14),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 14),
+                    effectKind: EFFECT_KIND.END_EFFECTS,
+                    scope: 'ONE_CHOSEN',
+                    selectors: [
+                      {
+                        kind: 'CONDITION',
+                        conditionIds: ['CHARMED', 'FRIGHTENED'].map(conditionTypeId)
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

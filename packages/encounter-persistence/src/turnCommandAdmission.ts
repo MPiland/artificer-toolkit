@@ -2,6 +2,7 @@ import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/enc
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { delegatedLegendaryContinuationCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
@@ -169,6 +170,12 @@ export async function readLiveEncounterTurnAdmission(
     ) {
       const root = context.root
       const starting = root.commandType === 'START'
+      const initiativeActorIds = checksumCanonicalJson(
+        (await readRunActors(ctx, state))
+          .filter(takesInitiativeTurns)
+          .map((actor) => actor.id)
+          .sort()
+      )
       const rootCommand = {
         type: root.commandType,
         encounterId: state.id,
@@ -192,14 +199,13 @@ export async function readLiveEncounterTurnAdmission(
           root.policySnapshotChecksum ||
         checksumCanonicalJson(
           root.stagedInitiativeRoundState.participants.map((actor) => actor.actorId).sort()
-        ) !== checksumCanonicalJson([...state.actorIds].sort()) ||
+        ) !== initiativeActorIds ||
         (starting
           ? root.initiativeBeforePin.kind !== 'INITIAL_START'
           : root.initiativeBeforePin.kind !== 'EACH_ROUND' ||
             root.initiativeBeforePin.round !== state.round ||
             root.initiativeBeforePin.version !== state.version) ||
-        checksumCanonicalJson(root.initiativeBeforePin.actorIds) !==
-          checksumCanonicalJson([...state.actorIds].sort()) ||
+        checksumCanonicalJson(root.initiativeBeforePin.actorIds) !== initiativeActorIds ||
         (starting &&
           (root.initiativeAdvance || root.outgoingTurn || root.completedLegendaryActions)) ||
         (starting

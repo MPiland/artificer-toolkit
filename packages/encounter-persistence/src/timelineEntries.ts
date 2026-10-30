@@ -15,6 +15,7 @@ import {
   type encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { readStoredInitiativeReceipt } from './initiativeReceipt.js'
 import { readEncounterReplayReceipt } from './replayReceipts.js'
 import { rejectDomain } from './domainRejections.js'
 import type { EncounterReadContext, EncounterWriteContext } from './store.js'
@@ -59,6 +60,17 @@ function commandTimelineMetadata(command: StoredCommand) {
     input.encounterId !== command.encounterId
   )
     throw new Error('Stored Encounter command receipt mismatch.')
+  // A removal of conjured creatures keeps the round's initiative it left; none of them may remain in it.
+  if (command.commandType === 'SUMMONS_ENDED' || command.commandType === 'REVERT_LAST_ACTION') {
+    const initiative = readStoredInitiativeReceipt(command, command.encounterId)
+    if (
+      command.commandType === 'SUMMONS_ENDED' &&
+      initiative?.participants.some(({ actorId }) =>
+        command.receipt.removedActorIds.includes(actorId)
+      )
+    )
+      throw new Error('Stored Encounter initiative receipt mismatch.')
+  }
   const id = command.commandType === 'CREATE' ? command.commandId : command.id
   const version = command.commandType === 'CREATE' ? 0 : command.version
   // A stored PRIVATE narrows a PUBLIC enemy roll that came from a hidden actor (D62). An action

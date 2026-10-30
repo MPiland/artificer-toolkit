@@ -1247,26 +1247,53 @@ export const paladin: ClassAuthored = {
       label: 'Cleansing Touch',
       description:
         'Beginning at 14th level, you can use your action to end one spell on yourself or on one willing creature that you touch.\n\nYou can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain expended uses when you finish a long rest.',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: classRowId(P, 0x66, 16),
+        limitKind: 'ABILITY_MODIFIER',
+        scalingKind: SCALING.NONE,
+        resetKind: 'LONG_REST',
+        ability: ABILITY_CODE.CHARISMA,
+        min: 1
+      },
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 16),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_CLEANSING_TOUCH,
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(P, 0x66, 16), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: classRowId(P, 0x69, 16), rangeKind: RANGE_KIND.TOUCH },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.WILLING
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY
             }
-          }
-        }),
-        selfClassRuleEffect(
-          0x80,
-          CLOSED_RULE_KIND.CLASS_PALADIN_CLEANSING_TOUCH,
-          ACTIVATION_CODE.ACTION
-        )
+          },
+          paths: [
+            {
+              id: classRowId(P, 0x80, 16),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(P, 0x81, 16),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(P, 0x82, 16),
+                    effectKind: EFFECT_KIND.END_EFFECTS,
+                    scope: 'ONE_CHOSEN',
+                    selectors: [{ kind: 'SPELL_LEVEL', limit: 'FIXED', level: 9 }]
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       availableAtLevel: 14,
       order: 15

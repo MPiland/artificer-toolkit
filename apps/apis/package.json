@@ -50,7 +50,7 @@
   "devDependencies": {
     "@convex-dev/action-retrier": "0.3.1",
     "auth": "1.6.33",
-    "convex-test": "0.0.60",
+    "convex-test": "0.0.66",
     "react": "^19.3.1",
     "typescript": "^7.0.2",
     "wrangler": "^4.156.0"

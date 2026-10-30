@@ -618,11 +618,15 @@ describe('native notification intent delivery', () => {
     expect(await providerStatus(t, providerId)).toMatchObject({
       status: 'waiting'
     })
-    await vi.advanceTimersByTimeAsync(60_000)
+    const untilDue = async (intentId: typeof id) => {
+      const row = await t.run((ctx) => ctx.db.get(intentId))
+      await vi.advanceTimersByTimeAsync(Date.parse(row!.nextAttemptAt) - Date.now())
+    }
+    await untilDue(id)
     expect(await t.mutation(internal.notifications.delivery.dispatch, {})).toBe(1)
     expect((await t.run((ctx) => ctx.db.get(id)))?.attemptCount).toBe(1)
     await updateProvider(t, providerId, 'sent')
-    await vi.advanceTimersByTimeAsync(60_000)
+    await untilDue(id)
     await t.mutation(internal.notifications.delivery.dispatch, {})
     expect((await t.run((ctx) => ctx.db.get(id)))?.status).toBe('DISPATCHED')
 
@@ -634,7 +638,7 @@ describe('native notification intent delivery', () => {
     const failedEmailId = (await t.run((ctx) => ctx.db.get(failedId)))?.providerEmailId
     if (!failedEmailId) throw new Error('Missing failed provider email')
     await updateProvider(t, failedEmailId, 'failed')
-    await vi.advanceTimersByTimeAsync(60_000)
+    await untilDue(failedId)
     await t.mutation(internal.notifications.delivery.dispatch, {})
     expect(await t.run((ctx) => ctx.db.get(failedId))).toMatchObject({
       status: 'FAILED',

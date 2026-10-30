@@ -41,6 +41,7 @@ import {
 import { spellCastActionId } from '../spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { singleTargetMeasure } from '../encounterActionTargetPolicy.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
@@ -60,7 +61,7 @@ import {
 import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
-import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
 type BuildInput = Parameters<typeof buildCharacterSpellCastActions>[0]
 type EvaluateInput = Parameters<typeof evaluateDnd5e2014CharacterActions>[0]
@@ -76,6 +77,7 @@ const spell = (label: string): SpellAuthored => {
   if (!found) throw new Error(`SRD spell "${label}" is missing.`)
   return found
 }
+const ELDRITCH_BLAST = spell('Eldritch Blast')
 const FIREBALL = spell('Fireball')
 const FLY = spell('Fly')
 const HOLD_PERSON = spell('Hold Person')
@@ -150,6 +152,7 @@ function policyFor(
   slotKeyFor: (cast: SpellCastCandidate) => string | null = (cast) => `STANDARD:${cast.castLevel}`
 ) {
   return {
+    grantFold: { modifiers: [] },
     spellCastDecisions: candidates.map(
       (cast): CharacterRulePolicyOutput['spellCastDecisions'][number] => ({
         candidateId: cast.candidateId,
@@ -490,12 +493,16 @@ function build(
 }
 
 /** The compiled entry the Encounter would run for the spell's cast, or null when it stays manual. */
-function compiledCastEntry(authored: SpellAuthored, castLevel = authored.level) {
+function compiledCastEntry(
+  authored: SpellAuthored,
+  castLevel = authored.level,
+  grantFold: BuildInput['policyOutput']['grantFold'] = { modifiers: [] }
+) {
   const cast = candidate(authored, castLevel)
   // The spell as given, which may be a changed copy of a listed one.
   const documents = new Map([...authoredById, [authored.id, authored]])
   const built = build([cast], {
-    policyOutput: policyFor([cast], documents),
+    policyOutput: { ...policyFor([cast], documents), grantFold },
     spellsById: compiledById(documents)
   })
   const compiled = compileCharacterActionEntryPoints({
@@ -604,6 +611,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
   const policyOutput: CharacterRulePolicyOutput = {
     ...character.output,
     ...policy,
+    grantFold: character.output.grantFold,
     actionDecisions: built.decisions
   }
   const compiled = compileCharacterActionEntryPoints({
@@ -754,6 +762,7 @@ describe('a cast paid from a spell-source pool', () => {
     const policy = policyFor([cast], authoredById, () => (paysPact ? 'PACT' : null))
     return {
       ...policy,
+      grantFold: character.output.grantFold,
       resources: [pool(rawUsed)],
       spellSlots: { ...policy.spellSlots, slotPools: paysPact ? [pactPool] : [] }
     }
@@ -793,6 +802,7 @@ describe('a cast paid from a spell-source pool', () => {
         policyOutput: {
           ...character.output,
           ...pooledPolicy(cast, rawUsed),
+          grantFold: character.output.grantFold,
           actionDecisions: built.decisions
         },
         resourceUsage:
@@ -3498,5 +3508,43 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
 
   it('leaves the heal at its dice and spellcasting modifier without the bonus', () => {
     expect(healOf(CURE_WOUNDS, [1], [])).toEqual([['1d8 + 3']])
+  })
+})
+
+describe('a spell range a caster’s modifier replaces (SPELLS-31.T5i3)', () => {
+  const warlockFold = (optionLabels: readonly string[]) =>
+    evaluateSrdCharacter({
+      classes: [{ label: 'Warlock', level: 2 }],
+      obtainedSpellIds: [ELDRITCH_BLAST.id],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Warlock',
+          featureLabel: 'Eldritch Invocations',
+          level: 2,
+          optionLabels
+        })
+      ]
+    }).output.grantFold
+
+  function measuredRange(authored: SpellAuthored, grantFold: ReturnType<typeof warlockFold>) {
+    const policy = compiledCastEntry(authored, authored.level, grantFold)?.targetPolicy
+    if (!policy) throw new Error(`${authored.label} must compile with its range.`)
+    const measure = singleTargetMeasure(policy)
+    return measure?.kind === 'MEASURED' ? measure.range : null
+  }
+
+  it('measures the cast at the replaced range, and every other spell at its own', () => {
+    const grantFold = warlockFold(['Eldritch Spear'])
+    expect(measuredRange(ELDRITCH_BLAST, grantFold)).toMatchObject({
+      rangeKind: 'DISTANCE',
+      amount: 300,
+      unit: 'FEET'
+    })
+    expect(measuredRange(GUIDING_BOLT, grantFold)).toMatchObject({ amount: 120 })
+  })
+
+  it('measures the cast at its authored range without the option', () => {
+    expect(measuredRange(ELDRITCH_BLAST, warlockFold([]))).toMatchObject({ amount: 120 })
   })
 })

@@ -49,6 +49,7 @@ import {
 import { raiseRoomDelegatedLegendaryAction } from './roomEncounterDelegatedLegendaryAction.js'
 import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
 import { raiseRoomRuleEffects } from './roomEncounterRuleTriggers.js'
+import { advanceRoomPastEndedSummon } from './roomEncounterSummonEndAdvance.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
@@ -104,6 +105,8 @@ export async function executeRoomEncounterCommand(input: {
   sceneTokens: RoomSceneTokens
   random(maximum: number): number
   turnExecution?: { runtime: RulesRuntimeService }
+  /** What ends the turn of a summon whose carrier a command ended; any command can end one. */
+  summonTurnExecution?: { runtime: RulesRuntimeService }
 }) {
   const { store, transaction, inputs, authorization, campaignId, epoch, userId, command } = input
   await inputs.encounter(command.encounterId.toLowerCase(), transaction)
@@ -446,15 +449,46 @@ export async function executeRoomEncounterCommand(input: {
   // What the raised roots dealt to a mirror's holder reaches its source too.
   const mirroredRaisedDamage = await settleMirrors()
   // After every effect the command and its raised roots ended, so a carrier that ended takes its creature.
-  const endedSummons =
-    currentRun.status === 'ACTIVE' &&
-    (await endRoomOrphanedSummons({
+  const sweepSummons = () =>
+    endRoomOrphanedSummons({
       ctx: context,
       transaction,
       userId,
       encounterId: currentRun.id,
       occurredAt: new Date().toISOString()
-    }))
+    })
+  const summonSweep =
+    currentRun.status === 'ACTIVE'
+      ? await sweepSummons()
+      : { ended: false, currentActorOrphaned: false }
+  // A creature whose carrier ended on its own turn stands until that turn ends (D200).
+  const advancedPastSummon = summonSweep.currentActorOrphaned
+    ? await advanceRoomPastEndedSummon({
+        ctx: context,
+        encounterId: currentRun.id,
+        parentCommandId: (answeredRootCommandId ?? command.commandId).toLowerCase(),
+        sweep: sweepSummons,
+        // The system advance runs as the GM: the player whose command ended the carrier may not control the creature.
+        executeTurn: async (turn) =>
+          executeTurn(
+            turn,
+            (await context.ports.requireCampaignAuthority(campaignId, userId)).campaign.ownerUserId
+          ),
+        settleTurnStart: async (parentCommandId) =>
+          (await raiseRoomStartOfTurnEffects({
+            ctx: context,
+            encounterId: currentRun.id,
+            parentCommandId,
+            execute: executeAction
+          })) ||
+          (await raiseRoomRuleEffects({
+            ctx: context,
+            encounterId: currentRun.id,
+            execute: executeAction
+          }))
+      })
+    : false
+  const endedSummons = summonSweep.ended || advancedPastSummon
   // Commands that can put a concealed zone in a Character's sight without a move (MOVE-3.5). The
   // sightings are GM bookkeeping that leaves the Run and its projection unchanged.
   if (
@@ -565,11 +599,15 @@ export async function executeRoomEncounterCommand(input: {
     })
   }
 
-  async function executeTurn(command: Parameters<typeof executeRoomEncounterTurn>[0]['command']) {
-    if (!input.turnExecution) throw new Error('Room turn execution is unavailable.')
-    const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
+  async function executeTurn(
+    command: Parameters<typeof executeRoomEncounterTurn>[0]['command'],
+    actingUserId = userId
+  ) {
+    const execution = input.turnExecution ?? input.summonTurnExecution
+    if (!execution) throw new Error('Room turn execution is unavailable.')
+    const { membership } = await context.ports.requireCampaignAuthority(campaignId, actingUserId)
     return executeRoomEncounterTurn({
-      ...input.turnExecution,
+      ...execution,
       ctx: context,
       store,
       transaction,
@@ -580,7 +618,7 @@ export async function executeRoomEncounterCommand(input: {
       scope: {
         campaignId,
         authorityEpoch: epoch,
-        expectedUserId: userId,
+        expectedUserId: actingUserId,
         expectedRole: membership.role,
         encounterId: command.encounterId.toLowerCase(),
         expectedVersion: command.expectedVersion

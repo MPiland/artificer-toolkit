@@ -184,6 +184,18 @@ up directly on its caster, and removes the actors whose carrier is gone through 
 transaction, recording the removed ids as one system `SUMMONS_ENDED` Run command. The sweep runs after Encounter
 commands and standalone Sheet commands; a path it does not reach (voluntary movement, an actor departure) leaves the
 creature for the next command's sweep.
+Current (SPELLS-35.T3b, D200): a creature with its own initiative (`OWN_INITIATIVE`) holds a place in the round, so
+`removeConjuredActors` also removes its participant rows through `removeActorInitiative` and returns the round's new
+initiative state (null when no removed creature took initiative turns). `SUMMONS_ENDED` and `REVERT_LAST_ACTION` record it as
+the nullable `initiativeStateJson` and `initiativeStateChecksum` pair, which `commandTimelineMetadata` validates on insert and
+read (both or neither, the checksum, the Encounter id, and no removed creature left in a `SUMMONS_ENDED` receipt). The one
+creature `removeConjuredActors` refuses is the current actor, which has no valid cursor to leave behind: the sweep leaves it
+standing, returns `{ ended, currentActorOrphaned }`, and the room (`advanceRoomPastEndedSummon`) runs a system `ADVANCE_TURN`
+as the campaign owner, keyed by `summonEndAdvanceCommandId(originating command, Run version)`, which ends that turn and lets
+the next sweep remove the creature. Between the two commits the Run is valid and a GM `ADVANCE_TURN` recovers it; a repeat
+stops on a pending decision, a Run that is not active, no creature left to end, or after one pass per actor. Standalone
+Sheet commands ignore the flag, so a current orphan there waits for the next Encounter command. Undoing the end means
+undoing the cast; `SUMMONS_ENDED` has no revert of its own.
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
 `publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of
