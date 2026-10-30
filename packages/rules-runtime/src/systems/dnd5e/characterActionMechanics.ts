@@ -49,10 +49,11 @@ function clamp(value: number, minimum: number | null, maximum: number | null): n
   )
 }
 
+/** Dice keep their bonus as a term; a fixed amount and its bonuses are one whole number, never below 0. */
 function formatExpression(value: number | string, bonus: number): string {
-  const base = typeof value === 'number' ? formatAmount(value) : value
-  if (bonus === 0) return base
-  return bonus > 0 ? `${base} + ${formatAmount(bonus)}` : `${base} - ${formatAmount(-bonus)}`
+  if (typeof value === 'number') return formatAmount(Math.max(0, value + bonus))
+  if (bonus === 0) return value
+  return bonus > 0 ? `${value} + ${formatAmount(bonus)}` : `${value} - ${formatAmount(-bonus)}`
 }
 
 /**
@@ -404,7 +405,15 @@ export function resolveDnd5eActionMechanic(
     const abilities = applicable('ATTACK_ROLL', ABILITY_MODIFIER_KINDS)
     if (abilities.length === 0) return null
     if (adjustment?.attackOverride != null) return adjustment.attackOverride
-    const proficiency =
+    /** A granted proficiency, such as one bound to a chosen weapon (Pact of the Blade). */
+    const grantedProficiency = input.modifierGroups
+      .filter((group) => group.domainKey === 'WEAPON_PROFICIENCY:ENABLE')
+      .flatMap((group) => group.contributions)
+      .some(
+        (contribution) =>
+          contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
+      )
+    const listedProficiency =
       attackKind === 'UNARMED'
         ? 1
         : item === null
@@ -432,6 +441,7 @@ export function resolveDnd5eActionMechanic(
                   ),
                 0
               )
+    const proficiency = Math.max(listedProficiency, grantedProficiency ? 1 : 0)
     return (
       abilityTotal('ATTACK_ROLL') +
       Math.floor(input.proficiencyBonus * proficiency) +

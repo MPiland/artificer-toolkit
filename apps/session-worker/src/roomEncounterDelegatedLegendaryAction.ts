@@ -10,8 +10,9 @@ import type { RoomTransaction } from './roomEncounterStore.js'
 import { readRoomScene } from './roomSceneRead.js'
 
 /**
- * Runs a turn end split around a delegated Legendary Action (an area its owner centers on itself):
- * once the turn that delegated it commits, the option runs as its own rule-raised root through the
+ * Runs a turn end split around a delegated Legendary Action (an area centered on its owner, or aimed
+ * where its controller chose): once the turn that delegated it commits, the option runs as its own
+ * rule-raised root through the
  * area coordinator, then, once nothing waits on a decision, a continuation ADVANCE_TURN offers the
  * remaining windows and begins the next turn. A holder that fell or left its Scene meanwhile forgoes
  * the option. `turnRootCommandId` is the turn root this command committed or answered. Returns
@@ -76,7 +77,8 @@ export async function raiseRoomDelegatedLegendaryAction(input: {
             sceneId: binding.sceneId,
             expectedSceneVersion: readRoomScene(input.transaction, binding.sceneId).header.version
           },
-          trigger: 'LEGENDARY_ACTION'
+          trigger: 'LEGENDARY_ACTION',
+          ...(delegation.aim ? { aim: delegation.aim } : {})
         })
       )
       continue

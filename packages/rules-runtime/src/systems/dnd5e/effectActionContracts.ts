@@ -151,6 +151,8 @@ export const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximi
 export const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
 /** The once-per-turn uses already spent this turn (a JSON array of usage keys); absent when no record was read. */
 export const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
+/** The authored Effects active on the attacker that bind the attacking item (a JSON array); absent when none do. */
+export const DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY = 'dnd5e.attack-item-bindings'
 /** The dice active grants add to, or take from, this source's damage to this target (D156). */
 export const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
 /** The reductions the target's `INCOMING_DAMAGE` grants take from an attack's damage (Deflect Missiles). */

@@ -1,4 +1,5 @@
 import type { RepeatOfferOrigin } from '@artificer-toolkit/schema/effects/effectOffer'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -7,6 +8,12 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
+import type { NativeEncounterActionSource } from './encounterActionSources.js'
+import {
+  decoyStrikeEffects,
+  type DecoyStrikeEffects,
+  type EncounterAttackDecoy
+} from './encounterAttackDecoys.js'
 import { resolveEffectOffer, type LiveEffectOffer } from './encounterEffectOffers.js'
 import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 
@@ -94,6 +101,33 @@ export function encounterActionOriginActorId(input: {
   })
   if (originActorId === null) throw new Error('The selected repeat action is stale.')
   return originActorId
+}
+
+/**
+ * What a settled action spends of the counted uses its effects hold: a hit on a decoy destroys it
+ * (`decoyStrikeEffects`), and a repeat spends one of its carrier's uses (`lifecycle.uses`,
+ * Goodberry's berries), the last of which ends the carrier. A carrier with no count spends nothing.
+ */
+export function settledCountedUseSpend(
+  action: {
+    attackDecoy?: Pick<EncounterAttackDecoy, 'effect' | 'remaining'> | null
+    source: NativeEncounterActionSource
+  },
+  resultPath: string | null | undefined,
+  effectsByHolder: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
+): DecoyStrikeEffects {
+  const decoy = decoyStrikeEffects(action.attackDecoy, resultPath)
+  const capability = action.source.kind === 'REPEAT_PATH' ? action.source.capability : null
+  const carrier = capability
+    ? effectsByHolder
+        .get(capability.holderActorId)
+        ?.find(({ id }) => id === capability.carrierEffectId)
+    : undefined
+  const remaining = carrier?.lifecycle.remainingUses
+  if (!carrier || remaining === undefined) return decoy
+  return remaining <= 1
+    ? { ...decoy, endedGrants: [...decoy.endedGrants, carrier] }
+    : { ...decoy, spentUseGrants: [...decoy.spentUseGrants, carrier] }
 }
 
 /**

@@ -15,6 +15,7 @@ export const VALUE_DOMAIN_CODE = {
   ATTACKS_AGAINST: 'ATTACKS_AGAINST',
   ATTACK_TRAIT: 'ATTACK_TRAIT',
   WEAPON_DAMAGE_DIE: 'WEAPON_DAMAGE_DIE',
+  WEAPON_PROFICIENCY: 'WEAPON_PROFICIENCY',
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
@@ -124,6 +125,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
     label: 'Weapon Damage Die',
     description: "The die a weapon's damage is rolled with, by its number of faces."
+  },
+
+  [VALUE_DOMAIN_CODE.WEAPON_PROFICIENCY]: {
+    code: VALUE_DOMAIN_CODE.WEAPON_PROFICIENCY,
+    label: 'Weapon Proficiency',
+    description: 'The holder is proficient with the weapons the grant applies to.'
   },
 
   [VALUE_DOMAIN_CODE.CRITICAL_HIT_THRESHOLD]: {
@@ -507,6 +514,10 @@ export type ValueDomainParamByCode = {
 
   // The weapon's damage die is replaced by one with this many faces (Shillelagh's d8).
   WEAPON_DAMAGE_DIE: EmptyObject
+
+  // The holder is proficient with the attacks the grant applies to; bound to a chosen item, with
+  // that item only.
+  WEAPON_PROFICIENCY: EmptyObject
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject

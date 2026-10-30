@@ -7,6 +7,7 @@ import {
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
+import { areaAimDtoSchema } from '../shared/spatialFacts.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
 import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
@@ -324,15 +325,16 @@ export const encounterRunStateSchema = lazySchema(() =>
       ),
       /**
        * Set while a turn's end waits on a delegated Legendary Action: the ADVANCE_TURN that selected
-       * it, the option's owner and action, and the owners whose windows this turn end has settled.
-       * The rule-raised action runs next, then a continuation ADVANCE_TURN offers the remaining
-       * windows and starts the next turn.
+       * it, the option's owner and action, the aim its controller gave an aimed area, and the owners
+       * whose windows this turn end has settled. The rule-raised action runs next, then a
+       * continuation ADVANCE_TURN offers the remaining windows and starts the next turn.
        */
       delegatedLegendaryAction: z.optional(
         z.strictObject({
           parentCommandId: postgresUuidSchema,
           holderActorId: postgresUuidSchema,
           actionId: z.string().check(z.minLength(1)),
+          aim: z.optional(areaAimDtoSchema),
           settledOwnerActorIds: z
             .array(postgresUuidSchema)
             .check(z.minLength(1))
