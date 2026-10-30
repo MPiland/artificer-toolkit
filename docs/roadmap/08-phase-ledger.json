@@ -932,7 +932,7 @@
                 "rr": 8,
                 "size": 1
               },
-              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path.",
+              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path. Rider: remove the stray BEL control byte and literal `n in the comment at packages/shared/src/domains/core/valueDomain.ts:501 (from 371b19b81).",
               "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
             },
             {
@@ -20411,6 +20411,14 @@
               "proof": [],
               "origin": [],
               "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI)."
+            },
+            {
+              "id": "RELIABILITY-21.21",
+              "text": "campaign-custody-browser passes without reruns: after the custody cleanup, the player reload's Campaign queries (contentShares:list, partyInventory currencies and items, vehicles list and definition options, inventoryOwners:version, queries:get) each stay well under the 1 s query limit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-29: failed in m544, m545, ci/merge-m549, m551 (twice) and on the ci/spells-8-t4 and ci/spells-31-t5i tips, with about 12 queries stalling at 0.8-1.0 s and four timing out."
             }
           ],
           "tasks": [
@@ -20789,6 +20797,19 @@
               },
               "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes. Also give the queued post-commit Builder store margin on CI: its max under 700 ms on the builder journey (T16 measured 1038/1160 ms, one store timing out and falling back to a live read), by trimming its read volume (765 KB to 1.05 MB across 128 to 378 documents) as well as the parse.",
               "note": "Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-21.T26",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.21"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: root-cause and fix the cost of the Campaign queries that stall on the campaign-custody player reload (campaignCustody.ts:225) at their source (indexes, narrower reads, shared reads); red-first read-budget or compute regression test; campaign-custody-browser proof run plus a full Tests run; before/after timings in the design notes. No retries, raised timeouts or loosened assertions.",
+              "note": "Blocks SPELLS-8.T4 (its tip carries the red campaign-custody run) and every batch merge."
             }
           ]
         }
