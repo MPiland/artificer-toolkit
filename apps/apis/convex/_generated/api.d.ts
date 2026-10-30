@@ -11103,6 +11103,7 @@ export declare const api: {
                 successes: number;
               };
               hitDice: Array<{ die: number; total: number; used: number }>;
+              maximumFraction?: { denominator: number; numerator: number };
               temp: number;
               tempSourceEffectId?: string;
             };
@@ -11501,6 +11502,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -11898,6 +11900,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -12486,6 +12489,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -13082,6 +13086,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -13681,6 +13686,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -14263,6 +14269,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -41576,6 +41583,14 @@ export declare const api: {
                         denominator: number;
                         id: string;
                         kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
                         minimumLevel: number | null;
                         numerator: number;
                         order: number;
@@ -70791,6 +70806,14 @@ export declare const api: {
                         denominator: number;
                         id: string;
                         kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
                         minimumLevel: number | null;
                         numerator: number;
                         order: number;
@@ -100020,6 +100043,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -129230,6 +129261,14 @@ export declare const api: {
                         denominator: number;
                         id: string;
                         kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
                         minimumLevel: number | null;
                         numerator: number;
                         order: number;
@@ -158485,6 +158524,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -187700,6 +187747,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -216750,6 +216805,14 @@ export declare const api: {
                       denominator: number;
                       id: string;
                       kind: "SPEED";
+                      minimumLevel: number | null;
+                      numerator: number;
+                      order: number;
+                    }
+                  | {
+                      denominator: number;
+                      id: string;
+                      kind: "HIT_POINT_MAXIMUM";
                       minimumLevel: number | null;
                       numerator: number;
                       order: number;
@@ -245835,6 +245898,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -275045,6 +275116,14 @@ export declare const api: {
                         denominator: number;
                         id: string;
                         kind: "SPEED";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
                         minimumLevel: number | null;
                         numerator: number;
                         order: number;
