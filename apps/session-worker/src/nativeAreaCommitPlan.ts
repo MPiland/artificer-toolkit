@@ -5,6 +5,7 @@ import {
   encounterAreaLegendaryResistanceAudits,
   encounterTargetLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
+import { createdHitPointMaximumRaise } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { settleEncounterAreaAction } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { encounterAreaTargetCommandId } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { actorFormEntry } from '@artificer-toolkit/encounter-persistence/actorFormPersistence'
@@ -295,6 +296,7 @@ export async function planAreaOutcomes(args: {
         occurredAt,
         applications,
         damageReleases: damageEnded.releases,
+        grantedMaximumHitPoints: createdHitPointMaximumRaise(created),
         sourceSpend: carriesSpend ? 'WITH_OUTCOME' : 'NONE',
         forceTargetVersionAdvance:
           prepared.target.kind === 'CHARACTER' && (created.length > 0 || carriesFailedCounterSpend),

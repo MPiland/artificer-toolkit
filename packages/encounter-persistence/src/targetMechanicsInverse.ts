@@ -28,7 +28,10 @@ export function revertUnavailable(message: string): never {
   return rejectDomain('REVERT_UNAVAILABLE', message)
 }
 
-/** Puts a Creature's hit points back as a batch found them, refusing if they changed since. */
+/**
+ * Puts a Creature's hit points back as a batch found them, refusing if they changed since. A batch
+ * leaves the stored maximum as it is: the effects that raise or lower it are undone with the action.
+ */
 export function withHitPointsBefore(
   actor: EncounterRunActorState,
   transition: Pick<ActionBatch['targetTransition'], 'before' | 'after'>
@@ -36,8 +39,7 @@ export function withHitPointsBefore(
   if (actor.kind === 'CHARACTER') throw new Error('Character hit points are not Run state.')
   if (
     actor.currentHitPoints !== transition.after.currentHitPoints ||
-    actor.tempHitPoints !== transition.after.temporaryHitPoints ||
-    actor.maxHitPoints !== transition.after.maximumHitPoints
+    actor.tempHitPoints !== transition.after.temporaryHitPoints
   )
     revertUnavailable(`${actor.label}'s hit points changed after this action; adjust manually.`)
   return encounterRunActorStateSchema.parse(
@@ -45,7 +47,6 @@ export function withHitPointsBefore(
       {
         ...actor,
         currentHitPoints: transition.before.currentHitPoints,
-        maxHitPoints: transition.before.maximumHitPoints,
         defeated: nextEncounterActorDefeated(actor, transition.before.currentHitPoints)
       },
       targetTemporaryHitPoints(transition.before)

@@ -94,6 +94,13 @@ export type EncounterMechanicsBatchInput = {
   expectedCharacterStreamVersion: number | null
   /** The maximum of the hit points the applications change: a Character in a form takes the form's. */
   effectiveMaximumHitPoints: number
+  /**
+   * How far the effects this outcome leaves on the target raise that maximum
+   * (`createdHitPointMaximumRaise`); omitted when they raise none. The applications clamp against
+   * the raised maximum. The maximum stored on the actor or form stays as it is, since the effects
+   * hold the raise.
+   */
+  grantedMaximumHitPoints?: number
   /** A Character's own effective maximum while it is in a form; its excess damage lands on the Sheet. */
   sheetMaximumHitPoints?: number | undefined
   forceVersionAdvance: boolean
@@ -170,6 +177,13 @@ export type EncounterMechanicsBatchPlan = {
   } | null
 }
 
+/** The raised maximum a batch's applications are rebased onto, when its outcome's effects raise one. */
+function raisedMaximum(batch: EncounterMechanicsBatchInput) {
+  return batch.grantedMaximumHitPoints
+    ? { maximumHitPoints: batch.effectiveMaximumHitPoints + batch.grantedMaximumHitPoints }
+    : {}
+}
+
 /** Plans a normalized mechanics batch without reading or writing persistence. */
 export function planEncounterMechanicsBatch(input: {
   batch: EncounterMechanicsBatchInput
@@ -211,6 +225,7 @@ export function planEncounterMechanicsBatch(input: {
       temporaryHitPoints: actor.tempHitPoints,
       temporaryHitPointsSourceEffectId: actor.tempHitPointsSourceEffectId,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
+      grantedMaximumHitPoints: batch.grantedMaximumHitPoints ?? 0,
       deathSaves: null,
       conditionIds: conditions.ids,
       scalarValues: batch.effectiveScalarValues,
@@ -220,7 +235,8 @@ export function planEncounterMechanicsBatch(input: {
         currentHitPoints: actor.currentHitPoints,
         temporaryHitPoints: actor.tempHitPoints,
         temporaryHitPointsSourceEffectId: actor.tempHitPointsSourceEffectId,
-        interceptions: batch.damageInterceptions ?? []
+        interceptions: batch.damageInterceptions ?? [],
+        ...raisedMaximum(batch)
       }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       invulnerable: encounterActorBody(actor).invulnerable,
@@ -249,7 +265,6 @@ export function planEncounterMechanicsBatch(input: {
             batch.sourceCommandId
           ),
           currentHitPoints: folded.after.currentHitPoints,
-          maxHitPoints: folded.after.maximumHitPoints,
           conditions: nextConditions,
           defeated: nextEncounterActorDefeated(actor, folded.after.currentHitPoints),
           absence: folded.afterAbsence
@@ -768,12 +783,14 @@ function foldCharacterBatch(input: {
       ...shared,
       ...sheet,
       maximumHitPoints: batch.effectiveMaximumHitPoints,
+      grantedMaximumHitPoints: batch.grantedMaximumHitPoints ?? 0,
       applications: applyDamageInterceptions({
         applications: batch.applications,
         currentHitPoints: sheet.currentHitPoints,
         temporaryHitPoints: sheet.temporaryHitPoints,
         temporaryHitPointsSourceEffectId: sheet.temporaryHitPointsSourceEffectId,
-        interceptions: batch.damageInterceptions ?? []
+        interceptions: batch.damageInterceptions ?? [],
+        ...raisedMaximum(batch)
       }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
       deathSaveRoll: batch.deathSave
@@ -792,13 +809,15 @@ function foldCharacterBatch(input: {
     temporaryHitPoints: form.tempHitPoints,
     temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
     maximumHitPoints: batch.effectiveMaximumHitPoints,
+    grantedMaximumHitPoints: batch.grantedMaximumHitPoints ?? 0,
     deathSaves: null,
     applications: applyDamageInterceptions({
       applications: batch.applications,
       currentHitPoints: form.currentHitPoints,
       temporaryHitPoints: form.tempHitPoints,
       temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
-      interceptions: batch.damageInterceptions ?? []
+      interceptions: batch.damageInterceptions ?? [],
+      ...raisedMaximum(batch)
     }),
     ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions })
   })
@@ -807,11 +826,7 @@ function foldCharacterBatch(input: {
       ...inForm,
       inForm: true as const,
       form: withActorTemporaryHitPoints(
-        {
-          ...form,
-          currentHitPoints: inForm.after.currentHitPoints,
-          maxHitPoints: inForm.after.maximumHitPoints
-        },
+        { ...form, currentHitPoints: inForm.after.currentHitPoints },
         targetTemporaryHitPoints(inForm.after)
       ),
       sheet

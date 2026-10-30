@@ -104,6 +104,7 @@ import {
   onHitResourceConsumption,
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import { createdHitPointMaximumRaise } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
@@ -1418,6 +1419,20 @@ export async function planNativeLiveEncounterAction(
     targetLabel: prepared.target.label,
     targetLifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
   })
+  // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
+  // applied to its roll alone, so it is never kept.
+  const keptReactionEffect =
+    reactionUse &&
+    !(
+      prepared.makesAttackRoll &&
+      endSubscriptions(reactionUse.applied.pendingEffect).some((s) => s.event === 'ATTACKED')
+    )
+      ? reactionUse.applied.reactionEffect
+      : null
+  const damageGrants = [
+    ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
+    ...(gateImmunityGrant ? [gateImmunityGrant] : [])
+  ]
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
@@ -1431,6 +1446,16 @@ export async function planNativeLiveEncounterAction(
       sourceReleases: [...sourceReleases, ...hitEnded.sourceReleases],
       targetReleases: reactionEnded?.sourceReleases,
       damageReleases: [...damageEnded.releases, ...(actionEnded?.releases ?? [])],
+      // The settlement creates these effects on the target after its mechanics.
+      grantedMaximumHitPoints: createdHitPointMaximumRaise(
+        [
+          preparedEffects.stateEffect,
+          preparedEffects.recurringEffect,
+          ...preparedEffects.riderEffects,
+          keptReactionEffect?.plan,
+          ...damageGrants.map(({ plan }) => plan)
+        ].flatMap((plan) => (plan ? [plan] : []))
+      ),
       releaseTargetItemInstanceId: preparedEffects.releasedItemInstanceId,
       degradeTargetItem: preparedEffects.degradedItem && {
         itemInstanceId: preparedEffects.degradedItem.itemInstanceId,
@@ -1501,20 +1526,8 @@ export async function planNativeLiveEncounterAction(
     mechanics,
     effects: preparedEffects,
     recurringEffectId,
-    // A reaction effect the answered attack uses up (`ON_ATTACKED`: a bonus against that one attack)
-    // applied to its roll alone, so it is never kept.
-    reactionEffect:
-      reactionUse &&
-      !(
-        prepared.makesAttackRoll &&
-        endSubscriptions(reactionUse.applied.pendingEffect).some((s) => s.event === 'ATTACKED')
-      )
-        ? reactionUse.applied.reactionEffect
-        : null,
-    damageGrants: [
-      ...damageEnded.grants.map(({ id, effect }) => ({ id, plan: effect })),
-      ...(gateImmunityGrant ? [gateImmunityGrant] : [])
-    ],
+    reactionEffect: keptReactionEffect,
+    damageGrants,
     actionEconomy,
     actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
     attackAction: settledAttackAction,

@@ -16,6 +16,7 @@ import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolki
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { createdHitPointMaximumRaise } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import {
   encounterAreaTargetCommandId,
   encounterChosenActorEntries,
@@ -658,6 +659,7 @@ export async function persistEncounterAreaCommit(
         targetActorId: actor.id
       })),
       effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
+      grantedMaximumHitPoints: createdHitPointMaximumRaise(createdEffects),
       effectiveScalarValues: batch.targetTransition.before.scalarValues,
       forceVersionAdvance: false,
       ...(enterForm ? { enterForm } : {}),

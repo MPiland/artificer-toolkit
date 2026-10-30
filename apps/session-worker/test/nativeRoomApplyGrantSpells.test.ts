@@ -1,7 +1,9 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
@@ -14,6 +16,7 @@ import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/viciou
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -68,6 +71,16 @@ function casterRoom(
 }
 
 type CasterRoom = Awaited<ReturnType<typeof casterRoom>>
+
+/** The Character's current hit points as its room play state holds them. */
+const characterHitPoints = (room: CasterRoom) =>
+  runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CHARACTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).hitpoints.current
+  })
 
 /** The spell's authored modifier grants, in the shape a held effect freezes them. */
 function authoredModifiers(spell: SpellAuthored) {
@@ -194,6 +207,24 @@ describe('SRD APPLY_GRANT spells cast in an Encounter (SPELLS-8.3)', () => {
           payload: { valueKind: 'FIXED', amount: bonus }
         }
       ])
+      // The Wolf starts at its maximum; the heal after the grant sees the raised one (SPELLS-8.T16).
+      expect(held.wolf.currentHitPoints).toBe(plainWolf.hitPoints + bonus)
+    },
+    120000
+  )
+
+  it.each([
+    { level: 3, label: 'Aid (2nd level)', bonus: 5 },
+    { level: 5, label: 'Aid (3rd level)', bonus: 10 }
+  ])(
+    '$label raises a Character at full hit points by $bonus (SPELLS-8.T16)',
+    async ({ level, label, bonus }) => {
+      const room = await casterRoom(aid, label, { allied: true, level })
+      const before = await characterHitPoints(room)
+
+      const { answer } = await room.startActorsAction([CHARACTER_ACTOR_ID], RANGE_UNCHECKED)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(await characterHitPoints(room)).toBe(before + bonus)
     },
     120000
   )
