@@ -6,9 +6,39 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { creatureSnapshotSize } from './encounterActionEffects.js'
 import { summonBody } from './encounterActorBody.js'
 import type { EncounterActorFormCreature } from './encounterActorForm.js'
+import { snapshotStatBlock } from './encounterProjection.js'
+import type { FormSummonStats } from './spellSummonStatBlock.js'
 import { summonHitPoints } from './summonHitPoints.js'
+
+/**
+ * The stat values a form summon lists, read from the System Creature the caster chose. It lives on
+ * the Encounter side so the Sheet-reachable `resolveSpellSummonStatBlock` imports no Encounter module.
+ */
+export function formSummonStats(
+  creature: Pick<EncounterActorFormCreature, 'systemId' | 'snapshot'>
+): FormSummonStats {
+  const stats = snapshotStatBlock({ kind: 'CREATURE', ...creature })
+  const size = creatureSnapshotSize(creature)
+  const { snapshot } = creature
+  const payload =
+    typeof snapshot === 'object' && snapshot !== null && 'payload' in snapshot
+      ? snapshot.payload
+      : null
+  const passivePerception =
+    typeof payload === 'object' && payload !== null && 'passivePerception' in payload
+      ? payload.passivePerception
+      : null
+  return {
+    ...(size ? { size } : {}),
+    armorClass: stats?.armorClass ?? null,
+    ...(stats?.abilityScores ? { abilityScores: stats.abilityScores } : {}),
+    ...(stats?.speeds.length ? { speeds: stats.speeds } : {}),
+    ...(typeof passivePerception === 'number' ? { passivePerception } : {})
+  }
+}
 
 /**
  * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block or

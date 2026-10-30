@@ -23,7 +23,10 @@ import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import {
+  buildEncounterSummon,
+  formSummonStats
+} from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { resolveSpellSummonStatBlock } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -387,7 +390,7 @@ export async function settleAreaCommit(args: {
                     casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
                     spellId: summonSpellId,
                     label: summonLabel,
-                    ...(formCreature ? { formCreature: formCreature.creature } : {})
+                    ...(formCreature ? { formStats: formSummonStats(formCreature.creature) } : {})
                   }),
             caster,
             casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,

@@ -2221,8 +2221,9 @@ and the POINT command carries `formId` and `creatureTypeId`. Preparation (`readS
 missing or unknown form, a missing or unoffered type, a type for a summon that offers none and a form for a stat
 block summon (422 `TARGET_UNAVAILABLE`). `buildEncounterSummon` takes a body union: `STAT_BLOCK` makes the CUSTOM actor
 above; `CREATURE` makes a CREATURE actor from the corpus Creature (`readFormCreature`), owned by the caster, with the
-chosen type replacing `payload.creatureTypeId`. `resolveSpellSummonStatBlock` reads that Creature's stat block for the
-values the owner's Sheet lists, and the Run actor stays the only record of its hit points.
+chosen type replacing `payload.creatureTypeId`. `formSummonStats` (Encounter side) reads that Creature's stat block, and
+`resolveSpellSummonStatBlock` takes those values as `formStats`, so the Sheet-reachable resolver imports no Encounter
+module. They are the values the owner's Sheet lists, and the Run actor stays the only record of its hit points.
 
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,

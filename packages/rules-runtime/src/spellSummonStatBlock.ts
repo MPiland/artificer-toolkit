@@ -6,9 +6,12 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { SpellSummonStatBlockValues } from '@artificer-toolkit/shared/authored'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
-import { creatureSnapshotSize } from './encounterActionEffects.js'
-import type { EncounterActorFormCreature } from './encounterActorForm.js'
-import { snapshotStatBlock } from './encounterProjection.js'
+
+/** The stat values a form summon takes from the System Creature the caster chose. */
+export type FormSummonStats = Pick<
+  SpellSummonStatBlockValues,
+  'size' | 'armorClass' | 'abilityScores' | 'speeds' | 'passivePerception'
+>
 
 /**
  * The stat block values a summon cast resolves against its caster once, at cast time (D190). A Sheet
@@ -21,8 +24,8 @@ export function resolveSpellSummonStatBlock(input: {
   spellId: string
   /** The creature's name when the plan gives none: the chosen form's, else the spell's. */
   label: string
-  /** The System Creature a form summon became; its stat block gives the values. */
-  formCreature?: Pick<EncounterActorFormCreature, 'systemId' | 'snapshot'>
+  /** A form summon's values, read from the System Creature it became (`formSummonStats`). */
+  formStats?: FormSummonStats
 }): SpellSummonStatBlockValues {
   const { placement } = input
   const { entry } = placement
@@ -48,26 +51,8 @@ export function resolveSpellSummonStatBlock(input: {
     ...(actions.length ? { actions } : {})
   }
   if (!('statBlock' in placement)) {
-    if (!input.formCreature) throw new Error('A form summon resolves against its chosen Creature.')
-    const stats = snapshotStatBlock({ kind: 'CREATURE', ...input.formCreature })
-    const size = creatureSnapshotSize(input.formCreature)
-    const { snapshot } = input.formCreature
-    const payload =
-      typeof snapshot === 'object' && snapshot !== null && 'payload' in snapshot
-        ? snapshot.payload
-        : null
-    const passivePerception =
-      typeof payload === 'object' && payload !== null && 'passivePerception' in payload
-        ? payload.passivePerception
-        : null
-    return {
-      ...identity,
-      ...(size ? { size } : {}),
-      armorClass: stats?.armorClass ?? null,
-      ...(stats?.abilityScores ? { abilityScores: stats.abilityScores } : {}),
-      ...(stats?.speeds.length ? { speeds: stats.speeds } : {}),
-      ...(typeof passivePerception === 'number' ? { passivePerception } : {})
-    }
+    if (!input.formStats) throw new Error('A form summon resolves against its chosen Creature.')
+    return { ...identity, ...input.formStats }
   }
   const { statBlock } = placement
   const resolve = (expr: unknown) =>

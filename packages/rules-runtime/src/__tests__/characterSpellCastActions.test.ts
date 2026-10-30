@@ -50,7 +50,7 @@ import { createSrdRulesRuntime, srdCreatureActor, testUuid } from '../testing/dn
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterSummon } from '../encounterSummon.js'
+import { buildEncounterSummon, formSummonStats } from '../encounterSummon.js'
 import {
   buildSheetSpellSummon,
   encounterSpellSummonExtra,
@@ -3185,7 +3185,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         casterHitPointMaximum: 40,
         spellId: FIND_FAMILIAR.id,
         label: 'Cat',
-        formCreature
+        formStats: formSummonStats(formCreature)
       })
       const { actor } = buildEncounterSummon({
         summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
