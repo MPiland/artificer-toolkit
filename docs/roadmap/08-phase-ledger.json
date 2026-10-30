@@ -588,9 +588,11 @@
           "acs": [
             {
               "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21.",
+              "status": "DONE",
+              "proof": [
+                "Closed by PLATFORM-13.T16undefined), PLATFORM-13.T11undefined), PLATFORM-13.T12undefined), PLATFORM-13.T13undefined), PLATFORM-13.T21 (m554), PLATFORM-13.T22 (m558); see each task's proof."
+              ],
+              "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21. Closed 2026-10-30 by PLATFORM-13.T16, PLATFORM-13.T11, PLATFORM-13.T12, PLATFORM-13.T13, PLATFORM-13.T21, PLATFORM-13.T22.",
               "origin": [
                 "CP-S1"
               ],
@@ -1067,7 +1069,7 @@
               "note": "Merged in m554 (a843899d2)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "PLATFORM-13.T22",
               "closes": [
                 "PLATFORM-13.2"
@@ -1079,7 +1081,7 @@
                 "size": 1
               },
               "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path. Rider: remove the stray BEL control byte and literal `n in the comment at packages/shared/src/domains/core/valueDomain.ts:501 (from 371b19b81).",
-              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
+              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29. Merged in m558 (214537231)."
             },
             {
               "id": "PLATFORM-13.T23",
@@ -23838,10 +23840,12 @@
             },
             {
               "text": "Typing into one authoring field re-renders only that field and the components whose displayed flag changed: no component subscribes to all values or all field meta, node resolution reads values through a debounced store subscription outside render, and step status and progress come from narrow selectors.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-10.T1b (m558); see each task's proof."
+              ],
               "origin": [],
-              "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090).",
+              "note": "Proved by a render-count test on a real authored form plus a React Profiler before/after in local-validation. Today FormRenderer.tsx:126 subscribes to state.values and :138 to state.fieldMeta, both new references per keystroke. TanStack react-store 0.11.2 useSelector compares with ===; object or array selectors need { compare: shallow } (tanstack/form#2090). Closed 2026-10-30 by RELIABILITY-10.T1b.",
               "id": "RELIABILITY-10.2",
               "journeys": [
                 "publication-browser"
@@ -23888,7 +23892,7 @@
             },
             {
               "id": "RELIABILITY-10.T1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-10.2"
               ],
@@ -23902,7 +23906,7 @@
                 ]
               },
               "text": "One resolution owner reads values through a debounced form.store subscription outside render; chrome reads step status, progress and navigation through narrow selectors; FormRenderer push-up effects deleted; AuthoringFormContext split into stable actions, navigation and mode contexts; render-count test on a real authored form plus a Profiler before/after in local-validation.",
-              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29. Merged in m558 (214537231)."
             },
             {
               "id": "RELIABILITY-10.T1c",
