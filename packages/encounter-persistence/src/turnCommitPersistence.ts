@@ -400,8 +400,9 @@ export async function persistEncounterTurnCommit(
           ...state,
           delegatedLegendaryAction: {
             parentCommandId: root.rootCommandId,
-            holderActorId: delegated.ownerActorId,
-            actionId: delegated.actionId,
+            holderActorId: delegated.option.ownerActorId,
+            actionId: delegated.option.actionId,
+            ...(delegated.aim ? { aim: delegated.aim } : {}),
             settledOwnerActorIds: [
               ...new Set([
                 ...(state.delegatedLegendaryAction?.settledOwnerActorIds ?? []),

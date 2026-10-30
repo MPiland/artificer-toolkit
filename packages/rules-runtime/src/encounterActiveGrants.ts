@@ -104,6 +104,20 @@ function activeGrantContributor(
   }
 }
 
+/** The authored Effects active on a holder that bind one of its items, sorted. */
+export function itemBindingEffectIds(
+  effects: readonly ActiveRuleEffectRecord[],
+  itemInstanceId: string
+): string[] {
+  return [
+    ...new Set(
+      listActiveEffectGrants(effects).flatMap(({ authoredEffectId, boundItem }) =>
+        boundItem?.itemInstanceId === itemInstanceId ? [authoredEffectId] : []
+      )
+    )
+  ].sort()
+}
+
 /**
  * Folds a Creature holder's active saving-throw advantage and disadvantage grants into its save
  * rows. A grant scoped to a condition (Antitoxin against poison) adds a condition-scoped row beside

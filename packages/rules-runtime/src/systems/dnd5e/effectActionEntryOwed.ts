@@ -28,6 +28,7 @@ export function entryOwed(
     rollMode: facts.attackRollMode,
     enemyProximity: facts.attackEnemyProximity ?? null,
     moveToward: facts.attackMoveToward ?? null,
-    targetCreatureTypeId: facts.targetCreatureTypeId ?? null
+    targetCreatureTypeId: facts.targetCreatureTypeId ?? null,
+    attackItemBindingEffectIds: facts.attackItemBindingEffectIds ?? []
   })
 }

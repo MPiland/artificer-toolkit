@@ -241,8 +241,10 @@ admissions changed:
 - A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
   `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
   check, the single-target range policy and the area policy (`isSupportedArea`). So a charged free save option (Wing Attack's authored shape) compiles under
-  its save. When its area is centered on its owner, the turn end delegates it to the area coordinator as its own
-  rule-raised root (SPELLS-33.T4l3, D197; `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`).
+  its save. When its area is centered on its owner, or is a point or direction its controller aims, the turn end
+  delegates it to the area coordinator as its own rule-raised root (SPELLS-33.T4l3, SPELLS-15.T1, D197;
+  `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`). An aimed option carries its `area`, the answer
+  carries the `aim`, and the Run marker keeps it for the root's target and admission.
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
   is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
   of one.
@@ -2246,6 +2248,7 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 
 - **Measured from a conjured creature (current, SPELLS-4.T2v2a3a, D190a):** an offer's `origin` is `ACTOR` (default; absent means ACTOR) or `CONJURED`. The offer's source still acts and pays; only the token range and flanking are measured from changes. `repeatOfferOriginActorId` names the creature: the actor itself, or for `CONJURED` the creature whose `owner` is (`actorId`, carrier effect id); `encounterActionOriginActorId` resolves it from an action id, and a non-repeat id is always its actor. The listing sets `originActorId` on a choice whose origin is another creature and leaves out a `CONJURED` offer with no such creature. The Scene read (`readEncounterActionOriginActorId` in `actionSceneInputs.ts`) is keyed by the command's `actionId` (`actionSceneRequestDtoSchema.actionId`), so the preview, the room plan, the commit, the pending replay and the contest re-read all bind the same source token: a `CONJURED` repeat must send the conjured creature's token and every other action its actor's, or the read is stale. The summon carries the offer on its carrier: a summon cast's second ON_USE outcome is an empty `APPLY_GRANT` that holds only the block lifecycle's `effectOffers`, with the summon's duration and an end-of-turn tick on the holder; `compileSummonPlacement` plans the summon entry from it (`modifierGrantEntryPlan`), and anything else on that grant is refused.
 - **Free cast-turn use (current, SPELLS-4.T2v2a3b, D190a):** a repeat offer may author `castTurnUse: 'FREE_ONCE'`. The cast freezes the Run's `turnSequence` onto the held offer as `castTurnSequence` (`frozenRepeatOffer`, fed by `prepareEncounterActionEffectPlans`' `turnSequence`), and the stored schema requires both or neither. `repeatOfferFreeUseKey` returns the once-per-turn key `repeat-free:<effectId>:<offerIndex>` only while the Run is in that turn (`turnSequence` equal and a current actor: between turns nothing is spent) and the key is unspent; the offer goes only to its source, so only the caster takes it. When it holds, `discoverEncounterRepeatPath` charges the repeat a `FREE` activation and the REPEAT_PATH source carries the key as `grantedUseKey`, which the worker spends through `spendTurnUses` exactly like a granted action's (D160), so `REVERT_LAST_ACTION` restores it. Any other use is charged the authored activation. The choice listing shows `activation: 'FREE'` while the free use is open.
+- **Counted uses (current, SPELLS-4.T2n3):** a carrier with a path `lifecycle.uses` (Goodberry's ten berries) holds `lifecycle.remainingUses`; each settled repeat spends one (`settledCountedUseSpend`, beside the decoy strike: `spentUseGrants`, the Mirror Image lifecycle CAS) and the last ends the carrier (`consumedGrants`). Undo restores either. A carrier with no count is never spent. `spentUseGrants` holds at most two (a decoy strike and a repeat).
 
 #### Damage-derived heal: `HEAL` `valueKind: 'DAMAGE_DEALT'` (current, SPELLS-4.T2n2, D181)
 
@@ -2520,7 +2523,7 @@ Smite (`source-data/srd/classes/paladin`) are authored from core options only. I
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eItemRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -2567,6 +2570,20 @@ predicate, `effectReadsMoveToward`) binds the TEXT fact `dnd5e.attack-move-towar
 without it (no Scene, or a reaction or opportunity attack, which have no turn record) the group fails whichever
 the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
 segments records only its last segment.
+
+**Bound by an Effect (SPELLS-31.T4v).** `BOUND_BY_EFFECT {effectIds}` in an `EQUIPMENT` context is the fourth
+circumstance check, the printed "your pact weapon" gate (Lifedrinker). It passes when one of the attacker's active
+Effects named in `effectIds` binds the attacking item: an active grant whose `bindsChosenItem` grant is bound to
+that item instance (`itemBindingEffectIds`, `encounterActiveGrants`). `prepareEncounterActionMechanics` computes the
+list for a `CHARACTER_ACTION` attack made with equipment and puts it in `sourceDerivedFacts.attackItemBindingEffectIds`;
+`bindFacts` emits it as the TEXT fact `dnd5e.attack-item-bindings` (a JSON list of authored Effect ids). Without
+the fact the list is empty, so an INCLUDE check fails and an EXCLUDE check passes. The binding itself is authored:
+Pact of the Blade is an ACTION Effect on a chosen held melee weapon that first ends its own earlier binding
+(`END_EFFECTS SAME_EFFECT`), then binds the weapon with a `WEAPON_PROFICIENCY` `ENABLE` grant and the `MAGICAL`
+attack trait, until dispelled or the weapon is released (`ON_CHOSEN_ITEM_RELEASED`). A `WEAPON_PROFICIENCY`
+grant makes the holder proficient with attacks its modifier applies to (`resolveAttackBonus` in
+`systems/dnd5e/characterActionMechanics`, `max(listed, granted)`, so expertise is kept). Only the room folds active
+grants into the Character policy (`withCharacterActiveGrants`); the Sheet shows the unbound bonus.
 
 A Charge is a passive attack rider that names the Feature whose attack it rides (`ridesFeatureId`, T5n2), so it
 never rides the creature's other attacks of the same trigger. `mergeOnHitRiders(effect, riders, attackFeatureId)`

@@ -28,6 +28,8 @@ import {
 /** A grant a holder carries from an Active Effect, in the Character grant fold's modifier shape. */
 type ActiveEffectGrant = {
   effectId: string
+  /** The authored Effect the active effect runs, which a binding check names. */
+  authoredEffectId: string
   modifiers: readonly CharacterGrantFoldModifier[]
   senses: readonly CharacterGrantFoldSense[]
   sourceLabel: string
@@ -45,6 +47,7 @@ export function listActiveEffectGrants(
         ? [
             {
               effectId: id,
+              authoredEffectId: definition.authoredEffectId,
               modifiers: contribution.modifiers,
               senses: contribution.senses,
               sourceLabel: contribution.sourceLabel,

@@ -29,7 +29,12 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
-import { sheetSpellSummonConcentration, sheetSpellSummonExtra } from './sheetSpellSummon.js'
+import {
+  encounterSpellSummonExtra,
+  sheetSpellSummonConcentration,
+  sheetSpellSummonExtra,
+  type EncounterSpellSummon
+} from './sheetSpellSummon.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderEquipmentCatalogRecord } from './builderCatalog.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
@@ -715,6 +720,8 @@ interface ProjectCharacterSheetBundleParams {
    * damage dice they grant against their holders join the Character's rows (SPELLS-8.6).
    */
   concentrationEffects: ProjectCharacterSheetBundleParams['activeEffects'] | null
+  /** The summons this Character's Run actor owns in an active Run, listed in Extras (SPELLS-34.2). */
+  encounterSummons?: readonly EncounterSpellSummon[]
 }
 
 interface CharacterSheetProjectionBundle {
@@ -960,9 +967,20 @@ export function projectCharacterSheetBundle(
       }
     ]
   })
-  const summonExtras = (character.state.spellSummons ?? []).map((summon) =>
-    sheetSpellSummonExtra(summon, formatExtraSpeedLabel(summon.speeds, resolution.registry.system))
-  )
+  const summonExtras = [
+    ...(character.state.spellSummons ?? []).map((summon) =>
+      sheetSpellSummonExtra(
+        summon,
+        formatExtraSpeedLabel(summon.speeds, resolution.registry.system)
+      )
+    ),
+    ...(params.encounterSummons ?? []).map((owned) =>
+      encounterSpellSummonExtra(
+        owned,
+        formatExtraSpeedLabel(owned.summon.speeds, resolution.registry.system)
+      )
+    )
+  ]
   const sheetExtras = {
     kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
     originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],

@@ -24,6 +24,7 @@ import {
   planNativeEncounterAreaSourceSpend
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import { resolveSpellSummonStatBlock } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -367,11 +368,24 @@ export async function settleAreaCommit(args: {
   })
   const casterTarget = movementTargets.get(caster.id)
   if (summon && !casterTarget) throw new Error('The summoning caster has no prepared target.')
+  const summonSpellId =
+    lead.source.kind === 'CHARACTER_ACTION' && lead.source.candidate.mechanicsOwner.kind === 'SPELL'
+      ? lead.source.candidate.mechanicsOwner.id
+      : null
   const summonedTokens =
     summon && casterTarget
       ? [
           buildEncounterSummon({
             summon: summon.placement,
+            spellSummon:
+              summonSpellId === null
+                ? null
+                : resolveSpellSummonStatBlock({
+                    placement: summon.placement,
+                    casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
+                    spellId: summonSpellId,
+                    label: sourceLabel
+                  }),
             caster,
             casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
             label: summon.placement.label ?? sourceLabel,

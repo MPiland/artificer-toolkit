@@ -24,7 +24,8 @@ export function matchesNativeTurnResponse(
       return (
         history.kind === 'LEGENDARY_OPTION' &&
         history.optionId === resolution.optionId &&
-        history.targetActorId === resolution.targetActorId
+        history.targetActorId === resolution.targetActorId &&
+        checksumCanonicalJson(history.aim ?? null) === checksumCanonicalJson(resolution.aim ?? null)
       )
     case 'ENTER_DICE':
       return (
@@ -212,7 +213,8 @@ export function prepareEncounterTurnResponse(input: {
             kind: 'LEGENDARY_OPTION',
             selectionChecksum: context.selectionChecksum,
             optionId: resolution.optionId,
-            targetActorId: resolution.targetActorId
+            targetActorId: resolution.targetActorId,
+            ...(resolution.aim ? { aim: resolution.aim } : {})
           }
   } else {
     if (
