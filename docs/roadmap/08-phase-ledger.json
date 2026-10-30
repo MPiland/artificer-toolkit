@@ -921,6 +921,33 @@
                 "size": 2
               },
               "text": "Bug: node scripts/auditNativeBoundaries.mjs fails at 591b93e65 with 4 violations: packages/authoring/package.json depends on @artificer-toolkit/source-data and @artificer-toolkit/rules-runtime (layering), and scripts/phase8/buildPhaseLedger.mjs trips the GoRules and tRPC removal rules with PBI titles (false positives). Fix the layering, scope the removal rules away from ledger tooling without weakening them, and run the audit in CI (tests.yml) so it cannot drift again."
+            },
+            {
+              "status": "TODO",
+              "id": "PLATFORM-13.T22",
+              "closes": ["PLATFORM-13.2"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 8,
+                "size": 1
+              },
+              "text": "Bug: scripts/watchCi.ps1 exits 0 when it cannot reach api.github.com (it printed \"error connecting to api.github.com\" and reported success). It must exit non-zero on any gh failure and only report green when every run on the commit is green. Regression test of the exit path. Rider: remove the stray BEL control byte and literal `n in the comment at packages/shared/src/domains/core/valueDomain.ts:501 (from 371b19b81).",
+              "note": "Reported by the PLATFORM-13.T2 session on 2026-10-29."
+            },
+            {
+              "id": "PLATFORM-13.T23",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.5"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["PLATFORM-13.T2"]
+              },
+              "text": "Bump convex-test 0.0.60 to latest (0.0.66). Bug: social/developmentRetention calls .paginate() twice in one query, which the real backend rejects (surfaces at lib/domainRejectionTransport.ts:10); fix the product query, with the bumped harness as its red proof. Fix the ~12 Convex test files whose fixtures assume Date.now() inside a mutation equals the fake system time (convex-test 0.0.63 monotonic commit clock): measure from stored timestamps, never loosen an assertion. Failure list: platform-13-t2-convex-test-0.0.66.md in the shared notes folder.",
+              "note": "Orchestrator ruling (a) on PLATFORM-13.T2, 2026-10-29: T2 stays a dependency refresh with convex-test held at 0.0.60."
             }
           ]
         },
@@ -11864,7 +11891,7 @@
             },
             {
               "id": "SPELLS-4.T2n3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -11874,7 +11901,7 @@
                 "after": ["SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-4.T2n4",
@@ -12934,6 +12961,20 @@
                 "size": 3
               },
               "text": "Bug: one shared fold of active-effect grants into attack and damage, used by both the Sheet evaluation and the room, so the Sheet attack and damage rows reflect active buffs, modifiers and proficiencies. Red-first regression tests (Shillelagh d8 and magical, Bless, Hunter's Mark, pact-weapon proficiency); no Sheet-only overlay. Expect Sheet snapshot churn."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-8.T16",
+              "closes": ["SPELLS-8.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-8.T4"]
+              },
+              "text": "Bug: a SEQUENTIAL result's later outcomes see its earlier HIT_POINTS_MAX grants when clamping healing, on the creature path and the Character/Sheet path, so Aid raises current hit points by 5 per slot level above 1st. Seams: encounterActionMechanicsPreparation.ts:982, encounterMechanicsBatchPlan.ts:213/770/794, nativeAreaCommitPlan.ts:220, and the Sheet maximum clamp. Unit and room proofs; the Aid HP assertion lives here.",
+              "note": "Bug split from SPELLS-8.T4 (orchestrator ruling B, 2026-10-29); handoff note from the T4 session."
             }
           ]
         },
@@ -13413,7 +13454,7 @@
         {
           "id": "SPELLS-15",
           "title": "Area Legendary options",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -13437,7 +13478,7 @@
           "tasks": [
             {
               "id": "SPELLS-15.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-15.1"],
               "wsjf": {
                 "bv": 3,
@@ -13446,7 +13487,7 @@
                 "size": 5
               },
               "text": "Author area shape on legendary options and extend discovery.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-15.T2",
@@ -14668,13 +14709,12 @@
             {
               "id": "SPELLS-27.1",
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "T2a (D125): packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts; CI Tests 38882320928 and Live backend 38882320295 on e5b309425",
-                "T2b (Legendary window, movement opportunity attack and Disarm release the condition with its grant; the three ownsCondition fences removed): apps/session-worker/test/nativeRoomLegendary.test.ts, nativeRoomGrantEnds.test.ts, nativeRoomDisarm.test.ts, packages/rules-runtime/src/__tests__/encounterEndedEffectRelease.test.ts and encounterDisarmSettlement.test.ts, packages/schema/src/__tests__/contested-action-application-output.test.ts; red: Tests 38887125785 on 2ff927eeb fails the new release cases; green: CI Tests 38889745325 and Live backend 38889745343 on 018e58dfc"
+                "Closed by SPELLS-27.T1undefined), SPELLS-27.T2aundefined), SPELLS-27.T2bundefined), SPELLS-27.T3undefined), SPELLS-27.T3bundefined), SPELLS-27.T6 (m546); see each task's proof."
               ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads.",
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads. Closed 2026-10-29 by SPELLS-27.T1, SPELLS-27.T2a, SPELLS-27.T2b, SPELLS-27.T3, SPELLS-27.T3b, SPELLS-27.T6.",
               "journeys": ["effects-browser"]
             },
             {
@@ -14879,7 +14919,7 @@
             {
               "id": "SPELLS-27.T6",
               "text": "Unify consumeOnFirstEvents and endOnEvents into one structured shape with explicit timing; delete the old enum, migrate data, no shim (D122). After REACTION-4.T3. The unified shape also absorbs endOnTriggers (T4) and drops its read default of [], migrating stored effects instead.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-27.1"],
               "wsjf": {
                 "bv": 3,
@@ -14887,7 +14927,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["SPELLS-27.T3", "REACTION-4.T3"]
-              }
+              },
+              "note": "Merged in m546 (69cc19633)."
             }
           ]
         },
@@ -15551,7 +15592,7 @@
             },
             {
               "id": "SPELLS-31.T4v",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15567,7 +15608,7 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user ruled option C (size 8): build Pact of the Blade, the pact-weapon proficiency consumer (Sheet and room attack bonus), Lifedrinker and the Pact of the Chain familiar reaction attack; Voice of the Chain Master stays a GM ruling."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. 2026-10-29: user ruled option C (size 8): build Pact of the Blade, the pact-weapon proficiency consumer (Sheet and room attack bonus), Lifedrinker and the Pact of the Chain familiar reaction attack; Voice of the Chain Master stays a GM ruling. Merged in m552 (63dc0fd6c)."
             },
             {
               "id": "SPELLS-31.T5a",
@@ -16003,6 +16044,20 @@
               },
               "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
               "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-31.T4v2",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T4v", "SPELLS-34.T3"]
+              },
+              "text": "Delegated attack: a generic caster grant \"forgo one attack of the Attack action; a creature you summoned with one of effectIds attacks with its reaction\" (owner link). The caster's command carries the delegate actor, resolves the delegate's own creature attack, charges the caster's attack and the delegate's reaction, and undoes as one command (replay and checksum pins). The web action menu can pick the familiar's attack. Pact of the Chain authored with it; deletes CLASS_WARLOCK_PACT_OF_CHAIN (D156). No Warlock names in code; authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-29. Packet: spells-31-t4v-sheet-ruling.md (last section). The familiar's own-turn \"can't attack\" stays unenforced."
             }
           ]
         },
@@ -16882,7 +16937,7 @@
             },
             {
               "id": "SPELLS-33.T4w",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -16892,7 +16947,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m542 (9dc8b49b3)."
             },
             {
               "id": "SPELLS-33.T5afp",
@@ -17684,10 +17739,10 @@
           "acs": [
             {
               "text": "Casting a summon spell from the sheet outside an Encounter adds a SUMMONED Extras entry built from the spell's summon stat block, showing AC, speed, attacks and current and maximum HP, with HP tracked on the sheet.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-34.T2 (m552); see each task's proof."],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-30 by SPELLS-34.T2.",
               "id": "SPELLS-34.1",
               "journeys": ["character-sheet-spells-browser"]
             },
@@ -17702,10 +17757,12 @@
             },
             {
               "text": "A summon leaves Extras when Concentration ends, when it is dismissed, or at 0 HP; outside the VTT a timed summon stays until dismissed or a long rest.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-34.T1 (m406), SPELLS-34.T2 (m552); see each task's proof."
+              ],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-30 by SPELLS-34.T1, SPELLS-34.T2.",
               "id": "SPELLS-34.3",
               "journeys": ["character-sheet-browser"]
             },
@@ -17745,8 +17802,8 @@
               "id": "SPELLS-34.T2",
               "text": "Encounter summons in Extras, and summon attacks on both paths: the owner's Extras show owned Run actors created by a summon cast, with live HP, as a read view that leaves with the actor; sheet and Encounter entries list the summon's spell-authored actions from the compiled plan.",
               "closes": ["SPELLS-34.1", "SPELLS-34.2", "SPELLS-34.3"],
-              "status": "TODO",
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "status": "DONE",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Merged in m552 (63dc0fd6c).",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -17754,6 +17811,19 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1", "SPELLS-4.T2v2a3d", "SPELLS-4.T2v2b"]
               }
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-34.T3",
+              "closes": ["SPELLS-34.2"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Bug: Find Familiar compiles REFUSED (MANIFEST CREATURE with no form, find-familiar.ts:68-72; srdEffectCompile.golden.txt:1164), so no familiar appears in the room. Make it a SUMMON with a choice of SRD corpus creature form and a creature-type override, linked to its caster (owner actor and source effect), on both the Sheet and room paths. Generic: no spell names in code; authoring-parity proof.",
+              "note": "Approved by the user on 2026-10-29. Found by SPELLS-31.T4v (packet: spells-31-t4v-sheet-ruling.md)."
             }
           ]
         }
@@ -19472,7 +19542,7 @@
         {
           "id": "RELIABILITY-10",
           "title": "Authoring forms have one state owner and re-render only what changed",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -19497,10 +19567,10 @@
             },
             {
               "text": "The character builder's submit, finalize and saving state each come from one source, so a pending save is never shown as idle.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-10.T1a (m543); see each task's proof."],
               "origin": [],
-              "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag.",
+              "note": "Bug, needs a red-first regression test. CharacterBuilderStateSync.tsx:25-63 and CharacterBuilderRenderer.tsx:136-148 both patch isSubmitting, canSubmit and canFinalize with different values; the last writer wins, and the Renderer can clear the mutation-pending flag. Closed 2026-10-29 by RELIABILITY-10.T1a.",
               "id": "RELIABILITY-10.3",
               "journeys": ["builder-browser"]
             }
@@ -19514,7 +19584,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-10.T1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-10.3"],
               "wsjf": {
                 "bv": 3,
@@ -19524,7 +19594,7 @@
                 "after": ["RELIABILITY-8.T1"]
               },
               "text": "Builder submit, finalize and saving flags have one writer (CharacterBuilderStateSync); the Renderer publishes only progress; red-first regression test plus a builder journey through the real AuthoringLayout.",
-              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29. Merged in m543 (63b0de152)."
             },
             {
               "id": "RELIABILITY-10.T1b",
@@ -20198,10 +20268,10 @@
             {
               "id": "RELIABILITY-21.3",
               "text": "characters/sheetSlices:get stays under the 1 s query limit, and the builder and character-sheet journeys settle and pass.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["sheetReadBudget.test.ts"],
               "origin": [],
-              "note": "Proof: builder, character-sheet.",
+              "note": "Proof: builder, character-sheet. Closed 2026-10-29 by RELIABILITY-21.T3, RELIABILITY-21.T16.",
               "journeys": ["builder-browser", "character-sheet-browser"]
             },
             {
@@ -20306,10 +20376,11 @@
             {
               "id": "RELIABILITY-21.16",
               "text": "builder-browser passes without reruns: a Sheet command or Builder commit derives the Sheet once and stores it per section, and each Sheet query reads only its stored section instead of re-deriving the whole Sheet.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-21.T16 (m549); see each task's proof."],
               "origin": [],
-              "journeys": ["builder-browser"]
+              "journeys": ["builder-browser"],
+              "note": "Closed 2026-10-29 by RELIABILITY-21.T16."
             },
             {
               "id": "RELIABILITY-21.17",
@@ -20334,6 +20405,22 @@
               "proof": ["heldAccountDeletion.test.ts"],
               "origin": [],
               "note": "Closed 2026-10-29 by RELIABILITY-21.T21, RELIABILITY-21.T22, RELIABILITY-21.T23, RELIABILITY-21.T24."
+            },
+            {
+              "id": "RELIABILITY-21.20",
+              "text": "A Sheet derivation trusts publication and System documents whose stored checksum it verifies instead of re-parsing them on every write; schema validation of those documents happens once, at publish and seed, and a tampered or stale document is still refused by its checksum.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI)."
+            },
+            {
+              "id": "RELIABILITY-21.21",
+              "text": "campaign-custody-browser passes without reruns: after the custody cleanup, the player reload's Campaign queries (contentShares:list, partyInventory currencies and items, vehicles list and definition options, inventoryOwners:version, queries:get) each stay well under the 1 s query limit.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Bug registered by the orchestrator on 2026-10-29: failed in m544, m545, ci/merge-m549, m551 (twice) and on the ci/spells-8-t4 and ci/spells-31-t5i tips, with about 12 queries stalling at 0.8-1.0 s and four timing out."
             }
           ],
           "tasks": [
@@ -20567,7 +20654,7 @@
             },
             {
               "id": "RELIABILITY-21.T16",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-21.16", "RELIABILITY-21.3"],
               "wsjf": {
                 "bv": 8,
@@ -20576,8 +20663,7 @@
                 "size": 8
               },
               "text": "Derive the Sheet once per write (Sheet commands and Builder commit) and persist the result as per-section derived records in their own tables (combat, equipment, spells, extras and the other Sheet sections), each written only when its section checksum changes (reuse the writeCharacterRecord ID/checksum diff). sheetSlices:get, panels:get and preparationOptions:get read only their stored section, so a command no longer triggers four full loadCharacterSheet assemblies. Add read-budget and compute regression tests that fail before the change; write an ADR for the stored derived Sheet and update docs/architecture/character.md; remove builder-browser from KNOWN_BUG_PROOFS. D196 reset after merge. Riders (orchestrator rulings 2026-10-28, description-only): also remove character-sheet-browser (T14) and vtt-browser (T9) from KNOWN_BUG_PROOFS; bring vtt-browser rule convergence (Sheet Max HP edit, measured 1.27-1.45 s) within budget, fix its first-edit non-convergence flake, and decide with evidence whether rule samples belong in the authoritative bucket.",
-              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI.",
-              "activeWorkbook": "docs/architecture/character.md"
+              "note": "Registered 2026-10-28 (user yes, D187 growth +8). Found by RELIABILITY-21.T3: four subscribed Sheet queries each run a full loadCharacterSheet (~430-600 ms) after sheetCommands:execute and time out together on 2-vCPU CI. Merged in m549 (ce8baa2f4)."
             },
             {
               "id": "RELIABILITY-21.T17",
@@ -20699,6 +20785,33 @@
               "note": "Registered 2026-10-28 (orchestrator, completing AC 21.19). Merged in m539.",
               "mergedAt": "2026-10-29T05:05:19Z",
               "proof": "Tests 40819499214, Live backend 40819499130, Browser journeys 40819499127 on 913be9a86; batch ci/merge-m539 green. readCurrentSourceDefinitionChoices reads only {id,label} under the shared definition guards; Fighter-copy resolve 199-251 ms uncontended, 573 ms max contended (was 1006-1221 ms). publication-class-browser gates again."
+            },
+            {
+              "id": "RELIABILITY-21.T25",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.20"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": ["RELIABILITY-21.T16"]
+              },
+              "text": "Move publication and System schema parsing off the Sheet derivation hot path: verify the stored checksum and use the typed document; parse at publish and seed only. Red-first proofs: a derivation does not re-parse a verified document (compute regression test), and a document whose bytes do not match its checksum is refused. Before/after timing on the account-deletion and vtt journeys in the T16 design notes; update docs/architecture/character.md and the ADR 0041 notes. Also give the queued post-commit Builder store margin on CI: its max under 700 ms on the builder journey (T16 measured 1038/1160 ms, one store timing out and falling back to a live read), by trimming its read volume (765 KB to 1.05 MB across 128 to 378 documents) as well as the parse.",
+              "note": "Approved by the user on 2026-10-29."
+            },
+            {
+              "id": "RELIABILITY-21.T26",
+              "status": "TODO",
+              "closes": ["RELIABILITY-21.21"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 13,
+                "rr": 8,
+                "size": 3
+              },
+              "text": "Bug: root-cause and fix the cost of the Campaign queries that stall on the campaign-custody player reload (campaignCustody.ts:225) at their source (indexes, narrower reads, shared reads); red-first read-budget or compute regression test; campaign-custody-browser proof run plus a full Tests run; before/after timings in the design notes. No retries, raised timeouts or loosened assertions.",
+              "note": "Blocks SPELLS-8.T4 (its tip carries the red campaign-custody run) and every batch merge."
             }
           ]
         }
@@ -20808,7 +20921,7 @@
         {
           "id": "VTT_UI-2",
           "title": "Tokens show system state",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -20832,7 +20945,7 @@
           "tasks": [
             {
               "id": "VTT_UI-2.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-2.1"],
               "wsjf": {
                 "bv": 3,
@@ -20841,7 +20954,7 @@
                 "size": 3
               },
               "text": "Morale and reaction state on tokens: add a morale outcome status (fled/surrendered) to the token presentation model from the actor's morale record, with the existing GM-vs-player visibility split (players must not see GM-only facts; decide with the same rule as GM health band), listed on hover/focus/selection and in the canvas description. Reaction state keeps its current proof and gains a presentation story/test naming it. Proof: model test over real Encounter data, window journey stories GmSeesMoraleOutcome / PlayerSeesOnlyWhatTheyMay.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m547 (1ec96d6d3)."
             },
             {
               "id": "VTT_UI-2.T2",
@@ -20869,21 +20982,10 @@
           "acs": [
             {
               "text": "Range, target, path, aura and placed-zone (hazard and trap) previews are shown.",
-              "status": "IN_PROGRESS",
-              "proof": [
-                "packages/rules-runtime/src/__tests__/encounterActionRange.test.ts",
-                "packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts",
-                "apps/apis/convex/encounters/shieldStow.test.ts",
-                "apps/apis/convex/encounters/actionChoices.test.ts",
-                "packages/shared/src/__tests__/vtt-scene-range.test.ts",
-                "packages/rules-runtime/src/__tests__/encounterActionTargetPolicy.test.ts",
-                "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts › action preview overlays",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx › range and target preview (VTT_UI-3.1)",
-                "apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.stories.tsx › PreviewRangeAndTarget",
-                "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx › ActionRangeAndTargetPreview"
-              ],
+              "status": "DONE",
+              "proof": ["Closed by VTT_UI-3.T1 (m526), VTT_UI-3.T2 (m547); see each task's proof."],
               "origin": ["G4-PREVIEWS"],
-              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model.",
+              "note": "BLOCKED for aura and trap: no aura producer (SPELLS-17) and no trap model. Range and target: done 2026-10-13 (merge 838fe79a2); the drawer draws the range outline and the in range / long range / out of range ring from the shared sceneRangeOutline and sceneRangeBand the rules use (agreement sweep in encounterActionTargetPolicy.test.ts), stories green post-merge (local-validation/owed-storybook/). Range contract (lane 1 option A): each encounter action choice carries `range` (SELF, WITHIN, RANGED, UNLIMITED), the geometry its compiled target policy enforces (none for sight, special, or an area or path policy the evaluator refuses), and `rangeLabel` from the authored range through the one formatter the Sheet uses (packages/rules-runtime/src/rangeLabel.ts): Touch reads Touch, a longbow 150/600 ft on both surfaces (packages/rules-runtime/src/__tests__/encounterActionRange.test.ts, packages/schema/src/__tests__/encounter-action-choice-range-contracts.test.ts, apps/apis/convex/encounters/actionChoices.test.ts). Path: done; the drag draws its route line (drag path plus the current position), removed on release (PathPreviewDuringDrag reads the drawn route). 2026-10-29: user narrowed \"trap\" to placed zones; traps are placed zones with MOVE-3 concealment, not a separate model. Closed 2026-10-29 by VTT_UI-3.T1, VTT_UI-3.T2.",
               "id": "VTT_UI-3.1",
               "journeys": ["vtt-browser"]
             },
@@ -20959,7 +21061,7 @@
             },
             {
               "id": "VTT_UI-3.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["VTT_UI-3.1"],
               "wsjf": {
                 "bv": 5,
@@ -20969,7 +21071,7 @@
                 "after": ["VTT_UI-3.T1"]
               },
               "text": "Placed-zone preview: show placed zones (SPELLS-17), including GM-placed hazards and traps, as map overlays and as a preview while placing one. Concealed zones follow MOVE-3 (decisions \"Hazards and traps\"): a zone with a spot DC is drawn only for the GM and for Characters it was revealed to. No new trap model.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). 2026-10-29: user ruling; the earlier note missed that MOVE-3 already defines hidden traps (spot and disarm DC, reveal, disarm). Merged in m547 (1ec96d6d3)."
             },
             {
               "id": "VTT_UI-3.T3",

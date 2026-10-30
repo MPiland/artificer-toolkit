@@ -149,6 +149,49 @@ export function oncePerTurnSneakAttack(
 }
 
 /**
+ * The rider as a fixed amount plus the attacker's Strength modifier, with no minimum of its own:
+ * "damage equal to your Strength modifier".
+ */
+export function withStrengthRiderAmount(
+  feature: FeatureAuthored,
+  input: { outcomeId: string; damageTypeId: string; amount: number }
+): FeatureAuthored {
+  return {
+    ...feature,
+    effects: feature.effects?.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) => {
+        if (!('resultBlock' in path)) return path
+        return {
+          ...path,
+          resultBlock: {
+            ...path.resultBlock,
+            outcomes: [
+              {
+                id: input.outcomeId,
+                effectKind: 'DAMAGE' as const,
+                damageTypeId: input.damageTypeId,
+                valueKind: 'FIXED' as const,
+                scalingKind: 'NONE' as const,
+                amount: input.amount,
+                bonuses: [
+                  {
+                    id: testUuid(0xa60),
+                    bonusKind: 'ABILITY_BONUS' as const,
+                    ability: 'STRENGTH',
+                    order: 1
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      })
+    }))
+  }
+}
+
+/**
  * The rider with a fixed amount of dice in place of its class-level scaling, for a Character
  * who holds no levels of the Rogue class the scaling reads.
  */

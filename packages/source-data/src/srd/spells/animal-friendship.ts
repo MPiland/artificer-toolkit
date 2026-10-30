@@ -83,7 +83,7 @@ export const animalFriendship: SpellAuthored = {
               amount: 1
             },
             lifecycle: {
-              endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'SOURCE_SIDE' as const }]
+              endTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'SOURCE_SIDE' as const }]
             },
             outcomes: [
               {

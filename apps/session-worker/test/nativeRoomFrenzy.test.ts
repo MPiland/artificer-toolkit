@@ -67,7 +67,7 @@ async function berserkerRoom(raging: boolean) {
         encounterId,
         sourceActorId: CHARACTER_ACTOR_ID,
         holderActorId: CHARACTER_ACTOR_ID,
-        lifecycle: { endOnEvents: ['ON_IDLE_TURN'] },
+        lifecycle: { endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_IDLE_TURN' }] },
         // Rage's minute, so only the idle check ends it.
         rounds: 10,
         effect: rage,

@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Ending effects on chosen-creature lists (SPELLS-4.T2n3):** END_EFFECTS is refused on CHOSEN_CREATURES targets (effectActionCompiler.ts offList) and the Worker end-effects plan handles one target, so Heroes' Feast's "cured of poison" on its partakers is a GM ruling. A partaker still poisoned when the 10-minute feast resolves in a Run is rare, and the GM ends the condition from the Sheet. Mass Heal's cures are the other case.
 - **Pool division among chosen creatures (SPELLS-31.T4n):** Preserve Life (5 x cleric level, each creature healed to at most half its hit point maximum, no undead or construct) and Mass Heal's 700-point pool are GM rulings or uncompiled, because no engine piece divides a hit-point pool among a chosen set of targets with a per-creature cap. A pool-division engine piece (the caster splits the pool at cast time, the engine clamps each share to the cap and the target exclusions) would author both from core options; see `rules-2-t6e-refusal-classification.md:131` for Mass Heal. Rare: a Life Cleric uses Channel Divinity on it a few times a day and the GM can apply the split by hand.
 
 - **Creature start-of-turn auras spare no ally and no non-humanoid (SPELLS-33.T4pr):** Fear Aura, Stench and Horrific Appearance are passive source zones that catch every occupant at the start of its turn. The pit fiend's hostile-only wording, its incapacitated switch-off, the sea hag's humanoid-only and avert-your-eyes wording, the darkmantle's dispelling of low-level light, and the Whirlwind's carry and end rules stay in the Feature descriptions and GM rulings. Siege Monster and Web Walker are GM rulings, since the engine has no object-damage multiplier or zone movement exemption by source. Revisit if tables report allies frightened by a pit fiend.
@@ -446,6 +447,10 @@ Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM
 
 Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
 
+### Pact of the Blade leftovers (SPELLS-31.T4v, 2026-10-29)
+
+Pact of the Blade binds a melee weapon the Warlock already holds; conjuring a new weapon in a chosen form, the weapon vanishing 1 minute after it is more than 5 feet away, and the 1-hour ritual that bonds a magic weapon stay in the description. The bound proficiency and magical trait apply in the live room only, because the Sheet does not fold active-effect grants into its values (it also shows Shillelagh's base die). Folding every active grant into the Sheet's evaluation, the same fold the room uses (`withCharacterActiveGrants`), would fix both and change many Sheet values (Shield of Faith, Bless), so it is its own work item.
+
 ### Standing effects that never return or arm on obtain (SPELLS-31.2, 2026-10-25)
 
 SPELLS-31.2's standing effects come back only after a long rest or short rest, and a rest is what first turns them on, which fits Tranquility. Two cases need an arming step when the feature is gained, which crosses the Builder/Sheet seam (about size 2): a "never returns" cadence, and a standing effect expected before the first rest. More end conditions ("fails a save", "is hit") join the existing End On list when a feature needs them.
@@ -563,6 +568,10 @@ MOVE-3 ships the small version: the GM places zones through the zone node map, t
 - the 2024 caltrops and ball bearings rule (first entry per turn, Speed 0, no half-speed bypass), as a System option.
 
 Raised by the user on 2026-10-14 during the hazards and traps design; post-launch.
+
+### Incremental rules evaluation
+
+Track which derived values depend on which Character inputs, so a Sheet command re-evaluates only the rules whose inputs changed instead of deriving the whole Sheet. The engine was about 12 of ~72 ms per local derivation when measured (RELIABILITY-21.T16, 2026-10-29), so this pays off once parsing and hashing costs are gone (RELIABILITY-21.T25) and Characters grow larger. Post-launch; raised by the user on 2026-10-29.
 
 ### Conditional Creature senses
 

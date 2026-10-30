@@ -46,9 +46,11 @@ describe('Character play preference acknowledgements', () => {
         expect(acknowledgement).not.toHaveProperty('panels')
         expect(acknowledgement.streamVersion).toBe(common.expectedVersion + 1)
         expect(evaluate).not.toHaveBeenCalled()
+        // The pending store is the Character's one queued Sheet derivation (ADR 0041).
         expect(Object.keys(totals.reads.byTable).sort()).toEqual([
           'authoredRouteIds',
           'characterPlayStates',
+          'characterSheetPendingStores',
           'characters'
         ])
         const after = await readState()

@@ -25,6 +25,8 @@ import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCharacterLiveHold } from '../liveSessions/authorityGuard'
 import { loadCharacterSheetFacts, type CharacterSheetSourceContext } from './sheetFacts'
 import { readCharacterSheetState } from './sheetStateDocuments'
+import type { storeCharacterSheetSections } from './sheetSectionDerivation'
+import { scheduleCharacterSheetSections } from './sheetSections'
 import {
   writeCharacterOperationalRecords,
   writeCharacterOperationalStructure
@@ -45,14 +47,29 @@ type CharacterRecordFields = Omit<
 /** JSON without `undefined` members, as the canonical stored form has none. */
 const encode = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
 
+/** The stored head of a capture: its identity, without the clock, structure and hashes. */
+function characterHead(record: CharacterStoredRecord) {
+  const {
+    updatedAt: _updatedAt,
+    documentJson: _documentJson,
+    sheetState: _sheetState,
+    checksum: _checksum,
+    sheetStateChecksum: _sheetStateChecksum,
+    ...head
+  } = record
+  return characterStoredHeadSchema.parse(head)
+}
+
 /**
  * The single writer of a Character. It splits complete inputs into typed operational records and
- * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the head's
- * `updatedAt`, the Builder's concurrency clock, advances only when the structure changes. It then
+ * replaces only changed rows in the caller's transaction. The play record takes the caller's stream version; the build
+ * record's `updatedAt`, the Builder's concurrency clock, advances only when the structure changes,
+ * and the head is replaced only when its own identity fields change. It then
  * evaluates the written Character and stores its effective maximum hit points (before active-effect
  * reductions) and typed speeds in the play record in the same transaction. A caller that already
  * evaluated the written Character passes those `stats` instead; `evaluateAs` lets a caller reuse the
- * returned facts for its own Sheet response. Callers own authority, replay, receipts and advancing
+ * returned facts for its own Sheet response. From the same facts it stores the derived Sheet
+ * sections that Sheet queries serve (ADR 0041). Callers own authority, replay, receipts and advancing
  * the stream once per transaction.
  */
 export async function writeCharacterRecord(
@@ -70,6 +87,11 @@ export async function writeCharacterRecord(
       catalogScope?: 'active' | 'resolution'
       authorityScope?: CampaignInternalScope
     }
+    /**
+     * Stores the Sheet sections from this write's evaluation. Only the Sheet's own writers pass
+     * it, so other writers (content deletion among them) do not load Sheet projection.
+     */
+    storeSheetSections?: typeof storeCharacterSheetSections
   }
 ): Promise<{
   row: CharacterRecordRow
@@ -178,28 +200,29 @@ export async function writeCharacterRecord(
     : playChanged
       ? { ...playRecord, updatedAt }
       : playRecord
-  const {
-    documentJson: _documentJson,
-    sheetState: _sheetState,
-    checksum: _checksum,
-    sheetStateChecksum: _sheetStateChecksum,
-    ...headFields
-  } = nextRecord
-  const head = characterStoredHeadSchema.parse(headFields)
-  // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves.
+  const head = characterHead(nextRecord)
+  // A refresh after a Campaign-owned change rewrites nothing unless a stored value moves. The clock
+  // advances on the build record, so a Sheet command leaves the head every Campaign read joins.
   if (structureChanged) await writeCharacterOperationalStructure(ctx, current, nextRecord)
-  if (current && structureChanged) await ctx.db.replace(current._id, head)
+  if (
+    current &&
+    checksumCanonicalJson(characterHead(characterStoredRecordSchema.parse(stored))) !==
+      checksumCanonicalJson(head)
+  )
+    await ctx.db.replace(current._id, head)
   const rowId = current ? current._id : await ctx.db.insert('characters', head)
   if (current && playChanged && !held) await ctx.db.replace(current.play._id, nextPlayRecord)
   const playId = current
     ? current.play._id
     : await ctx.db.insert('characterPlayStates', nextPlayRecord)
   // A DRAFT Character needs Builder repair and has no readable Sheet; it keeps its last stats.
-  if (record.status !== 'ACTIVE' || input.stats !== undefined)
+  if (record.status !== 'ACTIVE' || input.stats !== undefined) {
+    if (record.status === 'ACTIVE') await scheduleCharacterSheetSections(ctx, record.id)
     return {
       row: { ...(await ctx.db.get(rowId))!, ...nextRecord, play: (await ctx.db.get(playId))! },
       facts: null
     }
+  }
   const reader = input.evaluateAs ?? { userId: record.userId }
   // Evaluate the row as written; reading it back would only return these values.
   const facts = await loadCharacterSheetFacts(
@@ -214,20 +237,30 @@ export async function writeCharacterRecord(
   )
   if (!facts) throw new Error('Written Character is unavailable for evaluation.')
   const stats = resolveCharacterRecordStats(facts.ruleEvaluation)
-  if (
+  const unchanged =
     held ||
     (stats.maximumHitPoints === nextPlayRecord.maximumHitPoints &&
       checksumCanonicalJson(stats.speeds) === checksumCanonicalJson(nextPlayRecord.speeds))
+  if (!unchanged) await ctx.db.patch(playId, stats)
+  const row = unchanged
+    ? facts.active
+    : { ...facts.active, play: { ...facts.active.play, ...stats } }
+  const written = { row, facts: { ...facts, active: row } }
+  // Stored sections project the Sheet's own evaluation: active sources with their prose. Any
+  // other evaluation (resolution scope, commit's referenced content) queues that derivation.
+  if (
+    input.storeSheetSections &&
+    (reader.catalogScope ?? 'active') === 'active' &&
+    facts.prepared.context.presentation
   )
-    return { row: facts.active, facts }
-  await ctx.db.patch(playId, stats)
-  const row = { ...facts.active, play: { ...facts.active.play, ...stats } }
-  return { row, facts: { ...facts, active: row } }
+    await input.storeSheetSections(ctx, written.facts, reader.authorityScope)
+  else await scheduleCharacterSheetSections(ctx, record.id)
+  return written
 }
 
 /**
- * A note edit's focused write: changed note and group records, the build's counts, the head's
- * structure clock and, unless the live table holds the Character, the play version and clock. No
+ * A note edit's focused write: changed note and group records, the build's counts and structure
+ * clock and, unless the live table holds the Character, the play version and clock. No
  * other record is read or rewritten and nothing is evaluated, as notes change no mechanical fact.
  */
 export async function writeCharacterNoteRecords(
@@ -243,17 +276,18 @@ export async function writeCharacterNoteRecords(
   }
 ) {
   const { head, play, streamVersion, updatedAt } = input
-  const after = encodeCharacterNoteRecords(input.build, input.next)
+  const after = encodeCharacterNoteRecords(input.build, input.next, updatedAt)
   await writeCharacterOperationalRecords(
     ctx,
     { build: input.build, collections: input.records },
     after
   )
-  await ctx.db.patch(head._id, { updatedAt })
   if (await readCharacterLiveHold(ctx, head.id)) return
   const { _id, _creationTime, ...fields } = play
   await ctx.db.replace(
     _id,
     characterStoredPlayStateSchema.parse({ ...fields, streamVersion, updatedAt })
   )
+  // Notes are part of the Character's checksum, so its stored sections need a new fingerprint.
+  await scheduleCharacterSheetSections(ctx, head.id)
 }

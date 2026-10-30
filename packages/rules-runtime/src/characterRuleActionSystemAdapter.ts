@@ -28,8 +28,6 @@ import type {
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
-  ActiveEffectConsumeEvent,
-  ActiveEffectEndEvent,
   ActiveEffectEndTrigger,
   ActiveEffectRepeatTrigger,
   ActiveGrantHolderEnd
@@ -119,12 +117,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   }[]
   /** The events that use up or end the effect owning conditions, once for all of them. */
   lifecycle?: {
-    /** The events whose first occurrence uses the effect up, sorted and unique. */
-    consumeOnFirstEvents?: readonly ActiveEffectConsumeEvent[]
-    /** The events whose first occurrence ends the effect, sorted and unique. */
-    endOnEvents?: readonly ActiveEffectEndEvent[]
-    /** The structured events that end the effect, unique and in canonical order. */
-    endOnTriggers?: readonly ActiveEffectEndTrigger[]
+    /** The events that use the effect up or end it, unique and in canonical order. */
+    endTriggers: readonly ActiveEffectEndTrigger[]
     /** The structured events that repeat the effect's save, unique and in canonical order. */
     repeatTriggers?: readonly ActiveEffectRepeatTrigger[]
   }
@@ -140,10 +134,8 @@ export interface CharacterRuleActionActiveEffectPlan {
      * kernel with the repeat save, not by the grant tick planner.
      */
     countedByTurnEffects?: boolean
-    /** The events whose first occurrence uses the grant up, sorted and unique. */
-    consumeOnFirstEvents: readonly ActiveEffectConsumeEvent[]
-    /** The events that end the grant early, sorted and unique. */
-    endOnEvents: readonly ActiveEffectEndEvent[]
+    /** The events that use the grant up or end it early, unique and in canonical order. */
+    endTriggers: readonly ActiveEffectEndTrigger[]
     /** The condition types that end the grant early while its holder has any, sorted and unique. */
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
@@ -174,8 +166,8 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   concealmentContribution?: null | {
     observers: 'NON_ALLIES'
-    /** The events whose first occurrence ends the concealment, sorted and unique. */
-    consumeOnFirstEvents: readonly ActiveEffectConsumeEvent[]
+    /** The events whose first occurrence ends the concealment, unique and in canonical order. */
+    endTriggers: readonly ActiveEffectEndTrigger[]
   }
   /**
    * The target leaves play while the effect lasts (Banishment, Etherealness): untargetable, off the
@@ -313,7 +305,7 @@ export interface CharacterRuleActionActiveEffectPlan {
     }[]
     lifecycle: {
       /** The structured events that end the rider, unique and in canonical order. */
-      endOnTriggers: readonly ActiveEffectEndTrigger[]
+      endTriggers: readonly ActiveEffectEndTrigger[]
     }
   }[]
   /**

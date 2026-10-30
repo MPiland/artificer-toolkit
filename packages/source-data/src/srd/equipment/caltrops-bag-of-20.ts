@@ -89,7 +89,15 @@ export const caltropsBagOf20: EquipmentAuthored = {
                             resultBlock: {
                               id: `${S.equipmentChildId(S.equipId(128), 0x225, 1)}__result`,
                               resultKind: 'SEQUENCE' as const,
-                              lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] },
+                              lifecycle: {
+                                endTriggers: [
+                                  {
+                                    event: 'LIFECYCLE' as const,
+                                    timing: 'END' as const,
+                                    code: 'ON_HIT_POINTS_REGAINED'
+                                  }
+                                ]
+                              },
                               outcomes: [
                                 {
                                   id: S.equipmentChildId(S.equipId(128), 0x226, 1),

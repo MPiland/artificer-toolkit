@@ -78,10 +78,14 @@ type PagedKind =
 type PagedScope = Extract<LiveRoomInputsScope, { kind: PagedKind }>
 type AssignedPart = Extract<LiveRoomCharacterPart, { status: 'ASSIGNED' }>
 
-function characterHeadDocument(owner: NonNullable<AssignedPart['inputs']>['owner']): RoomDocument {
+/** The room's copy of a Character head, restored with the inputs that carry it. */
+export function characterHeadDocument(
+  owner: NonNullable<AssignedPart['inputs']>['owner']
+): RoomDocument {
   const {
     _id,
     _creationTime,
+    updatedAt: _updatedAt,
     documentJson: _documentJson,
     sheetState: _sheetState,
     checksum: _checksum,

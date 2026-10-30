@@ -4,14 +4,18 @@ import * as S from './shared.js'
 
 /**
  * A creature trait that turns the creature invisible with no duration: it ends when the creature
- * attacks or casts a spell (`endOnEvents`) or when its Concentration ends (the maintained state).
+ * attacks or casts a spell (its `END` lifecycle triggers) or when its Concentration ends (the maintained state).
  * Built only from core options.
  */
 export function indefiniteInvisibilityEffect(input: {
   effectId: string
   rangeId: string
   pathId: string
-  endOnEvents: readonly ('ON_ATTACK_ROLL' | 'ON_CAST_SPELL')[]
+  endTriggers: readonly {
+    event: 'LIFECYCLE'
+    timing: 'END'
+    code: 'ON_ATTACK_ROLL' | 'ON_CAST_SPELL'
+  }[]
 }) {
   return {
     id: input.effectId,
@@ -35,7 +39,7 @@ export function indefiniteInvisibilityEffect(input: {
           id: input.pathId + '__result',
           resultKind: 'SINGLE' as const,
           maintenanceDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
-          lifecycle: { endOnEvents: [...input.endOnEvents] },
+          lifecycle: { endTriggers: [...input.endTriggers] },
           outcomes: [
             {
               id: input.pathId,

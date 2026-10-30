@@ -34,19 +34,19 @@ import {
   type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import { conditionTypeId, skillId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
 import { creatureTypeId } from '../spells/shared.js'
 import {
   SRD_CURRENCIES,
   SRD_DEVILS_SIGHT_SENSE_ID,
-  SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
+import { lifedrinkerEffect, pactOfTheBladeEffect } from './warlock-pact-weapon.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -56,13 +56,6 @@ import {
 } from './mechanics.js'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function skillId(code: string): string {
-  const entry = SRD_SKILLS.find((s) => s.code === code)
-  if (!entry)
-    throw new Error(`SRD skill vocabulary entry for ${code} required for class source data.`)
-  return entry.id
-}
 
 const goldCurrencyId = SRD_CURRENCIES.find((c) => c.code === 'GP')?.id
 if (!goldCurrencyId)
@@ -120,6 +113,11 @@ function selfClassRuleEffect(
         }
   })
 }
+
+/** The rows of one Warlock Feature entry, by group. */
+const warlockRowId = (entry: number) => (group: number) => classRowId(W, group, entry)
+
+const PACT_OF_THE_BLADE = pactOfTheBladeEffect(warlockRowId(24))
 
 function warlockSpellIdsAtLevel(level: number): string[] {
   return srdSpells
@@ -1322,34 +1320,12 @@ export const warlock: ClassAuthored = {
             ]
           },
           effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 17),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_LIFEDRINKER,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(W, 0x69, 17), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            }),
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 0x81),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_LIFEDRINKER,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-                range: { id: classRowId(W, 0x69, 0x81), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
+            lifedrinkerEffect(warlockRowId(17), PACT_OF_THE_BLADE.id, TRIGGER.MELEE_WEAPON_ATTACK),
+            lifedrinkerEffect(
+              warlockRowId(0x81),
+              PACT_OF_THE_BLADE.id,
+              TRIGGER.RANGED_WEAPON_ATTACK
+            )
           ],
           order: 16
         },
@@ -1558,7 +1534,12 @@ export const warlock: ClassAuthored = {
                 result: classRowId(W, 0x81, 18)
               },
               activation: ACTIVATION_CODE.ACTION,
-              lifecycle: { endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] },
+              lifecycle: {
+                endTriggers: [
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_MOVE' },
+                  { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_TAKE_ACTION' }
+                ]
+              },
               outcome: {
                 id: classRowId(W, 0x82, 18),
                 effectKind: EFFECT_KIND.CONDITION,
@@ -1830,7 +1811,6 @@ export const warlock: ClassAuthored = {
           label: 'Voice of the Chain Master',
           description:
             "You can communicate telepathically with your familiar and perceive through your familiar's senses as long as you are on the same plane of existence.\n\nAdditionally, while perceiving through your familiar's senses, you can also speak through your familiar in your own voice, even if your familiar is normally incapable of speech.",
-          // Description-only — telepathic sense-sharing is not representable as a modifier.
           // Requires Pact of the Chain (classRowId(W, 3, 22))
           restrictions: {
             id: classRowId(W, 6, 60),
@@ -1858,7 +1838,21 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_WARLOCK_VOICE_OF_CHAIN_MASTER)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(W, 0x60, 21),
+                range: classRowId(W, 0x69, 21),
+                path: classRowId(W, 0x80, 21),
+                result: classRowId(W, 0x81, 21),
+                outcome: classRowId(W, 0x82, 21)
+              },
+              label: 'Voice of the Chain Master',
+              instructions:
+                'You communicate telepathically with your familiar and perceive through its senses while you share a plane, and you can speak in your own voice through it while perceiving through it. The GM describes what you perceive through the familiar.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
+            })
+          ],
           order: 26
         },
         {
@@ -1984,13 +1978,9 @@ export const warlock: ClassAuthored = {
           label: 'Pact of the Blade',
           description:
             "You can use your action to create a pact weapon in your empty hand. You can choose the form that this melee weapon takes each time you create it. You are proficient with it while you wield it. This weapon counts as magical for the purpose of overcoming resistance and immunity to nonmagical attacks and damage.\n\nYour pact weapon disappears if it is more than 5 feet away from you for 1 minute or more. It also disappears if you use this feature again, if you dismiss the weapon (no action required), or if you die.\n\nYou can transform one magic weapon into your pact weapon by performing a special ritual while you hold the weapon. You perform the ritual over the course of 1 hour, which can be done during a short rest. You can then dismiss the weapon, shunting it into an extradimensional space, and it appears whenever you create your pact weapon thereafter. You can't affect an artifact or a sentient weapon in this way. The weapon ceases being your pact weapon if you die, if you perform the 1-hour ritual on a different weapon, or if you use a 1-hour ritual to break your bond to it. The weapon appears at your feet if it is in the extradimensional space when the bond breaks.",
-          effects: [
-            selfClassRuleEffect(
-              24,
-              CLOSED_RULE_KIND.CLASS_WARLOCK_PACT_OF_BLADE,
-              ACTIVATION_CODE.ACTION
-            )
-          ],
+          // The weapon is one the warlock holds: creating it in any form, its disappearance 5 feet away
+          // and the bonding ritual stay description (D156). It lasts until used again or let go.
+          effects: [PACT_OF_THE_BLADE],
           order: 1
         },
         {

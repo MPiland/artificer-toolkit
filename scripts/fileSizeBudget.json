@@ -1,13 +1,13 @@
 {
   "apps/session-worker/src/nativeEncounterRules.ts": 1619,
   "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1795,
-  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2583,
+  "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2580,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,
-  "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4142,
-  "packages/shared/src/domains/effects/maps/path.ts": 3011,
-  "packages/shared/src/domains/shared/maps/facet.ts": 2501,
-  "packages/source-data/src/srd/classes/warlock.ts": 2088,
+  "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4138,
+  "packages/shared/src/domains/effects/maps/path.ts": 2997,
+  "packages/shared/src/domains/shared/maps/facet.ts": 2483,
+  "packages/source-data/src/srd/classes/warlock.ts": 2075,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,
   "scripts/phase8/buildPhaseLedger.mjs": 2240,
   "scripts/validatePreStagingLocal.mjs": 1544

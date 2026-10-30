@@ -54,7 +54,7 @@ import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
   activeEffectGraphNodeId,
   durationPublishedGraph,
-  isGrantConsumeEvent,
+  isGrantEndTrigger,
   maintenancePlan
 } from './effectActionLifetime.js'
 import {
@@ -103,8 +103,6 @@ import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain } from './attackKind.js'
-import type { EnemyProximity } from '../../encounterEnemyProximity.js'
-import type { MoveToward } from '../../encounterMoveToward.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_KEEP_BY_ROLL_MODE, resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
@@ -162,6 +160,7 @@ import {
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
+  DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
@@ -446,9 +445,7 @@ function supportedRecurringPlan(
     !recurringScaling &&
     lifecycle &&
     recurringStage !== null &&
-    (lifecycle.consumeOnFirstEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnEvents?.length ?? 0) === 0 &&
-    (lifecycle.endOnTriggers?.length ?? 0) === 0 &&
+    (lifecycle.endTriggers?.length ?? 0) === 0 &&
     (lifecycle.endOnConditionIds?.length ?? 0) === 0
   const maintenance = maintenancePlan(action, entry)
   if (
@@ -1001,9 +998,7 @@ function timedConditionPlan(
     return null
   const {
     turnAnchor,
-    consumeOnFirstEvents = [],
-    endOnEvents = [],
-    endOnTriggers = [],
+    endTriggers = [],
     turnEndGate,
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
@@ -1039,7 +1034,9 @@ function timedConditionPlan(
     : null
   if (
     (indefinite
-      ? !untilDispelled && !maintenance && endOnEvents.length === 0
+      ? !untilDispelled &&
+        !maintenance &&
+        !endTriggers.some((trigger) => trigger.event === 'LIFECYCLE' && trigger.timing === 'END')
       : initialRemaining === null) ||
     (grantEntry && (indefinite || !grantContribution)) ||
     // A turn anchor counts a duration: on whose turns, at which boundary. A grant held beside the
@@ -1054,11 +1051,7 @@ function timedConditionPlan(
     )
   )
     return null
-  const lifecycle = {
-    consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-    endOnEvents: [...new Set(endOnEvents)].sort(),
-    endOnTriggers: canonicalEndTriggers(endOnTriggers)
-  }
+  const lifecycle = { endTriggers: canonicalEndTriggers(endTriggers) }
   if (turnEndGate)
     return turnEndGatePlan({
       effectId: action.effectId,
@@ -1123,8 +1116,9 @@ function ownsTimedSaveCondition(
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
     (tier !== undefined ||
-      (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
-      (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
+      (entry.lifecycle?.endTriggers ?? []).some(
+        (trigger) => trigger.event !== 'LIFECYCLE' || trigger.timing === 'END'
+      ) ||
       (turns !== null && turns <= 1) ||
       // A removal from play (Banishment) is the early end: the held effect returns the creature
       // when it ends, by duration, Concentration or dismissal (D178).
@@ -1508,12 +1502,13 @@ function concealmentPlan(
   const entry = entries[0]
   if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
   if (entry.outcome.effectKind !== 'CONCEAL_FROM_OBSERVERS') return null
-  const { consumeOnFirstEvents = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
-  const grantConsumeEvents = consumeEvents.filter(isGrantConsumeEvent)
+  const { endTriggers = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     entry.duration?.durationKind !== 'UNTIL_DISPELLED' ||
-    grantConsumeEvents.length !== consumeEvents.length ||
+    !endTriggers.every(
+      (trigger) =>
+        trigger.event === 'LIFECYCLE' && trigger.timing === 'CONSUME' && isGrantEndTrigger(trigger)
+    ) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     !UUID.test(entry.entryId)
   )
@@ -1527,7 +1522,7 @@ function concealmentPlan(
     initialRemaining: null,
     concealmentContribution: {
       observers: entry.outcome.observers,
-      consumeOnFirstEvents: grantConsumeEvents
+      endTriggers: canonicalEndTriggers(endTriggers)
     },
     adapterFacts: {},
     perceptionContributions: [],
@@ -1672,7 +1667,7 @@ function repeatingDirectFollowUpSavePlan(
     ...(lead.effectKind !== 'CONDITION' &&
       leadEntry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(leadEntry.pathCode) }),
     ...(save.repeatTriggers?.length && {
-      lifecycle: { repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
+      lifecycle: { endTriggers: [], repeatTriggers: canonicalRepeatTriggers(save.repeatTriggers) }
     }),
     adapterFacts: repeatSave.adapterFacts,
     ...(save.attempts.kind === 'THRESHOLDS' && {
@@ -2651,7 +2646,7 @@ function reducedToZeroDamageNodeId(
   if (!damageEntry || damageIndex > groupIndex || !('outcome' in damageEntry))
     unsupported('D&D reduced-to-0 gate needs its damage outcome owed earlier in the path.')
   const damageKind = specializedTestOutcome(damageEntry).kind
-  if (damageKind !== 'DAMAGE' && damageKind !== 'DICE_DAMAGE')
+  if (damageKind !== 'DAMAGE' && damageKind !== 'DICE_DAMAGE' && damageKind !== 'RESOLVED_DAMAGE')
     unsupported('D&D reduced-to-0 gate must name a damage outcome.')
   if (outcome.kind !== 'KILL' && outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'HEAL')
     unsupported('D&D reduced-to-0 gate belongs to a kill, condition or heal outcome.')
@@ -2790,7 +2785,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const saveOwed = owed(immediate.saveEntry)
     if (owedPrimaryEntries.length === 0 && !saveOwed) return null
     const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
-      const primaryDamage = specializedTestOutcome(primaryDamageEntry)
+      const primaryDamage = specializedTestOutcome(primaryDamageEntry, input.facts)
       const nodePrefix =
         owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
       // A fixed amount ("1 piercing damage") has no dice to double on a critical hit, and a GM
@@ -2844,7 +2839,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       const outcome: SpecializedOutcome =
         'outcome' in entry && entry.outcome.effectKind === 'APPLY_GRANT'
           ? { kind: 'MODIFIER_GRANT' }
-          : specializedTestOutcome(entry)
+          : specializedTestOutcome(entry, input.facts)
       if (outcome.kind !== 'CONDITION_APPLY' && outcome.kind !== 'MODIFIER_GRANT')
         unsupported('D&D direct repeated save outcome is unavailable.')
       return fixedOutcomeGraphDefinition({
@@ -2888,7 +2883,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const definitions = groups.map((entries, groupIndex): RuleGraphDefinition => {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
-    const outcome = specializedTestOutcome(entry)
+    const outcome = specializedTestOutcome(entry, input.facts)
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
@@ -3988,9 +3983,16 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       allContributors.sort(compareCanonicalD20Contributors)
       const { rollMode } = resolveDnd5eRollMode(allContributors)
       const contributorChecksum = checksumRuleDocument(allContributors)
-      const enemyProximity = sourceDerivedFacts.attackEnemyProximity as EnemyProximity | undefined
-      const moveToward = sourceDerivedFacts.attackMoveToward as MoveToward | undefined
-      const turnUses = sourceDerivedFacts.attackTurnUses as readonly string[] | undefined
+      const attackCircumstanceFacts = Object.fromEntries(
+        (
+          [
+            [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY, sourceDerivedFacts.attackEnemyProximity],
+            [DND5E_ATTACK_MOVE_TOWARD_FACT_KEY, sourceDerivedFacts.attackMoveToward],
+            [DND5E_ATTACK_TURN_USES_FACT_KEY, sourceDerivedFacts.attackTurnUses],
+            [DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY, sourceDerivedFacts.attackItemBindingEffectIds]
+          ] as const
+        ).flatMap(([key, value]) => (value ? [[key, JSON.stringify(value)]] : []))
+      )
       const criticalRules = attackCriticalRulesDtoSchema.parse(
         sourceDerivedFacts.attackCriticalRules ?? {
           threshold: DEFAULT_CRITICAL_HIT_THRESHOLD,
@@ -4010,13 +4012,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
             : {}),
-          ...(enemyProximity
-            ? { [DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]: JSON.stringify(enemyProximity) }
-            : {}),
-          ...(moveToward
-            ? { [DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]: JSON.stringify(moveToward) }
-            : {}),
-          ...(turnUses ? { [DND5E_ATTACK_TURN_USES_FACT_KEY]: JSON.stringify(turnUses) } : {}),
+          ...attackCircumstanceFacts,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
             ? 'HIT_IS_CRITICAL'

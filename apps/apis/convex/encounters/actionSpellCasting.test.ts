@@ -1359,7 +1359,10 @@ describe('Character spell casting in an Encounter', () => {
       if (!path || !('resultBlock' in path)) throw new Error('Expected a result block.')
       path.resultBlock = {
         ...path.resultBlock,
-        lifecycle: { ...path.resultBlock.lifecycle, endOnEvents: ['ON_CAST_SPELL'] }
+        lifecycle: {
+          ...path.resultBlock.lifecycle,
+          endTriggers: [{ event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' }]
+        }
       }
       return variant
     }
@@ -1382,19 +1385,21 @@ describe('Character spell casting in an Encounter', () => {
       expect(await maintainedEffects(fixture)).toEqual([])
       expect(await conditionIds(fixture)).not.toContain(invisibleId)
 
-      // An end event the System does not list is cleared by the same map; the valid one stays.
+      // An end event code the System does not list is cleared by the same map; the valid one stays.
       const invalid = castOnlyVariant()
-      const validEffects = structuredClone(invalid.effects)
-      const invalidPath = invalid.effects?.[0]?.paths?.[0]
-      if (!invalidPath || !('resultBlock' in invalidPath))
-        throw new Error('Expected a result block.')
-      invalidPath.resultBlock = {
-        ...invalidPath.resultBlock,
-        lifecycle: {
-          ...invalidPath.resultBlock.lifecycle,
-          endOnEvents: ['ON_CAST_SPELL', 'ON_NOT_A_LISTED_EVENT' as 'ON_CAST_SPELL']
-        }
+      const listed = { event: 'LIFECYCLE', timing: 'END', code: 'ON_CAST_SPELL' } as const
+      const unlisted = { event: 'LIFECYCLE', timing: 'END', code: 'ON_NOT_A_LISTED_EVENT' } as const
+      const withEndTriggers = (endTriggers: object[]) => {
+        const effects = structuredClone(invalid.effects)
+        const path = effects?.[0]?.paths?.[0]
+        if (!path || !('resultBlock' in path)) throw new Error('Expected a result block.')
+        Object.assign(path.resultBlock, {
+          lifecycle: { ...path.resultBlock.lifecycle, endTriggers }
+        })
+        return effects
       }
+      const validEffects = withEndTriggers([listed, { event: 'LIFECYCLE', timing: 'END' }])
+      invalid.effects = withEndTriggers([listed, unlisted])
       const cleaned = await fixture.gm.caller.query(normalizeValues, {
         mapId: 'spell',
         systemId: invalid.systemId,

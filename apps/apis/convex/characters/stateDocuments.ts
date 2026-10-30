@@ -139,7 +139,7 @@ export async function readCharacterRow(
   return row ? joinCharacterPlay(ctx, row) : null
 }
 
-/** Identity and clock reads do not hydrate owned collections or evaluate rules. */
+/** Identity reads do not hydrate owned collections or evaluate rules. */
 export async function readCharacterHead(ctx: QueryCtx, characterId: string) {
   return ctx.db
     .query('characters')

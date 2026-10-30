@@ -114,7 +114,15 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
       size: 'LARGE',
       armorClass: 20,
       abilityScores: { STRENGTH: 26 },
-      hitPoints: { current: maximum, maximum, temp: 0 }
+      hitPoints: { current: maximum, maximum, temp: 0 },
+      // The Clenched Fist the spell lets its caster strike with (SPELLS-34.1).
+      actions: [
+        {
+          id: arcaneHand.effects?.[1]?.id,
+          label: 'Melee Spell Attack',
+          description: 'Bonus Action'
+        }
+      ]
     })
     expect(hand?.speedLabel).toMatch(/60/)
     expect(cast1.overview.concentration).toMatchObject({ label: 'Arcane Hand' })
@@ -160,7 +168,14 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
     expect(weapon).toMatchObject({
       kind: 'SPELL_SUMMON',
       spellId: spiritualWeapon.id,
-      displayName: 'Spiritual Weapon'
+      displayName: 'Spiritual Weapon',
+      actions: [
+        {
+          id: spiritualWeapon.effects?.[1]?.id,
+          label: 'Melee Spell Attack',
+          description: 'Bonus Action'
+        }
+      ]
     })
     expect(weapon).not.toHaveProperty('hitPoints')
 

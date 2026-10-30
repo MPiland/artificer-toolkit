@@ -11,6 +11,7 @@ import { internalMutation } from '../lib/mutations'
 import { syncAccountUsage } from '../lib/accountUsage'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
 import { retireCharacterReceipts } from './receiptCleanup'
+import { readCharacterSheetPendingStore } from './sheetSections'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { endCharacterRunEffects } from '@artificer-toolkit/encounter-persistence/characterRunEffects'
 import { encounterWriteTransaction } from '../encounters/encounterPorts'
@@ -134,6 +135,20 @@ export async function removePrivateCharacter(
     .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
     .unique()
   if (build) await ctx.db.delete(build._id)
+  for await (const row of ctx.db
+    .query('characterSheetSections')
+    .withIndex('by_characterId_viewer_section', (q) => q.eq('characterId', characterId)))
+    await ctx.db.delete(row._id)
+  const derivation = await ctx.db
+    .query('characterSheetDerivations')
+    .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+    .unique()
+  if (derivation) await ctx.db.delete(derivation._id)
+  const pendingStore = await readCharacterSheetPendingStore(ctx, characterId)
+  if (pendingStore) {
+    await ctx.scheduler.cancel(pendingStore.scheduledId)
+    await ctx.db.delete('characterSheetPendingStores', pendingStore._id)
+  }
   if (active) {
     await ctx.db.delete(active.play._id)
     await ctx.db.delete(active._id)

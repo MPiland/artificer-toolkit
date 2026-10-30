@@ -24,6 +24,7 @@ import { requireIdentity } from '../lib/identity'
 import { requireSystem } from '../content/systemDocuments'
 import { loadCharacterSheet, projectCharacterSheetFacts } from '../characters/sheetPreparation'
 import { writeCharacterRecord } from '../characters/characterWrites'
+import { storeCharacterSheetSections } from '../characters/sheetSectionDerivation'
 import type { CharacterSheetSourceContext } from '../characters/sheetFacts'
 import { loadCharacterState } from '../characters/stateDocuments'
 import { readCampaignCharacterState, requireCampaignCharacterAuthority } from './characterState'
@@ -59,7 +60,8 @@ async function refreshCharacterMaximum(
         current: active,
         fields: { streamVersion: active.play.streamVersion, updatedAt: active.updatedAt },
         sourceContext,
-        evaluateAs: { userId: current.userId, campaignId: current.campaign.id }
+        evaluateAs: { userId: current.userId, campaignId: current.campaign.id },
+        storeSheetSections: storeCharacterSheetSections
       })
     : { facts: null }
   if (!facts) throw new Error('Assigned Character not found.')

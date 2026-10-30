@@ -129,7 +129,10 @@ export const sprite: CreatureAuthored = {
           effectId: S.actionId(260, 210),
           rangeId: S.actionId(260, 211),
           pathId: S.actionId(260, 221),
-          endOnEvents: ['ON_ATTACK_ROLL', 'ON_CAST_SPELL']
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' },
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_CAST_SPELL' }
+          ]
         })
       ],
       order: 2
@@ -207,7 +210,7 @@ export const sprite: CreatureAuthored = {
                           conditionId: conditionTypeId('UNCONSCIOUS')
                         }
                       ],
-                      lifecycle: { endOnTriggers: S.WAKE_END_TRIGGERS }
+                      lifecycle: { endTriggers: S.WAKE_END_TRIGGERS }
                     }
                   }
                 ]

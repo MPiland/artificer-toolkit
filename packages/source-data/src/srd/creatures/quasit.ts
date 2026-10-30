@@ -284,7 +284,9 @@ export const quasit: CreatureAuthored = {
           effectId: S.actionId(2663, 5),
           rangeId: S.actionId(2663, 6),
           pathId: S.actionId(2663, 7),
-          endOnEvents: ['ON_ATTACK_ROLL']
+          endTriggers: [
+            { event: 'LIFECYCLE' as const, timing: 'END' as const, code: 'ON_ATTACK_ROLL' }
+          ]
         })
       ],
       order: 5

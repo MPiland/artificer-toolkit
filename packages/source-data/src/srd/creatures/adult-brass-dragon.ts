@@ -381,7 +381,7 @@ export const adultBrassDragon: CreatureAuthored = {
                   amount: 10
                 },
                 lifecycle: {
-                  endOnTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
+                  endTriggers: [{ event: 'DAMAGE_TAKEN' as const, by: 'ANYONE' as const }]
                 },
                 outcomes: [
                   {

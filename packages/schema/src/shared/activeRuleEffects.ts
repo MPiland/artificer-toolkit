@@ -26,8 +26,7 @@ import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import { pathLifecycleExclusivitySchema } from './enums.js'
 import {
   activationCodeSchema,
-  pathLifecycleConsumeEventSchema,
-  pathLifecycleEndEventSchema,
+  pathLifecycleEndTimingSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
   pathLifecycleEndTriggerOfSchema
@@ -129,16 +128,12 @@ const sortedUniqueEventsSchema = <TEvent extends z.ZodMiniType<string>>(
       })
     )
 
-/** The events whose first occurrence ends an active effect: sorted and unique. */
-export const activeEffectEndEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(pathLifecycleEndEventSchema, 'end events')
-)
-
 /**
  * A structured end trigger: an event that ends the effect, narrowed by who causes it and what it
  * touches. It shares the reaction trigger's filter types, and each arm needs a consumer before an
- * effect may carry it. `DAMAGE_TAKEN` ends the effect when its holder takes damage: `by` limits whose
- * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
+ * effect may carry it. `LIFECYCLE` ends it on the first System lifecycle event `code` its holder
+ * raises, with explicit `timing` (D122: `CONSUME` uses it up, `END` ends it). `DAMAGE_TAKEN` ends
+ * the effect when its holder takes damage: `by` limits whose damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
  * `ACTION_TRAIT` ends it when its holder takes an action with a trait the System lists (`actionTrait`:
  * an attack roll, a spell cast) at an enemy (Sanctuary).
  * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
@@ -150,6 +145,11 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
+    z.strictObject({
+      event: z.literal('LIFECYCLE'),
+      timing: pathLifecycleEndTimingSchema,
+      code: systemCoreCodeSchema
+    }),
     z.strictObject({
       event: z.literal('DAMAGE_TAKEN'),
       by: pathLifecycleEndTriggerBySchema,
@@ -198,6 +198,12 @@ export const activeEffectEndTriggersSchema = lazySchema(() =>
     )
 )
 
+/** End triggers as a stored effect carries them: unique and sorted by their serialized form. */
+export function canonicalActiveEffectEndTriggers<Trigger>(triggers: readonly Trigger[]): Trigger[] {
+  const keyed = new Map(triggers.map((trigger) => [JSON.stringify(trigger), trigger]))
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
+}
+
 /**
  * An event that makes the holder repeat the effect's save outside its own turn, as the stored effect
  * carries it: filters explicit. `DAMAGE_TAKEN` repeats it when the holder takes damage: `by` limits
@@ -234,11 +240,6 @@ export const activeEffectRepeatTriggersSchema = lazySchema(() =>
           })
       })
     )
-)
-
-/** The events whose first occurrence uses a grant up: sorted and unique. */
-export const activeEffectConsumeEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
 )
 
 /** The conditions whose holder ends a timed grant early (condition type ids): sorted and unique. */
@@ -286,9 +287,7 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
        * actor's. Authoring's `turnAnchor` maps here (`TARGET` is the holder).
        */
       anchor: z.enum(['HOLDER', 'SOURCE']),
-      consumeOnFirstEvents: activeEffectConsumeEventsSchema,
-      endOnEvents: activeEffectEndEventsSchema,
-      endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
+      endTriggers: activeEffectEndTriggersSchema,
       /** Events that repeat the effect's save outside its holder's turn; absent when none do. */
       repeatTriggers: z.optional(activeEffectRepeatTriggersSchema),
       endOnConditionIds: activeGrantEndConditionIdsSchema,
@@ -452,10 +451,10 @@ const activeRuleEffectModifierGrantContributionDtoSchema = lazySchema(() =>
        */
       boundItem: z.optional(equipmentInstanceMechanicSourceSchema),
       /**
-       * Only on the template a placed zone carries: the events that end the grant the zone leaves
-       * on a creature. A created grant reads them from its own `recurrence.endOnEvents`.
+       * Only on the template a placed zone carries: the triggers that end the grant the zone leaves
+       * on a creature. A created grant reads them from its own `recurrence.endTriggers`.
        */
-      endOnEvents: z.optional(activeEffectEndEventsSchema),
+      endTriggers: z.optional(activeEffectEndTriggersSchema),
       /**
        * The grant the holder keeps when this effect ends, however it ends (Haste's lethargy): the
        * modifiers are frozen at creation and held for `turns` of the holder's own turns. The effect
@@ -634,7 +633,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
           })
         }
         if (
-          definition.recurrence.endOnTriggers.some(
+          definition.recurrence.endTriggers.some(
             (trigger) =>
               ('by' in trigger && trigger.by === 'SOURCE_SIDE') || trigger.event === 'INCAPACITATED'
           ) &&
@@ -642,15 +641,16 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
         ) {
           context.addIssue({
             code: 'custom',
-            path: ['recurrence', 'endOnTriggers'],
+            path: ['recurrence', 'endTriggers'],
             message: 'A source-side end trigger requires an Encounter origin with a source actor.'
           })
         }
         if (definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')) {
-          const unreleasing = [
-            ...definition.recurrence.consumeOnFirstEvents,
-            ...definition.recurrence.endOnEvents
-          ].filter((event) => NON_RELEASING_EFFECT_EVENTS.has(event))
+          const unreleasing = definition.recurrence.endTriggers.flatMap((trigger) =>
+            trigger.event === 'LIFECYCLE' && NON_RELEASING_EFFECT_EVENTS.has(trigger.code)
+              ? [trigger.code]
+              : []
+          )
           if (unreleasing.length)
             context.addIssue({
               code: 'custom',
@@ -777,12 +777,6 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
 )
 
 export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
-
-/** The events whose first occurrence uses an active effect up. */
-export type ActiveEffectConsumeEvent = z.infer<typeof pathLifecycleConsumeEventSchema>
-
-/** The events whose first occurrence ends an active effect. */
-export type ActiveEffectEndEvent = z.infer<typeof pathLifecycleEndEventSchema>
 
 /** A structured event that ends an active effect early. */
 export type ActiveEffectEndTrigger = z.infer<typeof activeEffectEndTriggerSchema>

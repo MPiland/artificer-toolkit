@@ -110,7 +110,7 @@ describe('standing effects (SPELLS-31.2)', () => {
         rootCommandId: REST_COMMAND_ID
       }
     })
-    expect(armed?.definition.recurrence.endOnTriggers).toEqual([
+    expect(armed?.definition.recurrence.endTriggers).toEqual([
       { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
       { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
     ])
@@ -180,7 +180,7 @@ describe('standing effects (SPELLS-31.2)', () => {
         commandId: REST_COMMAND_ID
       }
     })
-    expect(armed?.definition.recurrence.endOnTriggers).toEqual([
+    expect(armed?.definition.recurrence.endTriggers).toEqual([
       { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
       { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
     ])
