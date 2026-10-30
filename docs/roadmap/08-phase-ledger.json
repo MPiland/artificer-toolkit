@@ -21759,10 +21759,12 @@
             },
             {
               "text": "A summon cast in an Encounter appears in the owner's Extras with its live HP from the owned Run actor; the actor remains the only record.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-34.T2 (m552), SPELLS-34.T3a (m556), SPELLS-34.T3b (m561); see each task's proof."
+              ],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-30 by SPELLS-34.T2, SPELLS-34.T3a, SPELLS-34.T3b.",
               "id": "SPELLS-34.2",
               "journeys": [
                 "character-sheet-browser",
@@ -21794,11 +21796,13 @@
             },
             {
               "id": "SPELLS-34.5",
-              "text": "A summon whose authored form says it cannot attack is refused the Attack action and attack offers on its own turn, while a delegated attack its owner grants (Pact of the Chain) still resolves.",
-              "status": "TODO",
-              "proof": [],
+              "text": "An owned summon whose form cannot attack makes no attack of its own: its own Attack is refused NOT_CURRENT_ACTOR and it gets no attack reaction or opportunity attack, while a delegated attack its owner grants still resolves.",
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-34.T4 (m561); see each task's proof."
+              ],
               "origin": [],
-              "note": "Bug registered by the orchestrator on 2026-10-30 from the SPELLS-31.T4v2a review (Find Familiar: \"A familiar can't attack\"). Approved by the user on 2026-10-30."
+              "note": "Bug registered by the orchestrator on 2026-10-30 from the SPELLS-31.T4v2a review (Find Familiar: \"A familiar can't attack\"). Approved by the user on 2026-10-30. Closed 2026-10-30 by SPELLS-34.T4."
             }
           ],
           "wsjf": {
@@ -21869,7 +21873,7 @@
             },
             {
               "id": "SPELLS-34.T3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-34.2"
               ],
@@ -21883,11 +21887,11 @@
                 ]
               },
               "text": "Sheet path for corpus-form summons: the Sheet CAST_SPELL carries the form and creature-type choice with a Sheet picker, the summon is linked to its caster, and a long rest keeps an untimed summon instead of dropping every summon. Sheet familiars joining a Run and Find Familiar's 1-hour casting time stay out of scope. Red-first proofs.",
-              "note": "Split from SPELLS-34.T3 at sizing (option a). Approved by the user on 2026-10-29."
+              "note": "Split from SPELLS-34.T3 at sizing (option a). Approved by the user on 2026-10-29. Merged in m562 (2af6841dc)."
             },
             {
               "id": "SPELLS-34.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-34.5"
               ],
@@ -21902,7 +21906,7 @@
                 ]
               },
               "text": "Bug: a summoned familiar can take the Attack action on its own turn although Find Familiar says it cannot attack. Add a generic authored flag on the SUMMON form (or summon) that refuses the actor's own attacks at admission and in the action-choices read; DELEGATED_ATTACK still resolves through it. Author Find Familiar with it. No spell names in code; red-first room test plus authoring-parity proof.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Merged in m562 (2af6841dc)."
             }
           ]
         },
@@ -24049,10 +24053,12 @@
           "acs": [
             {
               "text": "Authoring form values and form flags live only in the top-level TanStack form; contexts hold only stable, non-form coordination (actions, navigation, mode, layout) split by behaviour, and no component copies state into a parent through an effect.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-10.T1c (m561); see each task's proof."
+              ],
               "origin": [],
-              "note": "OQ-1 option 1 (product owner, 2026-10-13). Sequenced after RELIABILITY-8.1. Replaces AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) fed by FormRenderer.tsx:441-459 updateAuthoringFormState/updateAuthoringFormActions effects, the 17-field AuthoringLayoutProvider, and the 16-field CharacterSheetRollContext controller. forms/layout/AuthoringFormContext.ts:19 imports a builder type (forms -> domains inversion) and goes too.",
+              "note": "OQ-1 option 1 (product owner, 2026-10-13). Sequenced after RELIABILITY-8.1. Replaces AuthoringFormContext/AuthoringFormProvider (884 lines, about 70 fields, 26 useAuthoringForm() consumers) fed by FormRenderer.tsx:441-459 updateAuthoringFormState/updateAuthoringFormActions effects, the 17-field AuthoringLayoutProvider, and the 16-field CharacterSheetRollContext controller. forms/layout/AuthoringFormContext.ts:19 imports a builder type (forms -> domains inversion) and goes too. Closed 2026-10-30 by RELIABILITY-10.T1c.",
               "id": "RELIABILITY-10.1",
               "journeys": [
                 "publication-browser"
@@ -24130,7 +24136,7 @@
             },
             {
               "id": "RELIABILITY-10.T1c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-10.1"
               ],
@@ -24144,7 +24150,7 @@
                 ]
               },
               "text": "Builder chrome reads the builder form directly (StateSync and the Renderer and AuthoringRuntime push-up effects deleted), the forms-to-domains type import removed, and AuthoringLayoutProvider and the Sheet CharacterSheetRollContext controller split by behaviour.",
-              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29."
+              "note": "Split from RELIABILITY-10.T1, approved by the user on 2026-10-29. Merged in m562 (2af6841dc)."
             }
           ]
         },
