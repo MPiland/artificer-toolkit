@@ -37,6 +37,7 @@ import type {
 import type { CharacterSheetResponseDto as ReducerSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import {
   deathSavesAfterDamage,
+  deathSavesAfterDeath,
   deathSavesAfterMarksSet,
   deathSavesAfterRoll,
   deathSavesAfterSheetEdit,
@@ -469,6 +470,14 @@ function applyZeroHitPoints(character: CharacterAuthored, beforeCurrentHitPoints
     )
 }
 
+/** A condition level's authored DEATH mechanic: dead at once, so no death saves are rolled (D96). */
+function applyConditionDeath(character: CharacterAuthored) {
+  const beforeCurrentHitPoints = character.state.hitpoints.current
+  character.state.hitpoints.current = 0
+  character.state.hitpoints.deathSaves = deathSavesAfterDeath()
+  applyZeroHitPoints(character, beforeCurrentHitPoints)
+}
+
 export function applyCharacterSheetCommand(
   character: CharacterAuthored,
   command: CharacterSheetStateCommand,
@@ -480,6 +489,8 @@ export function applyCharacterSheetCommand(
     now?: () => string
     /** The d20 the host rolled for ROLL_DEATH_SAVE; the reducer stays pure. */
     deathSaveDie?: number
+    /** The host read that this command reaches an authored DEATH mechanic (SPELLS-10.T1c). */
+    conditionDeath?: boolean
     preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>
     /** The summon plan of a CAST_SPELL's cast, from the compile an Encounter runs (D190). */
     spellSummonPlacement?: (cast: {
@@ -931,6 +942,7 @@ export function applyCharacterSheetCommand(
       const notes = command.notes === undefined ? next.state.exhaustion?.notes : command.notes
       next.state.exhaustion =
         command.level > 0 ? { level: command.level, notes: notes || undefined } : undefined
+      if (context.conditionDeath) applyConditionDeath(next)
       return clearEmptyStateArrays(next)
     }
 
