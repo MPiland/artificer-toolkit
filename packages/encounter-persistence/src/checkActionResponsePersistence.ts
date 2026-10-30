@@ -129,7 +129,10 @@ export async function persistEncounterCheckActionPause(
     checksumCanonicalJson(nextCheckAction) !== checksumCanonicalJson(paused.context)
   )
     throw mismatch()
-  const rolled = next.kind === 'ENCOUNTER_D20_WINDOW' ? next.pause.payload.rolled : outcome?.rolled
+  const rolled =
+    next.kind === 'ENCOUNTER_D20_WINDOW' && isCheckWindowPayload(next.pause.payload)
+      ? next.pause.payload.rolled
+      : outcome?.rolled
   if (!rolled) throw mismatch()
   if (spentEffect) await deleteGrants(ctx, [spentEffect])
   return recordCheckResponse(ctx, {

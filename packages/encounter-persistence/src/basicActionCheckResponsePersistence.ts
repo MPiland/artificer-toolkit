@@ -65,6 +65,17 @@ type AdmittedCheck = Exclude<
 type WindowPayload = EncounterD20WindowPendingContextDto['pause']['payload']
 /** A window on a completed check's d20, as opposed to one on a save awaiting its graph. */
 export type CheckWindowPayload = WindowPayload & { rolled: D20RolledCheckDto }
+/** A window pending context on a completed check, as opposed to a save awaiting its graph. */
+type CheckWindowContext = EncounterD20WindowPendingContextDto & {
+  source: Exclude<EncounterD20WindowPendingContextDto['source'], { kind: 'DAMAGE_SAVE_CHECK' }>
+  pause: { payload: CheckWindowPayload }
+}
+const isCheckWindow = (
+  context: AdmittedCheck['pending']['context']
+): context is CheckWindowContext =>
+  context.kind === 'ENCOUNTER_D20_WINDOW' &&
+  context.source.kind !== 'DAMAGE_SAVE_CHECK' &&
+  isCheckWindowPayload(context.pause.payload)
 export const isCheckWindowPayload = (payload: WindowPayload): payload is CheckWindowPayload =>
   'execution' in payload.rolled
 
@@ -365,12 +376,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
   if (admission.kind === 'REPLAY') return admission.result
   const { state, campaign, occurrence, pending } = admission
   // A d20 window settles the check whose d20 opened it.
-  const window = pending.context.kind === 'ENCOUNTER_D20_WINDOW' ? pending.context : null
-  if (
-    window &&
-    (window.source.kind === 'DAMAGE_SAVE_CHECK' || !isCheckWindowPayload(window.pause.payload))
-  )
-    throw mismatch()
+  const window = isCheckWindow(pending.context) ? pending.context : null
   const context = window ? window.source.context : pending.context
   const { settlement } = input
   const { execution } = settlement
