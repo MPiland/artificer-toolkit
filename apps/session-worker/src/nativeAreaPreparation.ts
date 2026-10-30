@@ -610,7 +610,10 @@ export function prepareCasterActionOnTarget(
     AreaPlanBase,
     'state' | 'system' | 'actors' | 'activeEffectsByActorId' | 'capture'
   > & {
-    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict' | 'target'>
+    command: Pick<
+      ResolveEncounterActionInputDto,
+      'actionId' | 'castModifierId' | 'acceptedWieldConflict' | 'target'
+    >
   },
   action: {
     caster: EncounterRunActorState

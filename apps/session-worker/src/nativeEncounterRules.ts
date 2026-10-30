@@ -567,13 +567,8 @@ export async function planNativeLiveEncounterAction(
           definitions,
           capture
         }),
-      loadMoveToward: ({ sourceFacts, targetFacts }) =>
-        readNativeLiveMoveToward({
-          attacker: sourceFacts,
-          target: targetFacts,
-          sceneContext,
-          capture
-        }),
+      loadMoveToward: ({ sourceFacts: attacker, targetFacts: target }) =>
+        readNativeLiveMoveToward({ attacker, target, sceneContext, capture }),
       ...nativeActionStateLoaders({
         campaign: state,
         actorId: command.actorId,

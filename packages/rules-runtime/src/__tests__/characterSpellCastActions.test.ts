@@ -3507,7 +3507,7 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
   const owner = {
     kind: 'AUTHORED_SOURCE' as const,
     chargeId: CHARGE_ID,
-    source: { kind: 'FEATURE' as const, featureId: 'caster-feature' }
+    sourceId: 'caster-feature'
   }
   const poolId = createCharacterResourceOwnerKey(owner)
   const modifier = {
@@ -3522,7 +3522,12 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     resourceDefinitionId: CHARGE_ID,
     chargeId: CHARGE_ID,
     chargeCalculationId: poolId,
-    source: owner.source,
+    source: {
+      kind: 'AUTHORED',
+      sourceKind: 'FEATURE',
+      definitionId: 'caster-feature',
+      sourceInstanceId: 'caster-feature'
+    },
     state: 'RESOLVED',
     maximum,
     rawUsed,
