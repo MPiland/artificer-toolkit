@@ -41,14 +41,17 @@ describe('native invitation expiry before notification delivery', () => {
         })
       ).rejects.toThrow('expired')
       expect(await base.snapshot()).toEqual(before)
+      // A read commits too, so the sweep runs just after the deadline at a clock this test sets.
+      const expiredAt = new Date(Date.parse(expiresAt) + 1_000).toISOString()
+      vi.setSystemTime(new Date(expiredAt))
       expect(await base.t.mutation(internal.notifications.delivery.dispatch, {})).toBe(0)
       const after = await base.snapshot()
       expect(after.invitations[0]).toMatchObject({
         status: 'EXPIRED',
         version: 1,
-        expiredAt: expiresAt
+        expiredAt
       })
-      expect(after.notifications[0]).toMatchObject({ status: 'CANCELLED', cancelledAt: expiresAt })
+      expect(after.notifications[0]).toMatchObject({ status: 'CANCELLED', cancelledAt: expiredAt })
       expect(after.memberships).toEqual(before.memberships)
       expect(after.feed).toEqual([])
       await base.t.mutation(internal.notifications.delivery.dispatch, {})

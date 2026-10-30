@@ -338,6 +338,8 @@ it('keeps a shared asset while any reference remains, then retires it once after
   await base.owner.caller.mutation(api.media.characterPortraitAssets.remove, {
     target: base.portrait
   })
+  // Past the last commit, so the next mutation's clock is the one this test reads.
+  vi.setSystemTime(Date.now() + 1_000)
   await settle()
   const graced = (await base.readAsset(assetId))!
   expect(graced.cleanupAt).toBe(Date.now() + 24 * 60 * 60_000)
