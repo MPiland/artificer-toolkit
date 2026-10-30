@@ -122,13 +122,11 @@ async function runWithRound(
 
 const caster = unowned(CASTER_ID)
 const round = async (memory: ReturnType<typeof createMemoryEncounterStore>) =>
-  readEncounterInitiativeRound(
-    { db: memory.store, ports: {} },
-    { encounterId: ENCOUNTER_ID, round: 1 }
-  )
+  readEncounterInitiativeRound({ db: memory.store }, { encounterId: ENCOUNTER_ID, round: 1 })
 const placed = (state: Awaited<ReturnType<typeof round>>) =>
   state!.participants
-    .toSorted((a, b) => a.turnOrderOrdinal! - b.turnOrderOrdinal!)
+    .slice()
+    .sort((a, b) => a.turnOrderOrdinal! - b.turnOrderOrdinal!)
     .map(({ actorId, status, turnOrderOrdinal }) => [actorId, status, turnOrderOrdinal])
 
 /** The caster's carrier effect is absent, as once its effect has ended. */
