@@ -22376,6 +22376,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -23589,6 +23590,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -24758,6 +24760,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -25923,6 +25926,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -27188,6 +27192,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -28423,6 +28428,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -29588,6 +29594,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -30811,6 +30818,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -32136,6 +32144,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -33333,6 +33342,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -34486,6 +34496,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -35632,6 +35643,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -36874,6 +36886,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -38087,6 +38100,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -39233,6 +39247,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -40433,6 +40448,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -41823,6 +41839,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -43020,6 +43037,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -44173,6 +44191,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -45319,6 +45338,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -46561,6 +46581,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -47774,6 +47795,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -48920,6 +48942,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -50120,6 +50143,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -51591,6 +51615,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -52804,6 +52829,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -53973,6 +53999,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -55138,6 +55165,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -56403,6 +56431,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -57638,6 +57667,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -58803,6 +58833,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -60026,6 +60057,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -61351,6 +61383,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -62548,6 +62581,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -63701,6 +63735,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -64847,6 +64882,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -66089,6 +66125,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -67302,6 +67339,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -68448,6 +68486,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -69648,6 +69687,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -71038,6 +71078,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -72235,6 +72276,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -73388,6 +73430,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -74534,6 +74577,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -75776,6 +75820,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -76989,6 +77034,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -78135,6 +78181,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -79335,6 +79382,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -80815,6 +80863,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -82028,6 +82077,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -83197,6 +83247,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -84362,6 +84413,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -85627,6 +85679,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -86862,6 +86915,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -88027,6 +88081,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -89250,6 +89305,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -90575,6 +90631,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -91772,6 +91829,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -92925,6 +92983,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -94071,6 +94130,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -95313,6 +95373,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -96526,6 +96587,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -97672,6 +97734,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -98872,6 +98935,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -100262,6 +100326,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -101459,6 +101524,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -102612,6 +102678,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -103758,6 +103825,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -105000,6 +105068,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -106213,6 +106282,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -107359,6 +107429,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -108559,6 +108630,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -110030,6 +110102,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -111243,6 +111316,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -112412,6 +112486,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -113577,6 +113652,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -114842,6 +114918,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -116077,6 +116154,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -117242,6 +117320,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -118465,6 +118544,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -119790,6 +119870,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -120987,6 +121068,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -122140,6 +122222,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -123286,6 +123369,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -124528,6 +124612,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -125741,6 +125826,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -126887,6 +126973,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -128087,6 +128174,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -129477,6 +129565,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -130674,6 +130763,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -131827,6 +131917,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -132973,6 +133064,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -134215,6 +134307,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -135428,6 +135521,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -136574,6 +136668,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -137774,6 +137869,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -139280,6 +139376,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -140493,6 +140590,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -141662,6 +141760,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -142827,6 +142926,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -144092,6 +144192,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -145327,6 +145428,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -146492,6 +146594,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -147715,6 +147818,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -149040,6 +149144,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -150237,6 +150342,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -151390,6 +151496,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -152536,6 +152643,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -153778,6 +153886,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -154991,6 +155100,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -156137,6 +156247,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -157337,6 +157448,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -158727,6 +158839,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -159924,6 +160037,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -161077,6 +161191,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -162223,6 +162338,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -163465,6 +163581,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -164678,6 +164795,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -165824,6 +165942,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -167024,6 +167143,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -168495,6 +168615,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -169708,6 +169829,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -170877,6 +170999,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -172042,6 +172165,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -173307,6 +173431,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -174542,6 +174667,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -175707,6 +175833,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -176930,6 +177057,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -178255,6 +178383,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -179452,6 +179581,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -180605,6 +180735,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -181751,6 +181882,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -182993,6 +183125,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -184206,6 +184339,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -185352,6 +185486,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -186552,6 +186687,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -187942,6 +188078,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -189139,6 +189276,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -190292,6 +190430,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -191438,6 +191577,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -192680,6 +192820,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -193893,6 +194034,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -195039,6 +195181,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -196239,6 +196382,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -197711,6 +197855,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -198923,6 +199068,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: string;
+                              ridesSpellIds?: Array<string>;
                               shape?:
                                 | {
                                     id: string;
@@ -200091,6 +200237,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -201252,6 +201399,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -202509,6 +202657,7 @@ export declare const api: {
                                   };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -203740,6 +203889,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -204901,6 +205051,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -206116,6 +206267,7 @@ export declare const api: {
                                   };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -207429,6 +207581,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -208607,6 +208760,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: string;
+                        ridesSpellIds?: Array<string>;
                         shape?:
                           | {
                               id: string;
@@ -209747,6 +209901,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -210880,6 +211035,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -212099,6 +212255,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -213293,6 +213450,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -214426,6 +214584,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -215609,6 +215768,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -216985,6 +217145,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -218163,6 +218324,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: string;
+                        ridesSpellIds?: Array<string>;
                         shape?:
                           | {
                               id: string;
@@ -219303,6 +219465,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -220436,6 +220599,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -221655,6 +221819,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -222849,6 +223014,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -223982,6 +224148,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -225165,6 +225332,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -226630,6 +226798,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -227843,6 +228012,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -229012,6 +229182,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -230177,6 +230348,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -231442,6 +231614,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -232677,6 +232850,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -233842,6 +234016,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -235065,6 +235240,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -236390,6 +236566,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -237587,6 +237764,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -238740,6 +238918,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -239886,6 +240065,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -241128,6 +241308,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -242341,6 +242522,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -243487,6 +243669,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -244687,6 +244870,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -246077,6 +246261,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -247274,6 +247459,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -248427,6 +248613,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -249573,6 +249760,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -250815,6 +251003,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -252028,6 +252217,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -253174,6 +253364,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -254374,6 +254565,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -255845,6 +256037,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -257058,6 +257251,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -258227,6 +258421,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -259392,6 +259587,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -260657,6 +260853,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -261892,6 +262089,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -263057,6 +263255,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -264280,6 +264479,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -265605,6 +265805,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -266802,6 +267003,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -267955,6 +268157,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -269101,6 +269304,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -270343,6 +270547,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -271556,6 +271761,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -272702,6 +272908,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -273902,6 +274109,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -275292,6 +275500,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -276489,6 +276698,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -277642,6 +277852,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -278788,6 +278999,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -280030,6 +280242,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -281243,6 +281456,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -282389,6 +282603,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -283589,6 +283804,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;

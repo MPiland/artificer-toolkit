@@ -166,6 +166,50 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
     for (const entry of merged.entries)
       expect(entry).toMatchObject({ resultBlockId: own.resultBlockId, groupKind: 'SEQUENTIAL' })
   })
+  it('rides a Spell-scoped rider only on a cast of a Spell it names (G4)', () => {
+    const [effect] = unconditionalSneakAttack(testUuid(0xb51)).effects ?? []
+    if (
+      effect?.invocation.kind !== 'PASSIVE' ||
+      effect.invocation.triggerCode !== 'MELEE_WEAPON_ATTACK'
+    )
+      throw new Error('Expected a passive melee rider.')
+    const SPELL = testUuid(0xb61)
+    const [rider] = collectOnHitRiders(
+      [compileEffect({ ...effect, invocation: { ...effect.invocation, ridesSpellIds: [SPELL] } })],
+      OWNER
+    )
+    expect(rider?.ridesSpellIds).toEqual([SPELL])
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
+    // A Feature's attack is no cast, and a cast of another Spell is not this one.
+    expect(damageEntries(mergeOnHitRiders(weapon, [rider!], ATTACK_FEATURE))).toHaveLength(1)
+    expect(
+      damageEntries(mergeOnHitRiders(weapon, [rider!], undefined, testUuid(0xb62)))
+    ).toHaveLength(1)
+    expect(damageEntries(mergeOnHitRiders(weapon, [rider!], undefined, SPELL))).toHaveLength(4)
+  })
+
+  it('never rides a spell cast with a Feature-scoped rider', () => {
+    const [effect] = unconditionalSneakAttack(testUuid(0xb52)).effects ?? []
+    if (
+      effect?.invocation.kind !== 'PASSIVE' ||
+      effect.invocation.triggerCode !== 'MELEE_WEAPON_ATTACK'
+    )
+      throw new Error('Expected a passive melee rider.')
+    const [rider] = collectOnHitRiders(
+      [
+        compileEffect({
+          ...effect,
+          invocation: { ...effect.invocation, ridesFeatureId: ATTACK_FEATURE }
+        })
+      ],
+      OWNER
+    )
+    const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
+    expect(
+      damageEntries(mergeOnHitRiders(weapon, [rider!], undefined, testUuid(0xb62)))
+    ).toHaveLength(1)
+  })
+
   it('leaves an attack alone when no rider names its trigger', () => {
     const weapon = attack('RANGED_WEAPON_ATTACK', [{ damageTypeId: PIERCING }])
     expect(

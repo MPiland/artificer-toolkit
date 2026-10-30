@@ -12,6 +12,8 @@ export type OnHitRider = {
   optionalOnHit?: OptionalOnHitAuthored
   /** Present when the rider rides only the attacks of this sibling Feature (D164 Charge). */
   ridesFeatureId?: string
+  /** Present when the rider rides only the casts of these Spells (G4); such a rider rides no other attack. */
+  ridesSpellIds?: readonly string[]
   entries: readonly CompiledEffectEntry[]
 }
 
@@ -56,6 +58,9 @@ export function collectOnHitRiders(
             ...('ridesFeatureId' in effect.invocation && effect.invocation.ridesFeatureId
               ? { ridesFeatureId: effect.invocation.ridesFeatureId }
               : {}),
+            ...('ridesSpellIds' in effect.invocation && effect.invocation.ridesSpellIds
+              ? { ridesSpellIds: effect.invocation.ridesSpellIds }
+              : {}),
             entries
           }
         ]
@@ -71,19 +76,23 @@ export function collectOnHitRiders(
  *
  * A rider scoped to one Feature rides only that Feature's attacks, and joins the result block of the
  * attack's first `ON_HIT` damage as one sequence with it, so its damage and its follow-up save
- * resolve as part of the hit (D164 Charge).
+ * resolve as part of the hit (D164 Charge). A rider scoped to Spells rides only the cast of one of
+ * them, and `castSpellId` names the Spell a cast is of (a Feature's attack names none).
  */
 export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
   effect: TEffect,
   riders: readonly OnHitRider[],
-  attackFeatureId: string
+  attackFeatureId: string | undefined,
+  castSpellId?: string
 ): TEffect {
   if (effect.invocation.kind === 'PASSIVE') return effect
   const { triggerCode } = effect.invocation
   const matching = riders.filter(
     (rider) =>
       rider.triggerCode === triggerCode &&
-      (rider.ridesFeatureId === undefined || rider.ridesFeatureId === attackFeatureId)
+      (rider.ridesFeatureId === undefined || rider.ridesFeatureId === attackFeatureId) &&
+      (rider.ridesSpellIds === undefined ||
+        (castSpellId !== undefined && rider.ridesSpellIds.includes(castSpellId)))
   )
   const [weaponDamage] = effect.entries
     .filter(isOnHitDamage)
