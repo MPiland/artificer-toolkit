@@ -38,7 +38,7 @@ export type CharacterSheetRollDestinations = {
   stateRollDestinationOptions: readonly CharacterSheetRollDestinationOption[]
 }
 
-/** The presented roll card, which only the roll owner renders. */
+/** The presented roll card: its owner renders it, and a rest waits on it or cancels it. */
 export type CharacterSheetRollPresentation = {
   dismissRoll: (discard?: boolean) => void
   presentationPending: boolean

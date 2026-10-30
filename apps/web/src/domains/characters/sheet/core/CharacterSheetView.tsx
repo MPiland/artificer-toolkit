@@ -18,7 +18,8 @@ import { CharacterSheetRollHistory } from '../dice/CharacterSheetRollHistory'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import {
   CharacterSheetRollContext,
-  CharacterSheetRollDestinationContext
+  CharacterSheetRollDestinationContext,
+  CharacterSheetRollPresentationContext
 } from '../dice/rollContext'
 import { useCharacterSheetRollController } from '../dice/useCharacterSheetRollController'
 import { CharacterSheetMobilePager } from '../mobile/CharacterSheetMobilePager'
@@ -200,229 +201,234 @@ export function CharacterSheetView({
   return (
     <CharacterSheetRollContext.Provider value={rolls}>
       <CharacterSheetRollDestinationContext.Provider value={rollDestinations}>
-        <div className={coreStyles.shell} onClickCapture={dismissPresentedRoll}>
-          <DiceRollPresentation
-            onRollRevealed={(rollId) => {
-              if (rollPresentation.presentedRoll?.id !== rollId) return
-              rollPresentation.revealRoll(rollId)
-              if (rollPresentation.presentedRollPrivate) revealRoll(rollPresentation.presentedRoll)
-            }}
-            pending={rolls.pending}
-            roll={rollPresentation.presentedRoll}
-          />
-          <div className={coreStyles.sheetTopGrid}>
-            <CharacterSheetHero
-              campaignActions={
-                sheet.meta.campaignId && currentUserId ? (
-                  <>
-                    <CampaignTabletopButton campaignId={sheet.meta.campaignId} />
-                    <CampaignChatDrawer
-                      campaignId={sheet.meta.campaignId}
-                      currentUserId={currentUserId}
-                      trigger='icon'
-                    />
-                    <CampaignNotesDrawer
-                      campaignId={sheet.meta.campaignId}
-                      currentUserId={currentUserId}
-                    />
-                    {sheet.meta.partyVisibility ? (
-                      <CharacterSheetPartyVisibility
-                        expectedVersion={sheet.meta.streamVersion}
-                        pending={pending}
-                        submitCommand={submitCommand}
-                        visibility={sheet.meta.partyVisibility}
+        <CharacterSheetRollPresentationContext.Provider value={rollPresentation}>
+          <div className={coreStyles.shell} onClickCapture={dismissPresentedRoll}>
+            <DiceRollPresentation
+              onRollRevealed={(rollId) => {
+                if (rollPresentation.presentedRoll?.id !== rollId) return
+                rollPresentation.revealRoll(rollId)
+                if (rollPresentation.presentedRollPrivate)
+                  revealRoll(rollPresentation.presentedRoll)
+              }}
+              pending={rolls.pending}
+              roll={rollPresentation.presentedRoll}
+            />
+            <div className={coreStyles.sheetTopGrid}>
+              <CharacterSheetHero
+                campaignActions={
+                  sheet.meta.campaignId && currentUserId ? (
+                    <>
+                      <CampaignTabletopButton campaignId={sheet.meta.campaignId} />
+                      <CampaignChatDrawer
+                        campaignId={sheet.meta.campaignId}
+                        currentUserId={currentUserId}
+                        trigger='icon'
                       />
-                    ) : null}
-                  </>
-                ) : null
-              }
-              characterPublicId={characterPublicId}
-              editable={sheet.meta.capabilities.openBuilder}
-              hasDraft={hasDraft}
-              sheet={sheet}
-              onOpenRollHistory={() => setRollHistoryOpened(true)}
-            />
-            <CharacterSheetOverviewVitals
-              closePanel={closeActivePanel}
-              openPanel={openInspector}
-              overlayEpoch={overlayEpoch}
-              pending={pending}
-              sheet={sheet}
-              showDefenses
-              submitCommand={submitCommand}
-            />
-            <div className={coreStyles.mobileOnly}>
-              <CharacterSheetMobileStatusBar
+                      <CampaignNotesDrawer
+                        campaignId={sheet.meta.campaignId}
+                        currentUserId={currentUserId}
+                      />
+                      {sheet.meta.partyVisibility ? (
+                        <CharacterSheetPartyVisibility
+                          expectedVersion={sheet.meta.streamVersion}
+                          pending={pending}
+                          submitCommand={submitCommand}
+                          visibility={sheet.meta.partyVisibility}
+                        />
+                      ) : null}
+                    </>
+                  ) : null
+                }
+                characterPublicId={characterPublicId}
+                editable={sheet.meta.capabilities.openBuilder}
+                hasDraft={hasDraft}
+                sheet={sheet}
+                onOpenRollHistory={() => setRollHistoryOpened(true)}
+              />
+              <CharacterSheetOverviewVitals
+                closePanel={closeActivePanel}
                 openPanel={openInspector}
+                overlayEpoch={overlayEpoch}
                 pending={pending}
                 sheet={sheet}
+                showDefenses
                 submitCommand={submitCommand}
               />
-            </div>
-          </div>
-
-          {hasDraft ? (
-            <Alert color='yellow'>
-              This character has builder draft work. The sheet is showing the last finalized active
-              character until that builder draft is saved.
-            </Alert>
-          ) : null}
-          {commandMutation.error ? (
-            <Alert color='red'>{commandMutation.error.message}</Alert>
-          ) : null}
-
-          <CharacterSheetMobilePager
-            activePage={visibleActiveMobilePage}
-            manualRollAction={
-              <CharacterSheetManualRoll
-                className={mobileStyles.mobileFloatingButton}
-                rollModes={sheet.overview.rollModes}
-              />
-            }
-            pages={visibleMobilePages}
-            onPageChange={setMobilePage}
-          >
-            <div className={coreStyles.responsiveContent}>
-              <div
-                className={coreStyles.sheetAbilityStatusGrid}
-                data-mobile-visible={visibleActiveMobilePage === 'overview' ? 'true' : undefined}
-              >
-                <div className={coreStyles.abilityRegion}>
-                  <CharacterSheetOverviewAbilities
-                    abilities={sheet.overview.abilities}
-                    openPanel={openInspector}
-                  />
-                </div>
-                <div className={coreStyles.statusRegion}>
-                  <CharacterSheetOverviewStatusStrip
-                    pending={pending}
-                    sheet={sheet}
-                    submitCommand={submitCommand}
-                  />
-                </div>
+              <div className={coreStyles.mobileOnly}>
+                <CharacterSheetMobileStatusBar
+                  openPanel={openInspector}
+                  pending={pending}
+                  sheet={sheet}
+                  submitCommand={submitCommand}
+                />
               </div>
+            </div>
 
-              <div
-                className={`${coreStyles.sheetCanvas} ${
-                  visibleActiveTab === 'overview' ? '' : coreStyles.tabletFocusedCanvas
-                }`}
-              >
+            {hasDraft ? (
+              <Alert color='yellow'>
+                This character has builder draft work. The sheet is showing the last finalized
+                active character until that builder draft is saved.
+              </Alert>
+            ) : null}
+            {commandMutation.error ? (
+              <Alert color='red'>{commandMutation.error.message}</Alert>
+            ) : null}
+
+            <CharacterSheetMobilePager
+              activePage={visibleActiveMobilePage}
+              manualRollAction={
+                <CharacterSheetManualRoll
+                  className={mobileStyles.mobileFloatingButton}
+                  rollModes={sheet.overview.rollModes}
+                />
+              }
+              pages={visibleMobilePages}
+              onPageChange={setMobilePage}
+            >
+              <div className={coreStyles.responsiveContent}>
                 <div
-                  className={`${coreStyles.overviewRegion} ${
-                    visibleActiveTab === 'overview' ? '' : coreStyles.tabletOverviewHidden
-                  }`}
+                  className={coreStyles.sheetAbilityStatusGrid}
                   data-mobile-visible={visibleActiveMobilePage === 'overview' ? 'true' : undefined}
                 >
-                  <CharacterSheetOverview
-                    openPanel={openInspector}
-                    sheet={sheet}
-                    showDefenses={false}
-                    tabletSkillsOnly
-                  />
-                </div>
-
-                <section
-                  className={coreStyles.desktopWorkspace}
-                  data-mobile-visible={
-                    visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage
-                      ? 'true'
-                      : undefined
-                  }
-                  aria-label='Character workspace'
-                >
-                  <Tabs
-                    className={coreStyles.desktopWorkspaceTabs}
-                    keepMounted={false}
-                    value={visibleActiveTab}
-                    onChange={(value) => {
-                      if (isCharacterSheetTabId(value)) {
-                        setActiveTab(value)
-                        setActiveMobilePage(getMobilePageForTab(value))
-                      }
-                    }}
-                  >
-                    <Tabs.List className={coreStyles.tabList}>
-                      {visibleTabs.map((tab) => (
-                        <Tabs.Tab
-                          className={
-                            tab.id === 'overview' ? coreStyles.tabletOnlyTab : coreStyles.tab
-                          }
-                          key={tab.id}
-                          value={tab.id}
-                        >
-                          {tab.label}
-                        </Tabs.Tab>
-                      ))}
-                    </Tabs.List>
-                    {visibleTabs.map((tab) => (
-                      <Tabs.Panel
-                        className={coreStyles.desktopWorkspacePanel}
-                        key={tab.id}
-                        value={tab.id}
-                      >
-                        {mounted &&
-                        (!isMobile ||
-                          (visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage)) &&
-                        tab.id === visibleActiveTab ? (
-                          <CharacterSheetPanelContent
-                            campaignInventory={campaignInventory}
-                            liveSheet={live?.sheet ?? undefined}
-                            openPanel={openInspector}
-                            pending={pending}
-                            sheet={sheet}
-                            submitCommand={submitCommand}
-                            tab={tab.id}
-                          />
-                        ) : null}
-                      </Tabs.Panel>
-                    ))}
-                  </Tabs>
-                </section>
-
-                {isMobile && isMobileAuxiliaryPage ? (
-                  <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
-                    <CharacterSheetPanelContent
-                      campaignInventory={campaignInventory}
-                      liveSheet={live?.sheet ?? undefined}
-                      mobile
+                  <div className={coreStyles.abilityRegion}>
+                    <CharacterSheetOverviewAbilities
+                      abilities={sheet.overview.abilities}
                       openPanel={openInspector}
+                    />
+                  </div>
+                  <div className={coreStyles.statusRegion}>
+                    <CharacterSheetOverviewStatusStrip
                       pending={pending}
                       sheet={sheet}
                       submitCommand={submitCommand}
-                      tab={visibleActiveMobilePage}
                     />
                   </div>
-                ) : null}
+                </div>
+
+                <div
+                  className={`${coreStyles.sheetCanvas} ${
+                    visibleActiveTab === 'overview' ? '' : coreStyles.tabletFocusedCanvas
+                  }`}
+                >
+                  <div
+                    className={`${coreStyles.overviewRegion} ${
+                      visibleActiveTab === 'overview' ? '' : coreStyles.tabletOverviewHidden
+                    }`}
+                    data-mobile-visible={
+                      visibleActiveMobilePage === 'overview' ? 'true' : undefined
+                    }
+                  >
+                    <CharacterSheetOverview
+                      openPanel={openInspector}
+                      sheet={sheet}
+                      showDefenses={false}
+                      tabletSkillsOnly
+                    />
+                  </div>
+
+                  <section
+                    className={coreStyles.desktopWorkspace}
+                    data-mobile-visible={
+                      visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage
+                        ? 'true'
+                        : undefined
+                    }
+                    aria-label='Character workspace'
+                  >
+                    <Tabs
+                      className={coreStyles.desktopWorkspaceTabs}
+                      keepMounted={false}
+                      value={visibleActiveTab}
+                      onChange={(value) => {
+                        if (isCharacterSheetTabId(value)) {
+                          setActiveTab(value)
+                          setActiveMobilePage(getMobilePageForTab(value))
+                        }
+                      }}
+                    >
+                      <Tabs.List className={coreStyles.tabList}>
+                        {visibleTabs.map((tab) => (
+                          <Tabs.Tab
+                            className={
+                              tab.id === 'overview' ? coreStyles.tabletOnlyTab : coreStyles.tab
+                            }
+                            key={tab.id}
+                            value={tab.id}
+                          >
+                            {tab.label}
+                          </Tabs.Tab>
+                        ))}
+                      </Tabs.List>
+                      {visibleTabs.map((tab) => (
+                        <Tabs.Panel
+                          className={coreStyles.desktopWorkspacePanel}
+                          key={tab.id}
+                          value={tab.id}
+                        >
+                          {mounted &&
+                          (!isMobile ||
+                            (visibleActiveMobilePage !== 'overview' && !isMobileAuxiliaryPage)) &&
+                          tab.id === visibleActiveTab ? (
+                            <CharacterSheetPanelContent
+                              campaignInventory={campaignInventory}
+                              liveSheet={live?.sheet ?? undefined}
+                              openPanel={openInspector}
+                              pending={pending}
+                              sheet={sheet}
+                              submitCommand={submitCommand}
+                              tab={tab.id}
+                            />
+                          ) : null}
+                        </Tabs.Panel>
+                      ))}
+                    </Tabs>
+                  </section>
+
+                  {isMobile && isMobileAuxiliaryPage ? (
+                    <div className={coreStyles.mobileAuxiliaryPanel} data-mobile-visible='true'>
+                      <CharacterSheetPanelContent
+                        campaignInventory={campaignInventory}
+                        liveSheet={live?.sheet ?? undefined}
+                        mobile
+                        openPanel={openInspector}
+                        pending={pending}
+                        sheet={sheet}
+                        submitCommand={submitCommand}
+                        tab={visibleActiveMobilePage}
+                      />
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          </CharacterSheetMobilePager>
-        </div>
-        <CharacterSheetRollHistory
-          opened={rollHistoryOpened}
-          pendingRollId={
-            !rollPresentation.presentedRollPrivate ||
-            rollPresentation.presentedRoll?.id === revealedRollId
-              ? undefined
-              : rollPresentation.presentedRoll?.id
-          }
-          rollerName={rollerName}
-          onClose={() => setRollHistoryOpened(false)}
-          onRevealRoll={rollPresentation.revealPrivateRoll}
-        />
-        {inspectorTarget ? (
-          <CharacterSheetInspector
-            campaignId={sheet.meta.campaignId}
-            characterId={sheet.meta.characterId}
-            commandError={commandMutation.error?.message}
-            expectedVersion={sheet.meta.streamVersion}
-            liveSheet={live?.sheet ?? undefined}
-            pending={pending}
-            submitCommand={submitCommand}
-            target={inspectorTarget}
-            onClose={closeInspector}
-            onTargetChange={setInspectorTarget}
+            </CharacterSheetMobilePager>
+          </div>
+          <CharacterSheetRollHistory
+            opened={rollHistoryOpened}
+            pendingRollId={
+              !rollPresentation.presentedRollPrivate ||
+              rollPresentation.presentedRoll?.id === revealedRollId
+                ? undefined
+                : rollPresentation.presentedRoll?.id
+            }
+            rollerName={rollerName}
+            onClose={() => setRollHistoryOpened(false)}
+            onRevealRoll={rollPresentation.revealPrivateRoll}
           />
-        ) : null}
+          {inspectorTarget ? (
+            <CharacterSheetInspector
+              campaignId={sheet.meta.campaignId}
+              characterId={sheet.meta.characterId}
+              commandError={commandMutation.error?.message}
+              expectedVersion={sheet.meta.streamVersion}
+              liveSheet={live?.sheet ?? undefined}
+              pending={pending}
+              submitCommand={submitCommand}
+              target={inspectorTarget}
+              onClose={closeInspector}
+              onTargetChange={setInspectorTarget}
+            />
+          ) : null}
+        </CharacterSheetRollPresentationContext.Provider>
       </CharacterSheetRollDestinationContext.Provider>
     </CharacterSheetRollContext.Provider>
   )
