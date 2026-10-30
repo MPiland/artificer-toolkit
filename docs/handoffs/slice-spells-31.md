@@ -474,7 +474,9 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
   - **Economy:** the familiar spends its REACTION; the holder spends one attack of its Attack action (opening the action if needed). Both land in one receipt (`delegatingActorSpend` on the actor batch), one checksum and one undo.
   - **Proofs:** `pactOfTheChainAuthoringParity.test.ts` (kind gone, the SRD grant delegates only to Find Familiar's summons, a homebrew grant passes the class node map unchanged and delegates only to its own summons), `nativeRoomDelegatedAttack.test.ts` (cast, delegate Claws: damage, both spends, a second delegation refused, undo restores both; refusals for an ungranted pact, a non-owned delegate, a Disarm intent and an off-turn attempt).
   - **Size ratchets:** the Pact Boon feature moved to `warlock-pact-boon.ts`, and `readNativePauseAnswer` now derives a response's decision, dice and evidence itself. Both budget caps were lowered.
-  - **Limits:** the familiar can still attack on its own turn with its own action (the SRD forbids its Attack action; not enforced). The web action menu pick and browser journey are T4v2b.
+  - **Limits:** the familiar can still attack on its own turn with its own action (the SRD forbids its Attack action; not enforced).
+- **T4v2b (2026-10-30), the delegated attack in the Actions drawer:** `actionChoiceReads` lists the delegate's attacks under the holder (`delegateActorId`), gated by `encounterAttackDelegated` and the holder's open attack slot; the drawer sends the T4v2a command and repeats no admission rule.
+  - **Proofs:** `nativeRoomDelegatedAttack.test.ts` (the choice lists until the attack is forgone; none without the grant), `CampaignTabletopActionDrawer.test.tsx` (command shape), `delegated-attack-browser` (the player picks the familiar's Claws; the summon, turns and dice stand in through the owner's API). The setup it shares with `heat-metal-browser` lives in `developmentEncounterPlayerJourney.ts`.
 
 ### One with Shadows resume (SPELLS-31.T5n2, size 3, after T5n)
 

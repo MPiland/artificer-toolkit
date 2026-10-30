@@ -15,7 +15,7 @@ import { api } from '../convex/_generated/api.js'
 export async function prepareDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
-  options: Partial<Pick<typeof fighter, 'resources' | 'spellcasting'>> = {}
+  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {}
 ) {
   const equipment = await owner.mutation(api.content.drafts.duplicate, {
     subjectKind: 'EQUIPMENT',
@@ -103,8 +103,8 @@ export async function prepareDevelopmentCharacter(
   })
   await publish(baseClass, {
     ...baseClass.payload,
-    ...options,
     features: [],
+    ...options,
     proficiencies: [],
     startingEquipment: { id: crypto.randomUUID(), sets: [] }
   })
@@ -162,7 +162,7 @@ export async function prepareDevelopmentCharacter(
 export async function createDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
-  options: Partial<Pick<typeof fighter, 'resources' | 'spellcasting'>> = {}
+  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {}
 ) {
   const { candidate, character, equipment } = await prepareDevelopmentCharacter(
     owner,

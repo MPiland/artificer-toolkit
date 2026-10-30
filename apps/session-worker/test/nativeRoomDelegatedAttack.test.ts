@@ -251,6 +251,49 @@ describe('room Pact of the Chain delegated attack (SPELLS-31.T4v2a)', () => {
     expect(restored.familiar.resources).toEqual(before.familiar.resources)
   }, 180000)
 
+  it('lists the familiar’s attack among the Warlock’s choices until its one attack is forgone (T4v2b)', async () => {
+    const room = await chainRoom()
+    expect(
+      (await room.actionChoices(CHARACTER_ACTOR_ID)).actions.filter(
+        ({ delegateActorId }) => delegateActorId
+      )
+    ).toEqual([])
+    const { familiar, clawsId } = await summonFamiliar(room)
+
+    const offered = await room.actionChoices(CHARACTER_ACTOR_ID)
+    const claws = offered.actions.find(({ id }) => id === clawsId)
+    expect(claws).toMatchObject({
+      delegateActorId: familiar.id,
+      label: 'Claws',
+      sourceLabel: familiar.label,
+      target: { kind: 'ACTOR' },
+      attackSlot: { number: 1, total: 1 },
+      warnings: []
+    })
+    // Only attacks are delegated, and the drawer never preselects one over the Warlock's own.
+    expect(
+      offered.actions.filter(({ delegateActorId }) => delegateActorId).map(({ id }) => id)
+    ).toEqual([clawsId])
+    expect(offered.defaultActionId).not.toBe(clawsId)
+
+    const attack = await delegatedAttack(room, familiar.id, clawsId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+
+    // Its one attack is forgone, so nothing is left to replace, as the room would refuse.
+    expect(
+      (await room.actionChoices(CHARACTER_ACTOR_ID)).actions.some(({ id }) => id === clawsId)
+    ).toBe(false)
+  }, 180000)
+
+  it('offers no delegated attack to a Warlock without the grant', async () => {
+    const ungranted = await chainRoom(pactFeature({ modifiers: [] }))
+    const { clawsId } = await summonFamiliar(ungranted)
+    expect(
+      (await ungranted.actionChoices(CHARACTER_ACTOR_ID)).actions.some(({ id }) => id === clawsId)
+    ).toBe(false)
+  }, 180000)
+
   it('refuses a delegated attack from a Warlock without the grant, by a creature it did not summon, or off its turn', async () => {
     const ungranted = await chainRoom(pactFeature({ modifiers: [] }))
     const { familiar, clawsId } = await summonFamiliar(ungranted)

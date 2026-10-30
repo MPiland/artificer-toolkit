@@ -112,6 +112,11 @@ export const MAX_AMMUNITION_CHOICES = 100
 export const encounterActionChoiceDtoSchema = lazySchema(() =>
   z.strictObject({
     id: characterSheetActionDtoSchema.shape.id,
+    /**
+     * The creature that makes this attack in the actor's place (DELEGATED_ATTACK, D156): the command
+     * names it as `actorId` and the acting actor as `delegatingActorId`.
+     */
+    delegateActorId: z.optional(postgresUuidSchema),
     label: characterSheetActionDtoSchema.shape.label,
     sourceLabel: characterSheetActionDtoSchema.shape.sourceLabel,
     /** What the action does, for a System-authored basic action's tooltip. */
