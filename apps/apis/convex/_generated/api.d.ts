@@ -41609,6 +41609,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -70816,6 +70822,12 @@ export declare const api: {
                         id: string;
                         kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
                         order: number;
                       }
                   >;
@@ -100036,6 +100048,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -129243,6 +129261,12 @@ export declare const api: {
                         id: string;
                         kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
                         order: number;
                       }
                   >;
@@ -158489,6 +158513,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -187698,6 +187728,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -216745,6 +216781,12 @@ export declare const api: {
                       id: string;
                       kind: "DAMAGE_DEFENSE";
                       minimumLevel: number | null;
+                      order: number;
+                    }
+                  | {
+                      id: string;
+                      kind: "DEATH";
+                      minimumLevel: number;
                       order: number;
                     }
                 >;
@@ -245821,6 +245863,12 @@ export declare const api: {
                         minimumLevel: number | null;
                         order: number;
                       }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
+                        order: number;
+                      }
                   >;
                   perceptionContributions: Array<
                     | {
@@ -275028,6 +275076,12 @@ export declare const api: {
                         id: string;
                         kind: "DAMAGE_DEFENSE";
                         minimumLevel: number | null;
+                        order: number;
+                      }
+                    | {
+                        id: string;
+                        kind: "DEATH";
+                        minimumLevel: number;
                         order: number;
                       }
                   >;
