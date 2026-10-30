@@ -8,6 +8,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -771,6 +772,15 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
   }, 120000)
 })
 
+/** The Run's first side. */
+async function sideIdOf(room: ActionRoom) {
+  const [run] = (await readRoomHistory(room.room.base.stub)).runs
+  if (!run) throw new Error('The room holds no Run.')
+  const [side] = encounterRunStateSchema.parse(JSON.parse(run.stateJson)).sides
+  if (!side) throw new Error('The Run holds no side.')
+  return side.id
+}
+
 /** The Run actors the caster owns, with the Scene token bound to each. */
 async function conjured(room: ActionRoom) {
   const { stub } = room.room.base
@@ -908,6 +918,71 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
     expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+
+  /** SPELLS-35.T3a: an owner-turn summon is a Run actor that is not in the initiative order. */
+  it('lets the GM reinforce the Run while the weapon stands', async () => {
+    const room = await actionRoom({
+      rolls: [18, 0, 18],
+      fallbackRoll: 0,
+      actors: [
+        { ...casterActor(), initiative: 15 },
+        { ...srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') }), initiative: 10 }
+      ],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [spiritualWeapon], prepared: [spiritualWeapon.id] },
+      characterAction: (action) => action.label.startsWith(spiritualWeapon.label)
+    })
+    const weapon = await castWeapon(room)
+    const reinforced = await room.send({
+      type: 'REINFORCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      sideId: await sideIdOf(room),
+      initiative: 5,
+      public: true,
+      enemy: { kind: 'CUSTOM', label: 'Reinforcement', maxHitPoints: 8 }
+    })
+    expect(reinforced.type, JSON.stringify(reinforced)).toBe('COMMAND_COMMITTED')
+    expect((await conjured(room)).map(({ actor }) => actor.id)).toEqual([weapon.actor.id])
+  }, 120000)
+
+  it('settles a tied start while a creature acts on its owner’s turn', async () => {
+    const wolf = (id: string) => srdCreatureActor({ id, creature: biteWolf('ATTACK') })
+    const room = await actionRoom({
+      // Two Wolves roll the same score, so the start asks the GM to order them.
+      fallbackRoll: 0,
+      actors: [
+        wolf(WOLF_ID),
+        wolf(FIRST_ALLY_ID),
+        { ...wolf(SECOND_ALLY_ID), owner: { ownerActorId: WOLF_ID } }
+      ],
+      status: 'PREPARED',
+      autoRoll: 'EVERYONE'
+    })
+    const started = await room.send({
+      type: 'START',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    const pending =
+      started.type === 'COMMAND_COMMITTED' && started.delta?.scope === 'ENCOUNTER'
+        ? started.delta.result.occurrence?.pending
+        : undefined
+    if (pending?.kind !== 'INITIATIVE_ORDER') throw new Error('Expected a tie to settle.')
+    const settled = await room.send({
+      type: 'RESOLVE_RULE_OCCURRENCE',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: pending.encounterVersion,
+      occurrenceId: pending.occurrenceId,
+      expectedOccurrenceVersion: pending.occurrenceVersion,
+      correlationId: null,
+      resolution: { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId: WOLF_ID }
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
   }, 120000)
 })
 
