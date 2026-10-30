@@ -13,10 +13,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
-import {
-  encounterGrantsEnabledDomain,
-  withCharacterActiveGrants
-} from '../encounterActiveGrants.js'
+import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
+import { encounterGrantsEnabledDomain } from '../encounterActiveGrants.js'
 import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 import { rageEffect } from './antitoxinEffectFixture.js'

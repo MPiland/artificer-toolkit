@@ -19,7 +19,7 @@ import { thiefRoguishArchetype } from '@artificer-toolkit/source-data/srd/classe
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-31.T4l1 (D156, D160, D188, D187a): Cunning Action, Fast Hands and Vanish are standing

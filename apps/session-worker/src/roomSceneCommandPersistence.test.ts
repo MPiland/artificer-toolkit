@@ -753,6 +753,7 @@ describe('room Scene command persistence', () => {
       })
       const summoned = buildEncounterSummon({
         summon: { statBlock: {} },
+        spellSummon: null,
         caster,
         casterHitPointMaximum: 20,
         label: 'Summon',

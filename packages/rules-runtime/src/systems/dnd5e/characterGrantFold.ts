@@ -10,7 +10,7 @@ import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
 import {
   DND5E_CHARACTER_WIDE_TARGET,
-  DND5E_ITEM_CONDITION_KINDS,
+  DND5E_ACTION_CONDITION_KINDS,
   dnd5eAcceptedModifierApplicability,
   dnd5eModifierApplies
 } from './modifierApplicability.js'
@@ -53,9 +53,12 @@ function totalClassLevel(input: CharacterGrantFoldInput): number {
   return input.base.classes.reduce((sum, entry) => sum + entry.level, 0)
 }
 
-/** The conditions only a modifier's consumer can decide: the attacking item and the holder's state. */
+/**
+ * The conditions only a modifier's consumer can decide: the action (item, spell) and the holder's
+ * state.
+ */
 const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new Set([
-  ...DND5E_ITEM_CONDITION_KINDS,
+  ...DND5E_ACTION_CONDITION_KINDS,
   'CAN_ACT',
   'SPEED_ABOVE_ZERO',
   'FREE_HAND',
@@ -250,6 +253,10 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ITEM_SOLE_WEAPON':
       case 'ITEM_ATTACK_ABILITY':
       case 'ITEM_ACTIVATION':
+      case 'SPELL_IDENTITY':
+      case 'SPELL_SCHOOL':
+      case 'SPELL_LEVEL':
+      case 'SPELL_DAMAGE_TYPE':
       case 'CAN_ACT':
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
@@ -290,7 +297,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
     )
 
   /**
-   * A modifier's attacking-item and holder-state conditions cannot be decided here, so they are
+   * A modifier's action and holder-state conditions cannot be decided here, so they are
    * returned for its consumer: [] when some group passes outright, the residual groups when only
    * those conditions remain, and null when no group can pass.
    */
@@ -361,7 +368,6 @@ export function evaluateDnd5e2014CharacterGrantFold(
         sourceId,
         ...(boundSourceId !== undefined && { boundSourceId }),
         source: mechanicSource,
-        ...(modifier.scopeSpellIds.length > 0 ? { scopeSpellIds: modifier.scopeSpellIds } : {}),
         ...(modifier.scopeResourceIds.length > 0
           ? { scopeResourceIds: modifier.scopeResourceIds }
           : {}),

@@ -49,7 +49,13 @@ import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiv
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterSummon } from '../encounterSummon.js'
-import { buildSheetSpellSummon } from '../character/sheetSpellSummon.js'
+import {
+  buildSheetSpellSummon,
+  encounterSpellSummonExtra,
+  ownedEncounterSpellSummons,
+  sheetSpellSummonExtra
+} from '../character/sheetSpellSummon.js'
+import { resolveSpellSummonStatBlock } from '../spellSummonStatBlock.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -127,6 +133,7 @@ function mechanics(authored: SpellAuthored): Mechanic[] {
     activation: null,
     rangeLabel: null,
     attackKind: null,
+    attackDomain: null,
     attackAbility: null,
     attackBonus: null,
     attackRollMode: null,
@@ -3017,8 +3024,15 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       snapshot: { kind: 'CHARACTER', id: testUuid(4), label: 'Aria', systemId: SRD_SYSTEM_ID }
     })
     const label = placement.label ?? authored.label
+    const spellSummon = resolveSpellSummonStatBlock({
+      placement,
+      casterHitPointMaximum: 40,
+      spellId: authored.id,
+      label: authored.label
+    })
     const { actor } = buildEncounterSummon({
       summon: placement,
+      spellSummon,
       caster,
       casterHitPointMaximum: 40,
       sourceEffectId: testUuid(8),
@@ -3051,6 +3065,25 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     })
     expect(sheetSummon).not.toHaveProperty('passivePerception')
     expect(actor.maxHitPoints).toBe(40)
+    // Both paths list the attack the spell lets its caster make with the hand (SPELLS-34.1, .2).
+    const clenchedFist = {
+      id: authored.effects?.[1]?.id,
+      label: 'Melee Spell Attack',
+      description: 'Bonus Action'
+    }
+    expect(sheetSummon.actions).toEqual([clenchedFist])
+    expect(sheetSpellSummonExtra(sheetSummon, undefined).actions).toEqual([clenchedFist])
+    const [owned] = ownedEncounterSpellSummons([caster, actor], caster.id)
+    if (!owned) throw new Error('The caster must own the Encounter summon.')
+    expect(owned.summon).toEqual(spellSummon)
+    expect(encounterSpellSummonExtra(owned, undefined)).toMatchObject({
+      id: actor.id,
+      encounterActorId: actor.id,
+      spellId: authored.id,
+      armorClass: 20,
+      hitPoints: { current: 40, maximum: 40, temp: 0 },
+      actions: [clenchedFist]
+    })
   })
 
   it('conjures Spiritual Weapon: invulnerable, taking no space, attacked through as a bonus action that is free on the cast turn (SPELLS-4.T2v2a3d)', () => {
@@ -3250,8 +3283,7 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
         ability: null,
         state: 'APPLIED' as const,
         scope: 'GLOBAL' as const,
-        deferredRequirements: [],
-        scopeSpellIds: []
+        deferredRequirements: []
       }
     ]
   })

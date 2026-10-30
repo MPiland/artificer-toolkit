@@ -286,6 +286,22 @@ jobs:
           MERGE_BASE: ${{ needs.build.outputs.merge-base }}
         run: node scripts/ledgerUntouched.mjs --base "$MERGE_BASE"
 
+  # Package layering and the removed-service bans on the whole tree (PLATFORM-13.T21). The audit reads only
+  # the git inventory and the manifests, so it needs no install and runs beside the build.
+  boundaries:
+    name: Native boundary audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Native boundary audit
+        run: node scripts/auditNativeBoundaries.mjs
+
   # Proves fail-before in the same run: the slice's new and changed test files run against the production
   # code of the phase branch (the merge-base), on their own runner beside the other jobs, and the summary
   # labels each file RED, RED-IMPORT or ALREADY-PASSING (scripts/redProof.mjs). Those outcomes all pass;

@@ -24,7 +24,7 @@ import {
   normalizeFixtureNodeRuntimeValues,
   resolveFixtureNodeRuntime
 } from '#test/nodeRuntimeResolver'
-import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/nodeRuntime/srdSourceReader'
+import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/tests/srdSourceReader'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { AuthoringLayout } from '../layout/AuthoringLayout'
 

@@ -16,6 +16,7 @@ import { prepareEncounterTurnInitiative } from '@artificer-toolkit/rules-runtime
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
 import { prepareEncounterInitiativeDeclarationSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclarationSources'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { prepareAttackBehindDecoys } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -375,14 +376,24 @@ export function createNativeLiveTurnStages(
     initiative: (stage) => {
       async function loadCharacter(actor: EncounterRunCharacterActorState) {
         const target = stage.movementTargets?.get(actor.id) ?? (await loadTarget(actor.id))
-        const facts = target?.characterFacts
+        if (!target) throw new Error('Character initiative source is stale.')
+        const facts = target.characterFacts
         assertCharacterFactsBoundToActor(
           facts,
           actor,
           state.gameSystemId,
           'Character initiative source is stale.'
         )
-        return facts
+        // Initiative and its declarations read the actor's active grants, as its Sheet does.
+        return {
+          ...facts,
+          ruleEvaluation: evaluateCharacterActiveGrantRules({
+            gameSystemId: state.gameSystemId,
+            evaluation: facts.ruleEvaluation,
+            activeEffects: target.activeEffects,
+            vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+          })
+        }
       }
       return prepareEncounterTurnInitiative({
         ...stage,

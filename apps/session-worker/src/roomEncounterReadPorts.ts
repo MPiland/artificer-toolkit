@@ -4,9 +4,11 @@ import type {
   EncounterPersistenceTransaction
 } from '@artificer-toolkit/encounter-persistence/ports'
 import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { readInitiativeSourceRoll } from '@artificer-toolkit/rules-runtime/encounterInitiativeRoll'
 import { prepareEncounterInitiativeSources } from '@artificer-toolkit/rules-runtime/encounterInitiativeSources'
 import { toCharacterInitiativeActorFacts } from '@artificer-toolkit/rules-runtime/character/characterInitiativeFacts'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { characterEncounterInitiativeResultSchema } from '@artificer-toolkit/schema/api/characterEncounterInitiative'
 import { resolveCurrentOptionalCombatSources } from '@artificer-toolkit/rules-runtime/optionalCombatSourceAccess'
 import { validateOptionalCombatCheckDefinitions } from '@artificer-toolkit/authoring/reusableDefinitions'
@@ -237,7 +239,17 @@ export async function roomEncounterReadTransaction(input: {
             observed,
             transaction
           )
-          const { snapshot, registry, output } = facts.ruleEvaluation
+          // Initiative reads the Character's active grants, as its Sheet does (a held Stealth bonus).
+          const { snapshot, registry, output } = evaluateCharacterActiveGrantRules({
+            gameSystemId: state.gameSystemId,
+            evaluation: facts.ruleEvaluation,
+            activeEffects: await listActiveRuleEffects(
+              { db },
+              { kind: 'CHARACTER', characterId: actor.sourceId },
+              { ownerVerified: true }
+            ),
+            vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+          })
           return characterEncounterInitiativeResultSchema.parse({
             streamVersion: facts.active.play.streamVersion,
             initiativeActorFacts: toCharacterInitiativeActorFacts({

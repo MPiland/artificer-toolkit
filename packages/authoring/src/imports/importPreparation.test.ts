@@ -285,10 +285,10 @@ describe('import preparation', () => {
     const vocabulary = {
       damageTypes: [{ id: 'damage-piercing', code: 'PIERCING', label: 'Piercing' }],
       rarities: [{ id: 'rarity-legendary', code: 'LEGENDARY', label: 'Legendary' }],
-      currencies: [{ id: SRD_GOLD_CURRENCY_ID, code: 'GP', label: 'Gold' }],
-      speeds: [{ id: SRD_WALK_SPEED_ID, code: 'WALK', label: 'Walking Speed' }],
-      skills: [{ id: SRD_STEALTH_SKILL_ID, code: 'STEALTH', label: 'Stealth' }],
-      heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DWARVEN', label: 'Dwarven' }]
+      goldCurrencyId: SRD_GOLD_CURRENCY_ID,
+      walkSpeedId: SRD_WALK_SPEED_ID,
+      stealthSkillId: SRD_STEALTH_SKILL_ID,
+      dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID
     }
 
     async function prepareAstralTear(rarity: string) {

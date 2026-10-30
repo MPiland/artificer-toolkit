@@ -16,6 +16,7 @@ import {
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
+  DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
@@ -47,6 +48,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   attackEnemyProximity?: EnemyProximity
   attackMoveToward?: MoveToward
   attackTurnUses?: readonly string[]
+  attackItemBindingEffectIds?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
   incomingDamageReductions?: IncomingDamageReductionsDto
   criticalExtraDice?: number
@@ -88,7 +90,11 @@ export function dnd5eEffectScalingFacts(input: {
         : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
-    attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
+    attackTurnUses: parseTextList(facts[DND5E_ATTACK_TURN_USES_FACT_KEY], 'turn uses'),
+    attackItemBindingEffectIds: parseTextList(
+      facts[DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY],
+      'attack item bindings'
+    ),
     damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
     incomingDamageReductions: parseIncomingDamageReductions(
       facts[DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY]
@@ -217,7 +223,7 @@ function parseIncomingDamageReductions(
   return reductions.data
 }
 
-function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefined {
+function parseTextList(value: RuleValue | undefined, what: string): readonly string[] | undefined {
   if (value === undefined) return undefined
   let parsed: unknown
   try {
@@ -226,7 +232,7 @@ function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefi
     parsed = undefined
   }
   if (!Array.isArray(parsed) || parsed.some((key) => typeof key !== 'string'))
-    unsupported('D&D turn uses are malformed.')
+    unsupported(`D&D ${what} are malformed.`)
   return parsed
 }
 

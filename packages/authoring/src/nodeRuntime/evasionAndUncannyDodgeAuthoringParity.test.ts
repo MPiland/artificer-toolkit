@@ -21,7 +21,7 @@ import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-31.T5a (D156): Evasion is an `INCOMING_DAMAGE` save-for-half grant and Uncanny Dodge a

@@ -95,6 +95,7 @@ async function regenerate(
       actionMechanic: {
         attackBonus: null,
         attackKind: null,
+        attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
         save: null,

@@ -12,12 +12,14 @@ import {
   formatActionUnavailableReason,
   formatPlayableActionSummary,
   getPlayableActions,
+  listActiveBonuses,
   type CharacterSheetActionFilter,
   type CharacterSheetPlayableAction
 } from './characterSheetActions.utils'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetRollText } from '../dice/CharacterSheetRollValue'
 import { CharacterSheetSpellSlotExchange } from './CharacterSheetSpellSlotExchange'
+import { CharacterSheetActiveBonuses } from './CharacterSheetActiveBonuses'
 import { getMechanicRollTargets } from '../dice/dice.utils'
 
 export function CharacterSheetActions({
@@ -158,6 +160,9 @@ export function CharacterSheetActions({
                                 (Special)
                               </Text>
                             ) : null}
+                            <CharacterSheetActiveBonuses
+                              bonuses={listActiveBonuses(action.mechanics)}
+                            />
                           </div>
                           {resource ? (
                             <div
@@ -212,19 +217,24 @@ export function CharacterSheetActions({
                       role='group'
                     >
                       <div className={actionTableStyles.actionRowIdentity}>
-                        {target ? (
-                          <button
-                            className={actionTableStyles.actionIdentityButton}
-                            type='button'
-                            onClick={() => openPanel?.(target)}
-                          >
-                            {action.label}
-                          </button>
-                        ) : (
-                          <Text className={actionTableStyles.playRowTitle} component='span'>
-                            {action.label}
-                          </Text>
-                        )}
+                        <div className={actionTableStyles.actionRowName}>
+                          {target ? (
+                            <button
+                              className={actionTableStyles.actionIdentityButton}
+                              type='button'
+                              onClick={() => openPanel?.(target)}
+                            >
+                              {action.label}
+                            </button>
+                          ) : (
+                            <Text className={actionTableStyles.playRowTitle} component='span'>
+                              {action.label}
+                            </Text>
+                          )}
+                          <CharacterSheetActiveBonuses
+                            bonuses={listActiveBonuses(action.mechanics)}
+                          />
+                        </div>
                         {action.sourceLabel || resource || unavailableReason ? (
                           <Text className={actionTableStyles.actionCompactSource} component='span'>
                             {[

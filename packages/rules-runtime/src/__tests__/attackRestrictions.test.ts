@@ -39,12 +39,14 @@ const circumstances = (
   rollMode: Dnd5eAttackCircumstances['rollMode'],
   enemyProximity: Dnd5eAttackCircumstances['enemyProximity'] = null,
   targetCreatureTypeId: Dnd5eAttackCircumstances['targetCreatureTypeId'] = null,
-  moveToward: Dnd5eAttackCircumstances['moveToward'] = null
+  moveToward: Dnd5eAttackCircumstances['moveToward'] = null,
+  attackItemBindingEffectIds: Dnd5eAttackCircumstances['attackItemBindingEffectIds'] = []
 ): Dnd5eAttackCircumstances => ({
   rollMode,
   enemyProximity,
   targetCreatureTypeId,
-  moveToward
+  moveToward,
+  attackItemBindingEffectIds
 })
 
 const rapier: Dnd5eAttackingItem = {
@@ -479,6 +481,87 @@ describe('target creature-type checks of reduced restrictions', () => {
     expect(
       attackRestrictionsMet(reducedOf(gate, rapier), circumstances('NORMAL', null, FIEND))
     ).toBe(true)
+  })
+})
+
+describe('binding-Effect checks of reduced restrictions (SPELLS-31.T4v)', () => {
+  const PACT = testUuid(0xb01)
+  const OTHER = testUuid(0xb02)
+
+  /** A group holding a check that the attacking weapon is bound by one of `effectIds`. */
+  const bindingGate = (
+    constraint: 'INCLUDE' | 'EXCLUDE',
+    weaponCheck?: typeof FINESSE
+  ): FacetAuthored => ({
+    id: testUuid(0xb10),
+    groups: [
+      {
+        id: testUuid(0xb11),
+        order: 0,
+        contexts: [
+          {
+            id: testUuid(0xb12),
+            order: 0,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: testUuid(0xb13),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint,
+                predicateCode: 'BOUND_BY_EFFECT',
+                effectIds: [PACT]
+              },
+              ...(weaponCheck
+                ? [
+                    {
+                      id: testUuid(0xb14),
+                      order: 1,
+                      kind: 'PREDICATE' as const,
+                      constraint: 'INCLUDE' as const,
+                      predicateCode: weaponCheck.predicateCode,
+                      properties: [...weaponCheck.properties],
+                      authoringModeKind: 'SELECTED' as const
+                    }
+                  ]
+                : [])
+            ]
+          }
+        ]
+      }
+    ]
+  })
+
+  const bound = (...effectIds: string[]) => circumstances('NORMAL', null, null, null, effectIds)
+
+  it('keeps the binding check for the moment the attack rolls', () => {
+    const [restrictions] = restrictionsOf(
+      reduceEffectRestrictions(restrictedEffect(bindingGate('INCLUDE')), longsword)
+    )
+    if (!restrictions) throw new Error('Expected the binding check to remain.')
+    expect(attackRestrictionsMet(restrictions, bound(PACT))).toBe(true)
+    expect(attackRestrictionsMet(restrictions, bound(OTHER, PACT))).toBe(true)
+    expect(attackRestrictionsMet(restrictions, bound(OTHER))).toBe(false)
+    expect(attackRestrictionsMet(restrictions, bound())).toBe(false)
+  })
+
+  it('inverts an excluded binding check', () => {
+    const [restrictions] = restrictionsOf(
+      reduceEffectRestrictions(restrictedEffect(bindingGate('EXCLUDE')), longsword)
+    )
+    if (!restrictions) throw new Error('Expected the binding check to remain.')
+    expect(attackRestrictionsMet(restrictions, bound(PACT))).toBe(false)
+    expect(attackRestrictionsMet(restrictions, bound())).toBe(true)
+  })
+
+  it('settles the weapon check beside it first', () => {
+    const gate = bindingGate('INCLUDE', FINESSE)
+    expect(restrictionsOf(reduceEffectRestrictions(restrictedEffect(gate), longsword))).toEqual([])
+    const [restrictions] = restrictionsOf(reduceEffectRestrictions(restrictedEffect(gate), rapier))
+    if (!restrictions) throw new Error('Expected the binding check to remain.')
+    expect(attackRestrictionsMet(restrictions, bound(PACT))).toBe(true)
+    expect(attackRestrictionsMet(restrictions, bound())).toBe(false)
   })
 })
 

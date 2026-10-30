@@ -5,6 +5,7 @@ import {
   ruleExecutionIntegerSchema as integerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import { areaAimDtoSchema, type AreaAimDto } from './spatialFacts.js'
 
 export type TurnResolutionCommandDto =
   | {
@@ -45,6 +46,7 @@ export type TurnResolutionCommandDto =
       selectionChecksum: string
       optionId: string
       targetActorId: string
+      aim?: AreaAimDto
     }
 
 export const turnResolutionCommandDtoSchema: z.ZodMiniType<TurnResolutionCommandDto> = lazySchema(
@@ -87,7 +89,8 @@ export const turnResolutionCommandDtoSchema: z.ZodMiniType<TurnResolutionCommand
         expectedOccurrenceVersion: integerSchema.check(z.gte(0)),
         selectionChecksum: checksumSchema,
         optionId: checksumSchema,
-        targetActorId: uuidSchema
+        targetActorId: uuidSchema,
+        aim: z.optional(areaAimDtoSchema)
       })
     ])
 )

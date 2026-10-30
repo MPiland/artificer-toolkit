@@ -10,7 +10,7 @@ import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
-import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 
 /**
  * SPELLS-31.2: a standing effect is an always-on grant whose lifecycle names its End On triggers

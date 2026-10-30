@@ -1,10 +1,13 @@
-import { z, lazySchema } from '../zod.js'
+import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { characterConsequencesDtoSchema } from '../shared/consequenceRolls.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
-import type { CharacterSpellSummonState } from '@artificer-toolkit/shared/authored'
+import type {
+  CharacterSpellSummonState,
+  SpellSummonStatBlockValues
+} from '@artificer-toolkit/shared/authored'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -115,6 +118,34 @@ const characterOwnedCreatureStateDtoSchemaRaw = lazySchema(() =>
     hitDice: z.optional(characterHitDiceUsageStateDtoSchema)
   })
 )
+const spellSummonStatBlockValuesShape = lazySchemaParts(() => ({
+  spellId: z.string(),
+  summonOutcomeId: z.string(),
+  label: z.string().check(z.minLength(1)),
+  /** The cast opened Concentration: the summon ends with it. */
+  concentration: z.boolean(),
+  size: z.optional(systemCoreCodeSchema),
+  armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+  abilityScores: z.optional(z.record(systemCoreCodeSchema, z.number().check(z.int()))),
+  speeds: z.optional(z.array(speedDtoSchema)),
+  passivePerception: z.optional(z.number().check(z.int())),
+  actions: z.optional(
+    z
+      .array(
+        z.object({
+          id: z.string().check(z.minLength(1)),
+          label: z.string().check(z.minLength(1)),
+          description: z.optional(z.string())
+        })
+      )
+      .check(z.maxLength(8))
+  )
+}))
+
+/** What an Encounter summon's Run actor keeps in its snapshot (`buildEncounterSummon`). */
+export const spellSummonStatBlockValuesDtoSchema: z.ZodMiniType<SpellSummonStatBlockValues> =
+  lazySchema(() => z.object(spellSummonStatBlockValuesShape()))
+
 /**
  * A creature a spell cast from the Sheet conjured outside an Encounter (D190): play state the Sheet
  * owns, holding the stat block values the cast resolved against the caster.
@@ -124,16 +155,7 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
     z
       .object({
         id: postgresUuidSchema,
-        spellId: z.string(),
-        summonOutcomeId: z.string(),
-        label: z.string().check(z.minLength(1)),
-        /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
-        concentration: z.boolean(),
-        size: z.optional(systemCoreCodeSchema),
-        armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-        abilityScores: z.optional(z.record(systemCoreCodeSchema, z.number().check(z.int()))),
-        speeds: z.optional(z.array(speedDtoSchema)),
-        passivePerception: z.optional(z.number().check(z.int())),
+        ...spellSummonStatBlockValuesShape(),
         /** Absent with `currentHitPoints` when the stat block gives no hit points: no pool. */
         maximumHitPoints: z.optional(z.number().check(z.int()).check(z.positive())),
         currentHitPoints: z.optional(z.number().check(z.int()).check(z.positive())),

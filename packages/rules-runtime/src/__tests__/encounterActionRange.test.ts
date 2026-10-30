@@ -41,6 +41,8 @@ function sheetRangeLabel(effect: AuthoredEffect | undefined): string | null {
     spellEffects: [
       {
         spellId: 'spell',
+        level: 3,
+        magicSchoolId: 'evocation',
         readsCastLevel: false,
         effects: [
           {

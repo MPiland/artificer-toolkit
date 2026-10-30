@@ -96,10 +96,9 @@ function harness(
     }
     availableSystemIds?: string[]
     vocabulary?: Partial<
-      Record<
-        'damageTypes' | 'rarities' | 'currencies',
-        Array<{ id: string; code: string; label: string }>
-      >
+      Record<'damageTypes' | 'rarities', Array<{ id: string; code: string; label: string }>> & {
+        goldCurrencyId: string
+      }
     >
     activeCharacterBinding?: { systemId: string; primaryRulesCatalogueId: string | null }
     failMutation?: string
@@ -135,10 +134,6 @@ function harness(
                 systemId,
                 damageTypes: [],
                 rarities: [],
-                currencies: [],
-                speeds: [],
-                skills: [],
-                heritages: [],
                 ...options.vocabulary
               }
             ]
@@ -520,7 +515,7 @@ describe('native import runner', () => {
     const astralTearVocabulary = {
       damageTypes: [{ id: piercingId, code: 'PIERCING', label: 'Piercing' }],
       rarities: [{ id: legendaryId, code: 'LEGENDARY', label: 'Legendary' }],
-      currencies: [{ id: goldId, code: 'GP', label: 'Gold' }]
+      goldCurrencyId: goldId
     }
     const astralTear = (rarity: string) =>
       weaponFixture('Piercing', {

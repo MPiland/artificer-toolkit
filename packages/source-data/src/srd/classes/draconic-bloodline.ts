@@ -4,7 +4,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
@@ -25,8 +24,15 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect, equippedCategoryRestriction, gmRulingEffect } from './mechanics.js'
+import {
+  SRD_DAMAGE_TYPES,
+  SRD_LANGUAGES,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+import { equippedCategoryRestriction, gmRulingEffect } from './mechanics.js'
+import { sorceryPointsCharge } from './sorcerer.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -41,6 +47,12 @@ function languageId(code: string): string {
   return entry.id
 }
 
+function damageTypeId(code: string): string {
+  const entry = SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)
+  if (!entry) throw new Error(`SRD damage type vocabulary entry for ${code} required.`)
+  return entry.id
+}
+
 const S = 10
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
@@ -52,51 +64,61 @@ if (!walkSpeedId || !flySpeedId) {
 const DRACONIC_SPECIALIZATIONS = [
   {
     id: classRowId(S, 12, 1),
+    damageTypeId: damageTypeId('ACID'),
     label: 'Black Dragon',
     order: 1
   },
   {
     id: classRowId(S, 12, 2),
+    damageTypeId: damageTypeId('LIGHTNING'),
     label: 'Blue Dragon',
     order: 2
   },
   {
     id: classRowId(S, 12, 3),
+    damageTypeId: damageTypeId('FIRE'),
     label: 'Brass Dragon',
     order: 3
   },
   {
     id: classRowId(S, 12, 4),
+    damageTypeId: damageTypeId('LIGHTNING'),
     label: 'Bronze Dragon',
     order: 4
   },
   {
     id: classRowId(S, 12, 5),
+    damageTypeId: damageTypeId('ACID'),
     label: 'Copper Dragon',
     order: 5
   },
   {
     id: classRowId(S, 12, 6),
+    damageTypeId: damageTypeId('FIRE'),
     label: 'Gold Dragon',
     order: 6
   },
   {
     id: classRowId(S, 12, 7),
+    damageTypeId: damageTypeId('POISON'),
     label: 'Green Dragon',
     order: 7
   },
   {
     id: classRowId(S, 12, 8),
+    damageTypeId: damageTypeId('FIRE'),
     label: 'Red Dragon',
     order: 8
   },
   {
     id: classRowId(S, 12, 9),
+    damageTypeId: damageTypeId('COLD'),
     label: 'Silver Dragon',
     order: 9
   },
   {
     id: classRowId(S, 12, 10),
+    damageTypeId: damageTypeId('COLD'),
     label: 'White Dragon',
     order: 10
   }
@@ -186,17 +208,131 @@ export const draconicBloodlineOrigin: ClassAuthored = {
         'Starting at 6th level, when you cast a spell that deals damage of the type associated with your draconic ancestry, you can add your Charisma modifier to one damage roll of that spell. At the same time, you can spend 1 sorcery point to gain resistance to that damage type for 1 hour.',
       availableAtLevel: 6,
       order: 2,
+      // Your ancestry's Charisma bonus adds once to each spell's first damage roll of that type.
+      grants: {
+        modifiers: DRACONIC_SPECIALIZATIONS.map(
+          ({ id: specializationId, damageTypeId }, index) => ({
+            id: classRowId(S, 0x30, index + 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+            domain: { attackDomain: 'SPELL' as const },
+            modifierKind: MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { ability: ABILITY_CODE.CHARISMA },
+            order: index,
+            restrictions: {
+              id: classRowId(S, 0x31, index + 1),
+              groups: [
+                {
+                  id: classRowId(S, 0x32, index + 1),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(S, 0x33, index + 1),
+                      order: 0,
+                      subject: 'SUBCLASS' as const,
+                      authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                      subclassIds: [SUBCLASS_IDS.DRACONIC_BLOODLINE],
+                      conditions: [
+                        {
+                          id: classRowId(S, 0x34, index + 1),
+                          order: 0,
+                          kind: 'PREDICATE' as const,
+                          constraint: 'INCLUDE' as const,
+                          predicateCode: 'SUBCLASS_SPECIALIZATION' as const,
+                          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                          specializationIds: [specializationId]
+                        }
+                      ]
+                    },
+                    {
+                      id: classRowId(S, 0x35, index + 1),
+                      order: 1,
+                      subject: 'SPELL' as const,
+                      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                      conditions: [
+                        {
+                          id: classRowId(S, 0x36, index + 1),
+                          order: 0,
+                          kind: 'PREDICATE' as const,
+                          constraint: 'INCLUDE' as const,
+                          predicateCode: 'DAMAGE_TYPE' as const,
+                          authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+                          damageTypeIds: [damageTypeId]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          })
+        )
+      },
+      // The resistance is bought any time rather than as the spell is cast (a GM ruling: no
+      // cast-time offer exists), and that it matches the ancestry's type is the GM's call too.
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(S, 20, 3),
+          order: 1,
           invocation: {
-            kind: 'PASSIVE',
+            kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: sorceryPointsCharge.id, cost: 1 },
+            activation: { code: ACTIVATION_CODE.FREE },
             range: { id: classRowId(S, 21, 3), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_ELEMENTAL_AFFINITY
-        })
+          paths: [
+            {
+              id: classRowId(S, 0x37, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.CHOICE,
+              originKind: 'SOURCE',
+              selectionKind: 'CHOICE',
+              options: SRD_DAMAGE_TYPES.filter(({ id }) =>
+                DRACONIC_SPECIALIZATIONS.some(({ damageTypeId }) => damageTypeId === id)
+              ).map(({ id: damageTypeId, label }, index) => ({
+                id: classRowId(S, 0x38, index + 1),
+                order: index + 1,
+                label,
+                description: `Resistance to ${label.toLowerCase()} damage for 1 hour.`,
+                resultBlock: {
+                  id: classRowId(S, 0x39, index + 1),
+                  resultKind: 'SINGLE',
+                  duration: {
+                    id: classRowId(S, 0x3a, index + 1),
+                    durationKind: DURATION_KIND.HOUR,
+                    amount: 1
+                  },
+                  outcomes: [
+                    {
+                      id: classRowId(S, 0x3b, index + 1),
+                      effectKind: EFFECT_KIND.APPLY_GRANT,
+                      grants: {
+                        modifiers: [
+                          {
+                            id: classRowId(S, 0x3c, index + 1),
+                            grantKind: GRANT_KIND.MODIFIER_GRANT,
+                            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+                            domain: {},
+                            modifierKind: MODIFIER_KIND.ADD_OPTION,
+                            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                            payload: { damageTypeId },
+                            order: 1
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }))
+            }
+          ]
+        }
       ]
     },
     {

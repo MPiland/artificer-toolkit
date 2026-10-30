@@ -41,6 +41,7 @@ const CARRIER_ID = crypto.randomUUID()
 const build = (statBlock: Parameters<typeof buildEncounterSummon>[0]['summon']['statBlock']) =>
   buildEncounterSummon({
     summon: { statBlock },
+    spellSummon: null,
     caster,
     casterHitPointMaximum: 40,
     label: 'Spiritual Weapon',

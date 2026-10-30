@@ -483,6 +483,7 @@ describe('discoverEncounterMovementPassage with a body that does not occupy its 
   const conjured = (caster: EncounterRunActorState, occupiesSpace: boolean) =>
     buildEncounterSummon({
       summon: { statBlock: { occupiesSpace } },
+      spellSummon: null,
       caster,
       casterHitPointMaximum: 10,
       label: 'Conjured',

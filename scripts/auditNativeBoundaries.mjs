@@ -1,8 +1,8 @@
-import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { readdir, readFile } from 'node:fs/promises'
 import { extname, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const root = resolve(import.meta.dirname, '..')
 const selfPath = 'scripts/auditNativeBoundaries.mjs'
@@ -22,18 +22,29 @@ const expectedWorkspaces = new Map([
 ])
 
 // Allowed workspace-to-workspace dependency directions (docs/architecture/persistence.md,
-// rules-runtime.md, ADR 0001). A package never depends on an app; no app depends on another app
-// except the web app's type-only reach into the Convex API surface of `apps/apis`.
+// rules-runtime.md, authoring-schema.md, ADR 0001). A package never depends on an app; no app
+// depends on another app except the web app's type-only reach into the Convex API surface of
+// `apps/apis`. `runtime` bounds every manifest section and every non-test source import; `test`
+// adds devDependencies that only test files and test support (`tests/` paths) may import.
 const packageWorkspaceDependencies = new Map([
-  ['@artificer-toolkit/authoring', ['schema', 'shared']],
-  ['@artificer-toolkit/design-system', []],
-  ['@artificer-toolkit/emails', ['design-system', 'schema']],
-  ['@artificer-toolkit/encounter-persistence', ['rules-runtime', 'schema', 'shared']],
-  ['@artificer-toolkit/rules-runtime', ['schema', 'shared', 'source-data']],
-  ['@artificer-toolkit/schema', ['design-system', 'shared']],
-  ['@artificer-toolkit/shared', ['design-system']],
-  ['@artificer-toolkit/source-data', ['schema', 'shared']]
+  // Authoring's parity tests run SRD records against the System policy vocabulary.
+  [
+    '@artificer-toolkit/authoring',
+    { runtime: ['schema', 'shared'], test: ['rules-runtime', 'source-data'] }
+  ],
+  ['@artificer-toolkit/design-system', { runtime: [], test: [] }],
+  ['@artificer-toolkit/emails', { runtime: ['design-system', 'schema'], test: [] }],
+  [
+    '@artificer-toolkit/encounter-persistence',
+    { runtime: ['rules-runtime', 'schema', 'shared'], test: [] }
+  ],
+  ['@artificer-toolkit/rules-runtime', { runtime: ['schema', 'shared', 'source-data'], test: [] }],
+  ['@artificer-toolkit/schema', { runtime: ['design-system', 'shared'], test: [] }],
+  ['@artificer-toolkit/shared', { runtime: ['design-system'], test: [] }],
+  ['@artificer-toolkit/source-data', { runtime: ['schema', 'shared'], test: [] }]
 ])
+const workspaceImport =
+  /(?:from\s+|import\s*\(\s*|require\(\s*|^\s*import\s+)['"]@artificer-toolkit\/([a-z-]+)(?=\/|['"])/gu
 const appWorkspaceNames = new Set([
   '@artificer-toolkit/apis',
   '@artificer-toolkit/session-worker',
@@ -58,13 +69,13 @@ const retiredPaths = [
   'packages/functions'
 ]
 
-const retiredWorkspaceNames = new Set([
+export const retiredWorkspaceNames = new Set([
   '@artificer-toolkit/db',
   '@artificer-toolkit/functions',
   '@artificer-toolkit/session-host'
 ])
 
-const forbiddenDependency =
+export const forbiddenDependency =
   /^(?:@gorules\/|@netlify\/|@supabase\/|@trpc\/|@types\/pg$|kysely(?:-supabase)?$|netlify-cli$|pg$|postgres(?:-js)?$|supabase$)/iu
 const sourceRules = [
   {
@@ -118,6 +129,7 @@ const excludedSegments = new Set([
   'test',
   'tests'
 ])
+const roadmapToolingPath = 'scripts/phase8/'
 const excludedGeneratedPaths = new Set([
   'apps/apis/convex/content/srdManifest.generated.ts',
   'apps/session-worker/src/worker-configuration.d.ts'
@@ -148,8 +160,10 @@ async function retiredPathContainsSource(path) {
   }
 }
 
-function isExcluded(path) {
+export function isExcluded(path) {
   if (path === selfPath || excludedGeneratedPaths.has(path)) return true
+  // Roadmap tooling carries PBI titles as data, like the Markdown roadmap it generates.
+  if (path.startsWith(roadmapToolingPath)) return true
   const segments = path.split('/')
   if (segments.some((segment) => excludedSegments.has(segment) || segment === '_generated')) {
     return true
@@ -186,17 +200,33 @@ function collectFiles(inventory, path) {
     )
   })
 }
-function sourceViolations(path, source) {
+export function sourceViolations(path, source) {
   const violations =
     extname(path) === '.sql'
       ? [{ line: 1, path, rule: 'removed Kysely/Postgres application SQL', source: 'SQL file' }]
       : []
+  const packageName = path.startsWith('packages/')
+    ? expectedWorkspaces.get(path.split('/', 2).join('/'))
+    : undefined
+  const runtime = packageWorkspaceDependencies.get(packageName)?.runtime
   for (const [index, line] of source.split(/\r?\n/u).entries()) {
     if (path.startsWith('packages/') && packageAppImport.test(line)) {
       violations.push({
         line: index + 1,
         path,
         rule: 'package imports an app',
+        source: line.trim().slice(0, 200)
+      })
+    }
+    for (const [, workspace] of runtime ? line.matchAll(workspaceImport) : []) {
+      const name = '@artificer-toolkit/' + workspace
+      if (name === packageName || appWorkspaceNames.has(name) || runtime.includes(workspace)) {
+        continue
+      }
+      violations.push({
+        line: index + 1,
+        path,
+        rule: packageName + ' runtime source imports ' + name,
         source: line.trim().slice(0, 200)
       })
     }
@@ -244,21 +274,22 @@ async function workspaceAudit() {
   return { actualWorkspaces, violations }
 }
 
-function workspaceDependencyViolations(path, manifest) {
+export function workspaceDependencyViolations(path, manifest) {
   const dependencies = [
     'dependencies',
     'devDependencies',
     'optionalDependencies',
     'peerDependencies'
   ]
-    .flatMap((section) => Object.keys(manifest[section] ?? {}))
-    .filter((name) => name.startsWith('@artificer-toolkit/'))
+    .flatMap((section) => Object.keys(manifest[section] ?? {}).map((name) => ({ name, section })))
+    .filter(({ name }) => name.startsWith('@artificer-toolkit/'))
   const allowed = packageWorkspaceDependencies.get(manifest.name)
-  return dependencies.flatMap((name) => {
+  return dependencies.flatMap(({ name, section }) => {
     if (allowed) {
-      return allowed.includes(name.slice('@artificer-toolkit/'.length))
-        ? []
-        : [{ path, rule: manifest.name + ' must not depend on ' + name }]
+      const workspace = name.slice('@artificer-toolkit/'.length)
+      if (allowed.runtime.includes(workspace)) return []
+      if (section === 'devDependencies' && allowed.test.includes(workspace)) return []
+      return [{ path, rule: manifest.name + ' must not depend on ' + name + ' in ' + section }]
     }
     return appWorkspaceNames.has(name) && !allowedAppToApp.has(manifest.name + '>' + name)
       ? [{ path, rule: manifest.name + ' must not depend on app ' + name }]
@@ -326,69 +357,8 @@ async function audit() {
   )
   console.log('Workspaces: ' + [...actualWorkspaces.values()].sort().join(', '))
   console.log(
-    'Allowlisted: Markdown and test/spec/story/preview paths; generated Convex/SRD/Worker declarations; yarn.lock transitive dependencies.'
+    'Allowlisted: Markdown, roadmap tooling and test/spec/story/preview paths; generated Convex/SRD/Worker declarations; yarn.lock transitive dependencies.'
   )
 }
 
-function selfTest() {
-  const fixtures = [
-    ['supabase.ts', "import '@supabase/supabase-js'", 'removed Supabase product API'],
-    ['database.ts', "import { sql } from 'kysely'", 'removed Kysely/Postgres application SQL'],
-    ['schema.sql', 'select 1', 'removed Kysely/Postgres application SQL'],
-    ['rules.ts', "import '@gorules/zen-engine'", 'removed GoRules/Rule Studio surface'],
-    ['client.ts', "fetch('/api/trpc/campaign')", 'removed tRPC surface'],
-    [
-      'client.ts',
-      "fetch('/.netlify/functions/cleanup-media')",
-      'removed Netlify hosting surface (ADR 0037)'
-    ],
-    [
-      'apps/web/src/server/auth/convex.server.ts',
-      "import { getContext } from '@netlify/functions'",
-      'removed Netlify hosting surface (ADR 0037)'
-    ],
-    ['client.ts', "import '@artificer-toolkit/db'", 'retired workspace path'],
-    [
-      'packages/encounter-persistence/src/store.ts',
-      "import { api } from '@artificer-toolkit/apis/convex/api'",
-      'package imports an app'
-    ],
-    [
-      'packages/encounter-persistence/src/store.ts',
-      "import { db } from '../../../apps/apis/convex/db'",
-      'package imports an app'
-    ]
-  ]
-  for (const [path, source, expectedRule] of fixtures) {
-    assert(sourceViolations(path, source).some(({ rule }) => rule === expectedRule))
-  }
-  assert(!sourceViolations('apps/apis/convex/a.ts', "import '@artificer-toolkit/apis'").length)
-  assert(
-    workspaceDependencyViolations('packages/encounter-persistence/package.json', {
-      name: '@artificer-toolkit/encounter-persistence',
-      dependencies: { '@artificer-toolkit/apis': 'workspace:^' }
-    }).length === 1
-  )
-  assert(
-    workspaceDependencyViolations('packages/rules-runtime/package.json', {
-      name: '@artificer-toolkit/rules-runtime',
-      dependencies: { '@artificer-toolkit/encounter-persistence': 'workspace:^' }
-    }).length === 1
-  )
-  assert(
-    workspaceDependencyViolations('apps/session-worker/package.json', {
-      name: '@artificer-toolkit/session-worker',
-      dependencies: { '@artificer-toolkit/apis': 'workspace:^' }
-    }).length === 1
-  )
-  assert(forbiddenDependency.test('@trpc/server'))
-  assert(forbiddenDependency.test('@netlify/vite-plugin-tanstack-start'))
-  assert(forbiddenDependency.test('netlify-cli'))
-  assert(retiredWorkspaceNames.has('@artificer-toolkit/functions'))
-  assert(isExcluded('docs/history.md'))
-  assert(isExcluded('apps/web/src/legacy.test.ts'))
-  console.log('Native boundary audit self-test passed.')
-}
-
-if (process.argv.includes('--self-test')) selfTest()
-else await audit()
+if (import.meta.url === pathToFileURL(process.argv[1]).href) await audit()

@@ -1,9 +1,10 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
 import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/character/sheetProjection'
+import type { EncounterSpellSummon } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import type { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 
 type RoomCharacterSheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
@@ -12,8 +13,13 @@ type RoomCharacterSheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacte
 export function projectRoomCharacterSheet(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
-  /** Only the Sheet a client reads names the Concentration; the numbers other readers take never depend on it. */
-  concentration: ConcentrationListingDto | null = null
+  /**
+   * Only the Sheet a client reads names the Concentration and the damage dice its effects add
+   * against their holders; the numbers other readers take never depend on it.
+   */
+  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null,
+  /** The summons the Character's Run actor owns, which the client's Sheet lists in Extras. */
+  encounterSummons: readonly EncounterSpellSummon[] = []
 ) {
   return projectCharacterSheetBundle({
     character: facts.prepared.character,
@@ -24,9 +30,15 @@ export function projectRoomCharacterSheet(
     additionalCurrencyOptions: facts.campaignContext.currencyOptions,
     presentation: facts.prepared.context.presentation,
     spellCustomizations: facts.sheetState.spellCustomizations,
-    ruleEvaluation: facts.ruleEvaluation,
+    ruleEvaluation: evaluateCharacterActiveGrantRules({
+      gameSystemId: facts.prepared.character.systemId,
+      evaluation: facts.ruleEvaluation,
+      activeEffects,
+      vocabularySnapshot: facts.prepared.context.vocabularySnapshot
+    }),
     activeEffects,
-    concentration
+    concentrationEffects,
+    encounterSummons
   }).sheet
 }
 
@@ -38,9 +50,15 @@ export function projectRoomCharacterSheetForViewer(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
   viewer: CharacterSheetResponseDto['meta']['viewer'] = facts.campaignContext.viewer,
-  concentration: ConcentrationListingDto | null = null
+  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null,
+  encounterSummons: readonly EncounterSpellSummon[] = []
 ): CharacterSheetResponseDto {
-  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentration)
+  const sheet = projectRoomCharacterSheet(
+    facts,
+    activeEffects,
+    concentrationEffects,
+    encounterSummons
+  )
   return projectCharacterSheetForViewer(
     {
       ...sheet,
