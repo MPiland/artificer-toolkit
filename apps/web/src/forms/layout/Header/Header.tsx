@@ -12,7 +12,7 @@ import {
 } from '../Actions/Actions'
 import { useAuthoringSession } from '../AuthoringFormContext'
 import { useAuthoringFormStatus } from '../useAuthoringFormStatus'
-import { useAuthoringLayout } from '../AuthoringLayoutContext'
+import { getAuthoringStatus } from '../AuthoringLayout.utils'
 
 export function Header({
   showActivate = true,
@@ -23,9 +23,17 @@ export function Header({
   showStepsNavigation?: boolean
   title?: ReactNode
 }) {
-  const { authoredSession, draftSaveStatus, subjectKindLabel, subjectLabel } = useAuthoringSession()
+  const {
+    authoredSession,
+    draftSaveStatus,
+    hasActiveDraft,
+    isDraft,
+    mode,
+    subjectKindLabel,
+    subjectLabel
+  } = useAuthoringSession()
   const { hasChanges } = useAuthoringFormStatus()
-  const { status } = useAuthoringLayout()
+  const status = getAuthoringStatus(mode, isDraft || hasActiveDraft)
 
   const title = titleOverride ?? subjectLabel ?? subjectKindLabel
   const provenanceLabel =

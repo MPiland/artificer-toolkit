@@ -1,4 +1,4 @@
-import { AuthoringLayoutProvider } from './AuthoringLayoutProvider'
+import { AuthoringPanelsProvider, AuthoringPreviewProvider } from './AuthoringPanelsProvider'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Alert, Button, Group, Stack } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
@@ -6,7 +6,7 @@ import { useMatches } from '@tanstack/react-router'
 import * as styles from './AuthoringLayout.css'
 import { ResetFormConfirmation } from './Actions/ResetFormConfirmation'
 import { Steps } from './Steps/Steps'
-import { useAuthoringLayout } from './AuthoringLayoutContext'
+import { useAuthoringPanels, useAuthoringPreview } from './AuthoringLayoutContext'
 import { Previews } from './Previews/Previews'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { Editor } from './Editor/Editor'
@@ -24,10 +24,9 @@ import type {
   AuthoredFormDomain,
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
-import type { AuthoredFormRouteMode, CharacterBuilderRouteMode } from './authoredFormRouteContext'
-import { CharacterBuilderAuthoringRuntime } from '#domains/characters/builder/core/CharacterBuilderAuthoringRuntime'
+import type { AuthoredFormRouteMode } from './authoredFormRouteContext'
 import { useShellHeaderSupplement } from '#app/shell'
-import { getRulesetLabel } from './AuthoringLayout.utils'
+import { getAuthoringStatus, getRulesetLabel } from './AuthoringLayout.utils'
 import { useAuthoringSaveShortcut } from './useAuthoringSaveShortcut'
 import { useAuthoringExperience } from './useAuthoringExperience'
 import { GuidedAuthoring } from '../guided/GuidedAuthoring'
@@ -38,21 +37,13 @@ type EmptyAuthoringLayoutProps = {
   children?: ReactNode
   data?: never
   domain?: never
-  kind?: never
   mode?: never
 }
 
 type AuthoringLayoutProps = { children?: ReactNode } & (
   | AuthoredFormDomainRegistration
-  | CharacterBuilderDomainRegistration
   | EmptyAuthoringLayoutProps
 )
-
-type CharacterBuilderDomainRegistration = {
-  data?: unknown
-  kind: 'character-builder'
-  mode?: CharacterBuilderRouteMode
-}
 
 const EMPTY_FORM_VALUES: object = {}
 const INITIAL_GUIDED_STATE: GuidedAuthoringState = { isReview: false, showPreview: false }
@@ -60,20 +51,27 @@ const AuthoredFormRenderer = FormRenderer({ defaultValues: EMPTY_FORM_VALUES })
 
 export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
   return (
-    <AuthoringLayoutProvider>
-      <AuthoringLayoutShell>{children}</AuthoringLayoutShell>
-    </AuthoringLayoutProvider>
+    <AuthoringPanelsProvider>
+      <AuthoringPreviewProvider>
+        <AuthoringLayoutShell>{children}</AuthoringLayoutShell>
+      </AuthoringPreviewProvider>
+    </AuthoringPanelsProvider>
   )
 }
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
-  const { isWideDesktop, setPreviewContent, status } = useAuthoringLayout()
+  const { isWideDesktop } = useAuthoringPanels()
+  const { setPreviewContent } = useAuthoringPreview()
   const {
     authoredSession: session,
-    characterSession,
+    hasActiveDraft,
     isDiscardingDraft,
+    isDraft,
+    isHostedForm,
+    mode,
     subjectLabel
   } = useAuthoringSession()
+  const status = getAuthoringStatus(mode, isDraft || hasActiveDraft)
   const { cancel, discardDraft } = useAuthoringActions()
   const { form } = useAuthoringFormStore()
   const { experience, isUpdating: isExperienceUpdating, setExperience } = useAuthoringExperience()
@@ -84,7 +82,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const canonicalLabel = useSelector(form.store, (state) =>
     readPreviewLabel(state.values, session?.fallbackLabel ?? 'Untitled Item')
   )
-  const editorTitle = characterSession ? subjectLabel : canonicalLabel
+  const editorTitle = isHostedForm ? subjectLabel : canonicalLabel
   const guidedAvailable = Boolean(session && isGuidedSessionEligible(session))
   const isGuided =
     experience === 'guided' &&
@@ -142,10 +140,6 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   useEffect(() => () => setPreviewContent(undefined), [setPreviewContent])
 
   const editorContent = useMemo(() => {
-    if (characterSession) {
-      return <CharacterBuilderAuthoringRuntime session={characterSession} />
-    }
-
     if (!session) return children
 
     const domainLabel = session.subjectKindLabel.toLowerCase()
@@ -236,7 +230,6 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     )
   }, [
     cancel,
-    characterSession,
     children,
     discardDraft,
     form,
@@ -283,19 +276,7 @@ export function AuthoringLayout(props: AuthoringLayoutProps) {
   })
   const registration = isExplicitAuthoringRegistration(props) ? props : routeRegistration
 
-  if (registration && 'kind' in registration && registration.kind === 'character-builder') {
-    return (
-      <AuthoringFormProvider
-        data={registration.data}
-        kind='character-builder'
-        mode={registration.mode}
-      >
-        <AuthoringLayoutContent>{children}</AuthoringLayoutContent>
-      </AuthoringFormProvider>
-    )
-  }
-
-  if (registration && 'domain' in registration && registration.domain) {
+  if (registration?.domain) {
     return (
       <AuthoringFormProvider
         data={registration.data}
@@ -316,8 +297,8 @@ export function AuthoringLayout(props: AuthoringLayoutProps) {
 
 function isExplicitAuthoringRegistration(
   props: AuthoringLayoutProps
-): props is AuthoredFormDomainRegistration | CharacterBuilderDomainRegistration {
-  return Boolean(('domain' in props && props.domain) || ('kind' in props && props.kind))
+): props is AuthoredFormDomainRegistration {
+  return Boolean(props.domain)
 }
 
 const AUTHORED_FORM_DOMAINS: Record<AuthoredFormDomain, true> = {
@@ -336,28 +317,16 @@ type AuthoredFormRouteMatch = {
   loaderData?: unknown
 }
 
-type AuthoringRouteRegistration = AuthoringDomainRegistration | CharacterBuilderDomainRegistration
-
 function getAuthoredFormRouteRegistration(
   matches: readonly AuthoredFormRouteMatch[]
-): AuthoringRouteRegistration | undefined {
+): AuthoringDomainRegistration | undefined {
   for (let index = matches.length - 1; index >= 0; index -= 1) {
     const match = matches[index]
     const authoring = readAuthoringRouteContext(match.context)
     const data = readAuthoringRouteData(match.loaderData)
 
     if (authoring && data !== undefined) {
-      return authoring.kind === 'character-builder'
-        ? {
-            data,
-            kind: 'character-builder',
-            mode: authoring.mode
-          }
-        : {
-            data,
-            domain: authoring.domain,
-            mode: authoring.mode
-          }
+      return { data, domain: authoring.domain, mode: authoring.mode }
     }
   }
 
@@ -366,28 +335,14 @@ function getAuthoredFormRouteRegistration(
 
 function readAuthoringRouteContext(
   value: unknown
-):
-  | { domain: AuthoredFormDomain; kind: 'authored-form'; mode: AuthoredFormRouteMode }
-  | { kind: 'character-builder'; mode: CharacterBuilderRouteMode }
-  | undefined {
+): { domain: AuthoredFormDomain; mode: AuthoredFormRouteMode } | undefined {
   if (!isObjectValue(value)) return undefined
   const authoring = value.authoring
 
   if (!isObjectValue(authoring)) return undefined
 
-  if (authoring.kind === 'character-builder' && isAuthoredFormRouteMode(authoring.mode)) {
-    return {
-      kind: 'character-builder',
-      mode: authoring.mode
-    }
-  }
-
   return isAuthoredFormDomain(authoring.domain) && isAuthoredFormRouteMode(authoring.mode)
-    ? {
-        domain: authoring.domain,
-        kind: 'authored-form',
-        mode: authoring.mode
-      }
+    ? { domain: authoring.domain, mode: authoring.mode }
     : undefined
 }
 

@@ -5,7 +5,7 @@ import type {
   CharacterBuilderDraftDto,
   CharacterBuilderPayloadDto
 } from '@artificer-toolkit/schema/api/characters'
-import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
+import { CharacterBuilderAuthoringRuntime } from './CharacterBuilderAuthoringRuntime'
 import { ConvexReactClient } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
@@ -138,7 +138,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     mocks.resolve.mockResolvedValue(authenticatedPayload)
 
     const { rerender } = renderWithAppProviders(
-      <AuthoringLayout data={editData(initialPayload)} kind='character-builder' mode='edit' />
+      <CharacterBuilderAuthoringRuntime data={editData(initialPayload)} mode='edit' />
     )
 
     // The Builder evaluates the opened values once its content is ready, then once per edit.
@@ -157,9 +157,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     const originalNameInput = screen.getByRole('textbox', { name: /character name/i })
 
-    rerender(
-      <AuthoringLayout data={editData(authenticatedPayload)} kind='character-builder' mode='edit' />
-    )
+    rerender(<CharacterBuilderAuthoringRuntime data={editData(authenticatedPayload)} mode='edit' />)
 
     const hydratedNameInput = screen.getByRole('textbox', { name: /character name/i })
     expect(hydratedNameInput).toBe(originalNameInput)
@@ -191,15 +189,15 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const user = userEvent.setup()
     const payload = structuredClone(characterBuilderDraftPayloadFixture)
     const { rerender } = renderWithAppProviders(
-      <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />
+      <CharacterBuilderAuthoringRuntime data={editData(payload)} mode='edit' />
     )
     await user.click(screen.getByRole('link', { name: 'Basics' }))
     await user.type(await screen.findByRole('textbox', { name: /character name/i }), 'Unsaved name')
     payload.character.label = 'Reopened draft'
     rerender(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(payload, 'new-generation')}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -212,9 +210,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const user = userEvent.setup()
     mocks.create.mockRejectedValue(new Error('Temporary failure'))
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
-        kind='character-builder'
+
         mode='create'
       />
     )
@@ -235,9 +233,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       .mockRejectedValueOnce(new Error('Temporary failure'))
       .mockReturnValueOnce(retry.promise)
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
-        kind='character-builder'
+
         mode='create'
       />
     )
@@ -256,7 +254,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       const pending = deferred<CharacterBuilderDraftDto>()
       mocks.saveDraft.mockReturnValueOnce(pending.promise)
       const data = editData(characterBuilderPayloadFixture)
-      renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />)
+      renderWithAppProviders(<CharacterBuilderAuthoringRuntime data={data} mode='edit' />)
       await user.click(screen.getByRole('link', { name: 'Basics' }))
       const name = await screen.findByRole('textbox', { name: /character name/i })
       await user.clear(name)
@@ -282,7 +280,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const saving = deferred<CharacterBuilderDraftDto>()
     mocks.saveDraft.mockReturnValueOnce(saving.promise)
     const data = editData(characterBuilderPayloadFixture)
-    renderWithAppProviders(<AuthoringLayout data={data} kind='character-builder' mode='edit' />, {
+    renderWithAppProviders(<CharacterBuilderAuthoringRuntime data={data} mode='edit' />, {
       reactStrictMode: true
     })
     await user.click(screen.getByRole('link', { name: 'Basics' }))
@@ -309,9 +307,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const user = userEvent.setup()
     performance.clearMarks(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -339,13 +337,13 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     expect(payload.resolution.recommendedSectionId).toBe('RACE')
     mocks.resolve.mockResolvedValue(payload)
     const first = renderWithAppProviders(
-      <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />
+      <CharacterBuilderAuthoringRuntime data={editData(payload)} mode='edit' />
     )
     expect(await screen.findByRole('heading', { level: 2, name: 'Race' })).toBeInTheDocument()
     first.unmount()
 
     renderWithAppProviders(
-      <AuthoringLayout data={editData(payload)} kind='character-builder' mode='edit' />,
+      <CharacterBuilderAuthoringRuntime data={editData(payload)} mode='edit' />,
       { initialPath: '/?step=basics' }
     )
     await waitFor(() => expect(mocks.resolve).toHaveBeenCalled())
@@ -359,9 +357,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       new ConvexError({ code: 'DRAFT_REPLACED', message: 'Character draft generation changed.' })
     )
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -377,9 +375,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
   it('discards active draft from overflow actions with generation-bound draft id', async () => {
     const user = userEvent.setup()
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -412,9 +410,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     mocks.preview.mockResolvedValueOnce(preview)
     mocks.commit.mockRejectedValueOnce(new Error('Conflict keeps editor open'))
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -446,9 +444,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const previewing = deferred<typeof characterPreviewFixture>()
     mocks.preview.mockReturnValueOnce(previewing.promise)
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -491,9 +489,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       ]
     } satisfies ContentSnapshotManifestDto)
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -507,9 +505,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     mocks.resolve.mockResolvedValue(characterBuilderDraftPayloadFixture)
     mocks.evaluate.mockResolvedValueOnce({ ok: false, failedKind: 'SPELL' })
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture)}
-        kind='character-builder'
+
         mode='edit'
       />
     )
@@ -531,9 +529,9 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     const convexClient = new ConvexReactClient('https://tests.convex.cloud')
     const convexQuery = vi.spyOn(convexClient, 'query')
     renderWithAppProviders(
-      <AuthoringLayout
+      <CharacterBuilderAuthoringRuntime
         data={editData(characterBuilderDraftPayloadFixture, 'draft-generation', 'edit')}
-        kind='character-builder'
+
         mode='edit'
       />,
       { convexClient }

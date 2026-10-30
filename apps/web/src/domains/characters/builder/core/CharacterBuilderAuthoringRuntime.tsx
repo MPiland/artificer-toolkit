@@ -1,30 +1,59 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Stack, Text } from '@mantine/core'
 import { SystemChoiceAlert } from '#forms/layout/SystemChoiceAlert'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import {
-  useAuthoringActions,
-  useAuthoringSession,
-  type AuthoringFormActionHandlers,
-  type AuthoringFormStatePatch
-} from '#forms/layout/AuthoringFormContext'
+import type { AuthoringHostedForm } from '#forms/layout/AuthoringFormContext'
+import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
+import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { useShellReturnHref } from '#app/shell/returnLocation'
 import {
   useCreateCharacterDraftMutation,
   useDiscardCharacterDraftMutation
 } from '#app/data/characters/mutations'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
-import type {
-  CharacterBuilderAuthoringSession,
-  ReadyCharacterBuilderAuthoringSession
+import {
+  createCharacterBuilderAuthoringSession,
+  type CharacterBuilderRouteMode,
+  type ReadyCharacterBuilderAuthoringSession
 } from '../state/characterBuilderAuthoringSession'
+import { characterBuilderVisibleSteps } from '../state/characterBuilderAuthoringState'
 import { CharacterBuilderFormRuntime } from './CharacterBuilderFormRuntime'
+import {
+  CHARACTER_BUILDER_TIMING_MARK,
+  markCharacterBuilderTiming,
+  startCharacterBuilderTiming
+} from './characterBuilder.performance'
 
+// Steps show before the draft opens; progress arrives with the first browser evaluation (ADR 0036 S6).
+const OPENING_NAVIGATION: AuthoringHostedForm['navigation'] = {
+  isComplete: false,
+  progressSummary: undefined,
+  stepStatuses: {},
+  visibleSteps: characterBuilderVisibleSteps
+}
+const OPENING_STATUS: AuthoringHostedForm['status'] = {
+  canFinalize: false,
+  canResetForm: false,
+  canResetStep: false,
+  canSubmit: false,
+  hasChanges: false,
+  hasStepChanges: false,
+  isSubmitting: false
+}
+
+/** The Character Builder route: opens the draft, then hands the form to the form runtime. */
 export function CharacterBuilderAuthoringRuntime({
-  session
+  data,
+  mode
 }: {
-  session: CharacterBuilderAuthoringSession
+  data: unknown
+  mode: CharacterBuilderRouteMode
 }) {
+  const session = useMemo(
+    () => createCharacterBuilderAuthoringSession({ data, mode }),
+    [data, mode]
+  )
   const navigate = useNavigate()
   const router = useRouter()
   const discardDraftMutation = useDiscardCharacterDraftMutation()
@@ -33,8 +62,15 @@ export function CharacterBuilderAuthoringRuntime({
   const [openAttempt, setOpenAttempt] = useState(0)
   const [failedAttempt, setFailedAttempt] = useState<number>()
   const draftOpenFailed = failedAttempt === openAttempt
-  const { cancelHref } = useAuthoringSession()
-  const { updateAuthoringFormActions, updateAuthoringFormState } = useAuthoringActions()
+  const cancelHref = useShellReturnHref() ?? '/characters'
+  const markedRailFormKeyRef = useRef<string | undefined>(undefined)
+
+  useEffect(() => {
+    if (markedRailFormKeyRef.current === session.formKey) return
+    markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.HYDRATION_COMPLETED)
+    markCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.BUILDER_RAIL_COMMITTED)
+    markedRailFormKeyRef.current = session.formKey
+  }, [session.formKey])
 
   useEffect(() => {
     if (session.draft || session.notFound || !session.systemId) return
@@ -72,7 +108,7 @@ export function CharacterBuilderAuthoringRuntime({
   ])
 
   const handleCancel = useCallback(async () => {
-    await navigate({ to: cancelHref ?? '/characters' })
+    await navigate({ to: cancelHref })
   }, [cancelHref, navigate])
 
   const handleDiscardDraft = useCallback(async () => {
@@ -95,24 +131,35 @@ export function CharacterBuilderAuthoringRuntime({
     }
   }, [discardDraftMutation, navigate, session.draft, session.subjectLabel])
 
-  const statePatch = useMemo<AuthoringFormStatePatch>(
+  const openingForm = useMemo<AuthoringHostedForm>(
     () => ({
-      activateLabel: 'Activate',
-      canSaveDraft: Boolean(session.draft),
-      hasActiveDraft: session.hasActiveDraft,
-      isDraft: session.isDraft,
-      mode: session.mode,
-      readOnly: session.readOnly,
-      saveDraftLabel: 'Save Draft',
-      subjectKindLabel: session.subjectKindLabel,
-      subjectLabel: session.subjectLabel,
-      systemId: session.systemId
+      actions: { onDiscardDraft: handleDiscardDraft },
+      cancelHref,
+      labels: {
+        activateLabel: 'Activate',
+        canDelete: false,
+        canSaveDraft: false,
+        deleteLabel: 'Discard draft',
+        hasActiveDraft: session.hasActiveDraft,
+        isDraft: session.isDraft,
+        mode: session.mode,
+        readOnly: session.readOnly,
+        saveDraftLabel: 'Save Draft',
+        subjectKindLabel: session.subjectKindLabel,
+        subjectLabel: session.subjectLabel,
+        systemId: session.systemId
+      },
+      navigation: OPENING_NAVIGATION,
+      onStepIntent: () =>
+        startCharacterBuilderTiming(CHARACTER_BUILDER_TIMING_MARK.STEP_NAVIGATION_INTENT),
+      status: OPENING_STATUS
     }),
     [
+      cancelHref,
+      handleDiscardDraft,
       session.hasActiveDraft,
       session.isDraft,
       session.mode,
-      session.draft,
       session.readOnly,
       session.subjectKindLabel,
       session.subjectLabel,
@@ -120,70 +167,52 @@ export function CharacterBuilderAuthoringRuntime({
     ]
   )
 
-  const actions = useMemo<AuthoringFormActionHandlers>(
-    () => ({
-      onCancel: handleCancel,
-      onDiscardDraft: handleDiscardDraft
-    }),
-    [handleCancel, handleDiscardDraft]
-  )
+  if (session.draft && session.initialValues && !session.notFound && !session.systemRequired) {
+    const readySession: ReadyCharacterBuilderAuthoringSession = {
+      ...session,
+      draft: session.draft,
+      initialValues: session.initialValues
+    }
 
-  useEffect(() => {
-    updateAuthoringFormState(statePatch)
-  }, [statePatch, updateAuthoringFormState])
-
-  useEffect(() => {
-    updateAuthoringFormActions(actions)
-  }, [actions, updateAuthoringFormActions])
-
-  if (session.systemRequired) {
     return (
-      <Stack>
-        <SystemChoiceAlert subjectPlural='characters' systems={session.systems} />
-        <Button onClick={() => void handleCancel()}>Back to characters</Button>
-      </Stack>
+      <CharacterBuilderFormRuntime
+        key={session.formKey}
+        cancelHref={cancelHref}
+        session={readySession}
+        onDiscardDraft={handleDiscardDraft}
+      />
     )
-  }
-
-  if (!session.draft && !session.notFound) {
-    return (
-      <Stack>
-        {draftOpenFailed ? (
-          <>
-            <Alert color='red'>Could not open that character draft.</Alert>
-            <Button onClick={() => setOpenAttempt((attempt) => attempt + 1)}>Try again</Button>
-          </>
-        ) : (
-          <Text role='status'>Opening character draft…</Text>
-        )}
-        <Button variant='default' onClick={() => void handleCancel()}>
-          Back to characters
-        </Button>
-      </Stack>
-    )
-  }
-
-  if (session.notFound || !session.draft || !session.initialValues) {
-    return (
-      <Stack>
-        <Alert color='yellow'>That character could not be found.</Alert>
-        <Button onClick={() => void handleCancel()}>Back to characters</Button>
-      </Stack>
-    )
-  }
-
-  const readySession: ReadyCharacterBuilderAuthoringSession = {
-    ...session,
-    draft: session.draft,
-    initialValues: session.initialValues
   }
 
   return (
-    <CharacterBuilderFormRuntime
-      key={session.formKey}
-      session={readySession}
-      onCancel={handleCancel}
-      onDiscardDraft={handleDiscardDraft}
-    />
+    <AuthoringFormProvider hostedForm={openingForm}>
+      <AuthoringLayoutContent>
+        {session.systemRequired ? (
+          <Stack>
+            <SystemChoiceAlert subjectPlural='characters' systems={session.systems} />
+            <Button onClick={() => void handleCancel()}>Back to characters</Button>
+          </Stack>
+        ) : !session.draft && !session.notFound ? (
+          <Stack>
+            {draftOpenFailed ? (
+              <>
+                <Alert color='red'>Could not open that character draft.</Alert>
+                <Button onClick={() => setOpenAttempt((attempt) => attempt + 1)}>Try again</Button>
+              </>
+            ) : (
+              <Text role='status'>Opening character draft…</Text>
+            )}
+            <Button variant='default' onClick={() => void handleCancel()}>
+              Back to characters
+            </Button>
+          </Stack>
+        ) : (
+          <Stack>
+            <Alert color='yellow'>That character could not be found.</Alert>
+            <Button onClick={() => void handleCancel()}>Back to characters</Button>
+          </Stack>
+        )}
+      </AuthoringLayoutContent>
+    </AuthoringFormProvider>
   )
 }

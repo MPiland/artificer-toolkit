@@ -8,7 +8,10 @@ import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 import { characterRestPreviewInputSchema } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { playerRollDestinationOptions, playerStateRollDestinationOptions } from '../dice/dice.utils'
-import { CharacterSheetRollContext } from '../dice/rollContext'
+import {
+  CharacterSheetRollContext,
+  CharacterSheetRollDestinationContext
+} from '../dice/rollContext'
 import {
   createMulticlassRestPreview,
   createMulticlassSheet,
@@ -57,27 +60,27 @@ describe('Character Sheet rests for the played Fighter 2 / Rogue 1', () => {
     renderWithAppProviders(
       <CharacterSheetRollContext.Provider
         value={{
-          destinationOptions: playerRollDestinationOptions,
           clearManualRoll: vi.fn(),
-          destination: 'PRIVATE',
-          dismissRoll: vi.fn(),
           executeRoll: vi.fn().mockResolvedValue(hitDieRoll),
-          revealPrivateRoll: vi.fn(),
           hasManualRoll: false,
-          pending: false,
-          presentationPending: false,
-          presentedRollPrivate: true,
-          revealRoll: vi.fn(),
-          setDestination: vi.fn(),
-          stateRollDestination: 'TABLE',
-          stateRollDestinationOptions: playerStateRollDestinationOptions
+          pending: false
         }}
       >
-        <CharacterSheetOverviewVitals
-          pending={false}
-          sheet={createMulticlassSheet()}
-          submitCommand={submitCommand}
-        />
+        <CharacterSheetRollDestinationContext.Provider
+          value={{
+            destination: 'PRIVATE',
+            destinationOptions: playerRollDestinationOptions,
+            setDestination: vi.fn(),
+            stateRollDestination: 'TABLE',
+            stateRollDestinationOptions: playerStateRollDestinationOptions
+          }}
+        >
+          <CharacterSheetOverviewVitals
+            pending={false}
+            sheet={createMulticlassSheet()}
+            submitCommand={submitCommand}
+          />
+        </CharacterSheetRollDestinationContext.Provider>
       </CharacterSheetRollContext.Provider>
     )
 

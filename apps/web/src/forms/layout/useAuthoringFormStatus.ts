@@ -12,7 +12,7 @@ import {
  * keystroke re-renders a reader only when a flag flips.
  */
 export function useAuthoringFormStatus(): AuthoringFormStatus {
-  const { builderStatus, form, isMutating } = useAuthoringFormStore()
+  const { form, hostedStatus, isMutating } = useAuthoringFormStore()
   const { activeStep, isComplete } = useAuthoringNavigation()
   const { readOnly } = useAuthoringSession()
   const canSubmit = useSelector(form.store, (state) => state.canSubmit)
@@ -21,7 +21,7 @@ export function useAuthoringFormStatus(): AuthoringFormStatus {
   const hasStepChanges = useSelector(form.store, (state) =>
     hasVisibleStepChanges(form, activeStep?.sections ?? [], undefined, state.fieldMeta)
   )
-  if (builderStatus) return builderStatus
+  if (hostedStatus) return hostedStatus
 
   return {
     canFinalize: canSubmit && isComplete,

@@ -9,14 +9,10 @@ import {
 } from '#app/routing/authoredRouteHandles'
 import { buildCharacterRouteParams } from '#app/routing/authoredRouteParams'
 import type { CharacterEditLoaderData } from '#app/routes/-routeLoaderData'
-import { AuthoringLayout } from '#forms/layout/AuthoringLayout'
-import {
-  createAuthoringRouteLoaderData,
-  createCharacterBuilderRouteContext
-} from '#forms/layout/authoredFormRouteContext'
+import { createAuthoringRouteLoaderData } from '#forms/layout/authoredFormRouteContext'
+import { CharacterBuilderAuthoringRuntime } from '#domains/characters/builder/core/CharacterBuilderAuthoringRuntime'
 
 export const Route = createFileRoute('/_authed/characters/$characterPublicId/$characterSlug/edit')({
-  context: () => createCharacterBuilderRouteContext('edit'),
   loader: async ({ context, params }): Promise<CharacterEditLoaderData> => {
     const routeCharacterId = parseAuthoredRouteId(params.characterPublicId)
     // The draft and the active Character only: the Builder evaluates in the browser (ADR 0036 S9).
@@ -54,5 +50,9 @@ export const Route = createFileRoute('/_authed/characters/$characterPublicId/$ch
       draft
     })
   },
-  component: AuthoringLayout
+  component: function CharacterEditRoute() {
+    return (
+      <CharacterBuilderAuthoringRuntime data={Route.useLoaderData().authoringData} mode='edit' />
+    )
+  }
 })

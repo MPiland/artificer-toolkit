@@ -7,7 +7,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetCommands'
 import * as coreStyles from '../core/sheetShell.css'
 import { CharacterSheetRollDestination } from '../dice/CharacterSheetRollDestination'
-import { useCharacterSheetRoll } from '../dice/rollContext'
+import { useCharacterSheetRollDestination } from '../dice/rollContext'
 import { CharacterSheetRestRecoverySummary } from './CharacterSheetRestRecoverySummary'
 import * as restStyles from './rest.css'
 import { formatCompanionRecovery } from './rest.utils'
@@ -53,7 +53,7 @@ export function CharacterSheetRestPreviewContent({
   selectedHitDice: CharacterRestPreviewRequestDto['selectedHitDice']
   sheet: Omit<CharacterSheetCommonDto, 'hasSpellcasting'>
 }) {
-  const rollController = useCharacterSheetRoll()
+  const rollDestinations = useCharacterSheetRollDestination()
   if (!preview) {
     return (
       <div className={restStyles.scrollOwner} aria-busy={previewPending}>
@@ -193,11 +193,11 @@ export function CharacterSheetRestPreviewContent({
 
       {restKind === 'SHORT' ? (
         <div className={restStyles.diceAction}>
-          {rollController ? (
+          {rollDestinations ? (
             <CharacterSheetRollDestination
-              options={rollController.stateRollDestinationOptions}
-              value={rollController.stateRollDestination}
-              onChange={rollController.setDestination}
+              options={rollDestinations.stateRollDestinationOptions}
+              value={rollDestinations.stateRollDestination}
+              onChange={rollDestinations.setDestination}
             />
           ) : null}
           <Button

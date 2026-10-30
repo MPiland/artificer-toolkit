@@ -3,14 +3,12 @@ import type { Context, Dispatch, ReactNode, SetStateAction } from 'react'
 import type { AuthoredValidationIssueDto } from '@artificer-toolkit/schema/api/content'
 import type {
   AuthoringProgressSummary,
-  AuthoringStepStatusMap,
   AuthoringStepWarningMap
 } from '../validation/authoringProgress'
 import type {
   AuthoredFormDomain,
   AuthoredFormSession
 } from '../factories/authoredFormFactories.types'
-import type { CharacterBuilderAuthoringSession } from '#domains/characters/builder/state/characterBuilderAuthoringSession'
 import type {
   useAuthoringResolvedModel,
   VisibleAuthoringStep,
@@ -31,9 +29,8 @@ export type AuthoringDraftSaveStatus = 'pending' | 'saving' | 'saved' | 'retryin
 type AuthoringFormAction = () => Promise<void> | void
 type AuthoringFormValuesAction = (values: object) => Promise<boolean | void> | void
 
-export type AuthoringFormActionHandlers = {
+type AuthoringFormActionHandlers = {
   onActivate?: AuthoringFormAction
-  onCancel?: AuthoringFormAction
   onDelete?: AuthoringFormAction
   onDiscardDraft?: AuthoringFormAction
   onResetForm?: AuthoringFormAction
@@ -52,19 +49,12 @@ export type AuthoringFormStatePatch = {
   activeStepId?: string
   activeStepLabel?: string
   authoredSession?: AuthoredFormSession
-  authoringKind?: 'authored-form' | 'character-builder'
   activateLabel?: string
   canCopy?: boolean
   canDelete?: boolean
-  canFinalize?: boolean
-  canResetStep?: boolean
-  canResetForm?: boolean
   canSaveDraft?: boolean
-  canSubmit?: boolean
   copyLabel?: string
   cancelLabel?: string
-  characterData?: unknown
-  characterSession?: CharacterBuilderAuthoringSession
   deleteLabel?: string
   /** Set by autosaving forms; the header shows it in place of the unsaved-changes state. */
   draftSaveStatus?: AuthoringDraftSaveStatus
@@ -72,8 +62,6 @@ export type AuthoringFormStatePatch = {
   domainData?: unknown
   fallbackLabel?: string
   fieldPathPrefix?: string
-  hasChanges?: boolean
-  hasStepChanges?: boolean
   hasActiveDraft?: boolean
   isDraft?: boolean
   mapId?: string
@@ -83,16 +71,12 @@ export type AuthoringFormStatePatch = {
   resetStepLabel?: string
   resetFormLabel?: string
   saveDraftLabel?: string
-  stepStatuses?: AuthoringStepStatusMap
   stepWarnings?: AuthoringStepWarningMap
-  progressSummary?: AuthoringProgressSummary
   subjectKindLabel?: string
   subjectLabel?: ReactNode
   systemId?: string
-  visibleSteps?: VisibleAuthoringSteps
   validationIssues?: readonly AuthoredValidationIssueDto[]
   visitedStepIds?: ReadonlySet<string>
-  isSubmitting?: boolean
   isDeleting?: boolean
 }
 
@@ -103,19 +87,14 @@ export type AuthoringFormSessionState = Pick<
   | 'activeStepId'
   | 'activeStepLabel'
   | 'authoredSession'
-  | 'authoringKind'
-  | 'characterData'
-  | 'characterSession'
   | 'domain'
   | 'draftSaveStatus'
   | 'domainData'
   | 'fallbackLabel'
   | 'fieldPathPrefix'
   | 'mapId'
-  | 'progressSummary'
   | 'subjectLabel'
   | 'systemId'
-  | 'visibleSteps'
 > &
   Required<
     Pick<
@@ -123,16 +102,10 @@ export type AuthoringFormSessionState = Pick<
       | 'activateLabel'
       | 'canCopy'
       | 'canDelete'
-      | 'canFinalize'
-      | 'canResetStep'
-      | 'canResetForm'
       | 'canSaveDraft'
-      | 'canSubmit'
       | 'copyLabel'
       | 'cancelLabel'
       | 'deleteLabel'
-      | 'hasChanges'
-      | 'hasStepChanges'
       | 'hasActiveDraft'
       | 'isDraft'
       | 'mode'
@@ -141,12 +114,10 @@ export type AuthoringFormSessionState = Pick<
       | 'resetStepLabel'
       | 'resetFormLabel'
       | 'saveDraftLabel'
-      | 'stepStatuses'
       | 'stepWarnings'
       | 'subjectKindLabel'
       | 'validationIssues'
       | 'visitedStepIds'
-      | 'isSubmitting'
       | 'isDeleting'
     >
   >
@@ -174,24 +145,55 @@ export type AuthoringFormStatus = {
   isSubmitting: boolean
 }
 
+/**
+ * A form a domain owns above the provider, with step-only navigation. The domain reads its own
+ * form store and passes the chrome's labels, flags, steps and handlers down as props.
+ */
+export type AuthoringHostedForm = {
+  actions: AuthoringFormActionHandlers
+  cancelHref: string
+  labels: Pick<AuthoringFormStatePatch, 'draftSaveStatus' | 'subjectLabel' | 'systemId'> &
+    Required<
+      Pick<
+        AuthoringFormStatePatch,
+        | 'activateLabel'
+        | 'canDelete'
+        | 'canSaveDraft'
+        | 'deleteLabel'
+        | 'hasActiveDraft'
+        | 'isDraft'
+        | 'mode'
+        | 'readOnly'
+        | 'saveDraftLabel'
+        | 'subjectKindLabel'
+      >
+    >
+  navigation: Pick<
+    AuthoringFormNavigationState,
+    'isComplete' | 'progressSummary' | 'stepStatuses' | 'visibleSteps'
+  >
+  /** Called when the user asks for another step, before it renders. */
+  onStepIntent?: () => void
+  status: AuthoringFormStatus
+}
+
 type AuthoringNavigationFields =
   | 'activeNavigationTargetId'
   | 'activeSectionId'
   | 'activeStepId'
   | 'activeStepLabel'
   | 'fieldPathPrefix'
-  | 'progressSummary'
-  | 'stepStatuses'
-  | 'visibleSteps'
   | 'visitedStepIds'
 
 /** Labels, permissions and records of the registered session. */
 export type AuthoringSessionContextValue = Omit<
   AuthoringFormSessionState,
-  AuthoringNavigationFields | keyof AuthoringFormStatus
+  AuthoringNavigationFields
 > & {
   cancelHref?: string
   isDiscardingDraft: boolean
+  /** The domain owns the form above the provider (see `AuthoringHostedForm`). */
+  isHostedForm: boolean
 }
 
 export type AuthoringActionsContextValue = {
@@ -208,8 +210,6 @@ export type AuthoringActionsContextValue = {
   resetStep: AuthoringFormAction
   saveDraft: AuthoringFormAction
   saveDraftValues: AuthoringFormValuesAction
-  updateAuthoringFormActions: (actions: AuthoringFormActionHandlers) => void
-  updateAuthoringFormState: (patch: AuthoringFormStatePatch) => void
 }
 
 export type AuthoringNavigationContextValue = AuthoringFormNavigationState & {
@@ -228,9 +228,9 @@ export type AuthoringNavigationContextValue = AuthoringFormNavigationState & {
 }
 
 export type AuthoringFormStoreContextValue = {
-  /** Flags the character builder still pushes into the session (RELIABILITY-10.T1c). */
-  builderStatus?: AuthoringFormStatus
   form: AuthoredForm
+  /** A hosted form's flags; authored forms read theirs from the form store. */
+  hostedStatus?: AuthoringFormStatus
   /** An activate, save or discard request is in flight. */
   isMutating: boolean
 }

@@ -115,8 +115,9 @@ export function FormRenderer<TValues extends object>({
       const rootValues = useMemo(() => toResolvedNodeValues(formValues), [formValues])
       const localStructuralChangeGuard = useStructuralChangeGuard({
         form,
-        rootMapId: session.mapId,
-        rootSystemId: session.systemId
+        // A renderer outside a registered session is the root itself.
+        rootMapId: session.mapId ?? resolvedMapId,
+        rootSystemId: session.systemId ?? resolvedSystemId
       })
       const structuralChangeGuard = inheritedStructuralChangeGuard ?? localStructuralChangeGuard
       const ownsStructuralChangeGuard = inheritedStructuralChangeGuard === undefined

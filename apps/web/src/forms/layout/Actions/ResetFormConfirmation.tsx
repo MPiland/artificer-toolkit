@@ -1,12 +1,12 @@
 import { Button, Drawer, Modal } from '@mantine/core'
 import * as styles from './Actions.css'
-import { useAuthoringLayout } from '../AuthoringLayoutContext'
+import { useAuthoringPanels } from '../AuthoringLayoutContext'
 import { useAuthoringActions } from '../AuthoringFormContext'
 import { useCallback } from 'react'
 import { useBreakpoints } from '#ui'
 
 export function ResetFormConfirmation() {
-  const { resetFormConfirmOpen, toggleResetFormConfirm } = useAuthoringLayout()
+  const { resetFormConfirmOpen, toggleResetFormConfirm } = useAuthoringPanels()
   const { isMobile } = useBreakpoints()
   const { resetForm } = useAuthoringActions()
 

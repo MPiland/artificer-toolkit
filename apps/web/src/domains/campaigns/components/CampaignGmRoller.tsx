@@ -4,15 +4,15 @@ import { useMutation } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { OfferedRollModeDto } from '@artificer-toolkit/schema/shared/systemCoreCode'
-import { useDiscardRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CharacterSheetManualRoll } from '#domains/characters/sheet/dice/CharacterSheetManualRoll'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import type {
-  CharacterSheetRollController,
   CharacterSheetRollDestination,
-  CharacterSheetRollRequest
+  CharacterSheetRollDestinations,
+  CharacterSheetRollRequest,
+  CharacterSheetRolls
 } from '#domains/characters/sheet/dice/dice.types'
 import {
   gmRollDestination,
@@ -20,7 +20,10 @@ import {
   gmRollVisibility,
   noRollDestinationOptions
 } from '#domains/characters/sheet/dice/dice.utils'
-import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollContext'
+import {
+  CharacterSheetRollContext,
+  CharacterSheetRollDestinationContext
+} from '#domains/characters/sheet/dice/rollContext'
 import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import * as liveStyles from './campaignLive.css'
 
@@ -31,18 +34,12 @@ export function CampaignGmRoller({
   campaignId: string
   rollModes: readonly OfferedRollModeDto[]
 }) {
-  const {
-    executePrivateRoll,
-    executeRoll: executeTableRoll,
-    revealRoll
-  } = useCampaignChatRoom(campaignId)
-  const discard = useDiscardRollMutation()
+  const { executePrivateRoll, executeRoll: executeTableRoll } = useCampaignChatRoom(campaignId)
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
   const { gmRollVisibility: visibility, setGmRollVisibility } = useGmRollVisibilityPreference()
   const destination = gmRollDestination(visibility)
   const [roll, setRoll] = useState<RollRecordDto>()
-  const [rollPrivate, setRollPrivate] = useState(true)
   const mutation = useMutation({
     mutationFn: async ({
       request,
@@ -63,30 +60,24 @@ export function CampaignGmRoller({
       if (!entry.roll) throw new Error('The table roll did not return roll evidence.')
       return entry.roll
     },
-    onSuccess: (record, variables) => {
-      setRollPrivate(variables.destination === 'PRIVATE')
-      setRoll(record)
-    }
+    onSuccess: setRoll
   })
 
-  const controller = useMemo<CharacterSheetRollController>(
+  const destinations = useMemo<CharacterSheetRollDestinations>(
     () => ({
-      clearManualRoll: () => setRoll(undefined),
       destination,
       destinationOptions: gmRollDestinationOptions,
-      dismissRoll: (removeFromHistory = false) => {
-        const current = roll
-        setRoll(undefined)
-        if (removeFromHistory && current && rollPrivate) {
-          discard.mutate(current.id, {
-            onError: () =>
-              notifications.show({
-                color: 'red',
-                message: 'The canceled roll could not be removed from history.'
-              })
-          })
-        }
-      },
+      setDestination: (next) => setGmRollVisibility(gmRollVisibility(next)),
+      // Manual GM rolls never change Character state.
+      stateRollDestination: destination,
+      stateRollDestinationOptions: noRollDestinationOptions
+    }),
+    [destination, setGmRollVisibility]
+  )
+
+  const rolls = useMemo<CharacterSheetRolls>(
+    () => ({
+      clearManualRoll: () => setRoll(undefined),
       executeRoll: async (request) => {
         try {
           if (preferences.animate3d && !reducedMotion) {
@@ -105,38 +96,21 @@ export function CampaignGmRoller({
       },
       hasManualRoll: Boolean(roll),
       pending: mutation.isPending,
-      pendingRequest: mutation.variables?.request,
-      presentationPending: false,
-      presentedRoll: roll,
-      presentedRollPrivate: rollPrivate,
-      revealPrivateRoll: revealRoll,
-      revealRoll: () => undefined,
-      setDestination: (next) => setGmRollVisibility(gmRollVisibility(next)),
-      // Manual GM rolls never change Character state.
-      stateRollDestination: destination,
-      stateRollDestinationOptions: noRollDestinationOptions
+      pendingRequest: mutation.variables?.request
     }),
-    [
-      destination,
-      discard,
-      mutation,
-      preferences.animate3d,
-      reducedMotion,
-      revealRoll,
-      roll,
-      rollPrivate,
-      setGmRollVisibility
-    ]
+    [destination, mutation, preferences.animate3d, reducedMotion, roll]
   )
 
   return (
-    <CharacterSheetRollContext.Provider value={controller}>
-      <DiceRollPresentation
-        pending={controller.pending}
-        roll={controller.presentedRoll}
-        onRollRevealed={() => undefined}
-      />
-      <CharacterSheetManualRoll className={liveStyles.gmDiceButton} rollModes={rollModes} />
+    <CharacterSheetRollContext.Provider value={rolls}>
+      <CharacterSheetRollDestinationContext.Provider value={destinations}>
+        <DiceRollPresentation
+          pending={mutation.isPending}
+          roll={roll}
+          onRollRevealed={() => undefined}
+        />
+        <CharacterSheetManualRoll className={liveStyles.gmDiceButton} rollModes={rollModes} />
+      </CharacterSheetRollDestinationContext.Provider>
     </CharacterSheetRollContext.Provider>
   )
 }
