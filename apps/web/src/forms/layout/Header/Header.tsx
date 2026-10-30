@@ -10,7 +10,8 @@ import {
   ResetActionMenu,
   StepsNavigationAction
 } from '../Actions/Actions'
-import { useAuthoringForm } from '../AuthoringFormContext'
+import { useAuthoringSession } from '../AuthoringFormContext'
+import { useAuthoringFormStatus } from '../useAuthoringFormStatus'
 import { useAuthoringLayout } from '../AuthoringLayoutContext'
 
 export function Header({
@@ -22,8 +23,8 @@ export function Header({
   showStepsNavigation?: boolean
   title?: ReactNode
 }) {
-  const { hasChanges, authoredSession, draftSaveStatus, subjectKindLabel, subjectLabel } =
-    useAuthoringForm()
+  const { authoredSession, draftSaveStatus, subjectKindLabel, subjectLabel } = useAuthoringSession()
+  const { hasChanges } = useAuthoringFormStatus()
   const { status } = useAuthoringLayout()
 
   const title = titleOverride ?? subjectLabel ?? subjectKindLabel

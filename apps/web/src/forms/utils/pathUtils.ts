@@ -99,16 +99,6 @@ export function hasMeaningfulAuthoringValueAtPaths(
   )
 }
 
-export function prefixRuntimePaths(
-  fieldPathPrefix: string | undefined,
-  paths: readonly NodeRuntimePathDto[]
-): NodeRuntimePathDto[] {
-  if (!fieldPathPrefix) return [...paths]
-
-  const prefix = parseAuthoringFieldName(fieldPathPrefix)
-  return paths.map((path) => [...prefix, ...path] as NodeRuntimePathDto)
-}
-
 function setAuthoringValueAtPath(
   current: unknown,
   path: readonly (string | number)[],

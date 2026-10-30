@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   mediaControl: vi.fn(),
   saveDraft: vi.fn(),
-  useAuthoringForm: vi.fn()
+  useAuthoringSession: vi.fn()
 }))
 
 vi.mock('#app/components/MediaImage', () => ({
@@ -14,7 +14,8 @@ vi.mock('#app/components/MediaImage', () => ({
   }
 }))
 vi.mock('#forms/layout/AuthoringFormContext', () => ({
-  useAuthoringForm: mocks.useAuthoringForm
+  useAuthoringActions: () => ({ saveDraft: mocks.saveDraft }),
+  useAuthoringSession: mocks.useAuthoringSession
 }))
 
 import { AuthoringArtworkControl } from './AuthoringArtworkControl'
@@ -22,10 +23,9 @@ import { AuthoringArtworkControl } from './AuthoringArtworkControl'
 describe('AuthoringArtworkControl', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.useAuthoringForm.mockReturnValue({
+    mocks.useAuthoringSession.mockReturnValue({
       authoredSession: { domain: 'spell', subjectId: 'spell-id' },
-      readOnly: false,
-      saveDraft: mocks.saveDraft
+      readOnly: false
     })
   })
 

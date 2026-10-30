@@ -138,13 +138,13 @@ export const WEB_NARROWING_ALLOWED = {
     count: 4,
     reason: 'TanStack Form values and payloads are generic over the domain the factory serves'
   },
+  'apps/web/src/forms/layout/useAuthoredFormDerivedState.ts': {
+    count: 1,
+    reason: 'TanStack Form types field meta by DeepKeys; navigation reads it by node path'
+  },
   'apps/web/src/forms/node-map/nodeFormUtils.ts': {
     count: 4,
     reason: 'node-map paths are strings that TanStack Form types as DeepKeys of the form values'
-  },
-  'apps/web/src/forms/rendering/FormRenderer.tsx': {
-    count: 1,
-    reason: 'TanStack Form types field meta by DeepKeys; the renderer reads it by node path'
   },
   'apps/web/src/forms/rendering/ResolvedArrayGroup.factory.tsx': {
     count: 4,

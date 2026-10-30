@@ -11,12 +11,11 @@ import { Previews } from './Previews/Previews'
 import { AuthoringFormProvider } from './AuthoringFormProvider'
 import { Editor } from './Editor/Editor'
 import {
-  useAuthoringForm,
-  type AuthoringDomainRegistration,
-  type AuthoringFormActionHandlers
+  useAuthoringActions,
+  useAuthoringFormStore,
+  useAuthoringSession,
+  type AuthoringDomainRegistration
 } from './AuthoringFormContext'
-import { useAppForm } from '../app-form/AppForm'
-import { clearResolvedNodeFormPaths } from '../node-map/nodeFormUtils'
 import { FormRenderer } from '../rendering/FormRenderer'
 import { InvalidDraftAlert } from './Editor/SectionRow/InvalidDraftAlert'
 import { SystemChoiceAlert } from './SystemChoiceAlert'
@@ -69,41 +68,23 @@ export function AuthoringLayoutContent({ children }: { children?: ReactNode }) {
 
 function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
   const { isWideDesktop, setPreviewContent, status } = useAuthoringLayout()
-  const authoring = useAuthoringForm()
-  const session = authoring.authoredSession
-  const characterSession = authoring.characterSession
+  const {
+    authoredSession: session,
+    characterSession,
+    isDiscardingDraft,
+    subjectLabel
+  } = useAuthoringSession()
+  const { cancel, discardDraft } = useAuthoringActions()
+  const { form } = useAuthoringFormStore()
   const { experience, isUpdating: isExperienceUpdating, setExperience } = useAuthoringExperience()
   const [guidedState, setGuidedState] = useState<GuidedAuthoringState>(INITIAL_GUIDED_STATE)
   const rulesetLabel = getRulesetLabel(session?.system)
   useShellHeaderSupplement(rulesetLabel ?? null)
-  const { activateValues, clearValidationIssues, saveDraftValues, updateAuthoringFormActions } =
-    authoring
   useAuthoringSaveShortcut()
-  const [defaultValuesState, setDefaultValuesState] = useState<{ key?: string; values: object }>({
-    key: undefined,
-    values: EMPTY_FORM_VALUES
-  })
-  if (defaultValuesState.key !== session?.key) {
-    setDefaultValuesState({
-      key: session?.key,
-      values: session?.initialValues ?? EMPTY_FORM_VALUES
-    })
-  }
-  const defaultValues = defaultValuesState.values
-  const form = useAppForm({
-    defaultValues,
-    listeners: {
-      onChange: ({ fieldApi }) => clearValidationIssues(fieldApi.name)
-    },
-    onSubmit: async ({ value }) => {
-      if (!session) return
-      await activateValues(value)
-    }
-  })
   const canonicalLabel = useSelector(form.store, (state) =>
     readPreviewLabel(state.values, session?.fallbackLabel ?? 'Untitled Item')
   )
-  const editorTitle = characterSession ? authoring.subjectLabel : canonicalLabel
+  const editorTitle = characterSession ? subjectLabel : canonicalLabel
   const guidedAvailable = Boolean(session && isGuidedSessionEligible(session))
   const isGuided =
     experience === 'guided' &&
@@ -112,7 +93,6 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     session?.system !== null &&
     session?.system !== undefined
   const guidedModeButtonRef = useRef<HTMLButtonElement>(null)
-  const resetSessionKeyRef = useRef<string | undefined>(undefined)
   const previousGuidedRef = useRef(isGuided)
   const guidedModeFocusPendingRef = useRef(false)
   useEffect(() => {
@@ -129,11 +109,6 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       guidedModeFocusPendingRef.current = false
     }
   }, [guidedAvailable, isExperienceUpdating, isGuided])
-  useEffect(() => {
-    if (!session || resetSessionKeyRef.current === session.key) return
-    resetSessionKeyRef.current = session.key
-    form.reset(session.initialValues)
-  }, [form, session])
   const [guidedStateKey, setGuidedStateKey] = useState(session?.key)
   if (guidedStateKey !== session?.key) {
     setGuidedStateKey(session?.key)
@@ -166,37 +141,6 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
 
   useEffect(() => () => setPreviewContent(undefined), [setPreviewContent])
 
-  const formActions = useMemo<AuthoringFormActionHandlers>(
-    () => ({
-      onActivate: () => form.handleSubmit(),
-      onClearPaths: (paths) => clearResolvedNodeFormPaths(form, paths),
-      onResetForm: () => form.reset(session?.initialValues ?? EMPTY_FORM_VALUES),
-      onSaveDraft: async () => {
-        if (!session) return
-        const submittedValues = form.state.values
-        if (isBlankLabel(submittedValues)) {
-          form.setFieldMeta('label', (meta) => ({
-            ...meta,
-            errorMap: { ...meta.errorMap, onSubmit: 'Name is required.' }
-          }))
-          return
-        }
-        const submittedSnapshot = JSON.stringify(submittedValues)
-        const saved = await saveDraftValues(submittedValues)
-        if (saved && JSON.stringify(form.state.values) === submittedSnapshot) {
-          setDefaultValuesState({ key: session.key, values: submittedValues })
-          form.reset(submittedValues)
-        }
-      }
-    }),
-    [form, saveDraftValues, session]
-  )
-
-  useEffect(() => {
-    if (!session) return
-    updateAuthoringFormActions(formActions)
-  }, [formActions, session, updateAuthoringFormActions])
-
   const editorContent = useMemo(() => {
     if (characterSession) {
       return <CharacterBuilderAuthoringRuntime session={characterSession} />
@@ -210,7 +154,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       return (
         <Stack>
           <SystemChoiceAlert subjectPlural={`${domainLabel}s`} systems={session.systems} />
-          <Button onClick={() => void authoring.cancel()}>{`Back to ${domainLabel}s`}</Button>
+          <Button onClick={() => void cancel()}>{`Back to ${domainLabel}s`}</Button>
         </Stack>
       )
     }
@@ -220,10 +164,10 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         <Stack>
           <InvalidDraftAlert
             domainLabel={domainLabel}
-            isDiscarding={authoring.isDiscardingDraft}
-            onDiscard={() => void authoring.discardDraft()}
+            isDiscarding={isDiscardingDraft}
+            onDiscard={() => void discardDraft()}
           />
-          <Button onClick={() => void authoring.cancel()}>{`Back to ${domainLabel}s`}</Button>
+          <Button onClick={() => void cancel()}>{`Back to ${domainLabel}s`}</Button>
         </Stack>
       )
     }
@@ -232,7 +176,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       return (
         <Stack>
           <Alert color='yellow'>{`That ${domainLabel} could not be found.`}</Alert>
-          <Button onClick={() => void authoring.cancel()}>{`Back to ${domainLabel}s`}</Button>
+          <Button onClick={() => void cancel()}>{`Back to ${domainLabel}s`}</Button>
         </Stack>
       )
     }
@@ -283,19 +227,21 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         {session.hasInvalidDraft ? (
           <InvalidDraftAlert
             domainLabel={domainLabel}
-            isDiscarding={authoring.isDiscardingDraft}
-            onDiscard={() => void authoring.discardDraft()}
+            isDiscarding={isDiscardingDraft}
+            onDiscard={() => void discardDraft()}
           />
         ) : null}
         {renderer}
       </>
     )
   }, [
-    authoring,
+    cancel,
     characterSession,
     children,
+    discardDraft,
     form,
     guidedAvailable,
+    isDiscardingDraft,
     isExperienceUpdating,
     isGuided,
     session,
@@ -463,10 +409,6 @@ function readPreviewLabel(values: object, fallbackLabel: string): string {
   if (!('label' in values) || typeof values.label !== 'string') return fallbackLabel
 
   return values.label.trim() || fallbackLabel
-}
-
-function isBlankLabel(values: object): boolean {
-  return 'label' in values && typeof values.label === 'string' && !values.label.trim()
 }
 
 function isGuidedSessionEligible(session: AuthoredFormSession) {

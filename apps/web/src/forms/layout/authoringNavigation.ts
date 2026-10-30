@@ -61,7 +61,7 @@ export type AuthoringNavigationNode = {
   target?: AuthoringNavigationTarget
 }
 
-type AuthoringNavigationState = {
+export type AuthoringNavigationState = {
   navigationTargets: readonly AuthoringNavigationTarget[]
   navigationTree: readonly AuthoringNavigationNode[]
   progressSummary: AuthoringProgressSummary

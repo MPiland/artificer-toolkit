@@ -9,7 +9,7 @@ import {
   TextField,
   ToggleField
 } from '../fields/AppFormFields'
-import { useAuthoringForm } from '../layout/AuthoringFormContext'
+import { useAuthoringSession } from '../layout/AuthoringFormContext'
 import { toAuthoringFieldName } from '../utils/pathUtils'
 import { useAuthoringRendererScope } from './FormRenderer.context'
 import * as styles from './FormRenderer.css'
@@ -22,10 +22,10 @@ export function ResolvedInputControl({
   readOnly: boolean
 }) {
   const field = useFieldContext<unknown>()
-  const authoring = useAuthoringForm()
+  const { validationIssues } = useAuthoringSession()
   const { structuralChangeGuard } = useAuthoringRendererScope()
   const fieldName = field.name
-  const validationError = authoring.validationIssues
+  const validationError = validationIssues
     .filter((issue) => toAuthoringFieldName(undefined, issue.path) === fieldName)
     .map((issue) => issue.message)
     .join(' ')

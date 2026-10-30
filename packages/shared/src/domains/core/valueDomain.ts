@@ -506,7 +506,8 @@ export type ValueDomainParamByCode = {
 
   // Attack rolls made against the holder; `requiresHolderSeesAttacker` limits it to attackers the
   // holder can see (D100), and `exemptAttackerSenseDefinitionIds` excludes attackers that see the
-  // holder through one of those System Senses (Blur's Blindsight and Truesight). ttackOccasion`n  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
+  // holder through one of those System Senses (Blur's Blindsight and Truesight). `attackOccasion`
+  // limits it to attacks made on that occasion (Escape the Horde: opportunity attacks).
   ATTACKS_AGAINST: {
     attackDomain: AttackDomainCode
     requiresHolderSeesAttacker: boolean

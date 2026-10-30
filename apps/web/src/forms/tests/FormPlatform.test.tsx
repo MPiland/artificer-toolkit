@@ -1,23 +1,34 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useSelector } from '@tanstack/react-form'
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import { describe, expect, it, vi } from 'vitest'
-import type {
-  NodeRuntimeArrayGroupNodeDto,
-  NodeRuntimeInputNodeDto,
-  NodeRuntimeObjectGroupNodeDto,
-  NodeRuntimeResolveResponseDto
+import { useState, type ReactElement } from 'react'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  nodeRuntimeResolveRequestDtoSchema,
+  type NodeRuntimeArrayGroupNodeDto,
+  type NodeRuntimeInputNodeDto,
+  type NodeRuntimeObjectGroupNodeDto,
+  type NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { compactNodeRuntimeResponse } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { warmFixtureAuthoredSources } from '@artificer-toolkit/authoring/tests/srdSourceReader'
+import { getFunctionName } from 'convex/server'
+import { api } from '@artificer-toolkit/apis/convex/api'
 import {
   resolveArrayAuthoringMeta,
   resolveInputAuthoringMeta,
   resolveObjectAuthoringMeta
 } from '@artificer-toolkit/shared/maps'
-import { AuthoringLayout } from '#forms'
-import { useAppForm, withForm } from '#forms/app-form/AppForm'
-import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
-import { FormRenderer } from '#forms/rendering/FormRenderer'
+import {
+  authoredCreateRouteLoaderData,
+  authoredRouteStoryRecords,
+  createEditLoaderData,
+  seedStorySystemId,
+  seedStoryUserId
+} from '#domains/authoredRouteStory.fixtures'
+import type { CreatureAuthoredDto } from '@artificer-toolkit/schema/subjects/creature'
+import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
+import { AuthoringLayoutContent } from '#forms/layout/AuthoringLayout'
+import { useAuthoringFormStore, useAuthoringResolution } from '#forms/layout/AuthoringFormContext'
 import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem
@@ -34,12 +45,51 @@ import { withResolvedScopes } from './withResolvedScopes'
 // deepest journey), so these journeys need more than the default budget when workers share a core.
 const NESTED_EFFECT_EDITOR_TIMEOUT_MS = 20_000
 
+const convexMocks = vi.hoisted(() => ({
+  mutation: vi.fn(),
+  nodeRuntimeResolve: vi.fn(),
+  query: vi.fn()
+}))
+
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
-  useConvex: () => ({
-    query: vi.fn(async () => ({ values: {}, clearedPaths: [], refusedPaths: [] }))
-  })
+  useAction: () => vi.fn(),
+  useConvex: () => convexMocks,
+  useConvexAuth: () => ({ isAuthenticated: true, isLoading: false }),
+  useMutation: () => vi.fn(),
+  useQuery: () => ({ assetId: null, revision: 0 })
 }))
+
+vi.mock('#app/query/createAppQueryClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('#app/query/createAppQueryClient')>()
+  return {
+    ...actual,
+    createAppQueryClient: () => {
+      const client = actual.createAppQueryClient()
+      client.setQueryDefaults(['convexQuery'], {
+        queryFn: () => {
+          throw new Error('Unexpected native query in the form platform harness.')
+        }
+      })
+      client.setQueryDefaults(['convexQuery', getFunctionName(api.authoring.nodeRuntime.resolve)], {
+        queryFn: ({ queryKey }) => convexMocks.nodeRuntimeResolve(queryKey)
+      })
+      return client
+    }
+  }
+})
+
+beforeAll(warmFixtureAuthoredSources, 60_000)
+
+beforeEach(() => {
+  convexMocks.mutation
+    .mockReset()
+    .mockResolvedValue({ subjectId: authoredRouteStoryRecords.creature.id, label: 'Fire Lace' })
+  convexMocks.nodeRuntimeResolve.mockReset()
+  convexMocks.query
+    .mockReset()
+    .mockResolvedValue({ values: {}, clearedPaths: [], refusedPaths: [] })
+})
 
 type TestFormValues = {
   id: string
@@ -64,7 +114,7 @@ type TestFormValues = {
 }
 
 const testFormDefaults: TestFormValues = {
-  id: 'test-form-1',
+  id: authoredRouteStoryRecords.creature.id,
   label: '',
   order: 1,
   quote: '',
@@ -169,13 +219,9 @@ const testFormDefaults: TestFormValues = {
       selectionKind: 'FIXED'
     }
   ],
-  systemId: 'system-1',
-  userId: 'user-1'
+  systemId: seedStorySystemId,
+  userId: seedStoryUserId
 }
-
-const TestRenderer = FormRenderer<TestFormValues>({
-  defaultValues: testFormDefaults
-})
 
 const manifestBehaviorDefaults: TestFormValues = {
   ...testFormDefaults,
@@ -723,141 +769,77 @@ const mechanicsResolvedModel = {
   ]
 } satisfies NodeRuntimeResolveResponseDto
 
+/**
+ * Renders the creature authoring session (real provider, layout and renderer). The synthetic
+ * `defaultValues` become the loaded creature record, so they reach the form through the session's
+ * own initial values. The fake node-runtime resolve answers with the synthetic `model` resolved
+ * against the form's own values.
+ */
 function TestForm({
-  canDelete = false,
-  canSaveDraft = false,
   defaultValues = testFormDefaults,
-  hasActiveDraft = false,
   isDraft = false,
   mode = 'edit',
-  model = resolvedModel,
-  onDelete,
-  onSaveDraft,
-  onSubmit = vi.fn()
+  model = resolvedModel
 }: {
-  canDelete?: boolean
-  canSaveDraft?: boolean
   defaultValues?: TestFormValues
-  hasActiveDraft?: boolean
   isDraft?: boolean
   mode?: 'create' | 'view' | 'edit'
   model?: NodeRuntimeResolveResponseDto
-  onDelete?: () => void
-  onSaveDraft?: () => void
-  onSubmit?: (value: TestFormValues) => void
 }) {
-  const clonedDefaultValues = useMemo(() => structuredClone(defaultValues), [defaultValues])
-  const clonedModel = useMemo(() => structuredClone(model), [model])
-  const form = useAppForm({
-    defaultValues: clonedDefaultValues,
-    onSubmit: async ({ value }) => onSubmit(value)
+  useState(() => {
+    convexMocks.nodeRuntimeResolve.mockImplementation(async (queryKey: readonly unknown[]) => {
+      const { values } = nodeRuntimeResolveRequestDtoSchema.parse(queryKey[2])
+      return compactNodeRuntimeResponse(
+        await withResolvedScopes({ ...structuredClone(model), mapId: 'creature' }, values)
+      )
+    })
   })
 
+  if (mode === 'create') {
+    return (
+      <AuthoringFormProvider
+        data={authoredCreateRouteLoaderData.authoringData}
+        domain='creature'
+        mode='create'
+      >
+        <ResolvedFormContent />
+      </AuthoringFormProvider>
+    )
+  }
+
+  // The synthetic values are not a full creature; the session only reads them back as form values.
+  const record = {
+    ...authoredRouteStoryRecords.creature,
+    ...structuredClone(defaultValues)
+  } as unknown as CreatureAuthoredDto
+  const { authoringData } = createEditLoaderData(
+    'creature',
+    mode === 'view' ? 'masterLocked' : isDraft ? 'ownedDraft' : 'ownedActive',
+    record
+  )
+
   return (
-    <AuthoringLayout>
-      <form.AppForm>
-        <TestFormContent
-          canDelete={canDelete}
-          canSaveDraft={canSaveDraft}
-          hasActiveDraft={hasActiveDraft}
-          isDraft={isDraft}
-          form={form}
-          mode={mode}
-          model={clonedModel}
-          onDelete={onDelete}
-          onSaveDraft={onSaveDraft}
-        />
-      </form.AppForm>
-    </AuthoringLayout>
+    <AuthoringFormProvider data={authoringData} domain='creature' mode='edit'>
+      <ResolvedFormContent />
+    </AuthoringFormProvider>
   )
 }
 
-const TestFormContent = withForm({
-  defaultValues: testFormDefaults,
-  props: {} as {
-    canDelete: boolean
-    canSaveDraft: boolean
-    hasActiveDraft: boolean
-    isDraft: boolean
-    mode: 'create' | 'view' | 'edit'
-    model: NodeRuntimeResolveResponseDto
-    onDelete?: () => void
-    onSaveDraft?: () => void
-  },
-  render: function TestFormContent({
-    canDelete,
-    canSaveDraft,
-    form,
-    hasActiveDraft,
-    isDraft,
-    mode,
-    model,
-    onDelete,
-    onSaveDraft
-  }) {
-    const { providedModel, updateAuthoringFormActions, updateAuthoringFormState } =
-      useAuthoringForm()
-    const formValues = useSelector(form.store, (state) => state.values)
-    const [resolvedModel, setResolvedModel] = useState<NodeRuntimeResolveResponseDto>()
+function ResolvedFormContent() {
+  const { form } = useAuthoringFormStore()
+  const { model } = useAuthoringResolution()
 
-    useEffect(() => {
-      let current = true
-      void withResolvedScopes(model, formValues).then((resolved) => {
-        if (current) setResolvedModel(resolved)
-      })
-      return () => {
-        current = false
-      }
-    }, [formValues, model])
+  if (!model) return null
 
-    const statePatch = useMemo(
-      () => ({
-        canDelete,
-        canSaveDraft,
-        deleteLabel: 'Delete',
-        hasActiveDraft,
-        isDraft,
-        authoringKind: 'authored-form' as const,
-        mapId: 'test-form',
-        mode,
-        providedModel: resolvedModel,
-        readOnly: mode === 'view',
-        resolveModel: false,
-        subjectKindLabel: 'Test Form',
-        subjectLabel: 'Test Form',
-        systemId: 'system-1'
-      }),
-      [canDelete, canSaveDraft, hasActiveDraft, isDraft, mode, resolvedModel]
-    )
-    const actions = useMemo(
-      () => ({
-        onActivate: () => form.handleSubmit(),
-        onDelete,
-        onSaveDraft
-      }),
-      [form, onDelete, onSaveDraft]
-    )
-
-    useEffect(() => {
-      updateAuthoringFormState(statePatch)
-    }, [statePatch, updateAuthoringFormState])
-
-    useEffect(() => {
-      updateAuthoringFormActions(actions)
-    }, [actions, updateAuthoringFormActions])
-
-    if (!providedModel) return null
-
-    return (
-      <>
-        <button type='button' onClick={() => void form.handleSubmit()}>
-          Submit
-        </button>
-        <TestRenderer form={form} />
-      </>
-    )
-  }
-})
+  return (
+    <>
+      <button type='button' onClick={() => void form.handleSubmit()}>
+        Submit
+      </button>
+      <AuthoringLayoutContent />
+    </>
+  )
+}
 
 async function renderForm(ui: ReactElement) {
   const result = render(ui)
@@ -909,7 +891,7 @@ describe('authoring form platform', () => {
     )
 
     expect(screen.queryByLabelText(/current status:/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { level: 1, name: 'Untitled Item' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Untitled Creature' })).toBeInTheDocument()
     expect(screen.getAllByText('Saved').length).toBeGreaterThan(0)
 
     rerender(
@@ -932,10 +914,9 @@ describe('authoring form platform', () => {
 
   it('updates values through TanStack Form fields', async () => {
     const user = userEvent.setup()
-    const onSubmit = vi.fn()
     await renderForm(
       <TestRouterProvider>
-        <TestForm onSubmit={onSubmit} />
+        <TestForm />
       </TestRouterProvider>
     )
 
@@ -945,17 +926,17 @@ describe('authoring form platform', () => {
     await waitFor(() => expect(requiresAttunement).toBeChecked())
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalled())
+    expect(convexMocks.mutation.mock.calls[0]?.[1]).toMatchObject({
+      payload: expect.objectContaining({
         label: 'Fire Lace',
         requiresAttunement: true
       })
-    )
+    })
   })
 
   it('does not clear hidden branch values after an unrelated text edit', async () => {
     const user = userEvent.setup()
-    const onSubmit = vi.fn()
     const model: NodeRuntimeResolveResponseDto = structuredClone(resolvedModel)
     model.clearPaths = [['notes']]
     const notesNode = model.steps[0]?.sections[0]?.nodes.find((node) => node.id === 'notes')
@@ -964,43 +945,42 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <TestForm
-          defaultValues={{ ...testFormDefaults, notes: 'Keep this note.' }}
-          model={model}
-          onSubmit={onSubmit}
-        />
+        <TestForm defaultValues={{ ...testFormDefaults, notes: 'Keep this note.' }} model={model} />
       </TestRouterProvider>
     )
 
     await user.type(screen.getByRole('textbox', { name: /name/i }), 'Fire Lace')
     await user.click(screen.getByRole('button', { name: /submit/i }))
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Keep this note.' }))
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalled())
+    expect(convexMocks.mutation.mock.calls[0]?.[1]).toMatchObject({
+      payload: expect.objectContaining({ notes: 'Keep this note.' })
+    })
   })
 
   it('shows registered delete actions in the header', async () => {
     const user = userEvent.setup()
-    const onDelete = vi.fn()
 
     await renderForm(
       <TestRouterProvider>
-        <TestForm canDelete onDelete={onDelete} />
+        <TestForm />
       </TestRouterProvider>
     )
 
     fireEvent.click(screen.getByRole('button', { name: /more authoring actions/i }))
     await user.click(await screen.findByRole('menuitem', { name: /^delete$/i }, { timeout: 2_500 }))
 
-    expect(onDelete).toHaveBeenCalledTimes(1)
+    await user.click(await screen.findByRole('button', { name: /^delete$/i }))
+
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalledTimes(1))
   })
 
   it('enables save draft only after form changes', async () => {
     const user = userEvent.setup()
-    const onSaveDraft = vi.fn()
 
     await renderForm(
       <TestRouterProvider>
-        <TestForm canSaveDraft onSaveDraft={onSaveDraft} />
+        <TestForm />
       </TestRouterProvider>
     )
 
@@ -1012,7 +992,7 @@ describe('authoring form platform', () => {
     expect(saveDraftButton).toBeEnabled()
     expect(screen.getByText('Unsaved changes')).toBeInTheDocument()
     await user.click(saveDraftButton)
-    expect(onSaveDraft).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalledTimes(1))
   })
 
   it('uses selected outcome path labels for path rows', async () => {
@@ -1028,7 +1008,6 @@ describe('authoring form platform', () => {
 
   it('keeps nested editors open when editing an outcome path range override', async () => {
     const user = userEvent.setup()
-    const onSubmit = vi.fn()
     const defaultValues = structuredClone(testFormDefaults)
     defaultValues.paths = [
       {
@@ -1042,11 +1021,7 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <TestForm
-          defaultValues={defaultValues}
-          model={outcomePathResolvedModel}
-          onSubmit={onSubmit}
-        />
+        <TestForm defaultValues={defaultValues} model={outcomePathResolvedModel} />
       </TestRouterProvider>
     )
 
@@ -1057,16 +1032,15 @@ describe('authoring form platform', () => {
     expect(await screen.findByRole('combobox', { name: /outcome path/i })).toBeInTheDocument()
     expect(screen.getAllByRole('combobox', { name: /selection model/i }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('combobox', { name: /range kind/i }).length).toBeGreaterThan(0)
-    expect(onSubmit).not.toHaveBeenCalled()
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
   })
 
   it('renders effect rows and outcome paths inline on the owning page', async () => {
     const user = userEvent.setup()
-    const onSaveDraft = vi.fn()
 
     await renderForm(
       <TestRouterProvider>
-        <TestForm canSaveDraft model={effectResolvedModel} onSaveDraft={onSaveDraft} />
+        <TestForm model={effectResolvedModel} />
       </TestRouterProvider>
     )
 
@@ -1177,8 +1151,12 @@ describe('authoring form platform', () => {
     expect(await screen.findByText('No effects added yet.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^add effect$/i })).toBeInTheDocument()
     const actionBar = within(screen.getByTestId('authoring-action-bar'))
-    expect(actionBar.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
-    expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
+    // Step targets are derived from the debounced form state, so the removed row leaves them once
+    // the change pauses.
+    await waitFor(() => {
+      expect(actionBar.queryByRole('button', { name: /^next$/i })).not.toBeInTheDocument()
+      expect(actionBar.getByRole('button', { name: /^activate$/i })).toBeEnabled()
+    })
   })
 
   it('shows absent charges and empty restrictions as add actions only', async () => {
@@ -1367,7 +1345,7 @@ describe('authoring form platform', () => {
           currentPath='/forms/fire-lace/edit'
           navigation={buildPlatformNavigation(contentKindOrder)}
         >
-          <TestForm canSaveDraft model={multiStepResolvedModel} />
+          <TestForm model={multiStepResolvedModel} />
         </Shell>
       </TestRouterProvider>
     )

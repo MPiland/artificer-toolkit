@@ -1,6 +1,6 @@
 import { useAuthoringLayout } from '#app/forms/layout/AuthoringLayoutContext'
 import { useCallback, useMemo } from 'react'
-import { useAuthoringForm } from '../AuthoringFormContext'
+import { useAuthoringNavigation, useAuthoringSession } from '../AuthoringFormContext'
 import { Rail } from '#ui'
 import { Header } from './Header/Header'
 import { Item } from './Item/Item'
@@ -22,8 +22,9 @@ export function Steps() {
   } = useAuthoringLayout()
   const currentHref = useLocation({ select: (location) => location.href })
 
-  const { goToNavigationTarget, goToStep, mode, navigationTree, stepStatuses, visitedStepIds } =
-    useAuthoringForm()
+  const { mode } = useAuthoringSession()
+  const { goToNavigationTarget, goToStep, navigationTree, stepStatuses, visitedStepIds } =
+    useAuthoringNavigation()
 
   const handleStepSelect = useCallback(
     (stepId: string) => {
