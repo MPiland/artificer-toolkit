@@ -76,7 +76,11 @@ export function compileDnd5eSummonPlacement(
     !UUID.test(outcome.id)
   )
     unsupported('A summon lasts a bounded duration or none, and authors no lifecycle of its own.')
-  const identity = { summonOutcomeId: outcome.id, label: outcome.label ?? null }
+  const identity = {
+    summonOutcomeId: outcome.id,
+    label: outcome.label ?? null,
+    ...(outcome.cannotAttack ? { cannotAttack: true as const } : {})
+  }
   const summon = outcome.statBlock
     ? { ...identity, statBlock: outcome.statBlock }
     : {

@@ -681,6 +681,7 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
   const base = {
     summonOutcomeId: serverUuidIdentityDtoSchema,
     label: z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(160))),
+    cannotAttack: z.optional(z.literal(true)),
     entry: compiledActionActiveEffectPlanSchema
   }
   return z.union([

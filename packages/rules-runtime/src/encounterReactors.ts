@@ -4,6 +4,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
 import { systemAbilityDefinitions } from './encounterActionSources.js'
+import { encounterActorCannotAttack } from './encounterActorBody.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 
@@ -37,7 +38,8 @@ export function characterReactionCandidates(
 
 /**
  * The actions an attacked creature may react with: a Creature's feature actions, read from its
- * snapshot as its own turn reads them, or a Character's own listing.
+ * snapshot as its own turn reads them, less the attacks its summon says it cannot make, or a
+ * Character's own listing.
  */
 export function encounterReactorCandidates(input: {
   actor: EncounterRunActorState
@@ -46,10 +48,13 @@ export function encounterReactorCandidates(input: {
   spells: ReadonlyMap<string, CompiledSpell>
 }): readonly Pick<CharacterActionCandidate, 'actionId' | 'effectId' | 'mechanicFacts'>[] {
   if (input.actor.kind !== 'CREATURE') return characterReactionCandidates(input.target)
-  return discoverEncounterFeatureActions({
+  const { available } = discoverEncounterFeatureActions({
     actor: input.actor,
     conditionDefinitionIds: input.system.conditionTypes.map(({ id }) => id),
     abilityDefinitions: systemAbilityDefinitions(input.system),
     spells: input.spells
-  }).available
+  })
+  return encounterActorCannotAttack(input.actor)
+    ? available.filter((action) => !action.attackMechanic)
+    : available
 }

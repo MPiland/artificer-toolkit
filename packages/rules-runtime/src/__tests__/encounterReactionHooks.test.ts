@@ -1,3 +1,4 @@
+import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { bandit } from '@artificer-toolkit/source-data/srd/creatures/bandit.js'
 import { erinyes } from '@artificer-toolkit/source-data/srd/creatures/erinyes.js'
 import { gladiator } from '@artificer-toolkit/source-data/srd/creatures/gladiator.js'
@@ -12,6 +13,7 @@ import {
   characterReactionCandidates,
   encounterReactorCandidates
 } from '../encounterReactors.js'
+import { summonBody } from '../encounterActorBody.js'
 import { srdCreatureActor } from '../testing/dnd5eSrdEncounter.js'
 
 /**
@@ -67,6 +69,29 @@ describe('creature attack reaction discovery', () => {
 
   it('offers nothing to a creature holding no attack reaction', () => {
     expect(reactionsTo(reactorCandidates(bandit), meleeSeenHit)).toEqual([])
+  })
+
+  it('keeps no attack among the reactions of a summon that cannot attack, only what is no attack', () => {
+    const armed = applyCreatureAttackRolls(knight)
+    const actor = srdCreatureActor({ id: crypto.randomUUID(), creature: armed })
+    const free = reactorCandidates(armed)
+    const flagged = encounterReactorCandidates({
+      spells: new Map(),
+      actor: {
+        ...actor,
+        snapshot: {
+          ...(actor.snapshot as Record<string, unknown>),
+          body: summonBody({ occupiesSpace: true }, true)
+        }
+      },
+      target: {},
+      system: srdSystemRecord
+    })
+    expect(flagged.length).toBeGreaterThan(0)
+    expect(flagged.length).toBeLessThan(free.length)
+    expect(reactionsTo(flagged, meleeSeenHit)).toEqual([
+      expect.objectContaining({ trigger: 'ATTACKED_SELF' })
+    ])
   })
 
   it('offers an attack reaction to no other event', () => {

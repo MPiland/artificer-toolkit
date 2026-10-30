@@ -45,9 +45,9 @@ export function formSummonStats(
  * from the System Creature of the form the caster chose, and the Scene token that stands at `point`.
  * The summon fights on the caster's side and is controlled through its owner, so its own controller
  * list is empty. A stat block summon's snapshot keeps its body rules (`encounterActorBody`); a form
- * summon is that Creature, of the Creature Type the caster chose when the spell offers one. Either
- * keeps the values a spell cast resolved, which the owner's Sheet lists it by
- * (`ownedEncounterSpellSummons`).
+ * summon is that Creature, of the Creature Type the caster chose when the spell offers one, and
+ * keeps body rules only when its summon says it cannot attack. Either keeps the values a spell cast
+ * resolved, which the owner's Sheet lists it by (`ownedEncounterSpellSummons`).
  */
 export function buildEncounterSummon(input: {
   summon:
@@ -58,6 +58,8 @@ export function buildEncounterSummon(input: {
    * spell made it, and no Sheet lists it.
    */
   spellSummon: SpellSummonStatBlockValues | null
+  /** The summon says its creature makes no attack of its own. */
+  cannotAttack?: boolean
   caster: EncounterRunActorState
   /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
   casterHitPointMaximum: number
@@ -73,6 +75,7 @@ export function buildEncounterSummon(input: {
   const {
     summon,
     spellSummon,
+    cannotAttack,
     caster,
     casterHitPointMaximum,
     label,
@@ -91,6 +94,7 @@ export function buildEncounterSummon(input: {
         })
       : creatureSummonBody(summon.creature, summon.creatureTypeId)
   const { maxHitPoints } = body
+  const statBlock = summon.kind === 'STAT_BLOCK' ? summon.statBlock : { occupiesSpace: true }
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
     encounterId: caster.encounterId,
@@ -117,7 +121,11 @@ export function buildEncounterSummon(input: {
     initiative: null,
     manualOrder: null,
     owner: { ownerActorId: caster.id, sourceEffectId },
-    snapshot: { ...body.snapshot, ...(spellSummon ? { summon: spellSummon } : {}) },
+    snapshot: {
+      ...body.snapshot,
+      ...(cannotAttack ? { body: summonBody(statBlock, true) } : {}),
+      ...(spellSummon ? { summon: spellSummon } : {})
+    },
     createdAt: occurredAt,
     updatedAt: occurredAt
   })
