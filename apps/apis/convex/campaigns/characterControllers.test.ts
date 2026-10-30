@@ -18,7 +18,7 @@ import {
 import {
   checkpointLiveRoom,
   executeInRoom,
-  invalidateRoomInputs,
+  deliverQueuedRoomControl,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { encounterReadTransaction } from '../encounters/encounterReadPorts'
@@ -159,12 +159,12 @@ describe('Campaign Character control grants (SCENE-5.1)', () => {
     await expect(actAsCharacter()).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
 
     await grant(base, base.owner.caller, [base.other.userId])
-    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await deliverQueuedRoomControl(base.t)
     // A grantee passes the control check; the Character simply is not on turn.
     expect((await actAsCharacter()).reason).not.toBe('NOT_ACTOR_CONTROLLER')
 
     await grant(base, base.owner.caller, [])
-    await invalidateRoomInputs(base.campaign.id, ['CAMPAIGN'])
+    await deliverQueuedRoomControl(base.t)
     await expect(actAsCharacter()).resolves.toMatchObject({ reason: 'NOT_ACTOR_CONTROLLER' })
   })
 

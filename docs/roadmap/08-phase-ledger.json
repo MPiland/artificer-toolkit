@@ -1103,7 +1103,7 @@
             },
             {
               "id": "PLATFORM-13.T24",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.5"
               ],
@@ -1117,7 +1117,7 @@
                 ]
               },
               "text": "Bug: on wrangler 4.155 (workerd 1.20261023) the room Worker misses invalidated inputs: playerControl keeps a departed member as controller and liveCharacterState misses a Sheet maximum change (run 40987080521); both pass on 4.147 (run 40989252324). Production runs the newer workerd, so treat it as a room-refresh bug: bisect wrangler 4.148-4.155, find the room input-invalidation cause, fix it in product code and lift the wrangler 4.147.0 hold in session-worker and apis. The two tests are the red proof.",
-              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list."
+              "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list. Merged in m560 (98d810402)."
             },
             {
               "id": "PLATFORM-13.T25",
