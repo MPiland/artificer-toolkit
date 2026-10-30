@@ -15,7 +15,7 @@ import {
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { requireCampaignAuthority } from './authority'
-import { readCampaignEquipmentOptions } from './equipmentOptions'
+import { readCampaignCatalogueOptions } from './catalogueOptions'
 import { readCampaignItemPage, readCampaignCurrencyPage } from './partyInventoryDocuments'
 
 // RELIABILITY-21.T18: page reads run in this query's transaction. A `runQuery` hop evaluated a
@@ -56,6 +56,6 @@ export const equipmentOptions = query({
     const input = campaignPartyInventoryListInputSchema.parse(args)
     const { userId } = await requireIdentity(ctx)
     const { campaign } = await requireCampaignAuthority(ctx, input.campaignId, userId)
-    return readCampaignEquipmentOptions(ctx, campaign, userId, input.paginationOpts)
+    return readCampaignCatalogueOptions(ctx, campaign, userId, 'EQUIPMENT', input.paginationOpts)
   }
 })

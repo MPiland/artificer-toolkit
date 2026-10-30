@@ -1109,7 +1109,10 @@ No admin key is stored: scripts generate one per run with
 `docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
 ignored `local-validation/local-convex/local.application.env` holds the local application environment
 without an admin key. On a fresh backend, set `JWKS` to an empty value to select the existing database-backed signing
-keys until a deployment-specific static key set is configured. Official codegen and its TypeScript
+keys until a deployment-specific static key set is configured. Browser journey stacks pin theirs
+with the CI-only `signing-keys` step of `scripts/liveBackendValidation.mjs`: with database-backed keys
+the backend verifies each token by fetching `/api/auth/convex/jwks` from itself, which took up to 40%
+of a proof's compute (RELIABILITY-21.T26). The local container keeps the empty value. Official codegen and its TypeScript
 check pass there. Keep test-only helpers under `tests/fixtures`; non-test-named files under `convex/`
 are deployment entrypoints. The Scene preparation validator reuses only its accepted movement
 branches so module loading remains within the unmodified 64 MB limit.
