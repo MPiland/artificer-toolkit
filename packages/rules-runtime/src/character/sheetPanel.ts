@@ -1,4 +1,3 @@
-import type { SummonPickOptionsDto } from '@artificer-toolkit/schema/api/summonPickOptions'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import {
   characterSheetPanelDtoSchema,
@@ -767,10 +766,11 @@ function buildProficiencyPanel(
     if (!kind || existing.has(`${kind}:${equipment.id}`)) return []
     return [{ kind, targetId: equipment.id, label: equipment.label }]
   })
-  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap((language) =>
-    existing.has(`LANGUAGE:${language.id}`)
-      ? []
-      : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
+  const languageOptions = (params.resolution.registry.system?.languages ?? []).flatMap(
+    (language) =>
+      existing.has(`LANGUAGE:${language.id}`)
+        ? []
+        : [{ kind: 'LANGUAGE' as const, targetId: language.id, label: language.label }]
   )
 
   return {
@@ -1301,8 +1301,7 @@ function buildSpellPanel(
       ...(entry.cast.slotKey ? { slotKey: entry.cast.slotKey } : {}),
       castLevel: entry.castLevel,
       available: entry.available,
-      ...(entry.unavailableReason ? { unavailableReason: entry.unavailableReason } : {}),
-      ...params.castSummonPickOptions?.({ spellId: spell.id, castLevel: entry.castLevel })
+      ...(entry.unavailableReason ? { unavailableReason: entry.unavailableReason } : {})
     })),
     calculations: {
       ...(spell.mechanics?.some((mechanic) => mechanic.attackBonus !== undefined) &&
@@ -1690,7 +1689,6 @@ interface BuildCharacterSheetPanelParams {
   movementDisplayPreference: CharacterMovementDisplayPreference
   target: CharacterSheetPanelTargetDto
   editable: boolean
-  castSummonPickOptions?: (cast: { spellId: string; castLevel: number }) => SummonPickOptionsDto
 }
 
 export function buildCharacterSheetPanel(

@@ -8,11 +8,11 @@ import { buildCharacterSheetPanel } from '@artificer-toolkit/rules-runtime/chara
 import { getCharacterSpellKnownEligibleIdsByClass } from '@artificer-toolkit/rules-runtime/character/characterSpellPreparationEligibility'
 import { presentCampaignCharacterText } from '@artificer-toolkit/rules-runtime/character/campaignCharacterPresentation'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
+import { summonPickOptions } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { query } from '../lib/queries'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet } from './sheetPreparation'
 import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
-import { summonPickOptions } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
 export function projectCharacterSheetPanel(
@@ -20,7 +20,7 @@ export function projectCharacterSheetPanel(
   target: CharacterSheetPanelTargetDto
 ) {
   const { viewer, campaignStatus, contentMaturity } = current.campaignContext
-  const panel = buildCharacterSheetPanel({
+  const builtPanel = buildCharacterSheetPanel({
     character: current.evaluationInput.character,
     resolution: current.resolution,
     presentation: current.presentation,
@@ -37,15 +37,26 @@ export function projectCharacterSheetPanel(
     adjustments: current.displayAdjustments,
     movementDisplayPreference: current.sheetState.movementDisplayPreference,
     target,
-    editable: viewer === 'CHARACTER_OWNER' || campaignStatus === 'ACTIVE',
-    castSummonPickOptions: (cast) => {
-      const placement = readSheetSpellSummonPlacement(current, cast)
-      return placement
-        ? summonPickOptions(placement, current.resolution.registry.system?.creatureTypes ?? [])
-        : {}
-    }
+    editable: viewer === 'CHARACTER_OWNER' || campaignStatus === 'ACTIVE'
   })
-  const allowedCommands =
+  // A summon of a chosen form offers its picks with each cast (SPELLS-34.T3).
+  const panel =
+    builtPanel.kind === 'SPELL'
+      ? {
+          ...builtPanel,
+          legalCastModes: builtPanel.legalCastModes.map((mode) => {
+            const placement =
+              mode.castLevel === undefined
+                ? null
+                : readSheetSpellSummonPlacement(current, {
+                    spellId: builtPanel.spellId,
+                    castLevel: mode.castLevel
+                  })
+            const creatureTypes = current.resolution.registry.system?.creatureTypes ?? []
+            return placement ? { ...mode, ...summonPickOptions(placement, creatureTypes) } : mode
+          })
+        }
+      : builtPanel  const allowedCommands =
     viewer === 'CHARACTER_OWNER'
       ? panel.allowedCommands
       : campaignStatus !== 'ACTIVE'
