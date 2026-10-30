@@ -223,6 +223,35 @@ describe('native Encounter UPDATE_ACTOR commands', () => {
       conditions: [{ conditionTypeId: exhaustion.id, level: 3 }]
     })
   }, 30000)
+
+  it('a Creature dies at once when the GM raises a level to its authored DEATH level (SPELLS-10.T1c)', async () => {
+    const base = await setup()
+    const { other: gm, run, customActor } = base
+    const exhaustion = srdSystemRecord.conditionTypes.find((type) => type.code === 'EXHAUSTION')!
+    const setLevel = (level: number, expectedVersion: number) =>
+      executeInRoom(
+        gm.caller,
+        update({
+          type: 'UPDATE_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          actorId: customActor.id,
+          conditions: [{ conditionTypeId: exhaustion.id, level }]
+        })
+      )
+
+    const raised = await setLevel(5, 0)
+    expect(
+      readStoredRunActor((await stored(base, run.id, customActor.id)).actor!)
+    ).not.toMatchObject({ currentHitPoints: 0 })
+    await setLevel(6, raised.projection.version)
+    expect(readStoredRunActor((await stored(base, run.id, customActor.id)).actor!)).toMatchObject({
+      currentHitPoints: 0,
+      defeated: true,
+      conditions: [{ conditionTypeId: exhaustion.id, level: 6 }]
+    })
+  }, 30000)
   it('bridges a Character Sheet command, retains max override, and replays its original Encounter result', async () => {
     const base = await setup()
     const { t, owner, other: gm, character, run, characterActor, readState } = base

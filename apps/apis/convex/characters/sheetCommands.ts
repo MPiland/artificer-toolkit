@@ -54,6 +54,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
 import {
   characterStandingEffects,
   prepareRestStandingEffects
@@ -69,6 +70,7 @@ import { projectCharacterSheetEquipmentOption } from '@artificer-toolkit/rules-r
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
 import { readCharacterEquipmentCatalogue } from './builderContext'
+import { readDefinitionRoot } from '../content/definitionStore'
 import { mutation } from '../lib/mutations'
 import { requireIdentity } from '../lib/identity'
 import { loadCharacterSheet, projectCharacterSheetFacts } from './sheetPreparation'
@@ -418,6 +420,14 @@ export async function executeCharacterSheetCommand(
       }
     }
   }
+  const definitionReader =
+    initial.sourceContext.context.sourceAccess.campaign?.ownerUserId ?? initial.character.userId
+  const conditionDeath = await sheetCommandReachesConditionDeath({
+    character: initial.character,
+    command,
+    readCurrentDefinition: async (definitionId) =>
+      (await readDefinitionRoot(ctx, definitionId, definitionReader))?.current ?? null
+  })
   const updated = characterAuthoredDtoSchema.parse(
     completedRest?.character ??
       applySupportedCommand(initial.character, commandSheet, input.command, {
@@ -430,7 +440,8 @@ export async function executeCharacterSheetCommand(
         spellSummonPlacement: (cast) => readSheetSpellSummonPlacement(initial, cast),
         summonFormCreatures,
         extraDefaults,
-        deathSaveDie
+        deathSaveDie,
+        conditionDeath
       })
   )
   if (command.type === 'ADD_INVENTORY_ITEM')

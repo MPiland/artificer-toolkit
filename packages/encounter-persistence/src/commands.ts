@@ -32,6 +32,7 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { requireEncounterActorConditionLevels } from '@artificer-toolkit/rules-runtime/encounterConditionLevels'
+import { creatureConditionEditReachesDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
 import {
   requireEncounterActorControl,
   requireEncounterActorControllerCandidates
@@ -401,6 +402,18 @@ async function recordEncounterToolCommand(
         input.conditions,
         (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
       )
+    const conditionDeath =
+      input.type === 'UPDATE_ACTOR' &&
+      input.conditions !== undefined &&
+      (await creatureConditionEditReachesDeath({
+        beforeRows: actor.conditions,
+        afterRows: input.conditions,
+        gameSystemId: state.gameSystemId,
+        readCurrentDefinition: (definitionId) =>
+          ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+      }))
+    const editedHitPoints =
+      input.type !== 'UPDATE_ACTOR' ? undefined : conditionDeath ? 0 : input.currentHitPoints
     if (input.type === 'UPDATE_ACTOR' && input.returnToInitiative && actor.absence === null)
       throw new Error('Only an absent actor can return to initiative.')
     if (
@@ -470,11 +483,11 @@ async function recordEncounterToolCommand(
               ? actor
               : withActorTemporaryHitPoints(actor, temporaryHitPointsSet(input.tempHitPoints))),
             // A GM hit point edit revives a defeated actor above 0 and defeats one taken to 0 (D63).
-            ...(input.currentHitPoints === undefined || actor.kind === 'CHARACTER'
+            ...(editedHitPoints === undefined || actor.kind === 'CHARACTER'
               ? {}
               : {
-                  currentHitPoints: input.currentHitPoints,
-                  defeated: nextEncounterActorDefeated(actor, input.currentHitPoints)
+                  currentHitPoints: editedHitPoints,
+                  defeated: nextEncounterActorDefeated(actor, editedHitPoints)
                 }),
             ...(input.tempHitPoints === undefined ? {} : { tempHitPoints: input.tempHitPoints }),
             ...(input.conditions === undefined ? {} : { conditions: input.conditions }),

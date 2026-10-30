@@ -31,6 +31,7 @@ import {
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import {
   assertCampaignGmSheetCommandAllowed,
@@ -251,11 +252,18 @@ export async function executeRoomCharacterSheetCommand(input: {
     )
   ).toISOString()
   const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? input.random(20) + 1 : undefined
+  const conditionDeath = await sheetCommandReachesConditionDeath({
+    character: initial.character,
+    command,
+    readCurrentDefinition: (definitionId) =>
+      ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+  })
   const updated = characterAuthoredDtoSchema.parse(
     applyCharacterSheetCommand(initial.character, command, sheet, {
       now: () => occurredAt,
       attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit,
-      deathSaveDie
+      deathSaveDie,
+      conditionDeath
     })
   )
   if (command.type === 'END_ACTIVE_EFFECT') {
