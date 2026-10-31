@@ -83,7 +83,8 @@ const summonForm = () => {
  */
 function chainRoom(feature: ClassFeature = pactFeature()) {
   return actionRoom({
-    rolls: [18],
+    // The familiar's initiative d20 at the cast, then the attack's.
+    rolls: [9, 18],
     fallbackRoll: 0,
     actors: [
       {

@@ -1438,7 +1438,9 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     expect(after.participants.map(({ actorId }) => actorId)).toEqual(
       before.map(({ actorId }) => actorId)
     )
-    expect(after.state.currentActorId).toBe(before.find(({ status }) => status === 'ACTIVE')?.actorId)
+    expect(after.state.currentActorId).toBe(
+      before.find(({ status }) => status === 'ACTIVE')?.actorId
+    )
   }, 120000)
 
   it('refuses a cast with no form, a type it does not offer, or a form a stat block summon never takes', async () => {
