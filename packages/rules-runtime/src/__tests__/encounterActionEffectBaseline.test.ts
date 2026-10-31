@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { crocodile } from '@artificer-toolkit/source-data/srd/creatures/crocodile.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
 import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
@@ -715,7 +716,7 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
   }
 
   /** The save action's one active-effect plan, compiled as a Character action is. */
-  const savePlan = (effect: SpellEffect) => {
+  const savePlan = (effect: Parameters<typeof compileEffect>[0]) => {
     const action = {
       ...characterActionDescriptor(compileEffect(effect), 4),
       conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
@@ -757,6 +758,7 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
       activeEffectsByActorId: new Map(),
       activeEffectPlan: compiled.plan,
       link: { memberActorIds: [ids.source, ids.target] },
+      sealedReachFeet: 5,
       form: {
         creatureId: compiled.plan.creatureFormContribution?.forms[0]?.creatureId ?? ids.target
       },
@@ -800,5 +802,16 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
     })
     expect(stateKinds(madeOn(compiled, 'ON_SAVE_SUCCESS'))).toEqual(['CREATURE_FORM'])
     expect(madeOn(compiled, 'ON_SAVE_FAIL')).toBeNull()
+  })
+
+  it('holds a creature that fails the save, and no creature that makes it (SPELLS-33.T6n4)', () => {
+    const bite = crocodile.features.find(({ label }) => label === 'Bite')?.effects?.[0]
+    const compiled = savePlan(asSave(bite, PATH_CODE.ON_SAVE_FAIL))
+    expect(compiled.plan).toMatchObject({
+      resultGate: { paths: ['ON_SAVE_FAIL'] },
+      adapterFacts: { 'dnd5e.relationship-authored-path': 'ON_SAVE_FAIL' }
+    })
+    expect(stateKinds(madeOn(compiled, 'ON_SAVE_FAIL'))).toContain('ACTOR_RELATIONSHIP')
+    expect(madeOn(compiled, 'ON_SAVE_SUCCESS')).toBeNull()
   })
 })

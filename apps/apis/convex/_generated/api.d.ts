@@ -303431,6 +303431,25 @@ export declare const internal: {
         null
       >;
     };
+    schemaCostProbe: {
+      parseDocument: FunctionReference<
+        "query",
+        "internal",
+        {
+          documentJson: string;
+          subjectKind:
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE";
+        },
+        { parsedBytes: number; subjectKind: string }
+      >;
+    };
     seed: {
       audit: FunctionReference<
         "action",
