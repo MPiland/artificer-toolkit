@@ -160,11 +160,7 @@ export function settleCharacterEndedEffects(input: {
   const { hitpoints } = input.state
   const current = Math.min(
     hitpoints.current,
-    effectiveHitPointMaximum(
-      input.maximumHitPoints,
-      input.remaining,
-      hitpoints.maximumFraction
-    )
+    effectiveHitPointMaximum(input.maximumHitPoints, input.remaining, hitpoints.maximumFraction)
   )
   const temporary = temporaryHitPointsAfterEffectsEnd(
     { amount: hitpoints.temp, sourceEffectId: hitpoints.tempSourceEffectId ?? null },
