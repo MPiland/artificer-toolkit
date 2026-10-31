@@ -2,6 +2,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const tarrasque: CreatureAuthored = {
   id: S.CREATURE_IDS.TARRASQUE,
   label: 'Tarrasque',
@@ -422,7 +423,7 @@ export const tarrasque: CreatureAuthored = {
                 id: S.actionId(268, 230) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
-                  S.swallowedOutcome(268, {
+                  swallowedOutcome(268, {
                     localIndex: 10,
                     damageOutcomeId: S.actionId(268, 232),
                     escapeDc: 20,

@@ -11,6 +11,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { sourceTraitRestriction } from '../classes/mechanics.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const kraken: CreatureAuthored = {
   id: S.CREATURE_IDS.KRAKEN,
   label: 'Kraken',
@@ -317,7 +318,7 @@ export const kraken: CreatureAuthored = {
                       }
                     ]
                   },
-                  S.swallowedOutcome(180, {
+                  swallowedOutcome(180, {
                     localIndex: 10,
                     damageOutcomeId: S.actionId(9001, 24),
                     escapeDc: 18,

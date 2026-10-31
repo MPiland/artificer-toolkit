@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const remorhaz: CreatureAuthored = {
   id: S.CREATURE_IDS.REMORHAZ,
   label: 'Remorhaz',
@@ -266,7 +267,7 @@ export const remorhaz: CreatureAuthored = {
                 id: S.actionId(235, 702) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
-                  S.swallowedOutcome(235, {
+                  swallowedOutcome(235, {
                     localIndex: 10,
                     damageOutcomeId: S.actionId(235, 705),
                     escapeDc: 17,

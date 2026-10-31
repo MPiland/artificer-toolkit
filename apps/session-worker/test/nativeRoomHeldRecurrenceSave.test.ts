@@ -355,7 +355,7 @@ describe('a swallowed creature’s acid on its swallower’s turns (SPELLS-33.T6
     expect(swallow.target).toMatchObject({ kind: 'ACTOR', heldBySource: true })
     const swallowed = await room.startAction(
       CHARACTER_ACTOR_ID,
-      ['TARGET_RANGE_UNCHECKED'],
+      ['ACTION_ECONOMY_UNAVAILABLE', 'TARGET_RANGE_UNCHECKED'],
       null,
       null,
       swallow.id

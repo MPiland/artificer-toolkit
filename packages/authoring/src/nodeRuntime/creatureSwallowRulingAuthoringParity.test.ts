@@ -3,12 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
-import { giantFrog } from '@artificer-toolkit/source-data/srd/creatures/giant-frog.js'
-import { giantToad } from '@artificer-toolkit/source-data/srd/creatures/giant-toad.js'
-import { kraken } from '@artificer-toolkit/source-data/srd/creatures/kraken.js'
 import { purpleWorm } from '@artificer-toolkit/source-data/srd/creatures/purple-worm.js'
-import { remorhaz } from '@artificer-toolkit/source-data/srd/creatures/remorhaz.js'
-import { tarrasque } from '@artificer-toolkit/source-data/srd/creatures/tarrasque.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -16,10 +11,11 @@ import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
- * SPELLS-33 T6a1 (D187a): swallowing ships as a GM ruling written from the MANUAL_ADJUDICATION
- * option a Builder author has on a creature feature, beside the attack's automated damage. Each
- * creature must pass the creature node map exactly as authored, and the six swallow closed rule
- * kinds are gone.
+ * SPELLS-33 T6a1 (D187a): a swallow whose rider needs a save ships as a GM ruling written from the
+ * MANUAL_ADJUDICATION option a Builder author has on a creature feature, beside the attack's
+ * automated damage. The other swallows run on the holder-turn phase (T6n3, see
+ * creatureHeldRelationshipAuthoringParity). Each creature must pass the creature node map exactly
+ * as authored, and the six swallow closed rule kinds are gone.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -44,14 +40,7 @@ function featureOutcomes(creature: CreatureAuthored, label: string) {
 }
 
 describe('swallow riders as GM rulings (D187a)', () => {
-  it.each([
-    { creature: giantFrog, label: 'Swallow' },
-    { creature: giantToad, label: 'Swallow' },
-    { creature: purpleWorm, label: 'Bite' },
-    { creature: kraken, label: 'Bite' },
-    { creature: remorhaz, label: 'Swallow' },
-    { creature: tarrasque, label: 'Swallow' }
-  ])(
+  it.each([{ creature: purpleWorm, label: 'Bite' }])(
     'keeps $creature.label $label as a GM ruling with no closed rule',
     async ({ creature, label }) => {
       const kinds = featureOutcomes(creature, label).map(({ effectKind }) => effectKind)
@@ -63,12 +52,7 @@ describe('swallow riders as GM rulings (D187a)', () => {
     }
   )
 
-  it.each([
-    { creature: purpleWorm, label: 'Bite', damage: ['DAMAGE'] },
-    { creature: kraken, label: 'Bite', damage: ['DAMAGE'] },
-    { creature: remorhaz, label: 'Swallow', damage: ['DAMAGE', 'DAMAGE'] },
-    { creature: tarrasque, label: 'Swallow', damage: ['DAMAGE'] }
-  ])(
+  it.each([{ creature: purpleWorm, label: 'Bite', damage: ['DAMAGE'] }])(
     'keeps the $creature.label $label damage automated beside the ruling',
     ({ creature, label, damage }) => {
       expect(featureOutcomes(creature, label).map(({ effectKind }) => effectKind)).toEqual([

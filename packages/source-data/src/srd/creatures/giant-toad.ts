@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
+import { swallowedOutcome, heldByUseEffect } from './swallow.js'
 export const giantToad: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_TOAD,
   label: 'Giant Toad',
@@ -177,11 +178,11 @@ export const giantToad: CreatureAuthored = {
       description:
         "Swallow. The toad makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is swallowed, and the grapple ends. The swallowed target is blinded and restrained, it has total cover against attacks and other effects outside the toad, and it takes 10 (3d6) acid damage at the start of each of the toad's turns. The toad can have only one target swallowed at a time. If the toad dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone.",
       effects: [
-        S.heldByUseEffect({
+        heldByUseEffect({
           effectId: S.actionId(136, 7),
           rangeId: S.actionId(136, 8),
           pathId: S.actionId(136, 9),
-          outcome: S.swallowedOutcome(136, {
+          outcome: swallowedOutcome(136, {
             localIndex: 10,
             damageOutcomeId: S.actionId(136, 10),
             escapeDc: 13,

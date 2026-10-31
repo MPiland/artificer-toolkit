@@ -22,16 +22,36 @@ import { dnd5eAttackKind } from '../systems/dnd5e/attackKind.js'
 import { resolveCreatureDamageExpression } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   createSrdRulesRuntime,
+  ENCOUNTER_ID,
   srdCreatureActor,
   srdCreatureTarget,
   srdEncounterState,
   testUuid,
   TIMESTAMP
 } from '../testing/dnd5eSrdEncounter.js'
+import { activeEffect } from './encounterActiveEffectFixtures.js'
 import { outcomeDice } from './encounterCreatureAction.js'
 
 const ACTOR_ID = testUuid(0xa1)
 const TARGET_ID = testUuid(0xa2)
+
+/** A hold the attacker has on the target, which a `heldBySource` attack needs to pick it. */
+const heldByAttacker = activeEffect({
+  id: testUuid(0xa3),
+  owner: { kind: 'ENCOUNTER_ACTOR', encounterId: ENCOUNTER_ID, targetActorId: TARGET_ID },
+  createdOrdinal: 1,
+  sourceActorId: ACTOR_ID,
+  stateContributions: [
+    {
+      kind: 'ACTOR_RELATIONSHIP',
+      relationshipOutcomeId: testUuid(0xa4),
+      sealedReachFeet: 5,
+      modules: [],
+      conditionIds: [],
+      capabilitySuppressions: []
+    }
+  ]
+})
 const OCCURRENCE_ID = testUuid(0xe007)
 const COMMAND_ID = testUuid(0xe008)
 /** 0-based die faces: 15 on the d20 (a hit on the Ogre's AC 11, never a critical), mid-range damage. */
@@ -168,13 +188,8 @@ describe('SRD Creature attack sweep', () => {
     expect(mismatches).toEqual({})
   })
 
-  it('sweeps the swallowing attacks as automated damage beside a GM ruling (D187a)', () => {
-    const damageParts = {
-      'Purple Worm: Bite': 1,
-      'Kraken: Bite': 1,
-      'Remorhaz: Swallow': 2,
-      'Tarrasque: Swallow': 1
-    }
+  it('sweeps the save-gated swallowing attack as automated damage beside a GM ruling (D187a)', () => {
+    const damageParts = { 'Purple Worm: Bite': 1 }
     for (const [label, parts] of Object.entries(damageParts)) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
@@ -214,7 +229,10 @@ describe('SRD Creature attack sweep', () => {
       'Chain Devil: Chain': ['DAMAGE', 'ACTOR_RELATIONSHIP'],
       'Marilith: Tail': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
       'Roper: Tendril': ['ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
-      'Stirge: Blood Drain': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION']
+      'Stirge: Blood Drain': ['DAMAGE', 'ACTOR_RELATIONSHIP'],
+      // The swallows hold the target and burn it on the holder-turn phase (SPELLS-33.T6n3).
+      'Remorhaz: Swallow': ['DAMAGE', 'DAMAGE', 'ACTOR_RELATIONSHIP'],
+      'Tarrasque: Swallow': ['DAMAGE', 'ACTOR_RELATIONSHIP']
     }
     for (const [label, expected] of Object.entries(hitKindsByLabel)) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
@@ -227,6 +245,18 @@ describe('SRD Creature attack sweep', () => {
       )
       expect(hitKinds).toEqual(expected)
     }
+    // The Kraken's plain Bite stays damage only; its swallowing Bite holds the creature it grappled.
+    const krakenBites = creatures
+      .flatMap(attackUnits)
+      .filter((unit) => unit.label === 'Kraken: Bite')
+      .map((unit) =>
+        unit.effect.paths.flatMap((path) =>
+          path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED'
+            ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
+            : []
+        )
+      )
+    expect(krakenBites).toEqual([['DAMAGE'], ['DAMAGE', 'ACTOR_RELATIONSHIP']])
   })
 
   it('sweeps the lingering poison and wound attacks as a save with a GM ruling on failure (D187a)', () => {
@@ -313,7 +343,12 @@ describe('SRD Creature attack sweep', () => {
             choiceOptionId: castChoiceOptions(capability.compiledEffect)?.[0]?.optionId,
             wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null, handHolds: 0 },
             overridable: true,
-            movementTargets,
+            movementTargets: unit.effect.invocation?.targeting?.heldBySource
+              ? new Map([
+                  ...movementTargets,
+                  [target.id, srdCreatureTarget(target, [heldByAttacker])]
+                ])
+              : movementTargets,
             loadSource: async (input) =>
               resolveEncounterActionSource({
                 spells: new Map(),
@@ -361,7 +396,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(549)
+    expect(effectIds.size).toBe(550)
     expect(failures).toEqual({})
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)
