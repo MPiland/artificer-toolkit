@@ -59,6 +59,10 @@ import { summonPicks } from '#app/components/summonPicks/summonPicks.model'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
+import {
+  CampaignTabletopOptionalChoiceFields,
+  CampaignTabletopSpendInput
+} from './CampaignTabletopChoiceInputs'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
 import { CampaignTabletopFormCreaturePicker } from './CampaignTabletopFormCreaturePicker'
 import { CampaignTabletopEffectOffers } from './CampaignTabletopEffectOffers'
@@ -248,6 +252,7 @@ export function CampaignTabletopActionDrawer({
   // The last ammunition stack picked stays preselected across actions while it still fits; it is
   // this panel's state only, never saved (ATTACK-19.4).
   const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
+  const [pickedSpentUnits, setPickedSpentUnits] = useState(1)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -362,6 +367,8 @@ export function CampaignTabletopActionDrawer({
     itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
   const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
   const ammunitionOptions = selectedAction?.ammunition ?? []
+  const chosenSpend = selectedAction?.chosenSpend
+  const spentUnits = chosenSpend && Math.min(pickedSpentUnits, chosenSpend.max)
   const chosenAmmunition =
     ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
     ammunitionOptions[0] ??
@@ -779,6 +786,7 @@ export function CampaignTabletopActionDrawer({
     setPickedCreatureTypeId(null)
     setPickedBandSide(null)
     setPickedItemId(null)
+    setPickedSpentUnits(1)
   }
 
   useEffect(() => {
@@ -882,6 +890,7 @@ export function CampaignTabletopActionDrawer({
         sceneContext: namesNoCreature ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
+        ...(spentUnits !== undefined ? { spentUnits } : {}),
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
           ? {
@@ -1154,6 +1163,14 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedAmmunitionId}
                 />
               ) : null}
+              {chosenSpend ? (
+                <CampaignTabletopSpendInput
+                  disabled={selectionControlsDisabled}
+                  spend={chosenSpend}
+                  value={spentUnits ?? 1}
+                  onChange={setPickedSpentUnits}
+                />
+              ) : null}
               {spareLimit !== undefined ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
@@ -1335,32 +1352,14 @@ export function CampaignTabletopActionDrawer({
                   onChange={setOptionalRuleId}
                 />
               ) : null}
-              {selectedOptionalRule &&
-                currentOptionalChoices?.fields.map((field) => (
-                  <Select
-                    comboboxProps={{ withinPortal: false }}
-                    data={field.options.map((option) => ({
-                      label: option.label,
-                      value: option.id
-                    }))}
-                    disabled={dependentControlsDisabled}
-                    key={field.fieldId}
-                    label={field.label}
-                    searchable
-                    value={optionalValues[field.fieldId] ?? null}
-                    onChange={(value) => {
-                      setOptionalValues((current) =>
-                        value === null
-                          ? Object.fromEntries(
-                              Object.entries(current).filter(
-                                ([fieldId]) => fieldId !== field.fieldId
-                              )
-                            )
-                          : { ...current, [field.fieldId]: value }
-                      )
-                    }}
-                  />
-                ))}
+              {selectedOptionalRule && currentOptionalChoices ? (
+                <CampaignTabletopOptionalChoiceFields
+                  disabled={dependentControlsDisabled}
+                  fields={currentOptionalChoices.fields}
+                  values={optionalValues}
+                  onChange={setOptionalValues}
+                />
+              ) : null}
               {confirmingWarnings ? (
                 <CampaignTabletopActionConfirmation
                   confirmIsPrimary={false}
@@ -1449,6 +1448,7 @@ export function CampaignTabletopActionDrawer({
                       !selectedAction ||
                       !target ||
                       incompleteOptionalChoices ||
+                      (chosenSpend !== undefined && chosenSpend.max < 1) ||
                       currentOptionalChoicesError !== null
                     }
                     loading={submitting}

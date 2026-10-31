@@ -326,7 +326,7 @@ const actionHealFactSchema = lazySchema(() =>
     outcomeId: z.optional(identitySchema),
     pathCode: identitySchema,
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
-    valueKind: z.enum(['DICE', 'FIXED', 'POOL', 'DAMAGE_DEALT']),
+    valueKind: z.enum(['DICE', 'FIXED', 'POOL', 'RESOURCE_SPENT', 'DAMAGE_DEALT']),
     scalingKind: z.enum(['NONE', 'PER_LEVEL', 'BREAKPOINTS']),
     scalingSource: z.nullable(
       z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])

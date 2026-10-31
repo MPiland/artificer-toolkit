@@ -2365,6 +2365,23 @@ Modules: `encounterInitiative*` (graph execution, score batches, tie and order r
 state settlement), `encounterTurn*`, `encounterRechargeLifecycle`. The room's ordering and delivery are in
 [live sessions](live-sessions.md).
 
+## Chosen pool spend (current, SPELLS-31.T4f2a)
+
+A `HEAL` outcome with `valueKind: 'RESOURCE_SPENT'` restores `amount` hit points for each unit the
+user spends from the action's `resourceUse` pool. It is the generic option behind Lay on Hands (a
+`CLASS_LEVEL` pool, multiplier 5, one point per unit); any pool feature can author it.
+
+- The player chooses the units: `RESOLVE_ACTION.spentUnits`, offered as `chosenSpend: { unitCost, max }`
+  on the action choice (`character/characterChosenSpend.ts`, shared by the choices
+  read and the planner). The command must send `spentUnits` exactly when the action spends a chosen
+  amount.
+- `prepareNativeCharacterActionState` spends `cost x spentUnits` from the pool and refuses more than
+  remains. The compiler binds `dnd5e.spent-heal-amount` (per-unit amount x units) into the `SPENT_HEAL`
+  outcome's heal proposal. Spend and heal commit and undo together.
+- Not yet on the option (T4f2b, T4f2c): the undead/construct filter, the 5-point cure spend and a
+  caster-divides split with per-target caps. Both extend the `RESOURCE_SPENT` source rather than
+  reshaping it. Until then Lay on Hands' cures and exclusions remain in its description.
+
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
 A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It

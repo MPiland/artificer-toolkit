@@ -312,6 +312,17 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         .check(z.maxLength(50))
     ),
     /**
+     * The units the caster chooses to spend from the action's pool (a heal that gives hit points per
+     * unit spent), each costing `unitCost` charges, up to `max`; absent when the action spends a fixed
+     * amount. The client sends its pick as `spentUnits`.
+     */
+    chosenSpend: z.optional(
+      z.strictObject({
+        unitCost: z.number().check(z.int()).check(z.positive()),
+        max: z.number().check(z.int()).check(z.gte(0))
+      })
+    ),
+    /**
      * The most creatures the caster may spare from this cast's area, naming them as
      * `unaffectedActorIds`; absent when the cast spares none.
      */

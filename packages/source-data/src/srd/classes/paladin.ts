@@ -875,21 +875,57 @@ export const paladin: ClassAuthored = {
       label: 'Lay on Hands',
       description:
         'Your blessed touch can heal wounds. You have a pool of healing power that replenishes when you take a long rest. With that pool, you can restore a total number of hit points equal to your paladin level × 5.\n\nAs an action, you can touch a creature and draw power from the pool to restore a number of hit points to that creature, up to the maximum amount remaining in your pool.\n\nAlternatively, you can expend 5 hit points from your pool of healing to cure the target of one disease or neutralize one poison affecting it. You can cure multiple diseases and neutralize multiple poisons with a single use of Lay on Hands, expending hit points separately for each one.\n\nThis feature has no effect on undead and constructs.',
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      // The pool is 5 hit points per paladin level; each point spent heals 1 hit point.
+      charges: {
+        id: classRowId(P, 0x66, 2),
+        limitKind: 'CLASS_LEVEL',
+        scalingKind: SCALING.NONE,
+        classId: CLASS_IDS.PALADIN,
+        multiplier: 5,
+        resetKind: 'LONG_REST'
+      },
+      // Curing a disease or poison and the undead/construct exclusion stay with the GM until the
+      // pool-spend option gains a creature-type filter and a spend per cure.
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(P, 0x60, 2),
-          ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_LAY_ON_HANDS,
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(P, 0x66, 2), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: classRowId(P, 0x69, 2), rangeKind: RANGE_KIND.TOUCH },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: TARGET_DISPOSITION_KIND.ANY
             }
-          }
-        })
+          },
+          paths: [
+            {
+              id: classRowId(P, 0x80, 2),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(P, 0x81, 2),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(P, 0x82, 2),
+                    effectKind: EFFECT_KIND.HEAL,
+                    valueKind: 'RESOURCE_SPENT',
+                    scalingKind: SCALING.NONE,
+                    amount: 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       availableAtLevel: 1,
       order: 1

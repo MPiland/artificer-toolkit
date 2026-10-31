@@ -106,7 +106,7 @@
 00000000-0000-0000-c007-140300000000 CHARACTER:classes Aura of Devotion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-140500000000 CHARACTER:classes Holy Nimbus | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c007-600100000000 CHARACTER:classes Divine Sense | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000000-0000-0000-c007-600200000000 CHARACTER:classes Lay on Hands | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c007-600200000000 CHARACTER:classes Lay on Hands | SINGLE_GRAPH e92692d3b9be565ee2fc96ec7883a872ee63416df92e3e66e59844d03d019147 nodes=1 outputs=2
 00000000-0000-0000-c007-600500000000 CHARACTER:classes Divine Smite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-600a00000000 CHARACTER:classes Aura of Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-600d00000000 CHARACTER:classes Aura of Courage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

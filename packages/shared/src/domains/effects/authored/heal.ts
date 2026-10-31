@@ -106,6 +106,16 @@ export type HealPoolPayload =
     ))
 
 /**
+ * Hit points regained for each unit the caster spends from the action's `resourceUse` pool. The
+ * caster picks how many units at use, from one to what the pool holds; `amount` is per unit.
+ */
+export type HealResourceSpentPayload = {
+  amount: number
+  valueKind: 'RESOURCE_SPENT'
+  scalingKind: typeof SCALING.NONE
+}
+
+/**
  * A fraction, rounded down, of the damage a sibling DAMAGE outcome of the same result block dealt
  * (after resistance). `recipient` names who regains it; the damage's target is never the recipient.
  */
@@ -121,6 +131,7 @@ export type HealPayload =
   | HealFixedPayload
   | HealDicePayload
   | HealPoolPayload
+  | HealResourceSpentPayload
   | HealDamageDealtPayload
 
 export type HealAuthored = {

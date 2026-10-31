@@ -15,6 +15,7 @@ import {
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
+import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
 import type {
   ActorRelationshipAuthored,
   OptionalOnHitAuthored,
@@ -2035,6 +2036,11 @@ const DND5E_DIRECT_OUTCOMES: {
       validateHealBonuses(outcome.bonuses)
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
+    if (outcome.valueKind === 'RESOURCE_SPENT') {
+      if (outcome.temporary || outcome.bonuses?.length || !(outcome.amount > 0))
+        unsupported('D&D spent healing is a plain positive amount per unit spent.')
+      return { kind: 'SPENT_HEAL' }
+    }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -3744,24 +3750,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const recurringHealOutcome = published.definition.outputs.recurringHealOutcomeId
     const recurringHealOutcomeId =
       recurringHealOutcome?.kind === 'LITERAL' ? recurringHealOutcome.value : null
-    let recurringHealAmountFacts: Record<string, number> = {}
-    if (recurringHealOutcomeId !== null && published.definition.outputs.recurringHealAmount) {
-      const rows = resolvedHealOutcomes.filter(
-        ({ outcomeId }) => outcomeId === recurringHealOutcomeId
-      )
-      const match = rows.length === 1 ? /^(\d+)(?: ([+-]) (\d+))?$/.exec(rows[0]!.expression) : null
-      if (!match)
-        throw new Dnd5eEffectActionCompilerError(
-          'D&D recurring healing requires one exact resolved fixed amount.'
-        )
-      const bonus = Number(match[3] ?? 0)
-      recurringHealAmountFacts = {
-        [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY]: Math.max(
-          0,
-          Number(match[1]) + (match[2] === '-' ? -bonus : bonus)
-        )
-      }
-    }
+    const recurringHealFacts = recurringHealAmountFacts(
+      published,
+      resolvedHealOutcomes,
+      recurringHealOutcomeId
+    )
     let resolvedHealModifierFacts: Record<string, number | boolean> = {}
     if (requiresHealModifier) {
       const heals = resolvedHealOutcomes.filter((o) => o.outcomeId !== recurringHealOutcomeId)
@@ -3828,7 +3821,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
-      ...recurringHealAmountFacts,
+      ...recurringHealFacts,
+      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic.spentUnits),
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
