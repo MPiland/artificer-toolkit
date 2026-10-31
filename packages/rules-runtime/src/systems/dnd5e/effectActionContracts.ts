@@ -105,6 +105,13 @@ export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-im
  */
 export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
 /**
+ * The target's challenge rating (a creature's, as the number the System vocabulary records) when
+ * the action resolves. A challenge rating gate reads it; a target with none carries
+ * {@link NO_CHALLENGE_RATING}, which no authored cap admits.
+ */
+export const DND5E_TARGET_CHALLENGE_RATING_FACT_KEY = 'dnd5e.target-challenge-rating'
+export const NO_CHALLENGE_RATING = Number.MAX_SAFE_INTEGER
+/**
  * The ids of the damage types the target took since its last turn began, as sorted JSON text. A
  * damage-type suppression gate reads it, and only a graph that binds it carries it in its facts.
  */

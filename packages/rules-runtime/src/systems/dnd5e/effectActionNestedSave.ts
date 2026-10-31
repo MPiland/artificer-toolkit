@@ -246,6 +246,8 @@ function nestedSaveBandGateNode(
   gate: BandGate
 ) {
   const [first] = band
+  if (gate.kind === 'TARGET_CHALLENGE_RATING_AT_MOST')
+    unsupported('D&D challenge rating gate belongs to a test path, not a nested save band.')
   if (
     gate.kind === 'REDUCED_TO_ZERO_BY' &&
     (first?.effectKind !== 'DAMAGE' ||

@@ -978,6 +978,42 @@ export const cleric: ClassAuthored = {
                   }
                 ]
               }
+            },
+            {
+              // Destroy Undead: the kill is its own failed-save block so its challenge rating gate leaves "Turned" for every undead.
+              id: classRowId(C, 0x64, 3),
+              order: 2,
+              pathCode: PATH_CODE.ON_SAVE_FAIL,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(C, 0x64, 3)}__result`,
+                resultKind: 'SINGLE',
+                gate: {
+                  kind: 'TARGET_CHALLENGE_RATING_AT_MOST',
+                  scaling: {
+                    scalingKind: 'BREAKPOINTS',
+                    scalingSource: 'CLASS_LEVEL',
+                    classId: CLASS_IDS.CLERIC,
+                    breakpoints: (
+                      [
+                        [5, 0.5],
+                        [8, 1],
+                        [11, 2],
+                        [14, 3],
+                        [17, 4]
+                      ] as const
+                    ).map(([level, maxChallengeRating], index) => ({
+                      id: classRowId(C, 0x67, index + 1),
+                      level,
+                      order: 1,
+                      value: { maxChallengeRating }
+                    }))
+                  }
+                },
+                outcomes: [{ id: classRowId(C, 0x66, 3), effectKind: EFFECT_KIND.KILL }]
+              }
             }
           ]
         }
@@ -1010,33 +1046,7 @@ export const cleric: ClassAuthored = {
       description:
         'Starting at 5th level, when an undead fails its saving throw against your Turn Undead feature, the creature is instantly destroyed if its challenge rating is at or below a certain threshold, as shown in the Destroy Undead table.',
       availableAtLevel: 5,
-      order: 5,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(C, 0x60, 6),
-          ruleKind: CLOSED_RULE_KIND.CLASS_CLERIC_DESTROY_UNDEAD,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(C, 0x6e, 6),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: { id: classRowId(C, 0x69, 6), rangeKind: RANGE_KIND.SELF },
-            shape: {
-              id: classRowId(C, 0x6f, 6),
-              shapeKind: SHAPE_KIND.SPHERE,
-              radius: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'ANY'
-            }
-          }
-        })
-      ]
+      order: 5
     },
     {
       id: classRowId(C, 3, 7),

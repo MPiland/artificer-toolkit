@@ -14,17 +14,23 @@ import {
   hitPointGateBand,
   withinHitPointBand
 } from '../../hitPointTiers.js'
+import { selectScalingRow } from '../../scalingRowSelection.js'
 import {
+  DND5E_TARGET_CHALLENGE_RATING_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
   DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY,
+  NO_CHALLENGE_RATING,
   unsupported
 } from './effectActionContracts.js'
+import { scalingLevel, type Dnd5eEffectScalingFacts } from './effectActionScalingFacts.js'
 
 /** The authored gate fields of a direct entry: a hit-point gate and the damage types that suppress it. */
 export type Dnd5eAuthoredGates = {
   gate?: ResultBlockGateAuthored
   /** A band computed by the compiler (a hit-point tier's), standing in for an authored gate. */
   hitPointBand?: { above: number; atMost: number }
+  /** The cap of an authored challenge rating gate, once the compiler has chosen the scaling row the source's level reaches. */
+  challengeRatingCap?: number
   /** The node of the damage proposal the entry follows, resolved by the compiler from an authored `REDUCED_TO_ZERO_BY` gate. */
   reducedToZeroByNodeId?: string
   suppressedByDamageTypeIds?: readonly string[]
@@ -90,9 +96,16 @@ export function authoredHitPointBand(gate: Dnd5eAuthoredGates['gate']): {
   above: number
   atMost: number
 } {
-  return gate && gate.kind !== 'REDUCED_TO_ZERO_BY'
+  return gate && isHitPointGate(gate)
     ? hitPointGateBand(gate)
     : { above: NO_HIT_POINT_FLOOR, atMost: NO_HIT_POINT_CEILING }
+}
+
+/** An authored hit-point gate: the only kind the hit-point band reads. */
+export function isHitPointGate(
+  gate: ResultBlockGateAuthored
+): gate is Extract<ResultBlockGateAuthored, { amount: number }> {
+  return gate.kind === 'TARGET_HIT_POINTS_AT_MOST' || gate.kind === 'TARGET_HIT_POINTS_AT_LEAST'
 }
 
 /**
@@ -154,6 +167,47 @@ export const DND5E_GATE_KINDS = {
         band !== null &&
         facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] === currentHitPoints
         ? withinHitPointBand(currentHitPoints, band.above, band.atMost)
+        : null
+    }
+  },
+  /**
+   * The target's challenge rating is at most the cap. A target with no challenge rating carries
+   * {@link NO_CHALLENGE_RATING}, which no authored cap admits. A gate that authors no cap binds 0
+   * for both, so it admits every target and needs no challenge rating fact.
+   */
+  CHALLENGE_RATING_CAP: {
+    inputKinds: {
+      targetChallengeRating: RULE_VALUE_KIND.NUMBER,
+      maxChallengeRating: RULE_VALUE_KIND.NUMBER
+    },
+    nodeInputs: ({ challengeRatingCap }) =>
+      challengeRatingCap === undefined
+        ? {
+            targetChallengeRating: { kind: 'LITERAL', value: 0 },
+            maxChallengeRating: { kind: 'LITERAL', value: 0 }
+          }
+        : {
+            targetChallengeRating: {
+              kind: 'FACT',
+              factKey: DND5E_TARGET_CHALLENGE_RATING_FACT_KEY
+            },
+            maxChallengeRating: { kind: 'LITERAL', value: challengeRatingCap }
+          },
+    admits: ({ targetChallengeRating, maxChallengeRating }) =>
+      typeof targetChallengeRating !== 'number' || typeof maxChallengeRating !== 'number'
+        ? null
+        : targetChallengeRating <= maxChallengeRating,
+    evidenceAdmits: ({ inputs, facts }) => {
+      const rating = inputs.targetChallengeRating
+      const cap = inputs.maxChallengeRating
+      if (cap?.kind !== 'LITERAL' || typeof cap.value !== 'number') return null
+      if (rating?.kind === 'LITERAL')
+        return typeof rating.value === 'number' ? rating.value <= cap.value : null
+      const targetRating = facts[DND5E_TARGET_CHALLENGE_RATING_FACT_KEY]
+      return rating?.kind === 'FACT' &&
+        rating.factKey === DND5E_TARGET_CHALLENGE_RATING_FACT_KEY &&
+        typeof targetRating === 'number'
+        ? targetRating <= cap.value
         : null
     }
   },
@@ -227,11 +281,12 @@ export function testPathGates(
   outcomeKind: string,
   {
     hitPointBand,
-    reducedToZeroByNodeId
-  }: Pick<Dnd5eAuthoredGates, 'hitPointBand' | 'reducedToZeroByNodeId'> = {}
+    reducedToZeroByNodeId,
+    challengeRatingCap
+  }: Pick<Dnd5eAuthoredGates, 'hitPointBand' | 'reducedToZeroByNodeId' | 'challengeRatingCap'> = {}
 ): Dnd5eAuthoredGates {
   const { gate, suppressedByDamageTypeIds }: Dnd5eAuthoredGates = 'outcome' in entry ? entry : {}
-  const authoredGate = gate && gate.kind !== 'REDUCED_TO_ZERO_BY' ? gate : undefined
+  const authoredGate = gate && isHitPointGate(gate) ? gate : undefined
   if (authoredGate && hitPointBand)
     unsupported('D&D hit-point tier outcome cannot author its own hit-point gate.')
   const authored = {
@@ -242,6 +297,7 @@ export function testPathGates(
   return {
     ...authored,
     ...(hitPointBand ? { hitPointBand } : {}),
+    ...(challengeRatingCap !== undefined ? { challengeRatingCap } : {}),
     ...(reducedToZeroByNodeId ? { reducedToZeroByNodeId } : {})
   }
 }
@@ -258,6 +314,7 @@ export function isGated(entry: Dnd5eAuthoredGates): boolean {
   return (
     entry.gate !== undefined ||
     entry.hitPointBand !== undefined ||
+    entry.challengeRatingCap !== undefined ||
     entry.reducedToZeroByNodeId !== undefined ||
     (entry.suppressedByDamageTypeIds?.length ?? 0) > 0
   )
@@ -310,13 +367,42 @@ export function gateEvidenceIsValid(
 /** The facts a published graph's gate inputs read; a gate the graph does not bind adds none. */
 export function gateFacts(
   graph: Pick<CompiledRuleGraph, 'nodes'>,
-  target: { targetDamageTypesTaken?: readonly string[] }
+  target: { targetDamageTypesTaken?: readonly string[]; targetChallengeRating?: number }
 ): Record<string, RuleValue> {
-  return graph.nodes.some((node) => node.inputs.targetDamageTypesTaken !== undefined)
-    ? {
-        [DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY]: damageTypeIdsText(
-          target.targetDamageTypesTaken ?? []
-        )
-      }
-    : {}
+  return {
+    ...(graph.nodes.some((node) => node.inputs.targetDamageTypesTaken !== undefined)
+      ? {
+          [DND5E_TARGET_DAMAGE_TYPES_TAKEN_FACT_KEY]: damageTypeIdsText(
+            target.targetDamageTypesTaken ?? []
+          )
+        }
+      : {}),
+    ...(graph.nodes.some((node) => node.inputs.targetChallengeRating?.kind === 'FACT')
+      ? {
+          [DND5E_TARGET_CHALLENGE_RATING_FACT_KEY]:
+            target.targetChallengeRating ?? NO_CHALLENGE_RATING
+        }
+      : {})
+  }
+}
+
+/**
+ * The cap a level scaled challenge rating gate allows the source's level: the scaling row the level
+ * reaches, else the gate's own maximum. Undefined when the entry authors no such gate or the level
+ * reaches no cap, in which case a gate that is authored is never met (the block is not owed).
+ */
+export function challengeRatingGateCap(
+  gate: ResultBlockGateAuthored | undefined,
+  facts: Dnd5eEffectScalingFacts
+): number | undefined {
+  if (gate?.kind !== 'TARGET_CHALLENGE_RATING_AT_MOST') return undefined
+  const row = gate.scaling
+    ? selectScalingRow(gate.scaling.breakpoints, scalingLevel(gate.scaling, facts))
+    : null
+  return row?.value.maxChallengeRating ?? gate.maxChallengeRating
+}
+
+/** Whether an entry authors a challenge rating gate, whatever cap the source's level reaches. */
+export function hasChallengeRatingGate(entry: CompiledEffectGroup['entries'][number]): boolean {
+  return 'gate' in entry && entry.gate?.kind === 'TARGET_CHALLENGE_RATING_AT_MOST'
 }

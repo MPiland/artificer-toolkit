@@ -103,6 +103,8 @@ export const encounterCreatureRuleFactsSnapshotSchema = lazySchema(() =>
       checkTotals: z.optional(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int()))),
       /** Proficiency bonus added to a saving throw, keyed by ability definition; absent when not proficient. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
+      /** The Creature's challenge rating as the number the System vocabulary records (1/8 = 0.125); absent when it has none. */
+      challengeRatingValue: z.optional(z.number().check(z.gte(0))),
       resourceAbilityScores: z.record(systemCoreCodeSchema, z.number()),
       initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema,
       /**

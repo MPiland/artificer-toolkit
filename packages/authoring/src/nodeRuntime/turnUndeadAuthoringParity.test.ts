@@ -20,7 +20,8 @@ import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 /**
  * SPELLS-31.T4m (D156): Turn Undead and Turn the Unholy are authored from generic options: an area
  * Wisdom save limited to creature types, a Channel Divinity charge, a 1-minute failed-save block
- * and the turned behavior as a GM ruling (T2l2). Destroy Undead's kind stays until its CR gate.
+ * and the turned behavior as a GM ruling (T2l2). Destroy Undead (SPELLS-31.T4m2, D202) is a
+ * challenge rating gated kill on Turn Undead's failed save, and its own row is description only.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -41,10 +42,39 @@ const turnedBlock = (record: ClassAuthored, label: string) => {
 }
 
 describe('Turn Undead and Turn the Unholy authored from generic options (SPELLS-31.T4m)', () => {
-  it('no longer lists their closed rule kinds, and keeps Destroy Undead', () => {
+  it('no longer lists their closed rule kinds, nor Destroy Undead', () => {
     expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_CLERIC_CHANNEL_DIVINITY_TURN_UNDEAD')
     expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_OATH_OF_DEVOTION_TURN_THE_UNHOLY')
-    expect(CLOSED_RULE_KIND).toHaveProperty('CLASS_CLERIC_DESTROY_UNDEAD')
+    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_CLERIC_DESTROY_UNDEAD')
+  })
+
+  it('authors Destroy Undead as a level scaled challenge rating gate around a kill on the failed save', () => {
+    const { effect } = turnedBlock(cleric, 'Channel Divinity')
+    const [turned, destroy] = effect.paths
+    if (turned?.selectionKind !== 'FIXED' || destroy?.selectionKind !== 'FIXED')
+      throw new Error('Turn Undead needs two fixed failed-save paths.')
+    expect(turned.resultBlock.gate).toBeUndefined()
+    expect(destroy.pathCode).toBe('ON_SAVE_FAIL')
+    expect(destroy.resultBlock.outcomes).toMatchObject([{ effectKind: 'KILL' }])
+    expect(destroy.resultBlock.gate).toMatchObject({
+      kind: 'TARGET_CHALLENGE_RATING_AT_MOST',
+      scaling: { scalingSource: 'CLASS_LEVEL' }
+    })
+    const gate = destroy.resultBlock.gate
+    expect(
+      gate?.kind === 'TARGET_CHALLENGE_RATING_AT_MOST' &&
+        gate.scaling?.breakpoints.map(({ level, value }) => [level, value.maxChallengeRating])
+    ).toEqual([
+      [5, 0.5],
+      [8, 1],
+      [11, 2],
+      [14, 3],
+      [17, 4]
+    ])
+  })
+
+  it('leaves the Destroy Undead row description only', () => {
+    expect(srdByLabel(cleric.features ?? [], 'Destroy Undead').effects).toBeUndefined()
   })
 
   it.each([cleric, oathOfDevotion])(

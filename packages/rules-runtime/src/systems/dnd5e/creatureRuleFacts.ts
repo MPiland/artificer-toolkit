@@ -151,6 +151,7 @@ export function compileDnd5eCreatureRuleFacts(input: {
     abilityScores,
     checkTotals,
     saveProficiencyBonuses,
+    ...(challengeRating ? { challengeRatingValue: challengeRating.value } : {}),
     resourceAbilityScores: creature.abilityScores,
     initiativeAbilityDefinitionId: initiativeAbility.id,
     modifiers: foldDnd5eCreatureFeatureGrants(creature)

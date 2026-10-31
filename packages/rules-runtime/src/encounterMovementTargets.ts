@@ -691,6 +691,9 @@ export function buildMovementTarget<
       incomingDamage,
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
+      ...(creatureFacts?.challengeRatingValue !== undefined
+        ? { challengeRatingValue: creatureFacts.challengeRatingValue }
+        : {}),
       targetProtection,
       statBlock: creatureStatBlock && {
         ...creatureStatBlock,

@@ -12,6 +12,7 @@ import type {
 } from '#authored'
 import type {
   ActivationCode,
+  BreakpointScalingAuthored,
   EquipmentCategoryCode,
   LengthUnitCode,
   EquipmentPropertyCode,
@@ -176,6 +177,16 @@ export type ResultBlockGateAuthored =
       kind: 'TARGET_HIT_POINTS_AT_MOST' | 'TARGET_HIT_POINTS_AT_LEAST'
       /** The target's current hit points must be at most (AT_MOST) or at least (AT_LEAST) this many. */
       amount: number // int >= 1
+    }
+  | {
+      kind: 'TARGET_CHALLENGE_RATING_AT_MOST'
+      /** The target's challenge rating (its numeric value, 1/8 = 0.125) must be at most this; the cap below every `scaling` row. */
+      maxChallengeRating?: number // >= 0
+      /**
+       * A cap that grows with a level: the row the source's level reaches replaces `maxChallengeRating`.
+       * Below every row, and with no `maxChallengeRating`, the gate is never met.
+       */
+      scaling?: BreakpointScalingAuthored<{ maxChallengeRating: number }>
     }
   | {
       /**

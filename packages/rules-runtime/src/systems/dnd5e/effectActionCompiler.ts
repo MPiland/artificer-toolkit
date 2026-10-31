@@ -42,8 +42,10 @@ import {
   resolveChosenCreaturesTargeting
 } from '../../encounterAreaAction.js'
 import {
+  challengeRatingGateCap,
   gateFacts,
   gateNodeInputs,
+  hasChallengeRatingGate,
   isGated,
   refuseUnboundGate,
   testPathGates,
@@ -2581,6 +2583,8 @@ function fixedOutcomeGraphDefinition(input: {
   hitPointBand?: { above: number; atMost: number }
   /** The damage proposal node the outcome follows: it applies only if that damage reduced the target to 0. */
   reducedToZeroByNodeId?: string
+  /** The challenge rating cap the source's level reaches for the outcome's gate. */
+  challengeRatingCap?: number
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   const gates = testPathGates(input.entry, input.outcome.kind, input)
@@ -2880,6 +2884,9 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     entries.every(
       (entry) =>
         entryOwed(entry, input.action.compiledEffect.id, input.facts) &&
+        (!hasChallengeRatingGate(entry) ||
+          challengeRatingGateCap('gate' in entry ? entry.gate : undefined, input.facts) !==
+            undefined) &&
         (!('hitPointTier' in entry) ||
           !entry.hitPointTier ||
           entry.hitPointTier.atMost === selectedTier)
@@ -2891,10 +2898,13 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry, input.facts)
-    // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
-    testPathGates(entry, outcome.kind)
-    const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
     const gate = 'gate' in entry ? entry.gate : undefined
+    const challengeRatingCap = challengeRatingGateCap(gate, input.facts)
+    // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
+    testPathGates(entry, outcome.kind, {
+      ...(challengeRatingCap !== undefined ? { challengeRatingCap } : {})
+    })
+    const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
     // The gate's damage outcome is exempt from it; every other outcome of the block follows that damage.
     const reducedToZeroByNodeId =
       gate?.kind === 'REDUCED_TO_ZERO_BY' && gate.damageOutcomeId !== entry.entryId
@@ -2951,6 +2961,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                 }
               : {}),
             ...(reducedToZeroByNodeId ? { reducedToZeroByNodeId } : {}),
+            ...(challengeRatingCap !== undefined ? { challengeRatingCap } : {}),
             conditionOrdinal: groups
               .slice(0, groupIndex + 1)
               .filter(
@@ -3204,6 +3215,8 @@ function compileEffectActionGraph(
   }
   if (gates?.gate?.kind === 'REDUCED_TO_ZERO_BY')
     unsupported('D&D reduced-to-0 gate follows a damage outcome of a test path.')
+  if (gates?.gate?.kind === 'TARGET_CHALLENGE_RATING_AT_MOST')
+    unsupported('D&D challenge rating gate scales with the level of a test path.')
   const composition = sequentialComposition(action)
   if (composition) {
     refuseGate()
@@ -3798,7 +3811,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
-      ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...gateFacts(published.definition, {
+        targetDamageTypesTaken,
+        ...(typeof targetDerivedFacts.challengeRatingValue === 'number'
+          ? { targetChallengeRating: targetDerivedFacts.challengeRatingValue }
+          : {})
+      }),
       ...saveDamageMultiplierFacts(published.definition, {
         abilityDefinitionId: action.save?.abilityDefinitionId,
         incomingDamage: targetDerivedFacts.incomingDamage
