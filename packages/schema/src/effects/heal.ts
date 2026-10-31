@@ -144,20 +144,22 @@ const healDiceDtoSchema = lazySchema(() =>
 )
 
 /** A positive whole-number fraction. */
-const healFractionSchema = z.strictObject({
-  numerator: z.number().check(z.int(), z.positive()),
-  denominator: z.number().check(z.int(), z.positive())
-})
+const healFractionSchema = lazySchema(() =>
+  z.strictObject({
+    numerator: z.number().check(z.int(), z.positive()),
+    denominator: z.number().check(z.int(), z.positive())
+  })
+)
 
 /**
  * Who splits a pool heal's amount among the creatures it reaches: the caster divides it as they
  * choose, and `splitCeiling` caps what each creature may be restored to as a fraction of its
  * hit point maximum.
  */
-const healSplitShape = {
+const healSplitShape = () => ({
   splitKind: z.optional(z.literal('CASTER_DIVIDES')),
   splitCeiling: z.optional(healFractionSchema)
-}
+})
 
 const healPoolDtoSchema = lazySchema(() =>
   z.union([
@@ -165,7 +167,7 @@ const healPoolDtoSchema = lazySchema(() =>
       amount: z.number(),
       valueKind: z.literal('POOL'),
       scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-      ...healSplitShape
+      ...healSplitShape()
     }),
     z
       .object({
@@ -178,7 +180,7 @@ const healPoolDtoSchema = lazySchema(() =>
         min: z.optional(z.number()),
         max: z.optional(z.number()),
         temporary: z.optional(z.boolean()),
-        ...healSplitShape
+        ...healSplitShape()
       })
       .check(
         z.superRefine((value, ctx) => {

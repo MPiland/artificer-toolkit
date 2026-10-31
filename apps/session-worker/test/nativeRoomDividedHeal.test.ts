@@ -7,6 +7,7 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { zombie } from '@artificer-toolkit/source-data/srd/creatures/zombie.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -34,21 +35,18 @@ afterEach(closeTrackedSockets)
 
 /** A 2nd-level Life cleric (a pool of 10; half a Wolf's maximum leaves room for 4) beside wounded Wolves and a Zombie. */
 const room = () => {
-  const channelDivinity = cleric.features?.find(({ label }) => label === 'Channel Divinity')
-  const preserveLife = lifeDomainCleric.features?.find(
-    ({ label }) => label === 'Channel Divinity: Preserve Life'
-  )
-  if (!channelDivinity || !preserveLife) throw new Error('The SRD authors Preserve Life.')
   return actionRoom({
     actors: [
-      characterActor({ id: ACTOR_ID, characterId: CHARACTER_ID }),
+      {
+        ...characterActor({ id: ACTOR_ID, characterId: CHARACTER_ID }),
+        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+      },
       ...WOLF_IDS.map((id) =>
         srdCreatureActor({ id, creature: plainWolf, currentHitPoints: WOLF_HIT_POINTS })
       ),
       srdCreatureActor({ id: ZOMBIE_ID, creature: zombie, currentHitPoints: 1 })
     ],
-    characterClassFeatures: [channelDivinity, preserveLife],
-    characterPlay: { characterClass: cleric, classLevel: 2 },
+    characterPlay: { characterClass: cleric, characterSubclass: lifeDomainCleric, classLevel: 2 },
     characterAction: (action) => action.label.includes('Preserve Life')
   })
 }
