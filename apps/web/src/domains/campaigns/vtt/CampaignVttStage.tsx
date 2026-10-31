@@ -125,6 +125,7 @@ import {
   forcedMovementDestinationOverlays,
   forcedMovementDestinationPick
 } from './vttForcedMovementPick.model'
+import { CampaignTabletopSummonTurnPrompt } from './CampaignTabletopSummonTurnPrompt'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -236,6 +237,7 @@ export function CampaignVttStage({
     encounter: activeEncounter,
     currentActor,
     currentActorMine,
+    summonTurn,
     turnMovement: currentTurnMovement
   } = readActiveTurn(campaign, currentUserId, encounterSessionState)
   const pendingOccurrence = encounterSessionState?.pending
@@ -1538,6 +1540,7 @@ export function CampaignVttStage({
               onRelease={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
+          {summonTurn ? <CampaignTabletopSummonTurnPrompt {...summonTurn} /> : null}
           {activeEncounter && currentTurnMovement ? (
             <CampaignTabletopMovementReadout
               automationMode={activeEncounter.automationMode}

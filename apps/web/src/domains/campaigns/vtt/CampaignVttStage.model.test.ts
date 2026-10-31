@@ -274,6 +274,57 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
     })
   })
 
+  describe("a summon's turn (SPELLS-35.5)", () => {
+    const [owner, wolf] = tabletopPlayerEncounter.actors
+    const summon = {
+      ...wolf,
+      id: 'summon',
+      label: 'Spectral Hound',
+      owner: { ownerActorId: owner.id }
+    }
+    const summonTurn = {
+      ...tabletopPlayerEncounter,
+      actors: [...tabletopPlayerEncounter.actors, summon],
+      currentActorId: summon.id
+    }
+
+    it("names the summon and its owner for the owner's player", () => {
+      const player = createTabletopCampaign('PLAYER')
+      expect(readActiveTurn(player, tabletopCurrentUserId, state(summonTurn)).summonTurn).toEqual({
+        ownerLabel: owner.label,
+        summonLabel: 'Spectral Hound'
+      })
+    })
+
+    it("does not prompt on the owner's own turn, a creature's turn, or another player", () => {
+      const player = createTabletopCampaign('PLAYER')
+      expect(
+        readActiveTurn(player, tabletopCurrentUserId, state(tabletopPlayerEncounter)).summonTurn
+      ).toBeUndefined()
+      expect(
+        readActiveTurn(
+          player,
+          tabletopCurrentUserId,
+          state({ ...summonTurn, currentActorId: wolf.id })
+        ).summonTurn
+      ).toBeUndefined()
+      expect(
+        readActiveTurn(
+          { ...player, assignedCharacter: null },
+          tabletopCurrentUserId,
+          state(summonTurn)
+        ).summonTurn
+      ).toBeUndefined()
+    })
+
+    it('leaves the GM, who sees every turn in the order, unprompted', () => {
+      expect(
+        readActiveTurn(createTabletopCampaign('OWNER'), tabletopCurrentUserId, state(summonTurn))
+          .summonTurn
+      ).toBeUndefined()
+    })
+  })
+
   it('shows no readout outside an active Encounter or before its movement loads', () => {
     const player = createTabletopCampaign('PLAYER')
     const completed = { ...tabletopPlayerEncounter, status: 'COMPLETED' as const }

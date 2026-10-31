@@ -17,7 +17,11 @@ export async function createDevelopmentSpellCharacter(
   /** The Class's Features, read off the spell copies: a copy's authored ids are its own. */
   features?: (
     copies: ReadonlyMap<string, AuthoredDraftResult>
-  ) => NonNullable<Parameters<typeof createDevelopmentCharacter>[2]>['features']
+  ) => NonNullable<Parameters<typeof createDevelopmentCharacter>[2]>['features'],
+  /** Rewrites each spell copy's payload before it is saved and published. */
+  amendSpell: (payload: AuthoredDraftResult['payload']) => AuthoredDraftResult['payload'] = (
+    payload
+  ) => payload
 ) {
   assert.ok(wizard.spellcasting)
   const copies = new Map<string, AuthoredDraftResult>()
@@ -48,7 +52,7 @@ export async function createDevelopmentSpellCharacter(
       subjectId: copied.subjectId,
       systemId: copied.systemId,
       label: spell.label,
-      payload: { ...copied.payload, label: spell.label, classIds: [classId] }
+      payload: amendSpell({ ...copied.payload, label: spell.label, classIds: [classId] })
     })
     if (!saved.updatedAt) throw new Error('Spell fixture draft save did not return its revision.')
     await owner.mutation(api.content.publication.publishDraft, {
