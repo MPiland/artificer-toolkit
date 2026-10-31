@@ -3527,7 +3527,7 @@ describe('creatures the caster may spare from an area spell (SPELLS-16)', () => 
   })
 
   it('offers the base alone for a cantrip', () => {
-    const cantrip = spell('Sacred Flame')
+    const cantrip = { ...FIREBALL, level: 0 }
     expect(maxFor(cantrip, sparing())).toEqual({ max: 1 })
   })
 

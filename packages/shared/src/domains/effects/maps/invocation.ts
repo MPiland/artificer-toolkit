@@ -124,7 +124,7 @@ const SPARES_CREATURES_NODE_MAP = sparesCreatures.define(
         'magicSchoolIds',
         selectMulti(['magicSchoolIds'], 'Only spells of the schools', {
           kind: 'DATA',
-          relationship: table('magic_schools', { selectColumns: ['id', 'label'] })
+          relationship: table('magic_schools', { selectColumns: ['id', 'label', 'description'] })
         })
       )
   }
