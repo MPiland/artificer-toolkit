@@ -29,6 +29,9 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
   return isOnHitOutcome(entry) && entry.outcome.effectKind === 'DAMAGE'
 }
 
+/** Names a rider whose owner carries no label, so the player can still read the offer. */
+const UNLABELED_RIDER = 'On-hit effect'
+
 /**
  * The `ON_HIT` outcomes of each passive Effect: they ride on the attack its trigger names. A rider
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
@@ -38,7 +41,7 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
 export function collectOnHitRiders(
   effects: readonly CompiledEffectGroup[] | undefined,
   ownerId: string,
-  label: string
+  label: string | undefined
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
     if (
@@ -54,7 +57,7 @@ export function collectOnHitRiders(
       ? [
           {
             riderId: effect.id,
-            label,
+            label: label?.trim() || UNLABELED_RIDER,
             triggerCode: effect.invocation.triggerCode,
             ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
               ? { optionalOnHit: effect.invocation.optionalOnHit }

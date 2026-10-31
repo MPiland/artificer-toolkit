@@ -194,6 +194,13 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
     expect(damageEntries(mergeOnHitRiders(weapon, [rider!], undefined, SPELL))).toHaveLength(4)
   })
 
+  it('names a rider whose owner is unlabeled, so the player can still tell it from another', () => {
+    const [effect] = unconditionalSneakAttack(testUuid(0xb53)).effects ?? []
+    if (!effect) throw new Error('Expected a rider effect.')
+    const [rider] = collectOnHitRiders([compileEffect(effect)], OWNER, '  ')
+    expect(rider?.label.trim()).not.toBe('')
+  })
+
   it('never rides a spell cast with a Feature-scoped rider', () => {
     const [effect] = unconditionalSneakAttack(testUuid(0xb52)).effects ?? []
     if (

@@ -728,7 +728,7 @@ function creatureActionEffect(
       collectOnHitRiders(
         [compileEffect(entry.effect)],
         entry.featureOption?.id ?? entry.ownerFeature.id,
-        entry.featureOption?.label ?? entry.ownerFeature.label ?? ''
+        entry.featureOption?.label || entry.ownerFeature.label
       )
     )
   )

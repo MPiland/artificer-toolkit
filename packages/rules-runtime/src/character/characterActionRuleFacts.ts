@@ -721,7 +721,7 @@ export function buildCharacterActionRuleFacts(params: {
     if (!folded) continue
     if (definition && folded.definition) {
       onHitRiders.push(
-        ...collectOnHitRiders(definition.effects, feature.featureId, definition.label ?? '')
+        ...collectOnHitRiders(definition.effects, feature.featureId, definition.label)
       )
       castModifiers.push(...collectCastModifiers(definition.effects, definition.label ?? ''))
       sparesCreatures.push(...collectSparesCreatures(definition.effects))
@@ -741,7 +741,9 @@ export function buildCharacterActionRuleFacts(params: {
           candidate.mechanicSource.definitionId === option.id
       )
       if (!source) continue
-      onHitRiders.push(...collectOnHitRiders(option.effects, option.id, option.label ?? ''))
+      onHitRiders.push(
+        ...collectOnHitRiders(option.effects, option.id, option.label || definition?.label)
+      )
       castModifiers.push(...collectCastModifiers(option.effects, option.label ?? ''))
       sparesCreatures.push(...collectSparesCreatures(option.effects))
       featureActions.push({
@@ -756,7 +758,7 @@ export function buildCharacterActionRuleFacts(params: {
         ...collectOnHitRiders(
           registry.feats[feature.source.featId]?.effects,
           feature.source.featId,
-          registry.feats[feature.source.featId]?.label ?? ''
+          registry.feats[feature.source.featId]?.label
         )
       )
       castModifiers.push(

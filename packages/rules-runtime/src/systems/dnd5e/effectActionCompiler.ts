@@ -1225,7 +1225,6 @@ export function incomingGateImmunityPlan(input: { wardId: string; duration: Comp
   }
 }
 
-/** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
 /**
  * A timed APPLY_GRANT of modifiers (an Antitoxin's advantage for 1 hour): the target holds an
  * Encounter active effect that carries the modifiers into its rules while it lasts and counts the
