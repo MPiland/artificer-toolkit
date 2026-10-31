@@ -3922,11 +3922,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }))
         .sort(compareCanonicalD20Contributors)
       const contributorChecksum = checksumRuleDocument(contributors)
-      const { addedDice } = derivedSaveDice(targetDerivedFacts, nestedSaveAbilityDefinitionId)
+      const { addedDice, heldDice } = derivedSaveDice(
+        targetDerivedFacts,
+        nestedSaveAbilityDefinitionId
+      )
       return {
         facts: {
           ...baseFacts,
-          ...dnd5eAddedDiceFacts(addedDice),
+          ...dnd5eAddedDiceFacts(addedDice, true, heldDice),
           [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: dc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,

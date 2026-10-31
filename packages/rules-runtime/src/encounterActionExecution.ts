@@ -1172,7 +1172,7 @@ export async function advanceNativeActionGraphs(input: {
       }
     }
     const heldDice =
-      policy && phase === 'TEST' && policy.savingThrowAbilityDefinitionId
+      policy && phase !== 'SINGLE' && policy.savingThrowAbilityDefinitionId
         ? (input.saveWindow?.heldDice(policy.savingThrowAbilityDefinitionId) ?? [])
         : []
     // A roller's d20 that a held die could still change is shown to its roller before the save resolves.
@@ -1196,7 +1196,8 @@ export async function advanceNativeActionGraphs(input: {
         d20Policy: null,
         twoPhase,
         roller: 'TARGET' as const,
-        pause: window.pause
+        pause: window.pause,
+        ...(phaseReceipts.length ? { phaseReceipts } : {})
       }
     const resumed = await resumeEncounterD20({
       continuation,

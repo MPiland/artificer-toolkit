@@ -1668,7 +1668,10 @@ export async function planNativeLiveEncounterAction(
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
       ...consumedGrants,
-      ...windowSpentEffects(execution.d20, activeEffectsByActorId.get(prepared.target.id) ?? []),
+      ...windowSpentEffects(
+        [execution.d20, execution.nestedD20],
+        activeEffectsByActorId.get(prepared.target.id) ?? []
+      ),
       ...hitEnded.consumedGrants,
       ...uses.endedGrants,
       ...damageEnded.endedEffects,
