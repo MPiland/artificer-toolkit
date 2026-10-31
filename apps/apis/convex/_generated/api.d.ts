@@ -290233,6 +290233,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -290762,7 +290763,7 @@ export declare const api: {
                 }>;
                 requestId: string;
                 rollerActorId: string;
-                trigger:
+                trigger?:
                   | {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
@@ -291706,7 +291707,7 @@ export declare const api: {
                   }>;
                   requestId: string;
                   rollerActorId: string;
-                  trigger:
+                  trigger?:
                     | {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
@@ -292476,6 +292477,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -293295,7 +293297,7 @@ export declare const api: {
             }>;
             requestId: string;
             rollerActorId: string;
-            trigger:
+            trigger?:
               | {
                   damage: { amount: number; typeLabel: string | null };
                   dc: number;
@@ -293998,6 +294000,7 @@ export declare const api: {
                     label: string;
                     rolledFaces: Array<number>;
                     sign: "ADD" | "SUBTRACT";
+                    spentEffectId?: string;
                   }>;
                   contributorChecksum: string;
                   contributors: Array<{
@@ -294428,6 +294431,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -294916,7 +294920,7 @@ export declare const api: {
                 }>;
                 requestId: string;
                 rollerActorId: string;
-                trigger:
+                trigger?:
                   | {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
@@ -295676,6 +295680,7 @@ export declare const api: {
                   label: string;
                   rolledFaces: Array<number>;
                   sign: "ADD" | "SUBTRACT";
+                  spentEffectId?: string;
                 }>;
                 contributorChecksum: string;
                 contributors: Array<{
