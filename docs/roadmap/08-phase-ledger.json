@@ -13695,7 +13695,7 @@
             },
             {
               "id": "SPELLS-4.T2d4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -13709,7 +13709,7 @@
                 ]
               },
               "text": "Effect offer browser journey (split from T2d3, ruled 2026-10-20): a held-effect-browser Playwright proof through scripts/runLocalConvexProof.ps1 against the local Convex container: an authored creature action with a move offer, holder at 0 HP, the drawer offer, map pick, move and undo. Needs the session-worker .dev.vars and local-validation env (ask the user to supply them for the worktree).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Merged in m585 (e02a87baf)."
             },
             {
               "status": "DONE",

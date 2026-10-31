@@ -251,3 +251,53 @@ it('rejects malformed stored action-effect ownership without changing fixture ro
   ).rejects.toThrow('Fixture Encounter dependency or ownership mismatch.')
   expect(await effectSnapshot(base, campaign.id)).toEqual(malformed)
 }, 120000)
+
+it('removes the maintained state a concentration effect points to, and refuses one the Run does not own', async () => {
+  const { base, policies, draft, owner, player } = await prepareActionEffectFixture()
+  const campaign = await createFixtureCampaign(base, policies.bootstrap.catalogue.id)
+  await verifyEncounterEffects({
+    owner,
+    player,
+    campaignId: campaign.id,
+    initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+    initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+    creatureId: draft.subjectId,
+    leaveLastRunActive: true,
+    saveTable: () => checkpointRoom(campaign.id)
+  })
+  await closeRoom(campaign.id)
+  const effect = effectRows(await effectSnapshot(base, campaign.id))[0]
+  if (!effect) throw new Error('Action-effect fixture did not persist the failed save.')
+  const cleanup = {
+    ownerUserId: base.owner.userId,
+    playerUserId: base.other.userId,
+    campaignId: campaign.id,
+    characterId: crypto.randomUUID()
+  }
+  const maintainedStateId = crypto.randomUUID()
+  await base.t.run(async (ctx) => {
+    await ctx.db.insert('encounterMaintainedEffectStates', {
+      id: maintainedStateId,
+      encounterId: effect.encounterId,
+      ownerActorId: effect.targetActorId,
+      maintenanceDefinitionId: crypto.randomUUID(),
+      descriptorJson: '{}',
+      descriptorChecksum: effect.definitionChecksum,
+      version: 1,
+      createdAt: effect.createdAt,
+      updatedAt: effect.updatedAt
+    })
+    await ctx.db.patch(effect._id, { maintainedEffectStateId: crypto.randomUUID() })
+  })
+  await expect(base.t.mutation(removeFixtureState, cleanup)).rejects.toThrow(
+    'Fixture Encounter dependency or ownership mismatch.'
+  )
+  await base.t.run((ctx) =>
+    ctx.db.patch(effect._id, { maintainedEffectStateId: maintainedStateId })
+  )
+  await base.t.mutation(removeFixtureState, cleanup)
+  expect(
+    await base.t.run((ctx) => ctx.db.query('encounterMaintainedEffectStates').collect())
+  ).toEqual([])
+  expect(await effectSnapshot(base, campaign.id)).toEqual({ runs: [], effects: [] })
+}, 120000)

@@ -36,6 +36,7 @@ export async function startPlayerEncounterJourney({
   characterId,
   playerUserId,
   creatureSourceId,
+  extraCreatureSourceId,
   spellSubjectIds,
   classId,
   initiativePolicyDefinitionId,
@@ -50,6 +51,8 @@ export async function startPlayerEncounterJourney({
   characterId: string
   playerUserId: string
   creatureSourceId: string
+  /** A second creature, standing thirty feet further from the Character. */
+  extraCreatureSourceId?: string
   /** The spell copies the Character may know, by source id. */
   spellSubjectIds: readonly string[]
   classId: string
@@ -105,7 +108,9 @@ export async function startPlayerEncounterJourney({
     gameSystemId: campaign.gameSystemId,
     name: `${name} journey fixture`,
     commandId: crypto.randomUUID(),
-    enemies: [{ kind: 'CREATURE' as const, sourceId: creatureSourceId }]
+    enemies: [creatureSourceId, ...(extraCreatureSourceId ? [extraCreatureSourceId] : [])].map(
+      (sourceId) => ({ kind: 'CREATURE' as const, sourceId })
+    )
   })
   const created = await owner.mutation(api.encounters.runs.create, {
     campaignId,
@@ -157,7 +162,13 @@ export async function startPlayerEncounterJourney({
   const hero = run.actors.find(
     (actor) => actor.kind === 'CHARACTER' && actor.sourceId === characterId
   )
-  if (!creature || !hero) throw new Error(`${name} journey actors are absent from the Run.`)
+  const extraCreature = extraCreatureSourceId
+    ? run.actors.find(
+        (actor) => actor.kind === 'CREATURE' && actor.sourceId === extraCreatureSourceId
+      )
+    : undefined
+  if (!creature || !hero || (extraCreatureSourceId && !extraCreature))
+    throw new Error(`${name} journey actors are absent from the Run.`)
   if (run.currentActorId !== hero.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
@@ -190,6 +201,22 @@ export async function startPlayerEncounterJourney({
     controlledByUserIds: [],
     tokenId: crypto.randomUUID()
   }
+  const placements = [
+    heroPlacement,
+    creaturePlacement,
+    ...(extraCreature
+      ? [
+          {
+            id: extraCreature.id,
+            label: extraCreature.label,
+            x: 100,
+            y: 200,
+            controlledByUserIds: [],
+            tokenId: crypto.randomUUID()
+          }
+        ]
+      : [])
+  ]
   const sceneToken = (placement: typeof heroPlacement) => ({
     id: placement.tokenId,
     assetId: null,
@@ -223,7 +250,11 @@ export async function startPlayerEncounterJourney({
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: [sceneToken(heroPlacement), sceneToken(creaturePlacement)]
+      tokens: [
+        sceneToken(heroPlacement),
+        sceneToken(creaturePlacement),
+        ...placements.slice(2).map(sceneToken)
+      ]
     }
   })
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
@@ -242,7 +273,7 @@ export async function startPlayerEncounterJourney({
   run = encounterGmProjectionDtoSchema.parse(
     await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
   )
-  for (const { id: actorId, tokenId } of [heroPlacement, creaturePlacement]) {
+  for (const { id: actorId, tokenId } of placements) {
     run = encounterGmProjectionDtoSchema.parse(
       (
         await owner.mutation(bindToken, {
@@ -348,6 +379,7 @@ export async function startPlayerEncounterJourney({
     encounterId: run.id,
     hero,
     creature,
+    extraCreature,
     scene: { id: preparedScene.liveSceneId, name: sceneName },
     execute,
     readProjection,

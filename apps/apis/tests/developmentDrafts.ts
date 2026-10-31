@@ -2709,6 +2709,7 @@ try {
     process.argv.includes('--encounter-hide-browser') ||
     process.argv.includes('--encounter-player-browser') ||
     process.argv.includes('--encounter-heat-metal-browser') ||
+    process.argv.includes('--encounter-held-effect-browser') ||
     process.argv.includes('--encounter-delegated-attack-browser') ||
     process.argv.includes('--encounter-summon-turn-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
@@ -2744,6 +2745,7 @@ try {
     const hideBrowser = process.argv.includes('--encounter-hide-browser')
     const playerBrowser = process.argv.includes('--encounter-player-browser')
     const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
+    const heldEffectBrowser = process.argv.includes('--encounter-held-effect-browser')
     const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
     const summonTurnBrowser = process.argv.includes('--encounter-summon-turn-browser')
     const lifecycle =
@@ -2757,6 +2759,7 @@ try {
       hideBrowser ||
       playerBrowser ||
       heatMetalBrowser ||
+      heldEffectBrowser ||
       delegatedAttackBrowser ||
       summonTurnBrowser ||
       workload
@@ -2779,7 +2782,11 @@ try {
       'BACKGROUND',
       'CLASS',
       'RACE',
-      ...(playerBrowser || heatMetalBrowser || delegatedAttackBrowser || summonTurnBrowser
+      ...(playerBrowser ||
+      heatMetalBrowser ||
+      heldEffectBrowser ||
+      delegatedAttackBrowser ||
+      summonTurnBrowser
         ? (['SPELL'] as const)
         : [])
     ] as const) {
@@ -2798,6 +2805,8 @@ try {
     const { heatMetal } = await import('@artificer-toolkit/source-data/srd/spells/heat-metal.js')
     const { findFamiliar } =
       await import('@artificer-toolkit/source-data/srd/spells/find-familiar.js')
+    const { huntersMark } =
+      await import('@artificer-toolkit/source-data/srd/spells/hunters-mark.js')
     const spellCharacter = playerBrowser
       ? await createDevelopmentSpellCharacter(player.client, characterId, [shield, thunderwave])
       : heatMetalBrowser
@@ -2807,24 +2816,31 @@ try {
             [heatMetal],
             [{ spellLevel: 2, slotCount: 1 }]
           )
-        : delegatedAttackBrowser
+        : heldEffectBrowser
           ? await createDevelopmentSpellCharacter(
               player.client,
               characterId,
-              [findFamiliar],
-              [{ spellLevel: 1, slotCount: 1 }],
-              (await import('./fixtures/encounterDelegatedAttack')).createDelegatedAttackFeatures
+              [huntersMark],
+              [{ spellLevel: 1, slotCount: 1 }]
             )
-          : summonTurnBrowser
+          : delegatedAttackBrowser
             ? await createDevelopmentSpellCharacter(
                 player.client,
                 characterId,
                 [findFamiliar],
                 [{ spellLevel: 1, slotCount: 1 }],
-                undefined,
-                (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
+                (await import('./fixtures/encounterDelegatedAttack')).createDelegatedAttackFeatures
               )
-            : null
+            : summonTurnBrowser
+              ? await createDevelopmentSpellCharacter(
+                  player.client,
+                  characterId,
+                  [findFamiliar],
+                  [{ spellLevel: 1, slotCount: 1 }],
+                  undefined,
+                  (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
+                )
+              : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3138,16 +3154,20 @@ try {
           }
         })
       }
-      const publishJourneyOgre = async () => {
-        publicationAuthors.push({
-          client: owner.client,
-          userId: owner.identity.userId,
-          systemId: srdSystemRecord.id,
-          subjectKind: 'CREATURE'
-        })
-        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+      let journeyOgreAuthorsRegistered = false
+      const publishJourneyOgre = async (label = 'Journey ogre') => {
+        if (!journeyOgreAuthorsRegistered) {
+          journeyOgreAuthorsRegistered = true
+          publicationAuthors.push({
+            client: owner.client,
+            userId: owner.identity.userId,
+            systemId: srdSystemRecord.id,
+            subjectKind: 'CREATURE'
+          })
+          browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        }
         const { createHeatMetalOgre } = await import('./fixtures/encounterHeatMetal')
-        const ogre = createHeatMetalOgre(crypto.randomUUID(), 'Journey ogre')
+        const ogre = createHeatMetalOgre(crypto.randomUUID(), label)
         const draft = await owner.client.mutation(api.content.drafts.save, {
           subjectKind: 'CREATURE',
           subjectId: ogre.id,
@@ -3285,6 +3305,52 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/heat-metal-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (heldEffectBrowser) {
+        if (!spellCharacter) throw new Error('The held effect journey needs its spell Character.')
+        const marked = await publishJourneyOgre('Marked ogre')
+        const next = await publishJourneyOgre('Next ogre')
+        const { verifyEncounterHeldEffect } = await import('./developmentEncounterHeldEffect')
+        await verifyEncounterHeldEffect({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          markedSourceId: marked.id,
+          nextSourceId: next.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterHeldEffectBrowser } =
+              await import('../../web/tests/live-backend/encounterHeldEffect')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterHeldEffectBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/held-effect-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url
