@@ -332,6 +332,9 @@ function normalizeHealOutcome(
     scalingSource: outcome.scalingKind === 'NONE' ? null : outcome.scalingSource,
     classId: outcome.scalingKind !== 'NONE' && 'classId' in outcome ? outcome.classId : null,
     temporary: outcome.temporary ?? false,
+    ...(outcome.valueKind === 'POOL' && outcome.splitKind
+      ? { split: outcome.splitCeiling ? { ceiling: outcome.splitCeiling } : {} }
+      : {}),
     values,
     bonuses: [...(outcome.bonuses ?? [])]
       .sort((left, right) => left.order - right.order)

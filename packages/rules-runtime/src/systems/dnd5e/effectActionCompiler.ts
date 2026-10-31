@@ -2041,6 +2041,11 @@ const DND5E_DIRECT_OUTCOMES: {
         unsupported('D&D spent healing is a plain positive amount per unit spent.')
       return { kind: 'SPENT_HEAL' }
     }
+    if (outcome.valueKind === 'POOL' && outcome.splitKind) {
+      if (outcome.temporary || outcome.bonuses?.length)
+        unsupported('D&D divided healing is a plain amount the caster splits.')
+      return { kind: 'SPENT_HEAL' }
+    }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -3822,7 +3827,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
-      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic.spentUnits),
+      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

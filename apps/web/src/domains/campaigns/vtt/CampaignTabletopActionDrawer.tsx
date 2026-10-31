@@ -61,6 +61,7 @@ import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConf
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import {
   CampaignTabletopOptionalChoiceFields,
+  CampaignTabletopHealSharesInput,
   CampaignTabletopSpendInput
 } from './CampaignTabletopChoiceInputs'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
@@ -253,6 +254,7 @@ export function CampaignTabletopActionDrawer({
   // this panel's state only, never saved (ATTACK-19.4).
   const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
   const [pickedSpentUnits, setPickedSpentUnits] = useState(1)
+  const [pickedHealShares, setPickedHealShares] = useState<Record<string, number>>({})
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -369,6 +371,16 @@ export function CampaignTabletopActionDrawer({
   const ammunitionOptions = selectedAction?.ammunition ?? []
   const chosenSpend = selectedAction?.chosenSpend
   const spentUnits = chosenSpend && Math.min(pickedSpentUnits, chosenSpend.max)
+  const dividedHeal = selectedAction?.dividedHeal
+  const healShareTargets = encounter.actors.filter((actor) => pickedActorIds.includes(actor.id))
+  const healShares = healShareTargets.map(({ id }) => ({
+    actorId: id,
+    amount: pickedHealShares[id] ?? 0
+  }))
+  const healSharesInvalid =
+    dividedHeal !== undefined &&
+    (healShares.some(({ amount }) => amount < 1) ||
+      healShares.reduce((sum, { amount }) => sum + amount, 0) > dividedHeal.total)
   const chosenAmmunition =
     ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
     ammunitionOptions[0] ??
@@ -497,6 +509,7 @@ export function CampaignTabletopActionDrawer({
       ? {
           kind: 'ACTORS',
           actorIds: pickedActorIds,
+          ...(dividedHeal ? { healShares } : {}),
           ...castChoice,
           ...ammunitionChoice,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
@@ -787,6 +800,7 @@ export function CampaignTabletopActionDrawer({
     setPickedBandSide(null)
     setPickedItemId(null)
     setPickedSpentUnits(1)
+    setPickedHealShares({})
   }
 
   useEffect(() => {
@@ -1171,6 +1185,15 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedSpentUnits}
                 />
               ) : null}
+              {dividedHeal ? (
+                <CampaignTabletopHealSharesInput
+                  disabled={selectionControlsDisabled}
+                  divided={dividedHeal}
+                  shares={pickedHealShares}
+                  targets={healShareTargets}
+                  onChange={setPickedHealShares}
+                />
+              ) : null}
               {spareLimit !== undefined ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
@@ -1449,6 +1472,7 @@ export function CampaignTabletopActionDrawer({
                       !target ||
                       incompleteOptionalChoices ||
                       (chosenSpend !== undefined && chosenSpend.max < 1) ||
+                      healSharesInvalid ||
                       currentOptionalChoicesError !== null
                     }
                     loading={submitting}

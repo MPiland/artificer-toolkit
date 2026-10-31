@@ -2,6 +2,10 @@ import type {
   ResolveEncounterActionInputDto,
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import {
+  dividedHealOf,
+  refuseHealShares
+} from '@artificer-toolkit/rules-runtime/character/characterChosenSpend'
 import { chosenCreaturesCap } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import {
@@ -129,6 +133,15 @@ export async function planNativeLiveEncounterActorsAction(
       }))
     })
   const lead = prepared[0]!.prepared
+  const divided = dividedHealOf(lead.binding.actionMechanic)
+  if (divided) {
+    const refused = refuseHealShares({
+      divided,
+      shares: command.target.healShares ?? [],
+      targets: chosen
+    })
+    if (refused) throw refusal(refused)
+  }
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   refuseActionOutsideItsWindow(lead, command)
   const formCreature = await readChosenFormCreature(input, lead, chosen, movementTargets)

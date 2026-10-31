@@ -835,6 +835,8 @@ export interface CharacterRuleActionSystemAdapter {
       selectedOptionalRiderIds?: readonly string[]
       /** The units the caster spent from the action's pool, which size a heal that gives hit points per unit spent. */
       spentUnits?: number
+      /** This creature's share of a pool the caster divides among the creatures the action reaches. */
+      dividedAmount?: number
     }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto

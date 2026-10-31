@@ -335,6 +335,8 @@ export async function prepareEncounterActionMechanics<
   castModifierId?: string
   /** The units the caster spends from the action's pool, for a heal that gives hit points per unit spent. */
   spentUnits?: number
+  /** This creature's share of a pool the caster divides among the creatures the action reaches. */
+  dividedAmount?: number
   /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
   readsSharedTest?: boolean
   /** The ammunition a weapon attack fires and how many attacks the command makes; absent for a read, which previews the first stack in stock. */
@@ -544,6 +546,7 @@ export async function prepareEncounterActionMechanics<
           return prepareNativeCharacterActionState({
             castModifier,
             spentUnits: input.spentUnits,
+            dividedAmount: input.dividedAmount,
             entry: source.entry,
             candidate: source.candidate,
             policyOutput: source.effectivePolicyOutput,
