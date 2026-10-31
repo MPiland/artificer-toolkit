@@ -388,7 +388,7 @@ export function gateEvidenceIsValid(
 /** The facts a published graph's gate inputs read; a gate the graph does not bind adds none. */
 export function gateFacts(
   graph: Pick<CompiledRuleGraph, 'nodes'>,
-  target: { targetDamageTypesTaken?: readonly string[]; targetChallengeRating?: number | undefined }
+  target: { targetDamageTypesTaken?: readonly string[]; targetChallengeRating?: unknown }
 ): Record<string, RuleValue> {
   return {
     ...(graph.nodes.some((node) => node.inputs.targetDamageTypesTaken !== undefined)
@@ -401,7 +401,9 @@ export function gateFacts(
     ...(graph.nodes.some((node) => node.inputs.targetChallengeRating?.kind === 'FACT')
       ? {
           [DND5E_TARGET_CHALLENGE_RATING_FACT_KEY]:
-            target.targetChallengeRating ?? NO_CHALLENGE_RATING
+            typeof target.targetChallengeRating === 'number'
+              ? target.targetChallengeRating
+              : NO_CHALLENGE_RATING
         }
       : {})
   }
