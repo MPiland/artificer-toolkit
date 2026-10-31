@@ -60,6 +60,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   standingGrantedActions: ReturnType<typeof buildCharacterActionRuleFacts>['standingGrantedActions']
   /** Server-only costs the Character may pay on casting a spell; the spell casts offer them. */
   castModifiers: ReturnType<typeof buildCharacterActionRuleFacts>['castModifiers']
+  /** Server-only riders the Character's passive features owe the attacks they name, spell casts included. */
+  onHitRiders: ReturnType<typeof buildCharacterActionRuleFacts>['onHitRiders']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -201,6 +203,7 @@ export function composeCharacterRulePolicyFacts(
     initiativeRestoreSources: actionFacts.initiativeRestores,
     standingEffectSources: actionFacts.standingEffects,
     standingGrantedActions: actionFacts.standingGrantedActions,
-    castModifiers: actionFacts.castModifiers
+    castModifiers: actionFacts.castModifiers,
+    onHitRiders: actionFacts.onHitRiders
   }
 }

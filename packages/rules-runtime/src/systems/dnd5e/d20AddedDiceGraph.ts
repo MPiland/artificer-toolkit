@@ -35,6 +35,17 @@ export function derivedAddedDice(diceByKey: unknown, key: string): D20AddedDieDt
   return dice === undefined ? [] : d20AddedDiceDtoSchema.parse(dice)
 }
 
+/** A target's saving-throw dice for one ability: those added at the roll, and those held until the d20 is seen. */
+export function derivedSaveDice(
+  derivedFacts: Record<string, unknown>,
+  abilityDefinitionId: string
+) {
+  return {
+    addedDice: derivedAddedDice(derivedFacts.savingThrowAddedDice, abilityDefinitionId),
+    heldDice: derivedAddedDice(derivedFacts.savingThrowAfterRollDice, abilityDefinitionId)
+  }
+}
+
 /** The added-dice node that follows a test's d20 node, whose total the test op adds. */
 export function dnd5eAddedDiceNode(d20NodeId: string): RuleGraphDefinition['nodes'][number] {
   return {
@@ -53,23 +64,31 @@ export function dnd5eAddedDiceNode(d20NodeId: string): RuleGraphDefinition['node
 
 /**
  * The added-dice node's facts: the signed range the dice can total, requested only when the test
- * rolls dice and is attempted (a gated repeat save that is not attempted rolls none).
+ * rolls dice and is attempted (a gated repeat save that is not attempted rolls none). A die the
+ * holder keeps for after its d20 (`heldDice`) may or may not be spent, so it widens the range
+ * toward its extreme and leaves the other end at 0.
  */
 export function dnd5eAddedDiceFacts(
   dice: readonly D20AddedDieDto[],
-  attempted = true
+  attempted = true,
+  heldDice: readonly D20AddedDieDto[] = []
 ): Record<string, number | boolean> {
   let min = 0
   let max = 0
-  if (attempted)
+  if (attempted) {
     for (const { count, faces, sign } of dice) {
       min += sign === 'ADD' ? count : -count * faces
       max += sign === 'ADD' ? count * faces : -count
     }
+    for (const { count, faces, sign } of heldDice) {
+      if (sign === 'ADD') max += count * faces
+      else min -= count * faces
+    }
+  }
   return {
     [DND5E_ADDED_DICE_MIN_FACT_KEY]: min,
     [DND5E_ADDED_DICE_MAX_FACT_KEY]: max,
-    [DND5E_ADDED_DICE_ENABLED_FACT_KEY]: attempted && dice.length > 0
+    [DND5E_ADDED_DICE_ENABLED_FACT_KEY]: attempted && dice.length + heldDice.length > 0
   }
 }
 

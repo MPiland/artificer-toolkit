@@ -86,7 +86,7 @@
 00000000-0000-0000-c006-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600800000000 CHARACTER:classes Slow Fall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600a00000000 CHARACTER:classes Stunning Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-600e00000000 CHARACTER:classes Stillness of Mind | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c006-600e00000000 CHARACTER:classes Stillness of Mind | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
 00000000-0000-0000-c006-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601000000000 CHARACTER:classes Unarmored Movement Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601300000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -111,7 +111,7 @@
 00000000-0000-0000-c007-600a00000000 CHARACTER:classes Aura of Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-600d00000000 CHARACTER:classes Aura of Courage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-600e00000000 CHARACTER:classes Improved Divine Smite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c007-601000000000 CHARACTER:classes Cleansing Touch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c007-601000000000 CHARACTER:classes Cleansing Touch | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
 00000000-0000-0000-c007-601600000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-601700000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -119,7 +119,6 @@
 00000000-0000-0000-c007-602a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-602b00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c007-608000000000 CHARACTER:classes Cleansing Touch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c008-140100000000 CHARACTER:classes Colossus Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-140200000000 CHARACTER:classes Giant Killer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-140300000000 CHARACTER:classes Horde Breaker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -179,7 +178,6 @@
 00000000-0000-0000-c00b-140700000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-140800000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-600500000000 CHARACTER:classes Repelling Blast | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c00b-600e00000000 CHARACTER:classes Eldritch Spear | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-601000000000 CHARACTER:classes Gaze of Two Minds | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000000-0000-0000-c00b-601100000000 CHARACTER:classes Lifedrinker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-601200000000 CHARACTER:classes One with Shadows | SINGLE_GRAPH 63436da6082c3dd72ff7cfadd4062abe3e0332e4862d2d809f44c2c7f961ee91 nodes=1 outputs=2

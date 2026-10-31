@@ -107,6 +107,8 @@ interface CharacterActionRuleFacts {
   standingGrantedActions: HeldGrantedAction[]
   /** The costs the Character's features, options and feats let it pay on casting a spell; never policy facts. */
   castModifiers: CastModifierSource[]
+  /** The riders the Character's passive features, options and feats owe the attacks they name; never policy facts. */
+  onHitRiders: OnHitRider[]
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -859,7 +861,8 @@ export function buildCharacterActionRuleFacts(params: {
     initiativeRestores,
     standingEffects,
     standingGrantedActions,
-    castModifiers
+    castModifiers,
+    onHitRiders
   }
 }
 

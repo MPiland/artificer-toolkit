@@ -182,6 +182,8 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       castModifier?: ResourceUseAuthored
       /** The sibling Feature whose attacks alone this rider rides; absent, it rides every attack its trigger names. */
       ridesFeatureId?: string
+      /** The Spells whose casts alone this rider rides; absent, it rides every attack its trigger names (G4). */
+      ridesSpellIds?: string[]
     }
   /**
    * The holder takes damage of one of the named damage types; the passive's PASSIVE path then

@@ -19,8 +19,11 @@ import {
   completeNativeConcentrationResult,
   concentrationSaveApplications,
   createNativeConcentrationContext,
+  damageSaveRolledD20,
+  damageSaveWindowRoll,
   evaluateNativeConcentrationEvidence,
   prepareEncounterConcentrationState,
+  rollDamageSaveD20,
   type NativeConcentrationContext,
   type NativeDamageSaveContext
 } from '@artificer-toolkit/rules-runtime/encounterConcentration'
@@ -64,8 +67,21 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { activeAfterRollSavingThrowDice } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
-import { encounterSavingThrowAddedDice } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import {
+  encounterSavingThrowAddedDice,
+  encounterSavingThrowAfterRollDice
+} from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import {
+  encounterD20WindowSelection,
+  damageSaveWindowCommand,
+  openEncounterD20Window,
+  settleEncounterD20Window
+} from '@artificer-toolkit/rules-runtime/encounterD20Window'
+import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { EncounterD20Roll } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { savingThrowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
@@ -124,6 +140,11 @@ export async function planNativeLiveConcentration(input: {
     /** The app roll Convex recorded for a `SYSTEM_ROLL` answer; null for any other answer. */
     appRoll: EncounterSettledAppRollDto | null
     applicationIndex: number
+    /** Set when the response answers the d20 window that follows the save's roll (D168). */
+    window?: {
+      context: EncounterD20WindowPendingContextDto
+      continuation: ServerRuleExecutionContinuationDto
+    }
   }
 }) {
   const state = input.state
@@ -152,6 +173,10 @@ export async function planNativeLiveConcentration(input: {
   // Grants their holder's incapacitation ends (D95), found by the same detection as Concentration.
   const endedGrants: ActiveRuleEffectRecord[] = []
   let pending: ServerKernelRuleExecutionPendingSnapshotDto | null = null
+  // The d20 window the answered save's roll opened (D168): the same occurrence pends on it.
+  const windowPause: { window: ServerKernelRuleExecutionPendingSnapshotDto | null } = {
+    window: null
+  }
   let resumed: {
     result: ReturnType<typeof completeNativeConcentrationResult>
     mutated: boolean
@@ -167,6 +192,7 @@ export async function planNativeLiveConcentration(input: {
       concentrationEnds,
       endedGrants,
       pending,
+      window: windowPause.window,
       resumed,
       nextState: state
     }
@@ -402,6 +428,7 @@ export async function planNativeLiveConcentration(input: {
       concentrationEnds,
       endedGrants,
       pending,
+      window: windowPause.window,
       resumed,
       nextState: state
     }
@@ -482,6 +509,125 @@ export async function planNativeLiveConcentration(input: {
   let correlationId = input.parentOccurrenceId
   const spentDiceIds = new Set<string>()
 
+  /**
+   * A target as this chain's saves see it: the dice an earlier check of the batch spent (D156) are
+   * gone, and the dice it holds for after a d20 widen its save (D168).
+   */
+  function chainTarget<
+    TTarget extends {
+      activeEffects: readonly ActiveRuleEffectRecord[]
+      targetDerivedFacts: Record<string, unknown>
+    }
+  >(target: TTarget): TTarget {
+    const effects = target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
+    const afterRoll = encounterSavingThrowAfterRollDice(state.gameSystemId, effects)
+    return {
+      ...target,
+      targetDerivedFacts: {
+        ...target.targetDerivedFacts,
+        ...(spentDiceIds.size
+          ? { savingThrowAddedDice: encounterSavingThrowAddedDice(state.gameSystemId, effects) }
+          : {}),
+        ...(Object.keys(afterRoll).length ? { savingThrowAfterRollDice: afterRoll } : {})
+      }
+    }
+  }
+
+  /**
+   * Sees one roller-answered save through its d20 window (D168). A holder of an after-roll die rolls
+   * its d20 first and pends on the window; the window's answer settles the roll the save resumes
+   * with. A save with no held die is settled directly.
+   */
+  async function seeSaveD20(site: {
+    occurrenceId: string
+    context: NativeDamageSaveContext
+    save: Parameters<typeof damageSaveRolledD20>[0]['save'] &
+      Parameters<typeof rollDamageSaveD20>[0]['save']
+    abilityDefinitionId: string
+    effects: readonly ActiveRuleEffectRecord[]
+    continuation: ServerRuleExecutionContinuationDto
+    resume: NonNullable<typeof input.resume> | undefined
+    refusal: string
+  }): Promise<
+    | { kind: 'DIRECT' }
+    | { kind: 'OPENED' }
+    | { kind: 'SETTLED'; window: { requestId: string; roll: EncounterD20Roll } }
+  > {
+    const { resume, continuation } = site
+    const random = input.random ?? nextRollInt
+    if (resume?.window) {
+      const settled = await settleEncounterD20Window({
+        runtime: input.runtime,
+        context: resume.window.context,
+        continuation: resume.window.continuation,
+        selection: encounterD20WindowSelection(resume.response.resolution),
+        random
+      })
+      const spent = settled.option
+        ? site.effects.find(({ id }) => id === settled.option?.effectId)
+        : undefined
+      if (settled.option && !spent) throw new Error('The d20 window die is no longer held.')
+      if (spent) {
+        spentDiceIds.add(spent.id)
+        endedGrants.push(spent)
+      }
+      return {
+        kind: 'SETTLED',
+        window: {
+          requestId: continuation.request.requestId,
+          roll: damageSaveWindowRoll(settled.d20)
+        }
+      }
+    }
+    if (!holdsSaveDice(site.effects, site.abilityDefinitionId)) return { kind: 'DIRECT' }
+    if (!resume) throw new Error('A save with a held die waits for its roller.')
+    const roll = rollDamageSaveD20({
+      gameSystemId: state.gameSystemId,
+      random,
+      save: site.save,
+      continuation,
+      resolution: bindEncounterD20Evidence({
+        response: { resolution: resume.response.resolution, appRoll: resume.appRoll },
+        autoRollRequestId: continuation.request.requestId,
+        refusal: site.refusal
+      }),
+      expectedOccurrenceId: site.occurrenceId,
+      refusal: site.refusal
+    })
+    const opened = await openEncounterD20Window({
+      runtime: input.runtime,
+      occurrenceId: site.occurrenceId,
+      gameSystemId: state.gameSystemId,
+      source: { kind: 'DAMAGE_SAVE_CHECK', context: site.context },
+      command: damageSaveWindowCommand(site.occurrenceId, site.context),
+      rolled: {
+        continuation,
+        initialFactsChecksum: checksumRuleDocument(continuation.facts),
+        d20: damageSaveRolledD20({
+          requestId: continuation.request.requestId,
+          save: site.save,
+          roll
+        })
+      },
+      appRollId: resume.appRoll?.rollId ?? null,
+      heldDice: heldSaveDice(site.effects, site.abilityDefinitionId),
+      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+    })
+    windowPause.window = opened.snapshot
+    return { kind: 'OPENED' }
+  }
+
+  /** The dice a holder keeps for after the d20 of a save with this ability, none yet spent. */
+  function heldSaveDice(effects: readonly ActiveRuleEffectRecord[], abilityDefinitionId: string) {
+    return activeAfterRollSavingThrowDice(
+      effects.filter(({ id }) => !spentDiceIds.has(id)),
+      abilityScoreCapabilityRegistry.require(state.gameSystemId).abilityCode(abilityDefinitionId)
+    )
+  }
+
+  const holdsSaveDice = (effects: readonly ActiveRuleEffectRecord[], abilityDefinitionId: string) =>
+    heldSaveDice(effects, abilityDefinitionId).length > 0
+
   /** Pauses for or settles one effect's repeat save, whose success ends the effect (D167). */
   async function settleEffectRepeatSave(
     item: Extract<DamageSaveApplicationDto, { activeEffectId: string }>
@@ -500,19 +646,7 @@ export async function planNativeLiveConcentration(input: {
       })
     if (!holder || !target || !effect || !trigger)
       throw new Error('The repeat save effect changed before its check.')
-    // A die an earlier check of this batch spent (D156) is gone for this one.
-    const unspent = spentDiceIds.size
-      ? {
-          ...target,
-          targetDerivedFacts: {
-            ...target.targetDerivedFacts,
-            savingThrowAddedDice: encounterSavingThrowAddedDice(
-              state.gameSystemId,
-              target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
-            )
-          }
-        }
-      : target
+    const unspent = chainTarget(target)
     const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, item)
     const resume = resumed === null ? input.resume : undefined
     const sealed = resume?.context
@@ -557,7 +691,11 @@ export async function planNativeLiveConcentration(input: {
       sourceLabels: input.sourceLabels,
       damagerActorId: repeatSaveDamager ?? null
     })
-    if (paused && !input.autoRollByActorId[application.targetActorId]) {
+    if (
+      paused &&
+      (!input.autoRollByActorId[application.targetActorId] ||
+        holdsSaveDice(unspent.activeEffects, abilityId))
+    ) {
       pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...paused.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
@@ -592,16 +730,33 @@ export async function planNativeLiveConcentration(input: {
       if (!paused) throw new Error('The repeat save did not request bounded d20 evidence.')
       return paused.continuation
     })()
-    const resolution = bindEncounterD20Evidence({
-      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
-      autoRollRequestId: continuation.request.requestId,
-      refusal: 'The repeat save evidence request is unavailable.'
+    const refusal = 'The repeat save evidence request is unavailable.'
+    const seen = await seeSaveD20({
+      occurrenceId,
+      context,
+      save: d20Policy,
+      abilityDefinitionId: abilityId,
+      effects: unspent.activeEffects,
+      continuation,
+      resume,
+      refusal
     })
+    if (seen.kind === 'OPENED') return 'PAUSED' as const
     const evidence = await evaluateEffectRepeatSaveEvidence({
       effectInput,
       context,
       continuation,
-      resolution,
+      ...(seen.kind === 'SETTLED'
+        ? { window: seen.window }
+        : {
+            resolution: bindEncounterD20Evidence({
+              response: resume
+                ? { resolution: resume.response.resolution, appRoll: resume.appRoll }
+                : null,
+              autoRollRequestId: continuation.request.requestId,
+              refusal
+            })
+          }),
       expectedOccurrenceId: occurrenceId,
       random: input.random ?? nextRollInt
     })
@@ -673,19 +828,7 @@ export async function planNativeLiveConcentration(input: {
     const target = projection.projectedTargets.get(application.targetActorId)
     if (!massiveRule || massiveRule.pin.definitionId !== optionalCombatDefinitionId || !target)
       throw new Error('The massive-damage rule changed before its save.')
-    // A die an earlier check of this batch spent (D156) is gone for this one.
-    const unspent = spentDiceIds.size
-      ? {
-          ...target,
-          targetDerivedFacts: {
-            ...target.targetDerivedFacts,
-            savingThrowAddedDice: encounterSavingThrowAddedDice(
-              state.gameSystemId,
-              target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
-            )
-          }
-        }
-      : target
+    const unspent = chainTarget(target)
     const vocabularySnapshot = await readVocabulary()
     if (!('damageTypes' in vocabularySnapshot.document))
       throw new Error('The massive-damage save vocabulary is unavailable.')
@@ -721,7 +864,11 @@ export async function planNativeLiveConcentration(input: {
         })
     if (started && started.status !== 'PAUSED')
       throw new Error('The massive-damage save did not request bounded d20 evidence.')
-    if (started && !input.autoRollByActorId[application.targetActorId]) {
+    if (
+      started &&
+      (!input.autoRollByActorId[application.targetActorId] ||
+        holdsSaveDice(unspent.activeEffects, context.save.savingThrowAbilityDefinitionId))
+    ) {
       pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...started.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
@@ -754,11 +901,18 @@ export async function planNativeLiveConcentration(input: {
       if (!started) throw new Error('The massive-damage save did not request bounded d20 evidence.')
       return started.continuation
     })()
-    const resolution = bindEncounterD20Evidence({
-      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
-      autoRollRequestId: continuation.request.requestId,
-      refusal: 'The massive-damage save request is unavailable.'
+    const refusal = 'The massive-damage save request is unavailable.'
+    const seen = await seeSaveD20({
+      occurrenceId,
+      context,
+      save: context.save,
+      abilityDefinitionId: context.save.savingThrowAbilityDefinitionId,
+      effects: unspent.activeEffects,
+      continuation,
+      resume,
+      refusal
     })
+    if (seen.kind === 'OPENED') return 'PAUSED' as const
     const evidence = await evaluateMassiveDamageSaveEvidence({
       gameSystemId: state.gameSystemId,
       runtime: input.runtime,
@@ -766,7 +920,17 @@ export async function planNativeLiveConcentration(input: {
       context,
       rule: massiveRule,
       continuation,
-      resolution,
+      ...(seen.kind === 'SETTLED'
+        ? { window: seen.window }
+        : {
+            resolution: bindEncounterD20Evidence({
+              response: resume
+                ? { resolution: resume.response.resolution, appRoll: resume.appRoll }
+                : null,
+              autoRollRequestId: continuation.request.requestId,
+              refusal
+            })
+          }),
       expectedOccurrenceId: occurrenceId
     })
     for (const die of savingThrowSpentEffects(
@@ -818,22 +982,7 @@ export async function planNativeLiveConcentration(input: {
     const loaded = await current(application.targetActorId)
     if (!loaded || loaded.maintained.id !== maintainedStateId)
       throw new Error('The concentration state changed before its check.')
-    // A die an earlier check of this batch spent (D156) is gone for this one.
-    const unspent = spentDiceIds.size
-      ? {
-          ...loaded,
-          target: {
-            ...loaded.target,
-            targetDerivedFacts: {
-              ...loaded.target.targetDerivedFacts,
-              savingThrowAddedDice: encounterSavingThrowAddedDice(
-                state.gameSystemId,
-                loaded.target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
-              )
-            }
-          }
-        }
-      : loaded
+    const unspent = { ...loaded, target: chainTarget(loaded.target) }
     const { context, facts } = createNativeConcentrationContext({
       gameSystemId: state.gameSystemId,
       current: unspent,
@@ -856,7 +1005,11 @@ export async function planNativeLiveConcentration(input: {
         })
     if (started && started.status !== 'PAUSED')
       throw new Error('Concentration did not request bounded d20 evidence.')
-    if (started && !input.autoRollByActorId[context.application.targetActorId]) {
+    if (
+      started &&
+      (!input.autoRollByActorId[context.application.targetActorId] ||
+        holdsSaveDice(unspent.target.activeEffects, context.save.savingThrowAbilityDefinitionId))
+    ) {
       pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
         ...started.continuation,
         snapshotKind: 'KERNEL_EVIDENCE',
@@ -889,16 +1042,33 @@ export async function planNativeLiveConcentration(input: {
       if (!started) throw new Error('Concentration did not request bounded d20 evidence.')
       return started.continuation
     })()
-    const resolution = bindEncounterD20Evidence({
-      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
-      autoRollRequestId: continuation.request.requestId,
-      refusal: 'The concentration evidence request is unavailable.'
+    const refusal = 'The concentration evidence request is unavailable.'
+    const seen = await seeSaveD20({
+      occurrenceId,
+      context,
+      save: context.save,
+      abilityDefinitionId: context.save.savingThrowAbilityDefinitionId,
+      effects: unspent.target.activeEffects,
+      continuation,
+      resume,
+      refusal
     })
+    if (seen.kind === 'OPENED') break
     const evidence = await evaluateNativeConcentrationEvidence({
       gameSystemId: loaded.published.gameSystemId,
       context,
       continuation,
-      resolution,
+      ...(seen.kind === 'SETTLED'
+        ? { window: seen.window }
+        : {
+            resolution: bindEncounterD20Evidence({
+              response: resume
+                ? { resolution: resume.response.resolution, appRoll: resume.appRoll }
+                : null,
+              autoRollRequestId: continuation.request.requestId,
+              refusal
+            })
+          }),
       expectedOccurrenceId: occurrenceId,
       runtime: input.runtime,
       random: input.random ?? nextRollInt
@@ -975,6 +1145,7 @@ export async function planNativeLiveConcentration(input: {
     concentrationEnds,
     endedGrants,
     pending,
+    window: windowPause.window,
     resumed,
     nextState
   }

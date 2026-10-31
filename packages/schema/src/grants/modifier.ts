@@ -538,7 +538,22 @@ const movementPassagePayloadDtoSchema = lazySchema(() =>
   })
 )
 
-const rangeKindPayloadDtoSchema = lazySchema(() => z.strictObject({ rangeKind: rangeKindSchema }))
+const rangeReplacementPayloadDtoSchema = lazySchema(() =>
+  z.union([
+    z.strictObject({
+      rangeKind: z.enum([
+        rangeKindSchema._zod.def.entries.SELF,
+        rangeKindSchema._zod.def.entries.TOUCH,
+        rangeKindSchema._zod.def.entries.SIGHT,
+        rangeKindSchema._zod.def.entries.SPECIAL,
+        rangeKindSchema._zod.def.entries.UNLIMITED
+      ])
+    }),
+    z.extend(authoredLengthSchema, {
+      rangeKind: z.literal(rangeKindSchema._zod.def.entries.DISTANCE)
+    })
+  ])
+)
 
 const durationSetValuePayloadDtoSchema = lazySchema(() =>
   z.union([
@@ -626,7 +641,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
     movementPassagePayloadDtoSchema,
-    rangeKindPayloadDtoSchema,
+    rangeReplacementPayloadDtoSchema,
     durationSetValuePayloadDtoSchema,
     durationKindPayloadDtoSchema,
     shapeKindPayloadDtoSchema,
@@ -1089,7 +1104,7 @@ const buildModifierGrantVariants = () =>
       'RANGE',
       'REPLACE_RANGE_KIND',
       emptyDomainDtoSchema,
-      rangeKindPayloadDtoSchema
+      rangeReplacementPayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DURATION',
@@ -1330,7 +1345,6 @@ const UNSUPPORTED_MODIFIERS = new Set([
   'PROFICIENCY_BONUS SET_VALUE',
   'CHARGE_LIMIT MODIFY_CHARGE_LIMIT',
   'CHARGE_LIMIT SET_VALUE',
-  'RANGE REPLACE_RANGE_KIND',
   'DURATION SET_VALUE',
   'DURATION REPLACE_DURATION_KIND',
   'SHAPE REPLACE_SHAPE_KIND',
@@ -1383,8 +1397,9 @@ function spellScopedOutsideSpellAttacks(value: {
   return (
     spellScoped &&
     !(
-      (value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
-      attackDomain === 'SPELL'
+      value.valueDomainCode === 'RANGE' ||
+      ((value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
+        attackDomain === 'SPELL')
     )
   )
 }
@@ -1408,7 +1423,7 @@ export const modifierGrantDtoSchema = lazySchema(() => {
           ctx.addIssue({
             code: 'custom',
             message:
-              'Spell-scoped modifiers are supported only for spell attack rolls and spell damage.',
+              'Spell-scoped modifiers are supported only for spell attack rolls, damage and ranges.',
             path: ['restrictions']
           })
         if (!value.modifierKind.includes('BONUS')) return

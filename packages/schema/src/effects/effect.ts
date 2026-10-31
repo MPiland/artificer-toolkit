@@ -60,7 +60,8 @@ const actionInvocationShape = lazySchemaParts(() => ({
   resourceUse: z.optional(resourceUseDtoSchema),
   optionalOnHit: z.optional(z.never()),
   castModifier: z.optional(z.never()),
-  ridesFeatureId: z.optional(z.never())
+  ridesFeatureId: z.optional(z.never()),
+  ridesSpellIds: z.optional(z.never())
 }))
 
 const nonSavingThrowTriggerDtoSchema = lazySchema(() =>
@@ -92,7 +93,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(z.never()),
       castModifier: z.optional(z.never()),
-      ridesFeatureId: z.optional(z.never())
+      ridesFeatureId: z.optional(z.never()),
+      ridesSpellIds: z.optional(z.never())
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -116,7 +118,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(optionalOnHitDtoSchema),
       castModifier: z.optional(resourceUseDtoSchema),
-      ridesFeatureId: z.optional(authoredIdentifierSchema)
+      ridesFeatureId: z.optional(authoredIdentifierSchema),
+      ridesSpellIds: z.optional(z.array(authoredIdentifierSchema))
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -129,7 +132,8 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(z.never()),
       castModifier: z.optional(z.never()),
-      ridesFeatureId: z.optional(z.never())
+      ridesFeatureId: z.optional(z.never()),
+      ridesSpellIds: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),

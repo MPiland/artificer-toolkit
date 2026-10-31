@@ -170,7 +170,23 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
       kind: z.literal('DAMAGE_DEFENSE'),
       defense: z.enum(['RESISTANCE', 'IMMUNITY', 'VULNERABILITY']),
       damageTypeIds: sortedUniqueUuidsSchema.check(z.minLength(1))
-    })
+    }),
+    /**
+     * Raising a condition to this level kills the holder at once, with no death saves
+     * (SPELLS-10.T1c). Level 2 is the floor: a condition applied at level 1 is raised by no one, so
+     * a death there would not fire.
+     */
+    z
+      .strictObject({
+        ...conditionMechanicFields(),
+        kind: z.literal('DEATH')
+      })
+      .check(
+        z.refine(({ minimumLevel }) => minimumLevel !== null && minimumLevel >= 2, {
+          path: ['minimumLevel'],
+          message: 'A DEATH mechanic needs a minimum level of at least 2.'
+        })
+      )
   ])
 )
 

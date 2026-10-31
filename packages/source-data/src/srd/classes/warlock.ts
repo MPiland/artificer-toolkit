@@ -25,7 +25,6 @@ import {
   SPELL_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
@@ -48,6 +47,7 @@ import {
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { pactBoonFeature } from './warlock-pact-boon.js'
 import { lifedrinkerEffect, pactOfTheBladeEffect } from './warlock-pact-weapon.js'
+import { repellingBlastEffect } from './warlock-repelling-blast.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
@@ -87,6 +87,58 @@ const W = 11 // warlock class index for ID generation
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
+
+/** A requirement that the Character has Eldritch Blast, whose four rows take the ids from `entry` on. */
+function eldritchBlastObtained(group: number, entry: number) {
+  return {
+    id: classRowId(W, group, entry),
+    groups: [
+      {
+        id: classRowId(W, group, entry + 1),
+        order: 0,
+        contexts: [
+          {
+            id: classRowId(W, group, entry + 2),
+            order: 0,
+            subject: 'CHARACTER' as const,
+            conditions: [
+              {
+                id: classRowId(W, group, entry + 3),
+                order: 0,
+                kind: 'PREDICATE' as const,
+                constraint: 'INCLUDE' as const,
+                predicateCode: 'SPELL_OBTAINED' as const,
+                spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/** A restriction to Eldritch Blast, whose three rows take the ids from `entry` on. */
+function eldritchBlastOnly(entry: number) {
+  return {
+    id: classRowId(W, 4, entry),
+    groups: [
+      {
+        id: classRowId(W, 4, entry + 1),
+        order: 0,
+        contexts: [
+          {
+            id: classRowId(W, 4, entry + 2),
+            order: 0,
+            subject: 'SPELL' as const,
+            authoringModeKind: 'SELECTED' as const,
+            spellIds: [SPELL_IDS.ELDRITCH_BLAST]
+          }
+        ]
+      }
+    ]
+  }
+}
 
 function selfClassRuleEffect(
   entry: number,
@@ -702,32 +754,7 @@ export const warlock: ClassAuthored = {
           description:
             'When you cast eldritch blast, add your Charisma modifier to the damage it deals on a hit.',
           // Requires Eldritch Blast cantrip (CHARACTER context, SPELL_OBTAINED predicate)
-          restrictions: {
-            id: classRowId(W, 4, 1),
-            groups: [
-              {
-                id: classRowId(W, 4, 2),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 4, 3),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 4, 4),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
+          restrictions: eldritchBlastObtained(4, 1),
           grants: {
             modifiers: [
               {
@@ -742,25 +769,7 @@ export const warlock: ClassAuthored = {
                 order: 0,
                 // Scope this modifier to Eldritch Blast only — without this restriction
                 // the CHA bonus would apply to all spell attacks on the character sheet.
-                restrictions: {
-                  id: classRowId(W, 4, 5),
-                  groups: [
-                    {
-                      id: classRowId(W, 4, 6),
-                      order: 0,
-                      contexts: [
-                        {
-                          id: classRowId(W, 4, 7),
-                          order: 0,
-                          subject: 'SPELL' as const,
-                          authoringModeKind: 'SELECTED' as const,
-                          spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                          // conditions omitted — subject selection is the complete restriction
-                        }
-                      ]
-                    }
-                  ]
-                }
+                restrictions: eldritchBlastOnly(5)
               }
             ]
           },
@@ -905,49 +914,9 @@ export const warlock: ClassAuthored = {
           label: 'Repelling Blast',
           description:
             'When you hit a creature with eldritch blast, you can push the creature up to 10 feet away from you in a straight line.',
-          // Requires Eldritch Blast. Push effect is a combat action modifier not representable as a grant.
-          restrictions: {
-            id: classRowId(W, 4, 9),
-            groups: [
-              {
-                id: classRowId(W, 4, 10),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 4, 11),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 4, 12),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 5),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_REPELLING_BLAST,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-                range: { id: classRowId(W, 0x69, 5), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
-          ],
+          // Requires Eldritch Blast; the push rides only its casts.
+          restrictions: eldritchBlastObtained(4, 9),
+          effects: [repellingBlastEffect(warlockRowId(5), SPELL_IDS.ELDRITCH_BLAST)],
           order: 7
         },
         {
@@ -1176,55 +1145,28 @@ export const warlock: ClassAuthored = {
           id: classRowId(W, 5, 8),
           label: 'Eldritch Spear',
           description: 'When you cast eldritch blast, its range is 300 feet.',
-          // Range change is not representable as a modifier grant — description-only.
           // Requires Eldritch Blast cantrip.
-          restrictions: {
-            id: classRowId(W, 6, 14),
-            groups: [
+          restrictions: eldritchBlastObtained(6, 14),
+          grants: {
+            modifiers: [
               {
-                id: classRowId(W, 6, 15),
-                order: 0,
-                contexts: [
-                  {
-                    id: classRowId(W, 6, 16),
-                    order: 0,
-                    subject: 'CHARACTER' as const,
-                    conditions: [
-                      {
-                        id: classRowId(W, 6, 17),
-                        order: 0,
-                        kind: 'PREDICATE' as const,
-                        constraint: 'INCLUDE' as const,
-                        predicateCode: 'SPELL_OBTAINED' as const,
-                        spellIds: [SPELL_IDS.ELDRITCH_BLAST]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 14),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_ELDRITCH_SPEAR,
-              pathCode: PATH_CODE.ON_ATTACK,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-                range: {
-                  id: classRowId(W, 0x69, 14),
+                id: classRowId(W, 3, 39),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.RANGE,
+                domain: {},
+                modifierKind: MODIFIER_KIND.REPLACE_RANGE_KIND,
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                payload: {
                   rangeKind: RANGE_KIND.DISTANCE,
                   amount: 300,
                   unit: MEASUREMENT_UNIT_CODE.FEET
                 },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
+                order: 0,
+                restrictions: eldritchBlastOnly(13)
               }
-            })
-          ],
+            ]
+          },
           order: 13
         },
         {

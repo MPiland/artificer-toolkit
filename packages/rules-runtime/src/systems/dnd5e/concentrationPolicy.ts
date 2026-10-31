@@ -213,6 +213,8 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   rulePolicyOutput: Dnd5eHolderSaveRows
   /** The dice the holder rolls with the save (D156). */
   addedDice: readonly D20AddedDieDto[]
+  /** The dice the holder may spend after the save's d20 (D168). */
+  heldDice: readonly D20AddedDieDto[]
 }): {
   facts: Record<string, string | number | boolean>
   rollMode: string
@@ -234,7 +236,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: appliedDamage,
       [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: save.modifier,
       [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: save.contributorChecksum,
-      ...dnd5eAddedDiceFacts(input.addedDice)
+      ...dnd5eAddedDiceFacts(input.addedDice, true, input.heldDice)
     },
     ...save
   }
@@ -350,7 +352,11 @@ export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAda
         appliedDamage: input.appliedDamage,
         targetActorId: input.targetActorId,
         rulePolicyOutput: dnd5eConcentrationHolderSaves(input.target),
-        addedDice
+        addedDice,
+        heldDice: derivedAddedDice(
+          input.target.targetDerivedFacts.savingThrowAfterRollDice,
+          DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+        )
       })
     }
   }

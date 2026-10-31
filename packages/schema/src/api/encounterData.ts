@@ -22,7 +22,11 @@ import {
   encounterActorMoraleDtoSchema,
   encounterMoraleOfferDtoSchema
 } from '../shared/encounterMorale.js'
-import { encounterConsequenceRollOffersDtoSchema } from '../shared/consequenceRolls.js'
+import {
+  characterConsequenceDtoSchema,
+  encounterConsequenceRollOffersDtoSchema,
+  MAX_CHARACTER_CONSEQUENCES
+} from '../shared/consequenceRolls.js'
 import {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
@@ -177,6 +181,16 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
      * everyone else and for an actor not concentrating. A hidden source's label is null for players.
      */
     concentration: z._default(z.nullable(concentrationListingDtoSchema), null),
+    /**
+     * The consequences the GM accepted for a Character actor (ATTACK-15), by label alone: the Sheet
+     * keeps the effect and healing text. Everyone who sees the actor sees the label.
+     */
+    consequences: z._default(
+      z
+        .array(z.pick(characterConsequenceDtoSchema, { id: true, label: true }))
+        .check(z.maxLength(MAX_CHARACTER_CONSEQUENCES)),
+      []
+    ),
     /**
      * A Creature or custom actor reduced to 0 hit points (D63): it keeps its initiative place but takes
      * no turns, actions or reactions until it regains hit points. Always false for a Character, which

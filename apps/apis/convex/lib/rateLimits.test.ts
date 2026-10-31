@@ -1,4 +1,5 @@
 import { convexTest } from '../../tests/convexTest'
+import { calculateRateLimit } from '@convex-dev/rate-limiter'
 import { register as registerRateLimiter } from '@convex-dev/rate-limiter/test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { zeroAccountUsage } from '@artificer-toolkit/schema/projections/accountUsage'
@@ -109,17 +110,14 @@ describe('native Social fixed-window limits', () => {
     }
   )
 
-  it('uses UTC boundaries and cannot reset an allowance by moving the clock backwards', async () => {
+  it('uses UTC boundaries', async () => {
     const t = setup()
     const userId = crypto.randomUUID()
-    vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
+    vi.setSystemTime(new Date('2030-01-01T01:59:00.000Z'))
     for (let count = 0; count < 29; count++)
       await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
-    vi.setSystemTime(new Date('2030-01-01T00:59:59.999Z'))
-    await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
-      'Too many Social actions'
-    )
-    vi.setSystemTime(new Date('2030-01-01T01:59:59.999Z'))
+    // The rejected attempt below runs one millisecond later, on the window's last.
+    vi.setSystemTime(new Date('2030-01-01T01:59:59.998Z'))
     await t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))
     await expect(t.run((ctx) => consumeSocialRateLimit(ctx, userId, 'BLOCK'))).rejects.toThrow(
       'Too many Social actions'
@@ -130,6 +128,19 @@ describe('native Social fixed-window limits', () => {
       { value: 29, ts: Date.parse('2030-01-01T02:00:00.000Z') }
     ])
   })
+
+  // A transaction's clock cannot run behind the last commit under convex-test, so this calls the limiter directly.
+  it.each(socialRateLimits('BLOCK'))(
+    'cannot raise $name by moving the clock backwards',
+    ({ config }) => {
+      const state = { value: 1, ts: Date.parse('2030-01-01T01:00:00.000Z') }
+      const current = calculateRateLimit(state, config, state.ts, 1)
+      for (const elapsed of [1, config.period, config.period * 2])
+        expect(calculateRateLimit(state, config, state.ts - elapsed, 1).value).toBeLessThanOrEqual(
+          current.value
+        )
+    }
+  )
 
   it('rolls every allowance back with a failed source mutation', async () => {
     const t = setup()
