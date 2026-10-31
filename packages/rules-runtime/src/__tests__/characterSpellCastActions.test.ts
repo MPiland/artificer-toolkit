@@ -34,6 +34,7 @@ import {
   SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
@@ -3667,7 +3668,11 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
 
   describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
     const charisma = character.output.derivedStats.abilities.find(
-      ({ abilityId }) => abilityId === SRD_ABILITY_DEFINITION_IDS.CHARISMA
+      ({ abilityId }) =>
+        abilityId ===
+        abilityScoreCapabilityRegistry
+          .require(SRD_SYSTEM_ID)
+          .abilityCode(SRD_ABILITY_DEFINITION_IDS.CHARISMA)
     )!
     const offeredWith = (targets: CastModifierSource['cost']['targets']) =>
       build([cast], {

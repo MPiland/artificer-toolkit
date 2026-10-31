@@ -239,6 +239,20 @@ export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): str
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
 }
 
+/** What the caster chose at cast, as the action preparation takes it: the option, the cast modifier and the creatures it names. */
+export function castChoice(
+  command: Pick<
+    ResolveEncounterActionInputDto,
+    'target' | 'castModifierId' | 'castModifierActorIds'
+  >
+) {
+  return {
+    choiceOptionId: castChoiceOptionId(command.target),
+    castModifierId: command.castModifierId,
+    castModifierActorIds: command.castModifierActorIds
+  }
+}
+
 /** The hit points the caster gives one chosen creature of a divided pool; undefined when the command divides none. */
 export function healShareOf(
   target: ResolveEncounterActionTargetDto,

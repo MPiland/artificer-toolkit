@@ -1,6 +1,6 @@
 import {
   actionTargetActorId,
-  castChoiceOptionId,
+  castChoice,
   type ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type {
@@ -80,9 +80,7 @@ export async function prepareNativeLiveRootActionMechanics(input: {
     actors,
     actionId: root.actionId,
     // A resumed action runs as the outcome its root picked (Shove, D105).
-    choiceOptionId: castChoiceOptionId(root.target),
-    castModifierId: root.castModifierId,
-    castModifierActorIds: root.castModifierActorIds,
+    ...castChoice(root),
     spentUnits: root.spentUnits,
     wieldConflictAcceptance: { kind: 'UNPROMPTED' },
     overridable: false,
