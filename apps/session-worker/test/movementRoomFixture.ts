@@ -333,6 +333,7 @@ export async function movementRoom(config: MovementRoomConfig) {
           config.initiativePolicy ??
           initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' })
       }),
+      ...(!prepared && config.initiativePolicy && { initiativePolicy: config.initiativePolicy }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
       zoneNoticing: config.zoneNoticing,

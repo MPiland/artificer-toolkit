@@ -13,6 +13,7 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -1250,7 +1251,11 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
       actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
       characterSpellcasting: { spells: [findFamiliar], prepared: [findFamiliar.id] },
       characterAction: (action) => action.label.startsWith(findFamiliar.label),
-      formCreatures: [applyCreatureAttackRolls(cat)]
+      formCreatures: [applyCreatureAttackRolls(cat)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
     })
   /** One square below the caster, within the spell's 10 feet. */
   const FAMILIAR_POINT = { x: 150, y: 250 }
