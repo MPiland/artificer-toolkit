@@ -388,6 +388,19 @@ const clericSpellLimits = [
   }
 ]
 
+/** Channel Divinity's uses, shared by Turn Undead and every domain's Channel Divinity effect. */
+const channelDivinityCharge = {
+  id: classRowId(C, 0x66, 3),
+  limitKind: 'FIXED_AMOUNT' as const,
+  scalingKind: SCALING.PER_LEVEL,
+  resetKind: 'SHORT_REST' as const,
+  levels: [
+    { id: classRowId(C, 0x67, 1), level: 2, amount: 1 },
+    { id: classRowId(C, 0x67, 2), level: 6, amount: 2 },
+    { id: classRowId(C, 0x67, 3), level: 18, amount: 3 }
+  ]
+}
+
 export const cleric: ClassAuthored = {
   id: CLASS_IDS.CLERIC,
   label: 'Cleric',
@@ -877,6 +890,14 @@ export const cleric: ClassAuthored = {
     }
   ],
 
+  resources: {
+    order: 0,
+    id: classRowId(C, 0x65, 3),
+    label: 'Channel Divinity',
+    availableAtLevel: 2,
+    charges: channelDivinityCharge
+  },
+
   features: [
     {
       id: classRowId(C, 3, 1),
@@ -902,17 +923,6 @@ export const cleric: ClassAuthored = {
       attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
       availableAtLevel: 2,
       order: 2,
-      charges: {
-        id: classRowId(C, 0x66, 3),
-        limitKind: 'FIXED_AMOUNT',
-        scalingKind: SCALING.PER_LEVEL,
-        resetKind: 'SHORT_REST',
-        levels: [
-          { id: classRowId(C, 0x67, 1), level: 2, amount: 1 },
-          { id: classRowId(C, 0x67, 2), level: 6, amount: 2 },
-          { id: classRowId(C, 0x67, 3), level: 18, amount: 3 }
-        ]
-      },
       effects: [
         closedRuleEffect({
           id: classRowId(C, 0x60, 3),
@@ -921,7 +931,7 @@ export const cleric: ClassAuthored = {
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.SAVING_THROW,
-            resourceUse: { chargeId: classRowId(C, 0x66, 3), cost: 1 },
+            resourceUse: { chargeId: channelDivinityCharge.id, cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             savingThrow: {
               id: classRowId(C, 0x6e, 3),
