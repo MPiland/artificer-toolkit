@@ -18,7 +18,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readActorConditionIds, readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
+import { readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-31.T4f2a/T4f2b: Lay on Hands is an authored pool option with no feature-specific code. The
@@ -145,16 +145,18 @@ describe('room Lay on Hands (SPELLS-31.T4f2a)', () => {
 })
 
 describe('room Lay on Hands cure and creature-type filter (SPELLS-31.T4f2b)', () => {
-  const heldConditions = async (fixture: Room) => [
-    ...readActorConditionIds(await readRoomHistory(fixture.room.base.stub), WOLF_ID)
-  ]
+  /** The ids of the poisoning effects the room holds. */
+  const poisonings = async (fixture: Room) =>
+    (await readRoomHistory(fixture.room.base.stub)).characterEffects
+      .filter(({ definitionJson }) => definitionJson.includes(poisonedId))
+      .map(({ id }) => id)
 
   it('spends 5 from the pool to end a poisoning, and one undo restores both', async () => {
     const fixture = await room({ cure: true, poisoned: true })
-    expect(await heldConditions(fixture)).toContain(poisonedId)
+    expect(await poisonings(fixture)).toHaveLength(1)
     const answer = await touch(fixture)
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-    expect(await heldConditions(fixture)).not.toContain(poisonedId)
+    expect(await poisonings(fixture)).toEqual([])
     expect(await poolUsed(fixture)).toBe(5)
     expect(await wolfHitPoints(fixture)).toBe(WOLF_HIT_POINTS)
 
@@ -165,7 +167,7 @@ describe('room Lay on Hands cure and creature-type filter (SPELLS-31.T4f2b)', ()
       expectedVersion: await fixture.version()
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
-    expect(await heldConditions(fixture)).toContain(poisonedId)
+    expect(await poisonings(fixture)).toHaveLength(1)
     expect(await poolUsed(fixture)).toBe(0)
   }, 120000)
 
