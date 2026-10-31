@@ -8,7 +8,10 @@ import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/m
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
 import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_CONDITION_TYPES,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -27,6 +30,7 @@ import {
   type RoomHistory
 } from './roomHistoryReads.js'
 
+const EXHAUSTION = SRD_CONDITION_TYPES.find(({ code }) => code === 'EXHAUSTION')!.id
 const ATTACKER_ID = testUuid(0x800)
 const CHARACTER_ACTOR_ID = testUuid(0x801)
 const CHARACTER_ID = testUuid(0x802)
@@ -154,7 +158,10 @@ describe('room Concentration checks', () => {
     const room = await concentratingRoom({
       autoRoll: 'GAME_MASTER',
       rolls: [18],
-      characterPlay: { exhaustionLevel: 3 }
+      characterPlay: {
+        conditions: [{ conditionTypeId: EXHAUSTION, label: 'Exhaustion' }],
+        exhaustionLevel: 3
+      }
     })
     await startedBite(room)
 

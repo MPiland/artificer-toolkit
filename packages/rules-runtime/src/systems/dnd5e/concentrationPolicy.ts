@@ -25,7 +25,7 @@ import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCo
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import { DND5E_TEST_OUTCOME_RULE_FACT_KEY, dnd5eSaveOutcomeRule } from './effectActionContracts.js'
-import { encounterConditionSaveAutoFails } from '../../encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from '../../conditionSaveAutoFail.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
 const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'

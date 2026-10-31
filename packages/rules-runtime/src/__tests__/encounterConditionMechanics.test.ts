@@ -25,7 +25,6 @@ import {
   encounterConditionHitIsCritical,
   encounterConditionLevels,
   encounterConditionMechanicsInSourceSight,
-  encounterConditionSaveAutoFails,
   encounterConditionSources,
   encounterConditionSpeed,
   pinEncounterConditionDefinitions,
@@ -33,6 +32,7 @@ import {
   withEncounterConditionMechanics,
   type EncounterConditionAttack
 } from '../encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from '../conditionSaveAutoFail.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 import { EncounterValidationError } from '../encounterErrors.js'
