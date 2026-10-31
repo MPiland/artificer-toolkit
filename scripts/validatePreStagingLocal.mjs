@@ -753,7 +753,6 @@ const browserProofModes = [
   'hide-browser',
   'player-browser',
   'heat-metal-browser',
-  'held-effect-browser',
   'delegated-attack-browser',
   'account-deletion-browser',
   'builder-browser',

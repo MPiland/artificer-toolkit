@@ -250,7 +250,11 @@ export async function startPlayerEncounterJourney({
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: placements.map(sceneToken)
+      tokens: [
+        sceneToken(heroPlacement),
+        sceneToken(creaturePlacement),
+        ...placements.slice(2).map(sceneToken)
+      ]
     }
   })
   const presentation = await owner.query(api.scenes.presentations.get, { campaignId })
