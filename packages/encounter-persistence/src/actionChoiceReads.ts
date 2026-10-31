@@ -443,6 +443,7 @@ export async function readEncounterActionChoices(
               }
             : {}),
           chosenSpend: candidate ? chosenSpendChoice(candidate, policyOutput.resources) : undefined,
+          ...(candidate?.sparesCreatures ? { sparesCreatures: candidate.sparesCreatures } : {}),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,

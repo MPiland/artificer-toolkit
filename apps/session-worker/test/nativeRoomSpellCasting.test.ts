@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { schoolOfEvocation } from '@artificer-toolkit/source-data/srd/classes/school-of-evocation.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { iceStorm } from '@artificer-toolkit/source-data/srd/spells/ice-storm.js'
@@ -378,6 +379,59 @@ describe('room Fireball cast by a Character wizard (SPELLS-8.4)', () => {
     },
     120000
   )
+})
+
+describe('room Fireball cast by a Character wizard who sculpts its spells (SPELLS-16.1)', () => {
+  const EXTRA_CAUGHT_ID = testUuid(0x7c9)
+  const CAUGHT = [...CAUGHT_IDS, EXTRA_CAUGHT_ID]
+
+  /** The SRD Sculpt Spells feature, acquired by the fixture Character at its first level. */
+  const sculptSpells = () => {
+    const feature = schoolOfEvocation.features?.find(({ label }) => label === 'Sculpt Spells')
+    if (!feature?.effects) throw new Error('The SRD School of Evocation must author Sculpt Spells.')
+    return { ...feature, availableAtLevel: 1 }
+  }
+
+  const sculptRoom = (sculpts: boolean) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...[...CAUGHT, OUT_OF_REACH_ID].map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      positions: { [EXTRA_CAUGHT_ID]: { x: 350, y: 150 }, [OUT_OF_REACH_ID]: { x: 1500, y: 150 } },
+      characterSpellcasting: { spells: [fireball], prepared: [fireball.id] },
+      characterClassFeatures: sculpts ? [sculptSpells()] : [],
+      characterAction: (action) => action.label === 'Fireball (3rd level)',
+      fallbackRoll: 5
+    })
+
+  it('leaves the spared creatures out of the area saves and their damage', async () => {
+    const room = await sculptRoom(true)
+    const spared = CAUGHT.slice(0, 2)
+
+    const { answer } = await room.startAreaAction({ x: 300, y: 150 }, [], 'GM', spared)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const saving = decision.pending.saves.map(({ actorId }) => actorId)
+    expect(saving).toContain(EXTRA_CAUGHT_ID)
+    for (const id of spared) expect(saving).not.toContain(id)
+  }, 120000)
+
+  it('refuses sparing more creatures than 1 plus the spell level', async () => {
+    const room = await sculptRoom(true)
+    const tooMany = [...CAUGHT, CHARACTER_ACTOR_ID, OUT_OF_REACH_ID]
+
+    const { answer } = await room.startAreaAction({ x: 300, y: 150 }, [], 'GM', tooMany)
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+  }, 120000)
+
+  it('refuses sparing any creature without the feature', async () => {
+    const room = await sculptRoom(false)
+
+    const { answer } = await room.startAreaAction({ x: 300, y: 150 }, [], 'GM', [CAUGHT[0]!])
+    expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+  }, 120000)
 })
 
 describe('room Ice Storm upcast by a Character wizard (SPELLS-7.2)', () => {

@@ -55,6 +55,7 @@ import {
 import { raceAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/race'
 import { compileCurrentEquipment, recompileEquipmentChildren } from './equipmentRelationships'
 import { replaceCurrentAuthoredVersion } from './authoredReplacement'
+import { readStoredSourceFacts, writeSourceFacts } from './sourceFacts'
 import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
 import {
   authoredCatalogueMetadataSchema,
@@ -375,7 +376,6 @@ export const importSubjects: RegisteredMutation<
           compilation: compilation ?? equipment?.compilation ?? race?.compilation,
           current: {
             ...root,
-            authoringSources,
             equipmentOptions:
               parsed.subjectKind === 'EQUIPMENT' && equipment
                 ? equipmentOptionFacts(parsed.document, parsed.checksum, equipment.effective)
@@ -384,6 +384,7 @@ export const importSubjects: RegisteredMutation<
             parentEquipmentId,
             parentRaceId
           },
+          authoringSources,
           document: parsed.document,
           publicId
         })
@@ -395,7 +396,6 @@ export const importSubjects: RegisteredMutation<
       } else if (current) {
         const {
           equipmentOptions: storedOptions,
-          authoringSources: storedAuthoringSources,
           catalogue: storedCatalogue,
           catalogueFamily: storedCatalogueFamily,
           parentClassId: storedParentClassId,
@@ -484,9 +484,10 @@ export const importSubjects: RegisteredMutation<
           })
         }
         // Facts from an older derivation are re-derived; same-version facts that differ conflict.
-        if (current.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
+        const storedAuthoringSources = await readStoredSourceFacts(ctx, current)
+        if (storedAuthoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION)
           exact(storedAuthoringSources, authoringSources)
-        else await ctx.db.patch(current._id, { authoringSources })
+        else await writeSourceFacts(ctx, current.id, authoringSources)
         const catalogue = await catalogueMetadata(ctx, parsed, {
           checksum: subject.checksum,
           publicId,
@@ -528,12 +529,12 @@ export const importSubjects: RegisteredMutation<
         const rootId = await ctx.db.insert('authoredRoots', {
           ...root,
           currentVersionId,
-          authoringSources,
           equipmentOptions,
           parentClassId,
           parentEquipmentId,
           parentRaceId
         })
+        await writeSourceFacts(ctx, root.id, authoringSources)
         const published = await ctx.db.get(currentVersionId)
         if (!published) throw new Error('Missing canonical version.')
         await syncCatalogueMetadata(
@@ -777,7 +778,7 @@ export const readSubjects = internalQuery({
           checksum: version.checksum,
           document
         })
-        exact(root.authoringSources, authoredSourceFacts(parsed))
+        exact(await readStoredSourceFacts(ctx, root), authoredSourceFacts(parsed))
         exact(
           root.catalogue,
           await catalogueMetadata(ctx, parsed, {

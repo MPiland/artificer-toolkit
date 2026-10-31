@@ -123,6 +123,7 @@ import type {
   ResultBlockAuthored,
   ResultBlockGateAuthored,
   SavingThrowAuthored,
+  SparesCreaturesAuthored,
   SavingThrowDcBonusAuthored,
   ScalarReductionAuthored,
   SenseGrantAuthored,
@@ -838,6 +839,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { ability: 'SPELLCASTING', baseDc: 10 } satisfies ReactionHigherLevelCheckAuthored
     case 'optionalOnHit':
       return { kind: 'SPELL_SLOT' } satisfies OptionalOnHitAuthored
+    case 'sparesCreatures':
+      return { base: 1 } satisfies SparesCreaturesAuthored
     case 'resourceUse':
       return { chargeId: '', cost: 1 } satisfies ResourceUseAuthored
     case 'featureOptionActionReference':

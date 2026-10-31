@@ -18,7 +18,12 @@ import {
   compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
-import { collectCastModifiers, type CastModifierSource } from './characterCastModifiers.js'
+import {
+  collectCastModifiers,
+  collectSparesCreatures,
+  type CastModifierSource,
+  type SparesCreaturesSource
+} from './characterCastModifiers.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import {
   initiativeRestoreSources,
@@ -107,6 +112,8 @@ interface CharacterActionRuleFacts {
   standingGrantedActions: HeldGrantedAction[]
   /** The costs the Character's features, options and feats let it pay on casting a spell; never policy facts. */
   castModifiers: CastModifierSource[]
+  /** What the Character's features let it spare from the area spells it casts; never policy facts. */
+  sparesCreatures: SparesCreaturesSource[]
   /** The riders the Character's passive features, options and feats owe the attacks they name; never policy facts. */
   onHitRiders: OnHitRider[]
 }
@@ -701,6 +708,7 @@ export function buildCharacterActionRuleFacts(params: {
   const standingEffects: CharacterActionSources = { candidates: [], entryPoints: [] }
   const standingGrantedActions: HeldGrantedAction[] = []
   const castModifiers: CastModifierSource[] = []
+  const sparesCreatures: SparesCreaturesSource[] = []
   // Feature actions are appended once every rider is known, since an attack a Feature makes with
   // a wielded weapon carries them (D156).
   const featureActions: Pick<
@@ -714,6 +722,7 @@ export function buildCharacterActionRuleFacts(params: {
     if (definition && folded.definition) {
       onHitRiders.push(...collectOnHitRiders(definition.effects, feature.featureId))
       castModifiers.push(...collectCastModifiers(definition.effects, definition.label ?? ''))
+      sparesCreatures.push(...collectSparesCreatures(definition.effects))
       featureActions.push({
         effects: definition.effects,
         source: folded.definition,
@@ -732,6 +741,7 @@ export function buildCharacterActionRuleFacts(params: {
       if (!source) continue
       onHitRiders.push(...collectOnHitRiders(option.effects, option.id))
       castModifiers.push(...collectCastModifiers(option.effects, option.label ?? ''))
+      sparesCreatures.push(...collectSparesCreatures(option.effects))
       featureActions.push({
         effects: option.effects,
         source,
@@ -748,6 +758,9 @@ export function buildCharacterActionRuleFacts(params: {
           registry.feats[feature.source.featId]?.effects,
           registry.feats[feature.source.featId]?.label ?? ''
         )
+      )
+      sparesCreatures.push(
+        ...collectSparesCreatures(registry.feats[feature.source.featId]?.effects)
       )
       featureActions.push({
         effects: registry.feats[feature.source.featId]?.effects,
@@ -862,6 +875,7 @@ export function buildCharacterActionRuleFacts(params: {
     standingEffects,
     standingGrantedActions,
     castModifiers,
+    sparesCreatures,
     onHitRiders
   }
 }

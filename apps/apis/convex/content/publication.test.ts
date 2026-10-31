@@ -37,6 +37,7 @@ import {
 } from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
+import { readStoredSourceFacts } from './sourceFacts'
 
 const publish = makeFunctionReference<
   'mutation',
@@ -726,13 +727,10 @@ describe('native Background publication', () => {
       'draft or published content changed'
     )
     const firstResult = await first.caller.mutation(publish, publicationInput(saved))
-    const originalRoot = await t.run((ctx) =>
-      ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
-        .unique()
+    const originalFacts = await t.run((ctx) =>
+      readStoredSourceFacts(ctx, { id: draft.subjectId, checksum: firstResult.checksum })
     )
-    expect(originalRoot?.authoringSources?.rows.features?.length).toBeGreaterThan(0)
+    expect(originalFacts?.rows.features?.length).toBeGreaterThan(0)
     const edited = await first.caller.mutation(api.content.drafts.save, {
       subjectKind: 'BACKGROUND',
       subjectId: draft.subjectId,
@@ -787,20 +785,17 @@ describe('native Background publication', () => {
       checksum: replacement.checksum,
       version: 2
     })
-    const replacedRoot = await t.run((ctx) =>
-      ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', draft.subjectId))
-        .unique()
+    const replacedFacts = await t.run((ctx) =>
+      readStoredSourceFacts(ctx, { id: draft.subjectId, checksum: replacement.checksum })
     )
-    expect(replacedRoot?.authoringSources).toEqual(
+    expect(replacedFacts).toEqual(
       authoredSourceFacts({
         subjectKind: 'BACKGROUND',
         document: backgroundAuthoredDtoSchema.parse(remaining.document),
         checksum: replacement.checksum
       })
     )
-    expect(replacedRoot?.authoringSources?.rows.features).toBeUndefined()
+    expect(replacedFacts?.rows.features).toBeUndefined()
     expect(await t.run((ctx) => ctx.db.get(before[0]._id))).toBeNull()
     await expect(first.caller.mutation(publish, publicationInput(repaired))).rejects.toThrow(
       'cannot be published'

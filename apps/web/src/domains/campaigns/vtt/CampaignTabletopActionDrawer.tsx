@@ -70,6 +70,7 @@ import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
+import { sparedCreatureLimit } from './sparedCreatureLimit'
 import {
   aimedAreaShape,
   type VttActionPreview,
@@ -391,15 +392,10 @@ export function CampaignTabletopActionDrawer({
   const bandSide = bandSides?.find((side) => side.value === pickedBandSide)?.value ?? null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = aimedTarget?.kind === 'CASTER_CENTERED' ? aimedTarget : null
-  // A zone the action places can spare creatures the caster designates at cast.
-  const sparesCreatures =
-    choiceTarget !== undefined &&
-    'choosesUnaffected' in choiceTarget &&
-    choiceTarget.choosesUnaffected === true
-  const zoneChoices = {
-    ...(sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}),
-    ...castChoice
-  }
+  const spareLimit = sparedCreatureLimit(selectedAction, (areaTarget ?? centeredTarget) !== null)
+  const sparedChoice =
+    spareLimit !== undefined && unaffectedActorIds.length ? { unaffectedActorIds } : {}
+  const zoneChoices = { ...sparedChoice, ...castChoice }
   const namesNoCreature =
     areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none, and they
@@ -489,7 +485,8 @@ export function CampaignTabletopActionDrawer({
               sceneId: scene.id,
               expectedSceneVersion: scene.version,
               origin: areaAim.origin,
-              toward: areaAim.toward
+              toward: areaAim.toward,
+              ...sparedChoice
             }
           : null
   const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
@@ -1174,7 +1171,7 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedSpentUnits}
                 />
               ) : null}
-              {sparesCreatures ? (
+              {spareLimit !== undefined ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
                   data={encounter.actors
@@ -1182,6 +1179,7 @@ export function CampaignTabletopActionDrawer({
                     .map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
                   label='Unaffected creatures'
+                  maxValues={spareLimit}
                   searchable
                   value={unaffectedActorIds}
                   onChange={setUnaffectedActorIds}

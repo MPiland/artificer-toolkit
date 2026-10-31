@@ -32,6 +32,7 @@ import {
   versionWithCompilation
 } from '../../tests/fixtures/publication'
 import { readStoredAuthoredVersionDocument } from './documents'
+import { readStoredSourceFacts } from './sourceFacts'
 
 const publish = makeFunctionReference<
   'mutation',
@@ -124,6 +125,7 @@ describe('native Feat publication', () => {
         .unique()
       return {
         root,
+        sourceFacts: await readStoredSourceFacts(ctx, root),
         version,
         source,
         route,
@@ -178,7 +180,7 @@ describe('native Feat publication', () => {
       )
     )
     expect(stored.version?.compilation?.projectionChecksum).toBe(checksumRuleDocument(projection))
-    expect(stored.root.authoringSources).toEqual(
+    expect(stored.sourceFacts).toEqual(
       authoredSourceFacts({
         subjectKind: 'FEAT',
         document,
@@ -212,6 +214,7 @@ describe('native Feat publication', () => {
       const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
+        sourceFacts: await readStoredSourceFacts(ctx, root),
         version,
         document: version && (await readStoredAuthoredVersionDocument(ctx, version))
       }
@@ -252,6 +255,7 @@ describe('native Feat publication', () => {
         const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
         return {
           root,
+          sourceFacts: await readStoredSourceFacts(ctx, root),
           version,
           document: version && (await readStoredAuthoredVersionDocument(ctx, version))
         }

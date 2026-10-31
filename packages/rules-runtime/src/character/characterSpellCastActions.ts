@@ -15,7 +15,11 @@ import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
-import type { CastModifierSource } from './characterCastModifiers.js'
+import {
+  sparedCreatureCap,
+  type CastModifierSource,
+  type SparesCreaturesSource
+} from './characterCastModifiers.js'
 import { affordablePoolFor } from './characterResourcePool.js'
 import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
@@ -174,6 +178,8 @@ export function buildCharacterSpellCastActions(input: {
   firstSequence: number
   /** What the Character's features let it pay on a cast; offered on casts no pool already pays for. */
   castModifiers?: readonly CastModifierSource[]
+  /** What the Character's features let it spare from an area spell; offered on casts of an area. */
+  sparesCreatures?: readonly SparesCreaturesSource[]
 }): {
   candidates: CharacterActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
@@ -279,6 +285,10 @@ export function buildCharacterSpellCastActions(input: {
                 ]
               : []
           })
+      const spareCap = sparedCreatureCap(input.sparesCreatures ?? [], {
+        level: cast.spellLevel,
+        magicSchoolId: spell.magicSchoolId
+      })
       const sequence = input.firstSequence + candidates.length
       candidates.push({
         sequence,
@@ -292,6 +302,7 @@ export function buildCharacterSpellCastActions(input: {
         equipment: null,
         resourceUse,
         ...(offeredModifiers.length > 0 && { castModifiers: offeredModifiers }),
+        ...(spareCap > 0 && { sparesCreatures: { max: spareCap } }),
         mechanicFacts
       })
       entryPoints.push({
@@ -355,7 +366,8 @@ export function compileCharacterSpellCasts(input: {
     characterLevel: input.characterLevel,
     onHitRiders: ruleEvaluation.onHitRiders,
     firstSequence: input.firstSequence,
-    castModifiers: ruleEvaluation.castModifiers
+    castModifiers: ruleEvaluation.castModifiers,
+    sparesCreatures: ruleEvaluation.sparesCreatures
   })
   const entryPoints = compileCharacterActionEntryPoints({
     gameSystemId,

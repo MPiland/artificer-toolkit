@@ -140,6 +140,7 @@ type AuthoringDefaultKind =
   | 'rollTableRepeat'
   | 'rollTableRerollValue'
   | 'savingThrow'
+  | 'sparesCreatures'
   | 'savingThrowDcBonus'
   | 'scalarReductionAmount'
   | 'senseGrant'
@@ -333,6 +334,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   rollTableRepeat: ['rollTableRepeat'],
   rollTableRerollValue: ['rollTableRerollValue'],
   savingThrow: ['savingThrow'],
+  sparesCreatures: ['sparesCreatures'],
   savingThrowDcBonus: ['savingThrowDcBonus'],
   scalarReductionAmount: ['scalarReductionAmount'],
   senseGrant: ['senseGrant'],

@@ -33,6 +33,7 @@ import { components, internal } from '../_generated/api'
 import schema from '../schema'
 import { sourceImportBatches } from './importBatches'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
+import { deleteSourceFacts, readStoredSourceFacts, writeSourceFacts } from './sourceFacts'
 import {
   deleteAuthoredVersion,
   insertAuthoredVersion,
@@ -364,7 +365,8 @@ describe('internal canonical source import', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', owned.id))
         .unique()
-      if (!root?.authoringSources) throw new Error('Missing owned fixture')
+      const ownedFacts = root && (await readStoredSourceFacts(ctx, root))
+      if (!root || !ownedFacts) throw new Error('Missing owned fixture')
       const ownerUserId = '10000000-0000-4000-8000-000000000002'
       const contentSourceId = '10000000-0000-4000-8000-000000000003'
       const document = { ...acolyte, id: owned.id, userId: ownerUserId }
@@ -401,18 +403,18 @@ describe('internal canonical source import', () => {
         ownerUserId,
         contentSourceId,
         checksum,
-        currentVersionId,
-        authoringSources: { ...root.authoringSources, checksum }
+        currentVersionId
       })
+      await writeSourceFacts(ctx, root.id, { ...ownedFacts, checksum })
       return {
         roots: await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3),
+        sourceFacts: await ctx.db.query('authoredSourceFacts').take(3),
         versions: await ctx.db.query('authoredVersions').withIndex('by_id_version').take(3),
         counts: await ctx.db.query('authoredCatalogueCounts').withIndex('by_source_kind').take(3)
       }
     })
     await t.run(async (ctx) => {
-      for (const root of expected.roots)
-        await ctx.db.patch(root._id, { authoringSources: undefined })
+      for (const root of expected.roots) await deleteSourceFacts(ctx, root.id)
     })
     for (let replay = 0; replay < 2; replay++) {
       const status = await t.run((ctx) =>
@@ -428,10 +430,16 @@ describe('internal canonical source import', () => {
     expect(
       await t.run(async (ctx) => ({
         roots: await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3),
+        sourceFacts: await ctx.db.query('authoredSourceFacts').take(3),
         versions: await ctx.db.query('authoredVersions').withIndex('by_id_version').take(3),
         counts: await ctx.db.query('authoredCatalogueCounts').withIndex('by_source_kind').take(3)
       }))
-    ).toEqual(expected)
+    ).toMatchObject({
+      roots: expected.roots,
+      versions: expected.versions,
+      counts: expected.counts,
+      sourceFacts: expected.sourceFacts.map(({ subjectId, facts }) => ({ subjectId, facts }))
+    })
   })
 
   it('rolls back an entire migration batch if existing source facts conflict', async () => {
@@ -444,15 +452,16 @@ describe('internal canonical source import', () => {
     })
     const before = await t.run(async (ctx) => {
       const roots = await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
-      await ctx.db.patch(roots[0]._id, { authoringSources: undefined })
-      await ctx.db.patch(roots[1]._id, {
-        authoringSources: {
-          checksum: roots[1].checksum,
-          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
-          rows: {}
-        }
+      await deleteSourceFacts(ctx, roots[0].id)
+      await writeSourceFacts(ctx, roots[1].id, {
+        checksum: roots[1].checksum,
+        factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
+        rows: {}
       })
-      return ctx.db.query('authoredRoots').withIndex('by_publicId').take(3)
+      return {
+        roots: await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3),
+        sourceFacts: await ctx.db.query('authoredSourceFacts').take(3)
+      }
     })
     await expect(
       t.run((ctx) =>
@@ -465,7 +474,10 @@ describe('internal canonical source import', () => {
       )
     ).rejects.toThrow('Stored authoring source facts conflict.')
     expect(
-      await t.run((ctx) => ctx.db.query('authoredRoots').withIndex('by_publicId').take(3))
+      await t.run(async (ctx) => ({
+        roots: await ctx.db.query('authoredRoots').withIndex('by_publicId').take(3),
+        sourceFacts: await ctx.db.query('authoredSourceFacts').take(3)
+      }))
     ).toEqual(before)
   })
 
@@ -474,14 +486,15 @@ describe('internal canonical source import', () => {
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const input = { contentSourceId: sourceId, subjects: [subject()] }
     await t.mutation(internal.content.import.importSubjects, input)
-    const root = await t.run((ctx) =>
-      ctx.db
+    const { root, facts } = await t.run(async (ctx) => {
+      const found = await ctx.db
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', acolyte.id))
         .unique()
-    )
-    if (!root?.authoringSources) throw new Error('Missing projected source fixture')
-    await t.run((ctx) => ctx.db.patch(root._id, { authoringSources: undefined }))
+      return { root: found, facts: found && (await readStoredSourceFacts(ctx, found)) }
+    })
+    if (!root || !facts) throw new Error('Missing projected source fixture')
+    await t.run((ctx) => deleteSourceFacts(ctx, root.id))
     await expect(t.query(internal.content.import.readSubjects, page)).rejects.toThrow()
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
       inserted: 0,
@@ -489,23 +502,23 @@ describe('internal canonical source import', () => {
       replaced: 0
     })
     expect(await t.run((ctx) => ctx.db.get(root._id))).toEqual(root)
+    expect(await t.run((ctx) => readStoredSourceFacts(ctx, root))).toEqual(facts)
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
       inserted: 0,
       reused: 1,
       replaced: 0
     })
     await t.run((ctx) =>
-      ctx.db.patch(root._id, {
-        authoringSources: {
-          ...root.authoringSources!,
-          rows: {
-            ...root.authoringSources!.rows,
-            backgrounds: [{ id: root.id, label: 'Incorrect projection' }]
-          }
+      writeSourceFacts(ctx, root.id, {
+        ...facts,
+        rows: {
+          ...facts.rows,
+          backgrounds: [{ id: root.id, label: 'Incorrect projection' }]
         }
       })
     )
     const unchanged = await t.run((ctx) => ctx.db.get(root._id))
+    const unchangedFacts = await t.run((ctx) => readStoredSourceFacts(ctx, root))
     await expect(
       t.mutation(internal.content.import.importSubjects, {
         ...input,
@@ -513,6 +526,7 @@ describe('internal canonical source import', () => {
       })
     ).rejects.toThrow('Canonical content conflict.')
     expect(await t.run((ctx) => ctx.db.query('authoredRoots').take(3))).toEqual([unchanged])
+    expect(await t.run((ctx) => readStoredSourceFacts(ctx, root))).toEqual(unchangedFacts)
     await expect(t.query(internal.content.import.readSubjects, page)).rejects.toThrow(
       'Canonical content conflict.'
     )
@@ -523,25 +537,24 @@ describe('internal canonical source import', () => {
     await t.mutation(internal.content.import.bootstrap, bootstrap)
     const input = { contentSourceId: sourceId, subjects: [subject()] }
     await t.mutation(internal.content.import.importSubjects, input)
-    const root = await t.run((ctx) =>
-      ctx.db
+    const { root, facts } = await t.run(async (ctx) => {
+      const found = await ctx.db
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', acolyte.id))
         .unique()
-    )
-    if (!root?.authoringSources) throw new Error('Missing projected source fixture')
-    expect(root.authoringSources.factsVersion).toBe(AUTHORED_SOURCE_FACTS_VERSION)
-    const tables = Object.keys(root.authoringSources.rows)
+      return { root: found, facts: found && (await readStoredSourceFacts(ctx, found)) }
+    })
+    if (!root || !facts) throw new Error('Missing projected source fixture')
+    expect(facts.factsVersion).toBe(AUTHORED_SOURCE_FACTS_VERSION)
+    const tables = Object.keys(facts.rows)
     expect(tables.length).toBeGreaterThan(1)
     // An older derivation produced no rows for a table the current one derives, and no version.
     await t.run((ctx) =>
-      ctx.db.patch(root._id, {
-        authoringSources: {
-          checksum: root.authoringSources!.checksum,
-          rows: Object.fromEntries(
-            Object.entries(root.authoringSources!.rows).filter(([table]) => table !== tables.at(-1))
-          )
-        }
+      writeSourceFacts(ctx, root.id, {
+        checksum: facts.checksum,
+        rows: Object.fromEntries(
+          Object.entries(facts.rows).filter(([table]) => table !== tables.at(-1))
+        )
       })
     )
     expect(await t.mutation(internal.content.import.importSubjects, input)).toEqual({
@@ -550,6 +563,7 @@ describe('internal canonical source import', () => {
       replaced: 0
     })
     expect(await t.run((ctx) => ctx.db.get(root._id))).toEqual(root)
+    expect(await t.run((ctx) => readStoredSourceFacts(ctx, root))).toEqual(facts)
   })
 
   it('backfills catalogue metadata and counts exactly once, rejecting stale metadata', async () => {
@@ -951,9 +965,10 @@ describe('internal canonical source import', () => {
       await ctx.db.patch(root._id, {
         checksum,
         currentVersionId,
-        currentVersionPublicId: versionId,
-        authoringSources: root.authoringSources && { ...root.authoringSources, checksum }
+        currentVersionPublicId: versionId
       })
+      const stored = await readStoredSourceFacts(ctx, root)
+      if (stored) await writeSourceFacts(ctx, root.id, { ...stored, checksum })
     })
   }
 
