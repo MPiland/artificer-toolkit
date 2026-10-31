@@ -32,6 +32,7 @@ export const MODIFIER_KIND = {
   // Dice / damage
   ADD_BONUS_DIE: 'ADD_BONUS_DIE',
   REPLACE_DAMAGE_TYPE: 'REPLACE_DAMAGE_TYPE',
+  SAVE_SUCCESS_DAMAGE: 'SAVE_SUCCESS_DAMAGE',
 
   // Roll state: the influence is a code from the System's roll-influence vocabulary
   ROLL_INFLUENCE: 'ROLL_INFLUENCE',
@@ -161,6 +162,12 @@ export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = 
     code: MODIFIER_KIND.REMOVE_OPTION,
     label: 'Remove',
     description: 'Remove an existing property or attribute.'
+  },
+
+  SAVE_SUCCESS_DAMAGE: {
+    code: MODIFIER_KIND.SAVE_SUCCESS_DAMAGE,
+    label: 'Damage On Saved Spell',
+    description: "A spell's damage still applies in part when its target succeeds on the save."
   },
 
   REPLACE_RANGE_KIND: {
@@ -322,6 +329,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
     MODIFIER_KIND.PENALTY,
     MODIFIER_KIND.ADD_BONUS_DIE,
     MODIFIER_KIND.REPLACE_DAMAGE_TYPE,
+    MODIFIER_KIND.SAVE_SUCCESS_DAMAGE,
     MODIFIER_KIND.ABILITY_MODIFIER_BONUS,
     MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS
   ],
@@ -780,29 +788,31 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                   : ModifierRolledDieAuthored
                 : K extends 'REPLACE_DAMAGE_TYPE'
                   ? { damageTypeId: string } // consider renaming to REPLACE_DAMAGE_TYPE
-                  : K extends 'REPLACE_RANGE_KIND'
-                    ?
-                        | { rangeKind: Exclude<RangeKind, 'DISTANCE'> }
-                        | ({ rangeKind: 'DISTANCE' } & ModifierLengthAuthored)
-                    : K extends 'REPLACE_DURATION_KIND'
-                      ? { durationKind: DurationKind }
-                      : K extends 'REPLACE_SHAPE_KIND'
-                        ? { shapeKind: ShapeKind }
-                        : K extends 'REPLACE_CHARGE_RESET_KIND'
-                          ? { resetKind: ChargeResetKind }
-                          : K extends 'ROLL_INFLUENCE' | 'SUPPRESS_ROLL_INFLUENCE'
-                            ? { influence: string }
-                            : K extends 'ENABLE'
-                              ? undefined
-                              : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
-                                ? {
-                                    abilities: string[]
-                                    min?: number
-                                    max?: number
-                                  }
-                                : // option-like operations must be domain-supported
-                                  K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
-                                  ? V extends keyof ValueDomainOptionPayloadByDomain
-                                    ? ValueDomainOptionPayloadByDomain[V]
+                  : K extends 'SAVE_SUCCESS_DAMAGE'
+                    ? { amountKind: 'HALF' }
+                    : K extends 'REPLACE_RANGE_KIND'
+                      ?
+                          | { rangeKind: Exclude<RangeKind, 'DISTANCE'> }
+                          | ({ rangeKind: 'DISTANCE' } & ModifierLengthAuthored)
+                      : K extends 'REPLACE_DURATION_KIND'
+                        ? { durationKind: DurationKind }
+                        : K extends 'REPLACE_SHAPE_KIND'
+                          ? { shapeKind: ShapeKind }
+                          : K extends 'REPLACE_CHARGE_RESET_KIND'
+                            ? { resetKind: ChargeResetKind }
+                            : K extends 'ROLL_INFLUENCE' | 'SUPPRESS_ROLL_INFLUENCE'
+                              ? { influence: string }
+                              : K extends 'ENABLE'
+                                ? undefined
+                                : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
+                                  ? {
+                                      abilities: string[]
+                                      min?: number
+                                      max?: number
+                                    }
+                                  : // option-like operations must be domain-supported
+                                    K extends 'ADD_OPTION' | 'REMOVE_OPTION' | 'REPLACE_OPTION'
+                                    ? V extends keyof ValueDomainOptionPayloadByDomain
+                                      ? ValueDomainOptionPayloadByDomain[V]
+                                      : never
                                     : never
-                                  : never

@@ -1,6 +1,7 @@
 import { convexQuery } from '@convex-dev/react-query'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import type {
+  AddAfterRollDieInputDto,
   ExecuteDiceConfigurationInputDto,
   ExecuteRollInputDto
 } from '@artificer-toolkit/schema/api/rolls'
@@ -14,6 +15,18 @@ export function getRollHistory(enabled = true) {
 export function useExecuteRollMutation() {
   const execute = useConvexMutation(api.rolls.execute)
   return useMutation({ mutationFn: (input: ExecuteRollInputDto) => execute(input) })
+}
+
+/** D168: adds a die the Character held for after the roll to its latest retained roll. */
+export function useAddAfterRollDieMutation() {
+  const addAfterRollDie = useConvexMutation(api.rolls.addAfterRollDie)
+  return useMutation({ mutationFn: (input: AddAfterRollDieInputDto) => addAfterRollDie(input) })
+}
+
+/** D168: keeps the latest retained roll as rolled. */
+export function useDeclineAfterRollDiceMutation() {
+  const declineAfterRollDice = useConvexMutation(api.rolls.declineAfterRollDice)
+  return useMutation({ mutationFn: (rollId: string) => declineAfterRollDice({ id: rollId }) })
 }
 
 export function useExecuteDiceConfigurationMutation() {

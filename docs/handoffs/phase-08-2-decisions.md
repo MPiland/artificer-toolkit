@@ -1948,3 +1948,11 @@ The request returns once deletion is scheduled.
 ### D201: condition-limited hit point maximum is resolved on write (orchestrator ruling R1, 2026-10-30, SPELLS-10.T1b)
 
 A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is resolved when a condition level is written and stored as a fraction on the Character's play state or the Creature actor. Every maximum reader applies it through `effectiveHitPointMaximum`. The alternative, deriving it live at each of about fifteen readers, would have needed condition levels and definition readers threaded through every encounter-persistence read. Local data resets at merge (D196), with no migration. T1b-1 covers the Sheet, rest, the room reconcile clamp and the Creature GM edit; T1b-2 routes the remaining encounter writers through the same function and adds the skip-detection test. A Character in a Wild Shape form keeps the form's own maximum until T1b-2.
+
+### D202: pre-PERF rulings (user decisions, 2026-10-31)
+
+- **Sheet pre-build timing (RELIABILITY-21.T25b):** the 700 ms goal on `characters/sheetSectionDerivation:store` is dropped. T25b removes the duplicate reads and closes. PERF-1 sets the real budget from measured numbers, and the store splits into two chained mutations only if those numbers require it. A timeout loses nothing: reads derive live (ADR 0041).
+- **Water Elemental Whelm** is a self-centered area over the elemental's space, like Spirit Guardians, with the failed save holding the target through the save-gated hold and the recurring damage already built (SPELLS-31.T6w). Gelatinous Cube Engulf and the Purple Worm and Kraken regurgitation stay GM rulings.
+- **SPELLS-12 is built before PERF-1.** This replaces the 2026-10-30 deferral.
+- **Bless on Sheet rolls** needs no work: attack and save rolls already carry target-independent dice, and a die against one creature (Hunter's Mark) waits for the room.
+- **Destroy Undead is automated with a CR gate** on Turn Undead's failed-save block (SPELLS-31.T4m2). The Destroy Undead row stays description-only.

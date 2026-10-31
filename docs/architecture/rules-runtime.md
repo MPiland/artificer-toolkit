@@ -1572,6 +1572,8 @@ die is recorded on the rolled die as `spentEffectId`, so the commit ends the eff
 window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
 spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
 
+**D168 window on the Sheet roll path (SPELLS-31.T4c1c, current).** `carriedTestDice` returns `afterRollOffers` beside `addedDice` and `spent`; `createRollRecord` stores them on the roll record and `withAfterRollDie` / `withoutAfterRollOffers` amend it. The apps layer (`rollDocuments.ts`) owns authorization and the holder-effect end; no pause object exists, since a Sheet roll is a single mutation. Only the latest retained roll can take a die.
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 
@@ -2390,9 +2392,11 @@ user spends from the action's `resourceUse` pool. It is the generic option behin
 - `prepareNativeCharacterActionState` spends `cost x spentUnits` from the pool and refuses more than
   remains. The compiler binds `dnd5e.spent-heal-amount` (per-unit amount x units) into the `SPENT_HEAL`
   outcome's heal proposal. Spend and heal commit and undo together.
-- Not yet on the option (T4f2b, T4f2c): the undead/construct filter, the 5-point cure spend and a
-  caster-divides split with per-target caps. Both extend the `RESOURCE_SPENT` source rather than
-  reshaping it. Until then Lay on Hands' cures and exclusions remain in its description.
+- SPELLS-31.T4f2b adds no code: Lay on Hands' undead/construct exclusion is the generic single-target
+  `excludedCreatureTypeIds` (an overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning), and its cure
+  is a second action on the same pool with a fixed `resourceUse.cost` of 5 and an `END_EFFECTS`
+  outcome (no chosen amount). It ends the poisoned condition; a disease has no condition to end yet.
+- Not yet on the option (T4f2c): a caster-divides split with per-target caps.
 
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
@@ -2815,6 +2819,11 @@ points take the rest, capped at what the target has). It is not damage: no defen
 answers it (`applyDamageInterceptions` only rebases it), and it adds no death-save failure, Concentration check or
 massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both receipt validators recheck its
 arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
+A relationship outcome is held on one bounded result path: an attack's `ON_HIT`/`ON_CRIT`, a contest's
+`ON_CHECK_SUCCESS`, a direct use's `ON_USE`, or (SPELLS-33.T6n4) a save action's `ON_SAVE_FAIL`. `relationshipPlan` gates
+the plan with `resultGate` on that path, so a target that makes the save is never held. The Whelm and the Gelatinous
+Cube's Engulf are the SRD cases. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
+still a GM ruling: the nested save's result path is not yet a gate.
 `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `CONSUME` lifecycle triggers (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) name the events that use it up: it is deleted by its holder's next

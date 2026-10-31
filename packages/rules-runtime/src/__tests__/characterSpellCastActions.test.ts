@@ -3738,3 +3738,38 @@ describe('a spell range a caster’s modifier replaces (SPELLS-31.T5i3)', () => 
     expect(measuredRange(ELDRITCH_BLAST, warlockFold([]))).toMatchObject({ amount: 120 })
   })
 })
+
+describe('the success path a caster’s save-success damage modifier adds to a cast (SPELLS-31.T5i4)', () => {
+  const evokerFold = (withPotentCantrip: boolean) =>
+    evaluateSrdCharacter({
+      classes: [{ label: 'Wizard', level: 6, subclass: 'School of Evocation' }],
+      features: withPotentCantrip
+        ? [
+            srdFeature({
+              owner: 'SUBCLASS',
+              classLabel: 'Wizard',
+              subclassLabel: 'School of Evocation',
+              featureLabel: 'Potent Cantrip',
+              level: 6
+            })
+          ]
+        : []
+    }).output.grantFold
+
+  const executionPaths = (label: string, grantFold: ReturnType<typeof evokerFold>) => {
+    const authored = spell(label)
+    const plan = compiledCastEntry(authored, authored.level, grantFold)?.compilation.executionPlan
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error(`${label} must run as a save.`)
+    return plan.outcomes.map(({ pathCode }) => pathCode)
+  }
+
+  it('gives a damaging cantrip its damage on a success, and a leveled spell nothing new', () => {
+    const grantFold = evokerFold(true)
+    expect(executionPaths('Acid Splash', grantFold)).toEqual(['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'])
+    expect(executionPaths('Fireball', grantFold)).toEqual(['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'])
+  })
+
+  it('leaves the cantrip with only a failure path without the feature', () => {
+    expect(executionPaths('Acid Splash', evokerFold(false))).toEqual(['ON_SAVE_FAIL'])
+  })
+})

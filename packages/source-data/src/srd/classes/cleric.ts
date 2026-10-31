@@ -10,6 +10,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
@@ -35,6 +36,8 @@ import {
   type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
+import { creatureTypeId } from '../spells/shared.js'
+import { TURNED_INSTRUCTIONS } from './turned.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
@@ -898,7 +901,7 @@ export const cleric: ClassAuthored = {
       id: classRowId(C, 3, 3),
       label: 'Channel Divinity',
       description:
-        'At 2nd level, you gain the ability to channel divine energy directly from your deity, using that energy to fuel magical effects. You start with two such effects: Turn Undead and an effect determined by your domain. Some domains grant you additional effects as you advance in levels, as noted in the domain description. When you use your Channel Divinity, you choose which effect to create. You must then finish a short or long rest to use your Channel Divinity again. Some Channel Divinity effects require saving throws. When you use such an effect from this class, the DC equals your cleric spell save DC. Beginning at 6th level, you can use your Channel Divinity twice between rests, and beginning at 18th level, you can use it three times between rests. When you finish a short or long rest, you regain your expended uses.',
+        "At 2nd level, you gain the ability to channel divine energy directly from your deity, using that energy to fuel magical effects. You start with two such effects: Turn Undead and an effect determined by your domain. Some domains grant you additional effects as you advance in levels, as noted in the domain description. When you use your Channel Divinity, you choose which effect to create. You must then finish a short or long rest to use your Channel Divinity again. Some Channel Divinity effects require saving throws. When you use such an effect from this class, the DC equals your cleric spell save DC. Beginning at 6th level, you can use your Channel Divinity twice between rests, and beginning at 18th level, you can use it three times between rests. When you finish a short or long rest, you regain your expended uses. Channel Divinity: Turn Undead. As an action, you present your holy symbol and speak a prayer censuring the undead. Each undead that can see or hear you within 30 feet of you must make a Wisdom saving throw. If the creature fails its saving throw, it is turned for 1 minute or until it takes any damage. A turned creature must spend its turns trying to move as far away from you as it can, and it can't willingly move to a space within 30 feet of you. It also can't take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there's nowhere to move, the creature can use the Dodge action.",
       attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
       availableAtLevel: 2,
       order: 2,
@@ -914,10 +917,9 @@ export const cleric: ClassAuthored = {
         ]
       },
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(C, 0x60, 3),
-          ruleKind: CLOSED_RULE_KIND.CLASS_CLERIC_CHANNEL_DIVINITY_TURN_UNDEAD,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.SAVING_THROW,
@@ -936,10 +938,39 @@ export const cleric: ClassAuthored = {
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'ANY'
+              dispositionKind: 'ANY',
+              allowedCreatureTypeIds: [creatureTypeId('UNDEAD')]
             }
-          }
-        })
+          },
+          paths: [
+            {
+              id: classRowId(C, 0x61, 3),
+              order: 1,
+              pathCode: PATH_CODE.ON_SAVE_FAIL,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${classRowId(C, 0x61, 3)}__result`,
+                resultKind: 'SINGLE',
+                duration: {
+                  id: classRowId(C, 0x62, 3),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                outcomes: [
+                  {
+                    id: classRowId(C, 0x63, 3),
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Turned',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: TURNED_INSTRUCTIONS
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

@@ -2457,6 +2457,14 @@ export declare const api: {
           };
         },
         {
+          afterRollOffers?: Array<{
+            count: number;
+            effectId: string;
+            faces: 4 | 6 | 8 | 10 | 12;
+            grantId: string;
+            label: string;
+            sign: "ADD" | "SUBTRACT";
+          }>;
           characterId: string | null;
           characterLabel: string;
           createdAt: string;
@@ -6555,6 +6563,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -6660,6 +6676,14 @@ export declare const api: {
             mode: "OOC" | "ROLEPLAY" | null;
             revealedByGm: boolean;
             roll: {
+              afterRollOffers?: Array<{
+                count: number;
+                effectId: string;
+                faces: 4 | 6 | 8 | 10 | 12;
+                grantId: string;
+                label: string;
+                sign: "ADD" | "SUBTRACT";
+              }>;
               characterId: string | null;
               characterLabel: string;
               createdAt: string;
@@ -6770,6 +6794,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -6868,6 +6900,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -9684,6 +9724,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -9792,6 +9840,14 @@ export declare const api: {
           };
         },
         {
+          afterRollOffers?: Array<{
+            count: number;
+            effectId: string;
+            faces: 4 | 6 | 8 | 10 | 12;
+            grantId: string;
+            label: string;
+            sign: "ADD" | "SUBTRACT";
+          }>;
           characterId: string | null;
           characterLabel: string;
           createdAt: string;
@@ -9893,6 +9949,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -293095,6 +293159,14 @@ export declare const api: {
                 version: number;
               };
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -293346,6 +293418,14 @@ export declare const api: {
           mode: "OOC" | "ROLEPLAY" | null;
           revealedByGm: boolean;
           roll: {
+            afterRollOffers?: Array<{
+              count: number;
+              effectId: string;
+              faces: 4 | 6 | 8 | 10 | 12;
+              grantId: string;
+              label: string;
+              sign: "ADD" | "SUBTRACT";
+            }>;
             characterId: string | null;
             characterLabel: string;
             createdAt: string;
@@ -297428,7 +297508,185 @@ export declare const api: {
     >;
   };
   rolls: {
+    addAfterRollDie: FunctionReference<
+      "mutation",
+      "public",
+      { effectId: string; grantId: string; id: string },
+      {
+        afterRollOffers?: Array<{
+          count: number;
+          effectId: string;
+          faces: 4 | 6 | 8 | 10 | 12;
+          grantId: string;
+          label: string;
+          sign: "ADD" | "SUBTRACT";
+        }>;
+        characterId: string | null;
+        characterLabel: string;
+        createdAt: string;
+        evidence: {
+          keep: "FIRST" | "HIGHER" | "LOWER";
+          mode?: string;
+          modeLabel?: string;
+          modifier: number;
+          subtotal: number;
+          terms: Array<{
+            count: number;
+            die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+            keptRollIndex?: number;
+            keptRollIndexes?: Array<number>;
+            modifier?: number;
+            rollSequences?: Array<Array<number>>;
+            rolls: Array<number>;
+            subtotal: number;
+            subtracted?: true;
+          }>;
+          total: number;
+          transform:
+            | { kind: "NONE" }
+            | { kind: "HALF" }
+            | { kind: "DOUBLE" }
+            | { kind: "MULTIPLY"; value: number };
+        };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
+        id: string;
+        normalizedExpression: string;
+        ruleCheck?:
+          | {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            }
+          | {
+              addedRollIndexes: Array<number>;
+              appliedMode: { code: string; label: string };
+              cancelledRollIndexes: Array<number>;
+              caption: string | null;
+              kind: "D20_MODE_ADJUSTED";
+              rolledMode: { code: string; label: string };
+            }
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
+        ruleset: { code: string; systemId: string; version: string };
+        source: {
+          kind:
+            | "MANUAL"
+            | "ABILITY_CHECK"
+            | "SAVING_THROW"
+            | "SKILL_CHECK"
+            | "INITIATIVE"
+            | "ATTACK"
+            | "DAMAGE"
+            | "HEALING"
+            | "HIT_DIE"
+            | "DEATH_SAVE"
+            | "RECHARGE"
+            | "TABLE";
+          label: string;
+        };
+      }
+    >;
     clearHistory: FunctionReference<"mutation", "public", {}, { ok: true }>;
+    declineAfterRollDice: FunctionReference<
+      "mutation",
+      "public",
+      { id: string },
+      {
+        afterRollOffers?: Array<{
+          count: number;
+          effectId: string;
+          faces: 4 | 6 | 8 | 10 | 12;
+          grantId: string;
+          label: string;
+          sign: "ADD" | "SUBTRACT";
+        }>;
+        characterId: string | null;
+        characterLabel: string;
+        createdAt: string;
+        evidence: {
+          keep: "FIRST" | "HIGHER" | "LOWER";
+          mode?: string;
+          modeLabel?: string;
+          modifier: number;
+          subtotal: number;
+          terms: Array<{
+            count: number;
+            die: 4 | 6 | 8 | 10 | 12 | 20 | 100;
+            keptRollIndex?: number;
+            keptRollIndexes?: Array<number>;
+            modifier?: number;
+            rollSequences?: Array<Array<number>>;
+            rolls: Array<number>;
+            subtotal: number;
+            subtracted?: true;
+          }>;
+          total: number;
+          transform:
+            | { kind: "NONE" }
+            | { kind: "HALF" }
+            | { kind: "DOUBLE" }
+            | { kind: "MULTIPLY"; value: number };
+        };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
+        id: string;
+        normalizedExpression: string;
+        ruleCheck?:
+          | {
+              actorId: string;
+              actorLabel: string;
+              damage: { amount: number; typeLabel: string | null };
+              dc: number;
+              faces: Array<number>;
+              kind: "CONCENTRATION";
+              modifier: number;
+              outcome: "KEPT" | "LOST";
+              sourceLabel: string | null;
+              total: number;
+            }
+          | {
+              addedRollIndexes: Array<number>;
+              appliedMode: { code: string; label: string };
+              cancelledRollIndexes: Array<number>;
+              caption: string | null;
+              kind: "D20_MODE_ADJUSTED";
+              rolledMode: { code: string; label: string };
+            }
+          | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string }
+          | { kind: "SAVE_AUTO_FAIL"; labels: Array<string> };
+        ruleset: { code: string; systemId: string; version: string };
+        source: {
+          kind:
+            | "MANUAL"
+            | "ABILITY_CHECK"
+            | "SAVING_THROW"
+            | "SKILL_CHECK"
+            | "INITIATIVE"
+            | "ATTACK"
+            | "DAMAGE"
+            | "HEALING"
+            | "HIT_DIE"
+            | "DEATH_SAVE"
+            | "RECHARGE"
+            | "TABLE";
+          label: string;
+        };
+      }
+    >;
     discard: FunctionReference<
       "mutation",
       "public",
@@ -297460,6 +297718,14 @@ export declare const api: {
         };
       },
       {
+        afterRollOffers?: Array<{
+          count: number;
+          effectId: string;
+          faces: 4 | 6 | 8 | 10 | 12;
+          grantId: string;
+          label: string;
+          sign: "ADD" | "SUBTRACT";
+        }>;
         characterId: string | null;
         characterLabel: string;
         createdAt: string;
@@ -297574,6 +297840,14 @@ export declare const api: {
       "public",
       {},
       Array<{
+        afterRollOffers?: Array<{
+          count: number;
+          effectId: string;
+          faces: 4 | 6 | 8 | 10 | 12;
+          grantId: string;
+          label: string;
+          sign: "ADD" | "SUBTRACT";
+        }>;
         characterId: string | null;
         characterLabel: string;
         createdAt: string;
