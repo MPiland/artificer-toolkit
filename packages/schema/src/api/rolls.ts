@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { rolledDieShape } from '../shared/d20AddedDice.js'
 import { d20FoldedBonusesDtoSchema } from '../shared/d20FoldedBonuses.js'
 import {
   rollModeKeepSchema,
@@ -198,6 +199,19 @@ export const rollRuleCheckDtoSchema = lazySchema(() =>
   ])
 )
 
+/**
+ * A die the roller holds for after this roll's d20 (D168): the effect that holds it and the grant
+ * that gives it. Using it adds the die to the record and ends the effect; the roll carried none.
+ */
+export const rollAfterRollOfferDtoSchema = lazySchema(() =>
+  z.strictObject({
+    effectId: z.string().check(z.uuid()),
+    grantId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+    label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
+    ...rolledDieShape()
+  })
+)
+
 export const rollRecordDtoSchema = lazySchema(() =>
   z.extend(rollResultDtoSchema, {
     characterId: z.nullable(z.string()),
@@ -211,7 +225,11 @@ export const rollRecordDtoSchema = lazySchema(() =>
     createdAt: z.string(),
     /** Present when a rule rolled automatically or settled a prompted roll. */
     ruleCheck: z.optional(rollRuleCheckDtoSchema),
-    foldedBonuses: z.optional(d20FoldedBonusesDtoSchema)
+    foldedBonuses: z.optional(d20FoldedBonusesDtoSchema),
+    /** Present while the roller may still add a held die to this roll; absent once used or declined. */
+    afterRollOffers: z.optional(
+      z.array(rollAfterRollOfferDtoSchema).check(z.minLength(1)).check(z.maxLength(16))
+    )
   })
 )
 
@@ -247,6 +265,17 @@ export const rollHistoryResponseDtoSchema = lazySchema(() =>
   z.array(rollHistoryEntryDtoSchema).check(z.maxLength(20))
 )
 
+export const addAfterRollDieInputDtoSchema = lazySchema(() =>
+  z.strictObject({
+    id: z.pipe(
+      z.uuid(),
+      z.transform((value) => value.toLowerCase())
+    ),
+    effectId: z.string().check(z.uuid()),
+    grantId: z.string().check(z.minLength(1)).check(z.maxLength(256))
+  })
+)
+
 export const rollIdInputDtoSchema = lazySchema(() =>
   z.strictObject({
     id: z.pipe(
@@ -270,4 +299,6 @@ export type RollRevealModeDto = z.infer<typeof rollRevealModeDtoSchema>
 export type GmCampaignRollDto = z.infer<typeof gmCampaignRollDtoSchema>
 export type RollHistoryEntryDto = z.infer<typeof rollHistoryEntryDtoSchema>
 export type RollHistoryResponseDto = z.infer<typeof rollHistoryResponseDtoSchema>
+export type RollAfterRollOfferDto = z.infer<typeof rollAfterRollOfferDtoSchema>
+export type AddAfterRollDieInputDto = z.infer<typeof addAfterRollDieInputDtoSchema>
 export type RollIdInputDto = z.infer<typeof rollIdInputDtoSchema>

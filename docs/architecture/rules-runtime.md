@@ -1572,6 +1572,8 @@ die is recorded on the rolled die as `spentEffectId`, so the commit ends the eff
 window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
 spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
 
+**D168 window on the Sheet roll path (SPELLS-31.T4c1c, current).** `carriedTestDice` returns `afterRollOffers` beside `addedDice` and `spent`; `createRollRecord` stores them on the roll record and `withAfterRollDie` / `withoutAfterRollOffers` amend it. The apps layer (`rollDocuments.ts`) owns authorization and the holder-effect end; no pause object exists, since a Sheet roll is a single mutation. Only the latest retained roll can take a die.
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 

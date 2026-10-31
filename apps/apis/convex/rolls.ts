@@ -7,6 +7,7 @@ import {
   rollIdInputDtoSchema,
   rollRecordDtoSchema,
   rollResultDtoSchema,
+  addAfterRollDieInputDtoSchema,
   type RollRecordDto
 } from '@artificer-toolkit/schema/api/rolls'
 import {
@@ -16,14 +17,18 @@ import {
 import { query } from './lib/queries'
 import { mutation } from './lib/mutations'
 import { requireIdentity } from './lib/identity'
-import { readCharacterRecord } from './characters/documents'
-import { readCharacterRow } from './characters/stateDocuments'
-import { readCharacterCampaign } from './characters/context'
 import {
   presentRetainedRoll,
   presentRoll
 } from '@artificer-toolkit/rules-runtime/character/rollPresentation'
-import { evaluateCharacterRoll, nextRollInt, retainUserRoll } from './rollDocuments'
+import {
+  addAfterRollDieToRoll,
+  declineRollOffers,
+  evaluateCharacterRoll,
+  nextRollInt,
+  readRollMaturity,
+  retainUserRoll
+} from './rollDocuments'
 
 const ok = v.object({ ok: v.literal(true) })
 
@@ -54,6 +59,26 @@ export const execute = mutation({
   }
 })
 
+/** D168: adds a die the Character held for after the roll to the user's latest roll, and spends it. */
+export const addAfterRollDie = mutation({
+  args: zodToConvexFields(addAfterRollDieInputDtoSchema.shape),
+  returns: zodToConvex(rollRecordDtoSchema),
+  handler: async (ctx, args): Promise<RollRecordDto> => {
+    const { userId } = await requireIdentity(ctx)
+    return addAfterRollDieToRoll(ctx, userId, addAfterRollDieInputDtoSchema.parse(args))
+  }
+})
+
+/** D168: keeps the user's latest roll as rolled; its held dice are offered no more. */
+export const declineAfterRollDice = mutation({
+  args: zodToConvexFields(rollIdInputDtoSchema.shape),
+  returns: zodToConvex(rollRecordDtoSchema),
+  handler: async (ctx, args): Promise<RollRecordDto> => {
+    const { userId } = await requireIdentity(ctx)
+    return declineRollOffers(ctx, userId, rollIdInputDtoSchema.parse(args).id)
+  }
+})
+
 export const history = query({
   args: {},
   returns: zodToConvex(rollHistoryResponseDtoSchema),
@@ -68,14 +93,7 @@ export const history = query({
       await Promise.all(
         [
           ...new Set(records.flatMap((record) => (record.characterId ? [record.characterId] : [])))
-        ].map(async (id) => {
-          const active = await readCharacterRow(ctx, id)
-          // Caller-owned snapshots can come from an explicitly scoped GM roll too.
-          const campaign = active
-            ? await readCharacterCampaign(ctx, readCharacterRecord(active), active.userId)
-            : null
-          return [id, campaign?.contentMaturity ?? null] as const
-        })
+        ].map(async (id) => [id, await readRollMaturity(ctx, id)] as const)
       )
     )
     return rollHistoryResponseDtoSchema.parse(
