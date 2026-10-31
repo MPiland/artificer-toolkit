@@ -2,6 +2,7 @@ import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/m
 import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 
 import type { MovementRoomConfig } from './movementRoomFixture.js'
 
@@ -83,6 +84,24 @@ export function heldDieEffect(change: { count?: number; ability?: 'WISDOM' | 'ST
               timing: 'AFTER_ROLL'
             }
             if (change.ability) modifier.domain = { ability: change.ability }
+          }
+  return effect
+}
+
+/** A held saving-throw die: the real Resistance grant, authored to be offered after the d20 is seen. */
+export function heldSaveDieEffect(change: { count?: number } = {}) {
+  const effect = structuredClone(resistance.effects![0]!)
+  for (const path of effect.paths)
+    if (path.selectionKind === 'FIXED')
+      for (const outcome of path.resultBlock.outcomes)
+        if (outcome.effectKind === 'APPLY_GRANT')
+          for (const modifier of outcome.grants.modifiers ?? []) {
+            if (modifier.modifierKind !== 'ADD_BONUS_DIE') continue
+            modifier.payload = {
+              ...modifier.payload,
+              ...(change.count === undefined ? {} : { count: change.count }),
+              timing: 'AFTER_ROLL'
+            }
           }
   return effect
 }

@@ -27,6 +27,8 @@ export type EncounterProjectionCharacterState = {
   temporary: number
   maximum: number
   conditions: unknown
+  /** The consequences the GM accepted for the Character (ATTACK-15); a frozen actor lists none. */
+  consequences: ReadonlyArray<{ id: string; label: string }>
   deathSaves: CharacterDeathSaves
   dead: boolean
 }

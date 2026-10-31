@@ -15,6 +15,8 @@ import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runti
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { z } from 'zod'
 
+import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
+import { storedInitiativeReceipt } from './initiativeReceipt.js'
 import { projectNativeGm } from './nativeProjection.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -57,6 +59,8 @@ export async function commitRevert(
     actors: readonly EncounterRunActorState[]
     nextActors: EncounterRunActorState[]
     updatedAt: string
+    /** The round's initiative after the undo removed creatures that held a place in it. */
+    initiative?: EncounterInitiativeRoundStateDto | null
   }
 ): Promise<EncounterCommandResultDto> {
   const { run, state, campaign, root, updatedAt } = input
@@ -105,6 +109,7 @@ export async function commitRevert(
       actorUserId: input.userId,
       version: nextState.version,
       commandJson: JSON.stringify(input.input),
+      ...storedInitiativeReceipt(input.initiative ?? null),
       ...encounterReplayReceipt(result),
       createdAt: updatedAt
     })

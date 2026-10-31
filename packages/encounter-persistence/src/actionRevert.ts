@@ -9,6 +9,7 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import { type ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { damageSaveCheckMutatesRun } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
@@ -405,6 +406,8 @@ export async function revertLastEncounterAction(
   }
   const conjuredActorIds: string[] = []
   let revertedState = state
+  let conjuredInitiative: EncounterInitiativeRoundStateDto | null = null
+  const updatedAt = new Date().toISOString()
   /** Inverts one root's outcomes onto the shared actors and Character inverses. */
   const invertRoot = async ({
     root,
@@ -832,11 +835,14 @@ export async function revertLastEncounterAction(
     // The creatures the action conjured leave the Scene and the Run with it (D187b).
     if (root.summonedTokens.length) {
       const actorIds = root.summonedTokens.map(({ actorId }) => actorId)
-      revertedState = await removeConjuredActors(ctx, {
+      const removed = await removeConjuredActors(ctx, {
         state: revertedState,
         commandId: input.commandId,
-        actorIds
+        actorIds,
+        occurredAt: updatedAt
       })
+      revertedState = removed.state
+      conjuredInitiative = removed.initiative ?? conjuredInitiative
       conjuredActorIds.push(...actorIds)
     }
     // The once-per-turn uses the attack spent return to the attacker's turn record.
@@ -860,7 +866,6 @@ export async function revertLastEncounterAction(
     await restoreConsumedGrants(ctx, root.consumedGrants)
   }
   for (const plan of plans) await invertRoot(plan)
-  const updatedAt = new Date().toISOString()
   for (const [characterId, inverse] of characterInverses)
     await restoreCharacter(ctx, {
       characterId,
@@ -896,7 +901,8 @@ export async function revertLastEncounterAction(
     root,
     actors: kept,
     nextActors: kept.map((actor) => actorsById.get(actor.id)!),
-    updatedAt
+    updatedAt,
+    initiative: conjuredInitiative
   })
 }
 

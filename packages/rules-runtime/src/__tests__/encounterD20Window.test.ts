@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { damageSaveRolledD20, damageSaveWindowRoll } from '../encounterConcentration.js'
 import {
   chosenEncounterD20WindowOption,
   encounterD20WindowOptions,
@@ -47,5 +48,27 @@ describe('the d20 window selection', () => {
         typeof encounterD20WindowSelection
       >[0])
     ).toThrow('use or a decline')
+  })
+})
+
+describe('the roll a damage save freezes at its d20 window', () => {
+  const roll = {
+    rawFaces: [4, 17],
+    rollMode: 'ADVANTAGE' as const,
+    keep: 'HIGHER' as const,
+    natural: 17,
+    addedDice: []
+  }
+  const save = {
+    rollMode: 'ADVANTAGE' as const,
+    modifier: 2,
+    contributors: [],
+    contributorChecksum: CHECKSUM
+  }
+
+  it('totals the d20 the roller rolled and resumes to the same roll', () => {
+    const frozen = damageSaveRolledD20({ requestId: 'request', save, roll })
+    expect(frozen).toMatchObject({ selectedNatural: 17, total: 19, rawFaces: [4, 17] })
+    expect(damageSaveWindowRoll(frozen)).toEqual(roll)
   })
 })

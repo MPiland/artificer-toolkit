@@ -10,7 +10,10 @@ import {
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import {
+  takesInitiativeTurns,
+  validateInitiativeCursor
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -83,12 +86,18 @@ export async function persistEncounterTurnPending(
       context.kind === 'ENCOUNTER_INITIATIVE_DECLARATION'
     ) {
       const initial = context.root
+      const initiativeActorIds = checksumCanonicalJson(
+        actors
+          .filter(takesInitiativeTurns)
+          .map((actor) => actor.id)
+          .sort()
+      )
       if (
         initial.round !== 1 ||
         initial.policySnapshotChecksum !== state.initiativePolicySnapshotChecksum ||
         initial.initiativeBeforePin.kind !== 'INITIAL_START' ||
         checksumCanonicalJson([...initial.initiativeBeforePin.actorIds].sort()) !==
-          checksumCanonicalJson([...state.actorIds].sort()) ||
+          initiativeActorIds ||
         initial.initiativeAdvance ||
         initial.outgoingTurn ||
         initial.completedLegendaryActions?.length ||
@@ -98,7 +107,7 @@ export async function persistEncounterTurnPending(
           initial.policySnapshotChecksum ||
         checksumCanonicalJson(
           initial.stagedInitiativeRoundState.participants.map((actor) => actor.actorId).sort()
-        ) !== checksumCanonicalJson([...state.actorIds].sort()) ||
+        ) !== initiativeActorIds ||
         initial.stagedInitiativeRoundState.participants.some(
           (participant) =>
             actors.find((actor) => actor.id === participant.actorId)?.sideId !== participant.sideId

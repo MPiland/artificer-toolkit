@@ -93,7 +93,7 @@ async function conjuringRun() {
 describe('ending the creatures whose carrier effect ended (D187b)', () => {
   it('removes nothing while the carrier still stands', async () => {
     const { memory, removed, sweep } = await conjuringRun()
-    expect(await sweep()).toBe(false)
+    expect(await sweep()).toMatchObject({ ended: false })
     expect(removed).toEqual([])
     expect(memory.documents('encounterRunActors')).toHaveLength(3)
   })
@@ -108,7 +108,7 @@ describe('ending the creatures whose carrier effect ended (D187b)', () => {
     })
     const versionBefore = readRunState(memory.documents('encounterRuns')[0]!).version
 
-    expect(await sweep()).toBe(true)
+    expect(await sweep()).toMatchObject({ ended: true })
 
     expect(removed).toHaveLength(1)
     expect(memory.documents('encounterActorTokenBindings')).toEqual([])
@@ -126,7 +126,7 @@ describe('ending the creatures whose carrier effect ended (D187b)', () => {
       receipt: { removedActorIds: [SUMMON_ID] }
     })
     // Nothing is left to sweep, so a later command records nothing more.
-    expect(await sweep()).toBe(false)
+    expect(await sweep()).toMatchObject({ ended: false })
     expect(memory.documents('encounterRunCommands')).toHaveLength(1)
   })
 
@@ -149,7 +149,7 @@ describe('ending the creatures whose carrier effect ended (D187b)', () => {
         tokenId: TOKEN_ID
       })
     )
-    expect(await endOrphanedConjuredActors(ctx, sweepInput)).toBe(true)
+    expect(await endOrphanedConjuredActors(ctx, sweepInput)).toMatchObject({ ended: true })
     expect(removed).toHaveLength(1)
     expect(memory.documents('encounterRunActors')).toEqual([])
   })
@@ -160,7 +160,7 @@ describe('ending the creatures whose carrier effect ended (D187b)', () => {
     const actors = [caster, carriedBy(PET_ID)]
     await insertRun(memory, srdEncounterState({ actors, currentActorId: null }))
     for (const actor of actors) await insertRunActor(ctx, actor)
-    expect(await endOrphanedConjuredActors(ctx, sweepInput)).toBe(false)
+    expect(await endOrphanedConjuredActors(ctx, sweepInput)).toMatchObject({ ended: false })
     expect(memory.documents('encounterRunActors')).toHaveLength(2)
   })
 })

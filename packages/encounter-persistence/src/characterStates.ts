@@ -33,7 +33,11 @@ import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } f
  * Sheet conditions by type ID; web names them from the System vocabulary.
  */
 export function characterProjectionState(
-  { hitpoints, conditions = [] }: Pick<CharacterPlayState, 'hitpoints' | 'conditions'>,
+  {
+    hitpoints,
+    conditions = [],
+    consequences = []
+  }: Pick<CharacterPlayState, 'hitpoints' | 'conditions' | 'consequences'>,
   maximumHitPoints: number
 ) {
   return {
@@ -45,7 +49,8 @@ export function characterProjectionState(
     conditions: conditions.map(({ conditionTypeId, notes }) => ({
       conditionTypeId,
       ...(notes ? { notes } : {})
-    }))
+    })),
+    consequences: consequences.map(({ id, label }) => ({ id, label }))
   }
 }
 
@@ -111,6 +116,7 @@ export async function readEncounterCharacterStates(
         temporary: actor.frozenState.tempHitPoints,
         maximum: actor.frozenState.maxHitPoints,
         conditions: actor.frozenState.conditions,
+        consequences: [],
         deathSaves: actor.frozenState.deathSaves,
         dead: isCharacterDead(actor.frozenState.deathSaves)
       })

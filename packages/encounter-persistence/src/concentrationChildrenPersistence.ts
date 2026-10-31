@@ -123,6 +123,8 @@ export async function persistEncounterConcentrationChildren(
     damagedActorIds: ReadonlySet<string>
     /** The check a response commit answered, whose spent saving-throw dice (D156) it also ends. */
     answeredCheck?: DamageSaveCheckOutput
+    /** The effect holding the after-roll die that check's d20 window spent; it ends with the check. */
+    answeredWindowDieEffectId?: string
   } & Pick<
     LiveSessionEncounterActionCommitInput,
     'concentration' | 'concentrationEnds' | 'endedGrants' | 'pendingConcentration'
@@ -202,6 +204,7 @@ export async function persistEncounterConcentrationChildren(
     ))
       spentDice.add(die.id)
   }
+  if (args.answeredWindowDieEffectId) spentDice.add(args.answeredWindowDieEffectId)
   // The committed reason an actor that applied a grant can't act, read once.
   const sourceReasons = new Map<string, Awaited<ReturnType<typeof readHolderEndState>>['reason']>()
   async function readSourceReason(sourceActorId: string) {

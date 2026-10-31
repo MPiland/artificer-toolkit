@@ -6,6 +6,7 @@ import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/pla
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { damageSaveRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
+import { damageSaveWindowResume } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { damageSaveContextBoundApplication } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
   concentrationCommandId,
@@ -13,13 +14,19 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import type { EncounterDocument } from './store.js'
 
-/** `snapshot` is the occurrence's `readPendingSnapshot`. */
+/**
+ * `stored` is the occurrence's `readPendingSnapshot`: the save awaiting its d20, or the d20 window
+ * that follows the roll (D168). `snapshot` is always the save as it paused; `window` is the window
+ * when that is what pends.
+ */
 export function readNativeConcentrationPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
-  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+  stored: ServerRuleExecutionPendingSnapshotDto | null
 ) {
-  if (occurrence.state !== 'PENDING' || snapshot === null)
+  if (occurrence.state !== 'PENDING' || stored === null)
     throw new Error('The concentration occurrence is unavailable.')
+  const resumed = stored.snapshotKind === 'KERNEL_EVIDENCE' ? damageSaveWindowResume(stored) : null
+  const snapshot = resumed?.save ?? stored
   if (
     snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
     snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
@@ -43,7 +50,7 @@ export function readNativeConcentrationPending(
     deferredCleaving: _cleaving,
     ...continuation
   } = snapshot
-  return { snapshot, context, continuation }
+  return { stored, snapshot, context, continuation, window: resumed?.window ?? null }
 }
 
 export function projectNativeConcentrationPending(
@@ -51,7 +58,8 @@ export function projectNativeConcentrationPending(
   pendingSnapshot: ServerRuleExecutionPendingSnapshotDto,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
-  const { snapshot, context } = readNativeConcentrationPending(occurrence, pendingSnapshot)
+  const { snapshot, context, window } = readNativeConcentrationPending(occurrence, pendingSnapshot)
+  if (window) throw new Error('A damage save window projects as a d20 window.')
   // The save the roller makes: the holder's derived one, or the effect's frozen policy.
   const save =
     context.source !== 'EFFECT_REPEAT_SAVE'

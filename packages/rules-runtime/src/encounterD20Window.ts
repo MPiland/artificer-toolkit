@@ -6,7 +6,9 @@ import {
   type EncounterD20WindowPendingContextDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
 import {
+  d20WindowRolledChecksum,
   d20WindowUseOptionId,
+  type D20HeldDieDto,
   type D20WindowOptionDto,
   type D20WindowPausePayloadDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
@@ -22,6 +24,8 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 import { activeAfterRollAbilityCheckDice } from './character/activeEffectGrantTotals.js'
 import { encounterBasicActionCheckTrigger } from './encounterBasicActionCheck.js'
 import { encounterConcealmentCheckTrigger } from './encounterConcealmentCheck.js'
+import { damageSaveRollTrigger } from './encounterConcentration.js'
+import { concentrationCommandId } from './encounterConcentrationIdentity.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -38,22 +42,23 @@ export const ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID = '3b7e91c4-5a2d-4f08-8c6
 export function encounterD20WindowRollerActorId(
   context: EncounterD20WindowPendingContextDto
 ): string {
-  return context.source.context.actorId
+  const { source } = context
+  return source.kind === 'DAMAGE_SAVE_CHECK'
+    ? source.context.application.targetActorId
+    : source.context.actorId
 }
 
 /** The check the window follows, as the roll card and decision name it. */
 export function encounterD20WindowTrigger(context: EncounterD20WindowPendingContextDto) {
   const { source } = context
+  if (source.kind === 'DAMAGE_SAVE_CHECK') return damageSaveRollTrigger(source.context)
   return source.kind === 'CONCEALMENT_CHECK'
     ? encounterConcealmentCheckTrigger(source.context)
     : encounterBasicActionCheckTrigger(source.context)
 }
 
 /** One die a roller holds for after its d20: the effect that holds it and the grant that gives it. */
-export type EncounterD20WindowHeldDie = Pick<
-  D20WindowOptionDto,
-  'effectId' | 'grantId' | 'label' | 'count' | 'faces' | 'sign'
->
+export type EncounterD20WindowHeldDie = D20HeldDieDto
 
 /** What the roller answers: keeping the roll, or spending one offered die on it. */
 export type EncounterD20WindowSelection =
@@ -110,6 +115,8 @@ export async function openEncounterD20Window(input: {
   occurrenceId: string
   gameSystemId: string
   source: EncounterD20WindowPendingContextDto['source']
+  /** The pending command the window belongs to: its id and fingerprint, as the source names it. */
+  command: Pick<EncounterD20WindowPendingContextDto, 'commandId' | 'commandFingerprint'>
   rolled: D20WindowPausePayloadDto['rolled']
   appRollId: string | null
   heldDice: readonly EncounterD20WindowHeldDie[]
@@ -119,7 +126,7 @@ export async function openEncounterD20Window(input: {
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
 }> {
   const { rolled, source } = input
-  const executionChecksum = checksumRuleDocument(rolled.execution)
+  const executionChecksum = d20WindowRolledChecksum(rolled)
   // Index 0 keeps the roll; index `n` spends the `n`th option.
   const continuation = await openEncounterSealedChoice({
     runtime: input.runtime,
@@ -134,8 +141,8 @@ export async function openEncounterD20Window(input: {
   const context = encounterD20WindowPendingContextDtoSchema.parse({
     kind: 'ENCOUNTER_D20_WINDOW',
     schemaVersion: 1,
-    commandId: source.context.commandId,
-    commandFingerprint: source.context.commandFingerprint,
+    commandId: input.command.commandId,
+    commandFingerprint: input.command.commandFingerprint,
     source,
     pause: {
       kind: 'D20_WINDOW',
@@ -157,6 +164,56 @@ export async function openEncounterD20Window(input: {
       optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum,
       applicationContext: context
     })
+  }
+}
+
+/** The command a damage save's window belongs to: its occurrence's own, fingerprinted by the save. */
+export function damageSaveWindowCommand(
+  occurrenceId: string,
+  context: Extract<
+    EncounterD20WindowPendingContextDto['source'],
+    { kind: 'DAMAGE_SAVE_CHECK' }
+  >['context']
+) {
+  return {
+    commandId: concentrationCommandId(occurrenceId),
+    commandFingerprint: checksumRuleDocument({
+      parentOccurrenceId: context.parentOccurrenceId,
+      application: context.application,
+      contextChecksum: context.contextChecksum
+    })
+  }
+}
+
+/**
+ * What a damage save's window pends with: the save as it paused before its roll (the snapshot the
+ * save's own answer resumes, deferred Cleaving kept) and the window that follows the roll. Null
+ * for a snapshot that is not the window of a damage save.
+ */
+export function damageSaveWindowResume(snapshot: ServerKernelRuleExecutionPendingSnapshotDto) {
+  const {
+    snapshotKind: _kind,
+    applicationContext: context,
+    optionalCombatSnapshotChecksum,
+    phaseReceipts: _phaseReceipts,
+    deferredCleaving,
+    ...continuation
+  } = snapshot
+  if (
+    context.kind !== 'ENCOUNTER_D20_WINDOW' ||
+    context.source.kind !== 'DAMAGE_SAVE_CHECK' ||
+    !('continuation' in context.pause.payload.rolled)
+  )
+    return null
+  return {
+    save: serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+      ...context.pause.payload.rolled.continuation,
+      snapshotKind: 'KERNEL_EVIDENCE',
+      applicationContext: context.source.context,
+      optionalCombatSnapshotChecksum,
+      ...(deferredCleaving ? { deferredCleaving } : {})
+    }),
+    window: { context, continuation }
   }
 }
 
@@ -198,7 +255,7 @@ export async function settleEncounterD20Window(input: {
   const window = input.context.pause.payload
   const { rolled } = window
   const option = chosenEncounterD20WindowOption(window, selection)
-  if (checksumRuleDocument(rolled.execution) !== window.offer.executionChecksum)
+  if (d20WindowRolledChecksum(rolled) !== window.offer.executionChecksum)
     throw new EncounterValidationError('The d20 window evidence is stale.')
   await settleEncounterSealedChoice({
     runtime: input.runtime,

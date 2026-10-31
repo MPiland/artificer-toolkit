@@ -1,4 +1,7 @@
-import { persistEncounterConcentrationResponse } from '@artificer-toolkit/encounter-persistence/concentrationResponsePersistence'
+import {
+  persistEncounterConcentrationResponse,
+  persistEncounterConcentrationWindowOpen
+} from '@artificer-toolkit/encounter-persistence/concentrationResponsePersistence'
 import { applyLiveConcentrationCleanup } from '@artificer-toolkit/encounter-persistence/concentrationCleanupPersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
@@ -61,12 +64,25 @@ export async function executeRoomEncounterConcentrationResponse(input: {
       actor.kind === 'CHARACTER' ? [actor.sourceId] : []
     )
   )
-  for (const request of plan.input.maintenanceOwners)
-    if (request.owner.kind === 'CHARACTER') ids.add(request.owner.characterId)
+  if (plan.kind === 'PLANNED')
+    for (const request of plan.input.maintenanceOwners)
+      if (request.owner.kind === 'CHARACTER') ids.add(request.owner.characterId)
   const revisions = observed.filter(
     (revision) => revision.scope !== 'CHARACTER' || ids.has(revision.id)
   )
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  const validateReadFence = async (
+    state: Parameters<typeof assertRoomEncounterRulesRevisions>[1],
+    characterIds: readonly string[],
+    fenced: LiveSessionRulesRevisions
+  ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fenced)
+  // The roll opened a d20 window: the occurrence pends on it and nothing else commits.
+  if (plan.kind === 'D20_WINDOW_PAUSE')
+    return persistEncounterConcentrationWindowOpen(
+      ctx,
+      { ...plan.input, revisions },
+      { validateReadFence }
+    )
   return persistEncounterConcentrationResponse(
     ctx,
     { ...plan.input, revisions },
@@ -84,8 +100,7 @@ export async function executeRoomEncounterConcentrationResponse(input: {
       readMaintenanceCapture: (state, request) => readRoomMaintenanceCapture(ctx, state, request),
       readActionSceneInputs: (state, command) =>
         readRoomActionSceneInputs(ctx, transaction, state, command),
-      validateReadFence: async (state, characterIds, revisions) =>
-        assertRoomEncounterRulesRevisions(observed, state, characterIds, revisions),
+      validateReadFence,
       applyCleanup: (cleanup) => applyLiveConcentrationCleanup(ctx, cleanup),
       persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)
     }

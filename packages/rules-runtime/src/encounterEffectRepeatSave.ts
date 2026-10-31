@@ -185,12 +185,22 @@ export async function evaluateEffectRepeatSaveEvidence(input: {
   effectInput: TargetBoundActiveRuleEffectExecutionInput
   context: NativeEffectRepeatSaveContext
   continuation: ServerRuleExecutionContinuationDto
-  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  resolution?: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  /** The d20 a window settled (D168), in place of the roller's answer. */
+  window?: {
+    requestId: string
+    roll: NonNullable<
+      Parameters<typeof resumeTargetBoundActiveRuleEffectWithAnswer>[0]['windowRoll']
+    >
+  }
   expectedOccurrenceId: string
   random: (maximum: number) => number
 }) {
   const { context, continuation, effectInput } = input
+  const requestId = input.resolution?.requestId ?? input.window?.requestId
   if (
+    requestId === undefined ||
+    (input.resolution === undefined) === (input.window === undefined) ||
     continuation.occurrenceId !== input.expectedOccurrenceId ||
     effectInput.activeEffectId !== context.activeEffect.id ||
     effectInput.activeEffectVersion !== context.activeEffect.version ||
@@ -202,7 +212,8 @@ export async function evaluateEffectRepeatSaveEvidence(input: {
     continuation,
     policy: context.d20Policy,
     diceStage: null,
-    answer: input.resolution,
+    answer: input.resolution ?? { kind: 'AUTO_ROLL', requestId },
+    windowRoll: input.window?.roll,
     random: input.random
   })
   if ('continuation' in result || !result.d20)

@@ -537,6 +537,7 @@ carries the two non-default values on `summonPlacement.turnTiming`, `buildEncoun
 cohort. An owner-turn summon is unchanged, and the owner stays its command actor. Target: the turn cursor stepping to an
 `AFTER_OWNER` summon, rolling at arrival, the owner's player running the turn, and the prompt belong to SPELLS-35.T2 to
 T6; until they land no authored spell uses a non-default timing.
+Ending an `OWN_INITIATIVE` summon (SPELLS-35.T3b) removes its initiative place and records the round's state; see the Encounter persistence guide's summon removal. `summonEndAdvanceCommandId` (`encounterSystemTrigger.ts`) keys the system `ADVANCE_TURN` that ends the turn of one whose carrier ended while it acted.
 
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an

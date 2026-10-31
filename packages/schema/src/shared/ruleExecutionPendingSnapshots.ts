@@ -352,11 +352,19 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
             message:
               'Concentration movement evidence must retain its child continuation identity, exact graph, and d20 request.'
           })
+        // A damage save's d20 window pends in the save's place, so it keeps the save's deferred choice.
+        const concentrationParent =
+          snapshot.applicationContext.kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK'
+            ? snapshot.applicationContext
+            : snapshot.applicationContext.kind === 'ENCOUNTER_D20_WINDOW' &&
+                snapshot.applicationContext.source.kind === 'DAMAGE_SAVE_CHECK'
+              ? snapshot.applicationContext.source.context
+              : null
         if (
           snapshot.deferredCleaving &&
-          (snapshot.applicationContext.kind !== 'ENCOUNTER_DAMAGE_SAVE_CHECK' ||
+          (concentrationParent === null ||
             snapshot.deferredCleaving.parentOccurrenceId !==
-              snapshot.applicationContext.parentOccurrenceId ||
+              concentrationParent.parentOccurrenceId ||
             snapshot.optionalCombatSnapshotChecksum == null)
         )
           context.addIssue({

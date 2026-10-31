@@ -216,6 +216,64 @@ describe('VTT token presentation model', () => {
     })
   })
 
+  // VTT_UI-2.1: an accepted consequence is a named status for the GM and players alike.
+  describe('accepted consequences', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const actorId = tabletopGmEncounter.actors[0]!.id
+    const consequences = [
+      { id: '33333333-3333-4333-8333-333333333391', label: 'Shattered knee' },
+      { id: '33333333-3333-4333-8333-333333333392', label: 'Cracked ribs' }
+    ]
+    const present = (encounter: Parameters<typeof buildVttTokenPresentations>[0]['encounter']) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: new Map([[token.id, actorId]]),
+        boundTokenControl: new Map(),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: { ...encounter, currentActorId: null },
+        pending: null,
+        scene
+      })[token.id]!
+    const withConsequences = <
+      Encounter extends typeof tabletopGmEncounter | typeof tabletopPlayerEncounter
+    >(
+      encounter: Encounter
+    ): Encounter => ({
+      ...encounter,
+      actors: encounter.actors.map((actor) =>
+        actor.id === actorId ? { ...actor, consequences } : actor
+      )
+    })
+
+    it.each([
+      ['the GM', tabletopGmEncounter],
+      ['players', tabletopPlayerEncounter]
+    ] as const)('names one status per consequence for %s', (_viewer, encounter) => {
+      const result = present(withConsequences(encounter))
+      expect(result.statuses.filter((status) => status.kind === 'INJURY')).toEqual([
+        {
+          category: 'HARMFUL',
+          id: `consequence:${consequences[1]!.id}`,
+          kind: 'INJURY',
+          label: 'Cracked ribs'
+        },
+        {
+          category: 'HARMFUL',
+          id: `consequence:${consequences[0]!.id}`,
+          kind: 'INJURY',
+          label: 'Shattered knee'
+        }
+      ])
+      expect(result.accessibleDescription).toContain('Shattered knee')
+    })
+
+    it('shows none for an actor with no consequences', () => {
+      expect(present(tabletopGmEncounter).statuses.some((status) => status.kind === 'INJURY')).toBe(
+        false
+      )
+    })
+  })
+
   it('shows everyone the GM’s cover tier by its System label (SPELLS-14.T3)', () => {
     const coverTiers = srdSystemRecord.cover!.tiers
     const half = coverTiers.find(({ code }) => code === 'HALF')!

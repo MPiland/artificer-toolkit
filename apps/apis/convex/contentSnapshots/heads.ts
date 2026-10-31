@@ -11,7 +11,7 @@ import {
   type ContentSnapshotHead,
   type ContentSnapshotKind
 } from '@artificer-toolkit/schema/api/contentSnapshots'
-import type { EquipmentAuthoredDto } from '@artificer-toolkit/schema/subjects/equipment'
+import { equipmentAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/equipment'
 import type { ContentSnapshotListSource } from '@artificer-toolkit/rules-runtime/contentSnapshots'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
@@ -32,7 +32,6 @@ import {
 import { resolveCurrentEquipment } from '../content/equipmentRelationships'
 import { requireSystem } from '../content/systemDocuments'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
-import { parsePublicationDocument } from '../content/publicationDocumentRead'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
 import {
@@ -56,6 +55,8 @@ export const CONTENT_SNAPSHOT_FIRST_RETRY_MS = 60_000
 // A readScopeKind page stops at 15 roots or once its serialized sources reach 256 KiB. In
 // convex-test a root costs about 7-22 ms, so the full SRD's largest page took 282 ms, against
 // 1,236 ms for the 100-root pages that ran past the 1 s query limit on CI's self-hosted runtime.
+// Subject schemas stay out of the query: one page's parse took 666-1,030 ms on that runtime on
+// zod 4.6.7, at 5 roots as at 15, so the build action parses instead.
 export const CONTENT_SNAPSHOT_PAGE_MAX_ROOTS = 15
 const CONTENT_SNAPSHOT_PAGE_BYTE_BUDGET = 256 * 1024
 
@@ -97,8 +98,8 @@ export const readBuildStart = internalQuery({
 
 /**
  * One page of one kind of a scope's readable current publications, by the Builder's source rules,
- * as JSON list sources (the publication plus its public id and, for a Spell, its School label). A
- * missing scope has no roots. A page reads at most `numItems` and the page root budget, and stops
+ * as JSON list sources (the checksum-verified stored document, which the build action parses, plus
+ * its public id and, for a Spell, its School label). A missing scope has no roots. A page reads at most `numItems` and the page root budget, and stops
  * once its sources reach the byte budget, so each query's reads and time stay bounded.
  */
 export const readScopeKind = internalQuery({
@@ -131,11 +132,11 @@ export const readScopeKind = internalQuery({
     for (const [index, load] of roots.page.entries()) {
       const loaded = await load()
       if (!loaded) continue
-      const { root, publication, version } = loaded
+      const { root, document, version } = loaded
       // Fails closed on a root whose catalogue metadata was never written.
       const { publicId } = authoredCatalogueMetadataSchema.parse(root.catalogue)
       let magicSchoolLabel: string | undefined
-      if (publication.subjectKind === 'SPELL') {
+      if (root.subjectKind === 'SPELL') {
         if (!schoolLabels.has(root.systemId))
           schoolLabels.set(
             root.systemId,
@@ -146,7 +147,7 @@ export const readScopeKind = internalQuery({
               ])
             )
           )
-        magicSchoolLabel = schoolLabels.get(root.systemId)!.get(publication.document.magicSchoolId)
+        magicSchoolLabel = schoolLabels.get(root.systemId)!.get(document.magicSchoolId as string)
         if (!magicSchoolLabel) throw new Error('Spell Magic School is not in its System.')
       }
       const publicationVersion = {
@@ -174,24 +175,17 @@ export const readScopeKind = internalQuery({
       })
       if (!compilation || compilation.authoredChecksum !== root.checksum)
         return { pendingCompilation: true as const }
-      const source: ContentSnapshotListSource =
-        publication.subjectKind === 'EQUIPMENT'
-          ? {
-              subjectKind: 'EQUIPMENT',
-              document: publication.document,
-              builder: await readEquipmentBuilderFacts(ctx, root, publication.document),
-              publicId,
-              publicationVersion,
-              compilation
-            }
-          : {
-              ...publication,
-              publicId,
-              publicationVersion,
-              compilation,
-              ...(magicSchoolLabel ? { magicSchoolLabel } : {})
-            }
-      const json = JSON.stringify(source)
+      const json = JSON.stringify({
+        subjectKind: root.subjectKind,
+        document,
+        ...(root.subjectKind === 'EQUIPMENT'
+          ? { builder: await readEquipmentBuilderFacts(ctx, root, document) }
+          : {}),
+        publicId,
+        publicationVersion,
+        compilation,
+        ...(magicSchoolLabel ? { magicSchoolLabel } : {})
+      })
       sources.push(json)
       bytes += new TextEncoder().encode(json).byteLength
       if (bytes >= CONTENT_SNAPSHOT_PAGE_BYTE_BUDGET && index < roots.page.length - 1) {
@@ -206,7 +200,7 @@ export const readScopeKind = internalQuery({
 
 type ScopePublication = {
   root: Doc<'authoredRoots'>
-  publication: ReturnType<typeof parsePublicationDocument>
+  document: Awaited<ReturnType<typeof readPublishedDocument>>
   version: number
 }
 
@@ -236,11 +230,8 @@ async function sourcePublicationReader(ctx: QueryCtx, sourceId: string, kind: Co
         throw new Error('Stored content source System mismatch.')
       if (!(await canReadAuthoredRoot(ctx, root, source.ownerUserId, source))) return null
       const version = await readAuthoredVersion(ctx, root)
-      const publication = parsePublicationDocument(
-        kind,
-        await readPublishedDocument(ctx, root, version)
-      )
-      return { root, publication, version: version.version }
+      const document = await readPublishedDocument(ctx, root, version)
+      return { root, document, version: version.version }
     })
     return { ...roots, page }
   }
@@ -275,11 +266,7 @@ async function campaignPublicationReader(
       await requireCampaignContentParents(ctx, campaign, root)
       const version = await readAuthoredVersion(ctx, root)
       const document = await readPublishedDocument(ctx, root, version)
-      return {
-        root,
-        publication: parsePublicationDocument(kind, document),
-        version: version.version
-      }
+      return { root, document, version: version.version }
     })
     return { ...shares, page }
   }
@@ -292,14 +279,15 @@ async function campaignPublicationReader(
 async function readEquipmentBuilderFacts(
   ctx: QueryCtx,
   root: Doc<'authoredRoots'>,
-  document: EquipmentAuthoredDto
+  document: ScopePublication['document']
 ): Promise<Extract<ContentSnapshotListSource, { subjectKind: 'EQUIPMENT' }>['builder']> {
   if (root.equipmentOptions?.builder !== undefined) {
     const stored = authoredEquipmentOptionFactsSchema.parse(root.equipmentOptions)
     if (stored.checksum === root.checksum && stored.builder) return stored.builder
   }
-  const { effective } = await resolveCurrentEquipment(ctx, document, root.ownerUserId ?? null)
-  const { builder } = equipmentOptionFacts(document, root.checksum, effective)
+  const equipment = equipmentAuthoredDtoSchema.parse(document)
+  const { effective } = await resolveCurrentEquipment(ctx, equipment, root.ownerUserId ?? null)
+  const { builder } = equipmentOptionFacts(equipment, root.checksum, effective)
   if (!builder) throw new Error('Equipment builder projection requires resolved facts.')
   return builder
 }

@@ -38,6 +38,7 @@ import {
 import { initiativeCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
+import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
 import {
   resolveEncounterIntegerAnswer,
   type EncounterResponseAnswer
@@ -70,7 +71,9 @@ export async function prepareEncounterTurnInitiative(input: {
   | { kind: 'PENDING'; snapshot: ServerRuleExecutionPendingSnapshotDto }
   | { kind: 'COMPLETE'; root: TurnCoordinatorRootDto }
 > {
-  const { state, root, occurrenceId, actors } = input
+  const { state, root, occurrenceId } = input
+  const actors = input.actors.filter(takesInitiativeTurns)
+  const cohortActorIds = actors.map((actor) => actor.id).sort()
   const advance = root.initiativeAdvance
   const initial = root.commandType === 'START'
   const snapshot =
@@ -97,7 +100,7 @@ export async function prepareEncounterTurnInitiative(input: {
     )
       throw new Error('Encounter start initiative is unavailable.')
     round = 1
-    beforePin = { kind: 'INITIAL_START', actorIds: [...state.actorIds].sort() }
+    beforePin = { kind: 'INITIAL_START', actorIds: cohortActorIds }
     legacyOrderedActorIds = stableActors({ actors }).map((actor) => actor.id)
   } else {
     if (
@@ -117,7 +120,7 @@ export async function prepareEncounterTurnInitiative(input: {
       round: advance.round,
       version: state.version,
       checksum: advance.stateChecksum,
-      actorIds: [...state.actorIds].sort()
+      actorIds: cohortActorIds
     }
     legacyOrderedActorIds = advance.orderedActorIds
   }
@@ -138,7 +141,6 @@ export async function prepareEncounterTurnInitiative(input: {
     )
       throw new Error('Encounter initiative continuation is unavailable.')
     const retained = pendingContext.root
-    const cohort = [...state.actorIds].sort()
     if (
       retained.rootCommandId !== root.rootCommandId ||
       retained.commandFingerprint !== root.commandFingerprint ||
@@ -166,7 +168,7 @@ export async function prepareEncounterTurnInitiative(input: {
         retained.stagedInitiativeRoundState.participants
           .map((participant) => participant.actorId)
           .sort()
-      ) !== checksumCanonicalJson(cohort) ||
+      ) !== checksumCanonicalJson(cohortActorIds) ||
       retained.stagedInitiativeRoundState.participants.some(
         (participant) =>
           actors.find((actor) => actor.id === participant.actorId)?.sideId !== participant.sideId
@@ -375,7 +377,7 @@ export async function prepareEncounterTurnInitiative(input: {
         sources,
         adapter
       }),
-      actorIds: state.actorIds
+      actorIds: cohortActorIds
     })
     const resolution = resume.resolution
     const request = pendingSnapshot.request

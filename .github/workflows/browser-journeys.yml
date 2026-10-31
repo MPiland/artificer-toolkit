@@ -164,10 +164,11 @@ jobs:
           [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
           mkdir -p browser-journey-logs
           docker logs phase82-convex-local-linux > browser-journey-logs/convex-backend.log 2>&1 || true
-          # One folder per proof; the stack's logs stay at the top.
+          # One folder per proof; the stack's logs stay at the top. A suite's Playwright log sits under
+          # its fixed phase82- folder; the secret check cannot read the trace zips beside it.
           for proof in $(jq -r '.[].proof' <<< "$PROOFS"); do
             mkdir -p "browser-journey-logs/$proof"
-            for path in "local-validation/browser-proof/$proof-ci" local-validation/local-convex-proofs/"$proof"-ci*; do
+            for path in "local-validation/browser-proof/$proof-ci" local-validation/local-convex-proofs/"$proof"-ci* local-validation/local-convex-proofs/phase82-"$proof"/playwright*.log; do
               [ -e "$path" ] && cp -R "$path" "browser-journey-logs/$proof/"
             done
           done

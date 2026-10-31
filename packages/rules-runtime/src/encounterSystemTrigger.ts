@@ -22,6 +22,15 @@ export function delegatedLegendaryContinuationCommandId(parentCommandId: string)
 }
 
 /**
+ * The ADVANCE_TURN that ends the turn of a conjured creature whose carrier ended while it was acting
+ * (D200), keyed to the command that ended the carrier and the Run version it left, so a retry of
+ * that command cannot advance twice.
+ */
+export function summonEndAdvanceCommandId(parentCommandId: string, version: number) {
+  return uuidv5(`${parentCommandId}:summon-end-advance:${version}`, NAMESPACE)
+}
+
+/**
  * The root command for a rule the Encounter raises on a creature's behalf, such as a passive effect
  * on reaching 0 hit points or a Legendary Action delegated from a turn end. It aims at the holder's
  * own space, or where the aim a delegated Legendary Action retained puts it: the committed parent
