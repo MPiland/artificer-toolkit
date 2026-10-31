@@ -11,7 +11,7 @@ import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/p
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import {
-  takesInitiativeTurns,
+  rollsInitiative,
   validateInitiativeCursor
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
@@ -88,7 +88,7 @@ export async function persistEncounterTurnPending(
       const initial = context.root
       const initiativeActorIds = checksumCanonicalJson(
         actors
-          .filter(takesInitiativeTurns)
+          .filter(rollsInitiative)
           .map((actor) => actor.id)
           .sort()
       )

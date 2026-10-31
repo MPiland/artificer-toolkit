@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import {
   turnCoordinatorRootDtoSchema,
@@ -49,6 +52,7 @@ const ACTORS = [
 
 /** A prepared Run unless told otherwise; Manual without a policy, Assisted with one. */
 function runState(input: {
+  actors?: readonly EncounterRunActorState[]
   policy: Policy | null
   status?: EncounterRunState['status']
   round?: number
@@ -57,7 +61,7 @@ function runState(input: {
   turnSequence?: number
 }): EncounterRunState {
   return srdEncounterState({
-    actors: ACTORS,
+    actors: input.actors ?? ACTORS,
     currentActorId: input.currentActorId ?? null,
     status: input.status ?? 'PREPARED',
     round: input.round ?? 0,
@@ -87,6 +91,7 @@ function coordinatorRoot(overrides: Partial<TurnCoordinatorRootDto> = {}): TurnC
 }
 
 async function prepare(input: {
+  actors?: readonly EncounterRunActorState[]
   state: EncounterRunState
   root: TurnCoordinatorRootDto
   autoRoll: boolean
@@ -98,7 +103,7 @@ async function prepare(input: {
     state: input.state,
     root: input.root,
     occurrenceId: OCCURRENCE_ID,
-    actors: ACTORS,
+    actors: input.actors ?? ACTORS,
     deadCharacterIds: new Set(),
     autoRoll: input.autoRoll,
     loadSources: async () => ({
@@ -133,6 +138,16 @@ function evidenceRequest(snapshot: ServerRuleExecutionPendingSnapshotDto) {
 
 const actorRoll = initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' })
 const eachRound = initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'EACH_ROUND' })
+
+const FOLLOWER_ID = '00000000-0000-4000-8000-0000000000f2'
+/** The Run's actors plus a summon authored to act right after B, which rolls nothing (D200). */
+const ACTORS_WITH_FOLLOWER = [
+  ...ACTORS,
+  {
+    ...srdCreatureActor({ id: FOLLOWER_ID, creature: GOBLIN, sideId: SIDE_FOES }),
+    owner: { ownerActorId: ACTOR_B, sourceEffectId: ACTOR_B, turnTiming: 'AFTER_OWNER' as const }
+  }
+]
 
 describe('prepareEncounterTurnInitiative at Encounter start', () => {
   it('orders a Manual Encounter by manual order, then entered initiative, without rules', async () => {
@@ -391,11 +406,12 @@ describe('prepareEncounterTurnInitiative at Encounter start', () => {
 })
 
 describe('prepareEncounterTurnInitiative at a new round', () => {
-  async function wrappedRound(policy: Policy) {
+  async function wrappedRound(policy: Policy, actors?: readonly EncounterRunActorState[]) {
     const started = requireComplete(
       (
         await prepare({
-          state: runState({ policy }),
+          actors,
+          state: runState({ actors, policy }),
           root: coordinatorRoot(),
           autoRoll: true,
           dice: [11, 17, 4]
@@ -421,6 +437,7 @@ describe('prepareEncounterTurnInitiative at a new round', () => {
     return {
       advance,
       state: runState({
+        actors,
         policy,
         status: 'ACTIVE',
         round: 1,
@@ -466,6 +483,51 @@ describe('prepareEncounterTurnInitiative at a new round', () => {
       checksum: advance.stateChecksum,
       actorIds: [ACTOR_A, ACTOR_B, ACTOR_C]
     })
+  })
+
+  it('seats a summon authored to act after its owner behind it in every round, rolling nothing for it (D200)', async () => {
+    const actors = ACTORS_WITH_FOLLOWER
+    const started = requireComplete(
+      (
+        await prepare({
+          actors,
+          state: runState({ actors, policy: eachRound }),
+          root: coordinatorRoot(),
+          autoRoll: true,
+          dice: [11, 17, 4]
+        })
+      ).result
+    )
+    // A: 13, B: 17, C: 3; the follower shares B's place.
+    expect(started.initiative?.orderedActorIds).toEqual([ACTOR_B, FOLLOWER_ID, ACTOR_A, ACTOR_C])
+    expect(started.stagedInitiative?.beforePin).toMatchObject({
+      actorIds: [ACTOR_A, ACTOR_B, ACTOR_C]
+    })
+
+    const { advance, state } = await wrappedRound(eachRound, actors)
+    expect(advance).toMatchObject({
+      kind: 'ROUND_WRAP',
+      orderedActorIds: [ACTOR_B, FOLLOWER_ID, ACTOR_A, ACTOR_C]
+    })
+    // A: 5, B: 2, C: 19, a different order than round 1's.
+    const next = requireComplete(
+      (
+        await prepare({
+          actors,
+          state,
+          root: coordinatorRoot({
+            commandType: 'ADVANCE_TURN',
+            expectedEncounterVersion: 7,
+            initiativeAdvance: advance,
+            outgoingTurn: { kind: 'NONE' }
+          }),
+          autoRoll: true,
+          dice: [3, 2, 20]
+        })
+      ).result
+    )
+    expect(next.initiative?.orderedActorIds).toEqual([ACTOR_C, ACTOR_A, ACTOR_B, FOLLOWER_ID])
+    expect(next.proposedTerminalTransition).toMatchObject({ currentActorId: ACTOR_C })
   })
 
   it('refuses new-round initiative when the order is kept from Encounter start', async () => {
