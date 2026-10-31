@@ -101,7 +101,8 @@ export async function prepareRoomLiveCharacterSheet(
               { db: store.store },
               { kind: 'CHARACTER', characterId: initialInput.characterId },
               { ownerVerified: true }
-            )
+            ),
+            state.hitpoints.maximumFraction
           )
         ),
         hitDice: facts.prepared.character.state.hitpoints.hitDice

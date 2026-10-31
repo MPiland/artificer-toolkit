@@ -1788,6 +1788,16 @@ at the level stays alive; a mistaken death is corrected by lowering the level an
 above 0. The schema refuses `DEATH` below level 2: conditions applied by an action or added on the Sheet
 sit at level 1 and pass through neither writer, so a death there would not fire.
 
+A `HIT_POINT_MAXIMUM` mechanic (`numerator`/`denominator`, never raising the maximum; SPELLS-10.T1b, the
+SRD seeds Exhaustion 4 as one half) is resolved on write, not read live. `rules-runtime/conditionHitPointMaximum`
+multiplies the fractions of every held condition at its level, and each writer of a condition level stores the
+result in `hitpoints.maximumFraction` on a Character's play state or the Creature actor, and holds current hit
+points within the new maximum: the Sheet's `SET_EXHAUSTION`, `ADD_CONDITION` and `REMOVE_CONDITION` (hosts pass
+`conditionMaximum` to the pure reducer), a long rest that lowers Exhaustion, and a GM's Creature `UPDATE_ACTOR`
+condition edit. Every reader of a maximum then goes through `effectiveHitPointMaximum(max, effects, fraction)`
+(grants, then the fraction rounded down, then reductions), so no second calculation exists. Lowering the level
+restores the maximum, not the lost hit points.
+
 `rules-runtime/encounterConditionMechanics` evaluates them. `withEncounterConditionMechanics` pins the
 held conditions' current definitions on a movement target (`conditionDefinitions`) when the Worker loads
 it (`nativeEncounterTargets`), and `applyEncounterConditionMechanics` derives `conditionMechanics` and

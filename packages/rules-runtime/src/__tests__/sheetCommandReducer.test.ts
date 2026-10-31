@@ -21,6 +21,11 @@ import {
   assertGmOnlySheetCommandAllowed
 } from '../character/sheetCommandValidation.js'
 import { getSheetCommandResourceUsageUpdate } from '../character/sheetResourceUsage.js'
+import { sheetCommandConditionMaximum } from '../conditionHitPointMaximum.js'
+import { effectiveHitPointMaximum } from '../character/activeEffectGrantTotals.js'
+import { SRD_CONDITION_RULE_STATE_DEFINITIONS } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { currentConditionDefinition } from './srdConditionDefinitions.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -1382,5 +1387,129 @@ describe('exchanging spell slots (SPELLS-31.T5j)', () => {
     expect(() =>
       apply(spent, exchange({ kind: 'SLOTS', slotKeys: ['STANDARD:1'] }), { sheet: sheet() })
     ).toThrow(CharacterSheetCommandError)
+  })
+})
+
+describe('Character Sheet condition-limited maximum (SPELLS-10.T1b)', () => {
+  const BASE_MAXIMUM = 21
+
+  async function readCurrentDefinition(id: string) {
+    const seed = SRD_CONDITION_RULE_STATE_DEFINITIONS.find((entry) => entry.id === id)
+    return seed ? currentConditionDefinition(seed) : null
+  }
+
+  /** The reducer driven the way a host drives it: the real resolver supplies the maximum. */
+  async function change(from: CharacterAuthored, command: Command) {
+    const conditionMaximum = await sheetCommandConditionMaximum({
+      character: from,
+      command,
+      readCurrentDefinition,
+      maximumHitPoints: (fraction) => effectiveHitPointMaximum(BASE_MAXIMUM, [], fraction)
+    })
+    return apply(from, command, { context: { ...context(), conditionMaximum } })
+  }
+
+  const holding = (current: number, exhaustion?: number) => {
+    const empty = character()
+    return {
+      ...character({
+        hitpoints: { ...empty.state.hitpoints, current },
+        ...(exhaustion ? { exhaustion: { level: exhaustion } } : {})
+      }),
+      systemId: DND5E_SYSTEM_ID
+    }
+  }
+
+  it('halves the maximum from the authored level and holds hit points within it', async () => {
+    const { state } = await change(holding(BASE_MAXIMUM), {
+      ...base,
+      type: 'SET_EXHAUSTION',
+      level: 4
+    })
+
+    expect(state.hitpoints.maximumFraction).toEqual({ numerator: 1, denominator: 2 })
+    expect(state.hitpoints.current).toBe(Math.floor(BASE_MAXIMUM / 2))
+  })
+
+  it('leaves hit points alone below the authored level', async () => {
+    const { state } = await change(holding(BASE_MAXIMUM), {
+      ...base,
+      type: 'SET_EXHAUSTION',
+      level: 3
+    })
+
+    expect(state.hitpoints.maximumFraction).toBeUndefined()
+    expect(state.hitpoints.current).toBe(BASE_MAXIMUM)
+  })
+
+  it('restores the maximum, but not the lost hit points, when the level drops', async () => {
+    const halved = (
+      await change(holding(BASE_MAXIMUM), { ...base, type: 'SET_EXHAUSTION', level: 5 })
+    ).state.hitpoints
+    expect(halved.maximumFraction).toBeDefined()
+
+    const held = holding(halved.current, 5)
+    const { state } = await change(
+      { ...held, state: { ...held.state, hitpoints: halved } },
+      { ...base, type: 'SET_EXHAUSTION', level: 3 }
+    )
+
+    expect(state.hitpoints.maximumFraction).toBeUndefined()
+    expect(state.hitpoints.current).toBe(halved.current)
+  })
+
+  it('applies a condition any System authors it on, as data alone', async () => {
+    const homebrew = '77777777-7777-4777-8777-777777777773'
+    const authored = currentConditionDefinition({
+      id: homebrew,
+      definitionFamilyKey: 'condition-rule-state',
+      label: 'Homebrew rule policy',
+      document: {
+        schemaVersion: 1,
+        kind: 'CONDITION_RULE_STATE',
+        id: homebrew,
+        gameSystemId: SRD_SYSTEM_ID,
+        capabilitySuppressions: [],
+        perceptionContributions: [],
+        mechanics: [
+          {
+            id: '77777777-7777-4777-8777-777777777772',
+            order: 0,
+            kind: 'HIT_POINT_MAXIMUM',
+            numerator: 1,
+            denominator: 3,
+            minimumLevel: null
+          }
+        ]
+      }
+    })
+    const command = { ...base, type: 'ADD_CONDITION', conditionTypeId: homebrew } as const
+    const conditionMaximum = await sheetCommandConditionMaximum({
+      character: holding(BASE_MAXIMUM),
+      command,
+      readCurrentDefinition: async (id) => (id === homebrew ? authored : null),
+      maximumHitPoints: (fraction) => effectiveHitPointMaximum(BASE_MAXIMUM, [], fraction)
+    })
+
+    const known = sheet()
+    known.reference.conditionOptions = [{ id: homebrew, code: 'HOMEBREW', label: 'Homebrew' }]
+    const { state } = apply(holding(BASE_MAXIMUM), command, {
+      sheet: known,
+      context: { ...context(), conditionMaximum }
+    })
+
+    expect(state.hitpoints.maximumFraction).toEqual({ numerator: 1, denominator: 3 })
+    expect(state.hitpoints.current).toBe(BASE_MAXIMUM / 3)
+  })
+
+  it('computes nothing for a command that changes no condition', async () => {
+    expect(
+      await sheetCommandConditionMaximum({
+        character: holding(BASE_MAXIMUM, 5),
+        command: { type: 'SET_HIT_POINTS' },
+        readCurrentDefinition,
+        maximumHitPoints: () => BASE_MAXIMUM
+      })
+    ).toBeUndefined()
   })
 })

@@ -1,3 +1,4 @@
+import { applyConditionMaximum, type ConditionMaximum } from '../hitPointMaximumFraction.js'
 import {
   createCharacterResourceOwnerKey,
   toCharacterResourceOwnerKey,
@@ -473,8 +474,7 @@ function applyZeroHitPoints(character: CharacterAuthored, beforeCurrentHitPoints
 /** A condition level's authored DEATH mechanic: dead at once, so no death saves are rolled (D96). */
 function applyConditionDeath(character: CharacterAuthored) {
   const beforeCurrentHitPoints = character.state.hitpoints.current
-  character.state.hitpoints.current = 0
-  character.state.hitpoints.deathSaves = deathSavesAfterDeath()
+  Object.assign(character.state.hitpoints, { current: 0, deathSaves: deathSavesAfterDeath() })
   applyZeroHitPoints(character, beforeCurrentHitPoints)
 }
 
@@ -491,6 +491,8 @@ export function applyCharacterSheetCommand(
     deathSaveDie?: number
     /** The host read that this command reaches an authored DEATH mechanic (SPELLS-10.T1c). */
     conditionDeath?: boolean
+    /** The maximum a condition change leaves the Character, from the host (SPELLS-10.T1b). */
+    conditionMaximum?: ConditionMaximum
     preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>
     /** The summon plan of a CAST_SPELL's cast, from the compile an Encounter runs (D190). */
     spellSummonPlacement?: (cast: {
@@ -942,6 +944,7 @@ export function applyCharacterSheetCommand(
       const notes = command.notes === undefined ? next.state.exhaustion?.notes : command.notes
       next.state.exhaustion =
         command.level > 0 ? { level: command.level, notes: notes || undefined } : undefined
+      applyConditionMaximum(next, context.conditionMaximum)
       if (context.conditionDeath) applyConditionDeath(next)
       return clearEmptyStateArrays(next)
     }
@@ -965,6 +968,7 @@ export function applyCharacterSheetCommand(
           notes: command.notes
         }
       ]
+      applyConditionMaximum(next, context.conditionMaximum)
       return clearEmptyStateArrays(next)
     }
 
@@ -972,6 +976,7 @@ export function applyCharacterSheetCommand(
       next.state.conditions = next.state.conditions?.filter(
         (condition) => condition.conditionTypeId !== command.conditionTypeId
       )
+      applyConditionMaximum(next, context.conditionMaximum)
       return clearEmptyStateArrays(next)
 
     case 'REMOVE_CONSEQUENCE':

@@ -111,6 +111,7 @@ describe('Character rest over an in-memory context', () => {
       character: params.character,
       sheet: params.sheet,
       restPolicy: params.restPolicy,
+      maximumFraction: null,
       preview,
       command: {
         ...input,
@@ -148,6 +149,7 @@ describe('Character rest over an in-memory context', () => {
       character: params.character,
       sheet: params.sheet,
       restPolicy: params.restPolicy,
+      maximumFraction: null,
       preview,
       command: {
         ...longRest,
@@ -165,6 +167,37 @@ describe('Character rest over an in-memory context', () => {
       recoveredHitDice: [{ die: 10, count: 1 }],
       hitPoints: { currentBefore: 3, currentAfter: 11, healingApplied: 8 }
     })
+  })
+
+  it('stores the maximum fraction a long rest leaves, and none once the condition is gone', async () => {
+    const { params } = await playedFighter()
+    const halved = { numerator: 1, denominator: 2 }
+    const held = {
+      ...params.character,
+      state: {
+        ...params.character.state,
+        hitpoints: { ...params.character.state.hitpoints, maximumFraction: halved }
+      }
+    }
+    const preview = await buildCharacterRestPreview({ ...params, character: held, input: longRest })
+    const longRestCommand = {
+      ...longRest,
+      type: 'COMPLETE_REST',
+      commandId: crypto.randomUUID(),
+      previewFingerprint: preview.previewFingerprint
+    } as const
+    const complete = (maximumFraction: typeof halved | null) =>
+      applyCompletedCharacterRest({
+        character: held,
+        sheet: params.sheet,
+        restPolicy: params.restPolicy,
+        maximumFraction,
+        preview,
+        command: longRestCommand
+      }).character.state.hitpoints
+
+    expect(complete(halved).maximumFraction).toEqual(halved)
+    expect(complete(null).maximumFraction).toBeUndefined()
   })
 })
 
@@ -294,6 +327,7 @@ describe('Sheet rest cleanup', () => {
         character,
         sheet: params.sheet,
         restPolicy: params.restPolicy,
+        maximumFraction: null,
         preview,
         command: {
           ...input,
@@ -336,6 +370,7 @@ describe('Sheet rest cleanup', () => {
         character,
         sheet: params.sheet,
         restPolicy: params.restPolicy,
+        maximumFraction: null,
         preview,
         command: {
           ...longRest,

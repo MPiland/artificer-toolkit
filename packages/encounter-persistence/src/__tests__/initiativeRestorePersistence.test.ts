@@ -67,7 +67,13 @@ const actors = [
 
 function run(used: number) {
   const batches: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>[] = []
-  const play = { _id: 'play', _creationTime: 1, characterId: MONK_ID, maximumHitPoints: 100 }
+  const play = {
+    _id: 'play',
+    _creationTime: 1,
+    characterId: MONK_ID,
+    maximumHitPoints: 100,
+    state: { hitpoints: {} }
+  }
   const memory = createMemoryEncounterStore()
   memory.load(
     'characterPlayStates',

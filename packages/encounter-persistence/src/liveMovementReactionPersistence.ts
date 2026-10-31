@@ -171,7 +171,8 @@ export async function persistLiveMovementReaction(
                     ctx,
                     { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
                     { ownerVerified: true }
-                  )
+                  ),
+                  source.maximumFraction
                 ),
           forceVersionAdvance: false,
           ...(resource ? { characterResourceConsumption: resource } : {})

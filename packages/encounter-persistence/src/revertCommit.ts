@@ -66,7 +66,9 @@ export async function commitRevert(
   const { run, state, campaign, root, updatedAt } = input
   const nextActors = await persistRevertedRunActors(ctx, {
     ...input,
-    revertedCommandId: root.commandId
+    revertedCommandId: root.commandId,
+    ownerUserId: campaign.ownerUserId,
+    gameSystemId: state.gameSystemId
   })
   const nextState = encounterRunStateSchema.parse({
     ...state,

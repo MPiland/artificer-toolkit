@@ -125,12 +125,18 @@ describe('held damage interceptions', () => {
 
   it('derives the effective maximum and the interceptions from the same held effects', () => {
     expect(
-      heldBatchInputs({ baseMaximumHitPoints: 11, effects: [heldWard({ idSeed: 0xe205 })] })
+      heldBatchInputs({
+        baseMaximumHitPoints: 11,
+        maximumFraction: null,
+        effects: [heldWard({ idSeed: 0xe205 })]
+      })
     ).toEqual({
       effectiveMaximumHitPoints: 11,
       damageInterceptions: [{ effectId: testUuid(0xe205), dropToHitPoints: 1, negatesKill: true }]
     })
-    expect(heldBatchInputs({ baseMaximumHitPoints: 11, effects: [] })).toEqual({
+    expect(
+      heldBatchInputs({ baseMaximumHitPoints: 11, maximumFraction: null, effects: [] })
+    ).toEqual({
       effectiveMaximumHitPoints: 11,
       damageInterceptions: []
     })

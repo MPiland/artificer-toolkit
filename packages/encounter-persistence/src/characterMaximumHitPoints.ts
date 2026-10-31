@@ -1,5 +1,6 @@
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { listActiveRuleEffects } from './effectStore.js'
@@ -11,11 +12,12 @@ import type { EncounterDocument, EncounterReadContext } from './store.js'
  */
 export async function readCharacterMaximumHitPoints(
   ctx: EncounterReadContext,
-  play: Pick<EncounterDocument<'characterPlayStates'>, 'characterId' | 'maximumHitPoints'>
+  play: Pick<EncounterDocument<'characterPlayStates'>, 'characterId' | 'maximumHitPoints' | 'state'>
 ) {
   return effectiveHitPointMaximum(
     play.maximumHitPoints,
-    await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId: play.characterId })
+    await listActiveRuleEffects(ctx, { kind: 'CHARACTER', characterId: play.characterId }),
+    play.state.hitpoints.maximumFraction
   )
 }
 
@@ -29,12 +31,13 @@ export async function readEncounterActorMaximumHitPoints(
   input: { encounterId: string; actor: EncounterRunActorState }
 ) {
   const { actor } = input
-  const held = async (base: number) =>
+  const held = async (base: number, fraction?: HitPointMaximumFractionDto) =>
     effectiveHitPointMaximum(
       base,
-      await listActiveRuleEffects(ctx, turnEffectOwner(actor, input.encounterId))
+      await listActiveRuleEffects(ctx, turnEffectOwner(actor, input.encounterId)),
+      fraction
     )
-  if (actor.kind !== 'CHARACTER') return held(actor.maxHitPoints)
+  if (actor.kind !== 'CHARACTER') return held(actor.maxHitPoints, actor.maximumFraction)
   if (actor.form) return held(actor.form.maxHitPoints)
   const play = actor.sourceId ? await readEncounterCharacterPlay(ctx, actor.sourceId) : null
   return play ? readCharacterMaximumHitPoints(ctx, play) : null

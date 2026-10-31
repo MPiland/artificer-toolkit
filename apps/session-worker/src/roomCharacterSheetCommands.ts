@@ -31,6 +31,9 @@ import {
   getSheetCommandResourceUsageUpdate
 } from '@artificer-toolkit/rules-runtime/character/sheetResourceUsage'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { resolveCharacterRecordStats } from '@artificer-toolkit/rules-runtime/character/characterRecordStats'
+import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
+import { sheetCommandConditionMaximum } from '@artificer-toolkit/rules-runtime/conditionHitPointMaximum'
 import { sheetCommandReachesConditionDeath } from '@artificer-toolkit/rules-runtime/conditionLevelDeath'
 import { deathSaveRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import {
@@ -252,18 +255,31 @@ export async function executeRoomCharacterSheetCommand(input: {
     )
   ).toISOString()
   const deathSaveDie = command.type === 'ROLL_DEATH_SAVE' ? input.random(20) + 1 : undefined
+  const readCurrentDefinition = (definitionId: string) =>
+    ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
   const conditionDeath = await sheetCommandReachesConditionDeath({
     character: initial.character,
     command,
-    readCurrentDefinition: (definitionId) =>
-      ctx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+    readCurrentDefinition
+  })
+  const conditionMaximum = await sheetCommandConditionMaximum({
+    character: initial.character,
+    command,
+    readCurrentDefinition,
+    maximumHitPoints: (fraction) =>
+      effectiveHitPointMaximum(
+        resolveCharacterRecordStats(initial.ruleEvaluation).maximumHitPoints,
+        activeEffects,
+        fraction
+      )
   })
   const updated = characterAuthoredDtoSchema.parse(
     applyCharacterSheetCommand(initial.character, command, sheet, {
       now: () => occurredAt,
       attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit,
       deathSaveDie,
-      conditionDeath
+      conditionDeath,
+      conditionMaximum
     })
   )
   if (command.type === 'END_ACTIVE_EFFECT') {

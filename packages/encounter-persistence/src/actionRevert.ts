@@ -60,6 +60,7 @@ import {
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
+import { settleCharacterConditionMaximum } from './conditionMaximumSettlement.js'
 import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
 import { revertZoneDcs, revertZoneDisarm, revertZoneSightingDismissal } from './zoneRevert.js'
 import { removeConjuredActors } from './summonRemoval.js'
@@ -870,6 +871,7 @@ export async function revertLastEncounterAction(
       characterId,
       inverse,
       userId,
+      ownerUserId: campaign.ownerUserId,
       updatedAt,
       gameSystemId: state.gameSystemId
     })
@@ -1133,6 +1135,7 @@ async function revertCheckAction(
           interceptionCharges: interceptionChargesSpent(mechanics.applications)
         },
         userId: input.userId,
+        ownerUserId: input.campaign.ownerUserId,
         updatedAt,
         gameSystemId: state.gameSystemId
       })
@@ -1461,6 +1464,8 @@ async function restoreCharacter(
     characterId: string
     inverse: CharacterInverse
     userId: string
+    /** The Campaign owner, who reads the restored conditions' definitions. */
+    ownerUserId: string
     updatedAt: string
     gameSystemId: string
   }
@@ -1619,6 +1624,14 @@ async function restoreCharacter(
       ]
     }
   }
+  state = await settleCharacterConditionMaximum(ctx, {
+    characterId: input.characterId,
+    systemId: row.systemId,
+    before: character.state,
+    state,
+    maximumHitPoints: row.play.maximumHitPoints,
+    ownerUserId: input.ownerUserId
+  })
   await ctx.ports.writeCharacterRecord({
     current: row,
     fields: { streamVersion: row.play.streamVersion + 1, updatedAt: input.updatedAt },

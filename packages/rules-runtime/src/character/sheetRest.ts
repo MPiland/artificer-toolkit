@@ -1,3 +1,4 @@
+import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import {
   temporaryHitPointsSet,
@@ -410,6 +411,8 @@ export function applyCompletedCharacterRest(params: {
   command: Extract<CharacterSheetCommandInputDto, { type: 'COMPLETE_REST' }>
   preview: CharacterRestPreviewResponseDto
   restPolicy: CharacterRulePolicyOutput['rest']
+  /** The maximum-HP fraction the rest leaves the Character; a long rest can lift it. */
+  maximumFraction: HitPointMaximumFractionDto | null
   sheet: CharacterSheetResponseDto
 }): {
   character: CharacterAuthored
@@ -447,6 +450,7 @@ export function applyCompletedCharacterRest(params: {
       params.restPolicy.hitDiceRecoveredAfterLongRest
     )
     next.state.hitpoints.current = preview.hitPoints.maximum
+    next.state.hitpoints.maximumFraction = params.maximumFraction ?? undefined
     next.state.hitpoints = withCharacterTemporaryHitPoints(
       next.state.hitpoints,
       temporaryHitPointsSet(0)

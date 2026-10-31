@@ -286,7 +286,8 @@ export async function persistEncounterActionCommit(
                     ctx,
                     { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
                     { ownerVerified: true }
-                  )
+                  ),
+                  source.maximumFraction
                 ),
           forceVersionAdvance: false,
           ...combineSpendMutations(sourceMutation, sourceFailed?.mutation ?? {})
