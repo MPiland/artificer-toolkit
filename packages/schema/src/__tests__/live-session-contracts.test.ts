@@ -785,6 +785,25 @@ describe('Encounter rule overrides and undo', () => {
     ).toBe(false)
   })
 
+  it('names the creatures a cast modifier affects only as uuids, at most 50', () => {
+    const castModifierActorIds = [ids.command]
+    expect(
+      resolveEncounterActionInputDtoSchema.parse({ ...action, castModifierActorIds })
+    ).toMatchObject({ castModifierActorIds })
+    expect(
+      resolveEncounterActionInputDtoSchema.safeParse({
+        ...action,
+        castModifierActorIds: ['wolf']
+      }).success
+    ).toBe(false)
+    expect(
+      resolveEncounterActionInputDtoSchema.safeParse({
+        ...action,
+        castModifierActorIds: Array.from({ length: 51 }, () => ids.command)
+      }).success
+    ).toBe(false)
+  })
+
   it('accepts a GM undo with only its Run version', () => {
     const { actorId: _actor, actionId: _action, target: _target, ...base } = action
     expect(

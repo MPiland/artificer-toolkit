@@ -42,6 +42,22 @@ export type OptionalOnHitAuthored =
   | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
 
 /**
+ * A cost the holder may pay on casting a spell. With `targets`, the caster also names creatures the
+ * paid modifier gives an outcome on their save against the cast: `SAVE_AUTO_SUCCESS` makes the save
+ * succeed unrolled (the success path still applies, half damage included), `SAVE_DISADVANTAGE`
+ * gives it disadvantage. The cast may name up to `base` plus the holder's `abilityDefinitionId`
+ * modifier creatures, never fewer than `minimum` (default 1 when the ability is added).
+ */
+export type CastModifierAuthored = ResourceUseAuthored & {
+  targets?: {
+    outcome: 'SAVE_AUTO_SUCCESS' | 'SAVE_DISADVANTAGE'
+    base: number // int
+    abilityDefinitionId?: string
+    minimum?: number // int
+  }
+}
+
+/**
  * Lets the holder spare creatures an area spell would catch: at cast the player names up to `base`
  * (plus the spell's level with `plusSpellLevel`) creatures the area leaves out, as if immune. With
  * `magicSchoolIds` only casts of spells of those schools may spare (Sculpt Spells).
@@ -190,7 +206,7 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       targeting?: TargetingAuthored
       optionalOnHit?: OptionalOnHitAuthored
       /** A cost the holder may pay on casting a spell, as an action's `resourceUse` is paid; the effect's outcomes are the modifier's table rule. */
-      castModifier?: ResourceUseAuthored
+      castModifier?: CastModifierAuthored
       /** Creatures the holder may leave out of an area spell they cast. */
       sparesCreatures?: SparesCreaturesAuthored
       /** The sibling Feature whose attacks alone this rider rides; absent, it rides every attack its trigger names. */

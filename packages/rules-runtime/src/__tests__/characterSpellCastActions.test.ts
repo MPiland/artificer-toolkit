@@ -42,6 +42,7 @@ import {
   RITUAL_CAST_REFUSAL,
   readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
+import type { CastModifierSource } from '../character/characterCastModifiers.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
@@ -157,6 +158,7 @@ function policyFor(
 ) {
   return {
     grantFold: { modifiers: [] },
+    derivedStats: { abilities: [] },
     spellCastDecisions: candidates.map(
       (cast): CharacterRulePolicyOutput['spellCastDecisions'][number] => ({
         candidateId: cast.candidateId,
@@ -3656,6 +3658,55 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     expect(offered([pool(0)]).candidates[0]?.castModifiers).toEqual([
       { modifierId: MODIFIER_ID, label: 'Quiet Casting', chargeId: CHARGE_ID, cost: 1, poolId }
     ])
+  })
+
+  describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
+    const charisma = character.output.derivedStats.abilities.find(
+      ({ abilityId }) => abilityId === SRD_ABILITY_DEFINITION_IDS.CHARISMA
+    )!
+    const offeredWith = (targets: CastModifierSource['cost']['targets']) =>
+      build([cast], {
+        castModifiers: [{ ...modifier, cost: { ...modifier.cost, targets } }],
+        policyOutput: {
+          ...policyWith([pool(0)]),
+          derivedStats: character.output.derivedStats
+        }
+      }).candidates[0]?.castModifiers?.[0]
+
+    it('offers the outcome with the base plus the ability modifier as the most creatures', () => {
+      expect(
+        offeredWith({
+          outcome: 'SAVE_AUTO_SUCCESS',
+          base: 2,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA
+        })?.targets
+      ).toEqual({
+        outcome: 'SAVE_AUTO_SUCCESS',
+        max: Math.max(1, 2 + charisma.modifier.effective)
+      })
+    })
+
+    it('offers the minimum when the modifier is lower', () => {
+      expect(
+        offeredWith({
+          outcome: 'SAVE_AUTO_SUCCESS',
+          base: -20,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
+          minimum: 3
+        })?.targets
+      ).toEqual({ outcome: 'SAVE_AUTO_SUCCESS', max: 3 })
+    })
+
+    it('offers a fixed number of creatures when no ability is named', () => {
+      expect(offeredWith({ outcome: 'SAVE_DISADVANTAGE', base: 1 })?.targets).toEqual({
+        outcome: 'SAVE_DISADVANTAGE',
+        max: 1
+      })
+    })
+
+    it('offers no targets for a modifier that authors none', () => {
+      expect(offered([pool(0)]).candidates[0]?.castModifiers?.[0]).not.toHaveProperty('targets')
+    })
   })
 
   it('offers nothing when the pool is spent, missing, or the cast is already paid from a pool', () => {

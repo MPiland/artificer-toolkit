@@ -621,7 +621,12 @@ export function prepareCasterActionOnTarget(
   > & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actionId' | 'castModifierId' | 'spentUnits' | 'acceptedWieldConflict' | 'target'
+      | 'actionId'
+      | 'castModifierId'
+      | 'castModifierActorIds'
+      | 'spentUnits'
+      | 'acceptedWieldConflict'
+      | 'target'
     >
   },
   action: {
@@ -644,6 +649,7 @@ export function prepareCasterActionOnTarget(
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     castModifierId: capability ? undefined : input.command.castModifierId,
+    castModifierActorIds: capability ? undefined : input.command.castModifierActorIds,
     spentUnits: capability ? undefined : input.command.spentUnits,
     dividedAmount: capability ? undefined : healShareOf(input.command.target, action.target.id),
     ammunition: ammunitionCommandChoice(input.command.target),

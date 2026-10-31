@@ -2667,8 +2667,18 @@ holds the cost, and never on a cast a pool already pays for. `RESOLVE_ACTION.cas
 refuses an id the candidate did not offer, and `prepareNativeCharacterActionState` spends it through `spendCharacterResource` into the
 cast's `resourceConsumption`, so it persists and reverts with the cast (and honours Manual play and the Assisted "Do it anyway"
 shortfall like any pool spend). The client reads the offers as `castModifiers` on the action choice. The modifier changes nothing
-else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect. Careful,
-Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect.
+
+**Cast modifier targets (SPELLS-31.T5g2, current).** A `castModifier` may also author `targets: { outcome, base, abilityDefinitionId?, minimum? }`:
+`SAVE_AUTO_SUCCESS` (Careful Spell: the named creature's save succeeds unrolled, so the success path, half damage included, still applies)
+or `SAVE_DISADVANTAGE` (Heightened Spell: disadvantage on the named creature's first save against the cast). The candidate's
+`castModifiers[].targets` is `{ outcome, max }`, where `max = max(minimum, base + the holder's modifier in abilityDefinitionId)`
+(`castModifierTargetCap`; `minimum` defaults to 1 when an ability is added). `RESOLVE_ACTION.castModifierActorIds` names the creatures;
+`prepareEncounterActionMechanics` refuses more than `max` (or any without a `targets` modifier) and, for each target named, adds a rules-owned
+`CAST_MODIFIER` disadvantage contributor to the save of the effect's ability, or lists that ability in
+`conditionOutcomeRules.saveAutoSucceeds` (the existing `SAVE_AUTO_SUCCESS` test-outcome rule). A condition that fails the save unrolled
+wins over a paid success. The command is sealed in the area pending context, so each creature's outcome is fixed at cast. Gap: the roll
+card does not annotate an auto-succeeded save. Twinned stays a follow-on task.
 
 **Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
 Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed

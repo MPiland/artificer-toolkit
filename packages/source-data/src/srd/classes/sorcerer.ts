@@ -31,7 +31,8 @@ import {
   SRD_SKILLS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
-  ABILITY_CODE
+  ABILITY_CODE,
+  SRD_ABILITY_DEFINITION_IDS
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
@@ -749,16 +750,26 @@ export const sorcerer: ClassAuthored = {
           description:
             "When you cast a spell that forces other creatures to make a saving throw, you can protect some of those creatures from the spell's full force. To do so, you spend 1 sorcery point and choose a number of those creatures up to your Charisma modifier (minimum of one creature). A chosen creature automatically succeeds on its saving throw against the spell.",
           effects: [
-            closedRuleEffect({
-              id: classRowId(S, 0x60, 20),
-              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_CAREFUL,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(S, 0x69, 20), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 20),
+                range: classRowId(S, 0x69, 20),
+                path: classRowId(S, 0x80, 20),
+                result: classRowId(S, 0x81, 20),
+                outcome: classRowId(S, 0x82, 20)
+              },
+              label: 'Careful Spell',
+              instructions:
+                'Each creature you chose automatically succeeds on its saving throw against the spell. The sorcery point is spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 1,
+                targets: {
+                  outcome: 'SAVE_AUTO_SUCCESS',
+                  base: 0,
+                  abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
+                  minimum: 1
                 }
               }
             })
@@ -795,17 +806,22 @@ export const sorcerer: ClassAuthored = {
           description:
             'When you cast a spell that forces a creature to make a saving throw to resist its effects, you can spend 3 sorcery points to give one target of the spell disadvantage on its first saving throw made against the spell.',
           effects: [
-            closedRuleEffect({
-              id: classRowId(S, 0x60, 24),
-              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_HEIGHTENED,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(S, 0x69, 24), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 24),
+                range: classRowId(S, 0x69, 24),
+                path: classRowId(S, 0x80, 24),
+                result: classRowId(S, 0x81, 24),
+                outcome: classRowId(S, 0x82, 24)
+              },
+              label: 'Heightened Spell',
+              instructions:
+                'The chosen target has disadvantage on its first saving throw against the spell. The sorcery points are spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 3,
+                targets: { outcome: 'SAVE_DISADVANTAGE', base: 1, minimum: 1 }
               }
             })
           ],

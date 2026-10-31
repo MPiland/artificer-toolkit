@@ -39,6 +39,9 @@ export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE
 /** A target its attacker cannot see (SRD): disadvantage on the attack roll. */
 export const ENCOUNTER_UNSEEN_TARGET_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET}`
 
+/** A paid cast modifier that gives a named creature's save disadvantage (Heightened Spell). */
+export const ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER}`
+
 /** The typed source of a rules-owned contributor. */
 export function encounterRuleContributorSource(
   id: (typeof ROLL_MODE_RULE_SOURCE_IDS)[keyof typeof ROLL_MODE_RULE_SOURCE_IDS]
@@ -51,7 +54,8 @@ const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
   [ROLL_MODE_RULE_SOURCE_IDS.FACING, 'Facing'],
   [ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE, 'Long range'],
   [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER, 'Unseen attacker'],
-  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target']
+  [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target'],
+  [ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER, 'Spell modifier']
 ])
 
 /** The reason a viewer reads for a contributor that comes from an actor hidden from them (D62). */

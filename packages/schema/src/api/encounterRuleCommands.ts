@@ -296,6 +296,8 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     target: resolveEncounterActionTargetDtoSchema,
     /** The cost the caster pays on a spell cast: a `castModifiers` entry the action's candidate offers. */
     castModifierId: z.optional(uuidSchema),
+    /** The creatures the paid modifier's outcome applies to, up to the `targets.max` its candidate offers. */
+    castModifierActorIds: z.optional(z.array(uuidSchema).check(z.maxLength(50))),
     /** The units the caster spends from the action's pool, for an action that heals per unit spent. */
     spentUnits: z.optional(z.number().check(z.int(), z.positive())),
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),

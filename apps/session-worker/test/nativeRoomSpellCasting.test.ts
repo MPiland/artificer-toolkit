@@ -4,7 +4,9 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { gmRulingEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { schoolOfEvocation } from '@artificer-toolkit/source-data/srd/classes/school-of-evocation.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
@@ -18,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { areaReceipts, vitalsOf } from './areaRoomReads.js'
 import { seedModifierGrant } from './grantSeed.js'
@@ -431,6 +434,139 @@ describe('room Fireball cast by a Character wizard who sculpts its spells (SPELL
 
     const { answer } = await room.startAreaAction({ x: 300, y: 150 }, [], 'GM', [CAUGHT[0]!])
     expect(answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'TARGET_UNAVAILABLE' })
+  }, 120000)
+})
+
+describe('room burst cast by a Character who pays a cast modifier for its targets (SPELLS-31.T5g2)', () => {
+  const POOL_ID = testUuid(0x7e0)
+  const CAREFUL_ID = testUuid(0x7e2)
+  const HEIGHTENED_ID = testUuid(0x7e8)
+  const [NAMED_ID, OTHER_ID] = CAUGHT_IDS as [string, string]
+
+  /** The burst dealing a fixed 10, so a halved success reads as 5. */
+  const heavyBurst: SpellAuthored = (() => {
+    const spell = structuredClone(emberBurst)
+    const outcome = spell.effects![0]!.paths![0]! as {
+      resultBlock: { outcomes: Record<string, unknown>[] }
+    }
+    outcome.resultBlock.outcomes = [{ ...outcome.resultBlock.outcomes[0], amount: 10 }]
+    return { ...spell, id: testUuid(0x7e1), label: 'Heavy Burst' }
+  })()
+
+  const ids = (seed: number) => ({
+    effect: testUuid(seed),
+    range: testUuid(seed + 1),
+    path: testUuid(seed + 2),
+    result: testUuid(seed + 3),
+    outcome: testUuid(seed + 4)
+  })
+
+  /** One charge pool and two options paying from it; neither names a feature of the System. */
+  const modifierFeature: ClassFeature = {
+    id: testUuid(0x7e9),
+    label: 'Spell Craft',
+    description: 'Pay uses to shape who a spell affects.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: { ...ids(0x7f0), effect: CAREFUL_ID },
+        label: 'Shielded casting',
+        instructions: 'The named creatures pass their saves.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 1,
+          targets: { outcome: 'SAVE_AUTO_SUCCESS', base: 1 }
+        }
+      }),
+      gmRulingEffect({
+        ids: { ...ids(0x7f8), effect: HEIGHTENED_ID },
+        label: 'Hindered casting',
+        instructions: 'One named creature has disadvantage on its first save.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 2,
+          targets: { outcome: 'SAVE_DISADVANTAGE', base: 1 }
+        }
+      })
+    ]
+  }
+
+  const modifierRoom = () =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [heavyBurst], prepared: [heavyBurst.id] },
+      characterClassFeatures: [modifierFeature],
+      characterAction: (action) => action.label === 'Heavy Burst (1st level)'
+    })
+
+  const hitPoints = async (room: Awaited<ReturnType<typeof modifierRoom>>) =>
+    new Map(
+      vitalsOf(await readRoomHistory(room.room.base.stub)).map(
+        ({ id, currentHitPoints }) => [id, currentHitPoints] as const
+      )
+    )
+
+  it('lets the named creature pass its save, so it takes half, while the others take it all', async () => {
+    const room = await modifierRoom()
+    const before = await hitPoints(room)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: CAREFUL_ID,
+      actorIds: [NAMED_ID]
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const after = await hitPoints(room)
+    expect(before.get(NAMED_ID)! - after.get(NAMED_ID)!).toBe(5)
+    expect(before.get(OTHER_ID)! - after.get(OTHER_ID)!).toBe(10)
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.resourceConsumption).toBeTruthy()
+
+    await undoLastAction(room)
+    expect(await hitPoints(room)).toEqual(before)
+  }, 120000)
+
+  it('gives the named creature disadvantage on its save, and the others none', async () => {
+    const room = await modifierRoom()
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: HEIGHTENED_ID,
+      actorIds: [NAMED_ID]
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const modeOf = (actorId: string) =>
+      decision.pending.kind === 'AREA_SAVES'
+        ? decision.pending.saves.find((save) => save.actorId === actorId)?.request.rollMode
+        : undefined
+    expect(modeOf(NAMED_ID)).toBe('DISADVANTAGE')
+    expect(modeOf(OTHER_ID)).not.toBe('DISADVANTAGE')
+  }, 120000)
+
+  it('refuses naming more creatures than the option allows', async () => {
+    const room = await modifierRoom()
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: CAREFUL_ID,
+      actorIds: CAUGHT_IDS
+    })
+    expect(answer.type).toBe('COMMAND_REJECTED')
   }, 120000)
 })
 

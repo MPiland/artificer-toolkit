@@ -26,7 +26,8 @@ export const ROLL_MODE_RULE_SOURCE_IDS = {
   FACING: 'facing',
   LONG_RANGE: 'long-range',
   UNSEEN_ATTACKER: 'unseen-attacker',
-  UNSEEN_TARGET: 'unseen-target'
+  UNSEEN_TARGET: 'unseen-target',
+  CAST_MODIFIER: 'cast-modifier'
 } as const
 
 /** The roll-mode source of a Character mechanic source: its active effect, or the definition naming it. */

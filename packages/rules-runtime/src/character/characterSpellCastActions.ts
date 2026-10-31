@@ -16,6 +16,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
 import {
+  castModifierTargetCap,
   sparedCreatureCap,
   type CastModifierSource,
   type SparesCreaturesSource
@@ -44,7 +45,10 @@ type ActionDecision = CharacterRulePolicyOutput['actionDecisions'][number]
 type SpellPolicyOutput = Pick<
   CharacterRulePolicyOutput,
   'resources' | 'spellCastDecisions' | 'spellCastMechanics' | 'spellSlots'
-> & { grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> }
+> & {
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>
+  derivedStats: Pick<CharacterRulePolicyOutput['derivedStats'], 'abilities'>
+}
 
 /**
  * The spells a Character may cast in an Encounter, as actions of their own: movement reactions never
@@ -285,7 +289,19 @@ export function buildCharacterSpellCastActions(input: {
                     label,
                     chargeId: cost.chargeId,
                     cost: cost.cost,
-                    poolId: modifierPool.poolId
+                    poolId: modifierPool.poolId,
+                    ...(cost.targets && {
+                      targets: {
+                        outcome: cost.targets.outcome,
+                        max: castModifierTargetCap(
+                          cost.targets,
+                          (abilityId) =>
+                            policyOutput.derivedStats.abilities.find(
+                              (entry) => entry.abilityId === abilityId
+                            )?.modifier.effective ?? 0
+                        )
+                      }
+                    })
                   }
                 ]
               : []

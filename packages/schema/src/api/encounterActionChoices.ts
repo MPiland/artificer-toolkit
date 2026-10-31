@@ -306,7 +306,13 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
           z.strictObject({
             id: postgresUuidSchema,
             label: labelSchema,
-            cost: z.number().check(z.int()).check(z.positive())
+            cost: z.number().check(z.int()).check(z.positive()),
+            targets: z.optional(
+              z.strictObject({
+                outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+                max: z.number().check(z.int()).check(z.gte(0))
+              })
+            )
           })
         )
         .check(z.maxLength(50))

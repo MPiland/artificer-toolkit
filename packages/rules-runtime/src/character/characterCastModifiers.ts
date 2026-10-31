@@ -1,5 +1,5 @@
 import type {
-  ResourceUseAuthored,
+  CastModifierAuthored,
   SparesCreaturesAuthored
 } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
@@ -10,7 +10,7 @@ export type CastModifierSource = {
   modifierId: string
   /** The label of the Feature, option or feat that holds it. */
   label: string
-  cost: ResourceUseAuthored
+  cost: CastModifierAuthored
 }
 
 /** The cast modifiers a Feature, option or feat holds, one per passive Effect that authors a cost. */
@@ -25,6 +25,19 @@ export function collectCastModifiers(
         : []
       : []
   )
+}
+
+/**
+ * The most creatures a paid cast modifier may name: its base, plus the holder's modifier in the
+ * authored ability, never below the authored minimum (1 when an ability is added).
+ */
+export function castModifierTargetCap(
+  targets: NonNullable<CastModifierAuthored['targets']>,
+  abilityModifier: (abilityDefinitionId: string) => number
+): number {
+  const added = targets.abilityDefinitionId ? abilityModifier(targets.abilityDefinitionId) : 0
+  const minimum = targets.minimum ?? (targets.abilityDefinitionId ? 1 : 0)
+  return Math.max(minimum, targets.base + added)
 }
 
 /** Creatures a Character may spare from an area spell it casts, authored as a passive Effect's `sparesCreatures`. */

@@ -541,6 +541,7 @@ export async function planNativeLiveEncounterAction(
       actionId: command.actionId,
       choiceOptionId: castChoiceOptionId(command.target),
       castModifierId: command.castModifierId,
+      castModifierActorIds: command.castModifierActorIds,
       spentUnits: command.spentUnits,
       ammunition: ammunitionCommandChoice(command.target),
       wieldConflictAcceptance: {
