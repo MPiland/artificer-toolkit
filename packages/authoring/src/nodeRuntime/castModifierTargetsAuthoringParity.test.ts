@@ -29,7 +29,7 @@ function normalize(values: ClassAuthored) {
 type Node = {
   label?: string
   options?: Node[]
-  effects?: { invocation?: { castModifier?: { targets?: Record<string, unknown> } } }[]
+  effects?: { invocation?: object }[]
 }
 
 function find(nodes: Node[] | undefined, label: string): Node | undefined {
@@ -43,8 +43,13 @@ function find(nodes: Node[] | undefined, label: string): Node | undefined {
 
 const LABELS = ['Careful Spell', 'Heightened Spell']
 
-const targetsOf = (record: ClassAuthored, label: string) =>
-  find(record.features, label)?.effects?.[0]?.invocation?.castModifier?.targets
+function targetsOf(record: ClassAuthored, label: string) {
+  const invocation = find(record.features, label)?.effects?.[0]?.invocation
+  const castModifier = invocation && 'castModifier' in invocation ? invocation.castModifier : null
+  return castModifier && typeof castModifier === 'object' && 'targets' in castModifier
+    ? (castModifier.targets as Record<string, unknown> | undefined)
+    : undefined
+}
 
 describe('cast modifier targets through the class node map (SPELLS-31.T5g2)', () => {
   it.each(LABELS)(

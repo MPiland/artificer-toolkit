@@ -618,6 +618,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
     ...character.output,
     ...policy,
     grantFold: character.output.grantFold,
+    derivedStats: character.output.derivedStats,
     actionDecisions: built.decisions
   }
   const compiled = compileCharacterActionEntryPoints({
@@ -769,6 +770,7 @@ describe('a cast paid from a spell-source pool', () => {
     return {
       ...policy,
       grantFold: character.output.grantFold,
+      derivedStats: character.output.derivedStats,
       resources: [pool(rawUsed)],
       spellSlots: { ...policy.spellSlots, slotPools: paysPact ? [pactPool] : [] }
     }
@@ -809,6 +811,7 @@ describe('a cast paid from a spell-source pool', () => {
           ...character.output,
           ...pooledPolicy(cast, rawUsed),
           grantFold: character.output.grantFold,
+          derivedStats: character.output.derivedStats,
           actionDecisions: built.decisions
         },
         resourceUsage:
@@ -3625,6 +3628,7 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
         ...character.output,
         ...policyWith([pool(rawUsed, input.maximum)]),
         grantFold: character.output.grantFold,
+        derivedStats: character.output.derivedStats,
         actionDecisions: built.decisions
       },
       resourceUsage:
