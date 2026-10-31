@@ -22,6 +22,7 @@ import {
 } from './characterCastModifiers.js'
 import { affordablePoolFor } from './characterResourcePool.js'
 import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
+import { dnd5eWithSaveSuccessDamage } from '../systems/dnd5e/spellSaveSuccessDamage.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
@@ -244,7 +245,11 @@ export function buildCharacterSpellCastActions(input: {
             }
           }
         : typedGroup
-      const group = mergeOnHitRiders(rangedGroup, input.onHitRiders ?? [], undefined, cast.spellId)
+      const group = dnd5eWithSaveSuccessDamage(
+        policyOutput.grantFold,
+        { id: cast.spellId, level: cast.spellLevel, magicSchoolId: spell.magicSchoolId },
+        mergeOnHitRiders(rangedGroup, input.onHitRiders ?? [], undefined, cast.spellId)
+      )
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
       if (!mechanic) continue
