@@ -6,6 +6,7 @@ import {
   type ServerCompletedRuleExecutionDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { actionResolvedPath } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
@@ -199,7 +200,7 @@ export function prepareEncounterActionEffectPlans(input: {
       ? relationshipConditionApplications({
           definition: recurringEffect.definition,
           target: input.target,
-          resolvedPath: input.d20?.resultPath ?? 'ON_USE'
+          resolvedPath: actionResolvedPath(input.d20)
         })
       : []
   return {
