@@ -34,6 +34,9 @@ export interface MaintenanceLinkCapabilityAdapter {
   saveFacts(input: {
     appliedDamage: number
     targetActorId: string
-    target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
+    target: Pick<
+      MovementTarget,
+      'effectiveRulePolicyOutput' | 'targetDerivedFacts' | 'conditionMechanics'
+    >
   }): MaintenanceLinkSaveFacts
 }

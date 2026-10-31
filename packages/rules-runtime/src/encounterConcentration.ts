@@ -162,7 +162,10 @@ export function createNativeConcentrationContext(input: {
       NativeConcentrationContext,
       'concentrationDefinition' | 'systemVocabularySnapshot' | 'targetCharacter'
     >
-    target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
+    target: Pick<
+      MovementTarget,
+      'effectiveRulePolicyOutput' | 'targetDerivedFacts' | 'conditionMechanics'
+    >
     damageTypes: readonly { id: string; label: string }[]
   }
   parentOccurrenceId: string

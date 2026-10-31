@@ -150,6 +150,19 @@ describe('room Concentration checks', () => {
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
   })
 
+  it('rolls the Character’s Concentration save with the Disadvantage its Exhaustion 3 gives (SPELLS-10.T4)', async () => {
+    const room = await concentratingRoom({
+      autoRoll: 'GAME_MASTER',
+      rolls: [18],
+      characterPlay: { exhaustionLevel: 3 }
+    })
+    await startedBite(room)
+
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    expect(decision.pending.request).toMatchObject({ rollMode: 'DISADVANTAGE' })
+  })
+
   it('ends the exact Concentration and its dependent effect on a failed save, keeping an independent one', async () => {
     const room = await concentratingRoom({
       autoRoll: 'GAME_MASTER',

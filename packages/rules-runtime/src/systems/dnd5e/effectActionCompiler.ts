@@ -145,6 +145,7 @@ import {
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
+  dnd5eSaveOutcomeRule,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
@@ -217,7 +218,6 @@ import {
   dnd5eResultGate,
   saveAudit,
   saveOutcomeFact,
-  dnd5eSaveOutcomeRule,
   testContractVersion
 } from './effectActionOperationRegistry.js'
 import {
