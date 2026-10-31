@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   AuthoredDeleteActiveInput,
   AuthoredPublicationResult,
@@ -83,6 +83,13 @@ async function snapshot(base: Awaited<ReturnType<typeof readySheetFixture>>, sub
 }
 
 describe('native Equipment deletion source-loss cleanup', () => {
+  // A Character write queues the Sheet derivation 300 ms out and cancels the one it replaces. On real
+  // timers convex-test starts a queued derivation mid-test, and the next write then cancels one that
+  // is already running (invariant error "canceled" after it finished). Fake timers keep queued work
+  // pending until the test's cleanup cancels it.
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
   it('retains acquired Equipment rules and contents in active and saved Character state after authored deletion', async () => {
     const base = await readySheetFixture()
     await importSeededSubjects(base.t, {
