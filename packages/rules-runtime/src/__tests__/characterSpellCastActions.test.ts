@@ -3515,6 +3515,28 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
   })
 })
 
+describe('creatures the caster may spare from an area spell (SPELLS-16)', () => {
+  const sparing = (magicSchoolIds?: string[]) => [
+    { base: 1, plusSpellLevel: true, ...(magicSchoolIds ? { magicSchoolIds } : {}) }
+  ]
+  const maxFor = (authored: SpellAuthored, sparesCreatures: ReturnType<typeof sparing>) =>
+    build([candidate(authored, authored.level)], { sparesCreatures }).candidates[0]?.sparesCreatures
+
+  it('offers 1 plus the spell level, for a spell of the named school', () => {
+    expect(maxFor(FIREBALL, sparing([FIREBALL.magicSchoolId]))).toEqual({ max: 4 })
+  })
+
+  it('offers the base alone for a cantrip', () => {
+    const cantrip = spell('Sacred Flame')
+    expect(maxFor(cantrip, sparing())).toEqual({ max: 1 })
+  })
+
+  it('offers nothing for a spell of another school or without a source', () => {
+    expect(maxFor(FIREBALL, sparing(['another-school']))).toBeUndefined()
+    expect(maxFor(FIREBALL, [])).toBeUndefined()
+  })
+})
+
 describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
   const CHARGE_ID = 'modifier-charge'
   const MODIFIER_ID = testUuid(0xc10)

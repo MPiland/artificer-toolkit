@@ -228,7 +228,7 @@ Sizes are Fibonacci points, all 5 or less (36 subtasks, about 120 points). The T
 | T5d  | 3    | none                        | new: critical range and extra critical dice (Improved, Superior, Brutal Critical) (3 kinds)                                                            |
 | T5e  | 3    | T5g                         | new: damage die rerolls (three Great Weapon styles, Empowered Spell) (4 kinds)                                                                         |
 | T5f  | 5    | SPELLS-4.T2i, T2l, T2m      | new: options bound to another active effect (Persistent, Relentless, Mindless Rage, Frenzy, Reckless Attack) (5 kinds)                                 |
-| T5g  | 5    | none                        | new: cast-time metamagic choice with a resource cost (Careful, Twinned, Heightened, Subtle, Sculpt Spells) (5 kinds)                                   |
+| T5g  | 5    | none                        | new: cast-time metamagic choice with a resource cost (Careful, Twinned, Heightened, Subtle; Sculpt Spells moved to SPELLS-16.T1) (5 kinds)                                   |
 | T5h  | 4    | T5g                         | new: cast parameters (Distant, Extended, Quickened, Overchannel) (4 kinds)                                                                             |
 | T5i  | 4    | T5k                         | new: spell-scoped riders and modifiers (Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity) (5 kinds)            |
 | T5j  | 4    | none                        | new: resource and slot recovery and conversion (Flexible Casting, Sorcerous Restoration, Eldritch Master, Arcane Recovery, Natural Recovery) (5 kinds) |

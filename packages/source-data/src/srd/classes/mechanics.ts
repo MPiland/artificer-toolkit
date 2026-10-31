@@ -24,7 +24,8 @@ import type {
   FacetAuthored,
   ModifierGrantAuthored,
   OptionAuthored,
-  ReactionAttackedSelfTriggerBindingAuthored
+  ReactionAttackedSelfTriggerBindingAuthored,
+  SparesCreaturesAuthored
 } from '@artificer-toolkit/shared/authored'
 import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
@@ -93,6 +94,8 @@ export function gmRulingEffect(input: {
   resourceUse?: { chargeId: string; cost: number }
   /** A cost the caster may pay on casting a spell; makes the ruling a passive cast modifier, never an action. */
   castModifier?: { chargeId: string; cost: number }
+  /** Creatures the caster may leave out of an area spell they cast; makes the ruling a passive, never an action. */
+  sparesCreatures?: SparesCreaturesAuthored
   /** The action the ruling takes; one with a resource cost and no action given is free. */
   activationCode?: Exclude<ActivationCode, 'FREE'>
 }): EffectAuthored {
@@ -116,6 +119,7 @@ export function gmRulingEffect(input: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.ACTIVATED,
             ...(input.castModifier ? { castModifier: input.castModifier } : {}),
+            ...(input.sparesCreatures ? { sparesCreatures: input.sparesCreatures } : {}),
             range,
             targeting: { selectionKind: 'SELF' }
           },

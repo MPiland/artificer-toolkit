@@ -566,6 +566,10 @@ export const characterActionCandidatesSchema = lazySchema(() =>
             )
             .check(z.maxLength(50))
         ),
+        /** The most creatures the caster may spare from this cast's area; absent when it spares none. */
+        sparesCreatures: z.optional(
+          z.strictObject({ max: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)) })
+        ),
         mechanicFacts: characterActionMechanicFactSchema
       })
     )

@@ -384,15 +384,19 @@ export function CampaignTabletopActionDrawer({
   const bandSide = bandSides?.find((side) => side.value === pickedBandSide)?.value ?? null
   // A caster-centered area takes no aim, so it has no target to pick.
   const centeredTarget = aimedTarget?.kind === 'CASTER_CENTERED' ? aimedTarget : null
-  // A zone the action places can spare creatures the caster designates at cast.
-  const sparesCreatures =
+  // A zone the action places can spare any creatures the caster designates at cast; an instant
+  // area, as many as the caster's features allow.
+  const zoneSpares =
     choiceTarget !== undefined &&
     'choosesUnaffected' in choiceTarget &&
     choiceTarget.choosesUnaffected === true
-  const zoneChoices = {
-    ...(sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}),
-    ...castChoice
-  }
+  const maxSpared =
+    !zoneSpares && (areaTarget !== null || centeredTarget !== null)
+      ? selectedAction?.sparesCreatures?.max
+      : undefined
+  const sparesCreatures = zoneSpares || maxSpared !== undefined
+  const sparedChoice = sparesCreatures && unaffectedActorIds.length ? { unaffectedActorIds } : {}
+  const zoneChoices = { ...sparedChoice, ...castChoice }
   const namesNoCreature =
     areaTarget !== null || drawnTarget !== null || centeredTarget !== null || actorsTarget !== null
   // Optional rules choose among the target creature's entities, so an area has none, and they
@@ -482,7 +486,8 @@ export function CampaignTabletopActionDrawer({
               sceneId: scene.id,
               expectedSceneVersion: scene.version,
               origin: areaAim.origin,
-              toward: areaAim.toward
+              toward: areaAim.toward,
+              ...sparedChoice
             }
           : null
   const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
@@ -1165,6 +1170,7 @@ export function CampaignTabletopActionDrawer({
                     .map((actor) => ({ label: actor.label, value: actor.id }))}
                   disabled={selectionControlsDisabled}
                   label='Unaffected creatures'
+                  maxValues={maxSpared}
                   searchable
                   value={unaffectedActorIds}
                   onChange={setUnaffectedActorIds}
