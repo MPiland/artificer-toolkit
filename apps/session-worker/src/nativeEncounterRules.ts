@@ -842,6 +842,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     activeEffectsByActorId,
     capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
@@ -887,10 +888,7 @@ export async function planNativeLiveEncounterAction(
     evidenceResolution ?? (await settledActionSaveWindow(pauseAnswer, executionOptions))
   const resume =
     responseCommand && resumeResolution && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? {
-          pending: restoreEncounterActionPending(snapshot),
-          resolution: resumeResolution
-        }
+      ? { pending: restoreEncounterActionPending(snapshot), resolution: resumeResolution }
       : null
   const actionSource = {
     runtime: executionOptions.runtime,

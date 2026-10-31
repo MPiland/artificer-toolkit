@@ -4,7 +4,10 @@ import {
   type DomainRejectionReasonDto
 } from '@artificer-toolkit/schema/api/domainRejections'
 
-type PlainReason = Exclude<DomainRejectionReasonDto, 'RULE_WARNINGS'>
+type PlainReason = Exclude<
+  DomainRejectionReasonDto,
+  'RULE_WARNINGS' | 'MAINTAINED_REPLACEMENT_REQUIRED'
+>
 
 /**
  * An expected, user-safe refusal of an Encounter command. The package owns it so the code runs

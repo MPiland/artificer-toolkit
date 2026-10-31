@@ -7,6 +7,7 @@ import {
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { sceneActorLightSchema } from './characterMechanicsRead.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
+import { MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR } from '../shared/activeRuleEffects.js'
 import { MAX_TURN_TELEPORT_ALLOWANCES } from '../shared/teleportAllowance.js'
 import { reusableDefinitionCurrentDtoSchema } from '../shared/reusableDefinitions.js'
 import {
@@ -160,7 +161,13 @@ export const liveSessionEncounterRulesRequestSchema = lazySchema(() =>
       kind: z.literal('ACTION_AREA_SCENE'),
       command: actionAreaSceneRequestDtoSchema
     }),
-    z.strictObject({ kind: z.literal('MAINTENANCE_SLOT'), ...maintenanceSlot }),
+    /** One held state; the oldest when `stateId` is omitted. */
+    z.strictObject({
+      kind: z.literal('MAINTENANCE_SLOT'),
+      ...maintenanceSlot,
+      stateId: z.optional(postgresUuidSchema)
+    }),
+    z.strictObject({ kind: z.literal('MAINTENANCE_STATES'), ...maintenanceSlot }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_STATE'),
       stateId: postgresUuidSchema
@@ -420,6 +427,14 @@ export const liveSessionEncounterRulesResponseSchema = lazySchema(() =>
       state: z.nullable(encounterMaintainedEffectStateRecordSchema),
       /** The Scene zones that depend on the state; ending the state removes them (D135). */
       zoneIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))
+    }),
+    z.strictObject({
+      kind: z.literal('MAINTENANCE_STATES'),
+      revisions: liveSessionRulesRevisionsSchema,
+      /** Every state the actor holds for the definition, oldest first. */
+      states: z
+        .array(encounterMaintainedEffectStateRecordSchema)
+        .check(z.maxLength(MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR))
     }),
     z.strictObject({
       kind: z.literal('MAINTENANCE_STATE'),
