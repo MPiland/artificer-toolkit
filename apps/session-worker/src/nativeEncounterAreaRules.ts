@@ -546,7 +546,7 @@ async function openNextAreaSaveWindow(
   if (captured.kind !== 'INITIATIVE_ROUND') throw new Error('Turn initiative is unavailable.')
   const requestId = nextEncounterAreaWindowRequestId(
     snapshot,
-    initiativeActionOrder(captured.state, input.actors)
+    captured.state ? initiativeActionOrder(captured.state, input.actors) : []
   )
   const context = snapshot.applicationContext
   if (requestId === null || context.kind !== 'ENCOUNTER_AREA_ACTION') return snapshot

@@ -305,7 +305,6 @@ export async function planNativeLiveEncounterAction(
     if (context.contest || snapshot.deferredCleaving || root.optionalCombatIntent != null)
       throw new Error('The pending action is not an ordinary action.')
   }
-  const evidenceResolution = pauseAnswer?.kind === 'EVIDENCE' ? pauseAnswer.answer : null
   const retargetAnswer = pauseAnswer?.kind === 'ATTACK_RETARGET' ? pauseAnswer.answer : null
   const castAnswer = pauseAnswer?.kind === 'CAST_REACTION' ? pauseAnswer.answer : null
   const gateAnswer = pauseAnswer?.kind === 'INCOMING_GATE' ? pauseAnswer.answer : null
@@ -372,6 +371,9 @@ export async function planNativeLiveEncounterAction(
     !resolveCheckActionInputDtoSchema.safeParse(command).success
   )
     throw targetNotPermitted()
+  // A d20 window settles its roll before the action goes on: the die it spent joins the roll, and its
+  // effect ends with the action.
+  const resolved = await settledActionSaveWindow(pauseAnswer, executionOptions)
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
     // An answer to a counter offered before the cast did anything replays the cast itself.
@@ -439,15 +441,13 @@ export async function planNativeLiveEncounterAction(
           dependencies,
           revisions
         }
-      const areaResolution =
-        evidenceResolution ?? (await settledActionSaveWindow(pauseAnswer, executionOptions))
-      if (!snapshot || !areaResolution) throw new Error('The pending area action is unavailable.')
+      if (!snapshot || !resolved) throw new Error('The pending area action is unavailable.')
       return {
         ...(await planNativeLiveEncounterAreaAnswer({
           ...areaInput,
           response: responseCommand,
           requestId: snapshot.request.requestId,
-          resolution: areaResolution,
+          resolution: resolved,
           areaSnapshot
         })),
         dependencies,
@@ -882,13 +882,9 @@ export async function planNativeLiveEncounterAction(
     !retargetOption
   )
     throw new Error('The pending action source or target changed.')
-  // A d20 window settles its roll before the action goes on: the die it spent joins the roll, and its
-  // effect ends with the action.
-  const resumeResolution =
-    evidenceResolution ?? (await settledActionSaveWindow(pauseAnswer, executionOptions))
   const resume =
-    responseCommand && resumeResolution && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
-      ? { pending: restoreEncounterActionPending(snapshot), resolution: resumeResolution }
+    responseCommand && resolved && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+      ? { pending: restoreEncounterActionPending(snapshot), resolution: resolved }
       : null
   const actionSource = {
     runtime: executionOptions.runtime,
