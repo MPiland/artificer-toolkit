@@ -11,6 +11,7 @@ import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
 import { ensureAuthoredRouteId } from './routeIds'
 import { compilePublicationDocument } from './publicationDocument'
+import { writeSourceFacts } from './sourceFacts'
 import { activePublicationNameKey } from './publicationPersistence'
 
 afterEach(() => {
@@ -161,13 +162,17 @@ it('recompiles the complete 500-Equipment chain without recursive descendant sou
         currentVersionId: versionId,
         currentVersionPublicId: publicVersionId,
         parentEquipmentId: parentId,
-        equipmentOptions: equipmentOptionFacts(child, checksum),
-        authoringSources: authoredSourceFacts({
+        equipmentOptions: equipmentOptionFacts(child, checksum)
+      })
+      await writeSourceFacts(
+        ctx,
+        child.id,
+        authoredSourceFacts({
           subjectKind: 'EQUIPMENT',
           document: child,
           checksum
         })
-      })
+      )
       const version = await ctx.db.get(versionId)
       if (!version) throw new Error('Missing child version')
       await syncCatalogueMetadata(

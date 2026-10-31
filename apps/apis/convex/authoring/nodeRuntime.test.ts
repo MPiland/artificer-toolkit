@@ -32,6 +32,7 @@ import {
   readDefinitionRoot,
   readSystemOwner
 } from '../content/definitionStore'
+import { deleteSourceFacts, writeSourceFacts } from '../content/sourceFacts'
 import { readAuthoringSources } from '../content/sources'
 import { authoredSourceFacts, resolveNodeRuntime } from '@artificer-toolkit/authoring/nodeRuntime'
 import { getValueAtPath, isRuntimeRecord } from '@artificer-toolkit/shared/utils'
@@ -621,17 +622,21 @@ describe('native Convex authoring resolver', () => {
         ownerUserId: userId,
         checksum,
         contentSourceId: userSourceId,
-        authoringSources: authoredSourceFacts({
-          subjectKind: 'EQUIPMENT',
-          document: equipmentAuthoredDtoSchema.parse({ ...mace, userId }),
-          checksum
-        }),
         equipmentOptions: {
           checksum,
           category: mace.category,
           properties: mace.properties ?? []
         }
       })
+      await writeSourceFacts(
+        ctx,
+        mace.id,
+        authoredSourceFacts({
+          subjectKind: 'EQUIPMENT',
+          document: equipmentAuthoredDtoSchema.parse({ ...mace, userId }),
+          checksum
+        })
+      )
       const otherSystemId = '10000000-0000-4000-8000-000000000098'
       const otherSourceId = '10000000-0000-4000-8000-000000000097'
       await ctx.db.insert('contentSources', {
@@ -719,14 +724,7 @@ describe('native Convex authoring resolver', () => {
       ).then((reader) => reader('equipment', ['id', 'label'], undefined, srdSystemRecord.id))
     )
     expect(strangerRows).not.toEqual(expect.arrayContaining([{ id: mace.id, label: mace.label }]))
-    await t.run(async (ctx) => {
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', mace.id))
-        .unique()
-      if (!root) throw new Error('Missing equipment root fixture')
-      await ctx.db.patch(root._id, { authoringSources: undefined })
-    })
+    await t.run((ctx) => deleteSourceFacts(ctx, mace.id))
     await expect(
       t.run((ctx) =>
         createSystemSourceReader(ctx, srdSystemRecord.id, userId).then((reader) =>
@@ -734,20 +732,17 @@ describe('native Convex authoring resolver', () => {
         )
       )
     ).rejects.toThrow('Authoring source facts are not materialized.')
-    await t.run(async (ctx) => {
-      const root = await ctx.db
-        .query('authoredRoots')
-        .withIndex('by_publicId', (q) => q.eq('id', mace.id))
-        .unique()
-      if (!root) throw new Error('Missing equipment root fixture')
-      await ctx.db.patch(root._id, {
-        authoringSources: authoredSourceFacts({
+    await t.run((ctx) =>
+      writeSourceFacts(
+        ctx,
+        mace.id,
+        authoredSourceFacts({
           subjectKind: 'EQUIPMENT',
           document: equipmentAuthoredDtoSchema.parse(mace),
           checksum: '0'.repeat(64)
         })
-      })
-    })
+      )
+    )
     await expect(
       t.run((ctx) =>
         createSystemSourceReader(ctx, srdSystemRecord.id, userId).then((reader) =>
@@ -781,17 +776,21 @@ describe('native Convex authoring resolver', () => {
         contentSourceId: userSourceId,
         ownerUserId: userId,
         checksum,
-        authoringSources: authoredSourceFacts({
-          subjectKind: 'EQUIPMENT',
-          document: equipmentAuthoredDtoSchema.parse(document),
-          checksum
-        }),
         equipmentOptions: {
           checksum,
           category: mace.category,
           properties: mace.properties ?? []
         }
       })
+      await writeSourceFacts(
+        ctx,
+        mace.id,
+        authoredSourceFacts({
+          subjectKind: 'EQUIPMENT',
+          document: equipmentAuthoredDtoSchema.parse(document),
+          checksum
+        })
+      )
       await ctx.db.patch(version._id, {
         contentSourceId: userSourceId,
         checksum,
@@ -840,7 +839,7 @@ describe('native Convex authoring resolver', () => {
         .unique()
     )
     if (!before) throw new Error('Missing equipment root fixture')
-    await t.run((ctx) => ctx.db.patch(before._id, { authoringSources: undefined }))
+    await t.run((ctx) => deleteSourceFacts(ctx, mace.id))
     await expect(
       t.run((ctx) =>
         createSystemSourceReader(ctx, srdSystemRecord.id, userId).then((reader) =>
@@ -855,15 +854,13 @@ describe('native Convex authoring resolver', () => {
     const replayed = await t.run((ctx) => ctx.db.get(before._id))
     expect(replayed?.currentVersionId).toBe(before.currentVersionId)
     expect(replayed?.checksum).toBe(before.checksum)
-    await t.run(async (ctx) => {
-      await ctx.db.patch(before._id, {
-        authoringSources: {
-          checksum: '0'.repeat(64),
-          factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
-          rows: {}
-        }
+    await t.run((ctx) =>
+      writeSourceFacts(ctx, mace.id, {
+        checksum: '0'.repeat(64),
+        factsVersion: AUTHORED_SOURCE_FACTS_VERSION,
+        rows: {}
       })
-    })
+    )
     await expect(
       importSeededSubjects(t, {
         contentSourceId: SRD_CONTENT_SOURCE.id,

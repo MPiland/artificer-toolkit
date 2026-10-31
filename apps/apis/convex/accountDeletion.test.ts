@@ -764,6 +764,7 @@ describe('installed native owned authored cleanup', () => {
         }))
       const beforeOwned = await t.run(async (ctx) => ({
         roots: await ctx.db.query('authoredRoots').collect(),
+        sourceFacts: await ctx.db.query('authoredSourceFacts').collect(),
         drafts: await ctx.db.query('authoredDrafts').collect(),
         routes: await ctx.db.query('authoredRouteIds').collect(),
         images: await ctx.db.query('authoredImageSlots').collect(),
@@ -810,6 +811,7 @@ describe('installed native owned authored cleanup', () => {
         await deleteAccountCompletely(t, profile.authUserId)
         const remaining = await t.run(async (ctx) => ({
           roots: await ctx.db.query('authoredRoots').collect(),
+          sourceFacts: await ctx.db.query('authoredSourceFacts').collect(),
           drafts: await ctx.db.query('authoredDrafts').collect(),
           routes: await ctx.db.query('authoredRouteIds').collect(),
           images: await ctx.db.query('authoredImageSlots').collect(),
@@ -821,6 +823,11 @@ describe('installed native owned authored cleanup', () => {
         }))
         expect(remaining.roots).toEqual(
           beforeOwned.roots.filter((row) => row.ownerUserId !== first.userId)
+        )
+        const survivingRootIds = new Set(remaining.roots.map((row) => row.id))
+        expect(beforeOwned.sourceFacts.length).toBeGreaterThan(0)
+        expect(remaining.sourceFacts).toEqual(
+          beforeOwned.sourceFacts.filter((row) => survivingRootIds.has(row.subjectId))
         )
         expect(remaining.drafts).toEqual(
           beforeOwned.drafts.filter((row) => row.userId !== first.userId)

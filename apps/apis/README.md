@@ -719,7 +719,7 @@ the native subscription remains a query. Normalization and the temporary SQL res
 normalizer; Convex supplies trusted System/definition/authored-source facts while the temporary SQL
 adapter uses the same implementation. System vocabulary, visible reusable definitions, and
 same-System published master/owned root and nested reference choices are supported. Closed
-`authoringSources` metadata holds only resolver-reachable labels, category/property facts and
+`authoringSources` metadata (the `authoredSourceFacts` table, keyed by root id) holds only resolver-reachable labels, category/property facts and
 feature/option/grant/effect/ancestry relationships; exact seed replay backfills absent metadata without changing
 canonical payloads. `PLATFORM` sources are public; `USER` sources and their roots must share the
 authenticated owner. Reads use indexed System/kind/owner ranges; unrelated private sources do not

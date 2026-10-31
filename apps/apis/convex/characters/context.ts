@@ -1,8 +1,4 @@
 import { authoredSourceKindsByTable } from '@artificer-toolkit/authoring/nodeRuntime/authoredSourceFacts'
-import {
-  AUTHORED_SOURCE_FACTS_VERSION,
-  authoredNodeRuntimeSourceFactsSchema
-} from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type {
   AuthoredCurrentSourceIdentity,
   AuthoredPublicationDocument
@@ -27,6 +23,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { readRootCatalogue } from '../content/catalogueMetadata'
 import { requireParentRoots } from '../content/relationshipReads'
+import { readSourceFacts } from '../content/sourceFacts'
 import { requireSystem } from '../content/systemDocuments'
 import { readAuthoredVersionCompilation, readPublishedRootDocument } from '../content/documents'
 import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
@@ -303,15 +300,7 @@ export async function loadCharacterRuleContext(
       // checksum-bound owner metadata to locate exact published documents, not draft JSON.
       for (const kind of authoredSourceKindsByTable.features ?? []) {
         for (const root of await visibleRoots(kind)) {
-          if (!root.authoringSources)
-            throw new Error('Character feature source facts are not materialized.')
-          const metadata = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
-          if (metadata.checksum !== root.checksum)
-            throw new Error('Stored Character feature source checksum mismatch.')
-          if (metadata.factsVersion !== AUTHORED_SOURCE_FACTS_VERSION)
-            throw new Error(
-              'Stored authoring source facts are superseded; run content/sourceMigrations.'
-            )
+          const metadata = await readSourceFacts(ctx, root)
           if (
             !metadata.rows.features?.some(
               (row) => typeof row.id === 'string' && missingFeatures.has(row.id)

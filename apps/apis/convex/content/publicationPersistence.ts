@@ -267,7 +267,6 @@ export async function commitPublication(
       checksum,
       contentSourceId,
       currentVersionPublicId,
-      authoringSources,
       activeNameKey: activePublicationNameKey(document.label),
       ...(subject.subjectKind === 'EQUIPMENT'
         ? {
@@ -289,6 +288,7 @@ export async function commitPublication(
           }
         : {})
     },
+    authoringSources,
     document,
     publicId
   })

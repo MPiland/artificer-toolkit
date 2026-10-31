@@ -41,6 +41,7 @@ import { creaturePublicationInput } from '../../tests/fixtures/creatureDrafts'
 import { srdPrintedArmorClass } from '../../tests/fixtures/srdCreatures'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
+import { readStoredSourceFacts } from './sourceFacts'
 
 const selectedCreatureIds = new Set([
   '00000000-0000-0000-0070-000200000000',
@@ -479,6 +480,7 @@ describe('native Creature publication', () => {
             draft,
             result,
             root,
+            sourceFacts: await readStoredSourceFacts(ctx, root),
             route,
             version,
             document: version && (await readStoredAuthoredVersionDocument(ctx, version))
@@ -548,7 +550,7 @@ describe('native Creature publication', () => {
         )
       )
       expect(entry.version?.compilation?.projectionChecksum).toBe(checksumRuleDocument(projection))
-      expect(entry.root.authoringSources).toEqual(
+      expect(entry.sourceFacts).toEqual(
         authoredSourceFacts({
           subjectKind: 'CREATURE',
           document,
