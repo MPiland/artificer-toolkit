@@ -43,6 +43,7 @@ export async function verifyEncounterHeldEffectBrowser(
   const forbiddenLegacyRequests: string[] = []
   let stage = 'sign in'
   let failure: string | undefined
+  let pointerTarget = 'not probed'
   let player: Page | undefined
   const submitted: Array<ResolveEncounterActionInputDto | MoveHeldEffectInputDto> = []
   try {
@@ -176,6 +177,16 @@ export async function verifyEncounterHeldEffectBrowser(
           path: input.evidenceDirectory + '/held-effect-targeting.png',
           fullPage: true
         })
+        pointerTarget = await page.evaluate(({ x, y }) => {
+          const element = document.elementFromPoint(x, y)
+          return element
+            ? element.tagName +
+                '.' +
+                element.className +
+                ' ' +
+                (element.getAttribute('aria-label') ?? '')
+            : 'nothing'
+        }, next)
         await page.mouse.click(next.x, next.y)
         await expect(page.getByRole('dialog', { name: 'Pick a target' })).toBeHidden()
         await openActions()
@@ -213,6 +224,7 @@ export async function verifyEncounterHeldEffectBrowser(
       .evaluateAll((nodes) => nodes.map((node) => node.textContent?.slice(0, 400) ?? ''))
       .catch(() => [])
     if (dialogs?.length) failure += ' Dialogs: ' + dialogs.join(' | ')
+    failure += ' Element under the pick point: ' + pointerTarget
     await Promise.allSettled([
       player?.screenshot({
         caret: 'initial',
