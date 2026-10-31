@@ -354,8 +354,9 @@ export function requireAreaActionAnswer(input: {
   const opened = settledTargets
     ? next.targets.findIndex(
         (target, index) =>
+          settledTargets[index] !== undefined &&
           checksumCanonicalJson(target.snapshot) !==
-          checksumCanonicalJson(settledTargets[index]?.snapshot)
+            checksumCanonicalJson(settledTargets[index].snapshot)
       )
     : -1
   if (
