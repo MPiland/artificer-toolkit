@@ -91,8 +91,9 @@ export async function verifyEncounterHeldEffectBrowser(
       await page.getByRole('button', { name: 'Open actions', exact: true }).click()
       await expect(actionsDrawer).toBeVisible()
     }
-    const offerButton = (holderLabel: string) =>
-      page.getByRole('button', { name: `Move effect on ${holderLabel}`, exact: true })
+    // The row, not its button: after an undo the offer returns still open on the last pick.
+    const offerRow = (holderLabel: string) =>
+      page.getByRole('listitem').filter({ hasText: `Move effect on ${holderLabel}` })
     async function selectOption(label: string, option: string | RegExp) {
       const control = page.getByRole('combobox', { name: label, exact: true })
       await expect(control).toBeEnabled()
@@ -140,7 +141,7 @@ export async function verifyEncounterHeldEffectBrowser(
         await expect(page.getByRole('button', { name: 'Open actions', exact: true })).toBeEnabled()
         await openActions()
         await expect(page.getByRole('heading', { name: 'Effect choices' })).toBeVisible()
-        await expect(offerButton(holderLabel)).toBeVisible()
+        await expect(offerRow(holderLabel)).toBeVisible()
         await page.screenshot({
           caret: 'initial',
           path: input.evidenceDirectory + '/held-effect-offer-row.png',
@@ -150,7 +151,9 @@ export async function verifyEncounterHeldEffectBrowser(
       assertNoOfferRow: async () => {
         stage = 'see the move offer gone'
         await openActions()
-        await expect(page.getByRole('button', { name: /^Move effect on / })).toHaveCount(0)
+        await expect(page.getByRole('listitem').filter({ hasText: 'Move effect on ' })).toHaveCount(
+          0
+        )
         await page.screenshot({
           caret: 'initial',
           path: input.evidenceDirectory + '/held-effect-offer-gone.png',
