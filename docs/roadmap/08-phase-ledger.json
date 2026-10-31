@@ -1178,6 +1178,22 @@
               },
               "text": "Bug: vtt-browser fails intermittently in Browser journeys (shard 5) and CI drops its Playwright log. Add the suite log under local-convex-proofs to the evidence artifact, find the cause from the next failure or a repeat run, and fix it at the source. A slice that changes .github/workflows merges by hand.",
               "note": "Log upload merged by hand in m568 (97d01f7fb). Stays open: 4 repeats passed, so the cause is unfound until a real failure carries the Playwright log. T23 also saw disarm-browser fail once with \"The Session room connection is closed.\"; track it here."
+            },
+            {
+              "id": "PLATFORM-13.T28",
+              "status": "TODO",
+              "closes": [
+                "PLATFORM-13.15"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 8,
+                "rr": 5,
+                "size": 1,
+                "after": []
+              },
+              "text": "Bug: the convexTest \"canceled\" invariant error from equipmentSourceLoss.test.ts fails a Convex shard with every test passing. Fix the driver so a queued Sheet derivation cannot start mid-test.",
+              "note": "Registered 2026-10-31 as a bug. Hit 5+ CI runs on 2026-10-30."
             }
           ]
         },
@@ -18575,7 +18591,7 @@
             },
             {
               "id": "SPELLS-31.T4c1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18591,8 +18607,7 @@
                 ]
               },
               "text": "Slice 1 of the save result window: triggered pause core plus the damage-save chain (Concentration, effect repeat saves, massive damage). D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Growth to about 13-14 across T4c1b to T4c1b5. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/architecture/rules-runtime.md"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Growth to about 13-14 across T4c1b to T4c1b5. Approved by the user on 2026-10-30. Merged in m571 (8cbfc233c). No room test for deferredCleaving across a window: no reachable case."
             },
             {
               "status": "TODO",
@@ -19685,7 +19700,7 @@
             },
             {
               "id": "SPELLS-31.T5i2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19699,8 +19714,7 @@
                 ]
               },
               "text": "Merge ON_HIT riders into Character spell casts and allow SPELL-scoped rider restrictions (G4); Repelling Blast as FORCED_MOVEMENT UP_TO 10 ft. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29.",
-              "activeWorkbook": "docs/architecture/rules-runtime.md"
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29. Merged in m571 (8cbfc233c)."
             },
             {
               "id": "SPELLS-31.T5i3",
@@ -25733,6 +25747,24 @@
               "note": "Approved by the user on 2026-10-29. Size 3 -> 5 for the Builder store margin rider: Approved by the user on 2026-10-29."
             },
             {
+              "id": "RELIABILITY-21.T25b",
+              "status": "TODO",
+              "closes": [
+                "RELIABILITY-21.20"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "after": [
+                  "RELIABILITY-21.T25"
+                ]
+              },
+              "text": "Builder store margin, split from T25: its max under 700 ms on the builder journey. A level 1 Cleric store reads 270 documents and 567 KB, 386 KB of it 105 Spell authoredRoots at about 3.4 KB each. Move authoringSources to its own table (saves about 1.3 KB per root), with content and account deletion covering it. Stored-shape change: reset and reseed after merge.",
+              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held."
+            },
+            {
               "id": "RELIABILITY-21.T26",
               "status": "TODO",
               "closes": [
@@ -25873,19 +25905,24 @@
         {
           "id": "VTT_UI-2",
           "title": "Tokens show system state",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/vtt/CampaignVttPresentation.stories.tsx",
+            "apps/web/src/domains/campaigns/vtt/vttTokenPresentation.model.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
               "text": "Injuries, morale and reaction state are presented on tokens.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by VTT_UI-2.T1 (m547), VTT_UI-2.T2 (m571); see each task's proof."
+              ],
               "origin": [
                 "G4-SYSTEM-STATE"
               ],
-              "note": "Morale/Injuries are foundation-only; presentation needs a case.",
+              "note": "Morale/Injuries are foundation-only; presentation needs a case. Closed 2026-10-31 by VTT_UI-2.T1, VTT_UI-2.T2.",
               "id": "VTT_UI-2.1",
               "journeys": [
                 "vtt-browser"
@@ -25916,7 +25953,7 @@
             },
             {
               "id": "VTT_UI-2.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "VTT_UI-2.1"
               ],
@@ -25931,8 +25968,7 @@
                 ]
               },
               "text": "Injuries on tokens: show a Character's accepted lingering injury as a status (named in the status list) once ATTACK-15 records injuries on the Character and projects them into the Encounter actor. Proof: presentation model test and a window journey. Closes AC 2.1 and sets the journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Option A: the injury label shows to anyone who can see the actor, details stay on the Sheet, an unnamed revealed actor carries nothing. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/architecture/rules-runtime.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Option A: the injury label shows to anyone who can see the actor, details stay on the Sheet, an unnamed revealed actor carries nothing. Approved by the user on 2026-10-30. Merged in m571 (8cbfc233c)."
             }
           ]
         },
@@ -26318,7 +26354,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
