@@ -201,7 +201,10 @@ export async function verifyEncounterHeldEffectBrowser(
         const step = await submit<MoveHeldEffectInputDto>('MOVE_HELD_EFFECT', () =>
           page.getByRole('button', { name: 'Move', exact: true }).click()
         )
-        await expect(page.getByText('Effect moved.', { exact: true })).toBeVisible()
+        // The offer leaves with the move, so its own "Effect moved." line unmounts; the mark shows on the new holder.
+        await expect(
+          page.getByRole('region', { name: `${input.next.label} statuses` })
+        ).toContainText(/Hunter.s Mark/)
         return step
       }
     })
