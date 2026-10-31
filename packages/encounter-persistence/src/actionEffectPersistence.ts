@@ -209,11 +209,20 @@ export async function prepareMaintenanceReplacement(
     throw new Error('Created maintained effect state does not match the completed action.')
 
   const store = createActiveRuleEffectStore(ctx)
-  const prior = await store.findMaintainedState({
-    encounterId: input.state.id,
-    ownerActorId: input.command.actorId,
-    maintenanceDefinitionId: created.maintenanceDefinitionId
-  })
+  // The receipt names the held state this cast ends; none when the holder had room (SPELLS-12).
+  const prior = input.transition.priorState
+    ? await store.findMaintainedStateById({
+        encounterId: input.state.id,
+        stateId: input.transition.priorState.id
+      })
+    : null
+  if (
+    input.transition.priorState &&
+    (!prior ||
+      prior.ownerActorId !== input.command.actorId ||
+      prior.maintenanceDefinitionId !== created.maintenanceDefinitionId)
+  )
+    throw new Error('Replaced maintained effect state does not match the completed action.')
   const dependents = prior
     ? await store.listDependentEffects({ encounterId: input.state.id, stateId: prior.id })
     : []
@@ -452,10 +461,9 @@ export async function persistEncounterActionEffects(
   const store = createActiveRuleEffectStore(ctx)
   if (supplied && !input.maintenance) {
     // One creature of an area whose first creature already created the state its effect depends on.
-    const existing = await store.findMaintainedState({
+    const existing = await store.findMaintainedStateById({
       encounterId: input.state.id,
-      ownerActorId: input.command.actorId,
-      maintenanceDefinitionId: supplied.maintenanceDefinitionId
+      stateId: supplied.id
     })
     if (
       !existing ||

@@ -62,15 +62,30 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
 
 /** Why an expected Encounter command was refused; unexpected failures never carry a reason. */
 export const domainRejectionReasonDtoSchema = lazySchema(() =>
-  z.enum([...reasonsWithoutPayload, 'RULE_WARNINGS'])
+  z.enum([...reasonsWithoutPayload, 'RULE_WARNINGS', 'MAINTAINED_REPLACEMENT_REQUIRED'])
 )
 export type DomainRejectionReasonDto = z.infer<typeof domainRejectionReasonDtoSchema>
+
+/** The maintained effects a caster at capacity can end to make room, oldest first (SPELLS-12). */
+export const maintainedReplacementChoicesDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        id: z.guid(),
+        /** What the effect keeps alive; null for a hidden source or when nothing depends on it. */
+        label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
+      })
+    )
+    .check(z.minLength(2))
+)
+export type MaintainedReplacementChoicesDto = z.infer<typeof maintainedReplacementChoicesDtoSchema>
 
 const messageSchema = lazySchema(() => z.string().check(z.minLength(1)).check(z.maxLength(200)))
 
 /**
  * `ConvexError` data for an expected domain rejection. The message is safe to show to users.
- * `RULE_WARNINGS` also lists the overridable warnings the command did not acknowledge.
+ * `RULE_WARNINGS` also lists the overridable warnings the command did not acknowledge, and
+ * `MAINTAINED_REPLACEMENT_REQUIRED` the held effects the caster picks one of to end.
  */
 export const domainRejectionErrorDataSchema = lazySchema(() =>
   z.discriminatedUnion('reason', [
@@ -84,6 +99,12 @@ export const domainRejectionErrorDataSchema = lazySchema(() =>
       reason: z.literal('RULE_WARNINGS'),
       message: messageSchema,
       warnings: encounterRuleWarningsDtoSchema.check(z.minLength(1))
+    }),
+    z.strictObject({
+      code: z.literal('DOMAIN_REJECTED'),
+      reason: z.literal('MAINTAINED_REPLACEMENT_REQUIRED'),
+      message: messageSchema,
+      heldStates: maintainedReplacementChoicesDtoSchema
     })
   ])
 )

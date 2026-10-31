@@ -7,7 +7,7 @@ import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer
 import {
   listCarriedActiveRuleEffects,
   readDependentEffects,
-  readMaintainedStateByDefinition
+  readMaintainedStatesByDefinition
 } from './effectStore.js'
 import type { EncounterReadContext } from './store.js'
 
@@ -24,16 +24,18 @@ export async function readActorConcentrationEffects(
   }
 ): Promise<ActiveRuleEffectRecord[] | null> {
   const { actor, state } = input
-  const slot = await readMaintainedStateByDefinition(ctx, {
+  const slots = await readMaintainedStatesByDefinition(ctx, {
     encounterId: state.id,
     ownerActorId: actor.id,
     maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
       state.gameSystemId
     )
   })
-  if (slot) {
-    const { characters, actors } = await readDependentEffects(ctx, state.id, slot.id)
-    return [...characters, ...actors]
+  if (slots.length > 0) {
+    const dependents = await Promise.all(
+      slots.map((slot) => readDependentEffects(ctx, state.id, slot.id))
+    )
+    return dependents.flatMap(({ characters, actors }) => [...characters, ...actors])
   }
   if (actor.kind !== 'CHARACTER' || !actor.sourceId) return null
   const carried = await listCarriedActiveRuleEffects(ctx, actor.sourceId)

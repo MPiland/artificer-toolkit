@@ -279,6 +279,8 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     castModifierId: z.optional(uuidSchema),
     /** The units the caster spends from the action's pool, for an action that heals per unit spent. */
     spentUnits: z.optional(z.number().check(z.int(), z.positive())),
+    /** The held maintained effect the caster ends to make room, when a new one finds them at capacity. */
+    endedMaintainedStateId: z.optional(uuidSchema),
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
      * The current actor that commands this attack (DELEGATED_ATTACK): it forgoes one attack of its

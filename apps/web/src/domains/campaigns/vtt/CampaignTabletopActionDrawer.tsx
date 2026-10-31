@@ -37,6 +37,7 @@ import type {
   ReleaseRelationshipInputDto,
   ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { MaintainedReplacementChoicesDto } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterSessionStateDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -270,6 +271,14 @@ export function CampaignTabletopActionDrawer({
     requestIdentity: string
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
     warnings: EncounterRuleWarningDto[]
+  } | null>(null)
+  // The held maintained effects the server asked this caster to end one of, for this exact selection.
+  const [replacement, setReplacement] = useState<{
+    requestIdentity: string
+    acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict']
+    acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
+    heldStates: MaintainedReplacementChoicesDto
+    endedStateId: string | null
   } | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -649,6 +658,8 @@ export function CampaignTabletopActionDrawer({
     : null
   const confirmingWarnings =
     ruleWarnings?.requestIdentity === choiceRequestIdentity ? ruleWarnings : null
+  const confirmingReplacement =
+    replacement?.requestIdentity === choiceRequestIdentity ? replacement : null
   const incompleteOptionalChoices =
     optionalRuleId !== null &&
     (!selectedOptionalRule ||
@@ -859,11 +870,13 @@ export function CampaignTabletopActionDrawer({
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
     acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
-    expectedVersion = encounter.version
+    expectedVersion = encounter.version,
+    endedMaintainedStateId?: string
   ): Promise<void> {
     setStowConfirmationIdentity(null)
     setHandRelease(null)
     setRuleWarnings(null)
+    setReplacement(null)
     if (
       !currentActor ||
       !selectedAction ||
@@ -890,6 +903,7 @@ export function CampaignTabletopActionDrawer({
         sceneContext: namesNoCreature ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
+        ...(endedMaintainedStateId ? { endedMaintainedStateId } : {}),
         ...(spentUnits !== undefined ? { spentUnits } : {}),
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
@@ -913,7 +927,15 @@ export function CampaignTabletopActionDrawer({
         setFeedback('Action resolved.')
       }
     } catch (nextError) {
-      if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.warnings)
+      if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.heldStates)
+        setReplacement({
+          requestIdentity: choiceRequestIdentity,
+          acceptedWieldConflict,
+          acknowledgedWarnings,
+          heldStates: nextError.rejection.heldStates,
+          endedStateId: null
+        })
+      else if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.warnings)
         setRuleWarnings({
           requestIdentity: choiceRequestIdentity,
           acceptedWieldConflict,
@@ -1360,7 +1382,43 @@ export function CampaignTabletopActionDrawer({
                   onChange={setOptionalValues}
                 />
               ) : null}
-              {confirmingWarnings ? (
+              {confirmingReplacement ? (
+                <CampaignTabletopActionConfirmation
+                  confirmIsPrimary
+                  confirmLabel='End it and cast'
+                  disabled={
+                    dependentControlsDisabled || confirmingReplacement.endedStateId === null
+                  }
+                  title='Too many Concentrations'
+                  onCancel={() => setReplacement(null)}
+                  onConfirm={() =>
+                    void resolveAction(
+                      confirmingReplacement.acceptedWieldConflict,
+                      confirmingReplacement.acknowledgedWarnings,
+                      encounter.version,
+                      confirmingReplacement.endedStateId ?? undefined
+                    )
+                  }
+                >
+                  <Radio.Group
+                    label='End which Concentration?'
+                    value={confirmingReplacement.endedStateId}
+                    onChange={(endedStateId) =>
+                      setReplacement({ ...confirmingReplacement, endedStateId })
+                    }
+                  >
+                    <Stack gap='xs' mt='xs'>
+                      {confirmingReplacement.heldStates.map((held, index) => (
+                        <Radio
+                          key={held.id}
+                          label={held.label ?? `Concentration ${index + 1}`}
+                          value={held.id}
+                        />
+                      ))}
+                    </Stack>
+                  </Radio.Group>
+                </CampaignTabletopActionConfirmation>
+              ) : confirmingWarnings ? (
                 <CampaignTabletopActionConfirmation
                   confirmIsPrimary={false}
                   confirmLabel='Do it anyway'

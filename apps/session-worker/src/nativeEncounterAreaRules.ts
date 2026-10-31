@@ -351,6 +351,7 @@ export async function sealReachSaves(
     prepared: lead,
     activeEffectsByActorId: input.activeEffectsByActorId,
     capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (actor) =>
       reach.movementTargets.get(actor.id) ?? input.loadTarget(actor)
   })

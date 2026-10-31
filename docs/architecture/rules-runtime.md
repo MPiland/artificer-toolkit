@@ -510,6 +510,18 @@ returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Mainta
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
 decides whether a mechanic uses it. Storage layout and limits are in [persistence](persistence.md).
 
+**Concentration capacity (current, SPELLS-12.T1).** A holder keeps a *set* of maintained states per
+maintenance definition, up to `concentrationCapacity` (dnd5e `characterPolicy`: 1 plus the
+`CONCENTRATION_CAPACITY` `BONUS` modifiers that apply; a Creature holds 1). `chooseReplacedMaintainedState`
+(in `encounterActionMaintenance.ts`) decides what a new maintained effect replaces: below capacity nothing
+(the receipt's `maintainedEffectTransitionDto.priorState` is null); at capacity with one held, that state;
+with several held, the state the command's `endedMaintainedStateId` names, or else
+`MaintainedReplacementRequiredError`, which the Worker answers as a `MAINTAINED_REPLACEMENT_REQUIRED`
+domain rejection carrying the held states (`heldStates`, with the label of what each keeps alive) so the
+caster chooses before the spell takes effect. Persistence reads the prior from the receipt by id.
+Interim: damage-save chains and the other single-state consumers act on the oldest held state, and carried
+grants (D99) still end on any new Concentration.
+
 ## Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 
 `RESOLVE_ACTION` evaluates its overridable checks once, in the room planner (`nativeEncounterRules`),

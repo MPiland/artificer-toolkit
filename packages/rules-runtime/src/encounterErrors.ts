@@ -13,6 +13,17 @@ export class SpellcastingLockedError extends EncounterValidationError {
   }
 }
 
+/** The holder is at its Concentration capacity with several held; the caster must choose which one ends. */
+export class MaintainedReplacementRequiredError extends EncounterValidationError {
+  constructor(
+    readonly definitionId: string,
+    readonly heldStateIds: readonly string[]
+  ) {
+    super('Choose which Concentration ends before this spell takes effect.')
+    this.name = 'MaintainedReplacementRequiredError'
+  }
+}
+
 export class EncounterConflictError extends Error {
   constructor(message = 'Encounter changed before this action completed.') {
     super(message)

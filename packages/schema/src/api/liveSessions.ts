@@ -1,6 +1,9 @@
 import { z, lazySchema } from '../zod.js'
 import { VTT_SCENE_LIMITS } from '@artificer-toolkit/shared/vtt/scene'
-import { domainRejectionReasonDtoSchema } from './domainRejections.js'
+import {
+  domainRejectionReasonDtoSchema,
+  maintainedReplacementChoicesDtoSchema
+} from './domainRejections.js'
 import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { encounterReadDtoSchema, encounterReadResultDtoSchema } from './encounterRead.js'
 import {
@@ -350,6 +353,8 @@ export const liveSessionWebSocketServerMessageDtoSchema = lazySchema(() =>
       reason: z.nullable(domainRejectionReasonDtoSchema),
       // The unacknowledged warnings for reason `RULE_WARNINGS`; `null` otherwise.
       warnings: z.nullable(encounterRuleWarningsDtoSchema),
+      // The held effects the caster chooses between for reason `MAINTAINED_REPLACEMENT_REQUIRED`.
+      heldStates: z.optional(maintainedReplacementChoicesDtoSchema),
       type: z.literal('COMMAND_REJECTED')
     }),
     // Unsequenced: only the uploading socket learns its staged fog patch's progress.

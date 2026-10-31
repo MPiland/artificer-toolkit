@@ -1339,6 +1339,9 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       message: rejection.message,
       reason: rejection.reason,
       warnings: rejection.reason === 'RULE_WARNINGS' ? rejection.warnings : null,
+      ...(rejection.reason === 'MAINTAINED_REPLACEMENT_REQUIRED'
+        ? { heldStates: rejection.heldStates }
+        : {}),
       type: 'COMMAND_REJECTED'
     })
   }

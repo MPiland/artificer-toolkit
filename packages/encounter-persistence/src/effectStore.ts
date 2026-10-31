@@ -306,15 +306,18 @@ export async function readDependentEffects(
   return { characters, actors }
 }
 
-/** The maintained state an Encounter actor owns for one maintenance definition, if any. */
-export async function readMaintainedStateByDefinition(
+/**
+ * Every maintained state an Encounter actor owns for one maintenance definition, oldest first. An
+ * actor holds as many as its capacity for the definition allows (Concentration capacity, SPELLS-12).
+ */
+export async function readMaintainedStatesByDefinition(
   ctx: EncounterReadContext,
   input: { encounterId: string; ownerActorId: string; maintenanceDefinitionId: string }
 ) {
   const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
   const ownerActorId = serverUuidIdentityDtoSchema.parse(input.ownerActorId)
   const maintenanceDefinitionId = serverUuidIdentityDtoSchema.parse(input.maintenanceDefinitionId)
-  const row = await ctx.db
+  const rows = await ctx.db
     .query('encounterMaintainedEffectStates')
     .withIndex('by_encounter_owner_definition', (q) =>
       q
@@ -322,11 +325,21 @@ export async function readMaintainedStateByDefinition(
         .eq('ownerActorId', ownerActorId)
         .eq('maintenanceDefinitionId', maintenanceDefinitionId)
     )
-    .unique()
-  if (!row) return null
-  const state = readMaintainedState(row)
-  await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
-  return state
+    .take(MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR + 1)
+  if (rows.length > MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR)
+    throw new Error('Maintained effect states exceed the supported bound.')
+  const states = rows.map(readMaintainedState)
+  for (const state of states)
+    await requireEncounterActor(ctx, state.encounterId, state.ownerActorId)
+  return states
+}
+
+/** The oldest maintained state an Encounter actor owns for one maintenance definition, if any. */
+export async function readMaintainedStateByDefinition(
+  ctx: EncounterReadContext,
+  input: { encounterId: string; ownerActorId: string; maintenanceDefinitionId: string }
+) {
+  return (await readMaintainedStatesByDefinition(ctx, input))[0] ?? null
 }
 
 /** Internal mutation helper. Callers authorize the aggregate and compose all writes in this mutation. */
@@ -496,16 +509,6 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
         .withIndex('by_publicId', (q) => q.eq('id', id))
         .unique()
       if (duplicateId) throw new Error('Maintained effect state ID already exists.')
-      const existing = await ctx.db
-        .query('encounterMaintainedEffectStates')
-        .withIndex('by_encounter_owner_definition', (q) =>
-          q
-            .eq('encounterId', encounterId)
-            .eq('ownerActorId', ownerActorId)
-            .eq('maintenanceDefinitionId', descriptor.maintenanceDefinitionId)
-        )
-        .unique()
-      if (existing) throw new Error('Maintained effect state already exists for this definition.')
       const states = await listStates(encounterId, ownerActorId)
       if (states.length >= MAX_MAINTAINED_RULE_EFFECT_STATES_PER_ACTOR)
         throw new Error(
@@ -535,11 +538,10 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const record = encounterMaintainedEffectStateRecordSchema.parse(input)
       await requireEncounterActor(ctx, record.encounterId, record.ownerActorId)
       if (
-        (await ctx.db
+        await ctx.db
           .query('encounterMaintainedEffectStates')
           .withIndex('by_publicId', (q) => q.eq('id', record.id))
-          .unique()) ||
-        (await readMaintainedStateByDefinition(ctx, record))
+          .unique()
       )
         throw new Error('Maintained effect state already exists.')
       const { descriptor, ...fields } = record

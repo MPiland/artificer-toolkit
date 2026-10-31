@@ -839,6 +839,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     activeEffectsByActorId,
     capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);

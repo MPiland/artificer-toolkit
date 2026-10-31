@@ -15,7 +15,7 @@ import {
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
-import { SpellcastingLockedError } from './encounterErrors.js'
+import { MaintainedReplacementRequiredError, SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
@@ -24,6 +24,32 @@ import {
   withActorTemporaryHitPoints,
   withCharacterTemporaryHitPoints
 } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
+
+/**
+ * The held state a new maintained effect replaces. The holder keeps up to `capacity` at once: below
+ * it the new effect is added and nothing ends; at it, the only held state is replaced, or the
+ * caster's choice among several (SPELLS-12).
+ */
+export function chooseReplacedMaintainedState<TState extends { id: string }>(input: {
+  definitionId: string
+  held: readonly TState[]
+  capacity: number
+  chosenStateId?: string | undefined
+}): TState | null {
+  const { definitionId, held, capacity, chosenStateId } = input
+  if (chosenStateId !== undefined) {
+    const chosen = held.find((state) => state.id === chosenStateId)
+    if (!chosen) throw new Error('The chosen state is not one of the maintained effects held.')
+    return chosen
+  }
+  if (held.length < capacity) return null
+  const [only] = held
+  if (held.length === 1 && only) return only
+  throw new MaintainedReplacementRequiredError(
+    definitionId,
+    held.map((state) => state.id)
+  )
+}
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
@@ -34,8 +60,16 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
   /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
   activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
-  readSlot: (definitionId: string) => Promise<{
-    state: EncounterMaintainedEffectStateRecord | null
+  /** The held state the caster chose to end at capacity; required when several are held. */
+  chosenStateId?: string | undefined
+  /** The acting actor's held states for the definition, oldest first. */
+  readHeldStates: (definitionId: string) => Promise<EncounterMaintainedEffectStateRecord[]>
+  /** One held state and the effects that depend on it. */
+  readSlot: (
+    definitionId: string,
+    stateId: string
+  ) => Promise<{
+    state: EncounterMaintainedEffectStateRecord
     dependents: ActiveRuleEffectRecord[]
   }>
   /** D99: the Run Characters' (or stored Characters') carried grants; omitted where not covered. */
@@ -97,7 +131,19 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     publishedPolicy.emptyDependentPolicy !== policy.emptyDependentPolicy
   )
     throw new Error('The active-effect maintenance policy does not match its published definition.')
-  const slot = await input.readSlot(policy.definitionId)
+  const replaced = chooseReplacedMaintainedState({
+    definitionId: policy.definitionId,
+    held: await input.readHeldStates(policy.definitionId),
+    // A Character holds as many as its stat allows; a Creature holds one.
+    capacity:
+      prepared.source.kind === 'CHARACTER_ACTION'
+        ? prepared.source.effectivePolicyOutput.concentrationCapacity
+        : 1,
+    chosenStateId: input.chosenStateId
+  })
+  const slot = replaced
+    ? await input.readSlot(policy.definitionId, replaced.id)
+    : { state: null, dependents: [] }
   const prior = slot.state
   const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
   const carried = planConcentrationCarriedGrantEnds({

@@ -39,6 +39,7 @@ export async function prepareAreaCommitMaintenance(args: {
     prepared: lead,
     activeEffectsByActorId: input.activeEffectsByActorId,
     capture: input.capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (carrier) =>
       movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
