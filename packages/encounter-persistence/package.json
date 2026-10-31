@@ -19,7 +19,7 @@
     "@artificer-toolkit/rules-runtime": "workspace:^",
     "@artificer-toolkit/schema": "workspace:^",
     "@artificer-toolkit/shared": "workspace:^",
-    "zod": "4.5.3"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "convex": "1.48.0",
