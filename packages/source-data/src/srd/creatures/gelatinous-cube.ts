@@ -174,33 +174,13 @@ export const gelatinousCube: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '3d6'
                   },
-                  S.grappledOutcome(1107, {
-                    localIndex: 1,
-                    escapeDc: 12,
-                    heldAtOnce: 4,
-                    largestTarget: S.SIZE_CODE.LARGE,
-                    omitGrappled: true,
-                    untilEnds: ['RESTRAINED'],
-                    // "At the start of each of the cube's turns": counted on the holder's turns.
-                    recurrence: {
-                      turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
-                      outcome: {
-                        id: S.actionId(1107, 11),
-                        effectKind: S.EFFECT_KIND.DAMAGE,
-                        damageTypeId: S.damageTypeId('ACID'),
-                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                        scalingKind: S.SCALING.NONE,
-                        diceConfig: '6d6'
-                      }
-                    }
-                  }),
                   {
                     id: S.actionId(1107, 8),
                     effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
                     label: 'Resolve the engulf',
                     reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
                     instructions:
-                      "The cube moves up to its speed and can enter Large or smaller creatures' spaces; each creature whose space it enters makes this save. On a failure, the cube enters the creature's space. The engulfed creature can't breathe. An engulfed creature can try to escape by taking an action to make a DC 12 Strength check. On a success, the creature escapes and enters a space of its choice within 5 feet of the cube."
+                      "The cube moves up to its speed and can enter Large or smaller creatures' spaces; each creature whose space it enters makes this save. On a failure, the cube enters the creature's space and the creature is engulfed. The engulfed creature can't breathe, is restrained, and takes 21 (6d6) acid damage at the start of each of the cube's turns. When the cube moves, the engulfed creature moves with it. An engulfed creature can try to escape by taking an action to make a DC 12 Strength check. On a success, the creature escapes and enters a space of its choice within 5 feet of the cube."
                   }
                 ]
               }

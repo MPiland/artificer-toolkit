@@ -186,6 +186,7 @@ import {
   type Dnd5eCompiledEffectActionSource,
   type Outcome,
   type TestKind,
+  TEST_HOLD_PATHS,
   type SpecializedPath,
   isSpecializedPath,
   uuid,
@@ -726,15 +727,10 @@ export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       ? entry.pathCode !== 'ON_CHECK_SUCCESS'
       : direct
         ? entry.pathCode !== 'ON_USE'
-        : testKind === 'SAVE'
-          ? entry.pathCode !== 'ON_SAVE_FAIL'
-          : testKind !== 'ATTACK' ||
-            (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
+        : !testKind || !TEST_HOLD_PATHS[testKind].includes(entry.pathCode)) ||
     !UUID.test(relationship.id)
   ) {
-    unsupported(
-      'D&D relationship outcomes require one bounded attack-hit, failed-save, contest-win or direct-use result.'
-    )
+    unsupported('D&D relationship outcomes need a bounded hit, failed save, contest win or use.')
   }
   const orderedModules = [...relationship.modules].sort(
     (left, right) => left.order - right.order || left.id.localeCompare(right.id)
