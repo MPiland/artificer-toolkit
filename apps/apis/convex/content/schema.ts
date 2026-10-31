@@ -95,7 +95,6 @@ export function buildContentTables() {
       catalogue: v.optional(zodToConvex(authoredCatalogueMetadataSchema)),
       catalogueFamily: v.optional(zodToConvex(authoredCatalogueFamilySchema)),
       equipmentOptions: v.optional(zodToConvex(authoredEquipmentOptionFactsSchema)),
-      authoringSources: v.optional(zodToConvex(authoredNodeRuntimeSourceFactsSchema)),
       activeNameKey: v.optional(v.string()),
       currentVersionId: v.id('authoredVersions'),
       // The current version's public `versionId`: persisted contracts pin it, never `currentVersionId`.
@@ -232,6 +231,11 @@ export function buildContentTables() {
         searchField: 'catalogue.search.text',
         filterFields: ['systemId', 'subjectKind', 'ownerUserId', 'catalogue.category']
       }),
+    // Split from authoredRoots so Character reads of Spell/feature roots never carry the facts.
+    authoredSourceFacts: defineTable({
+      subjectId: subject.id,
+      facts: zodToConvex(authoredNodeRuntimeSourceFactsSchema)
+    }).index('by_subjectId', ['subjectId']),
     authoredSpellClasses: defineTable({
       spellId: subject.id,
       classId: subject.id,

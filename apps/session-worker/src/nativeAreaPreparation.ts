@@ -394,9 +394,17 @@ export async function prepareAreaScene(
   const origin =
     target.kind === 'CASTER_CENTERED' ? scene.sourceToken.position : areaActionTargetOrigin(target)
   const unaffectedActorIds = ('unaffectedActorIds' in target && target.unaffectedActorIds) || []
+  // A zone names any number to spare; an instant area, only as many as the caster's features allow.
+  const sparesMax = zone
+    ? zone.choosesUnaffected
+      ? Infinity
+      : 0
+    : source.kind === 'CHARACTER_ACTION'
+      ? (source.candidate.sparesCreatures?.max ?? 0)
+      : 0
   if (
     unaffectedActorIds.length &&
-    (!zone?.choosesUnaffected ||
+    (unaffectedActorIds.length > sparesMax ||
       unaffectedActorIds.some((id) => !input.actors.some((actor) => actor.id === id)))
   )
     throw new LiveSessionDomainRejectionError(422, {
@@ -612,7 +620,7 @@ export function prepareCasterActionOnTarget(
   > & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actionId' | 'castModifierId' | 'acceptedWieldConflict' | 'target'
+      'actionId' | 'castModifierId' | 'spentUnits' | 'acceptedWieldConflict' | 'target'
     >
   },
   action: {
@@ -635,6 +643,7 @@ export function prepareCasterActionOnTarget(
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     castModifierId: capability ? undefined : input.command.castModifierId,
+    spentUnits: capability ? undefined : input.command.spentUnits,
     ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',

@@ -585,11 +585,22 @@ describe('native authored deletion source-loss cleanup', () => {
       }
     })
     const before = await base.t.run((ctx) => readCharacterRow(ctx, base.character.id))
+    const factsBefore = await base.t.run((ctx) =>
+      ctx.db
+        .query('authoredSourceFacts')
+        .withIndex('by_subjectId', (q) => q.eq('subjectId', publication.subjectId))
+        .collect()
+    )
+    expect(factsBefore).toHaveLength(1)
     await base.owner.caller.mutation(deleteActive, {
       subjectKind: 'CLASS',
       subjectId: publication.subjectId
     })
     const after = await base.t.run(async (ctx) => ({
+      sourceFacts: await ctx.db
+        .query('authoredSourceFacts')
+        .withIndex('by_subjectId', (q) => q.eq('subjectId', publication.subjectId))
+        .collect(),
       root: await ctx.db
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', publication.subjectId))
@@ -601,6 +612,7 @@ describe('native authored deletion source-loss cleanup', () => {
         .unique()
     }))
     expect(after.root).toBeNull()
+    expect(after.sourceFacts).toEqual([])
     expect(after.character).toMatchObject({
       _id: before!._id,
       id: before!.id,

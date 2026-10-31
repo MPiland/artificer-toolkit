@@ -1065,6 +1065,7 @@ async function readAuthored(
     catalogueCounts,
     catalogueOwners,
     routes,
+    sourceFacts,
     allDrafts,
     additionalSpellClasses
   ] = await Promise.all([
@@ -1118,6 +1119,17 @@ async function readAuthored(
           ctx.db.query('authoredRouteIds').withIndex('by_subjectId', (q) => q.eq('subjectId', id)),
           1,
           'authored routes'
+        )
+      )
+    ),
+    Promise.all(
+      allRootIds.map((id) =>
+        bounded(
+          ctx.db
+            .query('authoredSourceFacts')
+            .withIndex('by_subjectId', (q) => q.eq('subjectId', id)),
+          1,
+          'authored source facts'
         )
       )
     ),
@@ -1192,6 +1204,7 @@ async function readAuthored(
     authoredCatalogueCounts: catalogueCounts.flat().sort((a, b) => a._id.localeCompare(b._id)),
     authoredCatalogueOwnerCounts: catalogueOwners.flat().sort((a, b) => a._id.localeCompare(b._id)),
     authoredRouteIds: routes.flat().sort((a, b) => a._id.localeCompare(b._id)),
+    authoredSourceFacts: sourceFacts.flat().sort((a, b) => a._id.localeCompare(b._id)),
     authoredSpellClasses: uniqueRows([...spellClasses, ...additionalSpellClasses.flat(2)])
   }
 }

@@ -4,6 +4,7 @@ import { gmRulingEffect } from '@artificer-toolkit/source-data/srd/classes/mecha
 import { sorceryPointsCharge } from '@artificer-toolkit/source-data/srd/classes/sorcerer.js'
 import { describe, expect, it } from 'vitest'
 
+import { sparedCreatureCap } from '../character/characterCastModifiers.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -80,5 +81,74 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
     expect(character.castModifiers).toEqual([
       { modifierId: testUuid(0xc03), label: 'Quiet Casting', cost: { chargeId, cost: 1 } }
     ])
+  })
+})
+
+describe('the creatures a Character may spare from an area spell (SPELLS-16)', () => {
+  const evoker = evaluateSrdCharacter({
+    classes: [{ label: 'Wizard', level: 2 }],
+    features: [
+      srdFeature({
+        owner: 'SUBCLASS',
+        classLabel: 'Wizard',
+        subclassLabel: 'School of Evocation',
+        featureLabel: 'Sculpt Spells',
+        level: 2
+      })
+    ]
+  })
+
+  it("projects Sculpt Spells as 1 plus the spell's level, for evocation spells only", () => {
+    expect(evoker.sparesCreatures).toEqual([
+      { base: 1, plusSpellLevel: true, magicSchoolIds: [expect.any(String)] }
+    ])
+    const [evocationId] = evoker.sparesCreatures[0]?.magicSchoolIds ?? []
+    expect(
+      sparedCreatureCap(evoker.sparesCreatures, { level: 3, magicSchoolId: evocationId! })
+    ).toBe(4)
+    expect(
+      sparedCreatureCap(evoker.sparesCreatures, { level: 0, magicSchoolId: evocationId! })
+    ).toBe(1)
+    expect(sparedCreatureCap(evoker.sparesCreatures, { level: 3, magicSchoolId: 'other' })).toBe(0)
+  })
+
+  /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
+  it('projects the same allowance from a homebrew feature authored with the core option', () => {
+    const homebrew: FeatureAuthored = {
+      id: testUuid(0xc11),
+      label: 'Safe Pockets',
+      description: 'Spare creatures from your area spells.',
+      availableAtLevel: 1,
+      order: 1,
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: testUuid(0xc12),
+            range: testUuid(0xc13),
+            path: testUuid(0xc14),
+            result: testUuid(0xc15),
+            outcome: testUuid(0xc16)
+          },
+          label: 'Safe Pockets',
+          instructions: 'The caster must see each creature spared.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          sparesCreatures: { base: 2 }
+        })
+      ]
+    }
+    const character = evaluateSrdCharacter({
+      classes: [{ label: 'Fighter', level: 1 }],
+      extraFeatures: [homebrew],
+      features: [
+        {
+          acquisitionId: 'acquired:safe-pockets',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: srdByLabel(SRD.classes, 'Fighter').id, classLevel: 1 },
+          timing: { kind: 'IMMEDIATE' }
+        }
+      ]
+    })
+    expect(character.sparesCreatures).toEqual([{ base: 2 }])
+    expect(sparedCreatureCap(character.sparesCreatures, { level: 5, magicSchoolId: 'any' })).toBe(2)
   })
 })

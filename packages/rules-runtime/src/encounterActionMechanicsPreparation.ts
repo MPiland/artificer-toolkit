@@ -320,6 +320,8 @@ export async function prepareEncounterActionMechanics<
   choiceOptionId?: string
   /** The `castModifiers` entry of the cast candidate the caster pays on this cast. */
   castModifierId?: string
+  /** The units the caster spends from the action's pool, for a heal that gives hit points per unit spent. */
+  spentUnits?: number
   /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
   readsSharedTest?: boolean
   /** The ammunition a weapon attack fires and how many attacks the command makes; absent for a read, which previews the first stack in stock. */
@@ -523,6 +525,7 @@ export async function prepareEncounterActionMechanics<
             throw new EncounterValidationError('The selected cast modifier is not offered.')
           return prepareNativeCharacterActionState({
             castModifier,
+            spentUnits: input.spentUnits,
             entry: source.entry,
             candidate: source.candidate,
             policyOutput: source.effectivePolicyOutput,

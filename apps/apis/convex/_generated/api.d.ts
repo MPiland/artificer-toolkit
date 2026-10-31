@@ -23368,6 +23368,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -24536,6 +24537,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -25707,6 +25713,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -26924,6 +26931,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -28191,6 +28199,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -29378,6 +29387,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -30545,6 +30555,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -31770,6 +31781,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -33135,6 +33147,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -34284,6 +34297,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -35439,6 +35457,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -36637,6 +36656,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -37881,6 +37901,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -39046,6 +39067,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -40194,6 +40216,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -41396,6 +41419,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -42846,6 +42870,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -43995,6 +44020,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -45150,6 +45180,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -46348,6 +46379,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -47592,6 +47624,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -48757,6 +48790,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -49905,6 +49939,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -51107,6 +51142,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -52642,6 +52678,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -53810,6 +53847,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -54981,6 +55023,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -56198,6 +56241,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -57465,6 +57509,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -58652,6 +58697,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -59819,6 +59865,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -61044,6 +61091,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -62409,6 +62457,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -63558,6 +63607,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -64713,6 +64767,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -65911,6 +65966,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -67155,6 +67211,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -68320,6 +68377,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -69468,6 +69526,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -70670,6 +70729,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -72120,6 +72180,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -73269,6 +73330,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -74424,6 +74490,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -75622,6 +75689,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -76866,6 +76934,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -78031,6 +78100,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -79179,6 +79249,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -80381,6 +80452,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -81925,6 +81997,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -83093,6 +83166,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -84264,6 +84342,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -85481,6 +85560,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -86748,6 +86828,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -87935,6 +88016,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -89102,6 +89184,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -90327,6 +90410,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -91692,6 +91776,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -92841,6 +92926,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -93996,6 +94086,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -95194,6 +95285,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -96438,6 +96530,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -97603,6 +97696,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -98751,6 +98845,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -99953,6 +100048,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -101403,6 +101499,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -102552,6 +102649,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -103707,6 +103809,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -104905,6 +105008,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -106149,6 +106253,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -107314,6 +107419,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -108462,6 +108568,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -109664,6 +109771,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -111199,6 +111307,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -112367,6 +112476,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -113538,6 +113652,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -114755,6 +114870,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -116022,6 +116138,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -117209,6 +117326,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -118376,6 +118494,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -119601,6 +119720,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -120966,6 +121086,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -122115,6 +122236,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -123270,6 +123396,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -124468,6 +124595,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -125712,6 +125840,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -126877,6 +127006,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -128025,6 +128155,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -129227,6 +129358,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -130677,6 +130809,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -131826,6 +131959,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -132981,6 +133119,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -134179,6 +134318,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -135423,6 +135563,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -136588,6 +136729,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -137736,6 +137878,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -138938,6 +139081,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -140508,6 +140652,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -141676,6 +141821,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -142847,6 +142997,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -144064,6 +144215,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -145331,6 +145483,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -146518,6 +146671,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -147685,6 +147839,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -148910,6 +149065,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -150275,6 +150431,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -151424,6 +151581,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -152579,6 +152741,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -153777,6 +153940,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -155021,6 +155185,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -156186,6 +156351,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -157334,6 +157500,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -158536,6 +158703,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -159986,6 +160154,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -161135,6 +161304,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -162290,6 +162464,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -163488,6 +163663,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -164732,6 +164908,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -165897,6 +166074,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -167045,6 +167223,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -168247,6 +168426,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -169782,6 +169962,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -170950,6 +171131,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -172121,6 +172307,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -173338,6 +173525,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -174605,6 +174793,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -175792,6 +175981,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -176959,6 +177149,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -178184,6 +178375,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -179549,6 +179741,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -180698,6 +180891,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -181853,6 +182051,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -183051,6 +183250,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -184295,6 +184495,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -185460,6 +185661,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -186608,6 +186810,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -187810,6 +188013,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -189260,6 +189464,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -190409,6 +190614,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -191564,6 +191774,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -192762,6 +192973,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -194006,6 +194218,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -195171,6 +195384,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -196319,6 +196533,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -197521,6 +197736,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -199057,6 +199273,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -200221,6 +200438,11 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: {
+                                base: number;
+                                magicSchoolIds?: Array<string>;
+                                plusSpellLevel?: boolean;
+                              };
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -201391,6 +201613,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -202604,6 +202827,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -203863,6 +204087,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -205046,6 +205271,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -206209,6 +206435,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -207426,6 +207653,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -208773,6 +209001,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -209909,6 +210138,11 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: {
+                          base: number;
+                          magicSchoolIds?: Array<string>;
+                          plusSpellLevel?: boolean;
+                        };
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -211051,6 +211285,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -212230,6 +212465,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -213451,6 +213687,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -214603,6 +214840,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -215738,6 +215976,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -216923,6 +217162,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -218353,6 +218593,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -219489,6 +219730,11 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: {
+                          base: number;
+                          magicSchoolIds?: Array<string>;
+                          plusSpellLevel?: boolean;
+                        };
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -220631,6 +220877,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -221810,6 +222057,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -223031,6 +223279,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -224183,6 +224432,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -225318,6 +225568,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -226503,6 +226754,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -228032,6 +228284,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -229200,6 +229453,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -230371,6 +230629,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -231588,6 +231847,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -232855,6 +233115,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -234042,6 +234303,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -235209,6 +235471,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -236434,6 +236697,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -237799,6 +238063,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -238948,6 +239213,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -240103,6 +240373,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -241301,6 +241572,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -242545,6 +242817,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -243710,6 +243983,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -244858,6 +245132,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -246060,6 +246335,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -247510,6 +247786,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -248659,6 +248936,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -249814,6 +250096,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -251012,6 +251295,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -252256,6 +252540,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -253421,6 +253706,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -254569,6 +254855,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -255771,6 +256058,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -257306,6 +257594,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -258474,6 +258763,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -259645,6 +259939,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -260862,6 +261157,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -262129,6 +262425,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -263316,6 +263613,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -264483,6 +264781,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -265708,6 +266007,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -267073,6 +267373,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -268222,6 +268523,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -269377,6 +269683,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -270575,6 +270882,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -271819,6 +272127,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -272984,6 +273293,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -274132,6 +274442,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -275334,6 +275645,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -276784,6 +277096,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -277933,6 +278246,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -279088,6 +279406,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -280286,6 +280605,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -281530,6 +281850,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -282695,6 +283016,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -283843,6 +284165,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -285045,6 +285368,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -286353,6 +286677,7 @@ export declare const api: {
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -286551,6 +286876,7 @@ export declare const api: {
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
+            sparesCreatures?: { max: number };
             target:
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
@@ -288118,6 +288444,7 @@ export declare const api: {
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -288316,6 +288643,7 @@ export declare const api: {
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
+            sparesCreatures?: { max: number };
             target:
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;

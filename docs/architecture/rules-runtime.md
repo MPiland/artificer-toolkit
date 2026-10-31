@@ -2365,6 +2365,23 @@ Modules: `encounterInitiative*` (graph execution, score batches, tie and order r
 state settlement), `encounterTurn*`, `encounterRechargeLifecycle`. The room's ordering and delivery are in
 [live sessions](live-sessions.md).
 
+## Chosen pool spend (current, SPELLS-31.T4f2a)
+
+A `HEAL` outcome with `valueKind: 'RESOURCE_SPENT'` restores `amount` hit points for each unit the
+user spends from the action's `resourceUse` pool. It is the generic option behind Lay on Hands (a
+`CLASS_LEVEL` pool, multiplier 5, one point per unit); any pool feature can author it.
+
+- The player chooses the units: `RESOLVE_ACTION.spentUnits`, offered as `chosenSpend: { unitCost, max }`
+  on the action choice (`character/characterChosenSpend.ts`, shared by the choices
+  read and the planner). The command must send `spentUnits` exactly when the action spends a chosen
+  amount.
+- `prepareNativeCharacterActionState` spends `cost x spentUnits` from the pool and refuses more than
+  remains. The compiler binds `dnd5e.spent-heal-amount` (per-unit amount x units) into the `SPENT_HEAL`
+  outcome's heal proposal. Spend and heal commit and undo together.
+- Not yet on the option (T4f2b, T4f2c): the undead/construct filter, the 5-point cure spend and a
+  caster-divides split with per-target caps. Both extend the `RESOURCE_SPENT` source rather than
+  reshaping it. Until then Lay on Hands' cures and exclusions remain in its description.
+
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
 A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It
@@ -2604,7 +2621,14 @@ refuses an id the candidate did not offer, and `prepareNativeCharacterActionStat
 cast's `resourceConsumption`, so it persists and reverts with the cast (and honours Manual play and the Assisted "Do it anyway"
 shortfall like any pool spend). The client reads the offers as `castModifiers` on the action choice. The modifier changes nothing
 else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect. Careful,
-Sculpt, Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+
+**Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
+Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed
+across the Character's sources by `sparedCreatureCap`, and the action choice carries it to the client. The area command names the
+creatures on the POINT, CASTER_CENTERED or DIRECTED target's `unaffectedActorIds`; `prepareNativeAreaAction` refuses more than the cap
+or an unknown actor, and the executor catches those creatures but seals no save for them, so they take no damage. A zone keeps its own
+rule (`choosesUnaffected`, no cap). Whether the spared creatures are ones the caster can see stays a GM ruling on the Effect.
 
 **Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:

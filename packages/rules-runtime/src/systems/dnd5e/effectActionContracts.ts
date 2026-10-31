@@ -132,6 +132,8 @@ export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifi
 export const DND5E_HEALING_MAXIMIZED_FACT_KEY = 'dnd5e.heal-max'
 /** The amount a recurring heal with an ability bonus gives each turn, settled at cast (D156). */
 export const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
+/** The hit points a heal gives for the units the caster spent from the action's pool, settled at use. */
+export const DND5E_SPENT_HEAL_AMOUNT_FACT_KEY = 'dnd5e.spent-heal-amount'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
 export const DND5E_SPELL_CAST_LEVEL_FACT_KEY = 'dnd5e.spell-cast-level'
 /**
@@ -203,6 +205,8 @@ export class Dnd5eEffectActionCompilerError extends Error {
 }
 export type Outcome =
   | { kind: 'HEAL' | 'TEMPORARY_HIT_POINTS'; amount: number }
+  /** A heal sized by the units the caster spends from the action's pool: its amount is the bound spent-heal fact. */
+  | { kind: 'SPENT_HEAL' }
   | { kind: 'DAMAGE'; amount: number; damageTypeId: string }
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
