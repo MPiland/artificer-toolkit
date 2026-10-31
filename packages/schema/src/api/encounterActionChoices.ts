@@ -297,6 +297,21 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_AMMUNITION_CHOICES))
     ),
     /**
+     * The costs the caster may pay on this spell cast, each with the cost it spends; absent when none
+     * is offered. The client sends its pick as `castModifierId`.
+     */
+    castModifiers: z.optional(
+      z
+        .array(
+          z.strictObject({
+            id: postgresUuidSchema,
+            label: labelSchema,
+            cost: z.number().check(z.int()).check(z.positive())
+          })
+        )
+        .check(z.maxLength(50))
+    ),
+    /**
      * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
      * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that
      * are not part of the Attack action and for attacks that would spend a new Action ("Do it anyway").

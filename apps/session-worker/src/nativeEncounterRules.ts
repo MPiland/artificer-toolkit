@@ -536,6 +536,7 @@ export async function planNativeLiveEncounterAction(
       actors,
       actionId: command.actionId,
       choiceOptionId,
+      castModifierId: command.castModifierId,
       ammunition: ammunitionCommandChoice(command.target),
       wieldConflictAcceptance: {
         kind: 'PROMPTED',
@@ -566,13 +567,8 @@ export async function planNativeLiveEncounterAction(
           definitions,
           capture
         }),
-      loadMoveToward: ({ sourceFacts, targetFacts }) =>
-        readNativeLiveMoveToward({
-          attacker: sourceFacts,
-          target: targetFacts,
-          sceneContext,
-          capture
-        }),
+      loadMoveToward: ({ sourceFacts: attacker, targetFacts: target }) =>
+        readNativeLiveMoveToward({ attacker, target, sceneContext, capture }),
       ...nativeActionStateLoaders({
         campaign: state,
         actorId: command.actorId,

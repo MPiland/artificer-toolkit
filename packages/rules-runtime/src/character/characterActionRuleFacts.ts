@@ -18,6 +18,7 @@ import {
   compiledEquipmentParentIds,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
+import { collectCastModifiers, type CastModifierSource } from './characterCastModifiers.js'
 import { collectOnHitRiders, mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import {
   initiativeRestoreSources,
@@ -104,6 +105,8 @@ interface CharacterActionRuleFacts {
   standingEffects: CharacterActionSources
   /** The basic actions the Character's passive features offer on every turn (D188); never policy facts. */
   standingGrantedActions: HeldGrantedAction[]
+  /** The costs the Character's features, options and feats let it pay on casting a spell; never policy facts. */
+  castModifiers: CastModifierSource[]
   /** The riders the Character's passive features, options and feats owe the attacks they name; never policy facts. */
   onHitRiders: OnHitRider[]
 }
@@ -697,6 +700,7 @@ export function buildCharacterActionRuleFacts(params: {
   const initiativeRestores: InitiativeRestoreSource[] = []
   const standingEffects: CharacterActionSources = { candidates: [], entryPoints: [] }
   const standingGrantedActions: HeldGrantedAction[] = []
+  const castModifiers: CastModifierSource[] = []
   // Feature actions are appended once every rider is known, since an attack a Feature makes with
   // a wielded weapon carries them (D156).
   const featureActions: Pick<
@@ -709,6 +713,7 @@ export function buildCharacterActionRuleFacts(params: {
     if (!folded) continue
     if (definition && folded.definition) {
       onHitRiders.push(...collectOnHitRiders(definition.effects, feature.featureId))
+      castModifiers.push(...collectCastModifiers(definition.effects, definition.label ?? ''))
       featureActions.push({
         effects: definition.effects,
         source: folded.definition,
@@ -726,6 +731,7 @@ export function buildCharacterActionRuleFacts(params: {
       )
       if (!source) continue
       onHitRiders.push(...collectOnHitRiders(option.effects, option.id))
+      castModifiers.push(...collectCastModifiers(option.effects, option.label ?? ''))
       featureActions.push({
         effects: option.effects,
         source,
@@ -736,6 +742,12 @@ export function buildCharacterActionRuleFacts(params: {
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
       onHitRiders.push(
         ...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId)
+      )
+      castModifiers.push(
+        ...collectCastModifiers(
+          registry.feats[feature.source.featId]?.effects,
+          registry.feats[feature.source.featId]?.label ?? ''
+        )
       )
       featureActions.push({
         effects: registry.feats[feature.source.featId]?.effects,
@@ -849,6 +861,7 @@ export function buildCharacterActionRuleFacts(params: {
     initiativeRestores,
     standingEffects,
     standingGrantedActions,
+    castModifiers,
     onHitRiders
   }
 }

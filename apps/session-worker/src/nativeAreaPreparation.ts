@@ -610,7 +610,10 @@ export function prepareCasterActionOnTarget(
     AreaPlanBase,
     'state' | 'system' | 'actors' | 'activeEffectsByActorId' | 'capture'
   > & {
-    command: Pick<ResolveEncounterActionInputDto, 'actionId' | 'acceptedWieldConflict' | 'target'>
+    command: Pick<
+      ResolveEncounterActionInputDto,
+      'actionId' | 'castModifierId' | 'acceptedWieldConflict' | 'target'
+    >
   },
   action: {
     caster: EncounterRunActorState
@@ -631,6 +634,7 @@ export function prepareCasterActionOnTarget(
     actors: input.actors,
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
+    castModifierId: capability ? undefined : input.command.castModifierId,
     ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',

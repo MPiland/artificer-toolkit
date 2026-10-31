@@ -2594,6 +2594,18 @@ are null together), so GM undo restores it. Nothing names a feature: the SRD Div
 Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
 `optionalOnHit`, so it is a mandatory rider.
 
+**Cast modifiers (SPELLS-31.T5g, current).** A passive invocation authored with `castModifier: { chargeId, cost }` is a cost the
+holder may pay on casting a spell. `buildCharacterActionRuleFacts` collects one `CastModifierSource` per such Effect of the
+Character's features, chosen options and feats (`collectCastModifiers`); `CharacterRuleEvaluationResult.castModifiers` carries them
+server-side, never as policy facts. `buildCharacterSpellCastActions` offers each on a spell cast candidate's `castModifiers`
+(`modifierId`, `label`, `chargeId`, `cost`, `poolId`) only while `affordablePoolFor` finds exactly one resolved pool of the charge that
+holds the cost, and never on a cast a pool already pays for. `RESOLVE_ACTION.castModifierId` names one; `prepareEncounterActionMechanics`
+refuses an id the candidate did not offer, and `prepareNativeCharacterActionState` spends it through `spendCharacterResource` into the
+cast's `resourceConsumption`, so it persists and reverts with the cast (and honours Manual play and the Assisted "Do it anyway"
+shortfall like any pool spend). The client reads the offers as `castModifiers` on the action choice. The modifier changes nothing
+else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect. Careful,
+Sculpt, Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+
 **Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item

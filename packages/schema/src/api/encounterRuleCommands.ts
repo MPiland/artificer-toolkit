@@ -271,6 +271,8 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     actorId: uuidSchema,
     actionId: encounterActionIdSchema,
     target: resolveEncounterActionTargetDtoSchema,
+    /** The cost the caster pays on a spell cast: a `castModifiers` entry the action's candidate offers. */
+    castModifierId: z.optional(uuidSchema),
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
      * The current actor that commands this attack (DELEGATED_ATTACK): it forgoes one attack of its

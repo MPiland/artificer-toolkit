@@ -178,6 +178,8 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
       optionalOnHit?: OptionalOnHitAuthored
+      /** A cost the holder may pay on casting a spell, as an action's `resourceUse` is paid; the effect's outcomes are the modifier's table rule. */
+      castModifier?: ResourceUseAuthored
       /** The sibling Feature whose attacks alone this rider rides; absent, it rides every attack its trigger names. */
       ridesFeatureId?: string
       /** The Spells whose casts alone this rider rides; absent, it rides every attack its trigger names (G4). */

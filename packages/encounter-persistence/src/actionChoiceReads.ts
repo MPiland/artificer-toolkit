@@ -432,6 +432,15 @@ export async function readEncounterActionChoices(
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           ...handReleaseChoice(draw),
           ...ammunitionChoices(candidate?.equipment, facts.character.state.equipment.inventory),
+          ...(candidate?.castModifiers
+            ? {
+                castModifiers: candidate.castModifiers.map(({ modifierId, label, cost }) => ({
+                  id: modifierId,
+                  label,
+                  cost
+                }))
+              }
+            : {}),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,

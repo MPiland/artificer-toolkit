@@ -22290,6 +22290,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -23498,6 +23499,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -24673,6 +24678,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -25837,6 +25843,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -27052,6 +27059,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -28319,6 +28327,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -29505,6 +29514,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -30678,6 +30688,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -32059,6 +32070,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -33251,6 +33263,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -34410,6 +34423,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -35558,6 +35572,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -36751,6 +36766,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -37998,6 +38014,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -39162,6 +39179,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -40313,6 +40331,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -41762,6 +41781,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -42954,6 +42974,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -44113,6 +44134,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -45261,6 +45283,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -46454,6 +46477,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -47701,6 +47725,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -48865,6 +48890,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -50016,6 +50042,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -51537,6 +51564,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -52745,6 +52773,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -53920,6 +53952,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -55084,6 +55117,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -56299,6 +56333,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -57566,6 +57601,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -58752,6 +58788,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -59925,6 +59962,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -61306,6 +61344,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -62498,6 +62537,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -63657,6 +63697,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -64805,6 +64846,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -65998,6 +66040,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -67245,6 +67288,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -68409,6 +68453,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -69560,6 +69605,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -71009,6 +71055,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -72201,6 +72248,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -73360,6 +73408,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -74508,6 +74557,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -75701,6 +75751,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -76948,6 +76999,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -78112,6 +78164,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -79263,6 +79316,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -80793,6 +80847,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -82001,6 +82056,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -83176,6 +83235,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -84340,6 +84400,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -85555,6 +85616,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -86822,6 +86884,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -88008,6 +88071,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -89181,6 +89245,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -90562,6 +90627,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -91754,6 +91820,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -92913,6 +92980,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -94061,6 +94129,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -95254,6 +95323,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -96501,6 +96571,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -97665,6 +97736,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -98816,6 +98888,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -100265,6 +100338,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -101457,6 +101531,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -102616,6 +102691,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -103764,6 +103840,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -104957,6 +105034,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -106204,6 +106282,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -107368,6 +107447,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -108519,6 +108599,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -110040,6 +110121,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -111248,6 +111330,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -112423,6 +112509,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -113587,6 +113674,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -114802,6 +114890,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -116069,6 +116158,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -117255,6 +117345,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -118428,6 +118519,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -119809,6 +119901,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -121001,6 +121094,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -122160,6 +122254,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -123308,6 +123403,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -124501,6 +124597,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -125748,6 +125845,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -126912,6 +127010,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -128063,6 +128162,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -129512,6 +129612,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -130704,6 +130805,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -131863,6 +131965,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -133011,6 +133114,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -134204,6 +134308,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -135451,6 +135556,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -136615,6 +136721,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -137766,6 +137873,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -139322,6 +139430,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -140530,6 +140639,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -141705,6 +141818,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -142869,6 +142983,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -144084,6 +144199,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -145351,6 +145467,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -146537,6 +146654,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -147710,6 +147828,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -149091,6 +149210,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -150283,6 +150403,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -151442,6 +151563,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -152590,6 +152712,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -153783,6 +153906,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -155030,6 +155154,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -156194,6 +156319,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -157345,6 +157471,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -158794,6 +158921,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -159986,6 +160114,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -161145,6 +161274,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -162293,6 +162423,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -163486,6 +163617,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -164733,6 +164865,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -165897,6 +166030,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -167048,6 +167182,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -168569,6 +168704,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -169777,6 +169913,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -170952,6 +171092,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -172116,6 +172257,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -173331,6 +173473,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -174598,6 +174741,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -175784,6 +175928,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -176957,6 +177102,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -178338,6 +178484,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -179530,6 +179677,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -180689,6 +180837,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -181837,6 +181986,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -183030,6 +183180,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -184277,6 +184428,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -185441,6 +185593,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -186592,6 +186745,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -188041,6 +188195,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -189233,6 +189388,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -190392,6 +190548,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -191540,6 +191697,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -192733,6 +192891,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -193980,6 +194139,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -195144,6 +195304,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -196295,6 +196456,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -197818,6 +197980,7 @@ export declare const api: {
                         id: string;
                         invocation:
                           | {
+                              castModifier?: never;
                               kind: "PASSIVE";
                               optionalOnHit?: never;
                               range:
@@ -199025,6 +199188,7 @@ export declare const api: {
                               triggerCode: "SAVING_THROW" | "HP_ZERO";
                             }
                           | {
+                              castModifier?: { chargeId: string; cost: number };
                               kind: "PASSIVE";
                               optionalOnHit?:
                                 | { kind: "SPELL_SLOT" }
@@ -200199,6 +200363,7 @@ export declare const api: {
                                 | "START_OF_TURN";
                             }
                           | {
+                              castModifier?: never;
                               damageTypeIds: Array<string>;
                               kind: "PASSIVE";
                               optionalOnHit?: never;
@@ -201362,6 +201527,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -202570,6 +202736,7 @@ export declare const api: {
                             }
                           | {
                               activation: { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -203832,6 +203999,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               check: {
                                 checks: {
                                   abilityDefinitionIds: Array<string>;
@@ -205014,6 +205182,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -206180,6 +206349,7 @@ export declare const api: {
                             }
                           | {
                               activation: { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -207556,6 +207726,7 @@ export declare const api: {
                   id: string;
                   invocation:
                     | {
+                        castModifier?: never;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
                         range:
@@ -208729,6 +208900,7 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
+                        castModifier?: { chargeId: string; cost: number };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -209875,6 +210047,7 @@ export declare const api: {
                           | "START_OF_TURN";
                       }
                     | {
+                        castModifier?: never;
                         damageTypeIds: Array<string>;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
@@ -211010,6 +211183,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -212184,6 +212358,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -213408,6 +213583,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         check: {
                           checks: {
                             abilityDefinitionIds: Array<string>;
@@ -214559,6 +214735,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -215697,6 +215874,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -217128,6 +217306,7 @@ export declare const api: {
                   id: string;
                   invocation:
                     | {
+                        castModifier?: never;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
                         range:
@@ -218301,6 +218480,7 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
+                        castModifier?: { chargeId: string; cost: number };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -219447,6 +219627,7 @@ export declare const api: {
                           | "START_OF_TURN";
                       }
                     | {
+                        castModifier?: never;
                         damageTypeIds: Array<string>;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
@@ -220582,6 +220763,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -221756,6 +221938,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -222980,6 +223163,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         check: {
                           checks: {
                             abilityDefinitionIds: Array<string>;
@@ -224131,6 +224315,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -225269,6 +225454,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -226768,6 +226954,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -227976,6 +228163,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -229151,6 +229342,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -230315,6 +230507,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -231530,6 +231723,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -232797,6 +232991,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -233983,6 +234178,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -235156,6 +235352,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -236537,6 +236734,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -237729,6 +237927,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -238888,6 +239087,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -240036,6 +240236,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -241229,6 +241430,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -242476,6 +242678,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -243640,6 +243843,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -244791,6 +244995,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -246240,6 +246445,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -247432,6 +247638,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -248591,6 +248798,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -249739,6 +249947,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -250932,6 +251141,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -252179,6 +252389,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -253343,6 +253554,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -254494,6 +254706,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -256015,6 +256228,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -257223,6 +257437,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -258398,6 +258616,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -259562,6 +259781,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -260777,6 +260997,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -262044,6 +262265,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -263230,6 +263452,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -264403,6 +264626,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -265784,6 +266008,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -266976,6 +267201,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -268135,6 +268361,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -269283,6 +269510,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -270476,6 +270704,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -271723,6 +271952,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -272887,6 +273117,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -274038,6 +274269,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -275487,6 +275719,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -276679,6 +276912,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -277838,6 +278072,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -278986,6 +279221,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -280179,6 +280415,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -281426,6 +281663,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -282590,6 +282828,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -283741,6 +283980,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -286112,6 +286352,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            castModifiers?: Array<{ cost: number; id: string; label: string }>;
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -287876,6 +288117,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            castModifiers?: Array<{ cost: number; id: string; label: string }>;
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;

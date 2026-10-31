@@ -247,6 +247,8 @@ export function spendCharacterResource(input: {
 export function prepareNativeCharacterActionState(input: {
   entry: CompiledCharacterAction
   candidate: CharacterActionCandidate
+  /** The offered cast modifier the caster pays; spent beside the spell's own cost. */
+  castModifier?: NonNullable<CharacterActionCandidate['castModifiers']>[number] | null
   policyOutput: CharacterRulePolicyOutput
   resourceUsage: readonly CharacterResourceUsage[]
   /** The effective inventory: used-up rows are already hidden. */
@@ -412,13 +414,27 @@ export function prepareNativeCharacterActionState(input: {
       stale()
     return {
       actionMechanic,
-      resourceConsumption: null,
+      resourceConsumption: input.castModifier
+        ? spendCharacterResource({
+            resource: input.policyOutput.resources.find(
+              ({ poolId }) => poolId === input.castModifier?.poolId
+            ),
+            binding: input.castModifier,
+            resourceUsage: input.resourceUsage,
+            characterId: input.characterId,
+            expectedStreamVersion: input.expectedStreamVersion,
+            automationMode: input.automationMode,
+            overridable,
+            ruleWarnings
+          })
+        : null,
       itemConsumption,
       spellConsumption,
       ammunition,
       ruleWarnings
     }
   }
+  if (input.castModifier) stale()
   if (!Number.isSafeInteger(binding.cost) || binding.cost < 1) stale()
   const resource = input.policyOutput.resources.find((value) => value.poolId === binding.poolId)
   if (

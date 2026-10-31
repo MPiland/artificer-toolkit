@@ -552,6 +552,20 @@ export const characterActionCandidatesSchema = lazySchema(() =>
         ]),
         equipment: z.nullable(actionEquipmentStateSchema),
         resourceUse: z.nullable(actionResourceUseSchema),
+        /** The costs the caster may pay on this spell cast, each affordable now; the cast command names one. */
+        castModifiers: z.optional(
+          z
+            .array(
+              z.strictObject({
+                modifierId: postgresUuidSchema,
+                label: stringSchema.check(z.trim()).check(z.maxLength(500)),
+                chargeId: identitySchema,
+                cost: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)),
+                poolId: characterResourcePoolIdentitySchema
+              })
+            )
+            .check(z.maxLength(50))
+        ),
         mechanicFacts: characterActionMechanicFactSchema
       })
     )
