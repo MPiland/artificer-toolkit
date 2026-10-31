@@ -16268,7 +16268,7 @@
           "tasks": [
             {
               "id": "SPELLS-12.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1",
                 "SPELLS-12.2"
@@ -16280,8 +16280,7 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31). Merged in m587 (ab9111b57)."
             },
             {
               "id": "SPELLS-12.T2",
@@ -16299,7 +16298,7 @@
                 ]
               },
               "text": "Authored per-use gate predicate and limited uses with recovery.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). From the T1 review: the replacement prompt ships in the action drawer, so confirm area casts reach it once a holder can keep more than one state."
             },
             {
               "id": "SPELLS-12.T3",
