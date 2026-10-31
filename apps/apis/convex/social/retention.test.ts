@@ -220,8 +220,10 @@ describe('social retention preview', () => {
       })
     })
     expect((await run(base, 'APPLICATIONS')).eligible).toBe(1)
+    // zod 4.5 follows RFC 3339: a timestamp needs seconds. Retention still orders the minute form.
+    const minutePrecision = '2024-09-01T00:00Z'
     for (const [resolvedAt, eligible] of [
-      ['2024-09-01T00:00Z', 1],
+      [minutePrecision, 1],
       ['2024-09-01T00:00:30Z', 1],
       ['2024-09-01T00:00:30.0Z', 1],
       ['2024-09-01T00:00:30.05Z', 1],
@@ -229,7 +231,7 @@ describe('social retention preview', () => {
       ['2024-09-01T00:00:30.051000Z', 0],
       ['2024-09-01T00:00:30.1Z', 0]
     ] as const) {
-      expect(timestampSchema.safeParse(resolvedAt).success).toBe(true)
+      expect(timestampSchema.safeParse(resolvedAt).success).toBe(resolvedAt !== minutePrecision)
       await base.t.run(async (ctx) => {
         const report = await ctx.db
           .query('socialReports')
