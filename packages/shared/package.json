@@ -244,6 +244,6 @@
     "subtlex-word-frequencies": "2.0.0",
     "type-fest": "^5.10.0",
     "typescript": "^7.0.2",
-    "zod": "4.5.3"
+    "zod": "4.4.3"
   }
 }
