@@ -2252,7 +2252,7 @@ is conjured into an ACTIVE Run: `rollSummonInitiative` runs the Run's pinned `AC
 through the one initiative score path, whatever the Run's evidence mode, and the cast never pauses on it. The roll
 (`initiativeRoll` on the summoned token) seats the actor through `insertReinforcementInitiative` by score and posts its
 Initiative card. Cast into a PREPARED Run it rolls nothing: it joins the start cohort. A summon the policy cannot score
-by one automatic `1dN` (a manual Run, a non-`ACTOR_ROLL` procedure, a custom actor) is seated behind its owner.
+by one automatic `1dN` (a manual Run, a non-`ACTOR_ROLL` procedure) is seated behind its owner. A stat-block summon (a `CUSTOM` actor with an owner) is bound by the D&D initiative adapter with the Dexterity modifier of the stat block its cast resolved (0 when it names none); a GM-made custom actor still rolls by hand. A summon's turn comes from its authored `turnTiming` alone, never from what it can attack with.
 
 ### Summon placement (current compile only, SPELLS-4.T2v2a2a)
 

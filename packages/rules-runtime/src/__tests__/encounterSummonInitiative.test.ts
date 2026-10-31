@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 
+import { buildEncounterSummon } from '../encounterSummon.js'
 import { rollSummonInitiative } from '../encounterSummonInitiative.js'
 import { createSrdRulesRuntime } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -35,7 +37,7 @@ const actorRoll = initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: '
 
 function roll(
   state: ReturnType<typeof runWith>,
-  actor: typeof familiar | typeof owner,
+  actor: EncounterRunActorState,
   dice = scriptedDice([13])
 ) {
   return rollSummonInitiative({
@@ -47,7 +49,47 @@ function roll(
   })
 }
 
+/** A stat-block summon the way a spell cast conjures one: a custom actor carrying its resolved scores. */
+const statBlockSummon = (dexterity: number | null) =>
+  buildEncounterSummon({
+    summon: { kind: 'STAT_BLOCK', statBlock: {} },
+    spellSummon: {
+      spellId: crypto.randomUUID(),
+      summonOutcomeId: 'conjure',
+      label: 'Spirit',
+      concentration: true,
+      armorClass: null,
+      ...(dexterity === null ? {} : { abilityScores: { DEXTERITY: dexterity } })
+    },
+    cannotAttack: false,
+    turnTiming: 'OWN_INITIATIVE',
+    caster: owner,
+    casterHitPointMaximum: 40,
+    label: 'Spirit',
+    sourceEffectId: crypto.randomUUID(),
+    point: { x: 150, y: 150 },
+    edgeLength: 100,
+    occurredAt: '2026-10-23T00:00:00.000Z'
+  }).actor
+
 describe('rollSummonInitiative (SPELLS-35.T5)', () => {
+  it('rolls a stat-block summon by the Dexterity modifier its stat block resolved', async () => {
+    const dice = scriptedDice([13])
+    const spirit = statBlockSummon(14)
+
+    expect(spirit.kind).toBe('CUSTOM')
+    expect(await roll(runWith(actorRoll), spirit, dice)).toEqual({
+      sides: 20,
+      face: 13,
+      modifier: 2
+    })
+    expect(await roll(runWith(actorRoll), statBlockSummon(null), scriptedDice([13]))).toEqual({
+      sides: 20,
+      face: 13,
+      modifier: 0
+    })
+  })
+
   it('rolls one d20 through the policy graph and returns its face and modifier', async () => {
     const dice = scriptedDice([13])
     const rolled = await roll(runWith(actorRoll), familiar, dice)

@@ -10,6 +10,7 @@ import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCha
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
+import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
@@ -95,7 +96,11 @@ function chainRoom(feature: ClassFeature = pactFeature()) {
     characterPlay: { characterClass: warlock, classLevel: 5 },
     characterSpellcasting: { spells: [findFamiliar], prepared: [findFamiliar.id] },
     characterAction: (action) => action.label.startsWith(findFamiliar.label),
-    formCreatures: [applyCreatureAttackRolls(cat)]
+    formCreatures: [applyCreatureAttackRolls(cat)],
+    initiativePolicy: initiativePolicySnapshot({
+      procedure: 'ACTOR_ROLL',
+      cadence: 'ENCOUNTER_START'
+    })
   })
 }
 type ChainRoom = Awaited<ReturnType<typeof chainRoom>>
@@ -363,5 +368,18 @@ describe('a familiar that cannot attack (SPELLS-34.T4)', () => {
       sourceActorId: familiar.id,
       targetActorId: WOLF_ID
     })
+  }, 180000)
+
+  it('takes its own turn, where its own attack is refused (SPELLS-35.T5)', async () => {
+    const room = await chainRoom()
+    const { familiar, clawsId } = await summonFamiliar(room)
+
+    for (let turn = 0; turn < 4 && (await currentActorId(room)) !== familiar.id; turn += 1)
+      await room.advanceTurn()
+    expect(await currentActorId(room)).toBe(familiar.id)
+
+    const refused = await ownAttack(room, familiar.id, clawsId)
+    expect(refused.type, JSON.stringify(refused)).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused)).toContain('cannot attack on its own')
   }, 180000)
 })
