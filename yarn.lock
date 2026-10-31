@@ -42,7 +42,7 @@ __metadata:
     typescript: "npm:^7.0.2"
     uuid: "npm:^14.0.3"
     wrangler: "npm:^4.156.0"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -55,7 +55,7 @@ __metadata:
     "@artificer-toolkit/shared": "workspace:^"
     "@artificer-toolkit/source-data": "workspace:^"
     typescript: "npm:^7.0.2"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -93,7 +93,7 @@ __metadata:
     "@artificer-toolkit/shared": "workspace:^"
     convex: "npm:1.48.0"
     typescript: "npm:^7.0.2"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -118,7 +118,7 @@ __metadata:
     fast-check: "npm:4.10.2"
     ts-to-zod: "npm:^5.1.0"
     typescript: "npm:^7.0.2"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -138,7 +138,7 @@ __metadata:
     uuid: "npm:^14.0.3"
     vitest: "npm:^4.1.12"
     wrangler: "npm:^4.156.0"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -156,7 +156,7 @@ __metadata:
     subtlex-word-frequencies: "npm:2.0.0"
     type-fest: "npm:^5.10.0"
     typescript: "npm:^7.0.2"
-    zod: "npm:4.5.4"
+    zod: "npm:4.5.3"
   languageName: unknown
   linkType: soft
 
@@ -15323,6 +15323,13 @@ __metadata:
     cookie: "npm:^1.0.2"
     youch-core: "npm:^0.3.3"
   checksum: 10c0/588d65aa5837a46c8473cf57a9129115383f57aad5899915d37005950decfefc66bec85b8a1262dbefd623a122c279095074655889317311a554f9c2e290a5b3
+  languageName: node
+  linkType: hard
+
+"zod@npm:4.5.3":
+  version: 4.5.3
+  resolution: "zod@npm:4.5.3"
+  checksum: 10c0/bee73b2ab70715f3d19ef027fe76a87e564da76d4179ad99183593f83ffb92fd836f7d555364229784ef1d21eda436770d605c924ece2fc86bdd97908badc35e
   languageName: node
   linkType: hard
 
