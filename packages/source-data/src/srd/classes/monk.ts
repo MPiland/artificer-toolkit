@@ -186,7 +186,7 @@ const unarmoredMovementModifiers: ModifierGrantAuthored[] = [
  */
 function martialArtsRestriction(
   bucket: number,
-  levels?: { min: number; max?: number }
+  levels?: { min: number; max?: number | undefined } | undefined
 ): NonNullable<ModifierGrantAuthored['restrictions']> {
   const id = (entry: number) => classRowId(M, bucket, entry)
   const character = (base: number) => ({
@@ -284,14 +284,15 @@ const martialArtsModifiers: ModifierGrantAuthored[] = [
       valueDomainCode,
       domain: { attackDomain },
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
-      payload: { abilities: [ABILITY_CODE.DEXTERITY] }
+      payload: { abilities: [ABILITY_CODE.DEXTERITY] },
+      levels: undefined
     }))
   ),
   ...[
     { faces: 4, min: 1, max: 4 },
     { faces: 6, min: 5, max: 10 },
     { faces: 8, min: 11, max: 16 },
-    { faces: 10, min: 17 }
+    { faces: 10, min: 17, max: undefined }
   ].map(({ faces, ...levels }) => ({
     valueDomainCode: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
     domain: {},
