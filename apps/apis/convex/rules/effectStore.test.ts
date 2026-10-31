@@ -26,7 +26,10 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 
-import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
+import {
+  createActiveRuleEffectStore,
+  readMaintainedStatesByDefinition
+} from '@artificer-toolkit/encounter-persistence/effectStore'
 
 const createCampaign = makeFunctionReference<'mutation', CreateCampaignInput, CampaignDetailDto>(
   'campaigns/create:create'
@@ -483,14 +486,30 @@ describe('native active Rule Effect store', () => {
           maintenanceDefinitionId: ids.maintenanceDefinition
         })
       ).toMatchObject({ id: state.id })
-      await expect(
-        store.createMaintainedState({
-          id: effectId(54),
+      // An actor may hold several states of one definition (Concentration capacity, SPELLS-12.T1);
+      // the single-state reader keeps returning the oldest.
+      await store.createMaintainedState({
+        id: effectId(54),
+        encounterId: run.id,
+        ownerActorId: customActor.id,
+        descriptor: maintainedDescriptor
+      })
+      const held = await readMaintainedStatesByDefinition(
+        { db: createConvexEncounterStore(ctx) },
+        {
           encounterId: run.id,
           ownerActorId: customActor.id,
-          descriptor: maintainedDescriptor
+          maintenanceDefinitionId: ids.maintenanceDefinition
+        }
+      )
+      expect(held.map((row) => row.id)).toEqual([actorStateId, effectId(54)])
+      expect(
+        await store.findMaintainedState({
+          encounterId: run.id,
+          ownerActorId: customActor.id,
+          maintenanceDefinitionId: ids.maintenanceDefinition
         })
-      ).rejects.toThrow()
+      ).toMatchObject({ id: actorStateId })
       await expect(
         store.createMaintainedState({
           id: effectId(55),
