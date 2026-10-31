@@ -2396,7 +2396,26 @@ user spends from the action's `resourceUse` pool. It is the generic option behin
   `excludedCreatureTypeIds` (an overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning), and its cure
   is a second action on the same pool with a fixed `resourceUse.cost` of 5 and an `END_EFFECTS`
   outcome (no chosen amount). It ends the poisoned condition; a disease has no condition to end yet.
-- Not yet on the option (T4f2c): a caster-divides split with per-target caps.
+
+## Caster-divided pool heal (current, SPELLS-31.T4f2c)
+
+A `HEAL` outcome with `valueKind: 'POOL'` and `splitKind: 'CASTER_DIVIDES'` is a pool the caster
+hands out among the creatures a `CHOSEN_CREATURES` action reaches. `splitCeiling` (a fraction) caps
+what each creature may be restored to as a share of its hit point maximum. Preserve Life is authored
+from these core options; nothing in code names it.
+
+- The pool resolves like any `POOL` heal (here five per cleric level). The resolved mechanic carries
+  `split: { ceiling? }`, and `dividedHealOf` reads `{ total, ceiling? }` from it. The action-choice read
+  offers that as `dividedHeal`.
+- The caster divides: the ACTORS target carries `healShares: [{ actorId, amount }]`. The Worker planner
+  (`planNativeLiveEncounterActorsAction`) refuses, through `refuseHealShares`, a chosen creature without
+  a share, shares past the pool, or a share past a creature's ceiling (room = floor(max x ceiling) -
+  current). It never clamps.
+- Each target's preparation passes its share as `dividedAmount`; the compiler binds it as that
+  target's `SPENT_HEAL` amount, the same outcome and fact the chosen-spend path uses. Temporary hit
+  points and bonuses are not allowed with a split.
+- The action's `resourceUse` is spent once for the whole use, so one undo restores every share and the
+  charge. Creature-type exclusions are the target filter's `excludedCreatureTypeIds`.
 
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
