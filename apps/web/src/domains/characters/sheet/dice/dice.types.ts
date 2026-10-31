@@ -3,7 +3,11 @@ import type {
   CampaignRollDestinationDto,
   RevealCampaignRollInput
 } from '@artificer-toolkit/schema/api/campaignCommunication'
-import type { ExecuteRollInputDto, RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type {
+  ExecuteRollInputDto,
+  RollAfterRollOfferDto,
+  RollRecordDto
+} from '@artificer-toolkit/schema/api/rolls'
 
 export type CharacterSheetRollRequest = Omit<ExecuteRollInputDto, 'characterId'>
 
@@ -40,7 +44,12 @@ export type CharacterSheetRollDestinations = {
 
 /** The presented roll card: its owner renders it, and a rest waits on it or cancels it. */
 export type CharacterSheetRollPresentation = {
+  /** Adds a die the Character held for after the roll to the presented roll (D168). */
+  addAfterRollDie: (offer: RollAfterRollOfferDto) => Promise<void>
+  afterRollPending: boolean
   dismissRoll: (discard?: boolean) => void
+  /** Keeps the presented roll as rolled, so its held dice are offered no more. */
+  keepRoll: () => Promise<void>
   presentationPending: boolean
   presentedRoll?: RollRecordDto
   presentedRollPrivate: boolean

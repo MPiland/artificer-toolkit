@@ -5,7 +5,12 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import { useDiscardRollMutation, useExecuteRollMutation } from '#app/data/rolls'
+import {
+  useAddAfterRollDieMutation,
+  useDeclineAfterRollDiceMutation,
+  useDiscardRollMutation,
+  useExecuteRollMutation
+} from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { useCampaignChatRoom } from '#domains/campaigns/vtt/useCampaignChatRoom'
@@ -68,6 +73,8 @@ export function useCharacterSheetRollController(
     }
   })
   const discardMutation = useDiscardRollMutation()
+  const addAfterRollDieMutation = useAddAfterRollDieMutation()
+  const declineAfterRollDiceMutation = useDeclineAfterRollDiceMutation()
   const [preferences] = useDicePresentationPreferences()
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)', false)
   const [manualRoll, setManualRoll] = useState<RollRecordDto>()
@@ -110,6 +117,15 @@ export function useCharacterSheetRollController(
   useEffect(() => {
     discardPrivateRollRef.current = discardPrivateRoll
   })
+
+  function replacePresentedRoll(roll: RollRecordDto) {
+    setTransientRoll((current) => (current?.id === roll.id ? roll : current))
+    setManualRoll((current) => (current?.id === roll.id ? roll : current))
+  }
+
+  function declineAfterRollDice(roll: RollRecordDto) {
+    return declineAfterRollDiceMutation.mutateAsync(roll.id).then(replacePresentedRoll)
+  }
 
   function settlePendingPresentation(roll?: RollRecordDto) {
     const pending = pendingPresentation.current
@@ -160,13 +176,40 @@ export function useCharacterSheetRollController(
 
   const presentation = useMemo<CharacterSheetRollPresentation>(
     () => ({
+      addAfterRollDie: async (offer) => {
+        const roll = transientRoll ?? manualRoll
+        if (!roll) return
+        try {
+          replacePresentedRoll(
+            await addAfterRollDieMutation.mutateAsync({
+              id: roll.id,
+              effectId: offer.effectId,
+              grantId: offer.grantId
+            })
+          )
+        } catch {
+          notifications.show({ color: 'red', message: 'That die could not be added to the roll.' })
+        }
+      },
+      afterRollPending: addAfterRollDieMutation.isPending || declineAfterRollDiceMutation.isPending,
       dismissRoll: (discard = false) => {
         const discardedPendingRoll = settlePendingPresentation()
         const roll = transientRoll ?? manualRoll
+        if (!discard && roll?.afterRollOffers)
+          void declineAfterRollDice(roll).catch(() => undefined)
         setManualRoll(undefined)
         setTransientRoll(undefined)
         if (discard && !discardedPendingRoll && roll && presentedRollPrivate)
           discardPrivateRoll(roll)
+      },
+      keepRoll: async () => {
+        const roll = transientRoll ?? manualRoll
+        if (!roll?.afterRollOffers) return
+        try {
+          await declineAfterRollDice(roll)
+        } catch {
+          notifications.show({ color: 'red', message: 'The roll could not be kept.' })
+        }
       },
       presentationPending,
       presentedRoll: transientRoll ?? manualRoll,
@@ -178,6 +221,8 @@ export function useCharacterSheetRollController(
       revealPrivateRoll
     }),
     [
+      addAfterRollDieMutation.isPending,
+      declineAfterRollDiceMutation.isPending,
       discardMutation,
       manualRoll,
       presentationPending,

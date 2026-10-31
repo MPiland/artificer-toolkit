@@ -233,7 +233,10 @@ describe('Character Sheet rests', () => {
     renderWithAppProviders(
       <CharacterSheetRollPresentationContext.Provider
         value={{
+          addAfterRollDie: vi.fn(),
+          afterRollPending: false,
           dismissRoll,
+          keepRoll: vi.fn(),
           presentationPending: true,
           presentedRollPrivate: true,
           revealRoll: vi.fn(),
