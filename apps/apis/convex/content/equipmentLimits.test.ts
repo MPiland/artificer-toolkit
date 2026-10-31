@@ -33,7 +33,7 @@ it('runs the full-SRD public 500-visible-option capacity journey and restores al
     await first.caller.query(api.content.equipmentOptions.list, {
       systemId: club.systemId
     })
-  ).toHaveLength(371)
+  ).toHaveLength(372)
   await t.run((ctx) =>
     ctx.db.insert('accountEntitlements', {
       userId: first.userId,

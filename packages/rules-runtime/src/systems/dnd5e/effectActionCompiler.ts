@@ -82,6 +82,7 @@ import {
   fixedHealAmount,
   healDiceConfiguration,
   fixedAmountDiceConfiguration,
+  resolvedDiceMatchAuthored,
   positiveFixedAmount,
   isChosenAmountHeal,
   validateHealBonuses,
@@ -2536,17 +2537,13 @@ function exactDiceConfiguration(
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
-  const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).term
-    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
-  }
-  // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
-  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
   if (
-    !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice)) &&
-    !(weaponDie && matchesAuthoredDice(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
+    !resolvedDiceMatchAuthored(
+      resolved,
+      authored,
+      halfHitPointsDice,
+      optionalRider ? undefined : facts.weaponDamageDieFaces
+    )
   )
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved

@@ -3,12 +3,12 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
-import { gargoyle } from '@artificer-toolkit/source-data/srd/creatures/gargoyle.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { seededSrdCreature } from './seededSrdCreature.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -41,7 +41,7 @@ async function strike(actionLabel: string) {
     fallbackRoll: LOWEST_FACE,
     actors: [
       characterActor({ id: MONK_ACTOR_ID, characterId: MONK_ID }),
-      srdCreatureActor({ id: GARGOYLE_ID, creature: gargoyle })
+      srdCreatureActor({ id: GARGOYLE_ID, creature: seededSrdCreature('Gargoyle') })
     ],
     characterClassFeatures: features,
     characterPlay: { equipped: true, characterClass: monk, classLevel: 6 },

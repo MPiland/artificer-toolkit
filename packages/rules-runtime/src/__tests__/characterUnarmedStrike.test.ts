@@ -61,6 +61,6 @@ describe('Character Unarmed Strike (SPELLS-31.T4l2)', () => {
       character: fixture.character,
       documents: fixture.documents
     })
-    expect(JSON.stringify(builder)).not.toContain(unarmedStrike.id)
+    expect(builder.context.catalog.equipment.map(({ id }) => id)).not.toContain(unarmedStrike.id)
   })
 })

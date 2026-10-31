@@ -352,3 +352,25 @@ export function fixedAmountDiceConfiguration(
     unsupported('D&D resolved damage expression does not match the authored fixed amount.')
   return resolved
 }
+
+/**
+ * Whether a resolved damage expression is the authored dice, the half-hit-point dice, or the authored
+ * dice with a weapon die a grant set (Shillelagh's d8) in place of the authored die.
+ */
+export function resolvedDiceMatchAuthored(
+  resolved: string,
+  authored: string,
+  halfHitPointsDice: string | null,
+  weaponDie: number | undefined
+): boolean {
+  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
+  const matches = (dice: string) => {
+    const term = parseBoundedDiceConfiguration(dice).term
+    return term.count === resolvedTerm.count && term.die === resolvedTerm.die
+  }
+  return (
+    matches(authored) ||
+    (!!halfHitPointsDice && matches(halfHitPointsDice)) ||
+    (!!weaponDie && matches(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
+  )
+}
