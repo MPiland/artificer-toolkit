@@ -824,7 +824,9 @@ describe('Concentration held by a Creature', () => {
   async function wolfHolder(
     conditions: { conditionTypeId: string; level: number }[] = [],
     statBlock?: Parameters<typeof creatureActor>[0]['statBlock'],
-    extraConditionDefinitions: Parameters<typeof srdConditionDefinitionSource>[0]['extra'] = []
+    extraConditionDefinitions: NonNullable<
+      Parameters<typeof srdConditionDefinitionSource>[0]
+    >['extra'] = []
   ) {
     const wolf = {
       ...creatureActor({
