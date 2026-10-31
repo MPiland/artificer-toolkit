@@ -141,6 +141,25 @@ describe('grant and facet schema parsing', () => {
     expect(parseRange({ rangeKind: 'TOUCH', amount: 300, unit: 'FEET' })).toBe(false)
   })
 
+  it('gives a spell’s damage a success path at half only (SPELLS-31.T5i4)', () => {
+    const parseSaveSuccess = (payload: unknown) =>
+      modifierGrantDtoSchema.safeParse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'grant',
+        order: 1,
+        selectionKind: 'GRANTED',
+        scope: 'GLOBAL',
+        valueDomainCode: 'DAMAGE',
+        domain: { attackDomain: 'SPELL' },
+        modifierKind: 'SAVE_SUCCESS_DAMAGE',
+        payload
+      }).success
+
+    expect(parseSaveSuccess({ amountKind: 'HALF' })).toBe(true)
+    expect(parseSaveSuccess({ amountKind: 'FULL' })).toBe(false)
+    expect(parseSaveSuccess({})).toBe(false)
+  })
+
   it('has no RANGE SET_VALUE modifier variant: only the range kind can be replaced', () => {
     const base = {
       grantKind: 'MODIFIER_GRANT',
