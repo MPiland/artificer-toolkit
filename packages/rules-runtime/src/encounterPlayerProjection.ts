@@ -249,6 +249,7 @@ export function projectPlayerEncounterProjection(
           initiative: actor.initiative,
           manualOrder: actor.manualOrder,
           conditions: [],
+          consequences: [],
           activeGrants: [],
           concentration: null,
           defeated: false,
@@ -274,6 +275,7 @@ export function projectPlayerEncounterProjection(
         initiative: actor.initiative,
         manualOrder: actor.manualOrder,
         conditions: actor.conditions,
+        consequences: actor.consequences,
         activeGrants: hideActiveGrantSources(actor.activeGrants, listedActorIds),
         // Only an actor's controllers end its Concentration (SPELLS-5.11).
         concentration: controlled ? hideConcentrationSource(actor.concentration) : null,
