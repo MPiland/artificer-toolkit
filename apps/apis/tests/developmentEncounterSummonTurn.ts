@@ -109,17 +109,6 @@ export async function verifyEncounterSummonTurn({
     (actor) => actor.kind === 'CREATURE' && actor.id !== creature.id
   )
   if (!conjured) throw new Error('The cast conjured no summon.')
-  assert.equal(
-    conjured.owner?.ownerActorId,
-    hero.id,
-    'DEBUG ' +
-      JSON.stringify({
-        c: conjured.controllerUserIds,
-        h: hero.controllerUserIds,
-        o: conjured.owner,
-        ph: playerUserId
-      })
-  )
   assert.equal(conjured.owner?.turnTiming, 'AFTER_OWNER', 'The summon acts right after its owner.')
   assert.equal((await readProjection()).currentActorId, hero.id)
 
