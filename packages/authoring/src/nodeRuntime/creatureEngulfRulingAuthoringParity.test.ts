@@ -37,29 +37,45 @@ function pathOutcomeKinds(creature: CreatureAuthored, label: string, pathCode: s
   )
 }
 
-describe('engulf riders as GM rulings (D187a)', () => {
+describe('engulf riders as GM rulings (D187a), Whelm excepted (D202)', () => {
   it.each([
     { creature: gelatinousCube, label: 'Ooze Cube', pathCode: 'PASSIVE', kinds: [] },
     { creature: gelatinousCube, label: 'Engulf', pathCode: 'ON_SAVE_FAIL', kinds: ['DAMAGE'] },
-    { creature: gelatinousCube, label: 'Engulf', pathCode: 'ON_SAVE_SUCCESS', kinds: [] },
-    {
-      creature: waterElemental,
-      label: 'Whelm (Recharge 4-6)',
-      pathCode: 'ON_SAVE_FAIL',
-      kinds: ['DAMAGE']
-    },
-    {
-      creature: waterElemental,
-      label: 'Whelm (Recharge 4-6)',
-      pathCode: 'ON_SAVE_SUCCESS',
-      kinds: []
-    }
+    { creature: gelatinousCube, label: 'Engulf', pathCode: 'ON_SAVE_SUCCESS', kinds: [] }
   ])(
     'authors the $creature.label $label $pathCode outcomes beside the ruling',
     ({ creature, label, pathCode, kinds }) => {
       expect(pathOutcomeKinds(creature, label, pathCode)).toEqual([...kinds, 'MANUAL_ADJUDICATION'])
     }
   )
+
+  it('authors the Water Elemental Whelm as a self-centered area that holds on a failed save (D202)', () => {
+    const whelm = waterElemental.features?.find(({ label }) => label === 'Whelm (Recharge 4-6)')
+    const [effect] = whelm?.effects ?? []
+    expect(effect?.invocation).toMatchObject({
+      triggerCode: 'SAVING_THROW',
+      range: { rangeKind: 'SELF' },
+      targeting: { selectionKind: 'AREA_CONTENTS' },
+      savingThrow: { dcMethod: 'FIXED_DC', baseDc: 15 }
+    })
+    expect(pathOutcomeKinds(waterElemental, 'Whelm (Recharge 4-6)', 'ON_SAVE_FAIL')).toEqual([
+      'DAMAGE',
+      'ACTOR_RELATIONSHIP',
+      'MANUAL_ADJUDICATION'
+    ])
+    const hold = effect?.paths
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find((outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP')
+    expect(hold).toMatchObject({
+      recurrence: {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        outcome: { effectKind: 'DAMAGE', diceConfig: '2d8+4' }
+      }
+    })
+    expect(pathOutcomeKinds(waterElemental, 'Whelm (Recharge 4-6)', 'ON_SAVE_SUCCESS')).toEqual([
+      'MANUAL_ADJUDICATION'
+    ])
+  })
 
   it('authors the Gelatinous Cube Engulf as a DC 12 Dexterity save', () => {
     const engulf = gelatinousCube.features?.find(({ label }) => label === 'Engulf')

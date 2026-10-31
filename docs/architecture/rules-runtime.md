@@ -2848,8 +2848,8 @@ massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both re
 arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
 A relationship outcome is held on one bounded result path: an attack's `ON_HIT`/`ON_CRIT`, a contest's
 `ON_CHECK_SUCCESS`, a direct use's `ON_USE`, or (SPELLS-33.T6n4) a save action's `ON_SAVE_FAIL`. `relationshipPlan` gates
-the plan with `resultGate` on that path, so a target that makes the save is never held. The Whelm and the Gelatinous
-Cube's Engulf are the SRD cases. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
+the plan with `resultGate` on that path, so a target that makes the save is never held. The Water Elemental's Whelm is the SRD case (D202): a Self area over its own space, like the Whirlwind,
+whose failed save damages and holds the target. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
 still a GM ruling: the nested save's result path is not yet a gate.
 `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
