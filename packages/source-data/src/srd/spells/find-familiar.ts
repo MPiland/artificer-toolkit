@@ -71,6 +71,8 @@ export const findFamiliar: SpellAuthored = {
                 manifestKind: MANIFEST_KIND.SUMMON,
                 // The familiar can't attack; a grant of its owner's may delegate an attack to it.
                 cannotAttack: true,
+                // It rolls its own initiative and acts independently (SRD 5.2.1).
+                turnTiming: 'OWN_INITIATIVE',
                 forms: [
                   {
                     id: spellChildId(SPELL_IDS.FIND_FAMILIAR, 0x214, 1),

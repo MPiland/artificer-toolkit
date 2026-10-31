@@ -2244,9 +2244,17 @@ measures from the delegate's token and offers no optional rules. The room stays 
 A `SUMMON` manifest may author `cannotAttack` (SPELLS-34.T4; the SRD familiar does). It compiles onto
 `summonPlacement.cannotAttack`, and `buildEncounterSummon` keeps it in the actor's `body`, on a form summon too;
 `encounterActorCannotAttack` is its one reader. Such an actor offers no attack as a reaction
-(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon never acts
-by itself (D190a: the owner is the command actor), so its own attack is refused `NOT_CURRENT_ACTOR` and the flag needs
-no turn gate; a delegation is its owner's attack and still resolves.
+(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon with its own
+turn (`turnTiming`, D200) is the current actor on it, so the room refuses its own attack roll there
+(`SOURCE_REQUIREMENTS_NOT_MET`, `nativeEncounterRules`) while a delegation is its owner's attack and still resolves
+(SPELLS-35.T5).
+
+**Own initiative at the cast (current, SPELLS-35.T5, D200).** A summon authored `OWN_INITIATIVE` rolls its initiative as it
+is conjured into an ACTIVE Run: `rollSummonInitiative` runs the Run's pinned `ACTOR_ROLL` policy graph in `AUTO_ROLL`
+through the one initiative score path, whatever the Run's evidence mode, and the cast never pauses on it. The roll
+(`initiativeRoll` on the summoned token) seats the actor through `insertReinforcementInitiative` by score and posts its
+Initiative card. Cast into a PREPARED Run it rolls nothing: it joins the start cohort. A summon the policy cannot score
+by one automatic `1dN` (a manual Run, a non-`ACTOR_ROLL` procedure) is seated behind its owner. A stat-block summon (a `CUSTOM` actor with an owner) is bound by the D&D initiative adapter with the Dexterity modifier of the stat block its cast resolved (0 when it names none); a GM-made custom actor still rolls by hand. A summon's turn comes from its authored `turnTiming` alone, never from what it can attack with.
 
 ### Summon placement (current compile only, SPELLS-4.T2v2a2a)
 

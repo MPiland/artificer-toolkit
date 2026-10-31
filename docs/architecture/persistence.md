@@ -510,6 +510,12 @@ side, the place behind it, and `ACTED` or `READY` by whether that place is at or
 `RESOLVE_ACTION` records the resulting round state as the nullable `initiativeStateJson` and `initiativeStateChecksum`
 pair, validated like the `SUMMONS_ENDED` one, so `REVERT_LAST_ACTION` restores it through `removeConjuredActors`. Each
 later round is seated by `anchorOwnedActors` in rules-runtime.
+Current (SPELLS-35.T5, D200): an `OWN_INITIATIVE` summon cast into an ACTIVE Run carries the roll `rollSummonInitiative` made
+(`initiativeRoll` on the summoned token). `persistEncounterAreaCommit` passes its score (`face + modifier`) to
+`insertReinforcementInitiative` without an anchor, so the participant row is sorted in by score, and posts the Initiative
+roll card (`persistSummonInitiativeRollCard`) once the Run actor is stored. With no roll (a manual Run or an unscorable
+policy) it is anchored behind its owner as an `AFTER_OWNER` summon is. The same `initiativeStateJson` receipt restores the
+round on `REVERT_LAST_ACTION`; the roll card stays in the conversation like any other roll.
 
 ## Scene storage
 

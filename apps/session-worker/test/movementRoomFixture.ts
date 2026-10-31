@@ -333,6 +333,7 @@ export async function movementRoom(config: MovementRoomConfig) {
           config.initiativePolicy ??
           initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' })
       }),
+      ...(!prepared && config.initiativePolicy && { initiativePolicy: config.initiativePolicy }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
       zoneNoticing: config.zoneNoticing,
@@ -471,7 +472,8 @@ export async function movementRoom(config: MovementRoomConfig) {
       encounterId,
       actors,
       currentActorId: config.moverActorId,
-      now: NOW
+      now: NOW,
+      ...(config.initiativePolicy && { policy: config.initiativePolicy })
     })
   for (const actor of actors)
     await memory.store.insert('encounterActorTokenBindings', {
