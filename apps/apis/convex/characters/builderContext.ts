@@ -38,7 +38,8 @@ export async function loadCharacterBuilderContext(
   userId: string,
   catalogScope: 'resolution' | 'active',
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
-  referenceSpellIds: readonly string[] = []
+  referenceSpellIds: readonly string[] = [],
+  ruleInputs?: Parameters<typeof loadCharacterRuleContext>[8]
 ): Promise<
   CharacterBuilderContext & {
     creaturesById: Awaited<ReturnType<typeof loadCharacterRuleContext>>['creaturesById']
@@ -62,7 +63,8 @@ export async function loadCharacterBuilderContext(
       authorityScope,
       undefined,
       referenceSpellIds,
-      catalogScope === 'active' ? 'classLists' : 'complete'
+      catalogScope === 'active' ? 'classLists' : 'complete',
+      ruleInputs
     )
   )
   const sources = context.sourceAccess

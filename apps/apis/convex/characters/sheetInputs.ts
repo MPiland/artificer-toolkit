@@ -91,7 +91,8 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
   /** The row this transaction just wrote, evaluated without reading it back. */
   written?: TRow,
-  referenceSpellIds: readonly string[] = []
+  referenceSpellIds: readonly string[] = [],
+  ruleInputs?: Parameters<typeof loadCharacterBuilderContext>[6]
 ) {
   const authorized = await readAuthorizedCharacterSheetState(
     ctx,
@@ -179,7 +180,8 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
       character.userId,
       catalogScope,
       authorityScope,
-      referenceSpellIds
+      referenceSpellIds,
+      ruleInputs
     ))
   const campaign = context.sourceAccess.campaign
   const campaignState = campaign

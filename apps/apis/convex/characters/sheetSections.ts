@@ -16,6 +16,7 @@ import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readCharacterSheetState } from './documents'
 import { readAuthorizedCharacterSheetState } from './sheetInputs'
 import { readCharacterSources } from './sourceReads'
+import type { Doc } from '../_generated/dataModel'
 import type { CharacterRecordRow } from './stateDocuments'
 
 // ADR 0041: a Character write stores its derived Sheet per viewer and section; reads serve a stored
@@ -60,6 +61,14 @@ function withoutStreamVersion(section: string, value: unknown): unknown {
   return { ...value, data: { ...data, meta } }
 }
 
+/** Inputs the fingerprint read that a derivation in the same transaction reuses instead of re-reading. */
+export type CharacterSheetFingerprintReads = {
+  system: Doc<'systems'> | null
+  sources: Awaited<ReturnType<typeof readCharacterSources>>
+  activeEffects: Awaited<ReturnType<typeof listActiveRuleEffects>>
+  carriedEffects: Awaited<ReturnType<typeof listCarriedActiveRuleEffects>>
+}
+
 /**
  * A checksum of every stored input a Character's Sheet derivation reads: the Character, its draft
  * and route, its effects and carried Concentration, its Campaign state and the System, sources and
@@ -68,7 +77,9 @@ function withoutStreamVersion(section: string, value: unknown): unknown {
 export async function readCharacterSheetFingerprint(
   ctx: QueryCtx,
   state: { active: CharacterRecordRow; hasDraft: boolean; publicId: string },
-  authorityScope?: CampaignInternalScope
+  authorityScope?: CampaignInternalScope,
+  /** Receives the inputs this read loaded, for a derivation in the same transaction to reuse. */
+  reads?: Partial<CharacterSheetFingerprintReads>
 ) {
   const { active } = state
   const reader = { db: createConvexEncounterStoreReader(ctx) }
@@ -85,6 +96,13 @@ export async function readCharacterSheetFingerprint(
     ),
     listCarriedActiveRuleEffects(reader, active.id)
   ])
+  if (reads)
+    Object.assign(reads, {
+      system,
+      sources: access,
+      activeEffects: effects,
+      carriedEffects: carried
+    })
   const { campaign } = access
   const scopes = [
     ...access.sources.map((source) => ({ scope: 'SOURCE' as const, scopeId: source.id })),
@@ -214,17 +232,23 @@ export async function readStoredCharacterSheetSection(
 export async function readCharacterSheetStoreState(
   ctx: QueryCtx,
   userId: string,
-  characterId: string
+  characterId: string,
+  reads?: Partial<CharacterSheetFingerprintReads>
 ) {
   const authorized = await readAuthorizedCharacterSheetState(ctx, userId, characterId)
   if (!authorized) return null
   const [derivation, fingerprint] = await Promise.all([
     readDerivationRow(ctx, characterId),
-    readCharacterSheetFingerprint(ctx, {
-      active: authorized.active,
-      hasDraft: authorized.draft !== null,
-      publicId: authorized.route.publicId
-    })
+    readCharacterSheetFingerprint(
+      ctx,
+      {
+        active: authorized.active,
+        hasDraft: authorized.draft !== null,
+        publicId: authorized.route.publicId
+      },
+      undefined,
+      reads
+    )
   ])
   return { current: derivation?.fingerprint === fingerprint, fingerprint }
 }
