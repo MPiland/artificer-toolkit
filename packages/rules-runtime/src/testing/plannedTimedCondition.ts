@@ -40,6 +40,7 @@ export function compiledTestSpellCast(input: {
 }) {
   const { spell, cast } = input
   const built = buildCharacterSpellCastActions({
+    gameSystemId: SRD_SYSTEM_ID,
     spellCastCandidates: [cast],
     spellAccessCandidates: input.spellAccessCandidates ?? [],
     onHitRiders: input.onHitRiders ?? [],

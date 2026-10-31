@@ -446,10 +446,14 @@ describe('room burst cast by a Character who pays a cast modifier for its target
   /** The burst dealing a fixed 10, so a halved success reads as 5. */
   const heavyBurst: SpellAuthored = (() => {
     const spell = structuredClone(emberBurst)
-    const outcome = spell.effects![0]!.paths![0]! as {
+    const [failed, succeeded] = spell.effects![0]!.paths! as {
       resultBlock: { outcomes: Record<string, unknown>[] }
-    }
-    outcome.resultBlock.outcomes = [{ ...outcome.resultBlock.outcomes[0], amount: 10 }]
+    }[]
+    failed!.resultBlock.outcomes = [{ ...failed!.resultBlock.outcomes[0], amount: 10 }]
+    const { levels, scalingSource, ...half } = succeeded!.resultBlock.outcomes[0]!
+    succeeded!.resultBlock.outcomes = [
+      { ...half, valueKind: 'FIXED', scalingKind: 'NONE', amount: 10 }
+    ]
     return { ...spell, id: testUuid(0x7e1), label: 'Heavy Burst' }
   })()
 

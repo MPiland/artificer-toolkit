@@ -44,6 +44,7 @@ import type {
 import type {
   MeasurementUnitCode,
   BreakpointScalingAuthored,
+  CastModifierAuthored,
   ModifierAttackDecoysAuthored,
   ModifierDamageDieAuthored,
   ModifierDamageInterceptionAuthored,
@@ -841,6 +842,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SPELL_SLOT' } satisfies OptionalOnHitAuthored
     case 'sparesCreatures':
       return { base: 1 } satisfies SparesCreaturesAuthored
+    case 'castModifier':
+      return { chargeId: '', cost: 1 } satisfies CastModifierAuthored
+    case 'castModifierTargets':
+      return { outcome: 'SAVE_AUTO_SUCCESS', base: 1 } satisfies NonNullable<
+        CastModifierAuthored['targets']
+      >
     case 'resourceUse':
       return { chargeId: '', cost: 1 } satisfies ResourceUseAuthored
     case 'featureOptionActionReference':

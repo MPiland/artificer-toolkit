@@ -21,6 +21,7 @@ import {
   type CastModifierSource,
   type SparesCreaturesSource
 } from './characterCastModifiers.js'
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { affordablePoolFor } from './characterResourcePool.js'
 import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
 import { dnd5eWithSaveSuccessDamage } from '../systems/dnd5e/spellSaveSuccessDamage.js'
@@ -170,6 +171,7 @@ function withGrantCreatureTypes(
  * are never part of the Sheet's own actions, so they exist only where an Encounter asks for them.
  */
 export function buildCharacterSpellCastActions(input: {
+  gameSystemId: string
   spellCastCandidates: readonly SpellCastCandidate[]
   /** The grants the casts come from, read for what a grant adds to its casts. */
   spellAccessCandidates: readonly SpellAccessCandidate[]
@@ -295,9 +297,13 @@ export function buildCharacterSpellCastActions(input: {
                         outcome: cost.targets.outcome,
                         max: castModifierTargetCap(
                           cost.targets,
-                          (abilityId) =>
+                          (abilityDefinitionId) =>
                             policyOutput.derivedStats.abilities.find(
-                              (entry) => entry.abilityId === abilityId
+                              (entry) =>
+                                entry.abilityId ===
+                                abilityScoreCapabilityRegistry
+                                  .require(input.gameSystemId)
+                                  .abilityCode(abilityDefinitionId)
                             )?.modifier.effective ?? 0
                         )
                       }
@@ -376,6 +382,7 @@ export function compileCharacterSpellCasts(input: {
 }): CharacterSpellCastActions {
   const { gameSystemId, ruleEvaluation, policyOutput, spellsById } = input
   const spellCast = buildCharacterSpellCastActions({
+    gameSystemId,
     spellCastCandidates: ruleEvaluation.facts.spellCastCandidates,
     spellAccessCandidates: ruleEvaluation.facts.spellAccessCandidates,
     castableCandidateIds: listCastableSpellCandidateIds({

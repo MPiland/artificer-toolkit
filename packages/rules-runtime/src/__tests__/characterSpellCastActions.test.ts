@@ -487,6 +487,7 @@ function build(
   slotKeyFor?: Parameters<typeof policyFor>[2]
 ) {
   return buildCharacterSpellCastActions({
+    gameSystemId: SRD_SYSTEM_ID,
     spellCastCandidates: candidates,
     spellAccessCandidates: [],
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
