@@ -15978,9 +15978,11 @@
         {
           "id": "SPELLS-10",
           "title": "Condition mechanics completions",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomConcentration.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -16025,18 +16027,22 @@
             },
             {
               "text": "Concentration saves follow the concentrating creature's conditions: Exhaustion 3 rolls them with disadvantage, and a condition's automatic failure ends concentration.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-10.T4 (m579); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94): concentration takes no condition contributors and binds the outcome rule NONE. Concentration ending on incapacitation is SPELLS-9.1.",
+              "note": "Registered from SPELLS-2 (D94): concentration takes no condition contributors and binds the outcome rule NONE. Concentration ending on incapacitation is SPELLS-9.1. Closed 2026-10-31 by SPELLS-10.T4.",
               "id": "SPELLS-10.5"
             },
             {
               "text": "A Character's Concentration check applies its conditions' save roll modes (for example Exhaustion 3 gives Disadvantage), the same as a Creature holder's.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-10.T4 (m579); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-08 from SPELLS-9.2: Creature Concentration saves take D94 condition contributors through the Creature save rows; the Character Concentration save path takes none.",
+              "note": "Registered 2026-10-08 from SPELLS-9.2: Creature Concentration saves take D94 condition contributors through the Creature save rows; the Character Concentration save path takes none. Closed 2026-10-31 by SPELLS-10.T4.",
               "id": "SPELLS-10.6"
             }
           ],
@@ -16148,7 +16154,7 @@
             },
             {
               "id": "SPELLS-10.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-10.5",
                 "SPELLS-10.6"
@@ -16160,7 +16166,7 @@
                 "size": 5
               },
               "text": "Concentration saves take condition contributors for Creatures and Characters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m579 (562822e23)."
             }
           ]
         },
@@ -18662,7 +18668,7 @@
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Growth to about 13-14 across T4c1b to T4c1b5. Approved by the user on 2026-10-30. Merged in m571 (8cbfc233c). No room test for deferredCleaving across a window: no reachable case."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18677,7 +18683,7 @@
                 ]
               },
               "text": "Save window: the action TEST stop, in its own slice.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m579 (562822e23)."
             },
             {
               "status": "TODO",
@@ -18866,7 +18872,7 @@
                 ]
               },
               "text": "Generic pool option for every pool: an amount source and who splits it, with Lay on Hands and the other pool features moved onto it. Each conversion has an authoring-parity proof and deletes its kind. Split again if this exceeds size 5.",
-              "note": "Split from T4f. Approved by the user on 2026-10-30. T4f2a merged in m578 (1517fcc52): RESOURCE_SPENT heal and Lay on Hands single-target healing. Stays open: the undead/construct filter, 5-point cure, and Preserve Life's divided healing (+6 size) await the user's yes under D187."
+              "note": "Split from T4f. Approved by the user on 2026-10-30. T4f2a merged in m578 (1517fcc52): RESOURCE_SPENT heal and Lay on Hands single-target healing. Stays open: the undead/construct filter, 5-point cure, and Preserve Life's divided healing (size 5 to 9) await the user's yes under D187."
             },
             {
               "id": "SPELLS-31.T4i",
@@ -22204,10 +22210,12 @@
             {
               "id": "SPELLS-35.2",
               "text": "A summon authored to act right after its owner takes its turn immediately after the owner's, in side and individual initiative, and keeps that place across rounds.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-35.T4 (m579); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Closed 2026-10-31 by SPELLS-35.T4."
             },
             {
               "id": "SPELLS-35.3",
@@ -22319,7 +22327,7 @@
             },
             {
               "id": "SPELLS-35.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.2"
               ],
@@ -22334,7 +22342,7 @@
                 ]
               },
               "text": "Right after owner: owner-anchored insert into the order, for side, individual and scored rounds, stable under each-round staging; RESOLVE_ACTION receipt carries the initiative state so undo restores it. Room journey.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Merged in m579 (562822e23)."
             },
             {
               "id": "SPELLS-35.T5",
