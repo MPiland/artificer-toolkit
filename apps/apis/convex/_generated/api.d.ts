@@ -291039,7 +291039,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                  | "ENTER_DICE"
+                  | "SYSTEM_ROLL"
+                  | "D20_WINDOW_DECLINE"
+                  | "D20_WINDOW_USE"
+                  | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
                 caught: Array<string>;
@@ -291075,6 +291079,19 @@ export declare const api: {
                       label: string;
                     }>;
                   };
+                  targetActorId: string;
+                }>;
+                windows: Array<{
+                  actorId: string;
+                  d20: { selectedNatural: number; total: number };
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
                   targetActorId: string;
                 }>;
               }
@@ -291981,7 +291998,11 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<
-                    "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                    | "ENTER_DICE"
+                    | "SYSTEM_ROLL"
+                    | "D20_WINDOW_DECLINE"
+                    | "D20_WINDOW_USE"
+                    | "AREA_LEGENDARY_RESISTANCE"
                   >;
                   casterActorId: string | null;
                   caught: Array<string>;
@@ -292020,6 +292041,19 @@ export declare const api: {
                         label: string;
                       }>;
                     };
+                    targetActorId: string;
+                  }>;
+                  windows: Array<{
+                    actorId: string;
+                    d20: { selectedNatural: number; total: number };
+                    options: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      optionId: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
+                    requestId: string;
                     targetActorId: string;
                   }>;
                 }
@@ -293598,7 +293632,11 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<
-              "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+              | "ENTER_DICE"
+              | "SYSTEM_ROLL"
+              | "D20_WINDOW_DECLINE"
+              | "D20_WINDOW_USE"
+              | "AREA_LEGENDARY_RESISTANCE"
             >;
             casterActorId: string | null;
             caught: Array<string>;
@@ -293631,6 +293669,19 @@ export declare const api: {
                   label: string;
                 }>;
               };
+              targetActorId: string;
+            }>;
+            windows: Array<{
+              actorId: string;
+              d20: { selectedNatural: number; total: number };
+              options: Array<{
+                count: number;
+                faces: 4 | 6 | 8 | 10 | 12;
+                label: string;
+                optionId: string;
+                sign: "ADD" | "SUBTRACT";
+              }>;
+              requestId: string;
               targetActorId: string;
             }>;
           }
@@ -295218,7 +295269,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                  | "ENTER_DICE"
+                  | "SYSTEM_ROLL"
+                  | "D20_WINDOW_DECLINE"
+                  | "D20_WINDOW_USE"
+                  | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
                 caught: Array<string>;
@@ -295254,6 +295309,19 @@ export declare const api: {
                       label: string;
                     }>;
                   };
+                  targetActorId: string;
+                }>;
+                windows: Array<{
+                  actorId: string;
+                  d20: { selectedNatural: number; total: number };
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
                   targetActorId: string;
                 }>;
               }
