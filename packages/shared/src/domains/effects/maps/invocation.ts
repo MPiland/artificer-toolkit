@@ -412,6 +412,22 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         )
       )
       .set(
+        'ridesSpellIds',
+        selectMulti(
+          ['ridesSpellIds'],
+          'Rides only the casts of',
+          {
+            kind: 'DATA',
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
+          },
+          {
+            order: 7,
+            showIf: local.field(['kind']).eq('PASSIVE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'range',
         groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
           presentation: 'inline',
