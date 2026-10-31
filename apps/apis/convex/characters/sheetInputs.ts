@@ -23,6 +23,7 @@ import {
   toCharacterRulePublication
 } from '@artificer-toolkit/rules-runtime/character/contextPreparation'
 import {
+  type CharacterReferencedReads,
   readCharacterPublication,
   readCharacterStoredCompilation,
   readReferencedRoot
@@ -92,7 +93,7 @@ export async function loadCharacterSheetInputs<TRow extends CharacterRecordRow =
   /** The row this transaction just wrote, evaluated without reading it back. */
   written?: TRow,
   referenceSpellIds: readonly string[] = [],
-  ruleInputs?: Parameters<typeof loadCharacterBuilderContext>[6]
+  ruleInputs?: CharacterReferencedReads['ruleInputs']
 ) {
   const authorized = await readAuthorizedCharacterSheetState(
     ctx,
