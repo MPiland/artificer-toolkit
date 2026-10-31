@@ -336,3 +336,16 @@ export const historyMeta = style({
     }
   }
 })
+
+export const afterRollOffers = style({
+  '@layer': {
+    [app]: {
+      bottom: foundationVars.space[6],
+      left: '50%',
+      pointerEvents: 'auto',
+      position: 'fixed',
+      transform: 'translateX(-50%)',
+      zIndex: 30
+    }
+  }
+})

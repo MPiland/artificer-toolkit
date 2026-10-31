@@ -13,6 +13,7 @@ import {
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
 import { chainLightning } from '@artificer-toolkit/source-data/srd/spells/chain-lightning.js'
+import { schoolOfEvocation } from '@artificer-toolkit/source-data/srd/classes/school-of-evocation.js'
 import { eldritchBlast } from '@artificer-toolkit/source-data/srd/spells/eldritch-blast.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
 import { massCureWounds } from '@artificer-toolkit/source-data/srd/spells/mass-cure-wounds.js'
@@ -68,6 +69,7 @@ function healerRoom(config: {
   /** Sheet conditions the Character already carries. */
   characterConditions?: { conditionTypeId: string; label: string }[]
   autoRoll?: 'BOTH'
+  characterClassFeatures?: Parameters<typeof actionRoom>[0]['characterClassFeatures']
   seed?: Parameters<typeof actionRoom>[0]['seed']
 }) {
   const wolfIds = config.wolfIds ?? WOLF_IDS.slice(0, 3)
@@ -98,6 +100,7 @@ function healerRoom(config: {
     rolls: config.rolls,
     fallbackRoll: 5,
     ...(config.autoRoll && { autoRoll: config.autoRoll }),
+    ...(config.characterClassFeatures && { characterClassFeatures: config.characterClassFeatures }),
     ...(config.seed && { seed: config.seed })
   })
 }
@@ -909,4 +912,59 @@ describe('room cast of rays on chosen creatures (Scorching Ray, Eldritch Blast, 
     },
     120000
   )
+})
+
+describe('room cast of a cantrip by a Character with Potent Cantrip (SPELLS-31.T5i4)', () => {
+  const [wolf] = WOLF_IDS as [string]
+  const potentCantrip = () => {
+    const feature = schoolOfEvocation.features?.find(({ label }) => label === 'Potent Cantrip')
+    if (!feature?.grants) throw new Error('The SRD School of Evocation must author Potent Cantrip.')
+    return { ...feature, availableAtLevel: 1, order: 0 }
+  }
+  const splash = (withFeature: boolean) =>
+    healerRoom({
+      spell: acidSplash,
+      label: 'Acid Splash',
+      // The 2d6 acid: the raw 2 and 3 are a 3 and a 4, rolled once for the cast.
+      rolls: [2, 3],
+      wolfIds: [wolf],
+      wolfHitPoints: 20,
+      characterLevel: 5,
+      characterClassFeatures: withFeature ? [potentCantrip()] : []
+    })
+  async function saveAgainstSplash(room: HealerRoom, face: number) {
+    const { answer } = await room.startActorsAction([wolf], [], true)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    const [save] = decision.pending.saves
+    if (!save) throw new Error('The creature has no pending save.')
+    const resolved = await room.send(
+      room.resolveCommand(decision, {
+        kind: 'ENTER_DICE',
+        requestId: save.request.requestId,
+        rawFaces: [face],
+        rollMode: save.request.rollMode
+      })
+    )
+    expect(resolved.type, JSON.stringify(resolved)).toBe('COMMAND_COMMITTED')
+  }
+
+  it('burns a creature that saves for half the acid, where it would take none', async () => {
+    const room = await splash(true)
+    await saveAgainstSplash(room, 20)
+    expect(await hitPointsOf(room)).toMatchObject({ [wolf]: 20 - 3 })
+  }, 120000)
+
+  it('burns a creature that fails for the full acid', async () => {
+    const room = await splash(true)
+    await saveAgainstSplash(room, 1)
+    expect(await hitPointsOf(room)).toMatchObject({ [wolf]: 20 - 7 })
+  }, 120000)
+
+  it('leaves a creature that saves unburned without the feature', async () => {
+    const room = await splash(false)
+    await saveAgainstSplash(room, 20)
+    expect(await hitPointsOf(room)).toMatchObject({ [wolf]: 20 })
+  }, 120000)
 })

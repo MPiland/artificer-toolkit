@@ -14,6 +14,7 @@ import { CampaignTabletopButton } from '#domains/campaigns/vtt/CampaignTabletopB
 import { CharacterSheetHero } from '../hero/CharacterSheetHero'
 import { CharacterSheetInspector } from '../inspector/CharacterSheetInspector'
 import { CharacterSheetManualRoll } from '../dice/CharacterSheetManualRoll'
+import { CharacterSheetRollAfterRoll } from '../dice/CharacterSheetRollAfterRoll'
 import { CharacterSheetRollHistory } from '../dice/CharacterSheetRollHistory'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import {
@@ -187,6 +188,7 @@ export function CharacterSheetView({
 
   function dismissPresentedRoll(event: MouseEvent<HTMLDivElement>) {
     if (!rollPresentation.presentedRoll && !rollPresentation.presentationPending) return
+    if (event.target instanceof Element && event.target.closest('[data-roll-offer]')) return
     const discard =
       rollPresentation.presentationPending ||
       (rollPresentation.presentedRoll !== undefined &&
@@ -213,6 +215,15 @@ export function CharacterSheetView({
               pending={rolls.pending}
               roll={rollPresentation.presentedRoll}
             />
+            {rollPresentation.presentedRoll?.afterRollOffers &&
+            rollPresentation.presentedRoll.id === revealedRollId ? (
+              <CharacterSheetRollAfterRoll
+                offers={rollPresentation.presentedRoll.afterRollOffers}
+                pending={rollPresentation.afterRollPending}
+                onAdd={(offer) => void rollPresentation.addAfterRollDie(offer)}
+                onKeep={() => void rollPresentation.keepRoll()}
+              />
+            ) : null}
             <div className={coreStyles.sheetTopGrid}>
               <CharacterSheetHero
                 campaignActions={

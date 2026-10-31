@@ -9,6 +9,7 @@ import {
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
+  SCALING_AMOUNT_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
@@ -78,21 +79,51 @@ export const schoolOfEvocation: ClassAuthored = {
         "Starting at 6th level, your damaging cantrips affect even creatures that avoid the brunt of the effect. When a creature succeeds on a saving throw against your cantrip, the creature takes half the cantrip's damage (if any) but suffers no additional effect from the cantrip.",
       availableAtLevel: 6,
       order: 2,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(WZ, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(WZ, 21, 3), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(WZ, 20, 3),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE,
+            domain: { attackDomain: 'SPELL' as const },
+            modifierKind: MODIFIER_KIND.SAVE_SUCCESS_DAMAGE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { amountKind: SCALING_AMOUNT_KIND.HALF },
+            order: 0,
+            // Every cantrip you cast: the success path adds only the cantrip's damage, which is
+            // the "no additional effect" clause.
+            restrictions: {
+              id: classRowId(WZ, 21, 3),
+              groups: [
+                {
+                  id: classRowId(WZ, 0x30, 4),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(WZ, 0x30, 5),
+                      order: 0,
+                      subject: 'SPELL' as const,
+                      authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                      conditions: [
+                        {
+                          id: classRowId(WZ, 0x30, 6),
+                          order: 0,
+                          kind: 'PREDICATE' as const,
+                          constraint: 'INCLUDE' as const,
+                          predicateCode: 'SPELL_LEVEL' as const,
+                          min: 0,
+                          max: 0
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_POTENT_CANTRIP
-        })
-      ]
+          }
+        ]
+      }
     },
     {
       id: classRowId(WZ, 11, 4),

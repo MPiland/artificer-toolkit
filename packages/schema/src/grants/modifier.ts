@@ -27,6 +27,7 @@ import {
   modifierScopeKindSchema,
   modifierValueKindSchema,
   rangeKindSchema,
+  scalingAmountKindSchema,
   scalingKindSchema,
   shapeKindSchema
 } from '../shared/enums.js'
@@ -454,6 +455,10 @@ const damageTypePayloadDtoSchema = lazySchema(() =>
   z.strictObject({ damageTypeId: authoredIdentifierSchema })
 )
 
+const saveSuccessDamagePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ amountKind: z.literal(scalingAmountKindSchema._zod.def.entries.HALF) })
+)
+
 const damageDieShape = () => ({
   ...rolledDieShape(),
   recipient: z.enum(['HOLDER_DEALS', 'SOURCE_DEALS_TO_HOLDER']),
@@ -642,6 +647,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     movementModePayloadDtoSchema,
     movementPassagePayloadDtoSchema,
     rangeReplacementPayloadDtoSchema,
+    saveSuccessDamagePayloadDtoSchema,
     durationSetValuePayloadDtoSchema,
     durationKindPayloadDtoSchema,
     shapeKindPayloadDtoSchema,
@@ -1030,6 +1036,12 @@ const buildModifierGrantVariants = () =>
       'REPLACE_DAMAGE_TYPE',
       attackDomainParamDtoSchema,
       damageTypePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DAMAGE',
+      'SAVE_SUCCESS_DAMAGE',
+      attackDomainParamDtoSchema,
+      saveSuccessDamagePayloadDtoSchema
     ),
     buildModifierGrantVariant(
       'DAMAGE_RESISTANCE',

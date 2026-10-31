@@ -11,6 +11,8 @@ import { characterProgressionCapabilityRegistry } from '../platformPolicyModules
 import {
   abilityCheckMinimumRoll,
   activeAbilityCheckDice,
+  activeAfterRollAbilityCheckDice,
+  activeAfterRollSavingThrowDice,
   activeSavingThrowDice
 } from './activeEffectGrantTotals.js'
 
@@ -201,7 +203,8 @@ export function resolveCharacterSheetRoll(
  * throw (Guidance, Resistance), the effects the test spends: those whose die applied to its
  * ability (D156), and the floor a check's d20 takes from those effects and the Character's own
  * features (Glibness, Reliable Talent). An attack or damage roll adds the dice its Sheet row
- * carries; any other roll adds none.
+ * carries; any other roll adds none. A die held for after the roll (D168) joins neither the roll nor
+ * `spent`: it is offered once the d20 is seen, and spent only if the roller uses it.
  */
 export function carriedTestDice(
   resolved: ResolvedRoll,
@@ -209,13 +212,16 @@ export function carriedTestDice(
   character: NonNullable<Parameters<typeof abilityCheckMinimumRoll>[0]['character']>
 ) {
   const { abilityCode } = resolved
-  if (resolved.addedDice) return { addedDice: resolved.addedDice, spent: [], minimumRoll: null }
-  if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
+  if (resolved.addedDice)
+    return { addedDice: resolved.addedDice, spent: [], minimumRoll: null, afterRollOffers: [] }
+  if (abilityCode === undefined)
+    return { addedDice: [], spent: [], minimumRoll: null, afterRollOffers: [] }
   if (resolved.source.kind === 'SAVING_THROW')
     return {
       addedDice: activeSavingThrowDice(activeEffects, abilityCode),
       spent: savingThrowSpentEffects(activeEffects, abilityCode),
-      minimumRoll: null
+      minimumRoll: null,
+      afterRollOffers: activeAfterRollSavingThrowDice(activeEffects, abilityCode)
     }
   return {
     addedDice: activeAbilityCheckDice(activeEffects, abilityCode),
@@ -228,6 +234,7 @@ export function carriedTestDice(
       character,
       abilityCode,
       proficient: resolved.proficient === true
-    })
+    }),
+    afterRollOffers: activeAfterRollAbilityCheckDice(activeEffects, abilityCode)
   }
 }

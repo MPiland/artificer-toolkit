@@ -1,4 +1,9 @@
-import { rollRecordDtoSchema, type RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
+import {
+  rollRecordDtoSchema,
+  type RollAfterRollOfferDto,
+  type RollRecordDto,
+  type RollSourceDto
+} from '@artificer-toolkit/schema/api/rolls'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
@@ -25,6 +30,8 @@ export function createRollRecord(input: {
   addedDice?: readonly D20AddedDieDto[]
   /** The floor on the d20 the roll keeps (Glibness); the record raises a lower face to it. */
   minimumRoll?: D20MinimumRollDto
+  /** Dice the roller holds for after the d20 (D168); the record offers them and rolls none. */
+  afterRollOffers?: readonly RollAfterRollOfferDto[]
   nextInt: (maxExclusive: number) => number
 }) {
   const { system, resolved } = input
@@ -55,6 +62,48 @@ export function createRollRecord(input: {
     ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
     ...evaluated,
     ...(ruleCheck && { ruleCheck }),
+    ...(input.afterRollOffers?.length && { afterRollOffers: input.afterRollOffers }),
     createdAt: new Date().toISOString()
   })
+}
+
+function omitOffers(record: RollRecordDto) {
+  const settled = { ...record }
+  delete settled.afterRollOffers
+  return settled
+}
+
+/**
+ * The record with one of its offered dice rolled and added (D168), in the order a die rolled with
+ * the d20 would be. The die's effect is spent by the caller; every offer that effect held is used up,
+ * and the record offers nothing once none is left.
+ */
+export function withAfterRollDie(
+  record: RollRecordDto,
+  offer: RollAfterRollOfferDto,
+  nextInt: (maxExclusive: number) => number
+): RollRecordDto {
+  const { normalizedExpression, evidence } = withAddedDiceTerms(record, [
+    {
+      label: offer.label,
+      count: offer.count,
+      faces: offer.faces,
+      sign: offer.sign,
+      rolledFaces: Array.from({ length: offer.count }, () => nextInt(offer.faces) + 1)
+    }
+  ])
+  const remaining = (record.afterRollOffers ?? []).filter(
+    ({ effectId }) => effectId !== offer.effectId
+  )
+  return rollRecordDtoSchema.parse({
+    ...omitOffers(record),
+    normalizedExpression,
+    evidence,
+    ...(remaining.length > 0 && { afterRollOffers: remaining })
+  })
+}
+
+/** The record with its offers withdrawn: the roller kept the roll as rolled. */
+export function withoutAfterRollOffers(record: RollRecordDto): RollRecordDto {
+  return rollRecordDtoSchema.parse(omitOffers(record))
 }
