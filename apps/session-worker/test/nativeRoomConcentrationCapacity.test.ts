@@ -14,8 +14,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
-import { actionRoom } from './actionRoomFixture.js'
+import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { dependentEffectDefinition } from './movementRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
@@ -109,8 +110,9 @@ const capacityItem: EquipmentAuthored = {
   }))
 }
 
-function wardRoom(equipment: readonly EquipmentAuthored[]) {
+function wardRoom(equipment: readonly EquipmentAuthored[], seed?: ActionRoomConfig['seed']) {
   return actionRoom({
+    seed,
     autoRoll: 'BOTH',
     actors: [
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
@@ -196,5 +198,31 @@ describe('Concentration capacity (SPELLS-12.T1)', () => {
       reason: 'MAINTAINED_REPLACEMENT_REQUIRED'
     })
     expect(await heldStateIds(room)).toHaveLength(2)
+  })
+
+  it('ends a carried grant of the caster only when a Concentration is replaced, not with room', async () => {
+    const carriedId = testUuid(0xe700)
+    const room = await wardRoom([capacityItem], async ({ effects, encounterId, occurredAt }) => {
+      await effects.create({
+        id: carriedId,
+        owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: FIGHTER_ACTOR_ID },
+        lifecycle: {
+          schemaVersion: 1,
+          remainingTicks: 3,
+          concentrationCasterCharacterId: FIGHTER_ID
+        },
+        definition: dependentEffectDefinition({ encounterId, sourceActorId: FIGHTER_ACTOR_ID }),
+        occurredAt
+      })
+    })
+    const carried = async () =>
+      (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
+    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect(await carried()).toContain(carriedId)
+    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect(await carried()).toContain(carriedId)
+    const [first] = await heldStateIds(room)
+    expect((await cast(room, 'Third Ward', first)).answer.type).toBe('COMMAND_COMMITTED')
+    expect(await carried()).not.toContain(carriedId)
   })
 })

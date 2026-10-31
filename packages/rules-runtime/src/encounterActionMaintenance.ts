@@ -144,9 +144,10 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     : { state: null, dependents: [] }
   const prior = slot.state
   const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
+  // Carried grants (D99) ride the caster's Concentration, so they end only when one is replaced.
   const carried = planConcentrationCarriedGrantEnds({
     casterCharacterId: casterCharacterId ?? '',
-    effects: casterCharacterId && input.readCarried ? await input.readCarried() : []
+    effects: casterCharacterId && replaced && input.readCarried ? await input.readCarried() : []
   })
   const byOwnerOrder = (left: ActiveRuleEffectRecord, right: ActiveRuleEffectRecord) => {
     const key = (effect: ActiveRuleEffectRecord) =>
