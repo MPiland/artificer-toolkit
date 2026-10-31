@@ -109,7 +109,7 @@ async function characterHolding(spell: HeldSpell, change?: Parameters<typeof hel
   }
 }
 
-const d4Terms = (record: { evidence: { terms: readonly { die: number }[] } }) =>
+const d4Terms = <Term extends { die: number }>(record: { evidence: { terms: readonly Term[] } }) =>
   record.evidence.terms.filter(({ die }) => die === 4)
 
 /** D168: a die the Character holds for after the roll is offered once the d20 is seen, not rolled with it. */
