@@ -76,7 +76,8 @@ export function collectOnHitRiders(
  *
  * A rider scoped to one Feature rides only that Feature's attacks, and joins the result block of the
  * attack's first `ON_HIT` damage as one sequence with it, so its damage and its follow-up save
- * resolve as part of the hit (D164 Charge). A rider scoped to Spells rides only the cast of one of
+ * resolve as part of the hit (D164 Charge). A rider that calls a follow-up save joins the hit the
+ * same way, scoped or not (Stunning Strike). A rider scoped to Spells rides only the cast of one of
  * them, and `castSpellId` names the Spell a cast is of (a Feature's attack names none).
  */
 export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
@@ -104,6 +105,12 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     ...effect.entries.map((entry) => entry.entryOrder),
     weaponDamage.entryOrder
   )
+  // A Feature-scoped rider, or any rider beside a rider that calls a save, resolves as part of the hit.
+  const joinsHit = matching.some(
+    (rider) =>
+      rider.ridesFeatureId !== undefined ||
+      rider.entries.some((entry) => entry.outcome.effectKind === 'FOLLOW_UP_SAVE')
+  )
   // A Feature acquired from two sources collects twice; its rider still applies once.
   const merged = [
     ...new Map(
@@ -120,11 +127,11 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     ...(rider.optionalOnHit
       ? { optionalRider: { riderId: rider.riderId, cost: rider.optionalOnHit } }
       : {}),
-    ...(rider.ridesFeatureId !== undefined
+    ...(joinsHit
       ? { resultBlockId: weaponDamage.resultBlockId, groupKind: 'SEQUENTIAL' as const }
       : {})
   }))
-  const sequenced = matching.some((rider) => rider.ridesFeatureId !== undefined)
+  const sequenced = joinsHit
     ? effect.entries.map((entry) =>
         'resultBlockId' in entry && entry.resultBlockId === weaponDamage.resultBlockId
           ? { ...entry, groupKind: 'SEQUENTIAL' as const }
