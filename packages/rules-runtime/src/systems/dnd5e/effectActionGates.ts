@@ -30,7 +30,7 @@ export type Dnd5eAuthoredGates = {
   /** A band computed by the compiler (a hit-point tier's), standing in for an authored gate. */
   hitPointBand?: { above: number; atMost: number }
   /** The cap of an authored challenge rating gate, once the compiler has chosen the scaling row the source's level reaches. */
-  challengeRatingCap?: number
+  challengeRatingCap?: number | undefined
   /** The node of the damage proposal the entry follows, resolved by the compiler from an authored `REDUCED_TO_ZERO_BY` gate. */
   reducedToZeroByNodeId?: string
   suppressedByDamageTypeIds?: readonly string[]
@@ -310,6 +310,27 @@ export function refuseUnboundGate(gates: Dnd5eAuthoredGates, outcomeKind: string
     unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
 }
 
+/**
+ * The gates a direct entry authors on its outcome, when it authors any. A direct outcome has no test
+ * path to follow or scale with, so a gate that needs one is refused rather than skipped.
+ */
+export function directGates(
+  entry: CompiledEffectGroup['entries'][number] | undefined
+): Dnd5eAuthoredGates | undefined {
+  const gates = entry?.resolutionKind === 'DIRECT' && isGated(entry) ? entry : undefined
+  if (
+    gates?.gate?.kind === 'REDUCED_TO_ZERO_BY' ||
+    gates?.gate?.kind === 'TARGET_CHALLENGE_RATING_AT_MOST'
+  )
+    unsupported('D&D reduced-to-0 and challenge rating gates belong to a test path.')
+  return gates
+}
+
+/** Refuses a plan that carries the direct entry's gates but binds none of them. */
+export function refuseDirectGates(gates: Dnd5eAuthoredGates | undefined): void {
+  if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
+}
+
 export function isGated(entry: Dnd5eAuthoredGates): boolean {
   return (
     entry.gate !== undefined ||
@@ -367,7 +388,7 @@ export function gateEvidenceIsValid(
 /** The facts a published graph's gate inputs read; a gate the graph does not bind adds none. */
 export function gateFacts(
   graph: Pick<CompiledRuleGraph, 'nodes'>,
-  target: { targetDamageTypesTaken?: readonly string[]; targetChallengeRating?: number }
+  target: { targetDamageTypesTaken?: readonly string[]; targetChallengeRating?: number | undefined }
 ): Record<string, RuleValue> {
   return {
     ...(graph.nodes.some((node) => node.inputs.targetDamageTypesTaken !== undefined)
@@ -402,7 +423,14 @@ export function challengeRatingGateCap(
   return row?.value.maxChallengeRating ?? gate.maxChallengeRating
 }
 
-/** Whether an entry authors a challenge rating gate, whatever cap the source's level reaches. */
-export function hasChallengeRatingGate(entry: CompiledEffectGroup['entries'][number]): boolean {
-  return 'gate' in entry && entry.gate?.kind === 'TARGET_CHALLENGE_RATING_AT_MOST'
+/** Whether the entry is owed at the source's level: a challenge rating gate that reaches no cap owes nothing. */
+export function challengeRatingGateOwed(
+  entry: CompiledEffectGroup['entries'][number],
+  facts: Dnd5eEffectScalingFacts
+): boolean {
+  const gate = 'gate' in entry ? entry.gate : undefined
+  return (
+    gate?.kind !== 'TARGET_CHALLENGE_RATING_AT_MOST' ||
+    challengeRatingGateCap(gate, facts) !== undefined
+  )
 }

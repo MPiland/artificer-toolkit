@@ -122,6 +122,8 @@ describe('Destroy Undead challenge rating by Cleric level (D202)', () => {
   const capAt = (level: number) =>
     challengeRatingGateCap(destroyGate(), {
       classLevels: { [cleric.id]: level },
+      resolvedDamageExpressions: {},
+      resolvedDamageOutcomeExpressions: {},
       selectedOptionalRiderIds: [],
       attackRollMode: 'NORMAL'
     })
