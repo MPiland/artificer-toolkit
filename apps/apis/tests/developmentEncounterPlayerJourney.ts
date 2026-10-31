@@ -209,8 +209,8 @@ export async function startPlayerEncounterJourney({
           {
             id: extraCreature.id,
             label: extraCreature.label,
-            x: 400,
-            y: 100,
+            x: 100,
+            y: 200,
             controlledByUserIds: [],
             tokenId: crypto.randomUUID()
           }

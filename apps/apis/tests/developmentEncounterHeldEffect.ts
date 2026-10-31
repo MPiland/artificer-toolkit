@@ -125,7 +125,7 @@ export async function verifyEncounterHeldEffect({
       map: { width: 600, height: 300 },
       hero: { label: hero.label },
       marked: { label: marked.label },
-      next: { label: next.label, x: 400, y: 100 }
+      next: { label: next.label, x: 100, y: 200 }
     },
     async (controls) => {
       assert.equal((await readProjection()).currentActorId, hero.id)
