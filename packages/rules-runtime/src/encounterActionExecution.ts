@@ -42,7 +42,11 @@ import {
 } from './encounterActionSaveWindow.js'
 import type { EncounterD20WindowHeldDie } from './encounterD20Window.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
-import { actionResponse, settleEncounterD20Answer } from './encounterD20Settlement.js'
+import {
+  actionResponse,
+  settleEncounterD20Answer,
+  type SettledActionResponse
+} from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {
   ruleExecutionPhaseReceiptsDtoSchema,
@@ -431,6 +435,8 @@ async function requireNativeTestBoundary(input: {
     continuation: boundary.continuation,
     natural: boundary.d20.selectedNatural,
     addedDice: boundary.d20.addedDice ?? [],
+    // A holder's window may have added no die; the retained execution below proves what was asked.
+    mayAddDice: true,
     resume: (step) => input.source.runtime.resume(step)
   })
   if (checksumRuleDocument(replayed) !== checksumRuleDocument(boundary.execution))
@@ -441,9 +447,14 @@ async function requireNativeTestBoundary(input: {
 /** Seals only the TEST phase so a server-owned interstitial can choose its legal OUTCOME. */
 export async function prepareNativeActionTest(
   input: NativeActionBaseInput & {
-    resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+    resume?: {
+      pending: ResumedNativeActionGraphs
+      resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+    }
     /** The true and believed sight of the attack roll, as in `advanceNativeActionGraphs`. */
     attackSight?: EncounterPreparedAttackSight | null
+    /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
+    saveWindow?: { heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[] }
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
@@ -456,7 +467,49 @@ export async function prepareNativeActionTest(
   let modeAdjustment: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
   let addedDice: D20RolledAddedDieDto[] = []
   let policy: ServerRuleExecutionD20PolicyDto | null = null
+  let mayAddDice = false
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
+  const testPhase = {
+    phase: 'TEST' as const,
+    compilerSourceChecksum: current.plan.compilerSource.compilerSourceChecksum,
+    testTemplateChecksum: current.plan.test.template.checksum,
+    boundFactsChecksum: current.factsChecksum
+  }
+
+  /** A rolled save that a held die could still change is shown to its target before the save resolves. */
+  async function windowRolledSave(
+    rolledContinuation: ServerRuleExecutionContinuationDto,
+    rolledPolicy: ServerRuleExecutionD20PolicyDto,
+    response: SettledActionResponse,
+    appRollId: string | null
+  ) {
+    const heldDice = rolledPolicy.savingThrowAbilityDefinitionId
+      ? (input.saveWindow?.heldDice(rolledPolicy.savingThrowAbilityDefinitionId) ?? [])
+      : []
+    mayAddDice = heldDice.length > 0
+    const window =
+      mayAddDice && !attackSight
+        ? await openActionSaveWindow({
+            runtime: input.runtime,
+            occurrenceId: input.occurrenceId,
+            gameSystemId: current.published.gameSystemId,
+            continuation: rolledContinuation,
+            policy: rolledPolicy,
+            response,
+            appRollId,
+            heldDice
+          })
+        : null
+    return window
+      ? {
+          kind: 'PENDING' as const,
+          ...window,
+          d20Policy: null,
+          twoPhase: testPhase,
+          roller: 'TARGET' as const
+        }
+      : null
+  }
 
   if (!input.resume) {
     result = await input.runtime.executeResolved({
@@ -478,33 +531,46 @@ export async function prepareNativeActionTest(
       pending.twoPhase.boundFactsChecksum !== current.factsChecksum
     )
       throw new Error('The native action TEST evidence is stale.')
+    // A window holds its save as it paused before the roll; the window's answer resumes that request.
+    const windowed = heldWindowedSave(pending.pause, input.resume.resolution)
+    const heldContinuation = windowed ? windowed.continuation : pending.continuation
     requireActionContinuation({
-      continuation: pending.continuation,
+      continuation: heldContinuation,
       occurrenceId: input.occurrenceId,
       published: current.published,
       facts: current.bound.facts
     })
     policy = actionD20Policy({
       phase: 'TEST',
-      continuation: pending.continuation,
+      continuation: heldContinuation,
       bound: current.bound,
       twoPhase: pending.twoPhase
     })
-    if (!policy || checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
+    if (
+      !policy ||
+      (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
+    )
       throw new Error('The native action TEST policy is stale.')
-    const sight = sightGovernedStageD20({
-      attackSight,
-      policy,
-      stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
-    })
-    const response = actionResponse({
-      gameSystemId: current.published.gameSystemId,
-      continuation: pending.continuation,
-      policy,
-      resolution: input.resume.resolution,
-      random,
-      sightGoverned: sight
-    })
+    const { resolution } = input.resume
+    const sight =
+      resolution.kind === 'D20_WINDOW'
+        ? null
+        : sightGovernedStageD20({
+            attackSight,
+            policy,
+            stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
+          })
+    const response =
+      resolution.kind === 'D20_WINDOW'
+        ? windowedSaveResponse({ continuation: heldContinuation, policy, d20: resolution.d20 })
+        : actionResponse({
+            gameSystemId: current.published.gameSystemId,
+            continuation: pending.continuation,
+            policy,
+            resolution,
+            random,
+            sightGoverned: sight
+          })
     if (response.kind === 'NEEDS_EXTRA_D20')
       return {
         kind: 'PENDING',
@@ -520,16 +586,26 @@ export async function prepareNativeActionTest(
         ...(pending.d20Belief ? { d20Belief: pending.d20Belief } : {}),
         heldD20: heldStageD20(response.heldFace, sight)
       }
-    continuation = pending.continuation
+    if (resolution.kind !== 'D20_WINDOW') {
+      const window = await windowRolledSave(
+        pending.continuation,
+        policy,
+        response,
+        resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
+      )
+      if (window) return window
+    } else mayAddDice = true
+    continuation = heldContinuation
     faces = response.faces
     rollMode = response.rollMode
     keep = response.keep
     modeAdjustment = response.modeAdjustment
     addedDice = response.addedDice
     result = await resumeEncounterD20({
-      continuation: pending.continuation,
+      continuation,
       natural: response.value,
       addedDice,
+      mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })
   }
@@ -539,12 +615,7 @@ export async function prepareNativeActionTest(
       phase: 'TEST',
       continuation: result.continuation,
       bound: current.bound,
-      twoPhase: {
-        phase: 'TEST',
-        compilerSourceChecksum: current.plan.compilerSource.compilerSourceChecksum,
-        testTemplateChecksum: current.plan.test.template.checksum,
-        boundFactsChecksum: current.factsChecksum
-      }
+      twoPhase: testPhase
     })
     if (!pendingPolicy) throw new Error('The native action TEST requested unsupported evidence.')
     const roller = actionRequestRoller({
@@ -565,12 +636,7 @@ export async function prepareNativeActionTest(
         continuation: result.continuation,
         d20Policy: pendingPolicy,
         roller,
-        twoPhase: {
-          phase: 'TEST',
-          compilerSourceChecksum: current.plan.compilerSource.compilerSourceChecksum,
-          testTemplateChecksum: current.plan.test.template.checksum,
-          boundFactsChecksum: current.factsChecksum
-        },
+        twoPhase: testPhase,
         ...(d20Belief ? { d20Belief } : {})
       }
     }
@@ -581,6 +647,8 @@ export async function prepareNativeActionTest(
       resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
+    const window = await windowRolledSave(result.continuation, pendingPolicy, automatic, null)
+    if (window) return window
     continuation = result.continuation
     faces = automatic.faces
     rollMode = automatic.rollMode
@@ -591,6 +659,7 @@ export async function prepareNativeActionTest(
       continuation: result.continuation,
       natural: automatic.value,
       addedDice,
+      mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })
   }

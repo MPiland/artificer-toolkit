@@ -439,12 +439,15 @@ export async function planNativeLiveEncounterAction(
           dependencies,
           revisions
         }
-      if (!evidenceResolution) throw new Error('The pending area action is unavailable.')
+      const areaResolution =
+        evidenceResolution ?? (await settledActionSaveWindow(pauseAnswer, executionOptions))
+      if (!snapshot || !areaResolution) throw new Error('The pending area action is unavailable.')
       return {
         ...(await planNativeLiveEncounterAreaAnswer({
           ...areaInput,
           response: responseCommand,
-          resolution: evidenceResolution,
+          requestId: snapshot.request.requestId,
+          resolution: areaResolution,
           areaSnapshot
         })),
         dependencies,

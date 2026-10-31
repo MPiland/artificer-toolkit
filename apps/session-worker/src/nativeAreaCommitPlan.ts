@@ -30,6 +30,7 @@ import {
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
+import { windowSpentEffects } from './nativeActionSaveWindow.js'
 import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
 import type {
@@ -195,6 +196,12 @@ export async function planAreaOutcomes(args: {
       occurredAt
     }
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
+    // A die the creature's d20 window spent on its save is used up with the action.
+    for (const spent of windowSpentEffects(
+      complete,
+      input.activeEffectsByActorId.get(actor.id) ?? []
+    ))
+      damageEndedEffects.set(spent.id, spent)
     const damageEnded = targetEndedEffects({
       holderActorId: actor.id,
       held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
