@@ -200,7 +200,7 @@ describe('Concentration capacity (SPELLS-12.T1)', () => {
     expect(await heldStateIds(room)).toHaveLength(2)
   })
 
-  it('ends a carried grant of the caster only when a Concentration is replaced, not with room', async () => {
+  it('keeps a carried grant of the caster while room remains beside it and ends it once none does', async () => {
     const carriedId = testUuid(0xe700)
     const room = await wardRoom([capacityItem], async ({ effects, encounterId, occurredAt }) => {
       await effects.create({
@@ -220,9 +220,6 @@ describe('Concentration capacity (SPELLS-12.T1)', () => {
     expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
     expect(await carried()).toContain(carriedId)
     expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
-    expect(await carried()).toContain(carriedId)
-    const [first] = await heldStateIds(room)
-    expect((await cast(room, 'Third Ward', first)).answer.type).toBe('COMMAND_COMMITTED')
     expect(await carried()).not.toContain(carriedId)
   })
 })
