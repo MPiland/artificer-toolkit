@@ -16276,7 +16276,7 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Open at return: oldest ends or caster chooses (orchestrator recommends choose)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect."
             },
             {
               "id": "SPELLS-12.T2",
