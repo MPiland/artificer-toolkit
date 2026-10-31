@@ -3805,7 +3805,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         temporaryHitPoints,
         maximumHitPoints,
         scalarValues: targetScalarValues,
-        conditionIds: targetConditionIds
+        conditionIds: [...targetConditionIds].sort()
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
