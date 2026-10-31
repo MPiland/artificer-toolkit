@@ -30,6 +30,13 @@ const WOLF_ID = testUuid(0xb22)
 const HIT_FACE = 18
 const LOWEST_FACE = 0
 
+/** The SRD Monk's Stunning Strike, reached at the level 5 Monk this room's Character is. */
+const stunningStrike = (() => {
+  const feature = monk.features?.find(({ label }) => label === 'Stunning Strike')
+  if (!feature) throw new Error('The SRD Stunning Strike is missing.')
+  return feature
+})()
+
 const stunnedId = srdSystemRecord.conditionTypes.find(({ code }) => code === 'STUNNED')!.id
 
 afterEach(() => {
@@ -45,6 +52,7 @@ const monkRoom = () =>
       characterActor({ id: MONK_ACTOR_ID, characterId: MONK_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
+    characterClassFeatures: [stunningStrike],
     characterPlay: { equipped: true, characterClass: monk, classLevel: 5 },
     characterAction: (action) => action.label.includes('Club')
   })
