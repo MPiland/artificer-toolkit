@@ -103,7 +103,7 @@ describe('cloneAuthoredItem canonical authored corpus conformance', () => {
     }
 
     expect(Object.keys(srdBaselineContent.subjects)).toHaveLength(8)
-    expect(itemCount).toBe(1057)
+    expect(itemCount).toBe(1058)
     expect(itemCount).toBeGreaterThan(0)
     expect(ownedIdCount).toBeGreaterThan(0)
     expect(referenceCount).toBeGreaterThan(0)

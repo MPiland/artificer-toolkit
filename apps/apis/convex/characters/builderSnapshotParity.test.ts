@@ -283,8 +283,10 @@ describe('Builder resolution from content snapshots', () => {
     const results = []
     for (const intent of scenarios) results.push(await expectParity(intent))
     const [fighterResult, wizardResult, , , homebrewResult, lossResult] = results
-    // Documents load per kind as evaluation reads them: a Fighter never fetches Spells or Creatures.
-    expect(new Set(fighterResult!.loadedKinds)).toEqual(new Set(['RACE', 'CLASS', 'BACKGROUND']))
+    // Documents load per kind as evaluation reads them: a Fighter never fetches Spells or Creatures, and reads the System's Unarmed Strike Equipment.
+    expect(new Set(fighterResult!.loadedKinds)).toEqual(
+      new Set(['RACE', 'CLASS', 'BACKGROUND', 'EQUIPMENT'])
+    )
     // The Spell picker reads index entries; Spell documents load only for referenced Spells.
     expect(new Set(wizardResult!.loadedKinds)).not.toContain('SPELL')
     // ADR 0036 S6 gate: warm evaluation p95 at most 100 ms over the corpus, as a Node proxy.

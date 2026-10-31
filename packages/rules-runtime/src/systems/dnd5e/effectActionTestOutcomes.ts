@@ -336,3 +336,19 @@ function validateDiceOutcomeRow(outcome: CompiledDiceDamageEffect): void {
   }
   parseBoundedDiceConfiguration(outcome.dice)
 }
+
+/**
+ * A fixed weapon amount rolls dice only when a grant sets the weapon die (a monk's d4 for the unarmed
+ * strike's 1); the source's resolved expression is that die plus its modifiers.
+ */
+export function fixedAmountDiceConfiguration(
+  facts: Dnd5eEffectScalingFacts,
+  outcomeId: string,
+  optionalRider: boolean
+): string {
+  const resolved = facts.resolvedDamageOutcomeExpressions[outcomeId]
+  const die = optionalRider ? undefined : facts.weaponDamageDieFaces
+  if (resolved === undefined || !die || parseBoundedDiceConfiguration(resolved).term.die !== die)
+    unsupported('D&D resolved damage expression does not match the authored fixed amount.')
+  return resolved
+}

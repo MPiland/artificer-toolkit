@@ -81,6 +81,7 @@ import {
   specializedTestOutcome,
   fixedHealAmount,
   healDiceConfiguration,
+  fixedAmountDiceConfiguration,
   positiveFixedAmount,
   isChosenAmountHeal,
   validateHealBonuses,
@@ -2505,19 +2506,8 @@ function exactDiceConfiguration(
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
-  if (outcome.valueKind === 'FIXED') {
-    // A fixed weapon amount rolls dice only when a grant sets the weapon die (a monk's d4 for the
-    // unarmed strike's 1); the source's resolved expression is that die plus its modifiers.
-    const fixedResolved = facts.resolvedDamageOutcomeExpressions[outcomeId]
-    const fixedDie = optionalRider ? undefined : facts.weaponDamageDieFaces
-    if (
-      fixedResolved === undefined ||
-      !fixedDie ||
-      parseBoundedDiceConfiguration(fixedResolved).term.die !== fixedDie
-    )
-      unsupported('D&D resolved damage expression does not match the authored fixed amount.')
-    return fixedResolved
-  }
+  if (outcome.valueKind === 'FIXED')
+    return fixedAmountDiceConfiguration(facts, outcomeId, optionalRider)
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_PASSIVE_PERCEPTION_ID,
+  SRD_UNARMED_STRIKE_EQUIPMENT_ID,
   srdSystemRecord
 } from './vocabulary.js'
 
@@ -77,7 +78,8 @@ describe('SRD System record facts', () => {
     expect(system.defaults).toEqual({
       damageTypeId: byCode(system.damageTypes, 'FIRE')?.id,
       conditionTypeId: byCode(system.conditionTypes, 'POISONED')?.id,
-      movementTypeId: byCode(system.speeds, 'WALK')?.id
+      movementTypeId: byCode(system.speeds, 'WALK')?.id,
+      unarmedStrikeEquipmentId: SRD_UNARMED_STRIKE_EQUIPMENT_ID
     })
   })
 

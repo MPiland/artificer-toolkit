@@ -969,7 +969,10 @@ export async function prepareActiveCharacterBuilderContext<
       races: catalogSources.races,
       classes: [...classes.values()],
       backgrounds: catalogSources.backgrounds,
-      equipment: registry.equipment.map(toCharacterBuilderEquipmentCatalogRecord).sort(byLabel),
+      equipment: registry.equipment
+        .filter(({ id }) => id !== registry.system.defaults?.unarmedStrikeEquipmentId)
+        .map(toCharacterBuilderEquipmentCatalogRecord)
+        .sort(byLabel),
       feats: (registry.feats ?? []).map(({ id, label }) => ({ id, label })).sort(byLabel),
       spells: toSpellCatalogRecords(context)
     })
