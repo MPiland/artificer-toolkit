@@ -63,12 +63,35 @@ export function readSideOrder(state: EncounterInitiativeRoundStateDto, orderErro
 export type ActorOwnerLink = Pick<EncounterActorOwnerDto, 'ownerActorId' | 'turnTiming'>
 
 /**
- * Whether a Run actor is rolled into the initiative order: an owned actor acts on its owner's turn
- * (D190a) unless its summon was authored to roll its own initiative (D200). One authored to act right
- * after its owner is not rolled; its turn follows the owner's.
+ * Whether a Run actor rolls initiative: an owned actor acts on its owner's turn (D190a) unless its
+ * summon was authored to roll its own initiative (D200). One authored to act right after its owner
+ * rolls nothing; it takes the place behind its owner (`takesInitiativeTurns`).
  */
-export function takesInitiativeTurns(actor: { owner?: ActorOwnerLink | null }) {
+export function rollsInitiative(actor: { owner?: ActorOwnerLink | null }) {
   return !actor.owner || actor.owner.turnTiming === 'OWN_INITIATIVE'
+}
+
+/** Whether a Run actor holds a place in the initiative order: one that rolls, or follows its owner. */
+export function takesInitiativeTurns(actor: { owner?: ActorOwnerLink | null }) {
+  return !actor.owner || actor.owner.turnTiming !== undefined
+}
+
+/**
+ * The actor an owned actor follows in the order: the nearest owner in its chain that already holds a
+ * place (`inOrder`), or null when none does.
+ */
+export function followedActorId(
+  actor: { owner?: ActorOwnerLink | null },
+  actors: readonly { id: string; owner?: ActorOwnerLink | null }[],
+  inOrder: (actorId: string) => boolean
+) {
+  const seen = new Set<string>()
+  for (let link = actor.owner; link && !seen.has(link.ownerActorId);) {
+    if (inOrder(link.ownerActorId)) return link.ownerActorId
+    seen.add(link.ownerActorId)
+    link = actors.find(({ id }) => id === link!.ownerActorId)?.owner
+  }
+  return null
 }
 
 export function validateInitiativeCursor(input: {

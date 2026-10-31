@@ -526,17 +526,20 @@ through `encounterActionRuleWarnings`:
   only for initiative grouping, reorder, reinforcement and removal.
 
 **Owned actors and initiative (D190a).** An actor with an `owner` is out of the initiative cohort and acts on its
-owner's turn. `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) is the one rule: `validateInitiativeCursor`,
-`createStagedInitiativeRoundState` and reinforcement read it, and the projection's `stableActors` orders the
-unowned actors by initiative, then puts each owned actor right after its owner, with no extra read.
+owner's turn. `rollsInitiative` and `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) are the rules: staging and
+the roll cohort read the first (who rolls), `validateInitiativeCursor` and settlement read the second (who holds a place),
+and the projection's `stableActors` orders the unowned actors by initiative, then puts each owned actor right after its
+owner, with no extra read.
 
 **Summon turn timing (D200, amends D190a; current: authoring and the owner link only).** A `SUMMON` manifest may
 author `turnTiming`: `OWNER_TURN` (the default; absence means it), `AFTER_OWNER` or `OWN_INITIATIVE`. The compiler
 carries the two non-default values on `summonPlacement.turnTiming`, `buildEncounterSummon` stores them on the actor's
-`owner` link, and `takesInitiativeTurns` reads them: only `OWN_INITIATIVE` puts an owned actor in the initiative
-cohort. An owner-turn summon is unchanged, and the owner stays its command actor. Target: the turn cursor stepping to an
-`AFTER_OWNER` summon, rolling at arrival, the owner's player running the turn, and the prompt belong to SPELLS-35.T2 to
-T6; until they land no authored spell uses a non-default timing.
+`owner` link. Only `OWN_INITIATIVE` rolls; both non-default values hold a place (`takesInitiativeTurns`). An owner-turn
+summon is unchanged, and the owner stays its command actor. Current (SPELLS-35.T4): an `AFTER_OWNER` summon is seated
+behind its owner, with the owner's score and side, in every settled round by `anchorOwnedActors`
+(`encounterInitiativeStaging.ts`, run by `planEncounterTurnInitiative` after the roll) and at cast time by the
+anchored reinforcement insert, so it keeps that place across rounds. Target: the owner's player running the turn and the
+prompt belong to SPELLS-35.T5 to T7.
 Ending an `OWN_INITIATIVE` summon (SPELLS-35.T3b) removes its initiative place and records the round's state; see the Encounter persistence guide's summon removal. `summonEndAdvanceCommandId` (`encounterSystemTrigger.ts`) keys the system `ADVANCE_TURN` that ends the turn of one whose carrier ended while it acted.
 
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises

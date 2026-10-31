@@ -3,7 +3,11 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { StagedInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
-import { takesInitiativeTurns, type ActorOwnerLink } from './encounterInitiativeCursor.js'
+import {
+  followedActorId,
+  rollsInitiative,
+  type ActorOwnerLink
+} from './encounterInitiativeCursor.js'
 import type { settleEncounterInitiativeRound } from './encounterInitiativeStateSettlement.js'
 
 type MutableInitiativeRepository = Parameters<
@@ -132,6 +136,56 @@ export function serializeStagedInitiativeRoundState(
   return stagedStateFromRecord(state)
 }
 
+/**
+ * Seats each actor authored to act right after its owner directly behind the owner in a settled round,
+ * so it keeps that place in every round (D200). It rolls nothing: it shares its owner's score, and a
+ * summon whose owner is itself seated follows it. The staged rolls carry only the actors that roll.
+ */
+export function anchorOwnedActors(
+  state: EncounterInitiativeRoundStateDto,
+  actors: readonly { id: string; sideId: string; owner?: ActorOwnerLink | null }[]
+): EncounterInitiativeRoundStateDto {
+  const followers = actors
+    .filter((actor) => actor.owner?.turnTiming === 'AFTER_OWNER')
+    .sort((left, right) => left.id.localeCompare(right.id))
+  if (followers.length === 0) return state
+  const ordered = [...state.participants].sort(
+    (left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1)
+  )
+  for (let pending = followers; pending.length > 0;) {
+    const seated = pending.filter((actor) => {
+      const anchorId = followedActorId(actor, actors, (id) =>
+        ordered.some((participant) => participant.actorId === id)
+      )
+      const anchorIndex = ordered.findIndex((participant) => participant.actorId === anchorId)
+      if (anchorIndex < 0) return false
+      const anchor = ordered[anchorIndex]!
+      ordered.splice(anchorIndex + 1, 0, {
+        ...anchor,
+        actorId: actor.id,
+        sideId: actor.sideId,
+        status: 'READY',
+        evaluation: { occurrenceId: null, resultChecksum: null },
+        tie: { occurrenceId: null, resultChecksum: null },
+        declaration: null,
+        declarationChecksum: null,
+        version: 0
+      })
+      return true
+    })
+    if (seated.length === 0)
+      throw new EncounterConflictError('An owned actor has no owner in the initiative order.')
+    pending = pending.filter((actor) => !seated.includes(actor))
+  }
+  return {
+    round: { ...state.round, nextTurnOrderOrdinal: ordered.length },
+    participants: ordered
+      .map((participant, turnOrderOrdinal) => ({ ...participant, turnOrderOrdinal }))
+      .sort((left, right) => left.actorId.localeCompare(right.actorId)),
+    sides: state.sides
+  }
+}
+
 export function createStagedInitiativeRoundState(input: {
   encounter: Pick<EncounterRunState, 'id' | 'automationMode'> &
     Partial<
@@ -150,7 +204,7 @@ export function createStagedInitiativeRoundState(input: {
   const policy = manualExecution ? null : input.encounter.initiativePolicySnapshot
   const procedure = policy?.policy.document.procedure ?? 'MANUAL'
   const cadence = policy?.policy.document.cadence ?? 'ENCOUNTER_START'
-  const actorSides = input.encounter.actors.filter(takesInitiativeTurns).map((actor) => {
+  const actorSides = input.encounter.actors.filter(rollsInitiative).map((actor) => {
     if (!actor.sideId) {
       throw new EncounterConflictError('Encounter actor side state is unavailable for initiative.')
     }
