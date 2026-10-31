@@ -251,8 +251,11 @@ export function requireEncounterSaveD20EvidenceTrace(input: {
     input.evidence.defenseOrDc !== input.policy.dc ||
     checksumRuleDocument(autoFailConditions(input.evidence)) !==
       checksumRuleDocument(autoFailConditions(input.policy)) ||
+    // A die spent from the d20 window rides on the evidence only; the policy holds the authored dice.
     checksumRuleDocument(
-      (input.evidence.addedDice ?? []).map(({ rolledFaces: _rolledFaces, ...die }) => die)
+      (input.evidence.addedDice ?? [])
+        .filter((die) => die.spentEffectId === undefined)
+        .map(({ rolledFaces: _rolledFaces, ...die }) => die)
     ) !== checksumRuleDocument(input.policy.addedDice ?? [])
   )
     throw new EncounterValidationError('The nested save d20 policy is invalid.')
