@@ -1329,6 +1329,18 @@ export function encounterSavingThrowAfterRollDice(
   )
 }
 
+/** The dice a holder's effects hold for after its d20 of a save with one ability (D168), with their holders. */
+export function encounterHeldSavingThrowDice(
+  gameSystemId: string,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityDefinitionId: string
+) {
+  return activeAfterRollSavingThrowDice(
+    effects,
+    abilityScoreCapabilityRegistry.require(gameSystemId).abilityCode(abilityDefinitionId)
+  )
+}
+
 /**
  * A Creature holder's active advantage and disadvantage grants on its own attack rolls of one
  * attack domain (Vicious Mockery's disadvantage), as roll contributors. A grant naming an ability

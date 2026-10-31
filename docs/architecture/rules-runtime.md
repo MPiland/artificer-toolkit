@@ -1563,6 +1563,15 @@ A GM void of a window is refused. Options and their ids derive from the held gra
 die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
 (`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/checkActionResponsePersistence.ts`).
 
+**d20 window on the action TEST save (SPELLS-31.T4c1b2, current).** A single-target action's TEST save whose target holds `AFTER_ROLL`
+saving-throw dice stops at the roll like the damage-save chain does, but inside the action's own pending: the pause is `D20_WINDOW` on the
+`ENCOUNTER_ACTION` context (`d20Policy: null`, roller = the target), and it freezes `{continuation, initialFactsChecksum, d20}` of the
+rolled save. `advanceNativeActionGraphs` opens it when `saveWindow.heldDice` is non-empty and resumes the TEST with the settled `d20`
+(`resume.resolution.kind: 'D20_WINDOW'`), so Legendary Resistance, reactions, on-hit riders and the OUTCOME phase follow unchanged. The spent
+die is recorded on the rolled die as `spentEffectId`, so the commit ends the effect from the evidence alone. The summary projects the
+window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
+spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 

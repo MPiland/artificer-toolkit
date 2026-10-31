@@ -49,7 +49,7 @@ export async function answerNativeD20Check(input: {
   if (window) {
     const settled = await settleEncounterD20Window({
       runtime,
-      context: window,
+      window: window.pause.payload,
       continuation,
       selection: encounterD20WindowSelection(command.resolution),
       random
