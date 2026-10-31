@@ -6,7 +6,6 @@ import {
   Group,
   List,
   MultiSelect,
-  Radio,
   SegmentedControl,
   Select,
   Stack,
@@ -58,6 +57,9 @@ import { SummonPicks } from '#app/components/summonPicks/SummonPicks'
 import { summonPicks } from '#app/components/summonPicks/summonPicks.model'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
+import { CampaignTabletopChoiceConfirmation } from './CampaignTabletopChoiceConfirmation'
+import { CampaignTabletopRuleWarningsConfirmation } from './CampaignTabletopRuleWarningsConfirmation'
+import { useMaintainedReplacementChoice } from './useMaintainedReplacementChoice'
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import {
   CampaignTabletopOptionalChoiceFields,
@@ -613,6 +615,10 @@ export function CampaignTabletopActionDrawer({
     optionalRuleId === null && selectedAction?.wieldConflict?.kind === 'STOW_SHIELD'
       ? selectedAction.wieldConflict
       : null
+  // What a stow confirmation sends: the conflict as the server accepts it, without the AC delta.
+  const acceptedStow = wieldConflict
+    ? { kind: wieldConflict.kind, shieldItemInstanceId: wieldConflict.shieldItemInstanceId }
+    : null
   const confirmingStow =
     wieldConflict !== null && stowConfirmationIdentity === choiceRequestIdentity
   // Releasing a held creature to free a hand for the attack is offered when it is the only blocker.
@@ -625,6 +631,8 @@ export function CampaignTabletopActionDrawer({
     : null
   const confirmingWarnings =
     ruleWarnings?.requestIdentity === choiceRequestIdentity ? ruleWarnings : null
+  const { choice: replacing, ...replacement } =
+    useMaintainedReplacementChoice(choiceRequestIdentity)
   const incompleteOptionalChoices =
     optionalRuleId !== null &&
     (!selectedOptionalRule ||
@@ -806,7 +814,7 @@ export function CampaignTabletopActionDrawer({
 
   async function releaseThenResolve(
     activeEffectId: string | null,
-    stow: typeof wieldConflict
+    stow: typeof acceptedStow
   ): Promise<void> {
     const hold = releases.find((release) => release.activeEffectId === activeEffectId)
     if (!currentActor || !hold) return
@@ -821,11 +829,7 @@ export function CampaignTabletopActionDrawer({
         heldActorId: hold.heldActorId,
         activeEffectId: hold.activeEffectId
       })
-      await resolveAction(
-        stow ? { kind: stow.kind, shieldItemInstanceId: stow.shieldItemInstanceId } : null,
-        [],
-        released.projection.version
-      )
+      await resolveAction(stow, [], released.projection.version)
     } catch (nextError) {
       setError(
         nextError instanceof Error ? nextError.message : 'The creature could not be released.'
@@ -836,11 +840,13 @@ export function CampaignTabletopActionDrawer({
   async function resolveAction(
     acceptedWieldConflict: ResolveEncounterActionInputDto['acceptedWieldConflict'],
     acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'],
-    expectedVersion = encounter.version
+    expectedVersion = encounter.version,
+    endedMaintainedStateId?: string
   ): Promise<void> {
     setStowConfirmationIdentity(null)
     setHandRelease(null)
     setRuleWarnings(null)
+    replacement.clear()
     if (
       !currentActor ||
       !selectedAction ||
@@ -867,6 +873,7 @@ export function CampaignTabletopActionDrawer({
         sceneContext: namesNoCreature ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
+        ...(endedMaintainedStateId ? { endedMaintainedStateId } : {}),
         ...(spentUnits !== undefined ? { spentUnits } : {}),
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
@@ -890,6 +897,7 @@ export function CampaignTabletopActionDrawer({
         setFeedback('Action resolved.')
       }
     } catch (nextError) {
+      if (replacement.offer(nextError, { acceptedWieldConflict, acknowledgedWarnings })) return
       if (nextError instanceof LiveSessionCommandRejectedError && nextError.rejection.warnings)
         setRuleWarnings({
           requestIdentity: choiceRequestIdentity,
@@ -1346,12 +1354,29 @@ export function CampaignTabletopActionDrawer({
                   onChange={setOptionalValues}
                 />
               ) : null}
-              {confirmingWarnings ? (
-                <CampaignTabletopActionConfirmation
-                  confirmIsPrimary={false}
-                  confirmLabel='Do it anyway'
+              {replacing ? (
+                <CampaignTabletopChoiceConfirmation
+                  confirmLabel='End it and cast'
                   disabled={dependentControlsDisabled}
-                  title='This breaks a rule'
+                  groupLabel='End which Concentration?'
+                  options={replacing.options}
+                  title='Too many Concentrations'
+                  value={replacing.endedStateId}
+                  onCancel={replacement.clear}
+                  onChange={replacement.select}
+                  onConfirm={() =>
+                    void resolveAction(
+                      replacing.acceptedWieldConflict,
+                      replacing.acknowledgedWarnings,
+                      encounter.version,
+                      replacing.endedStateId ?? undefined
+                    )
+                  }
+                />
+              ) : confirmingWarnings ? (
+                <CampaignTabletopRuleWarningsConfirmation
+                  disabled={dependentControlsDisabled}
+                  warnings={confirmingWarnings.warnings}
                   onCancel={() => setRuleWarnings(null)}
                   onConfirm={() =>
                     void resolveAction(
@@ -1359,50 +1384,31 @@ export function CampaignTabletopActionDrawer({
                       confirmingWarnings.warnings.map((warning) => warning.code)
                     )
                   }
-                >
-                  <List size='sm'>
-                    {confirmingWarnings.warnings.map((warning) => (
-                      <List.Item key={warning.code}>{warning.message}</List.Item>
-                    ))}
-                  </List>
-                  <Text c='dimmed' size='xs'>
-                    The GM sees every override in the Encounter history.
-                  </Text>
-                </CampaignTabletopActionConfirmation>
+                />
               ) : confirmingHandRelease ? (
-                <CampaignTabletopActionConfirmation
-                  confirmIsPrimary
+                <CampaignTabletopChoiceConfirmation
                   confirmLabel='Release and attack'
-                  disabled={dependentControlsDisabled || handReleaseChoice === null}
+                  disabled={dependentControlsDisabled}
+                  groupLabel='Release which creature?'
+                  options={handReleaseHolds.map(({ activeEffectId }) => ({
+                    value: activeEffectId,
+                    label:
+                      releases.find((release) => release.activeEffectId === activeEffectId)
+                        ?.label ?? 'Held creature'
+                  }))}
                   title='Free a hand?'
+                  value={handReleaseChoice}
                   onCancel={() => setHandRelease(null)}
-                  onConfirm={() => void releaseThenResolve(handReleaseChoice, wieldConflict)}
+                  onChange={(activeEffectId) =>
+                    setHandRelease({ requestIdentity: choiceRequestIdentity, activeEffectId })
+                  }
+                  onConfirm={() => void releaseThenResolve(handReleaseChoice, acceptedStow)}
                 >
-                  <Radio.Group
-                    label='Release which creature?'
-                    value={handReleaseChoice}
-                    onChange={(activeEffectId) =>
-                      setHandRelease({ requestIdentity: choiceRequestIdentity, activeEffectId })
-                    }
-                  >
-                    <Stack gap='xs' mt='xs'>
-                      {handReleaseHolds.map(({ activeEffectId }) => (
-                        <Radio
-                          key={activeEffectId}
-                          label={
-                            releases.find((release) => release.activeEffectId === activeEffectId)
-                              ?.label ?? 'Held creature'
-                          }
-                          value={activeEffectId}
-                        />
-                      ))}
-                    </Stack>
-                  </Radio.Group>
                   <Text c='dimmed' size='xs'>
                     Releasing is free. The attack draws the weapon into the freed hand
                     {wieldConflict ? ' and stows your shield' : ''}.
                   </Text>
-                </CampaignTabletopActionConfirmation>
+                </CampaignTabletopChoiceConfirmation>
               ) : confirmingStow ? (
                 <CampaignTabletopActionConfirmation
                   confirmIsPrimary
@@ -1410,15 +1416,7 @@ export function CampaignTabletopActionDrawer({
                   disabled={dependentControlsDisabled}
                   title='Stow shield?'
                   onCancel={() => setStowConfirmationIdentity(null)}
-                  onConfirm={() =>
-                    void resolveAction(
-                      {
-                        kind: wieldConflict.kind,
-                        shieldItemInstanceId: wieldConflict.shieldItemInstanceId
-                      },
-                      []
-                    )
-                  }
+                  onConfirm={() => void resolveAction(acceptedStow, [])}
                 >
                   <Text size='sm'>
                     Attacking with this weapon stows your shield. AC −
