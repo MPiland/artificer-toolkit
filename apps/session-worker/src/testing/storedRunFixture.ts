@@ -1,6 +1,10 @@
 import { insertRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
-import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import {
+  followedActorId,
+  rollsInitiative,
+  takesInitiativeTurns
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type {
@@ -26,7 +30,7 @@ export function memoryRoomDocuments(
 /**
  * Writes the manual initiative round an ACTIVE Run projects from: one participant per actor in
  * `actors` order, those before the current actor already acted. An owned actor acts on its owner's
- * turn and has none (D190a).
+ * turn and has none (D190a); one authored to act right after its owner is seated behind it (D200).
  */
 export async function insertInitiativeRound(
   memory: ReturnType<typeof createMemoryEncounterStore>,
@@ -38,7 +42,24 @@ export async function insertInitiativeRound(
   }
 ) {
   const { encounterId, currentActorId, now } = input
-  const actors = input.actors.filter(takesInitiativeTurns)
+  const actors = input.actors.filter(rollsInitiative)
+  for (
+    let pending = input.actors.filter(
+      (actor) => takesInitiativeTurns(actor) && !rollsInitiative(actor)
+    );
+    pending.length > 0;
+  ) {
+    const unseated = pending.filter((follower) => {
+      const anchorId = followedActorId(follower, input.actors, (id) =>
+        actors.some((actor) => actor.id === id)
+      )
+      if (anchorId === null) return true
+      actors.splice(actors.findIndex((actor) => actor.id === anchorId) + 1, 0, follower)
+      return false
+    })
+    if (unseated.length === pending.length) break
+    pending = unseated
+  }
   const currentOrdinal = actors.findIndex((actor) => actor.id === currentActorId)
   const initiative = encounterInitiativeRoundStateDtoSchema.parse({
     round: {
