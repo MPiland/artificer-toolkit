@@ -121,26 +121,36 @@ describe('room Preserve Life (SPELLS-31.T4f2c)', () => {
     expect(await channelDivinityUsed(fixture)).toBe(0)
   }, 120000)
 
-  it.each([
-    ['a share past half the creature’s maximum', [{ actorId: WOLF_IDS[0], amount: 5 }]],
-    ['shares that sum past the pool', WOLF_IDS.map((actorId) => ({ actorId, amount: 4 }))],
-    [
-      'a chosen creature with no share',
-      [{ actorId: WOLF_IDS[0], amount: 2 }],
-      WOLF_IDS.slice(0, 2)
-    ],
-    ['no shares at all', undefined, WOLF_IDS.slice(0, 1)]
-  ] as const)(
-    'refuses %s and changes nothing',
-    async (_name, shares, actorIds) => {
+  const refusals: {
+    name: string
+    shares: { actorId: string; amount: number }[] | undefined
+    actorIds: readonly string[]
+  }[] = [
+    {
+      name: 'a share past half the creature’s maximum',
+      shares: [{ actorId: WOLF_IDS[0], amount: 5 }],
+      actorIds: [WOLF_IDS[0]]
+    },
+    {
+      name: 'shares that sum past the pool',
+      shares: WOLF_IDS.map((actorId) => ({ actorId, amount: 4 })),
+      actorIds: WOLF_IDS
+    },
+    {
+      name: 'a chosen creature with no share',
+      shares: [{ actorId: WOLF_IDS[0], amount: 2 }],
+      actorIds: WOLF_IDS.slice(0, 2)
+    },
+    { name: 'no shares at all', shares: undefined, actorIds: WOLF_IDS.slice(0, 1) }
+  ]
+  for (const { name, shares, actorIds } of refusals)
+    it(`refuses ${name} and changes nothing`, async () => {
       const fixture = await room()
-      const refused = await preserve(fixture, shares ? [...shares] : undefined, actorIds)
+      const refused = await preserve(fixture, shares, actorIds)
       expect(refused.type, JSON.stringify(refused)).not.toBe('COMMAND_COMMITTED')
       for (const id of WOLF_IDS) expect(await hitPoints(fixture, id)).toBe(WOLF_HIT_POINTS)
       expect(await channelDivinityUsed(fixture)).toBe(0)
-    },
-    120000
-  )
+    }, 120000)
 
   it('refuses an undead target', async () => {
     const fixture = await room()

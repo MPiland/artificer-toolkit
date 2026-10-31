@@ -143,6 +143,12 @@ const healDiceDtoSchema = lazySchema(() =>
   ])
 )
 
+/** A positive whole-number fraction. */
+const healFractionSchema = z.strictObject({
+  numerator: z.number().check(z.int(), z.positive()),
+  denominator: z.number().check(z.int(), z.positive())
+})
+
 /**
  * Who splits a pool heal's amount among the creatures it reaches: the caster divides it as they
  * choose, and `splitCeiling` caps what each creature may be restored to as a fraction of its
@@ -150,12 +156,7 @@ const healDiceDtoSchema = lazySchema(() =>
  */
 const healSplitShape = {
   splitKind: z.optional(z.literal('CASTER_DIVIDES')),
-  splitCeiling: z.optional(
-    z.strictObject({
-      numerator: z.number().check(z.int(), z.positive()),
-      denominator: z.number().check(z.int(), z.positive())
-    })
-  )
+  splitCeiling: z.optional(healFractionSchema)
 }
 
 const healPoolDtoSchema = lazySchema(() =>
@@ -206,10 +207,7 @@ const healDamageDealtDtoSchema = lazySchema(() =>
     valueKind: z.literal('DAMAGE_DEALT'),
     scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
     damageOutcomeId: postgresUuidSchema,
-    fraction: z.strictObject({
-      numerator: z.number().check(z.int(), z.positive()),
-      denominator: z.number().check(z.int(), z.positive())
-    }),
+    fraction: healFractionSchema,
     recipient: z.literal('SOURCE')
   })
 )
