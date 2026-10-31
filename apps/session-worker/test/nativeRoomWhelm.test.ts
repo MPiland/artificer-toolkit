@@ -53,23 +53,18 @@ const hitPointsOf = async (room: Room, actorId: string) =>
     ?.currentHitPoints
 
 describe('the Water Elemental’s Whelm in the room (D202)', () => {
-  it('asks a save of each creature in its space and none of the creature outside it', async () => {
-    const room = await whelmRoom()
-    const { answer } = await room.startCasterCenteredAreaAction()
-    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
-    const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
-    expect(decision.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
-      [MEDIUM_ID, HUGE_ID].sort()
-    )
-  })
-
   it('damages every creature that fails and holds only the one Large or smaller', async () => {
     const room = await whelmRoom()
     const before = await hitPointsOf(room, MEDIUM_ID)
     const hugeBefore = await hitPointsOf(room, HUGE_ID)
     const { answer } = await room.startCasterCenteredAreaAction()
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // Each creature in its space is asked a save, the one outside it is not.
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    expect(decision.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [MEDIUM_ID, HUGE_ID].sort()
+    )
     await answerAllSaves(room)
 
     expect((await hitPointsOf(room, MEDIUM_ID)) ?? 0).toBeLessThan(before ?? 0)
