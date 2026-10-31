@@ -222,6 +222,55 @@ export function installedSrdCreature(raw: CreatureAuthored): CreatureAuthored {
   return installed
 }
 
+/**
+ * A save Feature of an installed Creature whose failed-save path holds the target, the hold copied
+ * from a Creature that authors one. No stat block authors a held save yet, so this derives it.
+ */
+export function creatureHoldingOnFailedSave(input: {
+  creature: CreatureAuthored
+  featureLabel: string
+  holder: CreatureAuthored
+  holderFeatureLabel: string
+}): CreatureAuthored {
+  const hold = creatureFeature(input.holder, input.holderFeatureLabel)
+    .effects?.flatMap((effect) =>
+      effect.paths.flatMap((path) =>
+        path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []
+      )
+    )
+    .find((outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP')
+  if (!hold)
+    throw new Error(`${input.holder.label} authors no hold in ${input.holderFeatureLabel}.`)
+  return {
+    ...input.creature,
+    features: input.creature.features.map((feature) =>
+      feature.label !== input.featureLabel
+        ? feature
+        : {
+            ...feature,
+            effects: feature.effects?.map((effect) => ({
+              ...effect,
+              paths: effect.paths.flatMap((path) =>
+                path.selectionKind === 'FIXED' && path.pathCode === 'ON_SAVE_FAIL'
+                  ? [
+                      {
+                        ...path,
+                        groupType: 'SINGLE' as const,
+                        resultBlock: {
+                          id: path.resultBlock.id,
+                          resultKind: 'SINGLE' as const,
+                          outcomes: [hold]
+                        }
+                      }
+                    ]
+                  : []
+              )
+            }))
+          }
+    )
+  }
+}
+
 /** Hand-written normalized Creature rule facts, for scalar arithmetic independent of any stat block. */
 export function creatureRuleFacts(scores: Record<Ability, number>) {
   return {
