@@ -12,11 +12,12 @@ import type { Doc } from '../_generated/dataModel'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
 
-/** Complete official Equipment options under this Campaign's current catalogue binding. */
-export async function readCampaignEquipmentOptions(
+/** Complete official options of one subject kind under this Campaign's current catalogue binding. */
+export async function readCampaignCatalogueOptions(
   ctx: QueryCtx,
   campaign: Doc<'campaigns'>,
   userId: string,
+  subjectKind: 'EQUIPMENT' | 'VEHICLE',
   paginationOpts: CampaignPartyInventoryListInput['paginationOpts']
 ): Promise<AuthoredCataloguePage> {
   const { sourceIds } = await requireRulesCatalogueBinding(ctx, {
@@ -29,7 +30,7 @@ export async function readCampaignEquipmentOptions(
     .withIndex('by_system_kind_owner_name_id', (q) =>
       q
         .eq('systemId', campaign.gameSystemId)
-        .eq('subjectKind', 'EQUIPMENT')
+        .eq('subjectKind', subjectKind)
         .eq('ownerUserId', undefined)
     )
     .filterWith(
