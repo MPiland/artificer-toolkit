@@ -98,6 +98,7 @@ export async function revalidateAreaTarget(
     prepared: target.prepared,
     activeEffectsByActorId: input.activeEffectsByActorId,
     capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (carrier) =>
       base.movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })

@@ -1247,6 +1247,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     senses: z._default(z.array(characterRuleSenseSchema).check(z.maxLength(100)), []),
     /** Attacks one Attack action makes; the highest Extra Attack source applies, they do not add. */
     attacksPerAttackAction: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
+    concentrationCapacity: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
     hitPointProgression: z
       .array(
         z.strictObject({

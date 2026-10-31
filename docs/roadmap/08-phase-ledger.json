@@ -16268,7 +16268,7 @@
           "tasks": [
             {
               "id": "SPELLS-12.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1",
                 "SPELLS-12.2"
@@ -16280,8 +16280,7 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31). Merged in m587 (ab9111b57)."
             },
             {
               "id": "SPELLS-12.T2",
@@ -16299,7 +16298,7 @@
                 ]
               },
               "text": "Authored per-use gate predicate and limited uses with recovery.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). From the T1 review: the replacement prompt ships in the action drawer, so confirm area casts reach it once a holder can keep more than one state."
             },
             {
               "id": "SPELLS-12.T3",
@@ -18725,9 +18724,27 @@
                   "SPELLS-31.T4c1b3"
                 ]
               },
-              "text": "Save window: auto-rolled sites (area, movement reaction, spatial). Several die-holders on one area resolve their windows in initiative order.",
+              "text": "Save window on area saves (D203). Several die-holders on one area resolve their windows in initiative order, and the settled d20 is stored, never re-rolled.",
               "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-31.T4c1b4b",
+              "text": "Save window on movement reaction saves, its own pending family (D203). Zone and forced-movement saves stay system-rolled (D170).",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c1b4"
+                ]
+              },
+              "note": "Approved by the user on 2026-10-31 (D203)."
             },
             {
               "status": "TODO",
@@ -18741,7 +18758,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": [
-                  "SPELLS-31.T4c1b4"
+                  "SPELLS-31.T4c1b4",
+                  "SPELLS-31.T4c1b4b"
                 ]
               },
               "text": "Fold the bespoke Legendary Resistance pause into the shared result window.",
@@ -18937,8 +18955,26 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. D203: this task is Colossus Slayer only; Dark One's Blessing moved to T4i2.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-31.T4i2",
+              "text": "Dark One's Blessing on a generic killer-side trigger: the holder reduces a creature to 0 HP, covering spell and weapon damage in both the Worker and Convex settlement paths. Authoring-parity proof; deletes its kind (D156).",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4i"
+                ]
+              },
+              "note": "Approved by the user on 2026-10-31 (D203)."
             },
             {
               "id": "SPELLS-31.T4j",
@@ -19114,16 +19150,34 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-31.T4l1",
                   "SPELLS-4.T2l"
                 ]
               },
-              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling).",
+              "text": "D203 scope: a generic Character Unarmed Strike, Martial Arts (without lowering a weapon die) and the Ki-Empowered Strikes room journey. Retaliation and Horde Breaker are GM rulings. Each built feature has an authoring-parity proof and each converted kind is deleted (D156).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-31.T4l2b",
+              "text": "Open Hand Technique: a free optional on-hit rider scoped to Flurry-granted attacks, with the prone and push saves and reaction denial, all generic. Authoring-parity proof; deletes its kind (D156).",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4l2"
+                ]
+              },
+              "note": "Approved by the user on 2026-10-31 (D203)."
             },
             {
               "id": "SPELLS-31.T4m",

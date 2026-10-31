@@ -654,7 +654,8 @@ export async function actionRoom(config: ActionRoomConfig) {
       actorId = source.id,
       choiceOptionId?: string,
       boundItemInstanceId?: string,
-      ammunitionItemInstanceId?: string
+      ammunitionItemInstanceId?: string,
+      endedMaintainedStateId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -664,6 +665,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         commandId: crypto.randomUUID(),
         expectedVersion: await version(),
         actorId,
+        ...(endedMaintainedStateId && { endedMaintainedStateId }),
         target: {
           kind: 'ACTOR',
           actorId: targetActorId,

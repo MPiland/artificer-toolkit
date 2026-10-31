@@ -193,6 +193,21 @@ export function evaluateDnd5e2014CharacterPolicy(
         )
         .map((contribution) => contribution.value)
     ),
+    concentrationCapacity:
+      1 +
+      modifierGroups
+        .filter(
+          (group) =>
+            group.valueDomainCode === 'CONCENTRATION_CAPACITY' && group.modifierKind === 'BONUS'
+        )
+        .flatMap((group) => group.contributions)
+        .filter((contribution) =>
+          dnd5eModifierApplies(
+            dnd5eFoldedModifierApplicability(grantFold, contribution),
+            DND5E_CHARACTER_WIDE_TARGET
+          )
+        )
+        .reduce((sum, contribution) => sum + contribution.value, 0),
     hitPointProgression,
     derivedStats: { ...derived, ...vitals },
     ...spells,

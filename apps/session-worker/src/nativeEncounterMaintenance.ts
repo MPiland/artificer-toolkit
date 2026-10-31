@@ -1,6 +1,10 @@
 import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
-import { SpellcastingLockedError } from '@artificer-toolkit/rules-runtime/encounterErrors'
+import {
+  MaintainedReplacementRequiredError,
+  SpellcastingLockedError
+} from '@artificer-toolkit/rules-runtime/encounterErrors'
+import { heldConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import type {
   LiveSessionEncounterRulesRequest,
@@ -38,10 +42,17 @@ export async function readNativeLiveMaintenanceSlot(input: {
   encounterId: string
   actorId: string
   definitionId: string
+  /** The held state to read; absent, the oldest. */
+  stateId?: string
   capture: Capture
 }) {
   const { encounterId, actorId, definitionId, capture } = input
-  const response = await capture({ kind: 'MAINTENANCE_SLOT', actorId, definitionId })
+  const response = await capture({
+    kind: 'MAINTENANCE_SLOT',
+    actorId,
+    definitionId,
+    ...(input.stateId === undefined ? {} : { stateId: input.stateId })
+  })
   if (response.kind !== 'MAINTENANCE_SLOT') throw new Error('Maintenance slot is unavailable.')
   const state = response.state
   if (!state) return { state: null, dependents: [], zoneIds: [] }
@@ -208,6 +219,8 @@ export async function prepareNativeLiveActionMaintenance(input: {
   capture: Capture
   targets?: ReadonlyMap<string, MovementTarget<ProjectableCharacterFacts>>
   projection?: NativeLiveMovementMaintenanceProjection
+  /** The held maintained effect the caster chose to end at capacity (the command's choice). */
+  endedMaintainedStateId?: string | undefined
   /** D99: given, a Character caster's new Concentration ends carried grants; loads and fences each holder. */
   loadCarriedHolder?: (
     actor: EncounterRunActorState
@@ -218,23 +231,40 @@ export async function prepareNativeLiveActionMaintenance(input: {
   let slot: { definitionId: string; stateId: string } | null = null
   return prepareEncounterActionMaintenance({
     prepared,
+    chosenStateId: input.endedMaintainedStateId,
     activeEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
     readDefinition: async (definitionId) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
       if (response.kind !== 'DEFINITION') throw new Error('Maintenance definition is unavailable.')
       return response.definition
     },
-    readSlot: async (definitionId) => {
+    readHeldStates: async (definitionId) => {
+      // A movement chain's projection stands for the actor's one simulated slot.
+      const projected = input.projection?.slots.get(`${prepared.actor.id}:${definitionId}`)
+      if (projected) return projected.state ? [projected.state] : []
+      const response = await capture({
+        kind: 'MAINTENANCE_STATES',
+        actorId: prepared.actor.id,
+        definitionId
+      })
+      if (response.kind !== 'MAINTENANCE_STATES')
+        throw new Error('Maintenance states are unavailable.')
+      return response.states
+    },
+    readSlot: async (definitionId, stateId) => {
       const result =
         input.projection?.slots.get(`${prepared.actor.id}:${definitionId}`) ??
         (await readNativeLiveMaintenanceSlot({
           encounterId: prepared.state.id,
           actorId: prepared.actor.id,
           definitionId,
+          stateId,
           capture
         }))
-      if (result.state) slot = { definitionId, stateId: result.state.id }
-      return result
+      if (!result.state || result.state.id !== stateId)
+        throw new Error('Maintained effect slot changed during preparation.')
+      slot = { definitionId, stateId }
+      return { state: result.state, dependents: result.dependents }
     },
     readCarried: loadCarriedHolder
       ? async () =>
@@ -263,13 +293,35 @@ export async function prepareNativeLiveActionMaintenance(input: {
         projection: input.projection
       })
     }
-  }).catch((error: unknown) => {
+  }).catch(async (error: unknown) => {
     if (error instanceof SpellcastingLockedError)
       throw new LiveSessionDomainRejectionError(422, {
         code: 'DOMAIN_REJECTED',
         reason: 'SOURCE_REQUIREMENTS_NOT_MET',
         message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
       })
+    if (error instanceof MaintainedReplacementRequiredError) {
+      const definitionId = error.definitionId
+      const heldStates = await Promise.all(
+        error.heldStateIds.map(async (id) => {
+          const { dependents } = await readNativeLiveMaintenanceSlot({
+            encounterId: prepared.state.id,
+            actorId: prepared.actor.id,
+            definitionId,
+            stateId: id,
+            capture
+          })
+          const held = heldConcentration(dependents)
+          return { id, label: held.sourceHidden ? null : held.label }
+        })
+      )
+      throw new LiveSessionDomainRejectionError(422, {
+        code: 'DOMAIN_REJECTED',
+        reason: 'MAINTAINED_REPLACEMENT_REQUIRED',
+        message: 'Choose which maintained effect ends to make room for this one.',
+        heldStates
+      })
+    }
     throw error
   })
 }

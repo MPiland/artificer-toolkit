@@ -59,6 +59,7 @@ export const VALUE_DOMAIN_CODE = {
   BONUS_ACTION_COUNT: 'BONUS_ACTION_COUNT',
   REACTION_COUNT: 'REACTION_COUNT',
   ATTACKS_PER_ATTACK_ACTION: 'ATTACKS_PER_ATTACK_ACTION',
+  CONCENTRATION_CAPACITY: 'CONCENTRATION_CAPACITY',
   DAMAGE_RESISTANCE: 'DAMAGE_RESISTANCE',
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
@@ -409,6 +410,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'How many attacks the Attack action makes.'
   },
 
+  [VALUE_DOMAIN_CODE.CONCENTRATION_CAPACITY]: {
+    code: VALUE_DOMAIN_CODE.CONCENTRATION_CAPACITY,
+    label: 'Concentration Capacity',
+    description: 'How many Concentration effects the holder can maintain at once.'
+  },
+
   [VALUE_DOMAIN_CODE.CONDITION]: {
     code: VALUE_DOMAIN_CODE.CONDITION,
     label: 'Condition',
@@ -647,6 +654,7 @@ export type ValueDomainParamByCode = {
   BONUS_ACTION_COUNT: EmptyObject
   REACTION_COUNT: EmptyObject
   ATTACKS_PER_ATTACK_ACTION: EmptyObject
+  CONCENTRATION_CAPACITY: EmptyObject
 
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES
