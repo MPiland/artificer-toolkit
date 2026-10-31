@@ -343,12 +343,14 @@ describe('SRD Creature attack sweep', () => {
             choiceOptionId: castChoiceOptions(capability.compiledEffect)?.[0]?.optionId,
             wieldConflictAcceptance: { kind: 'PROMPTED', accepted: null, handHolds: 0 },
             overridable: true,
-            movementTargets: unit.effect.invocation?.targeting?.heldBySource
-              ? new Map([
-                  ...movementTargets,
-                  [target.id, srdCreatureTarget(target, [heldByAttacker])]
-                ])
-              : movementTargets,
+            movementTargets:
+              unit.effect.invocation?.targeting &&
+              'heldBySource' in unit.effect.invocation.targeting
+                ? new Map([
+                    ...movementTargets,
+                    [target.id, srdCreatureTarget(target, [heldByAttacker])]
+                  ])
+                : movementTargets,
             loadSource: async (input) =>
               resolveEncounterActionSource({
                 spells: new Map(),
