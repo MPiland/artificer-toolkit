@@ -1,0 +1,3 @@
+/** The shared "Turned" condition text of Turn Undead and Turn the Unholy, ruled by the GM (T2l2: no compelled-turn engine). */
+export const TURNED_INSTRUCTIONS =
+  "The creature is turned for 1 minute or until it takes damage. A turned creature must spend its turns trying to move as far away from the Channel Divinity user as it can, and it can't willingly move to a space within 30 feet of them. It also can't take reactions. For its action, it can use only the Dash action or try to escape from an effect that prevents it from moving. If there's nowhere to move, the creature can use the Dodge action."

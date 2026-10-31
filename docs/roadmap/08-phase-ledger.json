@@ -18692,7 +18692,7 @@
               "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m579 (562822e23)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18707,8 +18707,7 @@
                 ]
               },
               "text": "Save window: the remaining sites where a roller answers the save.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m583 (4ee9905f5)."
             },
             {
               "status": "TODO",
@@ -18748,7 +18747,7 @@
             },
             {
               "id": "SPELLS-31.T4c1c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18764,8 +18763,7 @@
                 ]
               },
               "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
-              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m583 (4ee9905f5)."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -18884,7 +18882,7 @@
             },
             {
               "id": "SPELLS-31.T4f2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18898,8 +18896,7 @@
                 ]
               },
               "text": "Lay on Hands remainder on the generic pool option: a generic target creature-type filter that refuses undead and constructs, and the 5-point cure of a disease or poison, with authoring-parity proofs.",
-              "note": "Growth approved by the user on 2026-10-31.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Growth approved by the user on 2026-10-31. Merged in m582 (bf0940e8e)."
             },
             {
               "id": "SPELLS-31.T4f2c",
@@ -19127,7 +19124,7 @@
             },
             {
               "id": "SPELLS-31.T4m",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19135,15 +19132,15 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-4.T2l",
                   "SPELLS-4.T2m1"
                 ]
               },
-              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text) and Turn the Unholy (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Merged in m583 (4ee9905f5)."
             },
             {
               "id": "SPELLS-31.T4n",
@@ -19841,7 +19838,7 @@
             },
             {
               "id": "SPELLS-31.T5i4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19855,8 +19852,7 @@
                 ]
               },
               "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29. Merged in m583 (4ee9905f5)."
             },
             {
               "status": "DONE",
@@ -19894,6 +19890,24 @@
               },
               "text": "Delegated attack, web half: the action-choices read (actionChoiceReads.ts) lists a delegate's attacks under its caster, and the web action drawer picks the familiar's attack for the caster's command. Browser journey.",
               "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29. Merged in m563 (eb5dfedd5)."
+            },
+            {
+              "id": "SPELLS-31.T4m2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T4m"
+                ]
+              },
+              "text": "Destroy Undead: the kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted.",
+              "note": "Split from T4m on 2026-10-31. Held: the user has not ruled on the CR gate (about size 8, recommended) vs a GM ruling with the CR table. Design in spells-31-t4m-design-packet.md. Don't start until ruled; re-size if the gate is approved."
             }
           ]
         },
@@ -20052,7 +20066,7 @@
         {
           "id": "SPELLS-33",
           "title": "Creature trait and action closed rules become core authoring options",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [
             "Q25 answered A (user, 2026-10-18)"
           ],
@@ -20065,9 +20079,9 @@
           "acs": [
             {
               "id": "SPELLS-33.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g.",
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g, SPELLS-33.T6n4.",
               "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
               "proof": [
                 "creatureReactionRulesAuthoringParity.test.ts",
@@ -22065,7 +22079,7 @@
             },
             {
               "id": "SPELLS-33.T6n4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -22078,14 +22092,14 @@
                   "SPELLS-33.T6n3"
                 ]
               },
-              "text": "Save-gated hold: a target held only after failing a save, generically through relationshipPlan in effectActionCompiler.ts, with Purple Worm Bite, Whelm and Engulf moved from GM rulings onto it. Each has an authoring-parity proof and a journey on the save path.",
-              "note": "Growth approved by the user on 2026-10-31.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Save-gated hold: a target held only after failing a save, generically through relationshipPlan in effectActionCompiler.ts, with Purple Worm Bite, Whelm and Engulf moved from GM rulings onto it. Each has an authoring-parity proof and a journey on the save path. Whelm, Engulf and Purple Worm stay GM rulings; the proof runs on a derived creature.",
+              "note": "Growth approved by the user on 2026-10-31. Merged in m582 (bf0940e8e)."
             }
           ],
           "journeyStatus": "verified",
           "journeyTests": [
-            "apps/session-worker/test/nativeRoomHeldRecurrenceSave.test.ts"
+            "apps/session-worker/test/nativeRoomHeldRecurrenceSave.test.ts",
+            "apps/session-worker/test/nativeRoomSaveGatedHold.test.ts"
           ]
         },
         {
@@ -25923,6 +25937,21 @@
               },
               "text": "Bug: root-cause and fix the cost of the Campaign queries that stall on the campaign-custody player reload (campaignCustody.ts:225) at their source (indexes, narrower reads, shared reads); red-first read-budget or compute regression test; campaign-custody-browser proof run plus a full Tests run; before/after timings in the design notes. No retries, raised timeouts or loosened assertions.",
               "note": "Blocks SPELLS-8.T4 (its tip carries the red campaign-custody run) and every batch merge. Merged in m572 (1ccb2fd27)."
+            },
+            {
+              "id": "RELIABILITY-21.T30",
+              "status": "TODO",
+              "closes": [
+                "RELIABILITY-21.20"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              },
+              "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
+              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one."
             }
           ]
         }
@@ -26499,7 +26528,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."

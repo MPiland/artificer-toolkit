@@ -13,6 +13,8 @@ import { getFunctionName } from 'convex/server'
 import { useCharacterSheetRollController } from './useCharacterSheetRollController'
 
 const rollMutationMocks = vi.hoisted(() => ({
+  addAfterRollDie: vi.fn(),
+  declineAfterRollDice: vi.fn(),
   discard: vi.fn().mockResolvedValue(undefined),
   execute: vi.fn(),
   executeCampaignPrivate: vi.fn(),
@@ -27,6 +29,14 @@ vi.mock('@mantine/notifications', () => ({
 }))
 
 vi.mock('#app/data/rolls', () => ({
+  useAddAfterRollDieMutation: () => ({
+    isPending: false,
+    mutateAsync: rollMutationMocks.addAfterRollDie
+  }),
+  useDeclineAfterRollDiceMutation: () => ({
+    isPending: false,
+    mutateAsync: rollMutationMocks.declineAfterRollDice
+  }),
   useDiscardRollMutation: () => ({ mutateAsync: rollMutationMocks.discard }),
   useExecuteRollMutation: () => ({
     isPending: false,
@@ -78,6 +88,19 @@ function createRoll(id: string): RollRecordDto {
     },
     createdAt: '2026-07-31T12:00:00.000Z'
   })
+}
+
+const heldDie = {
+  effectId: '00000000-0000-4000-8000-000000000201',
+  grantId: 'guidance-die',
+  label: 'Guidance',
+  count: 1,
+  faces: 4,
+  sign: 'ADD'
+}
+
+function createOfferingRoll(id: string): RollRecordDto {
+  return { ...createRoll(id), afterRollOffers: [heldDie as never] }
 }
 
 function createWrapper(gmRollVisibility: RollVisibilityDto = 'PUBLIC') {
@@ -166,6 +189,50 @@ describe('useCharacterSheetRollController', () => {
     expect(result.current.presentation.presentationPending).toBe(true)
     act(() => result.current.presentation.revealRoll('second-roll'))
     await expect(secondOutcome).resolves.toMatchObject({ id: 'second-roll' })
+  })
+
+  it('replaces the presented roll with the one a used held die returns', async () => {
+    const offering = createOfferingRoll('offering-roll')
+    const used = { ...createRoll('offering-roll'), normalizedExpression: '1d8 + 1 + 1d4' }
+    rollMutationMocks.execute.mockResolvedValue(offering)
+    rollMutationMocks.addAfterRollDie.mockResolvedValue(used)
+    const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
+      wrapper: createWrapper()
+    })
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll).toEqual(offering))
+
+    await act(() => result.current.presentation.addAfterRollDie(offering.afterRollOffers![0]!))
+    expect(rollMutationMocks.addAfterRollDie).toHaveBeenCalledWith({
+      id: 'offering-roll',
+      effectId: heldDie.effectId,
+      grantId: heldDie.grantId
+    })
+    expect(result.current.presentation.presentedRoll).toEqual(used)
+  })
+
+  it('keeps the roll when asked, and when dismissed with the offer still open', async () => {
+    const offering = createOfferingRoll('offering-roll')
+    const kept = createRoll('offering-roll')
+    rollMutationMocks.execute.mockResolvedValue(offering)
+    rollMutationMocks.declineAfterRollDice.mockResolvedValue(kept)
+    const { result } = renderHook(() => useCharacterSheetRollController(characterId), {
+      wrapper: createWrapper()
+    })
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll).toEqual(offering))
+
+    await act(() => result.current.presentation.keepRoll())
+    expect(rollMutationMocks.declineAfterRollDice).toHaveBeenCalledWith('offering-roll')
+    expect(result.current.presentation.presentedRoll).toEqual(kept)
+
+    rollMutationMocks.execute.mockResolvedValue(createOfferingRoll('second-roll'))
+    act(() => void result.current.rolls.executeRoll(request))
+    await waitFor(() => expect(result.current.presentation.presentedRoll?.id).toBe('second-roll'))
+    act(() => result.current.presentation.dismissRoll())
+    await waitFor(() =>
+      expect(rollMutationMocks.declineAfterRollDice).toHaveBeenCalledWith('second-roll')
+    )
   })
 
   it('settles on unmount and discards an unrevealed private result', async () => {

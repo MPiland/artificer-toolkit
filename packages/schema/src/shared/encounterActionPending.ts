@@ -210,8 +210,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 )
               break
             case 'D20_WINDOW':
-              if (holdsActionD20 || !test || isD20RolledCheck(pause.payload.rolled))
-                issue('A d20 window belongs to a TEST save held for the roller who holds a die.')
+              if (holdsActionD20 || !value.twoPhase || isD20RolledCheck(pause.payload.rolled))
+                issue(
+                  'A d20 window belongs to a TEST or nested OUTCOME save held for the roller who holds a die.'
+                )
               break
           }
         }

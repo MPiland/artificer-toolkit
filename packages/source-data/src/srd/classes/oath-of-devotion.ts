@@ -8,7 +8,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
   DURATION_KIND,
   EFFECT_KIND,
@@ -33,7 +32,9 @@ import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { protectionFromEvilAndGoodGrants } from '../spells/protection-from-evil-and-good.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { creatureTypeId } from '../spells/shared.js'
 import { gmRulingEffect } from './mechanics.js'
+import { TURNED_INSTRUCTIONS } from './turned.js'
 import { paladinConditionImmunityAura } from './paladin.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -247,7 +248,8 @@ export const oathOfDevotion: ClassAuthored = {
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: 'ANY'
+              dispositionKind: 'ANY',
+              allowedCreatureTypeIds: [creatureTypeId('FIEND'), creatureTypeId('UNDEAD')]
             }
           },
           paths: [
@@ -261,11 +263,18 @@ export const oathOfDevotion: ClassAuthored = {
               resultBlock: {
                 id: `${classRowId(P, 27, 2)}__result`,
                 resultKind: 'SINGLE',
+                duration: {
+                  id: classRowId(P, 0x91, 2),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
                 outcomes: [
                   {
                     id: classRowId(P, 29, 3),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_OATH_OF_DEVOTION_TURN_THE_UNHOLY
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Turned',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: TURNED_INSTRUCTIONS
                   }
                 ]
               }

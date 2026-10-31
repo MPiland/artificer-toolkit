@@ -18,6 +18,7 @@ import {
   ROLLED_DIE_FACES,
   ROLLED_DIE_SIGN_OPTIONS,
   ROLLED_DIE_TIMING_OPTIONS,
+  SCALING_AMOUNT_OPTIONS,
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
@@ -865,6 +866,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'amountKind',
+        selectSingle(
+          ['amountKind'],
+          'Amount On Success',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: SCALING_AMOUNT_OPTIONS.filter((option) => option.code === 'HALF')
+          },
+          {
+            showIf: parent.field(['modifierKind']).eq('SAVE_SUCCESS_DAMAGE')
+          }
+        )
+      )
+      .set(
         'durationKind',
         selectSingle(
           ['durationKind'],
@@ -1403,6 +1418,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['modifierKind']).eq('ADD_BONUS_DIE'),
             local.field(['modifierKind']).eq('MINIMUM_ROLL'),
             local.field(['modifierKind']).eq('REPLACE_DAMAGE_TYPE'),
+            local.field(['modifierKind']).eq('SAVE_SUCCESS_DAMAGE'),
             local.field(['modifierKind']).eq('REPLACE_RANGE_KIND'),
             local.field(['modifierKind']).eq('REPLACE_DURATION_KIND'),
             local.field(['modifierKind']).eq('REPLACE_SHAPE_KIND'),
