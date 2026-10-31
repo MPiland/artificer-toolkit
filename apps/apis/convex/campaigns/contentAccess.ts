@@ -3,14 +3,14 @@ import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/documents'
 import { readRootCatalogue } from '../content/catalogueMetadata'
-import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
 import { requireParentRoots, rootParentId } from '../content/relationshipReads'
 
 /** The current publication's validated payload; authorization reads the root alone. */
 export async function readCurrentPublication(ctx: QueryCtx, root: Doc<'authoredRoots'>) {
   const { document } = await readPublishedRootDocument(ctx, root)
-  return parsePublicationDocument(root.subjectKind, document)
+  return readVerifiedPublicationDocument(root.subjectKind, document)
 }
 
 /** An owner's own root whose current publication is ACTIVE, from the root row alone (D163). */

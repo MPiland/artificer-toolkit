@@ -5,7 +5,7 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/autho
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { canReadAuthoredRoot, readPublishedRootDocument } from '../content/documents'
-import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
 import { requireRulesCatalogueBinding } from '../content/catalogueBinding'
@@ -160,7 +160,7 @@ export async function readCharacterPublication(
 ) {
   if (!(await canReadCharacterRoot(ctx, root, systemId, userId, access, sourceIdentities)))
     return null
-  return parsePublicationDocument(
+  return readVerifiedPublicationDocument(
     root.subjectKind,
     (await readPublishedRootDocument(ctx, root)).document
   )

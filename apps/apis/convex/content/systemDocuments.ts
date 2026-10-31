@@ -1,14 +1,19 @@
-import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
 import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
 
+/**
+ * The seed parses a System and rejects a mismatch before it stores the document and its checksum,
+ * so a matching checksum proves the typed shape and a read does not parse it again.
+ */
 export function readSystem(record: Doc<'systems'>) {
   if (checksumRuleDocument(record.document) !== record.checksum) {
     throw new Error('Stored System checksum mismatch.')
   }
-  const document = systemAuthoredDtoSchema.parse(record.document)
+  const verifiedDocument: unknown = record.document
+  const document = verifiedDocument as SystemAuthoredDto
   if (document.id !== record.id) throw new Error('Stored System identity mismatch.')
   return document
 }

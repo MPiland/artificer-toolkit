@@ -1,1 +1,4 @@
-export { parsePublicationDocument } from '@artificer-toolkit/rules-runtime/authoredPublicationRead'
+export {
+  parsePublicationDocument,
+  readVerifiedPublicationDocument
+} from '@artificer-toolkit/rules-runtime/authoredPublicationRead'

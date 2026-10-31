@@ -29,7 +29,7 @@ import { readRootCatalogue } from '../content/catalogueMetadata'
 import { requireParentRoots } from '../content/relationshipReads'
 import { requireSystem } from '../content/systemDocuments'
 import { readAuthoredVersionCompilation, readPublishedRootDocument } from '../content/documents'
-import { parsePublicationDocument } from '../content/publicationDocumentRead'
+import { readVerifiedPublicationDocument } from '../content/publicationDocumentRead'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignSharedActiveRoot } from '../campaigns/contentAccess'
 import { isImportRowVisible } from '../imports/visibility'
@@ -158,7 +158,7 @@ export async function loadCharacterRuleContext(
   async function readDocument(root: Doc<'authoredRoots'>) {
     const cached = publications.get(root.id)
     if (cached) return cached
-    const published = parsePublicationDocument(
+    const published = readVerifiedPublicationDocument(
       root.subjectKind,
       (await readPublishedRootDocument(ctx, root)).document
     )
