@@ -147,7 +147,7 @@ describe('room Lay on Hands (SPELLS-31.T4f2a)', () => {
 describe('room Lay on Hands cure and creature-type filter (SPELLS-31.T4f2b)', () => {
   /** The ids of the poisoning effects the room holds. */
   const poisonings = async (fixture: Room) =>
-    (await readRoomHistory(fixture.room.base.stub)).characterEffects
+    (await readRoomHistory(fixture.room.base.stub)).activeEffects
       .filter(({ definitionJson }) => definitionJson.includes(poisonedId))
       .map(({ id }) => id)
 
