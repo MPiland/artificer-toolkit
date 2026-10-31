@@ -293,6 +293,41 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
     expect(second!.commandId).not.toBe(first!.commandId)
   })
 
+  it('asks which held effect ends and resends the action with the pick (SPELLS-12.T1)', async () => {
+    const user = userEvent.setup()
+    const heldStates = [
+      { id: '11111111-1111-4111-8111-111111111111', label: 'First Ward' },
+      { id: '22222222-2222-4222-8222-222222222222', label: null }
+    ]
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      .mockImplementationOnce(async (command) => {
+        throw new LiveSessionCommandRejectedError({
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: 3,
+          message: 'Choose which maintained effect ends to make room for this one.',
+          reason: 'MAINTAINED_REPLACEMENT_REQUIRED',
+          warnings: null,
+          heldStates
+        })
+      })
+      .mockResolvedValue(resolved)
+    renderDrawer(onResolve)
+
+    await chooseActionAndTarget(user)
+    const confirmation = await screen.findByRole('alert')
+    const confirm = within(confirmation).getByRole('button', { name: 'End it and cast' })
+    expect(confirm).toBeDisabled()
+    expect(within(confirmation).getByRole('radio', { name: 'Concentration 2' })).toBeVisible()
+
+    await user.click(within(confirmation).getByRole('radio', { name: 'First Ward' }))
+    await user.click(confirm)
+    expect(onResolve).toHaveBeenCalledTimes(2)
+    expect(onResolve.mock.calls[0]![0]).not.toHaveProperty('endedMaintainedStateId')
+    expect(onResolve.mock.calls[1]![0]).toMatchObject({ endedMaintainedStateId: heldStates[0]!.id })
+  })
+
   it('offers a versatile attack once, with a grip control that picks its action (D57)', async () => {
     const user = userEvent.setup()
     const onResolve = vi

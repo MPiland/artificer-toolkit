@@ -510,7 +510,7 @@ returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Mainta
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
 decides whether a mechanic uses it. Storage layout and limits are in [persistence](persistence.md).
 
-**Concentration capacity (current, SPELLS-12.T1).** A holder keeps a *set* of maintained states per
+**Concentration capacity (current, SPELLS-12.T1).** A holder keeps a _set_ of maintained states per
 maintenance definition, up to `concentrationCapacity` (dnd5e `characterPolicy`: 1 plus the
 `CONCENTRATION_CAPACITY` `BONUS` modifiers that apply; a Creature holds 1). `chooseReplacedMaintainedState`
 (in `encounterActionMaintenance.ts`) decides what a new maintained effect replaces: below capacity nothing
