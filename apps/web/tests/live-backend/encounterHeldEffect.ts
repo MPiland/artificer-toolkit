@@ -171,6 +171,11 @@ export async function verifyEncounterHeldEffectBrowser(
           page.getByRole('status').filter({ hasText: input.next.label + ': ' })
         ).toContainText(/\d+(\.\d)? ft/)
         await expect(actionsDrawer).toBeHidden()
+        await page.screenshot({
+          caret: 'initial',
+          path: input.evidenceDirectory + '/held-effect-targeting.png',
+          fullPage: true
+        })
         await page.mouse.click(next.x, next.y)
         await expect(page.getByRole('dialog', { name: 'Pick a target' })).toBeHidden()
         await openActions()
@@ -198,6 +203,16 @@ export async function verifyEncounterHeldEffectBrowser(
       .allInnerTexts()
       .catch(() => [])
     if (warnings?.length) failure += ' Visible list items: ' + warnings.join(' | ')
+    const statuses = await player
+      ?.getByRole('status')
+      .allInnerTexts()
+      .catch(() => [])
+    if (statuses?.length) failure += ' Statuses: ' + statuses.join(' | ')
+    const dialogs = await player
+      ?.getByRole('dialog')
+      .evaluateAll((nodes) => nodes.map((node) => node.textContent?.slice(0, 400) ?? ''))
+      .catch(() => [])
+    if (dialogs?.length) failure += ' Dialogs: ' + dialogs.join(' | ')
     await Promise.allSettled([
       player?.screenshot({
         caret: 'initial',
@@ -205,7 +220,7 @@ export async function verifyEncounterHeldEffectBrowser(
         fullPage: true
       })
     ])
-    throw error
+    throw new Error(failure, { cause: error })
   } finally {
     await browser.close()
     for (const diagnostic of abortedRequests.values()) diagnostics.push(diagnostic)
