@@ -16280,7 +16280,7 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31)."
             },
             {
               "id": "SPELLS-12.T2",
@@ -16298,7 +16298,7 @@
                 ]
               },
               "text": "Authored per-use gate predicate and limited uses with recovery.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
             },
             {
               "id": "SPELLS-12.T3",
@@ -16316,7 +16316,7 @@
                 ]
               },
               "text": "Per-spell saves in casting order, advantage and disadvantage predicates.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
             },
             {
               "id": "SPELLS-12.T4",
@@ -16334,7 +16334,7 @@
                 ]
               },
               "text": "Held-count gated effect and journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
             }
           ]
         },
@@ -19901,13 +19901,28 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 8,
                 "after": [
                   "SPELLS-31.T4m"
                 ]
               },
-              "text": "Destroy Undead: the kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted.",
-              "note": "Split from T4m on 2026-10-31. Held: the user has not ruled on the CR gate (about size 8, recommended) vs a GM ruling with the CR table. Design in spells-31-t4m-design-packet.md. Don't start until ruled; re-size if the gate is approved."
+              "text": "Destroy Undead with a CR gate: a failed Turn Undead save destroys an undead at or below the Cleric level's CR limit. The kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted. Authoring-parity proof.",
+              "note": "Split from T4m on 2026-10-31. Growth approved by the user on 2026-10-31 (D202). Design in spells-31-t4m-design-packet.md."
+            },
+            {
+              "id": "SPELLS-31.T6w",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 3
+              },
+              "text": "Water Elemental Whelm as a self-centered area over the elemental's space, like Spirit Guardians, with the failed save holding the target through the save-gated hold and the recurring damage (D202). Replaces its GM ruling; the two-creature grapple limit may stay a ruling.",
+              "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings."
             }
           ]
         },
@@ -25920,8 +25935,8 @@
                   "RELIABILITY-21.T25"
                 ]
               },
-              "text": "Builder store margin, split from T25: its max under 700 ms on the builder journey. A level 1 Cleric store reads 270 documents and 567 KB, 386 KB of it 105 Spell authoredRoots at about 3.4 KB each. Move authoringSources to its own table (saves about 1.3 KB per root), with content and account deletion covering it. Stored-shape change: reset and reseed after merge.",
-              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed. Measured from m580's convex-function.log (BJ 41180399328): Convex warns on functions over about 800 ms, so CI does give the slow end. builder-browser store max 896 ms, over the 700 ms goal. Stays open: the store needs more margin."
+              "text": "Remove the duplicate work in characters/sheetSectionDerivation:store: the System row read and checksummed twice, and authorization, sources and effects read in both readCharacterSheetStoreState and loadCharacterSheetFacts. No timing target (D202).",
+              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed. Measured from m580's convex-function.log (BJ 41180399328): Convex warns on functions over about 800 ms, so CI does give the slow end. builder-browser store max 896 ms, over the 700 ms goal. Stays open: the store needs more margin. D202 (user 2026-10-31): the 700 ms goal is dropped; PERF-1.T1 sets the store budget."
             },
             {
               "id": "RELIABILITY-21.T26",
@@ -26523,12 +26538,14 @@
                 "rr": 8,
                 "size": 2,
                 "after": [
-                  "PERF-3.T1"
+                  "PERF-3.T1",
+                  "SPELLS-12.T2",
+                  "SPELLS-12.T4"
                 ],
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
