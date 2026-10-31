@@ -741,10 +741,12 @@
             {
               "id": "PLATFORM-13.15",
               "text": "A failed CI browser journey uploads its Playwright log, and the vtt-browser journey passes without a rerun.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by PLATFORM-13.T26 (m572), PLATFORM-13.T28 (m572), PLATFORM-13.T29 (m580), PLATFORM-13.T30 (m580), PLATFORM-13.T31 (m574); see each task's proof."
+              ],
               "origin": [],
-              "note": "Bug registered by the orchestrator on 2026-10-30: vtt-browser failed twice that day (runs 41068941213 and the T4v2b sync tip) and passed on rerun, with no playwright.log in the evidence."
+              "note": "Bug registered by the orchestrator on 2026-10-30: vtt-browser failed twice that day (runs 41068941213 and the T4v2b sync tip) and passed on rerun, with no playwright.log in the evidence. Closed 2026-10-31 by PLATFORM-13.T26, PLATFORM-13.T28, PLATFORM-13.T29, PLATFORM-13.T30, PLATFORM-13.T31."
             }
           ],
           "wsjf": {
@@ -1197,7 +1199,7 @@
             },
             {
               "id": "PLATFORM-13.T29",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.15"
               ],
@@ -1209,11 +1211,11 @@
                 "after": []
               },
               "text": "Bug: one 429 from /api/auth/convex/token makes SSR throw \"Authentication verification is unavailable.\" and the page shows the error screen. Find why 187 token requests across sequential proofs reach the limit, set the token path limit deliberately, and handle a 429 honestly.",
-              "note": "Found on ci/merge-m572 run 41152470811 attempt 1, publication-class-browser. Rate-limit reset cause is a hypothesis to verify. First fix (window 1, max 20) pulled from m577: run 41174945980 failed profile-browser and social-browser on token 429s. Rework from the measured peak."
+              "note": "Found on ci/merge-m572 run 41152470811 attempt 1, publication-class-browser. Rate-limit reset cause is a hypothesis to verify. First fix (window 1, max 20) pulled from m577: run 41174945980 failed profile-browser and social-browser on token 429s. Rework from the measured peak. Merged in m580 (e21bc086e)."
             },
             {
               "id": "PLATFORM-13.T30",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.15"
               ],
@@ -1225,7 +1227,7 @@
                 "after": []
               },
               "text": "Bug: after /logout the page can end on /sign-in?redirect=%2Fhome instead of /sign-in. Fix the product race between sign-out navigation and the route guards.",
-              "note": "Found on ci/merge-m572 run 41152470811 attempt 2, profile-browser. Stale-session guard cause is a hypothesis to verify."
+              "note": "Found on ci/merge-m572 run 41152470811 attempt 2, profile-browser. Stale-session guard cause is a hypothesis to verify. Merged in m580 (e21bc086e)."
             },
             {
               "id": "PLATFORM-13.T31",
@@ -20003,7 +20005,7 @@
         {
           "id": "SPELLS-33",
           "title": "Creature trait and action closed rules become core authoring options",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "origin": [
             "Q25 answered A (user, 2026-10-18)"
           ],
@@ -20016,10 +20018,20 @@
           "acs": [
             {
               "id": "SPELLS-33.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": [],
-              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds.",
-              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+              "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds. Closed 2026-10-31 by SPELLS-33.T1, SPELLS-33.T2a, SPELLS-33.T2b, SPELLS-33.T3a, SPELLS-33.T3a2, SPELLS-33.T3a3, SPELLS-33.T3a4, SPELLS-33.T3a5, SPELLS-33.T3a6, SPELLS-33.T3b, SPELLS-33.T3c1, SPELLS-33.T3c2a1, SPELLS-33.T3c2a2a, SPELLS-33.T3c2a2b, SPELLS-33.T3c2b, SPELLS-33.T3c2c, SPELLS-33.T3c3, SPELLS-33.T4c, SPELLS-33.T4c2, SPELLS-33.T4de, SPELLS-33.T4gh, SPELLS-33.T4i1a, SPELLS-33.T4i1b1, SPELLS-33.T4i1b2, SPELLS-33.T4i1c, SPELLS-33.T4i1d, SPELLS-33.T4i1e, SPELLS-33.T4i2a, SPELLS-33.T4i2b, SPELLS-33.T4i3a, SPELLS-33.T4i3b, SPELLS-33.T4i3c, SPELLS-33.T4i4a, SPELLS-33.T4i4b, SPELLS-33.T4j, SPELLS-33.T4k, SPELLS-33.T4k2, SPELLS-33.T4l1, SPELLS-33.T4l2, SPELLS-33.T4l2b, SPELLS-33.T4l3, SPELLS-33.T4m, SPELLS-33.T4n, SPELLS-33.T4o, SPELLS-33.T4pr, SPELLS-33.T4s1, SPELLS-33.T4s2, SPELLS-33.T4s3, SPELLS-33.T4w, SPELLS-33.T5afp, SPELLS-33.T5k, SPELLS-33.T5l, SPELLS-33.T5n1, SPELLS-33.T5n2, SPELLS-33.T6a1, SPELLS-33.T6a2, SPELLS-33.T6a3, SPELLS-33.T6b1, SPELLS-33.T6b2, SPELLS-33.T6b3, SPELLS-33.T6c, SPELLS-33.T6d1, SPELLS-33.T6d2, SPELLS-33.T6d3a, SPELLS-33.T6d3b, SPELLS-33.T6e, SPELLS-33.T6e4, SPELLS-33.T6e3, SPELLS-33.T6e3b, SPELLS-33.T6e3c, SPELLS-33.T6e1, SPELLS-33.T6e1b, SPELLS-33.T6e2, SPELLS-33.T6f, SPELLS-33.T6g, SPELLS-33.T6h, SPELLS-33.T6i, SPELLS-33.T6i2, SPELLS-33.T6j, SPELLS-33.T6k1, SPELLS-33.T6k2, SPELLS-33.T6k2b, SPELLS-33.T6k2b2, SPELLS-33.T6k2b3, SPELLS-33.T6k2b4a, SPELLS-33.T6k2b4b, SPELLS-33.T6k3, SPELLS-33.T6m1, SPELLS-33.T6m2, SPELLS-33.T7a, SPELLS-33.T7b, SPELLS-33.T6n1, SPELLS-33.T6n2, SPELLS-33.T6n2b, SPELLS-33.T6n3, SPELLS-33.T4i3d, SPELLS-33.T4i1f, SPELLS-33.T4i3e, SPELLS-33.T4i3f, SPELLS-33.T4i3g.",
+              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted.",
+              "proof": [
+                "creatureReactionRulesAuthoringParity.test.ts",
+                "chargeAuthoringParity.test.ts",
+                "creatureChangeShapeRulingAuthoringParity.test.ts",
+                "srdCreatureHitRiders.test.ts",
+                "creatureEngulfRulingAuthoringParity.test.ts",
+                "descriptionOnlyCreatureAndRaceRules.test.ts",
+                "creatureStandingGrantedActionsAuthoringParity.test.ts",
+                "creatureDeadlyLeapRulingAuthoringParity.test.ts"
+              ]
             }
           ],
           "tasks": [
@@ -21895,7 +21907,7 @@
             },
             {
               "id": "SPELLS-33.T6n3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -21909,7 +21921,7 @@
                 ]
               },
               "text": "Convert the holder-turn creatures onto the SPELLS-33.T6n2 phase, data only: the swallows (Purple Worm, Behir, Remorhaz, Tarrasque, Kraken, Giant Toad, Giant Frog), the Stirge blood drain, the Gelatinous Cube engulf and the Water Elemental whelm. Each replaces its MANUAL_ADJUDICATION start-of-holder-turn damage with a SOURCE-anchored relationship recurrence; riders outside the phase (regurgitation, detach thresholds) stay GM rulings under D187a. Authoring-parity proof per creature and one room journey on a swallow.",
-              "note": "+5 scope growth approved by the user 2026-10-25."
+              "note": "+5 scope growth approved by the user 2026-10-25. Merged in m580 (e21bc086e)."
             },
             {
               "id": "SPELLS-33.T4i3d",
@@ -22004,6 +22016,10 @@
               },
               "note": "Merged m329 (5c07ac9fb)."
             }
+          ],
+          "journeyStatus": "verified",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomHeldRecurrenceSave.test.ts"
           ]
         },
         {
