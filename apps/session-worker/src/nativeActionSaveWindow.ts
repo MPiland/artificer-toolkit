@@ -35,12 +35,14 @@ export const targetSaveWindow = (
     encounterHeldSavingThrowDice(gameSystemId, targetEffects, abilityDefinitionId)
 })
 
+type SpentDiceHolder = { addedDice?: readonly { spentEffectId?: string }[] } | null | undefined
+
 /** The effects whose held die a window spent on the action's settled saves; each is used up with the action. */
 export function windowSpentEffects(
-  d20s: readonly ({ addedDice?: readonly { spentEffectId?: string }[] } | null | undefined)[],
+  execution: Readonly<Record<'d20' | 'nestedD20', SpentDiceHolder>>,
   targetEffects: readonly ActiveRuleEffectRecord[]
 ) {
-  return d20s
+  return [execution.d20, execution.nestedD20]
     .flatMap((d20) => d20?.addedDice ?? [])
     .flatMap(({ spentEffectId }) => {
       if (!spentEffectId) return []

@@ -2,7 +2,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -29,9 +29,9 @@ const dexterityId = srdSystemRecord.abilities?.find(({ code }) => code === 'DEXT
 if (!frightened || !dexterityId) throw new Error('The SRD vocabulary fixture is missing.')
 
 /** A Bite that hits (attack +4) for 1 damage, then calls for an immediate Dexterity save (DC 10) against Frightened. */
-const hitThenSaveBite: CreatureAuthored = (() => {
+const hitThenSaveBite = (() => {
   const base = biteWolf('ATTACK')
-  return {
+  return creatureAuthoredDtoSchema.parse({
     ...base,
     features: base.features?.map((feature) =>
       feature.label !== 'Bite'
@@ -100,7 +100,7 @@ const hitThenSaveBite: CreatureAuthored = (() => {
             }))
           }
     )
-  }
+  })
 })()
 
 type Room = Awaited<ReturnType<typeof actionRoom>>
