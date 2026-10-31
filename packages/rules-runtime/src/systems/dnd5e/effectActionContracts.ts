@@ -1,5 +1,8 @@
 import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import type { CharacterRuleActionForcedMovementDirection as ForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
+import type {
+  CharacterRuleActionConditionOutcomeRules,
+  CharacterRuleActionForcedMovementDirection as ForcedMovementDirection
+} from '../../characterRuleActionSystemAdapter.js'
 import {
   type CharacterRuleActionForcedMovementCollision,
   CharacterRuleActionUnsupportedCompilationError
@@ -64,6 +67,31 @@ export const DND5E_SAVE_DC_FACT_KEY = 'dnd5e.save-dc'
 export const DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY = 'dnd5e.roll-contributor-checksum'
 /** The target's condition test-outcome rule (D94): `NONE`, `SAVE_AUTO_FAIL` or `HIT_IS_CRITICAL`. */
 export const DND5E_TEST_OUTCOME_RULE_FACT_KEY = 'dnd5e.test-outcome-rule'
+
+/** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */
+export function dnd5eSaveAutoFailConditionIds(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+): string[] {
+  return [
+    ...new Set(
+      (rules?.saveAutoFails ?? [])
+        .filter((failure) => failure.abilityDefinitionId === abilityDefinitionId)
+        .map(({ conditionDefinitionId }) => conditionDefinitionId)
+    )
+  ].sort()
+}
+
+/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
+export function dnd5eSaveOutcomeRule(
+  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
+  abilityDefinitionId: string
+): 'NONE' | 'SAVE_AUTO_FAIL' {
+  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
+    ? 'SAVE_AUTO_FAIL'
+    : 'NONE'
+}
+
 /** The lowest natural d20 that scores a critical hit with this attack: 20 unless a grant lowers it. */
 export const DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY = 'dnd5e.attack-critical-threshold'
 /** The extra rolls of the attack's own damage die a critical hit adds (Brutal Critical); absent for none. */

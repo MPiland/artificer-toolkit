@@ -192,6 +192,8 @@ export interface CharacterPlayOverrides {
   abilityScores?: Readonly<Record<string, number>>
   /** Sheet conditions the Character already carries. */
   conditions?: { conditionTypeId: string; label: string }[]
+  /** The Character's Exhaustion level on its Sheet. */
+  exhaustionLevel?: number
   /** The spells the Character's Class has learned and prepared. */
   spells?: { learned: readonly string[]; prepared: readonly string[] }
   /** Spell slots already spent, by slot key (for example `STANDARD:4`). */
@@ -232,6 +234,7 @@ export function characterOwnerRowFor({
     classLevel = 1,
     abilityScores = {},
     conditions,
+    exhaustionLevel,
     spells,
     spellSlots
   } = playOverrides
@@ -318,6 +321,7 @@ export function characterOwnerRowFor({
         deathSaves
       },
       ...(conditions && { conditions }),
+      ...(exhaustionLevel && { exhaustion: { level: exhaustionLevel } }),
       ...(spellSlots && { spellSlots: [...spellSlots] }),
       ...(spells && {
         classes: [

@@ -61,8 +61,7 @@ const damageCheckDocument = ruleGraphDefinitionDtoSchema.parse({
           kind: 'FACT',
           factKey: 'dnd5e.concentration-contributor-checksum'
         },
-        // Condition outcome rules don't reach concentration saves yet (D94).
-        outcomeRule: { kind: 'LITERAL', value: 'NONE' }
+        outcomeRule: { kind: 'FACT', factKey: 'dnd5e.test-outcome-rule' }
       }
     }
   ],
