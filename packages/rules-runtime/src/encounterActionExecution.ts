@@ -5,6 +5,13 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
+  actionD20Policy,
+  actionRequestRoller,
+  requireActionContinuation,
+  type EncounterActionRoller,
+  type NativeTwoPhase
+} from './encounterActionRequest.js'
+import {
   requireTestRollMode,
   resolveEncounterActionPhaseExecution
 } from './encounterActionPhaseExecution.js'
@@ -27,6 +34,13 @@ import {
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 import { resumeEncounterD20 } from './encounterD20AddedDice.js'
+import {
+  heldWindowedSave,
+  openActionSaveWindow,
+  windowedSaveResponse,
+  type EncounterActionWindowAnswer
+} from './encounterActionSaveWindow.js'
+import type { EncounterD20WindowHeldDie } from './encounterD20Window.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { actionResponse, settleEncounterD20Answer } from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -44,7 +58,6 @@ import {
   RULE_GRAPH_LIMITS,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
-import { directActionTwoPhaseDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionForcedMovementChoice'
@@ -243,14 +256,10 @@ export async function executeNativeActionGraphs(input: {
 }
 
 type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
-type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 type NativeOutcomePhase = Extract<NativeTwoPhase, { phase: 'OUTCOME' }>
 
 /** A paused request resumed by its answer; whose roll it was no longer matters. */
 export type ResumedNativeActionGraphs = Omit<PendingNativeActionGraphs, 'roller'>
-
-/** Whose roll a paused action request is: the acting source's or its target's (a save). */
-export type EncounterActionRoller = 'SOURCE' | 'TARGET'
 
 /** Each roller's "Auto-roll my dice" preference; a roller who auto-rolls is never prompted. */
 export type EncounterActionAutoRoll = Readonly<Record<EncounterActionRoller, boolean>>
@@ -268,12 +277,13 @@ export type PendingNativeActionGraphs = {
   /** The d20 already entered while one more is needed to settle the true mode. */
   heldD20?: EncounterActionHeldD20Dto
   /**
-   * Set while the action waits on a choice: a failed save's Legendary Resistance, a hit's reaction or
-   * on-hit rider, or a settled action's forced-movement destination. `continuation` is that choice.
+   * Set while the action waits on a choice: a rolled save's d20 window, a failed save's Legendary
+   * Resistance, a hit's reaction or on-hit rider, or a settled action's forced-movement destination.
+   * `continuation` is that choice.
    */
   pause?: Extract<
     EncounterActionPauseDto,
-    { kind: 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
+    { kind: 'D20_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
   >
 }
 
@@ -332,64 +342,6 @@ function actionComplete(input: {
       incomingHalved: input.binding.incomingHalved
     })
   }
-}
-
-/** Refuses a stored continuation that no longer matches its occurrence, graph or bound facts. */
-export function requireActionContinuation(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  occurrenceId: string
-  published: ServerPublishedRuleDefinitionDto
-  facts: Readonly<Record<string, unknown>>
-}) {
-  if (
-    input.continuation.occurrenceId !== input.occurrenceId ||
-    input.continuation.graph.source.definitionId !== input.published.id ||
-    input.continuation.graph.source.checksum !== input.published.checksum ||
-    Object.entries(input.continuation.facts).some(
-      ([key, value]) => checksumRuleDocument(value) !== checksumRuleDocument(input.facts[key])
-    )
-  )
-    throw new Error('The action evidence continuation is stale.')
-}
-
-function actionD20Policy(input: {
-  phase: 'SINGLE' | 'TEST' | 'OUTCOME'
-  continuation: ServerRuleExecutionContinuationDto
-  bound: ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>
-  twoPhase: NativeTwoPhase | null
-}): ServerRuleExecutionD20PolicyDto | null {
-  const nested = input.twoPhase?.phase === 'OUTCOME' ? input.twoPhase.nestedOutcomeD20 : null
-  if (input.phase === 'TEST' || nested?.requestNodeId === input.continuation.request.nodeId)
-    return (
-      nested ??
-      deriveEncounterActionD20Policy({ continuation: input.continuation, bound: input.bound })
-    )
-  if (
-    input.phase === 'SINGLE' &&
-    input.bound.d20Audit &&
-    input.continuation.request.min === 1 &&
-    input.continuation.request.max === 20
-  )
-    return deriveEncounterActionD20Policy({ continuation: input.continuation, bound: input.bound })
-  if (
-    input.continuation.request.kind !== 'INTEGER_RANGE' ||
-    input.continuation.request.min >= input.continuation.request.max
-  )
-    throw new Error('The action requested unsupported evidence.')
-  return null
-}
-
-function actionRequestRoller(input: {
-  continuation: ServerRuleExecutionContinuationDto
-  policy: ServerRuleExecutionD20PolicyDto | null
-  bound: ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>
-  twoPhase: NativeTwoPhase | null
-}): EncounterActionRoller {
-  if (input.policy === null) return 'SOURCE'
-  const nested = input.twoPhase?.phase === 'OUTCOME' ? input.twoPhase.nestedOutcomeD20 : null
-  if (nested?.requestNodeId === input.continuation.request.nodeId) return 'TARGET'
-  if (!input.bound.d20Roller) throw new Error('The action d20 roller is unavailable.')
-  return input.bound.d20Roller
 }
 
 type NativeActionBaseInput = {
@@ -1121,7 +1073,16 @@ export async function advanceNativeActionGraphs(input: {
    * reaction is offered, for the attacker's choice before its OUTCOME.
    */
   onHitCandidates?: readonly EncounterOnHitCandidate[]
-  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+  /**
+   * The dice the TEST save's target holds for after its d20 (D168). A target that holds one sees its
+   * rolled d20 in a window before the save resolves; the window's answer resumes the save with the
+   * roll and the die it spent.
+   */
+  saveWindow?: { heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[] }
+  resume?: {
+    pending: ResumedNativeActionGraphs
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+  }
   /**
    * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
    * attack d20 is then prompted in the believed mode and settled in the true one (ATTACK-10.1).
@@ -1177,24 +1138,27 @@ export async function advanceNativeActionGraphs(input: {
   async function answer(
     continuation: ServerRuleExecutionContinuationDto,
     policy: ServerRuleExecutionD20PolicyDto | null,
-    resolution: EncounterEvidenceAnswer,
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer,
     stored: {
       d20Belief: EncounterAttackD20Belief | null
       heldD20: EncounterActionHeldD20Dto | null
     }
   ) {
     const sight =
-      policy !== null && isStageD20(policy)
+      policy !== null && isStageD20(policy) && resolution.kind !== 'D20_WINDOW'
         ? sightGovernedStageD20({ attackSight, policy, stored })
         : null
-    const response = actionResponse({
-      gameSystemId: published.gameSystemId,
-      continuation,
-      policy,
-      resolution,
-      random,
-      sightGoverned: sight
-    })
+    const response =
+      resolution.kind === 'D20_WINDOW'
+        ? windowedSaveResponse({ continuation, policy, d20: resolution.d20 })
+        : actionResponse({
+            gameSystemId: published.gameSystemId,
+            continuation,
+            policy,
+            resolution,
+            random,
+            sightGoverned: sight
+          })
     if (response.kind === 'NEEDS_EXTRA_D20') {
       const roller = actionRequestRoller({ continuation, policy, bound, twoPhase })
       return {
@@ -1207,10 +1171,38 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
+    const heldDice =
+      policy && phase === 'TEST' && policy.savingThrowAbilityDefinitionId
+        ? (input.saveWindow?.heldDice(policy.savingThrowAbilityDefinitionId) ?? [])
+        : []
+    // A roller's d20 that a held die could still change is shown to its roller before the save resolves.
+    const window =
+      heldDice.length > 0 && resolution.kind !== 'D20_WINDOW' && !sight && policy
+        ? await openActionSaveWindow({
+            runtime: input.runtime,
+            occurrenceId: input.occurrenceId,
+            gameSystemId: published.gameSystemId,
+            continuation,
+            policy,
+            response,
+            appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null,
+            heldDice
+          })
+        : null
+    if (window)
+      return {
+        kind: 'PENDING' as const,
+        continuation: window.continuation,
+        d20Policy: null,
+        twoPhase,
+        roller: 'TARGET' as const,
+        pause: window.pause
+      }
     const resumed = await resumeEncounterD20({
       continuation,
       natural: response.value,
       addedDice: response.addedDice,
+      mayAddDice: heldDice.length > 0,
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
@@ -1384,16 +1376,20 @@ export async function advanceNativeActionGraphs(input: {
         throw new Error('The action OUTCOME roll policy is stale.')
       nestedD20 = twoPhase.nestedOutcomeD20Evidence
     }
+    // A window holds its save as it paused before the roll; the window's answer resumes that request.
+    const { resolution } = input.resume
+    const windowed = heldWindowedSave(pending.pause, resolution)
+    const continuation = windowed ? windowed.continuation : pending.continuation
     requireActionContinuation({
-      continuation: pending.continuation,
+      continuation,
       occurrenceId: input.occurrenceId,
       published,
       facts: bound.facts
     })
-    const policy = actionD20Policy({ phase, continuation: pending.continuation, bound, twoPhase })
-    if (checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
+    const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
+    if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
       throw new Error('The action evidence policy is stale.')
-    const answered = await answer(pending.continuation, policy, input.resume.resolution, {
+    const answered = await answer(continuation, policy, resolution, {
       d20Belief: pending.d20Belief ?? null,
       heldD20: pending.heldD20 ?? null
     })

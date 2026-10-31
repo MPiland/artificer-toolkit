@@ -29,6 +29,7 @@ import {
   type EncounterHolderLight,
   type GrantSource,
   sourceQualifierAdmits,
+  encounterSavingThrowAfterRollDice,
   withSourceSaves,
   withSourceSightSave
 } from './encounterActiveGrants.js'
@@ -119,6 +120,18 @@ type CharacterActionMovementFacts = CharacterMovementFacts & {
 }
 
 /** Preserves the issued pending-action checksum across native and DO preparation. */
+/** The target's facts with the after-roll saving-throw dice its save window may spend; `effects` null leaves them. */
+function withSaveWindowDice(
+  effects: Parameters<typeof encounterSavingThrowAfterRollDice>[1] | null,
+  gameSystemId: string,
+  targetDerivedFacts: Record<string, unknown>
+): Record<string, unknown> {
+  const afterRoll = effects ? encounterSavingThrowAfterRollDice(gameSystemId, effects) : {}
+  return Object.keys(afterRoll).length
+    ? { ...targetDerivedFacts, savingThrowAfterRollDice: afterRoll }
+    : targetDerivedFacts
+}
+
 export function encounterActionCurrentnessChecksum(input: {
   prepared: Pick<
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
@@ -417,6 +430,11 @@ export async function prepareEncounterActionMechanics<
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterCoverFacts | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
+  /**
+   * Whether the target's TEST save may be seen in a d20 window (D168): the target's held after-roll
+   * dice then widen the save graph's allowed added dice. Only the single-target RESOLVE_ACTION asks.
+   */
+  saveWindow?: boolean
   loadRelationshipFacts: (input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
@@ -975,22 +993,26 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts: attackDecoy
-        ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
-        : withSourceSaves(
-            state.gameSystemId,
-            attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
-              ? withSourceSightSave(
-                  state.gameSystemId,
-                  targetFacts.targetDerivedFacts,
-                  compilerSource.savingThrowAbilityDefinitionId,
-                  attackSight.trueSight
-                )
-              : targetFacts.targetDerivedFacts,
-            targetFacts.sourceSaves,
-            attackSource,
-            spellCastSystemId
-          ),
+      targetDerivedFacts: withSaveWindowDice(
+        input.saveWindow ? targetFacts.activeEffects : null,
+        state.gameSystemId,
+        attackDecoy
+          ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
+          : withSourceSaves(
+              state.gameSystemId,
+              attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
+                ? withSourceSightSave(
+                    state.gameSystemId,
+                    targetFacts.targetDerivedFacts,
+                    compilerSource.savingThrowAbilityDefinitionId,
+                    attackSight.trueSight
+                  )
+                : targetFacts.targetDerivedFacts,
+              targetFacts.sourceSaves,
+              attackSource,
+              spellCastSystemId
+            )
+      ),
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
       foldedBonuses,

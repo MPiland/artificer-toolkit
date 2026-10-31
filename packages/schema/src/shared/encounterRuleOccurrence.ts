@@ -427,7 +427,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         rollerActorId: uuidSchema,
-        trigger: encounterRuleRollTriggerDtoSchema,
+        /** What the roll is for; absent for an action's own save, which the action names. */
+        trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
         /** The kept face and the total the roll stands at before any die is added. */
         d20: z.strictObject({

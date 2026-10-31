@@ -45,7 +45,9 @@ export const serverRuleExecutionReceiptCommandMetadataDtoSchema = lazySchema(() 
           'AREA_LEGENDARY_RESISTANCE',
           'DECLINE',
           'OPTION',
-          'FORCED_MOVEMENT'
+          'FORCED_MOVEMENT',
+          'D20_WINDOW_USE',
+          'D20_WINDOW_DECLINE'
         ]),
         /**
          * Native evidence retries retain the authorized response's command receipt, parsed by its

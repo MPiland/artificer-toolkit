@@ -8,6 +8,7 @@ import {
   serverRuleExecutionD20BeliefDtoSchema,
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
+import { isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
   encounterFailedCounterDtoSchema,
@@ -207,6 +208,10 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                 issue(
                   'A forced-movement destination belongs to a settled action held for its source.'
                 )
+              break
+            case 'D20_WINDOW':
+              if (holdsActionD20 || !test || isD20RolledCheck(pause.payload.rolled))
+                issue('A d20 window belongs to a TEST save held for the roller who holds a die.')
               break
           }
         }

@@ -41,8 +41,8 @@ export type EncounterPauseDto =
   | { kind: 'FORCED_MOVEMENT'; payload: EncounterForcedMovementOfferDto }
   | { kind: 'D20_WINDOW'; payload: D20WindowPausePayloadDto }
 
-/** The pauses an Encounter action holds; a window inside an action adds its member here. */
-export type EncounterActionPauseDto = Exclude<EncounterPauseDto, { kind: 'D20_WINDOW' }>
+/** The pauses an Encounter action holds: its TEST save's d20 window, and every choice it offers. */
+export type EncounterActionPauseDto = EncounterPauseDto
 
 export type EncounterPauseKind = EncounterPauseDto['kind']
 
@@ -83,7 +83,8 @@ export const encounterActionPauseDtoSchema: z.ZodMiniType<EncounterActionPauseDt
       variants.INCOMING_GATE,
       variants.ATTACK_RETARGET,
       variants.ON_HIT,
-      variants.FORCED_MOVEMENT
+      variants.FORCED_MOVEMENT,
+      variants.D20_WINDOW
     ])
   }
 )

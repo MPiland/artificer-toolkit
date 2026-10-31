@@ -132,7 +132,10 @@ type CastPendingContext = {
     | { kind: 'INCOMING_GATE'; payload: { effectId: string } }
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
     | { kind: 'ATTACK_RETARGET'; payload: { gate: { effectId: string } } }
-    | { kind: 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'; payload: unknown }
+    | {
+        kind: 'D20_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
+        payload: unknown
+      }
   failedCounters?: readonly PendingCounter[]
   /** The ward whose save the attacker already passed. */
   passedIncomingGate?: string
@@ -320,7 +323,7 @@ export function offeredDecisionOptionIds(context: {
         kind: 'ON_HIT' | 'ATTACK_RETARGET'
         payload: { options: readonly { useOptionId: string }[] }
       }
-    | { kind: 'INCOMING_GATE' | 'FORCED_MOVEMENT'; payload: unknown }
+    | { kind: 'INCOMING_GATE' | 'FORCED_MOVEMENT' | 'D20_WINDOW'; payload: unknown }
     | null
 }): string[] {
   const { pause } = context
@@ -405,6 +408,26 @@ export function projectNativeActionPending(
         })),
         allowedResponses: ['DECLINE', 'OPTION']
       }
+    case 'D20_WINDOW': {
+      const { rolled, offer } = pause.payload
+      return {
+        kind: 'D20_WINDOW',
+        occurrenceId: occurrence.id,
+        occurrenceVersion: occurrence.version,
+        encounterVersion: occurrence.expectedEncounterVersion,
+        rollerActorId: context.rollerActorId,
+        requestId: snapshot.request.requestId,
+        d20: { selectedNatural: rolled.d20.selectedNatural, total: rolled.d20.total },
+        options: offer.options.map(({ optionId, label, count, faces, sign }) => ({
+          optionId,
+          label,
+          count,
+          faces,
+          sign
+        })),
+        allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+      }
+    }
     case 'FORCED_MOVEMENT':
       return {
         kind: 'FORCED_MOVEMENT_DESTINATION',
