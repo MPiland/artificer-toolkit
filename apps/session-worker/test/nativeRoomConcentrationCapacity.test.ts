@@ -217,9 +217,11 @@ describe('Concentration capacity (SPELLS-12.T1)', () => {
     })
     const carried = async () =>
       (await readRoomHistory(room.room.base.stub)).characterEffects.map(({ id }) => id)
-    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const first = await cast(room, 'First Ward')
+    expect(first.answer.type, JSON.stringify(first.answer)).toBe('COMMAND_COMMITTED')
     expect(await carried()).toContain(carriedId)
-    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const second = await cast(room, 'Second Ward')
+    expect(second.answer.type, JSON.stringify(second.answer)).toBe('COMMAND_COMMITTED')
     expect(await carried()).not.toContain(carriedId)
   })
 })
