@@ -35,6 +35,7 @@ import {
   syncCanonicalCompilation
 } from './documents'
 import { compilePublicationDocument, parsePublicationDocument } from './publicationDocument'
+import { readStoredSourceFacts, writeSourceFacts } from './sourceFacts'
 
 /** The runner migrates one row per scheduled batch, so a full pass exceeds convex-test's 100. */
 const MIGRATION_BATCHES = 2000
@@ -227,13 +228,11 @@ it('re-derives the unversioned source facts of an authored row from its stored d
     // An older derivation left no version and no rows for a table the current one derives.
     const tables = Object.keys(facts.rows)
     expect(tables.length).toBeGreaterThan(1)
-    await ctx.db.patch(root._id, {
-      authoringSources: {
-        checksum: root.checksum,
-        rows: Object.fromEntries(
-          Object.entries(facts.rows).filter(([table]) => table !== tables.at(-1))
-        )
-      }
+    await writeSourceFacts(ctx, root.id, {
+      checksum: root.checksum,
+      rows: Object.fromEntries(
+        Object.entries(facts.rows).filter(([table]) => table !== tables.at(-1))
+      )
     })
     return facts
   })
@@ -241,14 +240,15 @@ it('re-derives the unversioned source facts of an authored row from its stored d
   await t.mutation(runMigration, {})
   await t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
 
-  const migrated = await t.run((ctx) =>
-    ctx.db
+  const migrated = await t.run(async (ctx) => {
+    const root = await ctx.db
       .query('authoredRoots')
       .withIndex('by_publicId', (query) => query.eq('id', acolyte.id))
       .unique()
-  )
-  expect(migrated?.ownerUserId).toBe(ownerUserId)
-  expect(migrated?.authoringSources).toEqual(expected)
+    return { root, facts: root && (await readStoredSourceFacts(ctx, root)) }
+  })
+  expect(migrated.root?.ownerUserId).toBe(ownerUserId)
+  expect(migrated.facts).toEqual(expected)
 })
 
 it('recompiles every superseded stored compilation at the current compiler version', async ({
