@@ -12,7 +12,7 @@ type ResolvedHealRow = { outcomeId?: unknown; expression: string }
 export function recurringHealAmountFacts(
   published: ServerPublishedRuleDefinitionDto,
   rows: readonly ResolvedHealRow[],
-  recurringHealOutcomeId: string | null
+  recurringHealOutcomeId: string | number | boolean | null
 ): Record<string, number> {
   if (recurringHealOutcomeId === null || !published.definition.outputs.recurringHealAmount)
     return {}
