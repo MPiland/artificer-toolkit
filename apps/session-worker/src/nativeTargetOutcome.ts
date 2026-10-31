@@ -3,7 +3,7 @@ import type {
   ServerRuleExecutionContinuationDto,
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
-import { requireActionContinuation } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { requireActionContinuation } from '@artificer-toolkit/rules-runtime/encounterActionRequest'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { resolveEncounterActionPhaseExecution } from '@artificer-toolkit/rules-runtime/encounterActionPhaseExecution'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'

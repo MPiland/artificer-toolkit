@@ -32,6 +32,7 @@ export function restoreEncounterActionPending(
   // A held cast, ward or retarget pauses before the graphs run, so the graphs resume none of them.
   const { pause } = context
   const graphPause =
+    pause?.kind === 'D20_WINDOW' ||
     pause?.kind === 'LEGENDARY_RESISTANCE' ||
     pause?.kind === 'REACTION' ||
     pause?.kind === 'ON_HIT' ||

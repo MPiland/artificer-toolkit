@@ -81,7 +81,7 @@ export async function executeEncounterMovementReactionAction(input: {
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   random: NonNullable<Parameters<typeof executeNativeActionGraphs>[0]['random']>
-  resume?: Parameters<typeof advanceNativeActionGraphs>[0]['resume']
+  resume?: Parameters<typeof prepareNativeActionTest>[0]['resume']
 }) {
   const executionInput = {
     runtime: input.runtime,

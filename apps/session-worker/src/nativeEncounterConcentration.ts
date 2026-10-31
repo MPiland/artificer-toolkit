@@ -558,7 +558,7 @@ export async function planNativeLiveConcentration(input: {
     if (resume?.window) {
       const settled = await settleEncounterD20Window({
         runtime: input.runtime,
-        context: resume.window.context,
+        window: resume.window.context.pause.payload,
         continuation: resume.window.continuation,
         selection: encounterD20WindowSelection(resume.response.resolution),
         random

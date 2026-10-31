@@ -107,8 +107,49 @@ export function encounterD20WindowOptions(
 }
 
 /**
- * Pauses a rolled d20 for its roller to spend a held die: the sealed bounded choice the roller
- * answers, under the context that freezes the roll and the options. `heldDice` must not be empty.
+ * Holds a rolled d20 for its roller to spend a held die: the sealed bounded choice they answer, and
+ * the pause payload that freezes the roll and the options. `heldDice` must not be empty.
+ */
+export async function openEncounterD20WindowPause(input: {
+  runtime: RulesRuntimeService
+  occurrenceId: string
+  gameSystemId: string
+  rolled: D20WindowPausePayloadDto['rolled']
+  appRollId: string | null
+  heldDice: readonly EncounterD20WindowHeldDie[]
+}): Promise<{
+  continuation: ServerRuleExecutionContinuationDto
+  payload: D20WindowPausePayloadDto
+}> {
+  const { rolled } = input
+  const executionChecksum = d20WindowRolledChecksum(rolled)
+  // Index 0 keeps the roll; index `n` spends the `n`th option.
+  const continuation = await openEncounterSealedChoice({
+    runtime: input.runtime,
+    occurrenceId: input.occurrenceId,
+    graph: {
+      definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
+      gameSystemId: input.gameSystemId
+    },
+    optionCount: input.heldDice.length,
+    declinable: true
+  })
+  return {
+    continuation,
+    payload: {
+      rolled,
+      appRollId: input.appRollId,
+      offer: {
+        executionChecksum,
+        options: encounterD20WindowOptions(executionChecksum, input.heldDice)
+      }
+    }
+  }
+}
+
+/**
+ * Pauses a rolled d20 for its roller to spend a held die, under the context that freezes the roll
+ * and the options. `heldDice` must not be empty.
  */
 export async function openEncounterD20Window(input: {
   runtime: RulesRuntimeService
@@ -125,36 +166,14 @@ export async function openEncounterD20Window(input: {
   context: EncounterD20WindowPendingContextDto
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
 }> {
-  const { rolled, source } = input
-  const executionChecksum = d20WindowRolledChecksum(rolled)
-  // Index 0 keeps the roll; index `n` spends the `n`th option.
-  const continuation = await openEncounterSealedChoice({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    graph: {
-      definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
-      gameSystemId: input.gameSystemId
-    },
-    optionCount: input.heldDice.length,
-    declinable: true
-  })
+  const { continuation, payload } = await openEncounterD20WindowPause(input)
   const context = encounterD20WindowPendingContextDtoSchema.parse({
     kind: 'ENCOUNTER_D20_WINDOW',
     schemaVersion: 1,
     commandId: input.command.commandId,
     commandFingerprint: input.command.commandFingerprint,
-    source,
-    pause: {
-      kind: 'D20_WINDOW',
-      payload: {
-        rolled,
-        appRollId: input.appRollId,
-        offer: {
-          executionChecksum,
-          options: encounterD20WindowOptions(executionChecksum, input.heldDice)
-        }
-      }
-    }
+    source: input.source,
+    pause: { kind: 'D20_WINDOW', payload }
   })
   return {
     context,
@@ -246,13 +265,12 @@ export function encounterD20WindowSelectedIndex(
  */
 export async function settleEncounterD20Window(input: {
   runtime: RulesRuntimeService
-  context: EncounterD20WindowPendingContextDto
+  window: D20WindowPausePayloadDto
   continuation: ServerRuleExecutionContinuationDto
   selection: EncounterD20WindowSelection
   random: (maxExclusive: number) => number
 }) {
-  const { selection } = input
-  const window = input.context.pause.payload
+  const { selection, window } = input
   const { rolled } = window
   const option = chosenEncounterD20WindowOption(window, selection)
   if (d20WindowRolledChecksum(rolled) !== window.offer.executionChecksum)
@@ -276,6 +294,7 @@ export async function settleEncounterD20Window(input: {
     count: option.count,
     faces: option.faces,
     sign: option.sign,
+    spentEffectId: option.effectId,
     rolledFaces: [...rolledFaces]
   }
   const addedDice = [...(rolled.d20.addedDice ?? []), die]

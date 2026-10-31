@@ -62,6 +62,8 @@ export const d20RolledAddedDieDtoSchema = lazySchema(() =>
   z
     .strictObject({
       ...addedDieShape(),
+      /** The effect whose held die a d20 window spent on this roll (D168); its commit ends the effect. */
+      spentEffectId: z.optional(ruleExecutionUuidSchema),
       rolledFaces: z
         .array(z.number().check(z.int()).check(z.gte(1)))
         .check(z.minLength(1))

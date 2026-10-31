@@ -89,6 +89,7 @@ import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { requireChosenItemInstance } from './nativeChosenItem.js'
 import {
   endedByAction,
   planEndEffects,
@@ -131,7 +132,6 @@ import {
   prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
-import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
@@ -180,6 +180,11 @@ import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
+import {
+  settledActionSaveWindow,
+  targetSaveWindow,
+  windowSpentEffects
+} from './nativeActionSaveWindow.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
@@ -544,6 +549,7 @@ export async function planNativeLiveEncounterAction(
         handHolds: encounterSourceHandHolds(activeEffectsByActorId, command.actorId)
       },
       overridable: true,
+      saveWindow: true,
       movementTargets: targets,
       sceneContext,
       ...nativeLiveAttackSceneLoaders({
@@ -633,28 +639,12 @@ export async function planNativeLiveEncounterAction(
     prepared.target.id !== prepared.source.capability.holderActorId
   )
     throw targetNotPermitted()
-  // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
-  const chosenItemInstanceId =
-    prepared.source.kind === 'REPEAT_PATH'
-      ? prepared.source.boundItemInstanceId
-      : command.target.kind === 'ACTOR'
-        ? command.target.boundItemInstanceId
-        : undefined
   const targetMovement = movementTargets.get(prepared.target.id)
-  const chosenItemRefusal =
-    prepared.source.kind === 'CHARACTER_ACTION' && targetMovement
-      ? encounterChosenItemRefusal({
-          plan: prepared.source.entry.compilation.activeEffectPlan?.chosenItem,
-          target: targetMovement,
-          itemInstanceId: chosenItemInstanceId
-        })
-      : null
-  if (chosenItemRefusal !== null)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: chosenItemRefusal
-    })
+  const chosenItemInstanceId = requireChosenItemInstance({
+    source: prepared.source,
+    commandTarget: command.target,
+    targetMovement
+  })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
   const weaponAttackOffer = await readNativeWeaponAttackOffer({
@@ -888,13 +878,15 @@ export async function planNativeLiveEncounterAction(
     !retargetOption
   )
     throw new Error('The pending action source or target changed.')
+  // A d20 window settles its roll before the action goes on: the die it spent joins the roll, and its
+  // effect ends with the action.
+  const resumeResolution =
+    evidenceResolution ?? (await settledActionSaveWindow(pauseAnswer, executionOptions))
   const resume =
-    responseCommand &&
-    evidenceResolution &&
-    snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
+    responseCommand && resumeResolution && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? {
           pending: restoreEncounterActionPending(snapshot),
-          resolution: evidenceResolution
+          resolution: resumeResolution
         }
       : null
   const actionSource = {
@@ -1186,6 +1178,10 @@ export async function planNativeLiveEncounterAction(
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
+      saveWindow: targetSaveWindow(
+        state.gameSystemId,
+        activeEffectsByActorId.get(prepared.target.id) ?? []
+      ),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) =>
@@ -1672,6 +1668,7 @@ export async function planNativeLiveEncounterAction(
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
       ...consumedGrants,
+      ...windowSpentEffects(execution.d20, activeEffectsByActorId.get(prepared.target.id) ?? []),
       ...hitEnded.consumedGrants,
       ...uses.endedGrants,
       ...damageEnded.endedEffects,

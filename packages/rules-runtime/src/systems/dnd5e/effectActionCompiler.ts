@@ -4065,12 +4065,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       })
       const { modifier, rollMode, contributors } = targetSave
       const contributorChecksum = checksumRuleDocument(contributors)
-      const { addedDice } = derivedSaveDice(targetDerivedFacts, save.abilityDefinitionId)
+      const { addedDice, heldDice } = derivedSaveDice(targetDerivedFacts, save.abilityDefinitionId)
       const folded = foldD20Operands(foldedBonuses, modifier, save.dc, addedDice)
       return {
         facts: {
           ...baseFacts,
-          ...dnd5eAddedDiceFacts(addedDice),
+          ...dnd5eAddedDiceFacts(addedDice, true, heldDice),
           [DND5E_SAVE_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: folded.defenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
