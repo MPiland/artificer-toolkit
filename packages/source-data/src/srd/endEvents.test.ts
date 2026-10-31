@@ -49,6 +49,7 @@ const COVERED_END_EVENTS: Record<string, EndEventCover> = {
   'spells/Produce Flame': GM_ADJUDICATED,
   'spells/Project Image': GM_ADJUDICATED,
   'spells/Suggestion': GM_ADJUDICATED,
+  'classes/Cleric > Channel Divinity': GM_ADJUDICATED,
   'classes/Oath of Devotion > Channel Divinity: Turn the Unholy': GM_ADJUDICATED
 }
 

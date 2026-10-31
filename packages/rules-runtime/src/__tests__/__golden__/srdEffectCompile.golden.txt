@@ -42,7 +42,7 @@
 00000000-0000-0000-c003-140400000000 CHARACTER:classes Divine Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c003-140500000000 CHARACTER:classes Supreme Healing | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c003-140600000000 CHARACTER:classes Divine Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c003-600300000000 CHARACTER:classes Channel Divinity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0000-0000-c003-600300000000 CHARACTER:classes Channel Divinity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000000-0000-0000-c003-600500000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c003-600600000000 CHARACTER:classes Destroy Undead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c003-600800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
