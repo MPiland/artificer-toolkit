@@ -186,6 +186,7 @@ import {
   type Dnd5eCompiledEffectActionSource,
   type Outcome,
   type TestKind,
+  TEST_HOLD_PATHS,
   type SpecializedPath,
   isSpecializedPath,
   uuid,
@@ -712,11 +713,12 @@ export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   if (entries.length !== 1) unsupported('D&D action has more than one relationship outcome.')
   const entry = entries[0]!
   const relationship = entry.outcome
-  // An attack holds its target on a hit; a contest (Grapple) on the initiator's win; an action
-  // with no roll (Engulf) as soon as it is used.
+  // An attack holds its target on a hit; a save on a failure; a contest (Grapple) on the
+  // initiator's win; an action with no roll (Engulf) as soon as it is used.
   const invocation = action.compiledEffect.invocation
   const contest = invocation.triggerCode === 'CHECK' && invocation.check.dc.kind === 'CONTEST'
   const direct = invocation.triggerCode === 'ACTIVATED'
+  const testKind = testPhaseKindOrNull(action)
   if (
     invocation.kind !== 'ACTION' ||
     entry.resolutionKind !== 'DIRECT' ||
@@ -725,13 +727,10 @@ export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       ? entry.pathCode !== 'ON_CHECK_SUCCESS'
       : direct
         ? entry.pathCode !== 'ON_USE'
-        : testPhaseKindOrNull(action) !== 'ATTACK' ||
-          (entry.pathCode !== 'ON_HIT' && entry.pathCode !== 'ON_CRIT')) ||
+        : !testKind || !TEST_HOLD_PATHS[testKind].includes(entry.pathCode)) ||
     !UUID.test(relationship.id)
   ) {
-    unsupported(
-      'D&D relationship outcomes require one bounded attack-hit, contest-win or direct-use result.'
-    )
+    unsupported('D&D relationship outcomes need a bounded hit, failed save, contest win or use.')
   }
   const orderedModules = [...relationship.modules].sort(
     (left, right) => left.order - right.order || left.id.localeCompare(right.id)

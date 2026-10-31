@@ -258,6 +258,7 @@ export function relationshipConditionApplications(input: {
   if (
     authoredPath !== 'ON_HIT' &&
     authoredPath !== 'ON_CRIT' &&
+    authoredPath !== 'ON_SAVE_FAIL' &&
     authoredPath !== 'ON_CHECK_SUCCESS' &&
     authoredPath !== 'ON_USE'
   )
