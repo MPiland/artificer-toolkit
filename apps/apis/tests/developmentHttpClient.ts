@@ -153,6 +153,13 @@ function roomRejection(
       message: message.message,
       warnings: message.type === 'COMMAND_REJECTED' ? (message.warnings ?? []) : []
     } satisfies DomainRejectionErrorData)
+  if (message.reason === 'MAINTAINED_REPLACEMENT_REQUIRED')
+    return new ConvexError({
+      code: 'DOMAIN_REJECTED',
+      reason: message.reason,
+      message: message.message,
+      heldStates: message.type === 'COMMAND_REJECTED' ? (message.heldStates ?? []) : []
+    } satisfies DomainRejectionErrorData)
   return message.reason
     ? new ConvexError({
         code: 'DOMAIN_REJECTED',

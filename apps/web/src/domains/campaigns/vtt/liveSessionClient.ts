@@ -18,7 +18,8 @@ import type { EncounterReadDto } from '@artificer-toolkit/schema/api/encounterRe
 import type { RollHistoryEntryDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   domainRejectionErrorDataSchema,
-  type DomainRejectionReasonDto
+  type DomainRejectionReasonDto,
+  type MaintainedReplacementChoicesDto
 } from '@artificer-toolkit/schema/api/domainRejections'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { LiveSessionTicketDto } from '@artificer-toolkit/schema/api/liveSessionIdentity'
@@ -114,6 +115,8 @@ export interface LiveSessionCommandRejection {
   message: string
   reason: DomainRejectionReasonDto | null
   warnings: EncounterRuleWarningDto[] | null
+  /** For `MAINTAINED_REPLACEMENT_REQUIRED`: the held effects the caster picks one of to end. */
+  heldStates?: MaintainedReplacementChoicesDto
 }
 
 /** A refused live command; callers read the reason and any overridable rule warnings. */

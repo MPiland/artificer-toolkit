@@ -9,7 +9,11 @@ import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import { readRunActor } from './documents.js'
 import { listStateZones } from './maintainedStateZones.js'
-import { readCharacterEffect, readEncounterEffect, readMaintainedState } from './effectStore.js'
+import {
+  readCharacterEffect,
+  readEncounterEffect,
+  readMaintainedStatesByDefinition
+} from './effectStore.js'
 
 /**
  * Reads each owner capture the command sealed (each from the source or the target, once) and adds
@@ -43,6 +47,7 @@ export async function readEncounterMaintenanceCapture(
     {
       kind:
         | 'MAINTENANCE_SLOT'
+        | 'MAINTENANCE_STATES'
         | 'MAINTENANCE_DEPENDENTS'
         | 'MAINTENANCE_OWNER'
         | 'MAINTENANCE_OWNER_EFFECTS'
@@ -64,16 +69,16 @@ export async function readEncounterMaintenanceCapture(
   >
 ) {
   await readRunActor(ctx, state, request.actorId)
-  const row = await ctx.db
-    .query('encounterMaintainedEffectStates')
-    .withIndex('by_encounter_owner_definition', (q) =>
-      q
-        .eq('encounterId', state.id)
-        .eq('ownerActorId', request.actorId)
-        .eq('maintenanceDefinitionId', request.definitionId)
-    )
-    .unique()
-  const maintained = row ? readMaintainedState(row) : null
+  const states = await readMaintainedStatesByDefinition(ctx, {
+    encounterId: state.id,
+    ownerActorId: request.actorId,
+    maintenanceDefinitionId: request.definitionId
+  })
+  if (request.kind === 'MAINTENANCE_STATES') return { kind: request.kind, states }
+  const maintained =
+    request.stateId === undefined
+      ? (states[0] ?? null)
+      : (states.find(({ id }) => id === request.stateId) ?? null)
   if (request.kind === 'MAINTENANCE_SLOT') {
     const zones = maintained
       ? await listStateZones(ctx, { encounterId: state.id, stateId: maintained.id })
