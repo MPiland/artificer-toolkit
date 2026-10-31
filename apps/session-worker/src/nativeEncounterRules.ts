@@ -461,7 +461,6 @@ export async function planNativeLiveEncounterAction(
     }
   }
   const targetActorId = actionTargetActorId(command.target)
-  const choiceOptionId = castChoiceOptionId(command.target)
   const selectedActors = actors.filter((actor) =>
     [command.actorId, targetActorId, command.delegatingActorId].includes(actor.id)
   )
@@ -535,7 +534,7 @@ export async function planNativeLiveEncounterAction(
       target: actors.find((actor) => actor.id === targetActorId)!,
       actors,
       actionId: command.actionId,
-      choiceOptionId,
+      choiceOptionId: castChoiceOptionId(command.target),
       castModifierId: command.castModifierId,
       spentUnits: command.spentUnits,
       ammunition: ammunitionCommandChoice(command.target),

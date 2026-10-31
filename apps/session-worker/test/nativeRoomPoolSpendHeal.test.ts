@@ -39,6 +39,7 @@ const room = () => {
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, currentHitPoints: WOLF_HIT_POINTS })
     ],
     characterClassFeatures: [layOnHands],
+    characterPlay: { characterClass: paladin, classLevel: 1 },
     characterAction: (action) => action.label.startsWith('Lay on Hands')
   })
 }

@@ -1007,6 +1007,7 @@ function registerOutcomeFields(
     nodes
   const { and, or, not } = logic
   const local = cond.local()
+  const valueKind = local.field(['valueKind'])
   const manifestsOther = and([
     local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
     not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
@@ -1313,16 +1314,9 @@ function registerOutcomeFields(
             or([
               and([
                 local.field(['scalingKind']).eq('NONE'),
-                or([
-                  local.field(['valueKind']).eq('FIXED'),
-                  local.field(['valueKind']).eq('POOL'),
-                  local.field(['valueKind']).eq('RESOURCE_SPENT')
-                ])
+                or([valueKind.eq('FIXED'), valueKind.eq('POOL'), valueKind.eq('RESOURCE_SPENT')])
               ]),
-              and([
-                local.field(['scalingKind']).eq('PER_LEVEL'),
-                local.field(['valueKind']).eq('POOL')
-              ])
+              and([local.field(['scalingKind']).eq('PER_LEVEL'), valueKind.eq('POOL')])
             ])
           ])
         ])
