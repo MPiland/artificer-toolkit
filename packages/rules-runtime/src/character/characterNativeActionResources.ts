@@ -11,7 +11,7 @@ import {
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
 import { EncounterValidationError, StaleCharacterActionError } from '../encounterErrors.js'
-import { spendsChosenUnits } from './characterChosenSpend.js'
+import { dividesHealing, spendsChosenUnits } from './characterChosenSpend.js'
 import { selectAmmunition, type AmmunitionStack } from './characterAmmunition.js'
 import { readSpellCastSlot } from './characterSpellCastActions.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
@@ -34,6 +34,8 @@ type NativeCharacterActionMechanic = Omit<
   selectedOptionalRiderIds?: readonly string[]
   /** The units the caster spent from the action's pool, for a heal that gives hit points per unit spent. */
   spentUnits?: number
+  /** This creature's share of the pool the caster divides among the creatures the action reaches. */
+  dividedAmount?: number
 }
 
 /** The resolved mechanics of the spell cast a Character action makes; undefined for any other action. */
@@ -252,6 +254,8 @@ export function prepareNativeCharacterActionState(input: {
   candidate: CharacterActionCandidate
   /** The units the caster chose to spend from the action's pool; required by a heal that gives hit points per unit spent. */
   spentUnits?: number
+  /** This creature's share of a pool the caster divides among the creatures the action reaches; required by an action that divides one. */
+  dividedAmount?: number
   /** The offered cast modifier the caster pays; spent beside the spell's own cost. */
   castModifier?: NonNullable<CharacterActionCandidate['castModifiers']>[number] | null
   policyOutput: CharacterRulePolicyOutput
@@ -328,10 +332,17 @@ export function prepareNativeCharacterActionState(input: {
     throw new EncounterValidationError(
       choosesUnits ? 'Choose how many to spend.' : 'This action does not spend a chosen amount.'
     )
+  if (dividesHealing(input.candidate) !== (input.dividedAmount !== undefined))
+    throw new EncounterValidationError(
+      input.dividedAmount === undefined
+        ? 'Divide the healing among the targets.'
+        : 'This action does not divide an amount.'
+    )
   const actionMechanic: NativeCharacterActionMechanic = {
     ...baseMechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
     ...(input.spentUnits === undefined ? {} : { spentUnits: input.spentUnits }),
+    ...(input.dividedAmount === undefined ? {} : { dividedAmount: input.dividedAmount }),
     classLevels: Object.fromEntries(
       input.classLevels.map(({ classId, level }) => [classId, level])
     ),

@@ -151,6 +151,15 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       ammunitionItemInstanceId: z.optional(postgresUuidSchema),
       /** One entry per creature, or per dart for an action that allows repeated targets. */
       actorIds: z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+      /** The hit points the caster gives each creature, for an action that divides a pool among them (Preserve Life). */
+      healShares: z.optional(
+        z
+          .array(
+            z.strictObject({ actorId: uuidSchema, amount: z.number().check(z.int(), z.positive()) })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      ),
       /** The form the creatures take, for an action that authors forms (Giant Insect); absent otherwise. */
       formId: z.optional(postgresUuidSchema),
       /** The Creature the target becomes, for an action whose form is a rule-filtered choice (Polymorph); absent otherwise. */
@@ -228,6 +237,16 @@ export type AreaActionTargetDto = Exclude<
 /** The option or zone the caster picked at cast (D140, D148); a directed area takes none. */
 export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): string | undefined {
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
+}
+
+/** The hit points the caster gives one chosen creature of a divided pool; undefined when the command divides none. */
+export function healShareOf(
+  target: ResolveEncounterActionTargetDto,
+  actorId: string
+): number | undefined {
+  return target.kind === 'ACTORS'
+    ? target.healShares?.find((share) => share.actorId === actorId)?.amount
+    : undefined
 }
 
 /** The ammunition a weapon attack fires: the stack the command names, and one piece per target. */

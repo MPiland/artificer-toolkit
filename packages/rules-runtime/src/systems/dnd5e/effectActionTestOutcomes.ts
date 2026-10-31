@@ -254,6 +254,20 @@ export function fixedHealAmount(
   return amount
 }
 
+/**
+ * Whether a heal's amount is chosen at use: the units the user spends, or the caster's share of a
+ * divided pool. Such a heal is a plain amount, with no temporary hit points or bonuses.
+ */
+export function isChosenAmountHeal(
+  outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'HEAL' }>
+): boolean {
+  const spent = outcome.valueKind === 'RESOURCE_SPENT'
+  if (!spent && !(outcome.valueKind === 'POOL' && outcome.splitKind)) return false
+  if (outcome.temporary || outcome.bonuses?.length || (spent && !(outcome.amount > 0)))
+    unsupported('D&D spent or divided healing is a plain positive amount.')
+  return true
+}
+
 export function validateHealBonuses(value: unknown): void {
   if (value === undefined) return
   if (!Array.isArray(value) || value.length > 100)

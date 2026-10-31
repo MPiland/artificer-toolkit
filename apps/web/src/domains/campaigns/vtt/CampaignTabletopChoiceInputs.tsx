@@ -62,3 +62,38 @@ export function CampaignTabletopSpendInput({
     />
   )
 }
+
+/** What each chosen creature regains from a pool the caster divides; the sum stays within the pool. */
+export function CampaignTabletopHealSharesInput({
+  divided,
+  targets,
+  shares,
+  disabled,
+  onChange
+}: {
+  divided: NonNullable<EncounterActionChoiceDto['dividedHeal']>
+  targets: { id: string; label: string }[]
+  shares: Record<string, number>
+  disabled: boolean
+  onChange: (shares: Record<string, number>) => void
+}) {
+  const given = targets.reduce((sum, { id }) => sum + (shares[id] ?? 0), 0)
+  return (
+    <>
+      {targets.map(({ id, label }) => (
+        <NumberInput
+          allowDecimal={false}
+          clampBehavior='strict'
+          description={`${divided.total - given} of ${divided.total} hit points left to give.`}
+          disabled={disabled}
+          key={id}
+          label={`Hit points for ${label}`}
+          max={divided.total}
+          min={0}
+          value={shares[id] ?? 0}
+          onChange={(next) => onChange({ ...shares, [id]: Number(next) || 0 })}
+        />
+      ))}
+    </>
+  )
+}
