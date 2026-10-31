@@ -1,7 +1,7 @@
 import { readInitiativeSourceRoll } from '../../encounterInitiativeRoll.js'
 import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
 import { abilityModifier } from './abilityModifier.js'
-import { snapshotAbilityScore } from '../../encounterActorState.js'
+import { snapshotAbilityScore, summonSnapshotAbilityScore } from '../../encounterActorState.js'
 import type { InitiativeActorFactSource } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import {
@@ -78,17 +78,6 @@ function creatureSize(
   return typeof size === 'string' ? size : null
 }
 
-/** An ability score of the stat block a spell summon resolved at its cast, kept in its snapshot. */
-function summonAbilityScore(snapshot: unknown, abilityCode: string): number | null {
-  if (typeof snapshot !== 'object' || snapshot === null || !('summon' in snapshot)) return null
-  const { summon } = snapshot
-  if (typeof summon !== 'object' || summon === null || !('abilityScores' in summon)) return null
-  const { abilityScores } = summon
-  if (typeof abilityScores !== 'object' || abilityScores === null) return null
-  const score = (abilityScores as Record<string, unknown>)[abilityCode]
-  return typeof score === 'number' ? score : null
-}
-
 /** The Dexterity score a tie rule may compare; null when the actor's facts carry none. */
 function dexterityScore(source: InitiativeActorFactSource): number | null {
   switch (source.kind) {
@@ -105,7 +94,7 @@ function dexterityScore(source: InitiativeActorFactSource): number | null {
         'DEXTERITY'
       )
     case 'CUSTOM':
-      return summonAbilityScore(source.actor.snapshot, 'DEXTERITY')
+      return summonSnapshotAbilityScore(source.actor.snapshot, 'DEXTERITY')
   }
 }
 
