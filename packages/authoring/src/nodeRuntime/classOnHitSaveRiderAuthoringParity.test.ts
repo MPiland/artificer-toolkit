@@ -47,7 +47,7 @@ function variant(): ClassAuthored {
   const record = structuredClone(monk)
   const authored = feature(record, 'Stunning Strike')
   const invocation = authored.effects?.[0]?.invocation
-  if (invocation?.optionalOnHit?.kind !== 'RESOURCE_POOL')
+  if (invocation?.kind !== 'PASSIVE' || invocation.optionalOnHit?.kind !== 'RESOURCE_POOL')
     throw new Error('Stunning Strike must charge a resource pool.')
   invocation.optionalOnHit.cost = 2
   const { savingThrow } = riderSave(authored)
