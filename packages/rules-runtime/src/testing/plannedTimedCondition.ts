@@ -46,6 +46,7 @@ export function compiledTestSpellCast(input: {
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
       grantFold: { modifiers: [] },
+      derivedStats: { abilities: [] },
       resources: [],
       spellCastDecisions: [{ candidateId: cast.candidateId, ...input.decision }],
       spellCastMechanics: [
