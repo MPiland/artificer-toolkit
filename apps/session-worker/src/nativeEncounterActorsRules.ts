@@ -138,7 +138,15 @@ export async function planNativeLiveEncounterActorsAction(
     const refused = refuseHealShares({
       divided,
       shares: command.target.healShares ?? [],
-      targets: chosen
+      targets: chosen.map(({ id, label }) => {
+        const target = movementTargets.get(id)!
+        return {
+          id,
+          label,
+          currentHitPoints: target.state.current,
+          maxHitPoints: target.effectiveMaximumHitPoints
+        }
+      })
     })
     if (refused) throw refusal(refused)
   }

@@ -320,6 +320,15 @@ const actionEffectFactSchema = lazySchema(() =>
   })
 )
 
+/** A resolved heal the caster divides: its whole-number total and the ceiling on each creature's share. */
+export const resolvedDividedHealSchema = lazySchema(() =>
+  z.object({
+    kind: z.literal('HEAL'),
+    expression: stringSchema.check(z.regex(/^\d+$/)),
+    split: actionHealSplitSchema
+  })
+)
+
 /** Present when the caster divides a heal's amount among the creatures it reaches (`ceiling` caps each one's hit points as a fraction of its maximum). */
 const actionHealSplitSchema = lazySchema(() =>
   z.strictObject({

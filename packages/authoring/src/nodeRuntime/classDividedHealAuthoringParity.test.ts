@@ -43,7 +43,11 @@ function dividedHeal(authored: FeatureAuthored) {
 function variant(): ClassAuthored {
   const record = structuredClone(lifeDomainCleric)
   const outcome = dividedHeal(preserveLife(record))
-  if (outcome?.effectKind !== 'HEAL' || outcome.valueKind !== 'POOL')
+  if (
+    outcome?.effectKind !== 'HEAL' ||
+    outcome.valueKind !== 'POOL' ||
+    outcome.scalingKind !== 'PER_LEVEL'
+  )
     throw new Error('Preserve Life must author a pool heal.')
   outcome.multiplier = 3
   outcome.splitCeiling = { numerator: 1, denominator: 3 }

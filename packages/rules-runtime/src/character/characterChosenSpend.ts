@@ -1,6 +1,6 @@
-import type {
-  CharacterActionCandidate,
-  CharacterResolvedActionMechanic
+import {
+  resolvedDividedHealSchema,
+  type CharacterActionCandidate
 } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 
@@ -40,14 +40,14 @@ export type DividedHeal = {
 
 /** The divided pool a resolved action carries, when its total resolved to a whole number. */
 export function dividedHealOf(
-  mechanic: Pick<CharacterResolvedActionMechanic, 'outcomes'>
+  mechanic: Readonly<Record<string, unknown>>
 ): DividedHeal | undefined {
-  for (const outcome of mechanic.outcomes) {
-    if (outcome.kind !== 'HEAL' || !outcome.split || !/^\d+$/.test(outcome.expression)) continue
-    return {
-      total: Number(outcome.expression),
-      ...(outcome.split.ceiling ? { ceiling: outcome.split.ceiling } : {})
-    }
+  const outcomes = Array.isArray(mechanic.outcomes) ? mechanic.outcomes : []
+  for (const outcome of outcomes) {
+    const divided = resolvedDividedHealSchema.safeParse(outcome)
+    if (!divided.success) continue
+    const { expression, split } = divided.data
+    return { total: Number(expression), ...(split.ceiling ? { ceiling: split.ceiling } : {}) }
   }
   return undefined
 }
