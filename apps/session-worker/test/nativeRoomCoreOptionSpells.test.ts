@@ -1337,7 +1337,7 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
       .filter(({ round }) => round === run.round)
       .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0))
     const own = participants.find(({ actorId }) => actorId === familiar.actor.id)
-    expect(typeof own?.initiativeScore).toBe('number')
+    expect(typeof own?.initiativeScore, JSON.stringify({ participants, own, cards: stored.cards.length })).toBe('number')
     const scores = participants.map(({ initiativeScore }) => initiativeScore ?? 0)
     expect(scores).toEqual([...scores].sort((a, b) => b - a))
     const [card] = stored.cards.flatMap((payload) =>
