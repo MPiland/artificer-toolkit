@@ -125,6 +125,7 @@ import {
   forcedMovementDestinationOverlays,
   forcedMovementDestinationPick
 } from './vttForcedMovementPick.model'
+import { CampaignTabletopSummonTurnPrompt } from './CampaignTabletopSummonTurnPrompt'
 import { isEncounterActorMine } from './encounterActorControl'
 
 export function CampaignVttStage({
@@ -236,27 +237,24 @@ export function CampaignVttStage({
     encounter: activeEncounter,
     currentActor,
     currentActorMine,
+    summonTurn,
     turnMovement: currentTurnMovement
   } = readActiveTurn(campaign, currentUserId, encounterSessionState)
   const pendingOccurrence = encounterSessionState?.pending
-  const [trackedActingTurn, setTrackedActingTurn] = useState({
+  const actingTurn = {
     automationMode: activeEncounter?.automationMode,
     encounterId: activeEncounter?.id,
     actorId: currentActor?.id,
     mine: currentActorMine
-  })
+  }
+  const [trackedActingTurn, setTrackedActingTurn] = useState(actingTurn)
   if (
-    trackedActingTurn.automationMode !== activeEncounter?.automationMode ||
-    trackedActingTurn.encounterId !== activeEncounter?.id ||
-    trackedActingTurn.actorId !== currentActor?.id ||
-    trackedActingTurn.mine !== currentActorMine
+    trackedActingTurn.automationMode !== actingTurn.automationMode ||
+    trackedActingTurn.encounterId !== actingTurn.encounterId ||
+    trackedActingTurn.actorId !== actingTurn.actorId ||
+    trackedActingTurn.mine !== actingTurn.mine
   ) {
-    setTrackedActingTurn({
-      automationMode: activeEncounter?.automationMode,
-      encounterId: activeEncounter?.id,
-      actorId: currentActor?.id,
-      mine: currentActorMine
-    })
+    setTrackedActingTurn(actingTurn)
     if (
       !currentActorMine ||
       !activeEncounter?.id ||
@@ -1538,6 +1536,7 @@ export function CampaignVttStage({
               onRelease={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
+          {summonTurn ? <CampaignTabletopSummonTurnPrompt {...summonTurn} /> : null}
           {activeEncounter && currentTurnMovement ? (
             <CampaignTabletopMovementReadout
               automationMode={activeEncounter.automationMode}

@@ -3,6 +3,7 @@ import {
   type AreaActionTargetDto,
   ammunitionCommandChoice,
   castChoiceOptionId,
+  healShareOf,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
   type ResolveRuleOccurrenceInputDto
@@ -644,6 +645,7 @@ export function prepareCasterActionOnTarget(
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     castModifierId: capability ? undefined : input.command.castModifierId,
     spentUnits: capability ? undefined : input.command.spentUnits,
+    dividedAmount: capability ? undefined : healShareOf(input.command.target, action.target.id),
     ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',

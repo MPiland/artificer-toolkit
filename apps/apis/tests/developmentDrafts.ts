@@ -2711,6 +2711,7 @@ try {
     process.argv.includes('--encounter-heat-metal-browser') ||
     process.argv.includes('--encounter-held-effect-browser') ||
     process.argv.includes('--encounter-delegated-attack-browser') ||
+    process.argv.includes('--encounter-summon-turn-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2746,6 +2747,7 @@ try {
     const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
     const heldEffectBrowser = process.argv.includes('--encounter-held-effect-browser')
     const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
+    const summonTurnBrowser = process.argv.includes('--encounter-summon-turn-browser')
     const lifecycle =
       lifecycleSuite ||
       movementBrowser ||
@@ -2759,6 +2761,7 @@ try {
       heatMetalBrowser ||
       heldEffectBrowser ||
       delegatedAttackBrowser ||
+      summonTurnBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
@@ -2779,7 +2782,11 @@ try {
       'BACKGROUND',
       'CLASS',
       'RACE',
-      ...(playerBrowser || heatMetalBrowser || heldEffectBrowser || delegatedAttackBrowser
+      ...(playerBrowser ||
+      heatMetalBrowser ||
+      heldEffectBrowser ||
+      delegatedAttackBrowser ||
+      summonTurnBrowser
         ? (['SPELL'] as const)
         : [])
     ] as const) {
@@ -2824,7 +2831,16 @@ try {
                 [{ spellLevel: 1, slotCount: 1 }],
                 (await import('./fixtures/encounterDelegatedAttack')).createDelegatedAttackFeatures
               )
-            : null
+            : summonTurnBrowser
+              ? await createDevelopmentSpellCharacter(
+                  player.client,
+                  characterId,
+                  [findFamiliar],
+                  [{ spellLevel: 1, slotCount: 1 }],
+                  undefined,
+                  (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
+                )
+              : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3201,6 +3217,50 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/delegated-attack-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (summonTurnBrowser) {
+        if (!spellCharacter) throw new Error('The summon turn journey needs its spell Character.')
+        const ogre = await publishJourneyOgre()
+        const { verifyEncounterSummonTurn } = await import('./developmentEncounterSummonTurn')
+        await verifyEncounterSummonTurn({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          creatureSourceId: ogre.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterSummonTurnBrowser } =
+              await import('../../web/tests/live-backend/encounterSummonTurn')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterSummonTurnBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/summon-turn-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url

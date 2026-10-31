@@ -12,7 +12,7 @@ param(
     'publication-equipment-browser', 'campaign-lifecycle', 'campaign-custody-browser',
     'campaign-membership-browser', 'campaign-collaboration-browser', 'campaign-content-browser',
     'scene-live-browser', 'vtt-map-retention', 'movement', 'passage', 'disarm-browser', 'effects-browser',
-    'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'held-effect-browser', 'delegated-attack-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
+    'area-browser', 'shove-aside-browser', 'hide-browser', 'player-browser', 'heat-metal-browser', 'held-effect-browser', 'delegated-attack-browser', 'summon-turn-browser', 'account-deletion-browser', 'builder-browser', 'character-sheet-browser',
     'character-sheet-spells-browser', 'vtt-browser', 'v15-workload'
   )][string]$Proof
 )
@@ -61,6 +61,7 @@ $driverArguments = [string[]]@(switch ($Proof) {
   'heat-metal-browser' { '--encounter-heat-metal-browser' }
   'held-effect-browser' { '--encounter-held-effect-browser' }
   'delegated-attack-browser' { '--encounter-delegated-attack-browser' }
+  'summon-turn-browser' { '--encounter-summon-turn-browser' }
   'builder-browser' { '--character-builder-browser' }
   'v15-workload' { '--encounter-v15-workload' }
   'account-deletion-browser' { '--account-deletion-browser'; "--fixture-attempt=$Name" }

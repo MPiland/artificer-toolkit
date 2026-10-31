@@ -663,6 +663,7 @@ export function resolveDnd5eActionMechanic(
           pathCode: outcome.pathCode,
           expression,
           temporary: outcome.temporary,
+          ...(outcome.split ? { split: outcome.split } : {}),
           scaling
         }
   }

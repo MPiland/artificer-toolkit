@@ -14,8 +14,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 /**
  * SPELLS-31.T4n (ADR 0038): Disciple of Life is a caster-side healing bonus authored from the same
  * core options a Builder author has on a class feature, so it and a homebrew variant must pass the
- * class node map exactly as authored. Preserve Life, Blessed Healer, Supreme Healing and Song of
- * Rest are GM rulings.
+ * class node map exactly as authored. Blessed Healer, Supreme Healing and Song of Rest are GM
+ * rulings; Preserve Life is authored on the divided-heal option (SPELLS-31.T4f2c).
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -77,9 +77,8 @@ describe('a class feature’s healing-dealt bonus through the class node map (AD
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
   })
 
-  it('authors the other four features as GM rulings', () => {
+  it('authors the other three features as GM rulings', () => {
     for (const authored of [
-      feature(lifeDomainCleric, 'Channel Divinity: Preserve Life'),
       feature(lifeDomainCleric, 'Blessed Healer'),
       feature(lifeDomainCleric, 'Supreme Healing'),
       feature(bard, 'Song of Rest')
