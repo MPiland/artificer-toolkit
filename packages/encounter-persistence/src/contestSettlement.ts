@@ -79,7 +79,8 @@ async function applyContestTargetMechanics(
         ? await readLiveCharacterMaximumHitPoints(ctx, state, target.sourceId)
         : effectiveHitPointMaximum(
             target.maxHitPoints,
-            await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id))
+            await createActiveRuleEffectStore(ctx).list(turnEffectOwner(target, state.id)),
+            target.maximumFraction
           ),
     forceVersionAdvance
   })

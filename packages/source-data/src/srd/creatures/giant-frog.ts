@@ -1,7 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { swallowedOutcome, heldByUseEffect } from './swallow.js'
 export const giantFrog: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_FROG,
   label: 'Giant Frog',
@@ -149,56 +149,20 @@ export const giantFrog: CreatureAuthored = {
       description:
         "Swallow. The frog makes one bite attack against a Small or smaller target it is grappling. If the attack hits, the target is swallowed, and the grapple ends. The swallowed target is blinded and restrained, it has total cover against attacks and other effects outside the frog, and it takes 5 (2d4) acid damage at the start of each of the frog's turns. The frog can have only one target swallowed at a time. If the frog dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone.",
       effects: [
-        {
-          id: S.actionId(124, 5),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(124, 6),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(124, 7),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(124, 7) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(124, 7),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Resolve the swallow',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "The frog makes one bite attack against a Small or smaller target it is grappling. If it hits, the target is swallowed and the grapple ends. The swallowed target has total cover against attacks and other effects outside the frog and takes 5 (2d4) acid damage at the start of each of the frog's turns. The frog can have only one target swallowed at a time. If the frog dies, the swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone."
-                  },
-                  {
-                    id: S.actionId(124, 207),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('BLINDED')
-                  },
-                  {
-                    id: S.actionId(124, 208),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('RESTRAINED')
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        heldByUseEffect({
+          effectId: S.actionId(124, 5),
+          rangeId: S.actionId(124, 6),
+          pathId: S.actionId(124, 7),
+          outcome: swallowedOutcome(124, {
+            localIndex: 10,
+            damageOutcomeId: S.actionId(124, 8),
+            escapeDc: 11,
+            heldAtOnce: 1,
+            largestTarget: S.SIZE_CODE.SMALL,
+            damageType: 'ACID',
+            diceConfig: '2d4'
+          })
+        })
       ],
       order: 4
     }

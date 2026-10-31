@@ -29,6 +29,7 @@ import {
   type EncounterHolderLight,
   type GrantSource,
   sourceQualifierAdmits,
+  encounterSavingThrowAfterRollDice,
   withSourceSaves,
   withSourceSightSave
 } from './encounterActiveGrants.js'
@@ -65,9 +66,9 @@ import {
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
   encounterConditionMechanicsInSourceSight,
-  encounterConditionSaveAutoFails,
   encounterConditionSources
 } from './encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from './conditionSaveAutoFail.js'
 import { featureChargeUsed, snapshotCreatureTypeId } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
@@ -119,6 +120,18 @@ type CharacterActionMovementFacts = CharacterMovementFacts & {
 }
 
 /** Preserves the issued pending-action checksum across native and DO preparation. */
+/** The target's facts with the after-roll saving-throw dice its save window may spend; `effects` null leaves them. */
+function withSaveWindowDice(
+  effects: Parameters<typeof encounterSavingThrowAfterRollDice>[1] | null,
+  gameSystemId: string,
+  targetDerivedFacts: Record<string, unknown>
+): Record<string, unknown> {
+  const afterRoll = effects ? encounterSavingThrowAfterRollDice(gameSystemId, effects) : {}
+  return Object.keys(afterRoll).length
+    ? { ...targetDerivedFacts, savingThrowAfterRollDice: afterRoll }
+    : targetDerivedFacts
+}
+
 export function encounterActionCurrentnessChecksum(input: {
   prepared: Pick<
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
@@ -318,6 +331,10 @@ export async function prepareEncounterActionMechanics<
   actionId: string
   /** The option the caster picked at cast, as `prepareEncounterActionSource` takes it. */
   choiceOptionId?: string
+  /** The `castModifiers` entry of the cast candidate the caster pays on this cast. */
+  castModifierId?: string
+  /** The units the caster spends from the action's pool, for a heal that gives hit points per unit spent. */
+  spentUnits?: number
   /** A read of the shared test before any pick, as `prepareEncounterActionSource` takes it. */
   readsSharedTest?: boolean
   /** The ammunition a weapon attack fires and how many attacks the command makes; absent for a read, which previews the first stack in stock. */
@@ -413,6 +430,11 @@ export async function prepareEncounterActionMechanics<
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterCoverFacts | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
+  /**
+   * Whether the target's TEST save may be seen in a d20 window (D168): the target's held after-roll
+   * dice then widen the save graph's allowed added dice. Only the single-target RESOLVE_ACTION asks.
+   */
+  saveWindow?: boolean
   loadRelationshipFacts: (input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
@@ -499,6 +521,8 @@ export async function prepareEncounterActionMechanics<
             ).actual
         : undefined
     })
+  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'
@@ -509,7 +533,17 @@ export async function prepareEncounterActionMechanics<
             characterFacts.character.systemId !== state.gameSystemId
           )
             throw new StaleCharacterActionError('The selected Character action source is stale.')
+          const castModifier =
+            input.castModifierId === undefined
+              ? null
+              : (source.candidate.castModifiers?.find(
+                  ({ modifierId }) => modifierId === input.castModifierId
+                ) ?? null)
+          if (input.castModifierId !== undefined && !castModifier)
+            throw new EncounterValidationError('The selected cast modifier is not offered.')
           return prepareNativeCharacterActionState({
+            castModifier,
+            spentUnits: input.spentUnits,
             entry: source.entry,
             candidate: source.candidate,
             policyOutput: source.effectivePolicyOutput,
@@ -959,22 +993,26 @@ export async function prepareEncounterActionMechanics<
         maximum: sourceFacts.effectiveMaximumHitPoints
       },
       targetActorId: target.id,
-      targetDerivedFacts: attackDecoy
-        ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
-        : withSourceSaves(
-            state.gameSystemId,
-            attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
-              ? withSourceSightSave(
-                  state.gameSystemId,
-                  targetFacts.targetDerivedFacts,
-                  compilerSource.savingThrowAbilityDefinitionId,
-                  attackSight.trueSight
-                )
-              : targetFacts.targetDerivedFacts,
-            targetFacts.sourceSaves,
-            attackSource,
-            spellCastSystemId
-          ),
+      targetDerivedFacts: withSaveWindowDice(
+        input.saveWindow ? targetFacts.activeEffects : null,
+        state.gameSystemId,
+        attackDecoy
+          ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
+          : withSourceSaves(
+              state.gameSystemId,
+              attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
+                ? withSourceSightSave(
+                    state.gameSystemId,
+                    targetFacts.targetDerivedFacts,
+                    compilerSource.savingThrowAbilityDefinitionId,
+                    attackSight.trueSight
+                  )
+                : targetFacts.targetDerivedFacts,
+              targetFacts.sourceSaves,
+              attackSource,
+              spellCastSystemId
+            )
+      ),
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
       foldedBonuses,

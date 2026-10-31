@@ -468,6 +468,14 @@ object-key enumeration, native serialization produces the existing canonical rul
 other input retains the sorted canonical serializer. Both paths use the same UTF-8 SHA-256 checksum
 and metadata checks. This changes no stored format, ownership check or publication contract.
 
+Schema validation of a publication or System document happens once, at publish and seed, before the
+document and its checksum are stored. A Sheet derivation then verifies the stored checksum and uses
+the typed document without parsing it again (`readVerifiedPublicationDocument` in
+`rules-runtime/authoredPublicationRead`, `readSystem` in `content/systemDocuments`; RELIABILITY-21.T25,
+ADR 0041). A document whose bytes do not match its checksum is refused. A caller that has not
+verified the checksum keeps `parsePublicationDocument`. A queued Sheet store reuses the fingerprint
+it read to decide whether to run, instead of reading the same inputs again to write.
+
 Commit reads referenced content only (see [Referenced commit reads](#referenced-commit-reads-adr-0036-s7--local-implementation)).
 First-create starting-equipment materialization reloads the selected mechanics registry and reuses the catalogue
 from the same transaction, so newly granted inventory contributes mechanics without a second full

@@ -4,7 +4,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { hydrateStagedState } from '@artificer-toolkit/rules-runtime/encounterInitiativeStaging'
 import { isSettledEncounterInitiativeAdvance } from '@artificer-toolkit/rules-runtime/encounterInitiativeStateSettlement'
 import {
-  takesInitiativeTurns,
+  rollsInitiative,
   validateInitiativeCursor
 } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
@@ -112,7 +112,7 @@ export async function readNativeTurnSettlement(input: {
       checksumCanonicalJson([...staged.beforePin.actorIds].sort()) !==
         checksumCanonicalJson(
           durableActors
-            .filter(takesInitiativeTurns)
+            .filter(rollsInitiative)
             .map((actor) => actor.id)
             .sort()
         ) ||

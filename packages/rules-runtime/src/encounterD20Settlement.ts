@@ -98,6 +98,7 @@ export function settleEncounterD20Answer(input: {
 export async function settleEncounterD20Test(input: {
   continuation: ServerRuleExecutionContinuationDto
   roll: Pick<EncounterD20Roll, 'natural' | 'addedDice'>
+  mayAddDice?: boolean
   resume: (step: {
     continuation: ServerRuleExecutionContinuationDto
     response: { requestId: string; value: number }
@@ -110,6 +111,7 @@ export async function settleEncounterD20Test(input: {
     continuation: input.continuation,
     natural: roll.natural,
     addedDice: roll.addedDice,
+    mayAddDice: input.mayAddDice,
     resume: input.resume
   })
   const addedTotal = d20AddedDiceTotal(roll.addedDice)

@@ -12,6 +12,7 @@ import {
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -24,6 +25,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import {
+  followedActorId,
+  takesInitiativeTurns
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -79,8 +84,10 @@ import type {
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
+import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
 import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
+import { storedInitiativeReceipt } from './initiativeReceipt.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
@@ -925,19 +932,50 @@ export async function persistEncounterAreaCommit(
       })
     : { moves: [], landings: [], actors: settledChildren.actors, rules: input.rules }
   // The creature the cast conjures is a new Encounter actor and stands on the Scene from this
-  // commit (D187b).
-  for (const { actor } of input.summonedTokens) await insertRunActor(ctx, actor)
+  // commit (D187b). One authored to act right after its owner takes the place behind it in the
+  // round (D200).
+  let castActors = settledMovements.actors
+  let seatedInitiative: EncounterInitiativeRoundStateDto | null = null
+  const summonedActors: EncounterRunActorState[] = []
+  for (const { actor } of input.summonedTokens) {
+    const anchorActorId =
+      actor.owner?.turnTiming === 'AFTER_OWNER'
+        ? followedActorId(actor, castActors, (id) => {
+            const followed = castActors.find((candidate) => candidate.id === id)
+            return followed !== undefined && takesInitiativeTurns(followed)
+          })
+        : null
+    const seated = anchorActorId
+      ? await insertReinforcementInitiative({
+          ctx,
+          state: nextState,
+          actors: castActors,
+          actor,
+          initiative: null,
+          anchorActorId,
+          occurredAt: input.occurredAt
+        })
+      : null
+    const placed = seated?.actor ?? actor
+    seatedInitiative = seated?.state ?? seatedInitiative
+    castActors = [...castActors, placed]
+    summonedActors.push(placed)
+    await insertRunActor(ctx, placed)
+  }
   const summoned = input.summonedTokens.length
     ? await callbacks.applySummonTokens({
         state,
         commandId: command.commandId,
-        summons: input.summonedTokens
+        summons: input.summonedTokens.map((summon, index) => ({
+          ...summon,
+          actor: summonedActors[index]!
+        }))
       })
     : []
   const projection = await projectNativeGm(
     ctx,
     nextState,
-    [...settledMovements.actors, ...input.summonedTokens.map(({ actor }) => actor)],
+    [...settledMovements.actors, ...summonedActors],
     settledMovements.rules
   )
   // Each creature's save is its own card; the area's one damage roll is carded once, with the first,
@@ -1018,6 +1056,7 @@ export async function persistEncounterAreaCommit(
       teleportAllowanceTurn: null,
       forcedMovements: settledMovements.moves,
       summonedTokens: summoned,
+      ...storedInitiativeReceipt(seatedInitiative),
       forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),

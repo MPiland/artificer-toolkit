@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
-import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
+import {
+  createCharacterMechanicSourceKey,
+  createCharacterResourceOwnerKey,
+  toCharacterResourceOwnerKey
+} from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -3508,6 +3512,192 @@ describe('the healing a caster’s HEALING_DEALT bonus adds to a heal spell (SPE
 
   it('leaves the heal at its dice and spellcasting modifier without the bonus', () => {
     expect(healOf(CURE_WOUNDS, [1], [])).toEqual([['1d8 + 3']])
+  })
+})
+
+describe('creatures the caster may spare from an area spell (SPELLS-16)', () => {
+  const sparing = (magicSchoolIds?: string[]) => [
+    { base: 1, plusSpellLevel: true, ...(magicSchoolIds ? { magicSchoolIds } : {}) }
+  ]
+  const maxFor = (authored: SpellAuthored, sparesCreatures: ReturnType<typeof sparing>) =>
+    build([candidate(authored, authored.level)], { sparesCreatures }).candidates[0]?.sparesCreatures
+
+  it('offers 1 plus the spell level, for a spell of the named school', () => {
+    expect(maxFor(FIREBALL, sparing([FIREBALL.magicSchoolId]))).toEqual({ max: 4 })
+  })
+
+  it('offers the base alone for a cantrip', () => {
+    const cantrip = { ...FIREBALL, level: 0 }
+    expect(maxFor(cantrip, sparing())).toEqual({ max: 1 })
+  })
+
+  it('offers nothing for a spell of another school or without a source', () => {
+    expect(maxFor(FIREBALL, sparing(['another-school']))).toBeUndefined()
+    expect(maxFor(FIREBALL, [])).toBeUndefined()
+  })
+})
+
+describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
+  const CHARGE_ID = 'modifier-charge'
+  const MODIFIER_ID = testUuid(0xc10)
+  const mechanicSource = {
+    kind: 'AUTHORED' as const,
+    sourceKind: 'FEATURE' as const,
+    definitionId: 'caster-feature',
+    sourceInstanceId: 'caster-feature'
+  }
+  const owner = toCharacterResourceOwnerKey({
+    kind: 'AUTHORED_SOURCE',
+    chargeId: CHARGE_ID,
+    source: mechanicSource
+  })
+  const poolId = createCharacterResourceOwnerKey(owner)
+  const modifier = {
+    modifierId: MODIFIER_ID,
+    label: 'Quiet Casting',
+    cost: { chargeId: CHARGE_ID, cost: 1 }
+  }
+  const pool = (rawUsed: number, maximum = 2): CharacterRulePolicyOutput['resources'][number] => ({
+    ownerKind: 'AUTHORED_SOURCE',
+    sourceId: createCharacterMechanicSourceKey(mechanicSource),
+    sequence: 0,
+    poolId,
+    resourceDefinitionId: CHARGE_ID,
+    chargeId: CHARGE_ID,
+    chargeCalculationId: poolId,
+    source: mechanicSource,
+    state: 'RESOLVED',
+    maximum,
+    rawUsed,
+    effectiveUsed: rawUsed,
+    remaining: maximum - rawUsed,
+    reasonCode: 'CALCULATED',
+    baseContribution: null,
+    bonusContributions: [],
+    resetKind: 'LONG_REST',
+    resetResolution: { baseResetKind: 'LONG_REST', appliedGrantId: null, source: null }
+  })
+  const cast = candidate(FIREBALL, 3)
+  const character = evaluateSrdCharacter({ classes: [{ label: 'Fighter', level: 1 }] })
+  const policyWith = (resources: CharacterRulePolicyOutput['resources']) => ({
+    ...policyFor([cast], authoredById),
+    resources
+  })
+
+  function offered(resources: CharacterRulePolicyOutput['resources']) {
+    return build([cast], { castModifiers: [modifier], policyOutput: policyWith(resources) })
+  }
+
+  function prepare(
+    rawUsed: number,
+    input: {
+      automationMode: 'ASSISTED' | 'MANUAL'
+      overridable: boolean
+      maximum?: number
+      /** Uses spent when the cast was offered, before play spent more. */
+      offeredUsed?: number
+    }
+  ) {
+    const built = offered([pool(input.offeredUsed ?? rawUsed, input.maximum)])
+    const [offer] = built.candidates
+    const [entry] = compileCharacterActionEntryPoints({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates: built.candidates,
+      descriptors: discoverCharacterActionCapabilities({
+        gameSystemId: SRD_SYSTEM_ID,
+        candidates: built.candidates,
+        conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+        abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        entryPoints: built.entryPoints
+      })
+    })
+    if (entry?.kind !== 'CHARACTER_ACTION' || entry.schemaVersion !== 4)
+      throw new Error('The spell cast must compile to a v4 entry.')
+    if (entry.compilation.kind !== 'COMPILED') throw new Error('The spell cast must compile.')
+    if (!offer) throw new Error('The spell cast must be offered.')
+    return prepareNativeCharacterActionState({
+      entry: { ...entry, compilation: entry.compilation },
+      candidate: offer,
+      castModifier: offer.castModifiers?.[0] ?? null,
+      policyOutput: {
+        ...character.output,
+        ...policyWith([pool(rawUsed, input.maximum)]),
+        grantFold: character.output.grantFold,
+        actionDecisions: built.decisions
+      },
+      resourceUsage:
+        rawUsed === 0
+          ? []
+          : [
+              {
+                id: 'usage-1',
+                characterId: CHARACTER_ID,
+                owner,
+                used: rawUsed,
+                createdBy: 'user',
+                updatedBy: 'user',
+                createdAt: '2026-01-01T00:00:00.000Z',
+                updatedAt: '2026-01-01T00:00:00.000Z'
+              }
+            ],
+      inventory: [],
+      itemUsage: [],
+      characterId: CHARACTER_ID,
+      expectedStreamVersion: STREAM_VERSION,
+      classLevels: character.facts.grantFoldFacts.base.classes,
+      automationMode: input.automationMode,
+      trackAmmunition: false,
+      ammunition: null,
+      overridable: input.overridable
+    })
+  }
+
+  it('offers each cost its pool can pay, with the pool it spends from', () => {
+    expect(offered([pool(0)]).candidates[0]?.castModifiers).toEqual([
+      { modifierId: MODIFIER_ID, label: 'Quiet Casting', chargeId: CHARGE_ID, cost: 1, poolId }
+    ])
+  })
+
+  it('offers nothing when the pool is spent, missing, or the cast is already paid from a pool', () => {
+    expect(offered([pool(2)]).candidates[0]?.castModifiers).toBeUndefined()
+    expect(offered([]).candidates[0]?.castModifiers).toBeUndefined()
+    const pooledCast = candidate(FIREBALL, 3, {
+      castMode: 'LIMITED_USE',
+      resourceOwnerKey: poolId
+    })
+    const built = build([pooledCast], {
+      castModifiers: [modifier],
+      policyOutput: policyWith([pool(0)])
+    })
+    expect(built.candidates[0]?.castModifiers).toBeUndefined()
+  })
+
+  it('spends the cost from the pool beside the slot, in Assisted play', () => {
+    const prepared = prepare(1, { automationMode: 'ASSISTED', overridable: false })
+    expect(prepared.resourceConsumption).toMatchObject({
+      poolId,
+      chargeId: CHARGE_ID,
+      cost: 1,
+      beforeUsed: 1,
+      afterUsed: 2,
+      beforeRemaining: 1,
+      afterRemaining: 0
+    })
+    expect(prepared.spellConsumption?.slotKey).toBe('STANDARD:3')
+  })
+
+  it('spends nothing in Manual play', () => {
+    expect(
+      prepare(0, { automationMode: 'MANUAL', overridable: false }).resourceConsumption
+    ).toBeNull()
+  })
+
+  it('refuses a cost the pool can no longer pay, unless the GM overrides, which spends nothing and warns', () => {
+    const exhausted = { automationMode: 'ASSISTED' as const, maximum: 1, offeredUsed: 0 }
+    expect(() => prepare(1, { ...exhausted, overridable: false })).toThrow()
+    const overridden = prepare(1, { ...exhausted, overridable: true })
+    expect(overridden.resourceConsumption).toBeNull()
+    expect(overridden.ruleWarnings.map(({ code }) => code)).toContain('RESOURCE_UNAVAILABLE')
   })
 })
 

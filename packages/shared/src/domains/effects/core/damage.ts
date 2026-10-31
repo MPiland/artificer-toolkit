@@ -41,9 +41,16 @@ export const DAMAGE_VALUE_REGISTRY: Record<DamageValueKind, DamageValueOption> =
 
 export const DAMAGE_VALUE_OPTIONS = valuesOf(DAMAGE_VALUE_REGISTRY) as readonly DamageValueOption[]
 
-/** A heal's value kinds: a damage's, plus a fraction of the damage a sibling outcome dealt. */
-export const HEAL_VALUE_OPTIONS: readonly CoreMeta<DamageValueKind | 'DAMAGE_DEALT'>[] = [
+/** A heal's value kinds: a damage's, plus the units spent from a pool and a fraction of the damage a sibling outcome dealt. */
+export const HEAL_VALUE_OPTIONS: readonly CoreMeta<
+  DamageValueKind | 'RESOURCE_SPENT' | 'DAMAGE_DEALT'
+>[] = [
   ...DAMAGE_VALUE_OPTIONS,
+  {
+    code: 'RESOURCE_SPENT',
+    label: 'Per Resource Spent',
+    description: 'Regain an amount for each unit spent from the resource pool this action uses.'
+  },
   {
     code: 'DAMAGE_DEALT',
     label: 'Damage Dealt',

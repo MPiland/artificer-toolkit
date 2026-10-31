@@ -4,6 +4,7 @@ import {
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { ammunitionInStock } from '@artificer-toolkit/rules-runtime/character/characterAmmunition'
+import { chosenSpendChoice } from '@artificer-toolkit/rules-runtime/character/characterChosenSpend'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
@@ -432,6 +433,17 @@ export async function readEncounterActionChoices(
           wieldConflict: wieldConflict?.kind === 'STOW_SHIELD' ? wieldConflict : null,
           ...handReleaseChoice(draw),
           ...ammunitionChoices(candidate?.equipment, facts.character.state.equipment.inventory),
+          ...(candidate?.castModifiers
+            ? {
+                castModifiers: candidate.castModifiers.map(({ modifierId, label, cost }) => ({
+                  id: modifierId,
+                  label,
+                  cost
+                }))
+              }
+            : {}),
+          chosenSpend: candidate ? chosenSpendChoice(candidate, policyOutput.resources) : undefined,
+          ...(candidate?.sparesCreatures ? { sparesCreatures: candidate.sparesCreatures } : {}),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,

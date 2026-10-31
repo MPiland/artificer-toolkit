@@ -11,6 +11,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { sourceTraitRestriction } from '../classes/mechanics.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const kraken: CreatureAuthored = {
   id: S.CREATURE_IDS.KRAKEN,
   label: 'Kraken',
@@ -266,26 +267,66 @@ export const kraken: CreatureAuthored = {
                   }
                 ]
               }
+            }
+          ]
+        },
+        {
+          // "grappled by the kraken": the same bite, swallowing the creature it holds.
+          id: S.actionId(9001, 20),
+          order: 2,
+          invocation: {
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: S.actionId(9001, 21),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 5,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              heldBySource: true as const
+            }
+          },
+          paths: [
             {
-              id: S.actionId(9001, 9),
-              order: 2,
+              id: S.actionId(9001, 22),
+              order: 1,
               pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(9001, 9) + '__result',
-                resultKind: 'SINGLE' as const,
+                id: S.actionId(9001, 22) + '__result',
+                resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
-                    id: S.actionId(9001, 9),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Resolve the swallow',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "If the target is a Large or smaller creature grappled by the kraken, that creature is swallowed and the grapple ends. While swallowed, the creature is blinded and restrained, has total cover against attacks and other effects outside the kraken, and takes 42 (12d6) acid damage at the start of each of the kraken's turns. If the kraken takes 50 damage or more on a single turn from a creature inside it, the kraken must succeed on a DC 25 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the kraken. If the kraken dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone."
-                  }
+                    id: S.actionId(9001, 22),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d8',
+                    bonuses: [
+                      {
+                        id: S.actionId(9001, 23),
+                        bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+                        ability: S.ABILITY_CODE.STRENGTH,
+                        order: 1
+                      }
+                    ]
+                  },
+                  swallowedOutcome(180, {
+                    localIndex: 10,
+                    damageOutcomeId: S.actionId(9001, 24),
+                    escapeDc: 18,
+                    heldAtOnce: 10,
+                    largestTarget: S.SIZE_CODE.LARGE,
+                    damageType: 'ACID',
+                    diceConfig: '12d6'
+                  })
                 ]
               }
             }

@@ -175,6 +175,15 @@ const healPoolDtoSchema = lazySchema(() =>
   ])
 )
 
+/** Hit points regained for each unit the caster spends from the action's resource pool. */
+const healResourceSpentDtoSchema = lazySchema(() =>
+  z.object({
+    amount: z.number().check(z.positive()),
+    valueKind: z.literal('RESOURCE_SPENT'),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE)
+  })
+)
+
 const healDamageDealtDtoSchema = lazySchema(() =>
   z.object({
     valueKind: z.literal('DAMAGE_DEALT'),
@@ -196,7 +205,13 @@ export const healDtoSchema = lazySchema(() =>
       temporary: z.optional(z.boolean()),
       bonuses: z.optional(authoredNestedCollectionSchema(amountBonusDtoSchema))
     }),
-    z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema, healDamageDealtDtoSchema])
+    z.union([
+      healFixedDtoSchema,
+      healDiceDtoSchema,
+      healPoolDtoSchema,
+      healResourceSpentDtoSchema,
+      healDamageDealtDtoSchema
+    ])
   )
 )
 

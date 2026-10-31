@@ -11103,6 +11103,7 @@ export declare const api: {
                 successes: number;
               };
               hitDice: Array<{ die: number; total: number; used: number }>;
+              maximumFraction?: { denominator: number; numerator: number };
               temp: number;
               tempSourceEffectId?: string;
             };
@@ -11501,6 +11502,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -11898,6 +11900,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -12486,6 +12489,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -13082,6 +13086,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -13681,6 +13686,7 @@ export declare const api: {
                   successes: number;
                 };
                 hitDice: Array<{ die: number; total: number; used: number }>;
+                maximumFraction?: { denominator: number; numerator: number };
                 temp: number;
                 tempSourceEffectId?: string;
               };
@@ -14263,6 +14269,7 @@ export declare const api: {
                     successes: number;
                   };
                   hitDice: Array<{ die: number; total: number; used: number }>;
+                  maximumFraction?: { denominator: number; numerator: number };
                   temp: number;
                   tempSourceEffectId?: string;
                 };
@@ -22283,6 +22290,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -22376,6 +22384,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -23359,6 +23368,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -23490,6 +23500,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -23589,6 +23603,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -24522,6 +24537,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -24664,6 +24684,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -24758,6 +24779,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -25691,6 +25713,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -25827,6 +25850,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -25923,6 +25947,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -26906,6 +26931,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -27041,6 +27067,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -27188,6 +27215,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -28171,6 +28199,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -28307,6 +28336,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -28423,6 +28453,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -29356,6 +29387,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -29492,6 +29524,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -29588,6 +29621,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -30521,6 +30555,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -30664,6 +30699,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -30811,6 +30847,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -31744,6 +31781,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -32044,6 +32082,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -32136,6 +32175,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -33107,6 +33147,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -33235,6 +33276,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -33333,6 +33375,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -34254,6 +34297,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -34393,6 +34441,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -34486,6 +34535,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -35407,6 +35457,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -35540,6 +35591,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -35632,6 +35684,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -36603,6 +36656,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -36732,6 +36786,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -36874,6 +36929,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -37845,6 +37901,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -37978,6 +38035,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -38087,6 +38145,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -39008,6 +39067,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -39141,6 +39201,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -39233,6 +39294,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -40154,6 +40216,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -40291,6 +40354,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -40433,6 +40497,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -41354,6 +41419,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -41581,6 +41647,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -41731,6 +41805,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -41823,6 +41898,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -42794,6 +42870,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -42922,6 +42999,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -43020,6 +43098,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -43941,6 +44020,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -44080,6 +44164,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -44173,6 +44258,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -45094,6 +45180,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -45227,6 +45314,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -45319,6 +45407,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -46290,6 +46379,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -46419,6 +46509,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -46561,6 +46652,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -47532,6 +47624,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -47665,6 +47758,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -47774,6 +47868,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -48695,6 +48790,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -48828,6 +48924,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -48920,6 +49017,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -49841,6 +49939,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -49978,6 +50077,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -50120,6 +50220,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -51041,6 +51142,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -51498,6 +51600,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -51591,6 +51694,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -52574,6 +52678,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -52705,6 +52810,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -52804,6 +52913,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -53737,6 +53847,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -53879,6 +53994,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -53973,6 +54089,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -54906,6 +55023,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -55042,6 +55160,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -55138,6 +55257,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -56121,6 +56241,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -56256,6 +56377,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -56403,6 +56525,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -57386,6 +57509,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -57522,6 +57646,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -57638,6 +57763,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -58571,6 +58697,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -58707,6 +58834,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -58803,6 +58931,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -59736,6 +59865,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -59879,6 +60009,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -60026,6 +60157,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -60959,6 +61091,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -61259,6 +61392,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -61351,6 +61485,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -62322,6 +62457,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -62450,6 +62586,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -62548,6 +62685,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -63469,6 +63607,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -63608,6 +63751,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -63701,6 +63845,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -64622,6 +64767,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -64755,6 +64901,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -64847,6 +64994,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -65818,6 +65966,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -65947,6 +66096,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -66089,6 +66239,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -67060,6 +67211,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -67193,6 +67345,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -67302,6 +67455,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -68223,6 +68377,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -68356,6 +68511,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -68448,6 +68604,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -69369,6 +69526,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -69506,6 +69664,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -69648,6 +69807,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -70569,6 +70729,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -70796,6 +70957,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -70946,6 +71115,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -71038,6 +71208,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -72009,6 +72180,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -72137,6 +72309,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -72235,6 +72408,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -73156,6 +73330,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -73295,6 +73474,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -73388,6 +73568,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -74309,6 +74490,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -74442,6 +74624,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -74534,6 +74717,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -75505,6 +75689,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -75634,6 +75819,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -75776,6 +75962,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -76747,6 +76934,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -76880,6 +77068,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -76989,6 +77178,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -77910,6 +78100,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -78043,6 +78234,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -78135,6 +78327,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -79056,6 +79249,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -79193,6 +79387,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -79335,6 +79530,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -80256,6 +80452,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -80722,6 +80919,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -80815,6 +81013,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -81798,6 +81997,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -81929,6 +82129,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -82028,6 +82232,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -82961,6 +83166,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -83103,6 +83313,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -83197,6 +83408,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -84130,6 +84342,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -84266,6 +84479,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -84362,6 +84576,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -85345,6 +85560,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -85480,6 +85696,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -85627,6 +85844,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -86610,6 +86828,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -86746,6 +86965,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -86862,6 +87082,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -87795,6 +88016,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -87931,6 +88153,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -88027,6 +88250,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -88960,6 +89184,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -89103,6 +89328,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -89250,6 +89476,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -90183,6 +90410,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -90483,6 +90711,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -90575,6 +90804,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -91546,6 +91776,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -91674,6 +91905,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -91772,6 +92004,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -92693,6 +92926,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -92832,6 +93070,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -92925,6 +93164,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -93846,6 +94086,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -93979,6 +94220,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -94071,6 +94313,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -95042,6 +95285,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -95171,6 +95415,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -95313,6 +95558,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -96284,6 +96530,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -96417,6 +96664,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -96526,6 +96774,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -97447,6 +97696,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -97580,6 +97830,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -97672,6 +97923,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -98593,6 +98845,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -98730,6 +98983,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -98872,6 +99126,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -99793,6 +100048,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -100020,6 +100276,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -100170,6 +100434,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -100262,6 +100527,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -101233,6 +101499,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -101361,6 +101628,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -101459,6 +101727,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -102380,6 +102649,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -102519,6 +102793,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -102612,6 +102887,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -103533,6 +103809,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -103666,6 +103943,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -103758,6 +104036,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -104729,6 +105008,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -104858,6 +105138,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -105000,6 +105281,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -105971,6 +106253,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -106104,6 +106387,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -106213,6 +106497,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -107134,6 +107419,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -107267,6 +107553,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -107359,6 +107646,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -108280,6 +108568,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -108417,6 +108706,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -108559,6 +108849,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -109480,6 +109771,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -109937,6 +110229,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -110030,6 +110323,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -111013,6 +111307,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -111144,6 +111439,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -111243,6 +111542,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -112176,6 +112476,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -112318,6 +112623,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -112412,6 +112718,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -113345,6 +113652,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -113481,6 +113789,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -113577,6 +113886,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -114560,6 +114870,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -114695,6 +115006,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -114842,6 +115154,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -115825,6 +116138,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -115961,6 +116275,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -116077,6 +116392,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -117010,6 +117326,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -117146,6 +117463,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -117242,6 +117560,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -118175,6 +118494,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -118318,6 +118638,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -118465,6 +118786,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -119398,6 +119720,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -119698,6 +120021,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -119790,6 +120114,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -120761,6 +121086,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -120889,6 +121215,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -120987,6 +121314,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -121908,6 +122236,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -122047,6 +122380,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -122140,6 +122474,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -123061,6 +123396,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -123194,6 +123530,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -123286,6 +123623,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -124257,6 +124595,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -124386,6 +124725,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -124528,6 +124868,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -125499,6 +125840,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -125632,6 +125974,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -125741,6 +126084,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -126662,6 +127006,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -126795,6 +127140,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -126887,6 +127233,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -127808,6 +128155,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -127945,6 +128293,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -128087,6 +128436,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -129008,6 +129358,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -129235,6 +129586,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -129385,6 +129744,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -129477,6 +129837,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -130448,6 +130809,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -130576,6 +130938,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -130674,6 +131037,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -131595,6 +131959,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -131734,6 +132103,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -131827,6 +132197,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -132748,6 +133119,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -132881,6 +133253,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -132973,6 +133346,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -133944,6 +134318,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -134073,6 +134448,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -134215,6 +134591,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -135186,6 +135563,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -135319,6 +135697,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -135428,6 +135807,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -136349,6 +136729,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -136482,6 +136863,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -136574,6 +136956,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -137495,6 +137878,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -137632,6 +138016,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -137774,6 +138159,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -138695,6 +139081,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -139187,6 +139574,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -139280,6 +139668,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -140263,6 +140652,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -140394,6 +140784,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -140493,6 +140887,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -141426,6 +141821,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -141568,6 +141968,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -141662,6 +142063,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -142595,6 +142997,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -142731,6 +143134,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -142827,6 +143231,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -143810,6 +144215,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -143945,6 +144351,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -144092,6 +144499,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -145075,6 +145483,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -145211,6 +145620,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -145327,6 +145737,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -146260,6 +146671,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -146396,6 +146808,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -146492,6 +146905,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -147425,6 +147839,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -147568,6 +147983,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -147715,6 +148131,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -148648,6 +149065,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -148948,6 +149366,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -149040,6 +149459,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -150011,6 +150431,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -150139,6 +150560,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -150237,6 +150659,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -151158,6 +151581,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -151297,6 +151725,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -151390,6 +151819,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -152311,6 +152741,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -152444,6 +152875,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -152536,6 +152968,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -153507,6 +153940,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -153636,6 +154070,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -153778,6 +154213,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -154749,6 +155185,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -154882,6 +155319,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -154991,6 +155429,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -155912,6 +156351,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -156045,6 +156485,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -156137,6 +156578,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -157058,6 +157500,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -157195,6 +157638,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -157337,6 +157781,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -158258,6 +158703,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -158485,6 +158931,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -158635,6 +159089,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -158727,6 +159182,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -159698,6 +160154,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -159826,6 +160283,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -159924,6 +160382,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -160845,6 +161304,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -160984,6 +161448,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -161077,6 +161542,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -161998,6 +162464,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -162131,6 +162598,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -162223,6 +162691,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -163194,6 +163663,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -163323,6 +163793,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -163465,6 +163936,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -164436,6 +164908,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -164569,6 +165042,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -164678,6 +165152,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -165599,6 +166074,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -165732,6 +166208,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -165824,6 +166301,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -166745,6 +167223,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -166882,6 +167361,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -167024,6 +167504,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -167945,6 +168426,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -168402,6 +168884,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -168495,6 +168978,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -169478,6 +169962,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -169609,6 +170094,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -169708,6 +170197,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -170641,6 +171131,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -170783,6 +171278,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -170877,6 +171373,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -171810,6 +172307,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -171946,6 +172444,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -172042,6 +172541,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -173025,6 +173525,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -173160,6 +173661,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -173307,6 +173809,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -174290,6 +174793,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -174426,6 +174930,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -174542,6 +175047,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -175475,6 +175981,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -175611,6 +176118,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -175707,6 +176215,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -176640,6 +177149,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -176783,6 +177293,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -176930,6 +177441,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -177863,6 +178375,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -178163,6 +178676,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -178255,6 +178769,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -179226,6 +179741,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -179354,6 +179870,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -179452,6 +179969,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -180373,6 +180891,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -180512,6 +181035,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -180605,6 +181129,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -181526,6 +182051,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -181659,6 +182185,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -181751,6 +182278,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -182722,6 +183250,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -182851,6 +183380,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -182993,6 +183523,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -183964,6 +184495,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -184097,6 +184629,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -184206,6 +184739,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -185127,6 +185661,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -185260,6 +185795,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -185352,6 +185888,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -186273,6 +186810,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -186410,6 +186948,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -186552,6 +187091,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -187473,6 +188013,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -187700,6 +188241,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -187850,6 +188399,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -187942,6 +188492,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -188913,6 +189464,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -189041,6 +189593,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -189139,6 +189692,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -190060,6 +190614,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -190199,6 +190758,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -190292,6 +190852,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -191213,6 +191774,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -191346,6 +191908,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -191438,6 +192001,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -192409,6 +192973,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -192538,6 +193103,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -192680,6 +193246,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -193651,6 +194218,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -193784,6 +194352,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -193893,6 +194462,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -194814,6 +195384,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -194947,6 +195518,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -195039,6 +195611,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -195960,6 +196533,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -196097,6 +196671,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -196239,6 +196814,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -197160,6 +197736,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -197619,6 +198196,7 @@ export declare const api: {
                         id: string;
                         invocation:
                           | {
+                              castModifier?: never;
                               kind: "PASSIVE";
                               optionalOnHit?: never;
                               range:
@@ -197711,6 +198289,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -198694,6 +199273,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -198825,6 +199405,7 @@ export declare const api: {
                               triggerCode: "SAVING_THROW" | "HP_ZERO";
                             }
                           | {
+                              castModifier?: { chargeId: string; cost: number };
                               kind: "PASSIVE";
                               optionalOnHit?:
                                 | { kind: "SPELL_SLOT" }
@@ -198923,6 +199504,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: string;
+                              ridesSpellIds?: Array<string>;
                               shape?:
                                 | {
                                     id: string;
@@ -199856,6 +200438,11 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: {
+                                base: number;
+                                magicSchoolIds?: Array<string>;
+                                plusSpellLevel?: boolean;
+                              };
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -199998,6 +200585,7 @@ export declare const api: {
                                 | "START_OF_TURN";
                             }
                           | {
+                              castModifier?: never;
                               damageTypeIds: Array<string>;
                               kind: "PASSIVE";
                               optionalOnHit?: never;
@@ -200091,6 +200679,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: never;
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -201024,6 +201613,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -201160,6 +201750,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -201252,6 +201843,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -202235,6 +202827,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -202367,6 +202960,7 @@ export declare const api: {
                             }
                           | {
                               activation: { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -202509,6 +203103,7 @@ export declare const api: {
                                   };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               savingThrow:
                                 | {
                                     abilityDefinitionId: string;
@@ -203492,6 +204087,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -203628,6 +204224,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               check: {
                                 checks: {
                                   abilityDefinitionIds: Array<string>;
@@ -203740,6 +204337,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -204673,6 +205271,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -204809,6 +205408,7 @@ export declare const api: {
                                 | { amount: number; code: "ACTION" }
                                 | { amount: number; code: "BONUS_ACTION" }
                                 | { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -204901,6 +205501,7 @@ export declare const api: {
                               reactionTrigger?: never;
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -205834,6 +206435,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -205974,6 +206576,7 @@ export declare const api: {
                             }
                           | {
                               activation: { amount: number; code: "REACTION" };
+                              castModifier?: never;
                               kind?: "ACTION";
                               optionalOnHit?: never;
                               range:
@@ -206116,6 +206719,7 @@ export declare const api: {
                                   };
                               resourceUse?: { chargeId: string; cost: number };
                               ridesFeatureId?: never;
+                              ridesSpellIds?: never;
                               shape?:
                                 | {
                                     id: string;
@@ -207049,6 +207653,7 @@ export declare const api: {
                                     };
                                     shapeKind: "DOME";
                                   };
+                              sparesCreatures?: never;
                               targeting?:
                                 | { selectionKind: "SELF" }
                                 | {
@@ -207349,6 +207954,7 @@ export declare const api: {
                   id: string;
                   invocation:
                     | {
+                        castModifier?: never;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
                         range:
@@ -207429,6 +208035,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -208394,6 +209001,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -208521,6 +209129,7 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
+                        castModifier?: { chargeId: string; cost: number };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -208607,6 +209216,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: string;
+                        ridesSpellIds?: Array<string>;
                         shape?:
                           | {
                               id: string;
@@ -209528,6 +210138,11 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: {
+                          base: number;
+                          magicSchoolIds?: Array<string>;
+                          plusSpellLevel?: boolean;
+                        };
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -209666,6 +210281,7 @@ export declare const api: {
                           | "START_OF_TURN";
                       }
                     | {
+                        castModifier?: never;
                         damageTypeIds: Array<string>;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
@@ -209747,6 +210363,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -210668,6 +211285,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -210800,6 +211418,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -210880,6 +211499,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -211845,6 +212465,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -211973,6 +212594,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -212099,6 +212721,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -213064,6 +213687,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -213196,6 +213820,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         check: {
                           checks: {
                             abilityDefinitionIds: Array<string>;
@@ -213293,6 +213918,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -214214,6 +214840,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -214346,6 +214973,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -214426,6 +215054,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -215347,6 +215976,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -215483,6 +216113,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -215609,6 +216240,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -216530,6 +217162,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -216755,6 +217388,14 @@ export declare const api: {
                       order: number;
                     }
                   | {
+                      denominator: number;
+                      id: string;
+                      kind: "HIT_POINT_MAXIMUM";
+                      minimumLevel: number | null;
+                      numerator: number;
+                      order: number;
+                    }
+                  | {
                       id: string;
                       kind: "HITS_AGAINST_CRITICAL";
                       minimumLevel: number | null;
@@ -216905,6 +217546,7 @@ export declare const api: {
                   id: string;
                   invocation:
                     | {
+                        castModifier?: never;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
                         range:
@@ -216985,6 +217627,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -217950,6 +218593,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -218077,6 +218721,7 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
+                        castModifier?: { chargeId: string; cost: number };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -218163,6 +218808,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: string;
+                        ridesSpellIds?: Array<string>;
                         shape?:
                           | {
                               id: string;
@@ -219084,6 +219730,11 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: {
+                          base: number;
+                          magicSchoolIds?: Array<string>;
+                          plusSpellLevel?: boolean;
+                        };
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -219222,6 +219873,7 @@ export declare const api: {
                           | "START_OF_TURN";
                       }
                     | {
+                        castModifier?: never;
                         damageTypeIds: Array<string>;
                         kind: "PASSIVE";
                         optionalOnHit?: never;
@@ -219303,6 +219955,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: never;
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -220224,6 +220877,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -220356,6 +221010,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -220436,6 +221091,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -221401,6 +222057,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -221529,6 +222186,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -221655,6 +222313,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         savingThrow:
                           | {
                               abilityDefinitionId: string;
@@ -222620,6 +223279,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -222752,6 +223412,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         check: {
                           checks: {
                             abilityDefinitionIds: Array<string>;
@@ -222849,6 +223510,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -223770,6 +224432,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -223902,6 +224565,7 @@ export declare const api: {
                           | { amount: number; code: "ACTION" }
                           | { amount: number; code: "BONUS_ACTION" }
                           | { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -223982,6 +224646,7 @@ export declare const api: {
                         reactionTrigger?: never;
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -224903,6 +225568,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -225039,6 +225705,7 @@ export declare const api: {
                       }
                     | {
                         activation: { amount: number; code: "REACTION" };
+                        castModifier?: never;
                         kind?: "ACTION";
                         optionalOnHit?: never;
                         range:
@@ -225165,6 +225832,7 @@ export declare const api: {
                             };
                         resourceUse?: { chargeId: string; cost: number };
                         ridesFeatureId?: never;
+                        ridesSpellIds?: never;
                         shape?:
                           | {
                               id: string;
@@ -226086,6 +226754,7 @@ export declare const api: {
                               };
                               shapeKind: "DOME";
                             };
+                        sparesCreatures?: never;
                         targeting?:
                           | { selectionKind: "SELF" }
                           | {
@@ -226537,6 +227206,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -226630,6 +227300,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -227613,6 +228284,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -227744,6 +228416,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -227843,6 +228519,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -228776,6 +229453,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -228918,6 +229600,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -229012,6 +229695,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -229945,6 +230629,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -230081,6 +230766,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -230177,6 +230863,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -231160,6 +231847,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -231295,6 +231983,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -231442,6 +232131,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -232425,6 +233115,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -232561,6 +233252,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -232677,6 +233369,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -233610,6 +234303,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -233746,6 +234440,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -233842,6 +234537,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -234775,6 +235471,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -234918,6 +235615,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -235065,6 +235763,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -235998,6 +236697,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -236298,6 +236998,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -236390,6 +237091,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -237361,6 +238063,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -237489,6 +238192,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -237587,6 +238291,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -238508,6 +239213,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -238647,6 +239357,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -238740,6 +239451,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -239661,6 +240373,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -239794,6 +240507,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -239886,6 +240600,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -240857,6 +241572,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -240986,6 +241702,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -241128,6 +241845,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -242099,6 +242817,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -242232,6 +242951,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -242341,6 +243061,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -243262,6 +243983,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -243395,6 +244117,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -243487,6 +244210,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -244408,6 +245132,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -244545,6 +245270,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -244687,6 +245413,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -245608,6 +246335,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -245835,6 +246563,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -245985,6 +246721,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -246077,6 +246814,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -247048,6 +247786,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -247176,6 +247915,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -247274,6 +248014,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -248195,6 +248936,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -248334,6 +249080,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -248427,6 +249174,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -249348,6 +250096,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -249481,6 +250230,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -249573,6 +250323,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -250544,6 +251295,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -250673,6 +251425,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -250815,6 +251568,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -251786,6 +252540,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -251919,6 +252674,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -252028,6 +252784,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -252949,6 +253706,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -253082,6 +253840,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -253174,6 +253933,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -254095,6 +254855,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -254232,6 +254993,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -254374,6 +255136,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -255295,6 +256058,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -255752,6 +256516,7 @@ export declare const api: {
                           id: string;
                           invocation:
                             | {
+                                castModifier?: never;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
                                 range:
@@ -255845,6 +256610,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -256828,6 +257594,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -256959,6 +257726,10 @@ export declare const api: {
                                 triggerCode: "SAVING_THROW" | "HP_ZERO";
                               }
                             | {
+                                castModifier?: {
+                                  chargeId: string;
+                                  cost: number;
+                                };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
                                   | { kind: "SPELL_SLOT" }
@@ -257058,6 +257829,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: string;
+                                ridesSpellIds?: Array<string>;
                                 shape?:
                                   | {
                                       id: string;
@@ -257991,6 +258763,11 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: {
+                                  base: number;
+                                  magicSchoolIds?: Array<string>;
+                                  plusSpellLevel?: boolean;
+                                };
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -258133,6 +258910,7 @@ export declare const api: {
                                   | "START_OF_TURN";
                               }
                             | {
+                                castModifier?: never;
                                 damageTypeIds: Array<string>;
                                 kind: "PASSIVE";
                                 optionalOnHit?: never;
@@ -258227,6 +259005,7 @@ export declare const api: {
                                 reactionTrigger?: never;
                                 resourceUse?: never;
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -259160,6 +259939,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -259296,6 +260076,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -259392,6 +260173,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -260375,6 +261157,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -260510,6 +261293,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -260657,6 +261441,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 savingThrow:
                                   | {
                                       abilityDefinitionId: string;
@@ -261640,6 +262425,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -261776,6 +262562,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 check: {
                                   checks: {
                                     abilityDefinitionIds: Array<string>;
@@ -261892,6 +262679,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -262825,6 +263613,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -262961,6 +263750,7 @@ export declare const api: {
                                   | { amount: number; code: "ACTION" }
                                   | { amount: number; code: "BONUS_ACTION" }
                                   | { amount: number; code: "REACTION" };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -263057,6 +263847,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -263990,6 +264781,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -264133,6 +264925,7 @@ export declare const api: {
                                   amount: number;
                                   code: "REACTION";
                                 };
+                                castModifier?: never;
                                 kind?: "ACTION";
                                 optionalOnHit?: never;
                                 range:
@@ -264280,6 +265073,7 @@ export declare const api: {
                                   cost: number;
                                 };
                                 ridesFeatureId?: never;
+                                ridesSpellIds?: never;
                                 shape?:
                                   | {
                                       id: string;
@@ -265213,6 +266007,7 @@ export declare const api: {
                                       };
                                       shapeKind: "DOME";
                                     };
+                                sparesCreatures?: never;
                                 targeting?:
                                   | { selectionKind: "SELF" }
                                   | {
@@ -265513,6 +266308,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -265605,6 +266401,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -266576,6 +267373,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -266704,6 +267502,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -266802,6 +267601,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -267723,6 +268523,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -267862,6 +268667,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -267955,6 +268761,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -268876,6 +269683,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -269009,6 +269817,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -269101,6 +269910,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -270072,6 +270882,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -270201,6 +271012,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -270343,6 +271155,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -271314,6 +272127,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -271447,6 +272261,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -271556,6 +272371,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -272477,6 +273293,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -272610,6 +273427,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -272702,6 +273520,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -273623,6 +274442,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -273760,6 +274580,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -273902,6 +274723,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -274823,6 +275645,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -275050,6 +275873,14 @@ export declare const api: {
                         order: number;
                       }
                     | {
+                        denominator: number;
+                        id: string;
+                        kind: "HIT_POINT_MAXIMUM";
+                        minimumLevel: number | null;
+                        numerator: number;
+                        order: number;
+                      }
+                    | {
                         id: string;
                         kind: "HITS_AGAINST_CRITICAL";
                         minimumLevel: number | null;
@@ -275200,6 +276031,7 @@ export declare const api: {
                     id: string;
                     invocation:
                       | {
+                          castModifier?: never;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
                           range:
@@ -275292,6 +276124,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -276263,6 +277096,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -276391,6 +277225,7 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
+                          castModifier?: { chargeId: string; cost: number };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -276489,6 +277324,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: string;
+                          ridesSpellIds?: Array<string>;
                           shape?:
                             | {
                                 id: string;
@@ -277410,6 +278246,11 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: {
+                            base: number;
+                            magicSchoolIds?: Array<string>;
+                            plusSpellLevel?: boolean;
+                          };
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -277549,6 +278390,7 @@ export declare const api: {
                             | "START_OF_TURN";
                         }
                       | {
+                          castModifier?: never;
                           damageTypeIds: Array<string>;
                           kind: "PASSIVE";
                           optionalOnHit?: never;
@@ -277642,6 +278484,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: never;
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -278563,6 +279406,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -278696,6 +279540,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -278788,6 +279633,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -279759,6 +280605,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -279888,6 +280735,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -280030,6 +280878,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           savingThrow:
                             | {
                                 abilityDefinitionId: string;
@@ -281001,6 +281850,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -281134,6 +281984,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           check: {
                             checks: {
                               abilityDefinitionIds: Array<string>;
@@ -281243,6 +282094,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -282164,6 +283016,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -282297,6 +283150,7 @@ export declare const api: {
                             | { amount: number; code: "ACTION" }
                             | { amount: number; code: "BONUS_ACTION" }
                             | { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -282389,6 +283243,7 @@ export declare const api: {
                           reactionTrigger?: never;
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -283310,6 +284165,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -283447,6 +284303,7 @@ export declare const api: {
                         }
                       | {
                           activation: { amount: number; code: "REACTION" };
+                          castModifier?: never;
                           kind?: "ACTION";
                           optionalOnHit?: never;
                           range:
@@ -283589,6 +284446,7 @@ export declare const api: {
                               };
                           resourceUse?: { chargeId: string; cost: number };
                           ridesFeatureId?: never;
+                          ridesSpellIds?: never;
                           shape?:
                             | {
                                 id: string;
@@ -284510,6 +285368,7 @@ export declare const api: {
                                 };
                                 shapeKind: "DOME";
                               };
+                          sparesCreatures?: never;
                           targeting?:
                             | { selectionKind: "SELF" }
                             | {
@@ -285817,6 +286676,8 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -286015,6 +286876,7 @@ export declare const api: {
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
+            sparesCreatures?: { max: number };
             target:
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
@@ -287581,6 +288443,8 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -287779,6 +288643,7 @@ export declare const api: {
             rangeLabel?: string;
             rulesText?: string;
             sourceLabel?: string;
+            sparesCreatures?: { max: number };
             target:
               | {
                   choiceOptions?: Array<{ id: string; label: string }>;
@@ -289612,6 +290477,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -289695,6 +290561,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -289899,6 +290766,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -290223,7 +291091,7 @@ export declare const api: {
                 }>;
                 requestId: string;
                 rollerActorId: string;
-                trigger:
+                trigger?:
                   | {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
@@ -291167,7 +292035,7 @@ export declare const api: {
                   }>;
                   requestId: string;
                   rollerActorId: string;
-                  trigger:
+                  trigger?:
                     | {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
@@ -291853,6 +292721,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -291936,6 +292805,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -292140,6 +293010,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -292754,7 +293625,7 @@ export declare const api: {
             }>;
             requestId: string;
             rollerActorId: string;
-            trigger:
+            trigger?:
               | {
                   damage: { amount: number; typeLabel: string | null };
                   dc: number;
@@ -293378,6 +294249,7 @@ export declare const api: {
                   | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                 >;
               }>;
+              consequences?: Array<{ id: string; label: string }>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
               defeated: boolean;
@@ -293456,6 +294328,7 @@ export declare const api: {
                     label: string;
                     rolledFaces: Array<number>;
                     sign: "ADD" | "SUBTRACT";
+                    spentEffectId?: string;
                   }>;
                   contributorChecksum: string;
                   contributors: Array<{
@@ -293658,6 +294531,7 @@ export declare const api: {
                 level?: number;
                 notes?: string;
               }>;
+              consequences?: Array<{ id: string; label: string }>;
               controllerUserIds: Array<string>;
               defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -293801,6 +294675,7 @@ export declare const api: {
                       | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                     >;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -293884,6 +294759,7 @@ export declare const api: {
                         label: string;
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
+                        spentEffectId?: string;
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -294088,6 +294964,7 @@ export declare const api: {
                     level?: number;
                     notes?: string;
                   }>;
+                  consequences?: Array<{ id: string; label: string }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -294371,7 +295248,7 @@ export declare const api: {
                 }>;
                 requestId: string;
                 rollerActorId: string;
-                trigger:
+                trigger?:
                   | {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
@@ -295052,6 +295929,7 @@ export declare const api: {
                 | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
               >;
             }>;
+            consequences?: Array<{ id: string; label: string }>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
             defeated: boolean;
@@ -295130,6 +296008,7 @@ export declare const api: {
                   label: string;
                   rolledFaces: Array<number>;
                   sign: "ADD" | "SUBTRACT";
+                  spentEffectId?: string;
                 }>;
                 contributorChecksum: string;
                 contributors: Array<{
@@ -300949,39 +301828,6 @@ export declare const internal: {
         }
       >;
     };
-    currencySystemPages: {
-      list: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            denominations: Array<{
-              abbreviation: string;
-              id: string;
-              label: string;
-              scaleInReference: number;
-            }>;
-            id: string;
-            isReference: boolean;
-            label: string;
-            version: number;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
-        }
-      >;
-    };
     deletionCommands: {
       remove: FunctionReference<
         "mutation",
@@ -301403,147 +302249,6 @@ export declare const internal: {
           updatedAt: string;
           vehicleDefinitionId: string;
           version: number;
-        }
-      >;
-    };
-    vehicleInventoryPages: {
-      currencies: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-          vehicleId: string;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          owner:
-            | { characterId: string; kind: "CHARACTER" }
-            | { campaignId: string; kind: "CAMPAIGN" }
-            | { kind: "VEHICLE"; vehicleId: string };
-          page: Array<{
-            abbreviation: string;
-            amount: number;
-            campaignCurrencySystemId?: string;
-            containerId: string | null;
-            denominationId: string;
-            kind: "RULESET" | "CAMPAIGN";
-            label: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          pendingCleanup?: Array<
-            | { jobId: string; kind: "CARGO"; status: "RUNNING" | "FAILED" }
-            | {
-                campaignCurrencySystemId: string | null;
-                denominationId: string;
-                jobId: string;
-                kind: "CURRENCY";
-                status: "RUNNING" | "FAILED";
-              }
-          >;
-          splitCursor?: string | null;
-          version: number;
-        }
-      >;
-      items: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-          vehicleId: string;
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          owner:
-            | { characterId: string; kind: "CHARACTER" }
-            | { campaignId: string; kind: "CAMPAIGN" }
-            | { kind: "VEHICLE"; vehicleId: string };
-          page: Array<{
-            containerId: string | null;
-            id: string;
-            isContainer: boolean;
-            label: string;
-            quantity: number;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          pendingCleanup?: Array<
-            | { jobId: string; kind: "CARGO"; status: "RUNNING" | "FAILED" }
-            | {
-                campaignCurrencySystemId: string | null;
-                denominationId: string;
-                jobId: string;
-                kind: "CURRENCY";
-                status: "RUNNING" | "FAILED";
-              }
-          >;
-          splitCursor?: string | null;
-          version: number;
-        }
-      >;
-    };
-    vehicleOptions: {
-      list: FunctionReference<
-        "query",
-        "internal",
-        {
-          campaignId: string;
-          paginationOpts: {
-            cursor: string | null;
-            endCursor?: string | null;
-            id?: number;
-            numItems: number;
-          };
-        },
-        {
-          continueCursor: string;
-          isDone: boolean;
-          page: Array<{
-            activeUpdatedAt: string;
-            castingTimeAmount?: number;
-            castingTimeUnit?: "ROUND" | "MINUTE" | "HOUR";
-            category?: string;
-            classIds?: Array<string>;
-            classLabels?: Array<string>;
-            description: string | null;
-            id: string;
-            label: string;
-            level?: number;
-            magicSchoolId?: string;
-            magicSchoolLabel?: string;
-            parentClassId?: string | null;
-            parentClassLabel?: string | null;
-            parentRaceId?: string | null;
-            parentRaceLabel?: string | null;
-            permissions: {
-              canCopy: boolean;
-              canDelete: boolean;
-              canEdit: boolean;
-              canView: boolean;
-            };
-            provenance: {
-              kind: "MASTER" | "OWNED";
-              ownerUserId: string | null;
-            };
-            publicId: string;
-            selectionMode?: "DIRECT" | "REQUIRES_SUBRACE";
-            status: "ACTIVE";
-            systemId: string;
-          }>;
-          pageStatus?: "SplitRecommended" | "SplitRequired" | null;
-          splitCursor?: string | null;
         }
       >;
     };

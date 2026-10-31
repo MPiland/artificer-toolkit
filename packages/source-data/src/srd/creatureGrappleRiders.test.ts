@@ -218,7 +218,7 @@ describe('SRD Creature grapple riders (D105)', () => {
       }))
     )
 
-    expect(riders).toHaveLength(32)
+    expect(riders).toHaveLength(34)
     // The SRD prints the Darkmantle's detach DC in a paragraph of its own, so its Crush paragraph
     // reads no rider; it attaches to a creature of any size, with a DC 13 Strength check to detach.
     // The Shambling Mound prints its grapple in its Multiattack ("if both attacks hit a Medium or smaller
@@ -227,6 +227,8 @@ describe('SRD Creature grapple riders (D105)', () => {
     // without the word "grappled", so their printed rider names no condition; they author GRAPPLED.
     // The Stirge attaches with no escape check (a creature detaches it with an action), so its Blood
     // Drain reads no rider and authors no escape DC (SPELLS-33.T6a3).
+    // The Remorhaz and Tarrasque swallows print their hold in a paragraph of its own, so their Swallow
+    // reads no rider; they author the grapple's escape DC with Blinded and Restrained (SPELLS-33.T6n3).
     expect(
       riders.filter(({ printed, authored }) => JSON.stringify(printed) !== JSON.stringify(authored))
     ).toEqual([
@@ -234,6 +236,11 @@ describe('SRD Creature grapple riders (D105)', () => {
         name: 'Darkmantle: Crush',
         printed: undefined,
         authored: { dc: 13, conditions: [] }
+      },
+      {
+        name: 'Remorhaz: Swallow',
+        printed: '0 paragraphs',
+        authored: { dc: 17, conditions: ['BLINDED', 'RESTRAINED'], sizeLimit: 'MEDIUM' }
       },
       {
         name: 'Shambling Mound: Slam',
@@ -244,6 +251,11 @@ describe('SRD Creature grapple riders (D105)', () => {
         name: 'Stirge: Blood Drain',
         printed: undefined,
         authored: { dc: undefined, conditions: [], sizeLimit: undefined }
+      },
+      {
+        name: 'Tarrasque: Swallow',
+        printed: '0 paragraphs',
+        authored: { dc: 20, conditions: ['BLINDED', 'RESTRAINED'], sizeLimit: 'LARGE' }
       },
       {
         name: 'Vampire: Unarmed Strike (Vampire Form Only)',

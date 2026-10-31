@@ -109,7 +109,13 @@ export const campaignTables = {
   campaignVehicles: defineTable(zodToConvexFields(campaignStoredVehicleSchema.shape))
     .index('by_campaignId_id', ['campaignId', 'id'])
     .index('by_campaignId_vehicleDefinitionId_id', ['campaignId', 'vehicleDefinitionId', 'id'])
-    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id']),
+    .index('by_campaignId_createdAt_id', ['campaignId', 'createdAt', 'id'])
+    .index('by_campaignId_availability_createdAt_id', [
+      'campaignId',
+      'availability',
+      'createdAt',
+      'id'
+    ]),
   campaignCurrencySystems: defineTable(zodToConvexFields(campaignStoredCurrencySystemSchema.shape))
     .index('by_campaignId_id', ['campaignId', 'id'])
     .index('by_campaignId_label_id', ['campaignId', 'label', 'id'])

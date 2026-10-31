@@ -38,6 +38,7 @@ import {
 } from '../../tests/fixtures/publication'
 import { readVisibleCatalogue } from '../../tests/fixtures/contentSnapshotReaders'
 import { readStoredAuthoredVersionDocument } from './documents'
+import { readStoredSourceFacts } from './sourceFacts'
 
 const publish = makeFunctionReference<
   'mutation',
@@ -190,6 +191,7 @@ describe('native Spell publication', () => {
       const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
+        sourceFacts: await readStoredSourceFacts(ctx, root),
         version,
         document: version && (await readStoredAuthoredVersionDocument(ctx, version)),
         source: await ctx.db
@@ -266,7 +268,7 @@ describe('native Spell publication', () => {
       )
     )
     expect(stored.version?.compilation?.projectionChecksum).toBe(checksumRuleDocument(projection))
-    expect(stored.root.authoringSources).toEqual(
+    expect(stored.sourceFacts).toEqual(
       authoredSourceFacts({
         subjectKind: 'SPELL',
         document,
@@ -505,6 +507,7 @@ describe('native Spell publication', () => {
       const version = await versionWithCompilation(ctx, await ctx.db.get(root.currentVersionId))
       return {
         root,
+        sourceFacts: await readStoredSourceFacts(ctx, root),
         version,
         document: version && (await readStoredAuthoredVersionDocument(ctx, version))
       }

@@ -1,5 +1,4 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const stirge: CreatureAuthored = {
   id: S.CREATURE_IDS.STIRGE,
@@ -89,6 +88,14 @@ export const stirge: CreatureAuthored = {
                     id: S.actionId(4592, 4),
                     effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
                     heldAtOnce: 1,
+                    recurrence: {
+                      turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+                      outcome: {
+                        id: S.actionId(4592, 8),
+                        effectKind: 'HIT_POINT_LOSS' as const,
+                        diceConfig: '1d4+3'
+                      }
+                    },
                     modules: [
                       { id: S.actionId(4592, 5), order: 1, kind: 'SOURCE_FOLLOWS_TARGET' },
                       {
@@ -99,14 +106,6 @@ export const stirge: CreatureAuthored = {
                         unit: S.MEASUREMENT_UNIT_CODE.FEET
                       }
                     ]
-                  },
-                  {
-                    id: S.actionId(4592, 7),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Drain blood while attached',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "While attached, the stirge doesn't attack. At the start of each of the stirge's turns, the target loses 5 (1d4 + 3) hit points. The stirge detaches after it drains 10 hit points or the target dies, and any creature, including the target, can use its action to detach it; the GM tracks the drain and ends the attachment then."
                   }
                 ]
               }

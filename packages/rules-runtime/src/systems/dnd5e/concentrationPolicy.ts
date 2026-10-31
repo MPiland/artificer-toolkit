@@ -24,6 +24,8 @@ import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
+import { DND5E_TEST_OUTCOME_RULE_FACT_KEY, dnd5eSaveOutcomeRule } from './effectActionContracts.js'
+import { encounterConditionSaveAutoFails } from '../../conditionSaveAutoFail.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
 const DND5E_CONCENTRATION_DAMAGE_DC_OPERATION_KEY = 'dnd5e.concentration-damage-dc'
@@ -117,8 +119,9 @@ const creatureSaveRowsSchema = z.array(
 )
 
 /**
- * The saving throws a Concentration holder rolls from: a Character's effective policy output, else
- * a Creature's or custom actor's derived save rows, which already carry its condition contributors (D94).
+ * The saving throws a Concentration holder rolls from: the derived save rows of its target facts,
+ * which carry its condition contributors (D94) for a Character, a Creature and a custom actor
+ * alike; else a Character's effective policy output.
  */
 export function dnd5eConcentrationHolderSaves(target: {
   effectiveRulePolicyOutput: {
@@ -126,12 +129,11 @@ export function dnd5eConcentrationHolderSaves(target: {
   } | null
   targetDerivedFacts: Readonly<Record<string, unknown>>
 }) {
+  const derived = target.targetDerivedFacts.savingThrowDefinitions
   return (
-    target.effectiveRulePolicyOutput ?? {
-      savingThrowDefinitions: creatureSaveRowsSchema.parse(
-        target.targetDerivedFacts.savingThrowDefinitions
-      )
-    }
+    (target.effectiveRulePolicyOutput !== null && !Array.isArray(derived)
+      ? target.effectiveRulePolicyOutput
+      : null) ?? { savingThrowDefinitions: creatureSaveRowsSchema.parse(derived) }
   )
 }
 
@@ -213,6 +215,8 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   rulePolicyOutput: Dnd5eHolderSaveRows
   /** The dice the holder rolls with the save (D156). */
   addedDice: readonly D20AddedDieDto[]
+  /** The dice the holder may spend after the save's d20 (D168). */
+  heldDice: readonly D20AddedDieDto[]
 }): {
   facts: Record<string, string | number | boolean>
   rollMode: string
@@ -234,7 +238,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: appliedDamage,
       [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: save.modifier,
       [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: save.contributorChecksum,
-      ...dnd5eAddedDiceFacts(input.addedDice)
+      ...dnd5eAddedDiceFacts(input.addedDice, true, input.heldDice)
     },
     ...save
   }
@@ -292,8 +296,7 @@ export function createDnd5eConcentrationCheckDefinition() {
             kind: 'FACT',
             factKey: DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY
           },
-          // Condition outcome rules don't reach concentration saves yet (D94).
-          outcomeRule: { kind: 'LITERAL', value: 'NONE' }
+          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       }
     ],
@@ -344,14 +347,29 @@ export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAda
       input.target.targetDerivedFacts.savingThrowAddedDice,
       DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
     )
+    const save = resolveDnd5eConcentrationSaveFacts({
+      appliedDamage: input.appliedDamage,
+      targetActorId: input.targetActorId,
+      rulePolicyOutput: dnd5eConcentrationHolderSaves(input.target),
+      addedDice,
+      heldDice: derivedAddedDice(
+        input.target.targetDerivedFacts.savingThrowAfterRollDice,
+        DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+      )
+    })
     return {
       addedDice,
-      ...resolveDnd5eConcentrationSaveFacts({
-        appliedDamage: input.appliedDamage,
-        targetActorId: input.targetActorId,
-        rulePolicyOutput: dnd5eConcentrationHolderSaves(input.target),
-        addedDice
-      })
+      ...save,
+      facts: {
+        ...save.facts,
+        [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
+          {
+            hitIsCritical: false,
+            saveAutoFails: encounterConditionSaveAutoFails(input.target.conditionMechanics)
+          },
+          DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+        )
+      }
     }
   }
 }

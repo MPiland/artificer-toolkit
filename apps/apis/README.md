@@ -719,7 +719,7 @@ the native subscription remains a query. Normalization and the temporary SQL res
 normalizer; Convex supplies trusted System/definition/authored-source facts while the temporary SQL
 adapter uses the same implementation. System vocabulary, visible reusable definitions, and
 same-System published master/owned root and nested reference choices are supported. Closed
-`authoringSources` metadata holds only resolver-reachable labels, category/property facts and
+`authoringSources` metadata (the `authoredSourceFacts` table, keyed by root id) holds only resolver-reachable labels, category/property facts and
 feature/option/grant/effect/ancestry relationships; exact seed replay backfills absent metadata without changing
 canonical payloads. `PLATFORM` sources are public; `USER` sources and their roots must share the
 authenticated owner. Reads use indexed System/kind/owner ranges; unrelated private sources do not
@@ -1109,7 +1109,10 @@ No admin key is stored: scripts generate one per run with
 `docker exec phase82-convex-local-linux ./generate_admin_key.sh` and never write or print it. The
 ignored `local-validation/local-convex/local.application.env` holds the local application environment
 without an admin key. On a fresh backend, set `JWKS` to an empty value to select the existing database-backed signing
-keys until a deployment-specific static key set is configured. Official codegen and its TypeScript
+keys until a deployment-specific static key set is configured. Browser journey stacks pin theirs
+with the CI-only `signing-keys` step of `scripts/liveBackendValidation.mjs`: with database-backed keys
+the backend verifies each token by fetching `/api/auth/convex/jwks` from itself, which took up to 40%
+of a proof's compute (RELIABILITY-21.T26). The local container keeps the empty value. Official codegen and its TypeScript
 check pass there. Keep test-only helpers under `tests/fixtures`; non-test-named files under `convex/`
 are deployment entrypoints. The Scene preparation validator reuses only its accepted movement
 branches so module loading remains within the unmodified 64 MB limit.

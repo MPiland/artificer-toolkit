@@ -29,6 +29,7 @@ import {
 import {
   activeAttackRollDice,
   activeFixedGrantTotal,
+  activeAfterRollSavingThrowDice,
   activeSavingThrowDice,
   activeSpeedGrantFeet,
   listActiveEffectGrants,
@@ -1304,6 +1305,39 @@ export function encounterSavingThrowAddedDice(
       const dice = activeSavingThrowDice(effects, ability)
       return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
     })
+  )
+}
+
+/**
+ * A holder's after-roll saving-throw dice (D168) by ability definition id: the
+ * `savingThrowAfterRollDice` target fact a window-capable save graph reads to allow for a die the
+ * holder may spend once the d20 is seen. Abilities with no held dice are omitted.
+ */
+export function encounterSavingThrowAfterRollDice(
+  gameSystemId: string,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): Record<string, D20AddedDieDto[]> {
+  return Object.fromEntries(
+    Object.entries(
+      abilityScoreCapabilityRegistry.require(gameSystemId).abilityDefinitionIdByCode
+    ).flatMap(([ability, abilityDefinitionId]) => {
+      const dice = activeAfterRollSavingThrowDice(effects, ability).map(
+        ({ label, count, faces, sign }) => ({ label, count, faces, sign })
+      )
+      return dice.length > 0 ? [[abilityDefinitionId, dice]] : []
+    })
+  )
+}
+
+/** The dice a holder's effects hold for after its d20 of a save with one ability (D168), with their holders. */
+export function encounterHeldSavingThrowDice(
+  gameSystemId: string,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityDefinitionId: string
+) {
+  return activeAfterRollSavingThrowDice(
+    effects,
+    abilityScoreCapabilityRegistry.require(gameSystemId).abilityCode(abilityDefinitionId)
   )
 }
 

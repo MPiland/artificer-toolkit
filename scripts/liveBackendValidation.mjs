@@ -7,10 +7,13 @@
 // --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
 // needs. It is refused for the local container, which keeps its own. The opt-in `snapshots` step
 // waits until every Content snapshot the seed marked is built, for browser proofs on a fresh stack.
+// The opt-in `signing-keys` step, CI only, pins the deployment's signing keys into JWKS as a managed
+// deployment does, so token verification stops fetching them from the backend's own HTTP actions.
+// --secrets-file appends what that step generates to a throwaway stack's secret list.
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { createWriteStream } from 'node:fs'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
 import { finished } from 'node:stream/promises'
@@ -41,19 +44,25 @@ const options = {
   container: localConvex.container,
   fresh: false,
   logDir: undefined,
+  secretsFile: undefined,
   steps: defaultSteps
 }
 for (const argument of process.argv.slice(2)) {
-  const match = /^--(container|steps|log-dir)=(.+)$/u.exec(argument)
+  const match = /^--(container|steps|log-dir|secrets-file)=(.+)$/u.exec(argument)
   if (argument === '--fresh') options.fresh = true
   else if (match?.[1] === 'container') options.container = match[2]
   else if (match?.[1] === 'steps') options.steps = match[2].split(',')
   else if (match?.[1] === 'log-dir') options.logDir = resolve(match[2])
+  else if (match?.[1] === 'secrets-file') options.secretsFile = resolve(match[2])
   else throw new Error(`Unknown or malformed argument: ${argument}`)
 }
 for (const name of options.steps) {
-  if (!defaultSteps.includes(name) && name !== 'snapshots')
+  if (!defaultSteps.includes(name) && name !== 'snapshots' && name !== 'signing-keys')
     throw new Error(`Unknown step: "${name}".`)
+}
+// The ephemeral container takes the local container's name, so the runner is what tells them apart.
+if (options.steps.includes('signing-keys') && process.env.GITHUB_ACTIONS !== 'true') {
+  throw new Error('signing-keys would change the local deployment env; it is for CI stacks.')
 }
 if (options.fresh && options.container === localConvex.container) {
   throw new Error(
@@ -108,7 +117,56 @@ const allSteps = {
   ],
   reseed: [convex('run', 'content/seed:seed')],
   audit: [convex('run', 'content/seed:audit')],
-  snapshots: awaitSnapshotBuilds
+  snapshots: awaitSnapshotBuilds,
+  'signing-keys': pinSigningKeys
+}
+
+// Database-backed keys make the backend fetch /api/auth/convex/jwks from itself to verify tokens, up
+// to 2,000 requests a proof. The first read creates the key; the redeploy applies both auth configs.
+async function pinSigningKeys(log) {
+  const created = await fetch('http://127.0.0.1:3211/api/auth/convex/jwks')
+  if (!created.ok) {
+    log?.write(`Signing key read failed: ${created.status}\n`)
+    return 1
+  }
+  const [executable, args] = yarnSpawn(
+    convex(
+      'run',
+      '--component',
+      'betterAuth',
+      'adapter:findMany',
+      JSON.stringify({ model: 'jwks', paginationOpts: { cursor: null, numItems: 20 } })
+    )
+  )
+  const stored = spawnSync(executable, args, {
+    cwd: root,
+    encoding: 'utf8',
+    env: convexCliEnvironment(),
+    shell: false
+  })
+  if (stored.status !== 0) {
+    log?.write(redact(stored.stderr ?? ''))
+    return stored.status ?? 1
+  }
+  const keys = JSON.parse(stored.stdout).page.map((row) => ({
+    id: row._id,
+    publicKey: row.publicKey,
+    privateKey: row.privateKey,
+    createdAt: row.createdAt,
+    alg: 'RS256'
+  }))
+  if (keys.length === 0) {
+    log?.write('The deployment holds no signing key.\n')
+    return 1
+  }
+  const jwks = JSON.stringify(keys)
+  const generated = [jwks, ...keys.map((key) => key.privateKey)]
+  secrets.push(...generated)
+  for (const secret of generated) console.log(`::add-mask::${secret}`)
+  if (options.secretsFile)
+    await appendFile(options.secretsFile, generated.map((secret) => `${secret}\n`).join(''))
+  const status = await runCommand(convex('env', 'set', 'JWKS', jwks), log)
+  return status === 0 ? runCommand(allSteps.deploy[0], log) : status
 }
 
 // Builds run in the background after the seed marks each head; a head is built once its

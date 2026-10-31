@@ -38,13 +38,18 @@ function scoreOrder(
   return score === 0 ? left.tie.localeCompare(right.tie) : score
 }
 
-/** Inserts only into the current normalized round; historical initiative rows stay immutable. */
+/**
+ * Inserts only into the current normalized round; historical initiative rows stay immutable. With an
+ * `anchorActorId` the actor takes the place directly behind it, sharing its score (D200); otherwise
+ * it joins by `initiative`.
+ */
 export async function insertReinforcementInitiative(input: {
   ctx: EncounterWriteContext
   state: EncounterRunState
   actors: readonly EncounterRunActorState[]
   actor: EncounterRunActorState
   initiative: number | null | undefined
+  anchorActorId?: string
   occurredAt: string
 }): Promise<ReinforcementInitiative> {
   if (input.state.status !== 'ACTIVE')
@@ -89,12 +94,23 @@ export async function insertReinforcementInitiative(input: {
   let actor = input.actor
   let participants: EncounterInitiativeRoundStateDto['participants']
   let sides: EncounterInitiativeRoundStateDto['sides']
-  if (!isSideRoll) {
+  const anchorIndex =
+    input.anchorActorId === undefined
+      ? -1
+      : currentParticipants.findIndex((row) => row.actorId === input.anchorActorId)
+  if (input.anchorActorId !== undefined && anchorIndex < 0)
+    throw new Error('The actor an owned actor follows is not in the initiative order.')
+  if (!isSideRoll || input.anchorActorId !== undefined) {
+    const initiativeScore =
+      input.anchorActorId === undefined
+        ? input.initiative
+        : currentParticipants[anchorIndex]!.initiativeScore
     if (
-      input.initiative === null ||
-      input.initiative === undefined ||
-      !Number.isFinite(input.initiative) ||
-      !Number.isInteger(input.initiative)
+      input.anchorActorId === undefined &&
+      (initiativeScore === null ||
+        initiativeScore === undefined ||
+        !Number.isFinite(initiativeScore) ||
+        !Number.isInteger(initiativeScore))
     )
       throw new Error('Active actor initiative requires a finite integer score.')
     const inserted = encounterInitiativeParticipantDtoSchema.parse({
@@ -103,7 +119,7 @@ export async function insertReinforcementInitiative(input: {
       actorId: actor.id,
       sideId: actor.sideId,
       status: 'READY',
-      initiativeScore: input.initiative,
+      initiativeScore,
       evaluation: { occurrenceId: null, resultChecksum: null },
       tie: { occurrenceId: null, resultChecksum: null },
       declaration: null,
@@ -113,19 +129,22 @@ export async function insertReinforcementInitiative(input: {
       createdAt: input.occurredAt,
       updatedAt: input.occurredAt
     })
-    const insertionIndex = currentParticipants.findIndex((participant) => {
-      const participantActor = actorById.get(participant.actorId)
-      if (!participantActor) throw new Error('Initiative participant actor is unavailable.')
-      const score = participant.initiativeScore ?? participantActor.initiative
-      if (score === null) throw new Error('Active initiative participants must have scores.')
-      return (
-        scoreOrder(
-          { score: input.initiative!, tie: actor.stableTieKey },
-          { score, tie: participantActor.stableTieKey },
-          sortDirection
-        ) < 0
-      )
-    })
+    const insertionIndex =
+      input.anchorActorId === undefined
+        ? currentParticipants.findIndex((participant) => {
+            const participantActor = actorById.get(participant.actorId)
+            if (!participantActor) throw new Error('Initiative participant actor is unavailable.')
+            const score = participant.initiativeScore ?? participantActor.initiative
+            if (score === null) throw new Error('Active initiative participants must have scores.')
+            return (
+              scoreOrder(
+                { score: initiativeScore!, tie: actor.stableTieKey },
+                { score, tie: participantActor.stableTieKey },
+                sortDirection
+              ) < 0
+            )
+          })
+        : anchorIndex + 1
     const orderedParticipants = [...currentParticipants]
     orderedParticipants.splice(
       insertionIndex < 0 ? orderedParticipants.length : insertionIndex,
@@ -157,10 +176,10 @@ export async function insertReinforcementInitiative(input: {
     const insertedIndex = participants.findIndex((participant) => participant.actorId === actor.id)
     actor = {
       ...actor,
-      initiative: input.initiative,
+      initiative: initiativeScore ?? null,
       manualOrder: insertedIndex
     }
-    sides = []
+    sides = isSideRoll ? currentSides : []
   } else {
     const existingSide = currentSides.find((side) => side.sideId === actor.sideId)
     let orderedSides: EncounterInitiativeRoundStateDto['sides']

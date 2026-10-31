@@ -28,8 +28,7 @@ function roomWith(actor: Parameters<typeof movementRoom>[0]['actors'][number]) {
     moverActorId: HOLDER_ID,
     positions: { [HOLDER_ID]: { x: 150, y: 150 } },
     concentration: true,
-    concentrationDependentActorIds: [HOLDER_ID],
-    characterPlay: { currentHitPoints: 20 }
+    concentrationDependentActorIds: [HOLDER_ID]
   })
 }
 
@@ -39,7 +38,11 @@ function characterPlay(room: Room) {
       .documents('characterPlayStates')
       .find((play) => play.characterId === CHARACTER_ID)
     if (!row) throw new Error('Missing room Character play state.')
-    return { streamVersion: row.streamVersion, state: readCharacterPlay(row) }
+    return {
+      streamVersion: row.streamVersion,
+      maximumHitPoints: row.maximumHitPoints,
+      state: readCharacterPlay(row)
+    }
   })
 }
 
@@ -82,9 +85,14 @@ describe('authored condition-level death in the room (SPELLS-10.T1c)', () => {
   it('a Character at the authored level dies with no death save and loses its Concentration', async () => {
     const room = await roomWith(characterActor({ id: HOLDER_ID, characterId: CHARACTER_ID }))
 
+    const { maximumHitPoints } = await characterPlay(room)
+    expect((await characterPlay(room)).state.hitpoints.current).toBe(maximumHitPoints)
+
     await gmSheet(room, { type: 'SET_EXHAUSTION', level: 5 })
-    // Level 4 halves the maximum, so the room's clamp has already lowered these hit points.
-    expect((await characterPlay(room)).state.hitpoints.current).toBeGreaterThan(0)
+    // Level 4 halves the maximum: the stored fraction clamps the hit points to half of it.
+    const halved = (await characterPlay(room)).state.hitpoints
+    expect(halved.maximumFraction).toEqual({ numerator: 1, denominator: 2 })
+    expect(halved.current).toBe(Math.floor(maximumHitPoints / 2))
     expect(await concentrationEnds(room)).toHaveLength(0)
 
     await gmSheet(room, { type: 'SET_EXHAUSTION', level: 6 })
@@ -102,11 +110,33 @@ describe('authored condition-level death in the room (SPELLS-10.T1c)', () => {
     })
   })
 
+  it('a Character at the halving level cannot be healed past the halved maximum', async () => {
+    const room = await roomWith(characterActor({ id: HOLDER_ID, characterId: CHARACTER_ID }))
+    const { maximumHitPoints } = await characterPlay(room)
+
+    await gmSheet(room, { type: 'SET_EXHAUSTION', level: 4 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 1 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: maximumHitPoints })
+
+    expect((await characterPlay(room)).state.hitpoints.current).toBe(
+      Math.floor(maximumHitPoints / 2)
+    )
+
+    await gmSheet(room, { type: 'SET_EXHAUSTION', level: 3 })
+    await gmSheet(room, { type: 'ADJUST_HIT_POINTS', mode: 'HEAL', amount: maximumHitPoints })
+
+    expect((await characterPlay(room)).state.hitpoints.current).toBe(maximumHitPoints)
+  })
+
   it('a Creature at the authored level drops to 0 and loses its Concentration', async () => {
     const room = await roomWith(srdCreatureActor({ id: HOLDER_ID, creature: plainWolf }))
 
+    const maximum = readActorHitPoints(await readRoomHistory(room.base.stub), HOLDER_ID)
     await gmLevel(room, 5)
-    expect(readActorHitPoints(await readRoomHistory(room.base.stub), HOLDER_ID)).toBeGreaterThan(0)
+    // Level 4 halves the maximum: the creature's hit points are held within half of it.
+    expect(readActorHitPoints(await readRoomHistory(room.base.stub), HOLDER_ID)).toBe(
+      Math.floor(maximum / 2)
+    )
 
     await gmLevel(room, 6)
 

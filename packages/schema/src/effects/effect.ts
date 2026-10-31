@@ -52,6 +52,14 @@ const optionalOnHitDtoSchema = lazySchema(() =>
   ])
 )
 
+const sparesCreaturesDtoSchema = lazySchema(() =>
+  z.object({
+    base: z.number().check(z.int()).check(z.gte(0)),
+    plusSpellLevel: z.optional(z.boolean()),
+    magicSchoolIds: z.optional(z.array(authoredIdentifierSchema))
+  })
+)
+
 const actionInvocationShape = lazySchemaParts(() => ({
   kind: z.optional(z.literal(invocationKindSchema._zod.def.entries.ACTION)),
   range: rangeDtoSchema,
@@ -59,7 +67,10 @@ const actionInvocationShape = lazySchemaParts(() => ({
   targeting: z.optional(targetingDtoSchema),
   resourceUse: z.optional(resourceUseDtoSchema),
   optionalOnHit: z.optional(z.never()),
-  ridesFeatureId: z.optional(z.never())
+  castModifier: z.optional(z.never()),
+  sparesCreatures: z.optional(z.never()),
+  ridesFeatureId: z.optional(z.never()),
+  ridesSpellIds: z.optional(z.never())
 }))
 
 const nonSavingThrowTriggerDtoSchema = lazySchema(() =>
@@ -90,7 +101,10 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       resourceUse: z.optional(z.never()),
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(z.never()),
-      ridesFeatureId: z.optional(z.never())
+      castModifier: z.optional(z.never()),
+      sparesCreatures: z.optional(z.never()),
+      ridesFeatureId: z.optional(z.never()),
+      ridesSpellIds: z.optional(z.never())
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -113,7 +127,10 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       resourceUse: z.optional(z.never()),
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(optionalOnHitDtoSchema),
-      ridesFeatureId: z.optional(authoredIdentifierSchema)
+      castModifier: z.optional(resourceUseDtoSchema),
+      sparesCreatures: z.optional(sparesCreaturesDtoSchema),
+      ridesFeatureId: z.optional(authoredIdentifierSchema),
+      ridesSpellIds: z.optional(z.array(authoredIdentifierSchema))
     }),
     z.object({
       kind: z.literal(invocationKindSchema._zod.def.entries.PASSIVE),
@@ -125,7 +142,10 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       resourceUse: z.optional(z.never()),
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(z.never()),
-      ridesFeatureId: z.optional(z.never())
+      castModifier: z.optional(z.never()),
+      sparesCreatures: z.optional(z.never()),
+      ridesFeatureId: z.optional(z.never()),
+      ridesSpellIds: z.optional(z.never())
     }),
     z.object({
       ...actionInvocationShape(),

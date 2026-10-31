@@ -222,9 +222,11 @@ export async function readNativeEncounterActionResponseAdmission(
     resolution.kind !== 'AREA_LEGENDARY_RESISTANCE' &&
     resolution.kind !== 'DECLINE' &&
     resolution.kind !== 'OPTION' &&
-    resolution.kind !== 'FORCED_MOVEMENT'
+    resolution.kind !== 'FORCED_MOVEMENT' &&
+    resolution.kind !== 'D20_WINDOW_USE' &&
+    resolution.kind !== 'D20_WINDOW_DECLINE'
   )
-    throw new Error('The action requires dice, integer, a decision or a destination.')
+    throw new Error('The action requires dice, integer, a decision, a destination or a d20 window.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {
     occurrence,
     initiatorUserId: initiator

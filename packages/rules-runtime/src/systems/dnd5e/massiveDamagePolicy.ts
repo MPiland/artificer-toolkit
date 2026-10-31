@@ -103,6 +103,10 @@ export const dnd5eMassiveDamageSaveFacts: OptionalCombatPolicyCapabilityAdapter[
       input.target.targetDerivedFacts.savingThrowAddedDice,
       abilityDefinitionId
     )
+    const heldDice = derivedAddedDice(
+      input.target.targetDerivedFacts.savingThrowAfterRollDice,
+      abilityDefinitionId
+    )
     const save = resolveDnd5eHolderSave({
       abilityDefinitionId,
       ruleDefinitionId: input.rule.pin.definitionId,
@@ -116,7 +120,7 @@ export const dnd5eMassiveDamageSaveFacts: OptionalCombatPolicyCapabilityAdapter[
         [DND5E_SAVE_MODIFIER_FACT_KEY]: save.modifier,
         [DND5E_SAVE_DC_FACT_KEY]: input.rule.difficultyClass,
         [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: save.contributorChecksum,
-        ...dnd5eAddedDiceFacts(addedDice)
+        ...dnd5eAddedDiceFacts(addedDice, true, heldDice)
       },
       ...save
     }

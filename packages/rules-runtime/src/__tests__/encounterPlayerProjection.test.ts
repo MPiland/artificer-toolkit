@@ -19,6 +19,7 @@ const PLAYER_ID = '00000000-0000-4000-8000-000000000005'
 const OTHER_PLAYER_ID = '00000000-0000-4000-8000-000000000006'
 const CHARACTER_ACTOR_ID = '00000000-0000-4000-8000-000000000007'
 const CHARACTER_ID = '00000000-0000-4000-8000-000000000008'
+const CONSEQUENCE_ID = '00000000-0000-4000-8000-0000000000c1'
 
 function gmActor(id: string, visible: boolean) {
   return {
@@ -345,6 +346,21 @@ describe('player encounter projection', () => {
       })
       expect(JSON.stringify(listed)).not.toContain('Cave troll')
       expect(JSON.stringify(listed)).not.toContain(PRONE_TYPE_ID)
+    })
+
+    it('lists the consequences of a seen actor by label for every viewer, and none for an unnamed reveal', () => {
+      const consequences = [{ id: CONSEQUENCE_ID, label: 'Limp' }]
+      const seen = projectPlayerEncounterProjection(
+        gmEncounter([{ ...gmActor(PUBLIC_ACTOR_ID, true), consequences }]),
+        noCharacters
+      )
+      const unnamed = projectPlayerEncounterProjection(
+        gmEncounter([{ ...unseenActor, consequences, reveal: 'UNNAMED' }]),
+        viewerWith([UNSEEN_ACTOR_ID])
+      )
+
+      expect(seen.actors[0]?.consequences).toEqual(consequences)
+      expect(unnamed.actors[0]?.consequences).toEqual([])
     })
 
     it('lists a creature revealed by name with its name', () => {

@@ -118,7 +118,10 @@ export type EncounterAcceptedWieldConflictDto = z.infer<
  * area's origin must lie on the caster's token footprint. A caster-centered area (a Self sphere,
  * cylinder or circle) takes no aim: it names only the Scene version it is fenced to.
  */
-/** Creatures the caster designates at cast that a zone the action places never affects. */
+/**
+ * Creatures the caster designates at cast that a zone the action places never affects, or that an
+ * area the caster's features let them spare leaves out.
+ */
 const unaffectedActorIdsSchema = lazySchema(() =>
   z.optional(z.array(uuidSchema).check(z.minLength(1)).check(z.maxLength(MAX_ENCOUNTER_ACTORS)))
 )
@@ -175,7 +178,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
       sceneId: uuidSchema,
       expectedSceneVersion: versionSchema,
       origin: spatialPointDtoSchema,
-      toward: spatialPointDtoSchema
+      toward: spatialPointDtoSchema,
+      unaffectedActorIds: unaffectedActorIdsSchema
     }),
     z.strictObject({
       kind: z.literal('CASTER_CENTERED'),
@@ -271,6 +275,10 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     actorId: uuidSchema,
     actionId: encounterActionIdSchema,
     target: resolveEncounterActionTargetDtoSchema,
+    /** The cost the caster pays on a spell cast: a `castModifiers` entry the action's candidate offers. */
+    castModifierId: z.optional(uuidSchema),
+    /** The units the caster spends from the action's pool, for an action that heals per unit spent. */
+    spentUnits: z.optional(z.number().check(z.int(), z.positive())),
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
      * The current actor that commands this attack (DELEGATED_ATTACK): it forgoes one attack of its

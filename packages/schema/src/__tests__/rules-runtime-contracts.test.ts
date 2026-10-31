@@ -26,6 +26,7 @@ import {
   storedRuleExecutionResultDtoSchema,
   type StoredRuleExecutionResultDto
 } from '../shared/rulesExecution.js'
+import { actionResolvedPath } from '../shared/ruleExecutionResults.js'
 
 const SYSTEM_ID = '11111111-1111-4111-8111-111111111111'
 const SEEDED_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
@@ -547,6 +548,14 @@ function encounterActorActiveEffectReceipt() {
 }
 
 describe('rules runtime contracts', () => {
+  it('resolves a relationship on the d20 path when the action rolled one, and ON_USE otherwise', () => {
+    expect(actionResolvedPath({ resultPath: 'ON_HIT' })).toBe('ON_HIT')
+    expect(actionResolvedPath(null)).toBe('ON_USE')
+    expect(actionResolvedPath(undefined)).toBe('ON_USE')
+    // A rolled d20 never takes the no-roll path, so an ON_USE application on it is refused.
+    expect(actionResolvedPath({ resultPath: 'ON_HIT' })).not.toBe('ON_USE')
+  })
+
   it('accepts only bounded canonical turn active-effect pending contexts', () => {
     const pending = turnPendingContext()
     expect(serverRuleExecutionPendingApplicationContextDtoSchema.parse(pending)).toMatchObject({

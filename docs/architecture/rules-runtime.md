@@ -526,17 +526,20 @@ through `encounterActionRuleWarnings`:
   only for initiative grouping, reorder, reinforcement and removal.
 
 **Owned actors and initiative (D190a).** An actor with an `owner` is out of the initiative cohort and acts on its
-owner's turn. `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) is the one rule: `validateInitiativeCursor`,
-`createStagedInitiativeRoundState` and reinforcement read it, and the projection's `stableActors` orders the
-unowned actors by initiative, then puts each owned actor right after its owner, with no extra read.
+owner's turn. `rollsInitiative` and `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) are the rules: staging and
+the roll cohort read the first (who rolls), `validateInitiativeCursor` and settlement read the second (who holds a place),
+and the projection's `stableActors` orders the unowned actors by initiative, then puts each owned actor right after its
+owner, with no extra read.
 
 **Summon turn timing (D200, amends D190a; current: authoring and the owner link only).** A `SUMMON` manifest may
 author `turnTiming`: `OWNER_TURN` (the default; absence means it), `AFTER_OWNER` or `OWN_INITIATIVE`. The compiler
 carries the two non-default values on `summonPlacement.turnTiming`, `buildEncounterSummon` stores them on the actor's
-`owner` link, and `takesInitiativeTurns` reads them: only `OWN_INITIATIVE` puts an owned actor in the initiative
-cohort. An owner-turn summon is unchanged, and the owner stays its command actor. Target: the turn cursor stepping to an
-`AFTER_OWNER` summon, rolling at arrival, the owner's player running the turn, and the prompt belong to SPELLS-35.T2 to
-T6; until they land no authored spell uses a non-default timing.
+`owner` link. Only `OWN_INITIATIVE` rolls; both non-default values hold a place (`takesInitiativeTurns`). An owner-turn
+summon is unchanged, and the owner stays its command actor. Current (SPELLS-35.T4): an `AFTER_OWNER` summon is seated
+behind its owner, with the owner's score and side, in every settled round by `anchorOwnedActors`
+(`encounterInitiativeStaging.ts`, run by `planEncounterTurnInitiative` after the roll) and at cast time by the
+anchored reinforcement insert, so it keeps that place across rounds. Target: the owner's player running the turn and the
+prompt belong to SPELLS-35.T5 to T7.
 Ending an `OWN_INITIATIVE` summon (SPELLS-35.T3b) removes its initiative place and records the round's state; see the Encounter persistence guide's summon removal. `summonEndAdvanceCommandId` (`encounterSystemTrigger.ts`) keys the system `ADVANCE_TURN` that ends the turn of one whose carrier ended while it acted.
 
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
@@ -1560,6 +1563,15 @@ A GM void of a window is refused. Options and their ids derive from the held gra
 die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
 (`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/checkActionResponsePersistence.ts`).
 
+**d20 window on the action TEST save (SPELLS-31.T4c1b2, current).** A single-target action's TEST save whose target holds `AFTER_ROLL`
+saving-throw dice stops at the roll like the damage-save chain does, but inside the action's own pending: the pause is `D20_WINDOW` on the
+`ENCOUNTER_ACTION` context (`d20Policy: null`, roller = the target), and it freezes `{continuation, initialFactsChecksum, d20}` of the
+rolled save. `advanceNativeActionGraphs` opens it when `saveWindow.heldDice` is non-empty and resumes the TEST with the settled `d20`
+(`resume.resolution.kind: 'D20_WINDOW'`), so Legendary Resistance, reactions, on-hit riders and the OUTCOME phase follow unchanged. The spent
+die is recorded on the rolled die as `spentEffectId`, so the commit ends the effect from the evidence alone. The summary projects the
+window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
+spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
+
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
 
@@ -1787,6 +1799,16 @@ defeated (D63), and the existing Concentration ends follow. Only the crossing ki
 at the level stays alive; a mistaken death is corrected by lowering the level and then editing hit points
 above 0. The schema refuses `DEATH` below level 2: conditions applied by an action or added on the Sheet
 sit at level 1 and pass through neither writer, so a death there would not fire.
+
+A `HIT_POINT_MAXIMUM` mechanic (`numerator`/`denominator`, never raising the maximum; SPELLS-10.T1b, the
+SRD seeds Exhaustion 4 as one half) is resolved on write, not read live. `rules-runtime/conditionHitPointMaximum`
+multiplies the fractions of every held condition at its level, and each writer of a condition level stores the
+result in `hitpoints.maximumFraction` on a Character's play state or the Creature actor, and holds current hit
+points within the new maximum: the Sheet's `SET_EXHAUSTION`, `ADD_CONDITION` and `REMOVE_CONDITION` (hosts pass
+`conditionMaximum` to the pure reducer), a long rest that lowers Exhaustion, and a GM's Creature `UPDATE_ACTOR`
+condition edit. Every reader of a maximum then goes through `effectiveHitPointMaximum(max, effects, fraction)`
+(grants, then the fraction rounded down, then reductions), so no second calculation exists. Lowering the level
+restores the maximum, not the lost hit points.
 
 `rules-runtime/encounterConditionMechanics` evaluates them. `withEncounterConditionMechanics` pins the
 held conditions' current definitions on a movement target (`conditionDefinitions`) when the Worker loads
@@ -2355,6 +2377,23 @@ Modules: `encounterInitiative*` (graph execution, score batches, tie and order r
 state settlement), `encounterTurn*`, `encounterRechargeLifecycle`. The room's ordering and delivery are in
 [live sessions](live-sessions.md).
 
+## Chosen pool spend (current, SPELLS-31.T4f2a)
+
+A `HEAL` outcome with `valueKind: 'RESOURCE_SPENT'` restores `amount` hit points for each unit the
+user spends from the action's `resourceUse` pool. It is the generic option behind Lay on Hands (a
+`CLASS_LEVEL` pool, multiplier 5, one point per unit); any pool feature can author it.
+
+- The player chooses the units: `RESOLVE_ACTION.spentUnits`, offered as `chosenSpend: { unitCost, max }`
+  on the action choice (`character/characterChosenSpend.ts`, shared by the choices
+  read and the planner). The command must send `spentUnits` exactly when the action spends a chosen
+  amount.
+- `prepareNativeCharacterActionState` spends `cost x spentUnits` from the pool and refuses more than
+  remains. The compiler binds `dnd5e.spent-heal-amount` (per-unit amount x units) into the `SPENT_HEAL`
+  outcome's heal proposal. Spend and heal commit and undo together.
+- Not yet on the option (T4f2b, T4f2c): the undead/construct filter, the 5-point cure spend and a
+  caster-divides split with per-target caps. Both extend the `RESOURCE_SPENT` source rather than
+  reshaping it. Until then Lay on Hands' cures and exclusions remain in its description.
+
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
 A `SPELL_SLOT_EXCHANGE` outcome on a Character self action recovers or converts spell slots. It
@@ -2583,6 +2622,25 @@ spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` a
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
 Smite (`source-data/srd/classes/paladin`) are authored from core options only. Improved Divine Smite has no
 `optionalOnHit`, so it is a mandatory rider.
+
+**Cast modifiers (SPELLS-31.T5g, current).** A passive invocation authored with `castModifier: { chargeId, cost }` is a cost the
+holder may pay on casting a spell. `buildCharacterActionRuleFacts` collects one `CastModifierSource` per such Effect of the
+Character's features, chosen options and feats (`collectCastModifiers`); `CharacterRuleEvaluationResult.castModifiers` carries them
+server-side, never as policy facts. `buildCharacterSpellCastActions` offers each on a spell cast candidate's `castModifiers`
+(`modifierId`, `label`, `chargeId`, `cost`, `poolId`) only while `affordablePoolFor` finds exactly one resolved pool of the charge that
+holds the cost, and never on a cast a pool already pays for. `RESOLVE_ACTION.castModifierId` names one; `prepareEncounterActionMechanics`
+refuses an id the candidate did not offer, and `prepareNativeCharacterActionState` spends it through `spendCharacterResource` into the
+cast's `resourceConsumption`, so it persists and reverts with the cast (and honours Manual play and the Assisted "Do it anyway"
+shortfall like any pool spend). The client reads the offers as `castModifiers` on the action choice. The modifier changes nothing
+else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect. Careful,
+Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+
+**Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
+Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed
+across the Character's sources by `sparedCreatureCap`, and the action choice carries it to the client. The area command names the
+creatures on the POINT, CASTER_CENTERED or DIRECTED target's `unaffectedActorIds`; `prepareNativeAreaAction` refuses more than the cap
+or an unknown actor, and the executor catches those creatures but seals no save for them, so they take no damage. A zone keeps its own
+rule (`choosesUnaffected`, no cap). Whether the spared creatures are ones the caster can see stays a GM ruling on the Effect.
 
 **Path restrictions (D119).** An Effect path may carry `restrictions`, a facet (OR-ed groups of AND-ed
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:

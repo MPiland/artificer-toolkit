@@ -206,6 +206,8 @@ export interface CharacterHitpointsState {
   current: number
   temp: number
   tempSourceEffectId?: string
+  /** Fraction of the maximum a condition holds, resolved on write (SPELLS-10.T1b). */
+  maximumFraction?: { numerator: number; denominator: number }
   hitDice: CharacterHitDiceUsageState[]
   deathSaves: CharacterDeathSavesState
 }

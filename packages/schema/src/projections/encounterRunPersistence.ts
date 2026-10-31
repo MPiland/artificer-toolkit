@@ -513,6 +513,9 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
         []
       ),
+      /** The round's initiative after the action seated a conjured creature in it; null when none was seated. */
+      initiativeStateJson: z._default(z.nullable(z.string()), null),
+      initiativeStateChecksum: z._default(z.nullable(projectionChecksumSchema), null),
       /**
        * Where each creature the action moved ended up: the feet it travelled, what stopped it short
        * of its distance, and the random direction rolled for it.

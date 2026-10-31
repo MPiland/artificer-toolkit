@@ -1944,3 +1944,7 @@ The request returns once deletion is scheduled.
 - Why: SRD 5.1 gives Find Familiar and the Conjure spells their own initiative, and a summon's turn in the order, with a prompt, is hard to forget at the table.
 - Multi-creature Conjure spells create one group token with one shared turn for now. The GM tracks losses on it and the player rolls one attack per surviving creature. This is a labelled simplification: in the SRD each creature keeps its own hit points and attacks, and it shares only the group's initiative. Separate tokens with one group roll are a future enhancement.
 - Registered as SPELLS-35 (T1 to T7, 29 points, T7 provisional).
+
+### D201: condition-limited hit point maximum is resolved on write (orchestrator ruling R1, 2026-10-30, SPELLS-10.T1b)
+
+A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is resolved when a condition level is written and stored as a fraction on the Character's play state or the Creature actor. Every maximum reader applies it through `effectiveHitPointMaximum`. The alternative, deriving it live at each of about fifteen readers, would have needed condition levels and definition readers threaded through every encounter-persistence read. Local data resets at merge (D196), with no migration. T1b-1 covers the Sheet, rest, the room reconcile clamp and the Creature GM edit; T1b-2 routes the remaining encounter writers through the same function and adds the skip-detection test. A Character in a Wild Shape form keeps the form's own maximum until T1b-2.

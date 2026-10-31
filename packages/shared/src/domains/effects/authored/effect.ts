@@ -41,6 +41,17 @@ export type OptionalOnHitAuthored =
   | { kind: 'SPELL_SLOT' }
   | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
 
+/**
+ * Lets the holder spare creatures an area spell would catch: at cast the player names up to `base`
+ * (plus the spell's level with `plusSpellLevel`) creatures the area leaves out, as if immune. With
+ * `magicSchoolIds` only casts of spells of those schools may spare (Sculpt Spells).
+ */
+export type SparesCreaturesAuthored = {
+  base: number // int
+  plusSpellLevel?: boolean
+  magicSchoolIds?: string[]
+}
+
 export type ReactionMovementTriggerBindingAuthored = {
   kind: 'MOVEMENT'
   stage: 'BEFORE_LEAVE_REACH' | 'ENTER_REACH'
@@ -178,8 +189,14 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
       optionalOnHit?: OptionalOnHitAuthored
+      /** A cost the holder may pay on casting a spell, as an action's `resourceUse` is paid; the effect's outcomes are the modifier's table rule. */
+      castModifier?: ResourceUseAuthored
+      /** Creatures the holder may leave out of an area spell they cast. */
+      sparesCreatures?: SparesCreaturesAuthored
       /** The sibling Feature whose attacks alone this rider rides; absent, it rides every attack its trigger names. */
       ridesFeatureId?: string
+      /** The Spells whose casts alone this rider rides; absent, it rides every attack its trigger names (G4). */
+      ridesSpellIds?: string[]
     }
   /**
    * The holder takes damage of one of the named damage types; the passive's PASSIVE path then

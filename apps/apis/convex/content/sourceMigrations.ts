@@ -7,6 +7,7 @@ import { components } from '../_generated/api'
 import schema from '../schema'
 import { canReadAuthoredRoot, readAuthoredVersion, readPublishedDocument } from './documents'
 import { internalMutation } from '../lib/mutations'
+import { readStoredSourceFacts, writeSourceFacts } from './sourceFacts'
 
 const migrations = new Migrations(components.migrations, { schema, internalMutation })
 
@@ -32,11 +33,12 @@ export const backfillAuthoringSources = migrations.define({
       throw new Error('Stored authored content is not schema-normalized.')
     const authoringSources = authoredSourceFacts(parsed)
     // Facts from an older derivation are re-derived; same-version facts that differ conflict.
-    if (root.authoringSources?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION) {
-      if (checksumRuleDocument(root.authoringSources) !== checksumRuleDocument(authoringSources))
+    const stored = await readStoredSourceFacts(ctx, root)
+    if (stored?.factsVersion === AUTHORED_SOURCE_FACTS_VERSION) {
+      if (checksumRuleDocument(stored) !== checksumRuleDocument(authoringSources))
         throw new Error('Stored authoring source facts conflict.')
       return
     }
-    await ctx.db.patch(root._id, { authoringSources })
+    await writeSourceFacts(ctx, root.id, authoringSources)
   }
 })

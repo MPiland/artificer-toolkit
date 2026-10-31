@@ -36,6 +36,7 @@ import {
   DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
   createDnd5eConcentrationCheckDefinition,
   dnd5eConcentrationDamageDc,
+  dnd5eConcentrationHolderSaves,
   resolveDnd5eConcentrationSaveFacts
 } from '../systems/dnd5e/concentrationPolicy.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
@@ -50,7 +51,10 @@ import {
   settleCreatureAction,
   srdConditionId
 } from './encounterCreatureAction.js'
-import { srdConditionDefinitionSource } from './srdConditionDefinitions.js'
+import {
+  currentConditionDefinition,
+  srdConditionDefinitionSource
+} from './srdConditionDefinitions.js'
 
 const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e001'
 const CASTER_ID = '00000000-0000-4000-8000-0000000000a1'
@@ -148,6 +152,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('uses the Character Constitution save: proficient Sorcerer +4, Wizard +2', () => {
     const sorcererFacts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 22,
       targetActorId: CASTER_ID,
       rulePolicyOutput: sorcerer.output
@@ -169,6 +174,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     expect(
       resolveDnd5eConcentrationSaveFacts({
         addedDice: [],
+        heldDice: [],
         appliedDamage: 22,
         targetActorId: CASTER_ID,
         rulePolicyOutput: wizard.output
@@ -179,6 +185,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('prefers a Concentration-scoped Constitution save and its advantage over the general save', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -202,6 +209,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('ignores condition-scoped and other-rule Constitution saves', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -227,6 +235,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     })
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([constitutionSave({ contributors: [bane, WAR_CASTER] })])
@@ -251,6 +260,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
       expect(() =>
         resolveDnd5eConcentrationSaveFacts({
           addedDice: [],
+          heldDice: [],
           appliedDamage: 12,
           targetActorId: CASTER_ID,
           rulePolicyOutput
@@ -259,6 +269,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     expect(() =>
       resolveDnd5eConcentrationSaveFacts({
         addedDice: [],
+        heldDice: [],
         appliedDamage: 0,
         targetActorId: CASTER_ID,
         rulePolicyOutput: sorcerer.output
@@ -334,7 +345,8 @@ async function startCheck(input: {
       },
       target: {
         effectiveRulePolicyOutput: input.rulePolicyOutput ?? sorcerer.output,
-        targetDerivedFacts: {}
+        targetDerivedFacts: {},
+        conditionMechanics: []
       },
       damageTypes: SRD_DAMAGE_TYPES
     },
@@ -811,7 +823,10 @@ describe('Concentration held by a Creature', () => {
 
   async function wolfHolder(
     conditions: { conditionTypeId: string; level: number }[] = [],
-    statBlock?: Parameters<typeof creatureActor>[0]['statBlock']
+    statBlock?: Parameters<typeof creatureActor>[0]['statBlock'],
+    extraConditionDefinitions: NonNullable<
+      Parameters<typeof srdConditionDefinitionSource>[0]
+    >['extra'] = []
   ) {
     const wolf = {
       ...creatureActor({
@@ -826,7 +841,7 @@ describe('Concentration held by a Creature', () => {
     const target = await withEncounterConditionMechanics({
       target: movementTargets.get(WOLF_ID)!,
       gameSystemId: srdSystemRecord.id,
-      definitions: srdConditionDefinitionSource()
+      definitions: srdConditionDefinitionSource({ extra: extraConditionDefinitions })
     })
     const maintenanceDocument = ruleMaintenanceReusableDefinitionDocumentDtoSchema.parse({
       schemaVersion: 1,
@@ -961,5 +976,70 @@ describe('Concentration held by a Creature', () => {
         source: { kind: 'CONDITION', id: exhaustion, holderActorId: WOLF_ID }
       }
     ])
+  })
+
+  it('fails the Creature’s Concentration save unrolled when a condition auto-fails Constitution saves (SPELLS-10.T4)', async () => {
+    const stonedId = '00000000-0000-4000-8000-0000000000e1'
+    const stoned = currentConditionDefinition({
+      id: stonedId,
+      definitionFamilyKey: 'condition-rule-state',
+      label: 'Stoned rule policy',
+      document: {
+        schemaVersion: 1,
+        kind: 'CONDITION_RULE_STATE',
+        id: stonedId,
+        gameSystemId: srdSystemRecord.id,
+        capabilitySuppressions: [],
+        perceptionContributions: [],
+        mechanics: [
+          {
+            id: '00000000-0000-4000-8000-0000000000e2',
+            order: 0,
+            kind: 'SAVE_AUTO_FAIL',
+            abilityDefinitionIds: [DND5E_CONSTITUTION_ABILITY_DEFINITION_ID],
+            minimumLevel: null
+          }
+        ]
+      }
+    })
+    const { current } = await wolfHolder([{ conditionTypeId: stonedId, level: 1 }], undefined, [
+      stoned
+    ])
+    const check = await startWolfCheck(current!, 12)
+    if (check.continuation.request.kind !== 'INTEGER_RANGE') throw new Error('Expected a d20.')
+    const result = await evaluateNativeConcentrationEvidence({
+      gameSystemId: srdSystemRecord.id,
+      runtime: check.runtime,
+      random: () => 19,
+      context: check.context,
+      continuation: check.continuation,
+      resolution: { kind: 'AUTO_ROLL', requestId: check.continuation.request.requestId },
+      expectedOccurrenceId: check.occurrenceId
+    })
+    expect(result).toMatchObject({ selectedNatural: 20, failed: true })
+  })
+})
+
+describe('dnd5eConcentrationHolderSaves', () => {
+  it('reads a Character’s condition-adjusted derived save rows, not its unconditioned policy output (SPELLS-10.T4)', () => {
+    const exhausted = {
+      ...constitutionSave(),
+      rollMode: 'DISADVANTAGE',
+      contributors: [contributor({ sourceId: 'condition:exhaustion', influence: 'DISADVANTAGE' })]
+    }
+    const rows = dnd5eConcentrationHolderSaves({
+      effectiveRulePolicyOutput: sorcerer.output,
+      targetDerivedFacts: { ...sorcerer.output, savingThrowDefinitions: [exhausted] }
+    })
+    expect(rows.savingThrowDefinitions).toEqual([exhausted])
+  })
+
+  it('falls back to a Character’s policy output when its target facts carry no save rows', () => {
+    expect(
+      dnd5eConcentrationHolderSaves({
+        effectiveRulePolicyOutput: sorcerer.output,
+        targetDerivedFacts: {}
+      })
+    ).toBe(sorcerer.output)
   })
 })

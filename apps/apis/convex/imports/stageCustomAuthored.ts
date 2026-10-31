@@ -56,6 +56,7 @@ import {
 import { assertClassRelationshipsIndexed, requireClassParent } from '../content/classRelationships'
 import { assertRaceRelationshipsIndexed, compileCurrentRace } from '../content/raceRelationships'
 import { ensureAuthoredRouteId } from '../content/routeIds'
+import { readSourceFacts, writeSourceFacts } from '../content/sourceFacts'
 import { catalogueMetadata } from '../content/catalogueMetadata'
 import { requireSystem } from '../content/systemDocuments'
 import { isImportRowVisible } from './visibility'
@@ -207,9 +208,7 @@ async function combinedSourceFacts(
     if (root.ownerUserId !== ownerUserId)
       throw new Error('Staged authored source facts are invalid.')
     if (root.systemId !== args.systemId) continue
-    if (!root.authoringSources || root.authoringSources.checksum !== root.checksum)
-      throw new Error('Staged authored source facts are invalid.')
-    const facts = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
+    const facts = await readSourceFacts(ctx, root)
     for (const [table, tableRows] of Object.entries(facts.rows)) {
       const target = rows[table as NodeRuntimeSourceTable] ?? []
       target.push(...tableRows)
@@ -542,7 +541,6 @@ async function stageActive(
     importJobId: args.jobId,
     currentVersionId: storedVersionId,
     currentVersionPublicId: version.versionId,
-    authoringSources: prepared.authoringSources,
     activeNameKey: activePublicationNameKey(args.label),
     ...(prepared.subject.subjectKind === 'CLASS'
       ? {
@@ -575,6 +573,7 @@ async function stageActive(
       : {}),
     ...(prepared.catalogueFamily ? { catalogueFamily: prepared.catalogueFamily } : {})
   })
+  await writeSourceFacts(ctx, args.targetId, prepared.authoringSources)
   const root = await ctx.db.get(rootId)
   if (!root) throw new Error('Staged authored root is missing.')
   const output = {

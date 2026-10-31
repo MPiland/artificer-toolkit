@@ -304,18 +304,40 @@ describe('Convex auth SSR boundary', () => {
     }
   )
 
-  it.each([302, 403, 429, 500])(
-    'does not turn HTTP %i into an anonymous session',
-    async (status) => {
-      mocks.tokenFetch.mockResolvedValue(new Response(null, { status }))
-      await expect(
-        loadConvexSession(
-          edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
-        )
-      ).rejects.toThrow('Authentication verification is unavailable')
-      expect(mocks.query).not.toHaveBeenCalled()
-    }
-  )
+  it('retries one rate-limited token mint and recovers', async () => {
+    mocks.tokenFetch
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'x-retry-after': '0' } }))
+      .mockResolvedValueOnce(Response.json({ token: 'jwt' }))
+    mocks.query.mockResolvedValue(null)
+    await createAuthenticatedConvexClient(
+      edgeRequest('https://app.example/classes', { headers: { cookie: 'session=test' } })
+    )
+    expect(mocks.tokenFetch).toHaveBeenCalledTimes(2)
+    expect(mocks.setAuth).toHaveBeenCalledWith('jwt')
+  })
+
+  it('reports persistent rate limiting as rate limiting, not an auth outage', async () => {
+    mocks.tokenFetch.mockResolvedValue(
+      new Response(null, { status: 429, headers: { 'x-retry-after': '0' } })
+    )
+    await expect(
+      loadConvexSession(
+        edgeRequest('https://app.example/classes', { headers: { cookie: 'session=test' } })
+      )
+    ).rejects.toThrow('Authentication is rate limited.')
+    expect(mocks.tokenFetch).toHaveBeenCalledTimes(2)
+    expect(mocks.query).not.toHaveBeenCalled()
+  })
+
+  it.each([302, 403, 500])('does not turn HTTP %i into an anonymous session', async (status) => {
+    mocks.tokenFetch.mockResolvedValue(new Response(null, { status }))
+    await expect(
+      loadConvexSession(
+        edgeRequest('https://app.example/home', { headers: { cookie: 'session=test' } })
+      )
+    ).rejects.toThrow('Authentication verification is unavailable')
+    expect(mocks.query).not.toHaveBeenCalled()
+  })
 
   it.each([{}, { token: null }, { token: '' }])(
     'rejects malformed success payloads: %j',

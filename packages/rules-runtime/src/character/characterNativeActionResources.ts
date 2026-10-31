@@ -10,7 +10,8 @@ import {
   type CharacterResourceOwnerKey,
   type CharacterResourceUsage
 } from '@artificer-toolkit/shared/character'
-import { StaleCharacterActionError } from '../encounterErrors.js'
+import { EncounterValidationError, StaleCharacterActionError } from '../encounterErrors.js'
+import { spendsChosenUnits } from './characterChosenSpend.js'
 import { selectAmmunition, type AmmunitionStack } from './characterAmmunition.js'
 import { readSpellCastSlot } from './characterSpellCastActions.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
@@ -31,6 +32,8 @@ type NativeCharacterActionMechanic = Omit<
   classLevels?: Readonly<Record<string, number>>
   /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
   selectedOptionalRiderIds?: readonly string[]
+  /** The units the caster spent from the action's pool, for a heal that gives hit points per unit spent. */
+  spentUnits?: number
 }
 
 /** The resolved mechanics of the spell cast a Character action makes; undefined for any other action. */
@@ -247,6 +250,10 @@ export function spendCharacterResource(input: {
 export function prepareNativeCharacterActionState(input: {
   entry: CompiledCharacterAction
   candidate: CharacterActionCandidate
+  /** The units the caster chose to spend from the action's pool; required by a heal that gives hit points per unit spent. */
+  spentUnits?: number
+  /** The offered cast modifier the caster pays; spent beside the spell's own cost. */
+  castModifier?: NonNullable<CharacterActionCandidate['castModifiers']>[number] | null
   policyOutput: CharacterRulePolicyOutput
   resourceUsage: readonly CharacterResourceUsage[]
   /** The effective inventory: used-up rows are already hidden. */
@@ -315,9 +322,16 @@ export function prepareNativeCharacterActionState(input: {
   const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
   const namesCast = castActionNames(input.candidate)
   const spellCastLevel = castMechanicsOf(input.policyOutput, input.candidate)?.castLevel
+  // A heal that gives hit points per unit spent takes the units the caster chose, each at the pool's cost.
+  const choosesUnits = spendsChosenUnits(input.candidate)
+  if (choosesUnits !== (input.spentUnits !== undefined))
+    throw new EncounterValidationError(
+      choosesUnits ? 'Choose how many to spend.' : 'This action does not spend a chosen amount.'
+    )
   const actionMechanic: NativeCharacterActionMechanic = {
     ...baseMechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),
+    ...(input.spentUnits === undefined ? {} : { spentUnits: input.spentUnits }),
     classLevels: Object.fromEntries(
       input.classLevels.map(({ classId, level }) => [classId, level])
     ),
@@ -412,15 +426,36 @@ export function prepareNativeCharacterActionState(input: {
       stale()
     return {
       actionMechanic,
-      resourceConsumption: null,
+      resourceConsumption: input.castModifier
+        ? spendCharacterResource({
+            resource: input.policyOutput.resources.find(
+              ({ poolId }) => poolId === input.castModifier?.poolId
+            ),
+            binding: input.castModifier,
+            resourceUsage: input.resourceUsage,
+            characterId: input.characterId,
+            expectedStreamVersion: input.expectedStreamVersion,
+            automationMode: input.automationMode,
+            overridable,
+            ruleWarnings
+          })
+        : null,
       itemConsumption,
       spellConsumption,
       ammunition,
       ruleWarnings
     }
   }
+  if (input.castModifier) stale()
   if (!Number.isSafeInteger(binding.cost) || binding.cost < 1) stale()
   const resource = input.policyOutput.resources.find((value) => value.poolId === binding.poolId)
+  const units = input.spentUnits ?? 1
+  if (!Number.isSafeInteger(units) || units < 1)
+    throw new EncounterValidationError('Spend at least 1.')
+  if (!overridable && resource?.remaining != null && units * binding.cost > resource.remaining)
+    throw new EncounterValidationError(
+      `Not enough left: ${units * binding.cost} needed, ${resource.remaining} remain.`
+    )
   if (
     !input.candidate.resourceUse ||
     input.candidate.resourceUse.poolId !== binding.poolId ||
@@ -440,7 +475,7 @@ export function prepareNativeCharacterActionState(input: {
     ammunition,
     resourceConsumption: spendCharacterResource({
       resource,
-      binding,
+      binding: { ...binding, cost: binding.cost * units },
       resourceUsage: input.resourceUsage,
       characterId: input.characterId,
       expectedStreamVersion: input.expectedStreamVersion,

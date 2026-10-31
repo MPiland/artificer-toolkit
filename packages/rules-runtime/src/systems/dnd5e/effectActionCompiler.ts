@@ -15,6 +15,7 @@ import {
   type CompiledEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
+import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
 import type {
   ActorRelationshipAuthored,
   OptionalOnHitAuthored,
@@ -109,7 +110,12 @@ import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
-import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
+import {
+  dnd5eAddedDiceFacts,
+  dnd5eAddedDiceNode,
+  derivedAddedDice,
+  derivedSaveDice
+} from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { foldD20Operands } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
@@ -140,6 +146,7 @@ import {
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
+  dnd5eSaveOutcomeRule,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
@@ -212,7 +219,6 @@ import {
   dnd5eResultGate,
   saveAudit,
   saveOutcomeFact,
-  dnd5eSaveOutcomeRule,
   testContractVersion
 } from './effectActionOperationRegistry.js'
 import {
@@ -2030,6 +2036,11 @@ const DND5E_DIRECT_OUTCOMES: {
       validateHealBonuses(outcome.bonuses)
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
+    if (outcome.valueKind === 'RESOURCE_SPENT') {
+      if (outcome.temporary || outcome.bonuses?.length || !(outcome.amount > 0))
+        unsupported('D&D spent healing is a plain positive amount per unit spent.')
+      return { kind: 'SPENT_HEAL' }
+    }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -3739,24 +3750,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const recurringHealOutcome = published.definition.outputs.recurringHealOutcomeId
     const recurringHealOutcomeId =
       recurringHealOutcome?.kind === 'LITERAL' ? recurringHealOutcome.value : null
-    let recurringHealAmountFacts: Record<string, number> = {}
-    if (recurringHealOutcomeId !== null && published.definition.outputs.recurringHealAmount) {
-      const rows = resolvedHealOutcomes.filter(
-        ({ outcomeId }) => outcomeId === recurringHealOutcomeId
-      )
-      const match = rows.length === 1 ? /^(\d+)(?: ([+-]) (\d+))?$/.exec(rows[0]!.expression) : null
-      if (!match)
-        throw new Dnd5eEffectActionCompilerError(
-          'D&D recurring healing requires one exact resolved fixed amount.'
-        )
-      const bonus = Number(match[3] ?? 0)
-      recurringHealAmountFacts = {
-        [DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY]: Math.max(
-          0,
-          Number(match[1]) + (match[2] === '-' ? -bonus : bonus)
-        )
-      }
-    }
+    const recurringHealFacts = recurringHealAmountFacts(
+      published,
+      resolvedHealOutcomes,
+      recurringHealOutcomeId
+    )
     let resolvedHealModifierFacts: Record<string, number | boolean> = {}
     if (requiresHealModifier) {
       const heals = resolvedHealOutcomes.filter((o) => o.outcomeId !== recurringHealOutcomeId)
@@ -3800,7 +3798,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         temporaryHitPoints,
         maximumHitPoints,
         scalarValues: targetScalarValues,
-        conditionIds: targetConditionIds
+        conditionIds: [...targetConditionIds].sort()
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
@@ -3823,7 +3821,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }
         : {}),
       ...resolvedHealModifierFacts,
-      ...recurringHealAmountFacts,
+      ...recurringHealFacts,
+      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic.spentUnits),
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),
@@ -3923,10 +3922,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }))
         .sort(compareCanonicalD20Contributors)
       const contributorChecksum = checksumRuleDocument(contributors)
-      const addedDice = derivedAddedDice(
-        targetDerivedFacts.savingThrowAddedDice,
-        nestedSaveAbilityDefinitionId
-      )
+      const { addedDice } = derivedSaveDice(targetDerivedFacts, nestedSaveAbilityDefinitionId)
       return {
         facts: {
           ...baseFacts,
@@ -4063,15 +4059,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       })
       const { modifier, rollMode, contributors } = targetSave
       const contributorChecksum = checksumRuleDocument(contributors)
-      const addedDice = derivedAddedDice(
-        targetDerivedFacts.savingThrowAddedDice,
-        save.abilityDefinitionId
-      )
+      const { addedDice, heldDice } = derivedSaveDice(targetDerivedFacts, save.abilityDefinitionId)
       const folded = foldD20Operands(foldedBonuses, modifier, save.dc, addedDice)
       return {
         facts: {
           ...baseFacts,
-          ...dnd5eAddedDiceFacts(addedDice),
+          ...dnd5eAddedDiceFacts(addedDice, true, heldDice),
           [DND5E_SAVE_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_SAVE_DC_FACT_KEY]: folded.defenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
@@ -4282,10 +4275,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       defenses.some(
         (defense) => defense.kind === 'IMMUNITY' && defense.damageTypeId === successImmunity
       ) || targetDerivedFacts[ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY] === false
-    const addedDice = derivedAddedDice(targetDerivedFacts.savingThrowAddedDice, abilityDefinitionId)
+    const { addedDice, heldDice } = derivedSaveDice(targetDerivedFacts, abilityDefinitionId)
     const facts = {
       ...baseFacts,
-      ...dnd5eAddedDiceFacts(addedDice, attemptAllowed),
+      ...dnd5eAddedDiceFacts(addedDice, attemptAllowed, heldDice),
       [DND5E_SAVE_MODIFIER_FACT_KEY]: matches[0]!.modifier,
       [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
       [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: succeedsUnrolled

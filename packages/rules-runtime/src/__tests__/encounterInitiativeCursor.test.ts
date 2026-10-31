@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import { stableActors } from '../encounterActorState.js'
 import {
+  followedActorId,
   readSideOrder,
   readTurnCursor,
+  rollsInitiative,
   takesInitiativeTurns,
   validateInitiativeCursor
 } from '../encounterInitiativeCursor.js'
+import { anchorOwnedActors } from '../encounterInitiativeStaging.js'
 import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
 import {
   ACTOR_A,
@@ -119,6 +122,22 @@ describe('validateInitiativeCursor', () => {
     ).toThrow('Initiative actor must retain one exact contiguous order.')
   })
 
+  it('expects a place for a summon authored to act right after its owner', async () => {
+    const state = await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START')
+    const summon = {
+      id: crypto.randomUUID(),
+      owner: { ownerActorId: ACTOR_A, turnTiming: 'AFTER_OWNER' as const }
+    }
+    expect(() =>
+      validateInitiativeCursor({
+        state,
+        currentActorId: ACTOR_A,
+        actors: [...ORDER.map((id) => ({ id })), summon],
+        allowedSideIds: [SIDE_FOES]
+      })
+    ).toThrow('Initiative actor cohort does not match the Encounter Run.')
+  })
+
   it('leaves an owned actor out of the cohort, which acts on its owner’s turn (D190a)', async () => {
     const state = await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START')
     const summon = { id: crypto.randomUUID(), owner: { ownerActorId: ACTOR_A } }
@@ -136,13 +155,101 @@ describe('validateInitiativeCursor', () => {
   })
 })
 
-describe('takesInitiativeTurns', () => {
+describe('rollsInitiative and takesInitiativeTurns', () => {
+  const owner = { ownerActorId: ACTOR_A }
   it('rolls an unowned actor and a summon authored for its own initiative, not other owned actors (D200)', () => {
-    const owner = { ownerActorId: ACTOR_A }
+    expect(rollsInitiative({})).toBe(true)
+    expect(rollsInitiative({ owner })).toBe(false)
+    expect(rollsInitiative({ owner: { ...owner, turnTiming: 'AFTER_OWNER' } })).toBe(false)
+    expect(rollsInitiative({ owner: { ...owner, turnTiming: 'OWN_INITIATIVE' } })).toBe(true)
+  })
+
+  it('holds a place for what rolls and for a summon authored to act right after its owner', () => {
     expect(takesInitiativeTurns({})).toBe(true)
     expect(takesInitiativeTurns({ owner })).toBe(false)
-    expect(takesInitiativeTurns({ owner: { ...owner, turnTiming: 'AFTER_OWNER' } })).toBe(false)
+    expect(takesInitiativeTurns({ owner: { ...owner, turnTiming: 'AFTER_OWNER' } })).toBe(true)
     expect(takesInitiativeTurns({ owner: { ...owner, turnTiming: 'OWN_INITIATIVE' } })).toBe(true)
+  })
+})
+
+describe('followedActorId', () => {
+  it('names the nearest owner in the chain that holds a place, or none', () => {
+    const middle = { id: ACTOR_B, owner: { ownerActorId: ACTOR_A } }
+    const summon = {
+      id: ACTOR_C,
+      owner: { ownerActorId: ACTOR_B, turnTiming: 'AFTER_OWNER' as const }
+    }
+    const actors = [{ id: ACTOR_A }, middle, summon]
+    expect(followedActorId(summon, actors, (id) => id === ACTOR_A)).toBe(ACTOR_A)
+    expect(followedActorId(summon, actors, (id) => id === ACTOR_B)).toBe(ACTOR_B)
+    expect(followedActorId(summon, actors, () => false)).toBeNull()
+  })
+
+  it('stops at a cycle in the owner chain', () => {
+    const left = { id: ACTOR_A, owner: { ownerActorId: ACTOR_B } }
+    const right = { id: ACTOR_B, owner: { ownerActorId: ACTOR_A } }
+    expect(followedActorId(left, [left, right], () => false)).toBeNull()
+  })
+})
+
+describe('anchorOwnedActors', () => {
+  const after = (ownerActorId: string) => ({ ownerActorId, turnTiming: 'AFTER_OWNER' as const })
+  const summonA = '00000000-0000-4000-8000-0000000000b1'
+  const summonB = '00000000-0000-4000-8000-0000000000b2'
+  const ids = (state: Awaited<ReturnType<typeof roundAt>>) =>
+    [...state.participants]
+      .sort((left, right) => left.turnOrderOrdinal! - right.turnOrderOrdinal!)
+      .map(({ actorId }) => actorId)
+
+  it('seats each follower directly behind its owner, sharing its place, for any rolled order', async () => {
+    const actors = [
+      ...ORDER.map((id) => ({ id, sideId: SIDE_FOES })),
+      { id: summonA, sideId: SIDE_HEROES, owner: after(ACTOR_B) }
+    ]
+    for (const order of [ORDER, [ACTOR_C, ACTOR_B, ACTOR_A], [ACTOR_B, ACTOR_C, ACTOR_A]]) {
+      const settled = anchorOwnedActors(await roundAt(order, order[0]!, 'ENCOUNTER_START'), actors)
+      const expected = order.flatMap((id) => (id === ACTOR_B ? [id, summonA] : [id]))
+      expect(ids(settled)).toEqual(expected)
+      expect(settled.round.nextTurnOrderOrdinal).toBe(expected.length)
+      expect(settled.participants.find(({ actorId }) => actorId === summonA)).toMatchObject({
+        sideId: SIDE_HEROES,
+        status: 'READY',
+        initiativeScore: settled.participants.find(({ actorId }) => actorId === ACTOR_B)!
+          .initiativeScore
+      })
+    }
+  })
+
+  it('seats a follower of a follower behind it, however the actors are listed', async () => {
+    const actors = [
+      { id: summonB, sideId: SIDE_FOES, owner: after(summonA) },
+      { id: summonA, sideId: SIDE_FOES, owner: after(ACTOR_A) },
+      ...ORDER.map((id) => ({ id, sideId: SIDE_FOES }))
+    ]
+    const settled = anchorOwnedActors(await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START'), actors)
+    expect(ids(settled)).toEqual([ACTOR_A, summonA, summonB, ACTOR_B, ACTOR_C])
+  })
+
+  it('leaves the round as it is when nothing follows an owner', async () => {
+    const state = await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START')
+    const rollers = ORDER.map((id) => ({ id, sideId: SIDE_FOES }))
+    expect(anchorOwnedActors(state, rollers)).toBe(state)
+    expect(
+      anchorOwnedActors(state, [
+        ...rollers,
+        { id: summonA, sideId: SIDE_FOES, owner: { ownerActorId: ACTOR_A } }
+      ])
+    ).toBe(state)
+  })
+
+  it('refuses a follower whose owners hold no place', async () => {
+    const state = await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START')
+    expect(() =>
+      anchorOwnedActors(state, [
+        ...ORDER.map((id) => ({ id, sideId: SIDE_FOES })),
+        { id: summonA, sideId: SIDE_FOES, owner: after(crypto.randomUUID()) }
+      ])
+    ).toThrow('An owned actor has no owner in the initiative order.')
   })
 })
 

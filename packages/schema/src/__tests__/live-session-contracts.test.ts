@@ -771,6 +771,20 @@ describe('Encounter rule overrides and undo', () => {
     ).toBe(true)
   })
 
+  it('carries the cast modifier a caster pays only as a uuid', () => {
+    const castModifierId = ids.command
+    expect(resolveEncounterActionInputDtoSchema.parse({ ...action, castModifierId })).toMatchObject(
+      {
+        castModifierId
+      }
+    )
+    expect(resolveEncounterActionInputDtoSchema.parse(action).castModifierId).toBeUndefined()
+    expect(
+      resolveEncounterActionInputDtoSchema.safeParse({ ...action, castModifierId: 'subtle' })
+        .success
+    ).toBe(false)
+  })
+
   it('accepts a GM undo with only its Run version', () => {
     const { actorId: _actor, actionId: _action, target: _target, ...base } = action
     expect(

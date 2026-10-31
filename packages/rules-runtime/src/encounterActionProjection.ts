@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/schema/projections/characterStoredState'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { NativeCharacterSpellConsumption } from './character/characterNativeActionResources.js'
+import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { evaluateCharacterRules } from './character/characterRuleEvaluation.js'
 import { updateSpellSlotUsage } from './character/sheetCommandReducer.js'
 import type { prepareCharacterSheetFromContext } from './character/sheetPreparation.js'
@@ -71,15 +72,23 @@ export function projectEncounterActionTarget<
 }): MovementTarget<TCharacterFacts> {
   const characterFacts = input.target.characterFacts
   const update = input.plan?.characterUpdate
-  if (!update)
-    return buildMovementTarget<TCharacterFacts>({
-      actor: input.actor,
-      activeEffects: input.target.activeEffects,
-      characterFacts,
-      campaignId: input.campaignId,
-      gameSystemId: input.gameSystemId,
-      includeReactionSources: true
+  // A rebuilt target carries the original's pinned condition definitions over and re-applies them.
+  const withHeldConditions = (target: MovementTarget<TCharacterFacts>) =>
+    applyEncounterConditionMechanics({
+      target: { ...target, conditionDefinitions: input.target.conditionDefinitions },
+      gameSystemId: input.gameSystemId
     })
+  if (!update)
+    return withHeldConditions(
+      buildMovementTarget<TCharacterFacts>({
+        actor: input.actor,
+        activeEffects: input.target.activeEffects,
+        characterFacts,
+        campaignId: input.campaignId,
+        gameSystemId: input.gameSystemId,
+        includeReactionSources: true
+      })
+    )
   const streamVersion = input.plan?.characterStreamVersion
   if (!characterFacts || streamVersion === null || streamVersion === undefined)
     throw new Error('Projected movement Character state is unavailable.')
@@ -109,12 +118,14 @@ export function projectEncounterActionTarget<
     evaluationInput,
     ruleEvaluation: evaluateCharacterRules(evaluationInput)
   })
-  return buildMovementTarget<TCharacterFacts>({
-    actor: input.actor,
-    activeEffects: input.target.activeEffects,
-    characterFacts: projectedFacts,
-    campaignId: input.campaignId,
-    gameSystemId: input.gameSystemId,
-    includeReactionSources: true
-  })
+  return withHeldConditions(
+    buildMovementTarget<TCharacterFacts>({
+      actor: input.actor,
+      activeEffects: input.target.activeEffects,
+      characterFacts: projectedFacts,
+      campaignId: input.campaignId,
+      gameSystemId: input.gameSystemId,
+      includeReactionSources: true
+    })
+  )
 }

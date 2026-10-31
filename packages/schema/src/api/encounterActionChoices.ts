@@ -297,6 +297,39 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_AMMUNITION_CHOICES))
     ),
     /**
+     * The costs the caster may pay on this spell cast, each with the cost it spends; absent when none
+     * is offered. The client sends its pick as `castModifierId`.
+     */
+    castModifiers: z.optional(
+      z
+        .array(
+          z.strictObject({
+            id: postgresUuidSchema,
+            label: labelSchema,
+            cost: z.number().check(z.int()).check(z.positive())
+          })
+        )
+        .check(z.maxLength(50))
+    ),
+    /**
+     * The units the caster chooses to spend from the action's pool (a heal that gives hit points per
+     * unit spent), each costing `unitCost` charges, up to `max`; absent when the action spends a fixed
+     * amount. The client sends its pick as `spentUnits`.
+     */
+    chosenSpend: z.optional(
+      z.strictObject({
+        unitCost: z.number().check(z.int()).check(z.positive()),
+        max: z.number().check(z.int()).check(z.gte(0))
+      })
+    ),
+    /**
+     * The most creatures the caster may spare from this cast's area, naming them as
+     * `unaffectedActorIds`; absent when the cast spares none.
+     */
+    sparesCreatures: z.optional(
+      z.strictObject({ max: z.number().check(z.int()).check(z.positive()) })
+    ),
+    /**
      * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
      * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that
      * are not part of the Attack action and for attacks that would spend a new Action ("Do it anyway").

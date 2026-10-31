@@ -5,6 +5,7 @@ import {
   encounterGmProjectionDtoSchema
 } from '../api/encounterData.js'
 import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { hitPointMaximumFractionDtoSchema } from '../shared/hitPointMaximumFraction.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { areaAimDtoSchema } from '../shared/spatialFacts.js'
@@ -31,6 +32,7 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       maxHitPoints: true,
       tempHitPoints: true,
       conditions: true,
+      consequences: true,
       activeGrants: true,
       concentration: true,
       concealment: true,
@@ -147,6 +149,8 @@ const encounterRunActorHealthShape = lazySchemaParts(() => ({
   maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
   ...encounterTemporaryHitPointsShape(),
   conditions: jsonValueSchema,
+  /** The share of its maximum the actor's conditions leave it, resolved when they change (SPELLS-10.T1b). */
+  maximumFraction: z.optional(hitPointMaximumFractionDtoSchema),
   /** Set in the commit whose damage reduces the actor to 0 hit points; cleared by regaining any. */
   defeated: z.boolean(),
   /**

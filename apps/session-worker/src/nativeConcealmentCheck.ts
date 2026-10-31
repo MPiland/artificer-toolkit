@@ -4,7 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import type { D20RolledCheckDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { EncounterConcealmentCheckPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -41,7 +41,7 @@ export function settleNativeConcealmentCheck(input: {
   context: EncounterConcealmentCheckPendingContextDto
   continuation: ServerRuleExecutionContinuationDto
   /** The check's d20, as the roller rolled it or a d20 window settled it. */
-  rolled: D20WindowPausePayloadDto['rolled']
+  rolled: D20RolledCheckDto
   appRollId: string | null
   /** The held die a d20 window spent on the roll, when one opened. */
   window?: ConcealmentCheckSettlement['window']

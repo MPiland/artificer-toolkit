@@ -38,6 +38,7 @@ import {
   requireEncounterActorControllerCandidates
 } from './actorController.js'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { settleCreatureConditionMaximum } from './conditionMaximumSettlement.js'
 import { endCompletedRunCharacterEffects } from './characterRunEffects.js'
 import { freezeEncounterCharacterStates } from './characterStates.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
@@ -467,6 +468,7 @@ async function recordEncounterToolCommand(
     }
     const previousHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.currentHitPoints
     const previousTempHitPoints = actor.kind === 'CHARACTER' ? 0 : actor.tempHitPoints
+    const beforeEdit = actor
     actor = encounterRunActorStateSchema.parse(
       input.type === 'SET_INITIATIVE' || input.type === 'ROLL_ACTOR_INITIATIVE'
         ? {
@@ -505,6 +507,14 @@ async function recordEncounterToolCommand(
             updatedAt
           }
     )
+    // A condition edit resolves the share of its maximum the creature keeps and holds its hit
+    // points within it (SPELLS-10.T1b).
+    actor = await settleCreatureConditionMaximum(ctx, {
+      before: beforeEdit,
+      actor,
+      ownerUserId: campaign.ownerUserId,
+      gameSystemId: state.gameSystemId
+    })
     // A GM edit that lowers a creature's hit points is damage taken (SRD Rage); like the edit, the mark is not undoable.
     if (
       actor.kind !== 'CHARACTER' &&

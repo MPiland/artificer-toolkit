@@ -9,6 +9,7 @@ import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { deleteCharacterDraftPayloadByHead } from '../characters/documents'
 import { deleteAuthoredVersion, deleteDraftPayloadByHead } from '../content/documents'
+import { deleteSourceFacts } from '../content/sourceFacts'
 import { internalMutation } from '../lib/mutations'
 import { parseImportJob } from './jobs'
 
@@ -351,6 +352,7 @@ export const cleanup = internalMutation({
         )
           throw new Error('Import job cleanup integrity failure.')
         await ctx.db.delete(root._id)
+        await deleteSourceFacts(ctx, root.id)
       }
       await continueCleanup(ctx, row, job.id, roots.length, 10)
       return null

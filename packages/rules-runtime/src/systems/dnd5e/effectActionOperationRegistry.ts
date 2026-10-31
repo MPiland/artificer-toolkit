@@ -102,6 +102,7 @@ import {
   DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+  DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
@@ -127,7 +128,9 @@ import {
   isSpecializedPath,
   multipliedDamageAmount,
   encodeForcedMovementCollision,
-  decodeForcedMovementCollision
+  decodeForcedMovementCollision,
+  dnd5eSaveAutoFailConditionIds,
+  dnd5eSaveOutcomeRule
 } from './effectActionContracts.js'
 
 export function simpleOperation(key: string): ProposalRuleOperationContract {
@@ -926,16 +929,6 @@ export function dnd5eTestResultPath(
   return input.outcomeRule === 'HIT_IS_CRITICAL' ? 'ON_CRIT' : 'ON_HIT'
 }
 
-/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
-export function dnd5eSaveOutcomeRule(
-  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
-  abilityDefinitionId: string
-): Dnd5eTestOutcomeRule {
-  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
-    ? 'SAVE_AUTO_FAIL'
-    : 'NONE'
-}
-
 /** The save outcome rule as the bound fact of a TEST phase. */
 export function saveOutcomeFact(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
@@ -954,20 +947,6 @@ export function saveAudit(
     savingThrowAbilityDefinitionId: abilityDefinitionId,
     ...(autoFailConditionIds.length ? { autoFailConditionIds } : {})
   }
-}
-
-/** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */
-export function dnd5eSaveAutoFailConditionIds(
-  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
-  abilityDefinitionId: string
-): string[] {
-  return [
-    ...new Set(
-      (rules?.saveAutoFails ?? [])
-        .filter((failure) => failure.abilityDefinitionId === abilityDefinitionId)
-        .map(({ conditionDefinitionId }) => conditionDefinitionId)
-    )
-  ].sort()
 }
 
 /**
@@ -1396,6 +1375,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     },
     {
       key: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
     },
     {

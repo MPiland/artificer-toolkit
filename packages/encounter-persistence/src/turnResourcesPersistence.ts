@@ -241,7 +241,11 @@ export async function persistEncounterTurnResources(
           }),
           occurredAt,
           applications: sourceReleases,
-          effectiveMaximumHitPoints: effectiveHitPointMaximum(owner.maxHitPoints, ownerEffects),
+          effectiveMaximumHitPoints: effectiveHitPointMaximum(
+            owner.maxHitPoints,
+            ownerEffects,
+            owner.maximumFraction
+          ),
           forceVersionAdvance: false
         })
       : null

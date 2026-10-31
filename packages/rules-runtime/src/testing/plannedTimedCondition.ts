@@ -12,6 +12,7 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { OnHitRider } from '../character/characterOnHitRiders.js'
 import { buildCharacterSpellCastActions } from '../character/characterSpellCastActions.js'
 import type { CharacterRuleActionSystemAdapter } from '../characterRuleActionSystemAdapter.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
@@ -32,6 +33,8 @@ export function compiledTestSpellCast(input: {
   cast: SpellCastCandidate
   decision: Omit<CharacterRulePolicyOutput['spellCastDecisions'][number], 'candidateId'>
   spellAccessCandidates?: readonly SpellAccessCandidate[]
+  /** The riders the caster's features owe a cast of this spell. */
+  onHitRiders?: readonly OnHitRider[]
   /** The System adapter the cast compiles through; the installed one by default. */
   adapter?: CharacterRuleActionSystemAdapter
 }) {
@@ -39,6 +42,7 @@ export function compiledTestSpellCast(input: {
   const built = buildCharacterSpellCastActions({
     spellCastCandidates: [cast],
     spellAccessCandidates: input.spellAccessCandidates ?? [],
+    onHitRiders: input.onHitRiders ?? [],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
       grantFold: { modifiers: [] },

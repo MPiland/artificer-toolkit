@@ -5,7 +5,8 @@ import type {
   OptionalOnHitAuthored,
   ReactionHigherLevelCheckAuthored,
   ReactionTriggerBindingAuthored,
-  ResourceUseAuthored
+  ResourceUseAuthored,
+  SparesCreaturesAuthored
 } from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
@@ -104,6 +105,30 @@ const OPTIONAL_ON_HIT_NODE_MAP = optionalOnHit.define('optionalOnHit', ({ map, n
       })
     )
 })
+
+const sparesCreatures = buildNodeMap<SparesCreaturesAuthored>()
+
+const SPARES_CREATURES_NODE_MAP = sparesCreatures.define(
+  'sparesCreatures',
+  ({ map, nodes, data }) => {
+    const { number, toggle, selectMulti } = nodes
+    const { table } = data
+
+    map
+      .set(
+        'base',
+        number(['base'], 'Creatures spared', { constraints: { minimum: 0 }, requiredIf: true })
+      )
+      .set('plusSpellLevel', toggle(['plusSpellLevel'], "Plus the spell's level"))
+      .set(
+        'magicSchoolIds',
+        selectMulti(['magicSchoolIds'], 'Only spells of the schools', {
+          kind: 'DATA',
+          relationship: table('magic_schools', { selectColumns: ['id', 'label', 'description'] })
+        })
+      )
+  }
+)
 
 const REACTION_TRIGGER_KIND_OPTIONS: {
   code: ReactionTriggerBindingAuthored['kind']
@@ -394,6 +419,22 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'castModifier',
+        groupObject(['castModifier'], 'Cast Modifier Cost', () => RESOURCE_USE_NODE_MAP, {
+          presentation: 'inline',
+          order: 7,
+          showIf: local.field(['kind']).eq('PASSIVE')
+        })
+      )
+      .set(
+        'sparesCreatures',
+        groupObject(['sparesCreatures'], 'Spares Creatures', () => SPARES_CREATURES_NODE_MAP, {
+          presentation: 'inline',
+          order: 7,
+          showIf: local.field(['kind']).eq('PASSIVE')
+        })
+      )
+      .set(
         'ridesFeatureId',
         selectSingle(
           ['ridesFeatureId'],
@@ -403,6 +444,22 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
             rootCollectionPath: ['features'],
             valuePath: ['id'],
             labelPath: ['label']
+          },
+          {
+            order: 7,
+            showIf: local.field(['kind']).eq('PASSIVE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
+        'ridesSpellIds',
+        selectMulti(
+          ['ridesSpellIds'],
+          'Rides only the casts of',
+          {
+            kind: 'DATA',
+            relationship: table('spells', { selectColumns: ['id', 'label'] })
           },
           {
             order: 7,

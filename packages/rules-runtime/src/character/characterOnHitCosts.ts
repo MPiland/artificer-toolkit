@@ -10,6 +10,7 @@ import {
   type NativeCharacterActionResourceConsumption,
   type NativeCharacterSpellConsumption
 } from './characterNativeActionResources.js'
+import { affordablePoolFor } from './characterResourcePool.js'
 import { readSpellCastSlot } from './characterSpellCastActions.js'
 
 type SpellSlots = CharacterRulePolicyOutput['spellSlots']
@@ -35,23 +36,6 @@ export function onHitSlotChoices(
     .sort((left, right) => left.level - right.level)
 }
 
-/**
- * The pool that pays `charge` of a resource pool cost, when exactly one resolved pool carries that
- * charge and still holds `cost` of it; any other state offers no way of paying.
- */
-function onHitPoolFor(
-  resources: Resources,
-  { chargeId, cost }: { chargeId: string; cost: number }
-): Resources[number] | null {
-  const pools = resources.filter(
-    (resource) => resource.chargeId === chargeId && resource.state === 'RESOLVED'
-  )
-  const [pool] = pools
-  return pools.length === 1 && pool && pool.remaining !== null && pool.remaining >= cost
-    ? pool
-    : null
-}
-
 /** Every way the attacker could pay for each of the action's optional on-hit riders now. */
 export function onHitCandidates(input: {
   riders: readonly { riderId: string; cost: OptionalOnHitAuthored }[]
@@ -62,7 +46,7 @@ export function onHitCandidates(input: {
   return input.riders.flatMap(({ riderId, cost }): EncounterOnHitCandidate[] => {
     if (cost.kind === 'SPELL_SLOT')
       return choices.map(({ level }) => ({ kind: 'SPELL_SLOT', riderId, slotLevel: level }))
-    const pool = onHitPoolFor(input.resources, cost)
+    const pool = affordablePoolFor(input.resources, cost)
     return pool ? [{ kind: 'RESOURCE_POOL', riderId, poolId: pool.poolId, cost: cost.cost }] : []
   })
 }

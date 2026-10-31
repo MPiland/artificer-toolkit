@@ -20,8 +20,8 @@ import { loadCharacterSheetFacts } from './sheetFacts'
 import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
   characterSheetSection,
-  isStoredCharacterSheetCurrent,
   readCharacterSheetFingerprint,
+  readCharacterSheetStoreState,
   readCharacterSheetPendingStore,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
@@ -52,7 +52,9 @@ function projectSlices(
 export async function storeCharacterSheetSections(
   ctx: MutationCtx,
   facts: NonNullable<Awaited<ReturnType<typeof loadCharacterSheetFacts<CharacterRecordRow>>>>,
-  authorityScope?: CampaignInternalScope
+  authorityScope?: CampaignInternalScope,
+  /** The fingerprint of the inputs these facts were loaded from, when the caller already read it. */
+  inputsFingerprint?: string
 ) {
   const characterId = facts.active.id
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
@@ -101,11 +103,13 @@ export async function storeCharacterSheetSections(
       values.push(...projectSlices(current.sheet, { ...ownerContext, viewer: 'PARTY_MEMBER' }))
   }
   // The facts carry the Character row as this transaction wrote it.
-  const fingerprint = await readCharacterSheetFingerprint(
-    ctx,
-    { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
-    authorityScope
-  )
+  const fingerprint =
+    inputsFingerprint ??
+    (await readCharacterSheetFingerprint(
+      ctx,
+      { active: facts.active, hasDraft: facts.draft !== null, publicId: facts.route.publicId },
+      authorityScope
+    ))
   await writeCharacterSheetSections(ctx, characterId, fingerprint, values)
 }
 
@@ -122,9 +126,10 @@ export const store = internalMutation({
     // A deleted Character, or one that needs Builder repair, has no Sheet to store.
     if (active?.status !== 'ACTIVE') return null
     // A later write may already have stored the Sheet over the same inputs.
-    if (await isStoredCharacterSheetCurrent(ctx, active.userId, characterId)) return null
+    const state = await readCharacterSheetStoreState(ctx, active.userId, characterId)
+    if (state?.current) return null
     const facts = await loadCharacterSheetFacts(ctx, active.userId, characterId)
-    if (facts) await storeCharacterSheetSections(ctx, facts)
+    if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state?.fingerprint)
     return null
   }
 })

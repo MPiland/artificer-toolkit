@@ -326,7 +326,7 @@ const actionHealFactSchema = lazySchema(() =>
     outcomeId: z.optional(identitySchema),
     pathCode: identitySchema,
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
-    valueKind: z.enum(['DICE', 'FIXED', 'POOL', 'DAMAGE_DEALT']),
+    valueKind: z.enum(['DICE', 'FIXED', 'POOL', 'RESOURCE_SPENT', 'DAMAGE_DEALT']),
     scalingKind: z.enum(['NONE', 'PER_LEVEL', 'BREAKPOINTS']),
     scalingSource: z.nullable(
       z.enum(['CHARACTER_LEVEL', 'CLASS_LEVEL', 'PARENT_CLASS_LEVEL', 'SPELL_CAST_LEVEL'])
@@ -552,6 +552,24 @@ export const characterActionCandidatesSchema = lazySchema(() =>
         ]),
         equipment: z.nullable(actionEquipmentStateSchema),
         resourceUse: z.nullable(actionResourceUseSchema),
+        /** The costs the caster may pay on this spell cast, each affordable now; the cast command names one. */
+        castModifiers: z.optional(
+          z
+            .array(
+              z.strictObject({
+                modifierId: postgresUuidSchema,
+                label: stringSchema.check(z.trim()).check(z.maxLength(500)),
+                chargeId: identitySchema,
+                cost: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)),
+                poolId: characterResourcePoolIdentitySchema
+              })
+            )
+            .check(z.maxLength(50))
+        ),
+        /** The most creatures the caster may spare from this cast's area; absent when it spares none. */
+        sparesCreatures: z.optional(
+          z.strictObject({ max: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)) })
+        ),
         mechanicFacts: characterActionMechanicFactSchema
       })
     )

@@ -61,7 +61,11 @@ function commandTimelineMetadata(command: StoredCommand) {
   )
     throw new Error('Stored Encounter command receipt mismatch.')
   // A removal of conjured creatures keeps the round's initiative it left; none of them may remain in it.
-  if (command.commandType === 'SUMMONS_ENDED' || command.commandType === 'REVERT_LAST_ACTION') {
+  if (
+    command.commandType === 'SUMMONS_ENDED' ||
+    command.commandType === 'REVERT_LAST_ACTION' ||
+    command.commandType === 'RESOLVE_ACTION'
+  ) {
     const initiative = readStoredInitiativeReceipt(command, command.encounterId)
     if (
       command.commandType === 'SUMMONS_ENDED' &&

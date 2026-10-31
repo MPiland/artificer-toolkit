@@ -148,6 +148,8 @@ export async function recordActionRoot(
           | 'clearedDamageTypes'
           | 'forcedMovements'
           | 'summonedTokens'
+          | 'initiativeStateJson'
+          | 'initiativeStateChecksum'
           | 'forcedMovementLandings'
         >
       >

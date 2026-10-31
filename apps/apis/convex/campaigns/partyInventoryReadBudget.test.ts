@@ -13,7 +13,7 @@ import {
   importedSubject,
   publicationFixture
 } from '../../tests/fixtures/publication'
-import { getFunctionName } from 'convex/server'
+import { handlerOf, inOwnTransaction } from '../../tests/fixtures/queryTransaction'
 import { api } from '../_generated/api'
 import type { QueryCtx } from '../_generated/server'
 import { equipmentOptions, items } from './partyInventory'
@@ -34,36 +34,6 @@ const PAGE_BUDGET_DOCUMENTS = 8 + 3 * ROWS
 // RELIABILITY-21.T18: the public query read the page through a `runQuery` hop into a second module
 // graph, which repeated validation, identity and authority; CI ran it at 909-991 ms. It reads in its
 // own transaction.
-function inOwnTransaction(ctx: QueryCtx, db: QueryCtx['db'] = ctx.db) {
-  return {
-    ...ctx,
-    db,
-    runQuery: ((reference, ...args) => {
-      // Identity still reads the Better Auth component; only an app query is a second module graph.
-      // `getFunctionName` names this app's functions and refuses component references.
-      let appQuery: string | null = null
-      try {
-        appQuery = getFunctionName(reference)
-      } catch {
-        appQuery = null
-      }
-      if (appQuery !== null)
-        throw new Error(
-          `Party inventory pages read in the public query transaction, not ${appQuery}.`
-        )
-      return ctx.runQuery(reference, ...args)
-    }) satisfies QueryCtx['runQuery']
-  } as QueryCtx
-}
-
-function handlerOf<Result = CampaignPartyItemPage>(
-  registered: object
-): (ctx: QueryCtx, args: unknown) => Promise<Result> {
-  if (!('_handler' in registered) || typeof registered._handler !== 'function')
-    throw new Error('Missing registered query handler.')
-  return registered._handler as (ctx: QueryCtx, args: unknown) => Promise<Result>
-}
-
 describe('party inventory items read budget', () => {
   it('resolves the catalogue binding once for a full page of held official Equipment', async () => {
     const equipment = srdEquipment.filter((entry) => entry.category !== 'VARIANT').slice(0, ROWS)
@@ -97,7 +67,7 @@ describe('party inventory items read budget', () => {
           idempotencyKey: crypto.randomUUID()
         }
       })
-    const handler = handlerOf(items)
+    const handler = handlerOf<CampaignPartyItemPage>(items)
     const totals = createDatabaseIoTotals()
     const startedAt = performance.now()
     const result = await base.first.caller.run((ctx) =>
@@ -189,7 +159,7 @@ describe('party inventory items read budget', () => {
     await base.t.run(async (ctx) => {
       for (const entry of equipment) await corruptPublishedVersionPayload(ctx, entry.id)
     })
-    const handler = handlerOf(items)
+    const handler = handlerOf<CampaignPartyItemPage>(items)
     const args = { campaignId: campaign.id, paginationOpts: { cursor: null, numItems: 48 } }
     const totals = createDatabaseIoTotals()
     const result = await base.first.caller.run((ctx) =>

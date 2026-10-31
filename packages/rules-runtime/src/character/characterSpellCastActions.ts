@@ -15,9 +15,16 @@ import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
+import {
+  sparedCreatureCap,
+  type CastModifierSource,
+  type SparesCreaturesSource
+} from './characterCastModifiers.js'
+import { affordablePoolFor } from './characterResourcePool.js'
 import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
+import { mergeOnHitRiders, type OnHitRider } from './characterOnHitRiders.js'
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import { castableEffectGroups, spellCastActionId, spellCastLabel } from '../spellCastCandidates.js'
@@ -166,7 +173,13 @@ export function buildCharacterSpellCastActions(input: {
   spellsById: ReadonlyMap<string, CompiledSpell> | undefined
   /** The Character's level, the sum of its class levels. */
   characterLevel: number
+  /** The riders the Character's features owe a cast of the Spell they name (G4). */
+  onHitRiders?: readonly OnHitRider[]
   firstSequence: number
+  /** What the Character's features let it pay on a cast; offered on casts no pool already pays for. */
+  castModifiers?: readonly CastModifierSource[]
+  /** What the Character's features let it spare from an area spell; offered on casts of an area. */
+  sparesCreatures?: readonly SparesCreaturesSource[]
 }): {
   candidates: CharacterActionCandidate[]
   entryPoints: CharacterActionRuleEntryPoint[]
@@ -222,7 +235,7 @@ export function buildCharacterSpellCastActions(input: {
     })
     for (const [index, spellGroup] of effects.entries()) {
       const typedGroup = withGrantCreatureTypes(spellGroup, access?.allowedCreatureTypeIds ?? [])
-      const group = range
+      const rangedGroup = range
         ? {
             ...typedGroup,
             invocation: {
@@ -231,6 +244,7 @@ export function buildCharacterSpellCastActions(input: {
             }
           }
         : typedGroup
+      const group = mergeOnHitRiders(rangedGroup, input.onHitRiders ?? [], undefined, cast.spellId)
       const actionId = spellCastActionId(cast.candidateId, index === 0 ? undefined : group.id)
       const mechanic = mechanics.find((entry) => entry.effectId === group.id)
       if (!mechanic) continue
@@ -255,6 +269,26 @@ export function buildCharacterSpellCastActions(input: {
             )
       if (pool === undefined) continue
       const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
+      const offeredModifiers = resourceUse
+        ? []
+        : (input.castModifiers ?? []).flatMap(({ modifierId, label, cost }) => {
+            const modifierPool = affordablePoolFor(policyOutput.resources, cost)
+            return modifierPool
+              ? [
+                  {
+                    modifierId,
+                    label,
+                    chargeId: cost.chargeId,
+                    cost: cost.cost,
+                    poolId: modifierPool.poolId
+                  }
+                ]
+              : []
+          })
+      const spareCap = sparedCreatureCap(input.sparesCreatures ?? [], {
+        level: cast.spellLevel,
+        magicSchoolId: spell.magicSchoolId
+      })
       const sequence = input.firstSequence + candidates.length
       candidates.push({
         sequence,
@@ -267,6 +301,8 @@ export function buildCharacterSpellCastActions(input: {
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
         resourceUse,
+        ...(offeredModifiers.length > 0 && { castModifiers: offeredModifiers }),
+        ...(spareCap > 0 && { sparesCreatures: { max: spareCap } }),
         mechanicFacts
       })
       entryPoints.push({
@@ -328,7 +364,10 @@ export function compileCharacterSpellCasts(input: {
     policyOutput,
     spellsById,
     characterLevel: input.characterLevel,
-    firstSequence: input.firstSequence
+    onHitRiders: ruleEvaluation.onHitRiders,
+    firstSequence: input.firstSequence,
+    castModifiers: ruleEvaluation.castModifiers,
+    sparesCreatures: ruleEvaluation.sparesCreatures
   })
   const entryPoints = compileCharacterActionEntryPoints({
     gameSystemId,

@@ -2,7 +2,7 @@ import type { EncounterCommandInputDto } from '@artificer-toolkit/schema/api/enc
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { encounterCommandResultDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import { rollsInitiative } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { projectNativeTurnPending } from '@artificer-toolkit/rules-runtime/encounterTurnPending'
 import { projectEncounterInitiativePendingSummary } from '@artificer-toolkit/rules-runtime/encounterInitiativeOccurrence'
 import { delegatedLegendaryContinuationCommandId } from '@artificer-toolkit/rules-runtime/encounterSystemTrigger'
@@ -172,7 +172,7 @@ export async function readLiveEncounterTurnAdmission(
       const starting = root.commandType === 'START'
       const initiativeActorIds = checksumCanonicalJson(
         (await readRunActors(ctx, state))
-          .filter(takesInitiativeTurns)
+          .filter(rollsInitiative)
           .map((actor) => actor.id)
           .sort()
       )

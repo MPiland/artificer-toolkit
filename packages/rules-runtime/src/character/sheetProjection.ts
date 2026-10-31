@@ -778,7 +778,8 @@ export function projectCharacterSheetBundle(
   const hitPointMaximumReductions = listHitPointMaximumReductions(params.activeEffects)
   const maxHitPoints = effectiveHitPointMaximum(
     resolveCharacterEffectiveMaximumHitPoints(ruleProjection.derivedStats.maxHitPoints),
-    params.activeEffects
+    params.activeEffects,
+    character.state.hitpoints.maximumFraction
   )
   const conditionOptions = (resolution.registry.system?.conditionTypes ?? []).map((condition) => ({
     id: condition.id,
@@ -996,18 +997,17 @@ export function projectCharacterSheetBundle(
     classLabels,
     featureLabels
   )
-  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap(
-    (source) =>
-      source.preparedSpellLimit === null
-        ? []
-        : [
-            {
-              classId: source.classId,
-              label: classLabels.get(source.classId) ?? 'Class',
-              preparedSpellLimit: source.preparedSpellLimit,
-              preparedSpellIds: source.preparedSpellIds
-            }
-          ]
+  const spellPreparationSources = ruleEvaluation.output.spellPreparation.sources.flatMap((source) =>
+    source.preparedSpellLimit === null
+      ? []
+      : [
+          {
+            classId: source.classId,
+            label: classLabels.get(source.classId) ?? 'Class',
+            preparedSpellLimit: source.preparedSpellLimit,
+            preparedSpellIds: source.preparedSpellIds
+          }
+        ]
   )
   const overviewSkills = Object.entries(ruleProjection.derivedStats.skillBonuses).map(
     ([skill, total]) => {

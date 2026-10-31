@@ -1,5 +1,6 @@
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import type { HitPointMaximumFractionDto } from '@artificer-toolkit/schema/shared/hitPointMaximumFraction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   createCharacterResourceOwnerKey,
@@ -571,12 +572,18 @@ export function applyDamageInterceptions(input: {
  */
 export function heldBatchInputs(input: {
   baseMaximumHitPoints: number
+  /** The share of the maximum its conditions hold (SPELLS-10.T1b); null for a form's own pool. */
+  maximumFraction: HitPointMaximumFractionDto | null | undefined
   effects: readonly ActiveRuleEffectRecord[]
   /** A Creature's feature-held interceptions (`featureHeldDamageInterceptions`), after its effects'. */
   featureInterceptions?: readonly HeldDamageInterception[]
 }) {
   return {
-    effectiveMaximumHitPoints: effectiveHitPointMaximum(input.baseMaximumHitPoints, input.effects),
+    effectiveMaximumHitPoints: effectiveHitPointMaximum(
+      input.baseMaximumHitPoints,
+      input.effects,
+      input.maximumFraction
+    ),
     damageInterceptions: [
       ...heldDamageInterceptions(input.effects),
       ...(input.featureInterceptions ?? [])

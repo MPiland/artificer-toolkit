@@ -23,6 +23,7 @@ import {
   readPublishedDocument
 } from './documents'
 import { dropImageSlot } from './imageSlots'
+import { deleteSourceFacts } from './sourceFacts'
 import {
   authoredCatalogueMetadataSchema,
   authoredDeletedReferenceSchema
@@ -95,6 +96,7 @@ async function deleteOwnedActiveAuthoredContent(
   await retainDeletedAuthoredReferences(ctx, root)
   await removeCatalogueMetadata(ctx, root)
   await ctx.db.delete(root._id)
+  await deleteSourceFacts(ctx, root.id)
   await deleteAuthoredVersion(ctx, version)
   await reconcileAuthoredDeletionDependencies({
     ctx,

@@ -1,5 +1,6 @@
 import { attackRetargetPause } from './nativePauseAttackRetarget.js'
 import { castReactionPause } from './nativePauseCastReaction.js'
+import { d20WindowPause } from './nativePauseD20Window.js'
 import { forcedMovementPause } from './nativePauseForcedMovement.js'
 import { incomingGatePause } from './nativePauseIncomingGate.js'
 import { legendaryResistancePause } from './nativePauseLegendaryResistance.js'
@@ -18,6 +19,7 @@ import type {
  * to the pause union fails to compile until it has a handler.
  */
 const nativePauseHandlers = {
+  D20_WINDOW: d20WindowPause,
   LEGENDARY_RESISTANCE: legendaryResistancePause,
   REACTION: reactionPause,
   CAST_REACTION: castReactionPause,

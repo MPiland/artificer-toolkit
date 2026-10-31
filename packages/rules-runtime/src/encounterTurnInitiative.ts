@@ -30,6 +30,7 @@ import {
   restoreEncounterInitiativePending
 } from './encounterInitiativeOccurrence.js'
 import {
+  anchorOwnedActors,
   createStagedInitiativeRoundState,
   hydrateStagedState,
   inMemoryInitiativeRepository,
@@ -38,7 +39,7 @@ import {
 import { initiativeCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
-import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
+import { rollsInitiative, takesInitiativeTurns } from './encounterInitiativeCursor.js'
 import {
   resolveEncounterIntegerAnswer,
   type EncounterResponseAnswer
@@ -72,7 +73,7 @@ export async function prepareEncounterTurnInitiative(input: {
   | { kind: 'COMPLETE'; root: TurnCoordinatorRootDto }
 > {
   const { state, root, occurrenceId } = input
-  const actors = input.actors.filter(takesInitiativeTurns)
+  const actors = input.actors.filter(rollsInitiative)
   const cohortActorIds = actors.map((actor) => actor.id).sort()
   const advance = root.initiativeAdvance
   const initial = root.commandType === 'START'
@@ -442,11 +443,19 @@ export async function prepareEncounterTurnInitiative(input: {
     }
   }
   if (result.orderedActorIds.length === 0) throw new Error('Encounter initiative did not settle.')
+  // An owned actor authored to act right after its owner takes the place behind it (D200).
+  const settled = anchorOwnedActors(result.state, input.actors)
+  const orderedActorIds = [...settled.participants]
+    .sort((left, right) => left.turnOrderOrdinal! - right.turnOrderOrdinal!)
+    .map((participant) => participant.actorId)
   // Defeated actors keep their rolled place, but the round opens with the first that can act (D63).
-  const defeatedActorIds = skippedEncounterActorIds(actors, input.deadCharacterIds)
+  const defeatedActorIds = skippedEncounterActorIds(
+    input.actors.filter(takesInitiativeTurns),
+    input.deadCharacterIds
+  )
   const roundState = await skipDefeatedOpeningTurns({
-    repository: staged.repository,
-    state: result.state,
+    repository: inMemoryInitiativeRepository(settled).repository,
+    state: settled,
     defeatedActorIds
   })
   const initiative = encounterInitiativeSettlementDtoSchema.parse({
@@ -454,7 +463,7 @@ export async function prepareEncounterTurnInitiative(input: {
     cadence: result.state.round.cadence,
     procedure: result.state.round.procedure,
     policySnapshotChecksum: result.state.round.policySnapshotChecksum,
-    orderedActorIds: result.orderedActorIds,
+    orderedActorIds,
     orderedSideIds: result.orderedSideIds,
     evidence: result.evidence
   })
@@ -470,7 +479,7 @@ export async function prepareEncounterTurnInitiative(input: {
       proposedTerminalTransition: {
         status: 'ACTIVE' as const,
         round,
-        currentActorId: firstUndefeatedActorId(result.orderedActorIds, defeatedActorIds)
+        currentActorId: firstUndefeatedActorId(orderedActorIds, defeatedActorIds)
       }
     }
   }

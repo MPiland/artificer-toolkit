@@ -243,7 +243,7 @@ Content-source visibility is explicit: `PLATFORM` sources have no owner; `USER` 
 to the authenticated owner. Indexed reads select only platform sources and that owner's sources.
 Published roots must agree with their source's System and ownership; private reference labels
 use the same check as detail reads. Source selection does not itself publish or enable Campaign sharing.
-Authored roots carry server-derived `authoringSources` tied to their document checksum: compact
+Each authored root has one server-derived `authoredSourceFacts` row (`subjectId`, `facts`) tied to its document checksum, kept off the root so Character and Builder reads of roots never carry it; content deletion, import-job cleanup and account deletion remove it with the root. It holds compact
 root labels and resolver-reachable feature/option/grant/effect/ancestry relationships, including
 Equipment categories/properties. These are read metadata, not independently editable domain records;
 the reader uses indexed master/owner ranges, never other owners' roots or unpublished drafts.

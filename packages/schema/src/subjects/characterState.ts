@@ -1,6 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { characterConsequencesDtoSchema } from '../shared/consequenceRolls.js'
+import { hitPointMaximumFractionDtoSchema } from '../shared/hitPointMaximumFraction.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
@@ -279,6 +280,8 @@ const characterHitpointsStateDtoSchemaRaw = lazySchema(() =>
     temp: z.number().check(z.int()),
     /** The active effect whose temporary hit points `temp` holds; they end with it (D156). */
     tempSourceEffectId: z.optional(postgresUuidSchema),
+    /** The share of its maximum the Character's conditions leave it, resolved when they change (SPELLS-10.T1b). */
+    maximumFraction: z.optional(hitPointMaximumFractionDtoSchema),
     hitDice: characterHitDiceUsageStateDtoSchema,
     deathSaves: characterDeathSavesDtoSchema
   })
