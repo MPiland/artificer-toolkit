@@ -16229,7 +16229,7 @@
         {
           "id": "SPELLS-12",
           "title": "Concentrate on more than one spell",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -16280,7 +16280,8 @@
                 "size": 5
               },
               "text": "Concentration capacity as a System stat with modifier pipeline and set of maintained states.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Deferred until after performance testing (user 2026-10-30). Ruled by the user on 2026-10-31: at capacity, the caster chooses which Concentration ends, through a prompt before the new spell takes effect. D202: built before PERF-1 (user 2026-10-31).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-12.T2",
@@ -16316,7 +16317,7 @@
                 ]
               },
               "text": "Per-spell saves in casting order, advantage and disadvantage predicates.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). Inherited from T1 (orchestrator review 2026-10-31): damage-save chains act on the oldest maintained state until this task gives each spell its own save; carried grants (D99) end on any new Concentration even with room; a movement-reaction cast at capacity with several held gets a rejection, because that path does not carry the choice yet. All three are in scope here."
             },
             {
               "id": "SPELLS-12.T4",
@@ -18725,7 +18726,8 @@
                 ]
               },
               "text": "Save window: auto-rolled sites (area, movement reaction, spatial). Several die-holders on one area resolve their windows in initiative order.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "TODO",
@@ -18935,7 +18937,8 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4j",
@@ -19119,7 +19122,8 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4m",
@@ -19467,7 +19471,8 @@
                 ]
               },
               "text": "Careful, Sculpt and Heightened on CAST_MODIFIER, with per-target outcomes sealed in the pending context: Careful auto-succeeds the save (half damage still applies), Sculpt takes no damage, Heightened gives disadvantage on one first save. Parity proofs; deletes their kinds.",
-              "note": "Split from T5g. Approved by the user on 2026-10-30."
+              "note": "Split from T5g. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "TODO",
@@ -19743,7 +19748,7 @@
             },
             {
               "id": "SPELLS-31.T5rb",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19758,8 +19763,7 @@
                 ]
               },
               "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape.",
-              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m586 (24d640c8f)."
             },
             {
               "id": "SPELLS-31.T5s",
@@ -19906,7 +19910,8 @@
                 ]
               },
               "text": "Destroy Undead with a CR gate: a failed Turn Undead save destroys an undead at or below the Cleric level's CR limit. The kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted. Authoring-parity proof.",
-              "note": "Split from T4m on 2026-10-31. Growth approved by the user on 2026-10-31 (D202). Design in spells-31-t4m-design-packet.md."
+              "note": "Split from T4m on 2026-10-31. Growth approved by the user on 2026-10-31 (D202). Design in spells-31-t4m-design-packet.md.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T6w",
@@ -19921,7 +19926,8 @@
                 "size": 3
               },
               "text": "Water Elemental Whelm as a self-centered area over the elemental's space, like Spirit Guardians, with the failed save holding the target through the save-gated hold and the recurring damage (D202). Replaces its GM ruling; the two-creature grapple limit may stay a ruling.",
-              "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings."
+              "note": "Directed by the user on 2026-10-31. Engulf and regurgitation stay GM rulings.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -22330,10 +22336,12 @@
             {
               "id": "SPELLS-35.3",
               "text": "A summon authored to roll its own initiative rolls when it arrives and joins the order at that score; Find Familiar plays this way, and its attacks stay refused on its own turn while a delegated attack still resolves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-35.T5 (m586); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Closed 2026-10-31 by SPELLS-35.T5."
             },
             {
               "id": "SPELLS-35.4",
@@ -22458,7 +22466,7 @@
             },
             {
               "id": "SPELLS-35.T5",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.3"
               ],
@@ -22472,8 +22480,7 @@
                 ]
               },
               "text": "Own roll: roll at cast with roll evidence, join through the reinforcement sort, handle a roll that pauses the cast. Author Find Familiar with it, and restore the attack refusal on a summon's own turn (SPELLS-34.T4 removed the gate as unreachable). Author a turn for stat-block summons whose only attacks are owner offers. Room journey.",
-              "note": "Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Approved by the user on 2026-10-30. Merged in m586 (24d640c8f)."
             },
             {
               "id": "SPELLS-35.T6",
@@ -25922,7 +25929,7 @@
             },
             {
               "id": "RELIABILITY-21.T25b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-21.20"
               ],
@@ -25936,7 +25943,7 @@
                 ]
               },
               "text": "Remove the duplicate work in characters/sheetSectionDerivation:store: the System row read and checksummed twice, and authorization, sources and effects read in both readCharacterSheetStoreState and loadCharacterSheetFacts. No timing target (D202).",
-              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed. Measured from m580's convex-function.log (BJ 41180399328): Convex warns on functions over about 800 ms, so CI does give the slow end. builder-browser store max 896 ms, over the 700 ms goal. Stays open: the store needs more margin. D202 (user 2026-10-31): the 700 ms goal is dropped; PERF-1.T1 sets the store budget."
+              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed. Measured from m580's convex-function.log (BJ 41180399328): Convex warns on functions over about 800 ms, so CI does give the slow end. builder-browser store max 896 ms, over the 700 ms goal. Stays open: the store needs more margin. D202 (user 2026-10-31): the 700 ms goal is dropped; PERF-1.T1 sets the store budget. D202: duplicates removed, the 700 ms goal dropped, PERF-1 sets the budget. Merged in m586 (24d640c8f)."
             },
             {
               "id": "RELIABILITY-21.T26",
@@ -25966,7 +25973,8 @@
                 "size": 2
               },
               "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
-              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one."
+              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         }
