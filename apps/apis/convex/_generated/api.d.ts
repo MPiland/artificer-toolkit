@@ -23567,6 +23567,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -33340,7 +33347,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -43063,7 +43080,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -52877,6 +52904,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -62650,7 +62684,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -72373,7 +72417,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -82196,6 +82250,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -91969,7 +92030,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -101692,7 +101763,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -111506,6 +111587,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -121279,7 +121367,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -131002,7 +131100,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -140851,6 +140959,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -150624,7 +150739,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -160347,7 +160472,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -170161,6 +170296,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -179934,7 +180076,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -189657,7 +189809,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -199469,7 +199631,17 @@ export declare const api: {
                               triggerCode: "SAVING_THROW" | "HP_ZERO";
                             }
                           | {
-                              castModifier?: { chargeId: string; cost: number };
+                              castModifier?: {
+                                chargeId: string;
+                                cost: number;
+                                targets?: {
+                                  abilityDefinitionId?: string;
+                                  base: number;
+                                  minimum?: number;
+                                  outcome:
+                                    "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                };
+                              };
                               kind: "PASSIVE";
                               optionalOnHit?:
                                 | { kind: "SPELL_SLOT" }
@@ -209193,7 +209365,16 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
-                        castModifier?: { chargeId: string; cost: number };
+                        castModifier?: {
+                          chargeId: string;
+                          cost: number;
+                          targets?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                          };
+                        };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -218785,7 +218966,16 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
-                        castModifier?: { chargeId: string; cost: number };
+                        castModifier?: {
+                          chargeId: string;
+                          cost: number;
+                          targets?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                          };
+                        };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -228483,6 +228673,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -238256,7 +238453,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -247979,7 +248186,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -257793,6 +258010,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -267566,7 +267790,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -277289,7 +277523,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -286740,7 +286984,15 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
-            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            castModifiers?: Array<{
+              cost: number;
+              id: string;
+              label: string;
+              targets?: {
+                max: number;
+                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+              };
+            }>;
             chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
@@ -288511,7 +288763,15 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
-            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            castModifiers?: Array<{
+              cost: number;
+              id: string;
+              label: string;
+              targets?: {
+                max: number;
+                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+              };
+            }>;
             chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
