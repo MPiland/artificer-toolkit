@@ -342,8 +342,12 @@ export function openCommandRoom(options: {
       readyWaiters.length === 0 &&
       !failure &&
       !options.holdOpen
-    )
+    ) {
+      // Each settled call and pushed frame re-arms the timer; an earlier timer left running would
+      // still close the room under a call that started after it.
+      if (idleTimer) clearTimeout(idleTimer)
       idleTimer = setTimeout(close, idleCloseMs)
+    }
   }
 
   const take = (commandId: string) => {
