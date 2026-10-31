@@ -278,7 +278,7 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
     const [owner, wolf] = tabletopPlayerEncounter.actors
     const summon = {
       ...wolf,
-      id: 'summon',
+      id: '00000000-0000-4000-8000-0000000000a5',
       label: 'Spectral Hound',
       owner: { ownerActorId: owner.id }
     }
