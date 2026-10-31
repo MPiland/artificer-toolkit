@@ -37,16 +37,21 @@ function pathOutcomeKinds(creature: CreatureAuthored, label: string, pathCode: s
   )
 }
 
-describe('engulf riders as GM rulings (D187a)', () => {
+describe('engulf riders as GM rulings and save-gated holds (D187a, SPELLS-33.T6n4)', () => {
   it.each([
     { creature: gelatinousCube, label: 'Ooze Cube', pathCode: 'PASSIVE', kinds: [] },
-    { creature: gelatinousCube, label: 'Engulf', pathCode: 'ON_SAVE_FAIL', kinds: ['DAMAGE'] },
+    {
+      creature: gelatinousCube,
+      label: 'Engulf',
+      pathCode: 'ON_SAVE_FAIL',
+      kinds: ['DAMAGE', 'ACTOR_RELATIONSHIP']
+    },
     { creature: gelatinousCube, label: 'Engulf', pathCode: 'ON_SAVE_SUCCESS', kinds: [] },
     {
       creature: waterElemental,
       label: 'Whelm (Recharge 4-6)',
       pathCode: 'ON_SAVE_FAIL',
-      kinds: ['DAMAGE']
+      kinds: ['DAMAGE', 'ACTOR_RELATIONSHIP']
     },
     {
       creature: waterElemental,
@@ -58,6 +63,33 @@ describe('engulf riders as GM rulings (D187a)', () => {
     'authors the $creature.label $label $pathCode outcomes beside the ruling',
     ({ creature, label, pathCode, kinds }) => {
       expect(pathOutcomeKinds(creature, label, pathCode)).toEqual([...kinds, 'MANUAL_ADJUDICATION'])
+    }
+  )
+
+  it.each([
+    { creature: gelatinousCube, label: 'Engulf', dice: '6d6' },
+    { creature: waterElemental, label: 'Whelm (Recharge 4-6)', dice: '2d8+4' }
+  ])(
+    'holds a target that fails the $creature.label $label save, dealing $dice at the start of the holder’s turns',
+    ({ creature, label, dice }) => {
+      const feature = creature.features?.find((candidate) => candidate.label === label)
+      const failPaths = (feature?.effects ?? []).flatMap((effect) =>
+        effect.paths.filter((path) => path.pathCode === 'ON_SAVE_FAIL')
+      )
+      const holds = failPaths.flatMap((path) =>
+        path.selectionKind === 'FIXED'
+          ? path.resultBlock.outcomes.filter(
+              (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+            )
+          : []
+      )
+      expect(holds).toHaveLength(1)
+      expect(holds[0]).toMatchObject({
+        recurrence: {
+          turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+          outcome: { effectKind: 'DAMAGE', diceConfig: dice }
+        }
+      })
     }
   )
 

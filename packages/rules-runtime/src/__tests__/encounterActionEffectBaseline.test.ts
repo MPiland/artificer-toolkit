@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { gelatinousCube } from '@artificer-toolkit/source-data/srd/creatures/gelatinous-cube.js'
+import { waterElemental } from '@artificer-toolkit/source-data/srd/creatures/water-elemental.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
 import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
@@ -715,7 +717,7 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
   }
 
   /** The save action's one active-effect plan, compiled as a Character action is. */
-  const savePlan = (effect: SpellEffect) => {
+  const savePlan = (effect: Parameters<typeof compileEffect>[0]) => {
     const action = {
       ...characterActionDescriptor(compileEffect(effect), 4),
       conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
@@ -801,4 +803,23 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
     expect(stateKinds(madeOn(compiled, 'ON_SAVE_SUCCESS'))).toEqual(['CREATURE_FORM'])
     expect(madeOn(compiled, 'ON_SAVE_FAIL')).toBeNull()
   })
+
+  it.each([
+    { creature: waterElemental, label: 'Whelm (Recharge 4-6)' },
+    { creature: gelatinousCube, label: 'Engulf' }
+  ])(
+    'holds a creature that fails the $creature.label $label save, and no creature that makes it (SPELLS-33.T6n4)',
+    ({ creature, label }) => {
+      const effect = creature.features?.find((feature) => feature.label === label)?.effects?.[0]
+      if (!effect) throw new Error(`The creature authors no ${label} effect.`)
+      const compiled = savePlan(effect)
+      expect(compiled.plan).toMatchObject({
+        resultGate: { paths: ['ON_SAVE_FAIL'] },
+        adapterFacts: { 'dnd5e.relationship-authored-path': 'ON_SAVE_FAIL' },
+        recurrenceStage: 'START_OF_TURN'
+      })
+      expect(stateKinds(madeOn(compiled, 'ON_SAVE_FAIL'))).toContain('ACTOR_RELATIONSHIP')
+      expect(madeOn(compiled, 'ON_SAVE_SUCCESS')).toBeNull()
+    }
+  )
 })
