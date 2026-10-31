@@ -13708,7 +13708,8 @@
                   "SPELLS-4.T2d3"
                 ]
               },
-              "text": "Effect offer browser journey (split from T2d3, ruled 2026-10-20): a held-effect-browser Playwright proof through scripts/runLocalConvexProof.ps1 against the local Convex container: an authored creature action with a move offer, holder at 0 HP, the drawer offer, map pick, move and undo. Needs the session-worker .dev.vars and local-validation env (ask the user to supply them for the worktree)."
+              "text": "Effect offer browser journey (split from T2d3, ruled 2026-10-20): a held-effect-browser Playwright proof through scripts/runLocalConvexProof.ps1 against the local Convex container: an authored creature action with a move offer, holder at 0 HP, the drawer offer, map pick, move and undo. Needs the session-worker .dev.vars and local-validation env (ask the user to supply them for the worktree).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "DONE",
@@ -18706,7 +18707,8 @@
                 ]
               },
               "text": "Save window: the remaining sites where a roller answers the save.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "TODO",
@@ -18762,7 +18764,8 @@
                 ]
               },
               "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
-              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -18895,7 +18898,8 @@
                 ]
               },
               "text": "Lay on Hands remainder on the generic pool option: a generic target creature-type filter that refuses undead and constructs, and the 5-point cure of a disease or poison, with authoring-parity proofs.",
-              "note": "Growth approved by the user on 2026-10-31."
+              "note": "Growth approved by the user on 2026-10-31.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4f2c",
@@ -18913,7 +18917,8 @@
                 ]
               },
               "text": "Preserve Life's divided healing on the generic pool option: the caster splits the amount among chosen targets, using the option's who-splits field, with an authoring-parity proof.",
-              "note": "Growth approved by the user on 2026-10-31."
+              "note": "Growth approved by the user on 2026-10-31.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4i",
@@ -19137,7 +19142,8 @@
                   "SPELLS-4.T2m1"
                 ]
               },
-              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4n",
@@ -19756,7 +19762,8 @@
                 ]
               },
               "text": "Stunning Strike conversion (split 2026-10-20): an ability-derived save DC (reusing the existing DC kind) on the rider-merge follow-up save path, timed STUNNED until the end of the source's next turn, a parity proof with a homebrew variant, and the kind deleted. Also labels the resource pool on the web drawer option (from T5ra review). Held behind RULES-2.T6b: the DERIVED_DC rider-merge path is a dice-contract fact, not a new compiler shape.",
-              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features."
+              "note": "Rider (2026-10-24, from T4s, no size change): Hurl Through Hell (CLASS_FIEND_HURL_THROUGH_HELL) is authored here if the on-hit charge-spend piece plus the existing remove-from-play covers it (target removed until your next turn, conditional psychic damage); otherwise it ships as a D187a MANUAL_ADJUDICATION GM ruling and the kind is deleted. D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T5s",
@@ -19848,7 +19855,8 @@
                 ]
               },
               "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29."
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "DONE",
@@ -22071,7 +22079,8 @@
                 ]
               },
               "text": "Save-gated hold: a target held only after failing a save, generically through relationshipPlan in effectActionCompiler.ts, with Purple Worm Bite, Whelm and Engulf moved from GM rulings onto it. Each has an authoring-parity proof and a journey on the save path.",
-              "note": "Growth approved by the user on 2026-10-31."
+              "note": "Growth approved by the user on 2026-10-31.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ],
           "journeyStatus": "verified",
@@ -22433,7 +22442,8 @@
                 ]
               },
               "text": "Own roll: roll at cast with roll evidence, join through the reinforcement sort, handle a roll that pauses the cast. Author Find Familiar with it, and restore the attack refusal on a summon's own turn (SPELLS-34.T4 removed the gate as unreachable). Author a turn for stat-block summons whose only attacks are owner offers. Room journey.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-35.T6",
@@ -22451,7 +22461,8 @@
                 ]
               },
               "text": "Turn prompt: a visible prompt to the owner's player when their summon's turn starts. Browser journey.",
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-35.T7",
