@@ -472,7 +472,8 @@ export async function movementRoom(config: MovementRoomConfig) {
       encounterId,
       actors,
       currentActorId: config.moverActorId,
-      now: NOW
+      now: NOW,
+      ...(config.initiativePolicy && { policy: config.initiativePolicy })
     })
   for (const actor of actors)
     await memory.store.insert('encounterActorTokenBindings', {

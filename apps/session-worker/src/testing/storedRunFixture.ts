@@ -12,6 +12,7 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterInitiativeRoundStateDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
+import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomDocument } from '../roomEncounterStore.js'
 
@@ -39,9 +40,11 @@ export async function insertInitiativeRound(
     actors: readonly EncounterRunActorState[]
     currentActorId: string | undefined
     now: string
+    /** The policy the Run froze, where its round is not the manual one. */
+    policy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
   }
 ) {
-  const { encounterId, currentActorId, now } = input
+  const { encounterId, currentActorId, now, policy } = input
   const actors = input.actors.filter(rollsInitiative)
   for (
     let pending = input.actors.filter(
@@ -65,10 +68,10 @@ export async function insertInitiativeRound(
     round: {
       encounterId,
       round: 1,
-      procedure: 'MANUAL',
+      procedure: policy?.snapshot.policy.document.procedure ?? 'MANUAL',
       cadence: 'ENCOUNTER_START',
       status: 'ACTIVE',
-      policySnapshotChecksum: null,
+      policySnapshotChecksum: policy?.checksum ?? null,
       nextTurnOrderOrdinal: actors.length,
       version: 0,
       createdAt: now,
