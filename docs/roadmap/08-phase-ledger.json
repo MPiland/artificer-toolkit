@@ -25839,7 +25839,7 @@
                 ]
               },
               "text": "Builder store margin, split from T25: its max under 700 ms on the builder journey. A level 1 Cleric store reads 270 documents and 567 KB, 386 KB of it 105 Spell authoredRoots at about 3.4 KB each. Move authoringSources to its own table (saves about 1.3 KB per root), with content and account deletion covering it. Stored-shape change: reset and reseed after merge.",
-              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed."
+              "note": "Split by the orchestrator on 2026-10-31 from scope T25 already held. Code merged in m575 (23fd49b2a). Stays open: the 700 ms builder max is unmeasured; CI gives no per-function timings, so measure locally after the reseed. Measured from m580's convex-function.log (BJ 41180399328): Convex warns on functions over about 800 ms, so CI does give the slow end. builder-browser store max 896 ms, over the 700 ms goal. Stays open: the store needs more margin."
             },
             {
               "id": "RELIABILITY-21.T26",
@@ -26431,7 +26431,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
