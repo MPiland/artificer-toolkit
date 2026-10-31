@@ -1240,7 +1240,7 @@
                 "size": 2,
                 "after": []
               },
-              "text": "Bug: storageRecovery.test.ts \"replaces DRAINING authority\" fails on a 1 ms clock race (expected 1793408752741 <= 1793408752740). Fix the test clock or the ordering without weakening the assertion.",
+              "text": "Bug: storageRecovery.test.ts \"replaces DRAINING authority\" fails on a 1 ms clock race (expected 1793408752741 <= 1793408752740). Fix the test clock or the ordering without weakening the assertion. Also: retryNativeQuery in campaignMembership.ts retries the 1 s timeout but not the Convex IsolateNotClean error that follows one (run 41158016895, campaign-membership-browser).",
               "note": "Found on Tests run 41152531895 shard 3 (tip 577cb310a)."
             }
           ]
@@ -15995,10 +15995,12 @@
             },
             {
               "text": "Exhaustion 4 halves the hit point maximum and Exhaustion 6 kills, through authored condition mechanics.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-10.T1b1 (m573), SPELLS-10.T1b2 (m573), SPELLS-10.T1c (m567); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered from SPELLS-2 (D94); level 6 death joins SPELLS-3.",
+              "note": "Registered from SPELLS-2 (D94); level 6 death joins SPELLS-3. Closed 2026-10-31 by SPELLS-10.T1b1, SPELLS-10.T1b2, SPELLS-10.T1c.",
               "id": "SPELLS-10.2"
             },
             {
@@ -16064,7 +16066,7 @@
             },
             {
               "id": "SPELLS-10.T1b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-10.2"
               ],
@@ -16075,11 +16077,10 @@
                 "size": 3
               },
               "text": "Resolve on write, Sheet half: Generic HIT_POINT_MAXIMUM fraction condition mechanic (Exhaustion 4 halves max HP), applied everywhere max HP is derived: the Sheet (heals, rest, HP edits) and the Encounter (room and encounter-persistence writers), per user ruling R1 2026-10-28 (Sheet and Encounter, unlike D94 speed); authoring-parity proof and tests at the Sheet and room seams.",
-              "note": "Registered 2026-10-28 (user yes). Split at sizing (option B, resolve on write): Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/architecture/rules-runtime.md"
+              "note": "Registered 2026-10-28 (user yes). Split at sizing (option B, resolve on write): Approved by the user on 2026-10-30. Merged in m573 (23363591b)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-10.2"
               ],
@@ -16094,8 +16095,7 @@
                 ]
               },
               "text": "Resolve on write, Encounter half: the room and encounter-persistence writers apply the stored maximum fraction, with room tests.",
-              "activeWorkbook": "docs/architecture/rules-runtime.md",
-              "note": "Split from T1b. Approved by the user on 2026-10-30."
+              "note": "Split from T1b. Approved by the user on 2026-10-30. Merged in m573 (23363591b). A Wild Shape form takes no fraction: its hit points are the beast pool."
             },
             {
               "id": "SPELLS-10.T1c",
@@ -19382,7 +19382,7 @@
             },
             {
               "id": "SPELLS-31.T5g",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19396,8 +19396,7 @@
                 ]
               },
               "text": "Generic CAST_MODIFIER option with a resource cost, `castModifierId` on the cast, spend in the cast transaction, revert with the cast, and Subtle Spell. Authoring-parity proof; deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/architecture/rules-runtime.md",
-              "note": "Growth from 5 to about 12 across T5g, T5g2 and T5g3. Approved by the user on 2026-10-30."
+              "note": "Growth from 5 to about 12 across T5g, T5g2 and T5g3. Approved by the user on 2026-10-30. Merged in m573 (23363591b)."
             },
             {
               "status": "TODO",
