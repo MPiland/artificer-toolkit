@@ -92,7 +92,8 @@ export async function insertInitiativeRound(
             : turnOrderOrdinal < currentOrdinal
               ? 'ACTED'
               : 'READY',
-        initiativeScore: null,
+        // A scored round seats its actors by descending score, so a late arrival sorts among them.
+        initiativeScore: policy ? 20 - turnOrderOrdinal : null,
         evaluation: { occurrenceId: null, resultChecksum: null },
         tie: { occurrenceId: null, resultChecksum: null },
         declaration: null,
