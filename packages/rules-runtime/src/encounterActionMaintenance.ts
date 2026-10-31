@@ -28,7 +28,7 @@ import {
 /**
  * The held state a new maintained effect replaces. The holder keeps up to `capacity` at once: below
  * it the new effect is added and nothing ends; at it, the only held state is replaced, or the
- * caster's choice among several (SPELLS-12).
+ * caster's choice among several (SPELLS-12). A stale choice asks again rather than failing.
  */
 export function chooseReplacedMaintainedState<TState extends { id: string }>(input: {
   definitionId: string
@@ -37,12 +37,10 @@ export function chooseReplacedMaintainedState<TState extends { id: string }>(inp
   chosenStateId?: string | undefined
 }): TState | null {
   const { definitionId, held, capacity, chosenStateId } = input
-  if (chosenStateId !== undefined) {
-    const chosen = held.find((state) => state.id === chosenStateId)
-    if (!chosen) throw new Error('The chosen state is not one of the maintained effects held.')
-    return chosen
-  }
   if (held.length < capacity) return null
+  // A pick that no longer names a held state (it ended while the prompt was open) is ignored.
+  const chosen = held.find((state) => state.id === chosenStateId)
+  if (chosen) return chosen
   const [only] = held
   if (held.length === 1 && only) return only
   throw new MaintainedReplacementRequiredError(

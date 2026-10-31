@@ -36,7 +36,7 @@ describe('chooseReplacedMaintainedState', () => {
     ).toBe('b')
   })
 
-  it('rejects a choice that is not a held state', () => {
+  it('asks again when the chosen state ended while the prompt was open and several are still held', () => {
     expect(() =>
       chooseReplacedMaintainedState({
         definitionId: 'def',
@@ -44,7 +44,29 @@ describe('chooseReplacedMaintainedState', () => {
         capacity: 2,
         chosenStateId: 'z'
       })
-    ).toThrow('not one of the maintained effects')
+    ).toThrow(MaintainedReplacementRequiredError)
+  })
+
+  it('adds without ending anything when the chosen state ended and room opened up', () => {
+    expect(
+      chooseReplacedMaintainedState({
+        definitionId: 'def',
+        held: held('a'),
+        capacity: 2,
+        chosenStateId: 'z'
+      })
+    ).toBeNull()
+  })
+
+  it('replaces the only state left when the chosen one ended at capacity one', () => {
+    expect(
+      chooseReplacedMaintainedState({
+        definitionId: 'def',
+        held: held('a'),
+        capacity: 1,
+        chosenStateId: 'z'
+      })?.id
+    ).toBe('a')
   })
 
   it('names the held states in the prompt error', () => {

@@ -186,12 +186,15 @@ describe('Concentration capacity (SPELLS-12.T1)', () => {
     expect(dependents).toContain(first)
   })
 
-  it('rejects ending a state the Character does not hold', async () => {
+  it('asks again when the chosen Concentration is no longer held', async () => {
     const room = await wardRoom([capacityItem])
     expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
     expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
     const refused = await cast(room, 'Third Ward', testUuid(0xe999))
-    expect(refused.answer.type).not.toBe('COMMAND_COMMITTED')
+    expect(refused.answer).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      reason: 'MAINTAINED_REPLACEMENT_REQUIRED'
+    })
     expect(await heldStateIds(room)).toHaveLength(2)
   })
 })
