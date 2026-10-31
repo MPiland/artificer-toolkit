@@ -26,7 +26,10 @@ export function SignOutPage() {
 
       queryClient.clear()
       await router.invalidate()
-      await navigate({ to: '/sign-in' })
+      // A document load renders /sign-in from the server's fresh session. Navigating in place can run
+      // the guest guard against the pre-sign-out router context, bounce through /home, and land on
+      // /sign-in?redirect=%2Fhome.
+      await navigate({ to: '/sign-in', reloadDocument: true })
     }
 
     void signOut()

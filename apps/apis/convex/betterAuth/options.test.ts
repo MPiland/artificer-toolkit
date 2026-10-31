@@ -5,6 +5,16 @@ import { createAuthOptions } from '../authFactory.helper'
 import schema from '../schema'
 import { createAuthAdapterOptions } from './options'
 
+it('rate limits the token mint on a window that resets after a one-second lull', async () => {
+  const t = convexTest(schema, import.meta.glob('../**/*.*s'))
+  await t.run(async (ctx) => {
+    expect(createAuthOptions(ctx).rateLimit?.customRules?.['/convex/token']).toEqual({
+      window: 1,
+      max: 20
+    })
+  })
+})
+
 it('preserves complete HTTP auth table metadata in the official component adapter', async () => {
   const t = convexTest(schema, import.meta.glob('../**/*.*s'))
   await t.run(async (ctx) => {
