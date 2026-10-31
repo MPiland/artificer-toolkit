@@ -31,11 +31,8 @@ type EffectOffersProps = {
   chosenOfferKey: string | null
   /** The new holder picked in the list or on the map; null until one is. */
   targetActorId: string | null
-  /** The Scene read that measures the offer's range, or null when the Scene cannot place both tokens. */
-  sceneContext: (
-    offer: MoveEffectOfferChoice,
-    targetActorId: string
-  ) => MoveHeldEffectInputDto['sceneContext']
+  /** The Scene read that measures the offer's range from the acting creature to the new holder, or null when the Scene cannot place both tokens. */
+  sceneContext: (targetActorId: string) => MoveHeldEffectInputDto['sceneContext']
   /** The Scene read that measures a repeat from its origin creature to the holder, or null. */
   repeatSceneContext: (
     offer: RepeatEffectOfferChoice
@@ -100,7 +97,7 @@ function EffectOfferList({
           offerIndex: offer.offerIndex,
           target: { kind: 'ACTOR', actorId: newHolderId },
           acknowledgedWarnings,
-          sceneContext: sceneContext(offer, newHolderId)
+          sceneContext: sceneContext(newHolderId)
         }),
       { done: () => 'Effect moved.', failed: 'The effect could not be moved.' }
     )

@@ -828,6 +828,39 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
     )
   })
 
+  it('measures a moved effect on the Scene from the acting creature, not the holder', async () => {
+    const user = userEvent.setup()
+    const onMoveHeldEffect = vi.fn().mockResolvedValue(resolved)
+    const onActionPreviewChange = vi.fn()
+    const [actingToken, holderToken] = tabletopLiveScene.tokens
+    renderDrawer(vi.fn(), {
+      effectOffers: effectOfferChoices,
+      onMoveHeldEffect,
+      onActionPreviewChange,
+      actorIdByTokenId: new Map([
+        [actingToken!.id, tabletopGmEncounter.currentActorId!],
+        [holderToken!.id, effectOfferChoices[0].holderActorId]
+      ])
+    })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    await user.click(within(section).getByText('Choose target'))
+    await user.click(within(section).getByRole('combobox', { name: 'New holder' }))
+    await user.click(await screen.findByRole('option', { name: "Ember's Wake" }))
+    expect(onActionPreviewChange).toHaveBeenLastCalledWith({
+      range: { kind: 'WITHIN', distance: effectOfferChoices[0].range },
+      sourceTokenId: actingToken!.id,
+      targetTokenId: actingToken!.id
+    })
+    await user.click(within(section).getByRole('button', { name: 'Move' }))
+
+    expect(onMoveHeldEffect).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        sceneContext: expect.objectContaining({ sourceTokenId: actingToken!.id })
+      })
+    )
+  })
+
   it('sends a delegated attack as the creature’s, commanded by the acting actor, measured from the creature', async () => {
     const user = userEvent.setup()
     const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
