@@ -441,6 +441,7 @@ export async function readEncounterActionChoices(
                 }))
               }
             : {}),
+          ...(candidate?.sparesCreatures ? { sparesCreatures: candidate.sparesCreatures } : {}),
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,

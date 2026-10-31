@@ -148,9 +148,15 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     })
     if (cover?.tier?.blocksTargeting) totalCoverActorIds.add(actor.id)
   }
+  // Creatures the caster spared at cast (validated against what their features allow).
+  const sparedActorIds =
+    !base.placement && 'unaffectedActorIds' in command.target
+      ? (command.target.unaffectedActorIds ?? [])
+      : []
   const unaffectedActorIds = inAreaActors.flatMap(({ actor }) => {
     const creatureTypeId = snapshotCreatureTypeId(actor)
-    return totalCoverActorIds.has(actor.id) ||
+    return sparedActorIds.includes(actor.id) ||
+      totalCoverActorIds.has(actor.id) ||
       encounterSourceImmunityLabel({
         source: base.source,
         holderEffects: input.activeEffectsByActorId.get(actor.id) ?? []

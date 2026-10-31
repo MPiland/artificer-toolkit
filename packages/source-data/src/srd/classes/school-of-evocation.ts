@@ -5,6 +5,7 @@ import {
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
@@ -15,7 +16,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { ABILITY_CODE, SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -55,18 +56,18 @@ export const schoolOfEvocation: ClassAuthored = {
       availableAtLevel: 2,
       order: 1,
       effects: [
-        closedRuleEffect({
-          id: classRowId(WZ, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(WZ, 21, 2), rangeKind: RANGE_KIND.SIGHT },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(WZ, 20, 2),
+            range: classRowId(WZ, 21, 2),
+            path: classRowId(WZ, 0x80, 2),
+            result: classRowId(WZ, 0x81, 2),
+            outcome: classRowId(WZ, 0x82, 2)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_SCULPT_SPELLS
+          label: 'Sculpt Spells',
+          instructions: 'Each creature the wizard spares must be one they can see.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          sparesCreatures: { base: 1, plusSpellLevel: true, magicSchoolIds: [evocationSchoolId] }
         })
       ]
     },

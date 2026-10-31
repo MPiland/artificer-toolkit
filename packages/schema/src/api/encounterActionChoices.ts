@@ -312,6 +312,13 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
         .check(z.maxLength(50))
     ),
     /**
+     * The most creatures the caster may spare from this cast's area, naming them as
+     * `unaffectedActorIds`; absent when the cast spares none.
+     */
+    sparesCreatures: z.optional(
+      z.strictObject({ max: z.number().check(z.int()).check(z.positive()) })
+    ),
+    /**
      * The attack of the actor's Attack action this choice would make ("Attack 2 of 3"): a weapon
      * attack that fits the open Attack action, or the first one of a fresh turn. Null for choices that
      * are not part of the Attack action and for attacks that would spend a new Action ("Do it anyway").
