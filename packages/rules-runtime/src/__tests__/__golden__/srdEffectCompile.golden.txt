@@ -174,10 +174,7 @@
 00000000-0000-0000-c00b-140200000000 CHARACTER:classes Dark One's Blessing | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-140300000000 CHARACTER:classes Dark One's Own Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c00b-140400000000 CHARACTER:classes Fiendish Resilience | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
-00000000-0000-0000-c00b-140500000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c00b-140600000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c00b-140700000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c00b-140800000000 CHARACTER:classes Hurl Through Hell | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c00b-140500000000 CHARACTER:classes Hurl Through Hell | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-600500000000 CHARACTER:classes Repelling Blast | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-601000000000 CHARACTER:classes Gaze of Two Minds | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000000-0000-0000-c00b-601100000000 CHARACTER:classes Lifedrinker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.

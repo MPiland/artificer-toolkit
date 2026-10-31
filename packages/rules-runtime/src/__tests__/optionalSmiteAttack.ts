@@ -108,7 +108,7 @@ export function smiterWeaponAttack(
     ammunition: null,
     overridable: false
   })
-  return { plan, actionMechanic, compilerSource, decision }
+  return { plan, actionMechanic, compilerSource, decision, entry }
 }
 
 /** The attack's binding against the target (Armor Class 11), the attacker's rider choice not yet made. */

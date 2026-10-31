@@ -67,7 +67,8 @@ function pushes(option: OptionAuthored, cast: SpellAuthored) {
     spell: cast,
     onHitRiders: collectOnHitRiders(
       (option.effects ?? []).map((effect) => compileEffect(effect)),
-      option.id
+      option.id,
+      option.label
     ),
     cast: {
       sequence: 0,

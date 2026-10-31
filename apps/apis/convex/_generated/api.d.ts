@@ -291134,6 +291134,7 @@ export declare const api: {
                       kind: "SPELL_SLOT";
                       optionId: string;
                       riderId: string;
+                      riderLabel: string;
                       slotLevel: number;
                     }
                   | {
@@ -291142,6 +291143,7 @@ export declare const api: {
                       optionId: string;
                       poolId: string;
                       riderId: string;
+                      riderLabel: string;
                     }
                 >;
               }
@@ -292078,6 +292080,7 @@ export declare const api: {
                         kind: "SPELL_SLOT";
                         optionId: string;
                         riderId: string;
+                        riderLabel: string;
                         slotLevel: number;
                       }
                     | {
@@ -292086,6 +292089,7 @@ export declare const api: {
                         optionId: string;
                         poolId: string;
                         riderId: string;
+                        riderLabel: string;
                       }
                   >;
                 }
@@ -293686,6 +293690,7 @@ export declare const api: {
                   kind: "SPELL_SLOT";
                   optionId: string;
                   riderId: string;
+                  riderLabel: string;
                   slotLevel: number;
                 }
               | {
@@ -293694,6 +293699,7 @@ export declare const api: {
                   optionId: string;
                   poolId: string;
                   riderId: string;
+                  riderLabel: string;
                 }
             >;
           }
@@ -295307,6 +295313,7 @@ export declare const api: {
                       kind: "SPELL_SLOT";
                       optionId: string;
                       riderId: string;
+                      riderLabel: string;
                       slotLevel: number;
                     }
                   | {
@@ -295315,6 +295322,7 @@ export declare const api: {
                       optionId: string;
                       poolId: string;
                       riderId: string;
+                      riderLabel: string;
                     }
                 >;
               }
