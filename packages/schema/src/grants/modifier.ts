@@ -1227,6 +1227,12 @@ const buildModifierGrantVariants = () =>
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
+      'CONCENTRATION_CAPACITY',
+      'BONUS',
+      emptyDomainDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
       'CHARGE_LIMIT',
       'MODIFY_CHARGE_LIMIT',
       emptyDomainDtoSchema,

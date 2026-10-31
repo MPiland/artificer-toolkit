@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Result window on zone saves (D203):** a Bardic Inspiration-style die can't be added to a zone or forced-movement save, because those stay system-rolled under D170 so a mover never waits on another player. Accepted by the user on 2026-10-31.
 - **Doomed summon at an each-round wrap (SPELLS-35.T3b):** with EACH_ROUND initiative, a summon whose carrier ended just before the wrap can still be rolled into the next round, then acts as first and is removed when its turn ends. Accepted by the user on 2026-10-30.
 - **Builder shell remount on draft open (RELIABILITY-10.T1c):** panels survive a draft opening, but the shell remounts once, so rail scroll and focus reset. Keeping them needs the form, autosave and evaluation hooks to accept a null draft. The create flow also remounts, through its `/edit` navigation.
 - **Ending effects on chosen-creature lists (SPELLS-4.T2n3):** END_EFFECTS is refused on CHOSEN_CREATURES targets (effectActionCompiler.ts offList) and the Worker end-effects plan handles one target, so Heroes' Feast's "cured of poison" on its partakers is a GM ruling. A partaker still poisoned when the 10-minute feast resolves in a Run is rare, and the GM ends the condition from the Sheet. Mass Heal's cures are the other case.

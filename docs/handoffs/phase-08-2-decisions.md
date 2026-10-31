@@ -1956,3 +1956,10 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **SPELLS-12 is built before PERF-1.** This replaces the 2026-10-30 deferral.
 - **Bless on Sheet rolls** needs no work: attack and save rolls already carry target-independent dice, and a die against one creature (Hunter's Mark) waits for the room.
 - **Destroy Undead is automated with a CR gate** on Turn Undead's failed-save block (SPELLS-31.T4m2). The Destroy Undead row stays description-only.
+
+### D203: SPELLS-31 seam rulings from T4l2, T4c1b4 and T4i (user decisions, 2026-10-31)
+
+- **Unarmed Strike is built for every Character** (SPELLS-31.T4l2), with Martial Arts and the Ki-Empowered journey. Character attacks came only from wielded weapons before this.
+- **Open Hand Technique is built** as its own task (T4l2b). **Horde Breaker is a GM ruling:** the player makes the extra attack by hand.
+- **Save windows cover area saves (T4c1b4) and movement reaction saves (T4c1b4b).** Zone and forced-movement saves stay system-rolled, so D170 stands.
+- **Dark One's Blessing is built** on a generic killer-side trigger (T4i2).
