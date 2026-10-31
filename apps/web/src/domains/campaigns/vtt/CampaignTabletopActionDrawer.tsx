@@ -631,7 +631,8 @@ export function CampaignTabletopActionDrawer({
     : null
   const confirmingWarnings =
     ruleWarnings?.requestIdentity === choiceRequestIdentity ? ruleWarnings : null
-  const replacement = useMaintainedReplacementChoice(choiceRequestIdentity)
+  const { choice: replacing, ...replacement } =
+    useMaintainedReplacementChoice(choiceRequestIdentity)
   const incompleteOptionalChoices =
     optionalRuleId !== null &&
     (!selectedOptionalRule ||
@@ -1353,22 +1354,22 @@ export function CampaignTabletopActionDrawer({
                   onChange={setOptionalValues}
                 />
               ) : null}
-              {replacement.choice ? (
+              {replacing ? (
                 <CampaignTabletopChoiceConfirmation
                   confirmLabel='End it and cast'
                   disabled={dependentControlsDisabled}
                   groupLabel='End which Concentration?'
-                  options={replacement.choice.options}
+                  options={replacing.options}
                   title='Too many Concentrations'
-                  value={replacement.choice.endedStateId}
+                  value={replacing.endedStateId}
                   onCancel={replacement.clear}
                   onChange={replacement.select}
                   onConfirm={() =>
                     void resolveAction(
-                      replacement.choice.acceptedWieldConflict,
-                      replacement.choice.acknowledgedWarnings,
+                      replacing.acceptedWieldConflict,
+                      replacing.acknowledgedWarnings,
                       encounter.version,
-                      replacement.choice.endedStateId ?? undefined
+                      replacing.endedStateId ?? undefined
                     )
                   }
                 />
