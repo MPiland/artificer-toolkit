@@ -87,9 +87,10 @@ async function characterHolding(spell: HeldSpell, change?: Parameters<typeof hel
     })
   }
   const initiative = async () => {
-    const modifier = (await sheet()).overview.initiative
+    const { initiative: modifier, initiativeRollMode: rollMode } = (await sheet()).overview
     return player.caller.mutation(api.rolls.execute, {
       characterId: character.id,
+      rollMode,
       expression:
         modifier === 0 ? '1d20' : `1d20 ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`,
       source: { kind: 'INITIATIVE', label: 'Initiative' }
