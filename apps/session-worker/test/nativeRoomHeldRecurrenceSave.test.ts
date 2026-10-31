@@ -21,6 +21,7 @@ const SOURCE_ID = testUuid(0x7a0)
 const CHARACTER_ACTOR_ID = testUuid(0x7a1)
 const CHARACTER_ID = testUuid(0x7a2)
 const PIERCING_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'PIERCING')!.id
+const ACID_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'ACID')!.id
 
 afterEach(() => {
   closeTrackedSockets()
@@ -330,4 +331,44 @@ describe('a held creature’s recurrence as hit points lost directly (SPELLS-33.
       expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
     }
   )
+})
+
+describe('a swallowed creature’s acid on its swallower’s turns (SPELLS-33.T6n3)', () => {
+  it('holds the Character by the Toad’s bite, swallows it, and burns it at the Toad’s turn start only', async () => {
+    const toad = seededSrdCreature('Giant Toad')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: toad }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(toad, 'Bite').id,
+      autoRoll: 'GAME_MASTER',
+      // A natural 19 hits; every later die rolls 1.
+      rolls: [18],
+      fallbackRoll: 0
+    })
+    const bite = await room.startAction(CHARACTER_ACTOR_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(bite.answer.type, JSON.stringify(bite.answer)).toBe('COMMAND_COMMITTED')
+
+    const swallow = (await room.actionChoices()).actions.find(({ label }) => label === 'Swallow')
+    if (!swallow) throw new Error('The Toad offers no Swallow.')
+    expect(swallow.target).toMatchObject({ kind: 'ACTOR', heldBySource: true })
+    const swallowed = await room.startAction(
+      CHARACTER_ACTOR_ID,
+      ['ACTION_ECONOMY_UNAVAILABLE', 'TARGET_RANGE_UNCHECKED'],
+      null,
+      null,
+      swallow.id
+    )
+    expect(swallowed.answer.type, JSON.stringify(swallowed.answer)).toBe('COMMAND_COMMITTED')
+
+    const charactersTurn = await advance(room)
+    expect(charactersTurn.pending).toBeNull()
+    expect(await incomingExecutions(room, charactersTurn.commandId)).toEqual([])
+
+    const toadsTurn = await advance(room)
+    expect(toadsTurn.pending).toBeNull()
+    const executions = await incomingExecutions(room, toadsTurn.commandId)
+    expect(executions.map(damageOf)).toContainEqual([[3, ACID_ID]])
+  })
 })

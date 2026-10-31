@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
+import { swallowedOutcome, heldByUseEffect } from './swallow.js'
 export const giantToad: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_TOAD,
   label: 'Giant Toad',
@@ -177,46 +178,20 @@ export const giantToad: CreatureAuthored = {
       description:
         "Swallow. The toad makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is swallowed, and the grapple ends. The swallowed target is blinded and restrained, it has total cover against attacks and other effects outside the toad, and it takes 10 (3d6) acid damage at the start of each of the toad's turns. The toad can have only one target swallowed at a time. If the toad dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone.",
       effects: [
-        {
-          id: S.actionId(4874, 7),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.ACTION,
-              amount: 1
-            },
-            range: {
-              id: S.actionId(4874, 8),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(4874, 9),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(4874, 9) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(4874, 9),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Resolve the swallow',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "The toad makes one bite attack against a Medium or smaller target it is grappling. If it hits, the target is swallowed and the grapple ends. The swallowed target is blinded and restrained, has total cover against attacks and other effects outside the toad, and takes 10 (3d6) acid damage at the start of each of the toad's turns. The toad can have only one target swallowed at a time. If the toad dies, the swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone."
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        heldByUseEffect({
+          effectId: S.actionId(136, 7),
+          rangeId: S.actionId(136, 8),
+          pathId: S.actionId(136, 9),
+          outcome: swallowedOutcome(136, {
+            localIndex: 10,
+            damageOutcomeId: S.actionId(136, 10),
+            escapeDc: 13,
+            heldAtOnce: 1,
+            largestTarget: S.SIZE_CODE.MEDIUM,
+            damageType: 'ACID',
+            diceConfig: '3d6'
+          })
+        })
       ],
       order: 4
     }

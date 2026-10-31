@@ -2,6 +2,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const tarrasque: CreatureAuthored = {
   id: S.CREATURE_IDS.TARRASQUE,
   label: 'Tarrasque',
@@ -384,7 +385,8 @@ export const tarrasque: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              heldBySource: true as const
             }
           },
           paths: [
@@ -421,14 +423,15 @@ export const tarrasque: CreatureAuthored = {
                 id: S.actionId(268, 230) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(268, 230),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Resolve the swallow',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "The tarrasque makes one bite attack against a Large or smaller creature it is grappling. If the attack hits, the target takes the bite's damage, is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, has total cover against attacks and other effects outside the tarrasque, and takes 56 (16d6) acid damage at the start of each of the tarrasque's turns. If the tarrasque takes 60 damage or more on a single turn from a creature inside it, the tarrasque must succeed on a DC 20 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the tarrasque. If the tarrasque dies, a swallowed creature is no longer restrained by it and can escape from the corpse by using 30 feet of movement, exiting prone."
-                  }
+                  swallowedOutcome(268, {
+                    localIndex: 10,
+                    damageOutcomeId: S.actionId(268, 232),
+                    escapeDc: 20,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.LARGE,
+                    damageType: 'ACID',
+                    diceConfig: '16d6'
+                  })
                 ]
               }
             }

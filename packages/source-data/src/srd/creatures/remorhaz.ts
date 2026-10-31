@@ -1,6 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
+import { swallowedOutcome } from './swallow.js'
 export const remorhaz: CreatureAuthored = {
   id: S.CREATURE_IDS.REMORHAZ,
   label: 'Remorhaz',
@@ -207,7 +207,8 @@ export const remorhaz: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              heldBySource: true as const
             }
           },
           paths: [
@@ -266,14 +267,15 @@ export const remorhaz: CreatureAuthored = {
                 id: S.actionId(235, 702) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
-                  {
-                    id: S.actionId(235, 702),
-                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Resolve the swallow',
-                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-                    instructions:
-                      "The remorhaz makes one bite attack against a Medium or smaller creature it is grappling. If the attack hits, that creature takes the bite's damage and is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, has total cover against attacks and other effects outside the remorhaz, and takes 21 (6d6) acid damage at the start of each of the remorhaz's turns. If the remorhaz takes 30 damage or more on a single turn from a creature inside it, the remorhaz must succeed on a DC 15 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the remorhaz. If the remorhaz dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone."
-                  }
+                  swallowedOutcome(235, {
+                    localIndex: 10,
+                    damageOutcomeId: S.actionId(235, 705),
+                    escapeDc: 17,
+                    heldAtOnce: 1,
+                    largestTarget: S.SIZE_CODE.MEDIUM,
+                    damageType: 'ACID',
+                    diceConfig: '6d6'
+                  })
                 ]
               }
             }

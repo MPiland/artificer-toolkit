@@ -94,9 +94,15 @@ export function targetTransitionChecksum(actorId: string, before: TargetState): 
   const {
     deathSaves: _deathSaves,
     temporaryHitPointsSourceEffectId: _temporaryHitPointsSourceEffectId,
+    conditionIds,
     ...interpretedFacts
   } = before
-  return checksumRuleDocument({ targetActorId: actorId, ...interpretedFacts })
+  // The kernel binds a candidate to its target's conditions in canonical order, whatever order the stored state lists them.
+  return checksumRuleDocument({
+    targetActorId: actorId,
+    ...interpretedFacts,
+    conditionIds: [...conditionIds].sort()
+  })
 }
 
 /** The source joins the target facts only when an effect holds the pool, so sourceless facts stay as they were. */

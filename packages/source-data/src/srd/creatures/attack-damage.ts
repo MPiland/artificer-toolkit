@@ -552,6 +552,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-00b300000000', [['1d4+2', 'BLUDGEONING']]], // Kobold: Sling
   ['00000000-0002-0001-0070-232900000000', [['3d6+10', 'BLUDGEONING']]], // Kraken: Tentacle
   ['00000000-0002-0005-0070-232900000000', [['3d8+10', 'PIERCING']]], // Kraken: Bite
+  ['00000000-0002-0014-0070-232900000000', [['3d8+10', 'PIERCING']]], // Kraken: Bite
   ['00000000-0002-01f6-0070-00b500000000', [['2d10+3', 'SLASHING']]], // Lamia: Claws
   ['00000000-0002-01f7-0070-00b500000000', [['1d4+3', 'PIERCING']]], // Lamia: Dagger
   ['00000000-0002-01f8-0070-00b500000000', []], // Lamia: Intoxicating Touch (prints no hit damage)

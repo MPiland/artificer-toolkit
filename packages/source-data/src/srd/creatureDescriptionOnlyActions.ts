@@ -16,8 +16,6 @@ const entries = (reason: string, keys: readonly string[]) =>
 
 export const SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS: ReadonlyMap<string, string> = new Map([
   ...entries(UNMODELED, [
-    // Swallowing a grappled target.
-    'Behir|actions Swallow',
     // Reading surface thoughts.
     'Doppelganger|actions Read Thoughts',
     // A 5-foot-radius sphere at a point, which waits on area targeting.

@@ -1,5 +1,6 @@
 import { reviveTraceMatches } from './characterDeathSaves.js'
 import { z, lazySchema } from '../zod.js'
+import { PATH_CODE } from '@artificer-toolkit/shared/core'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
@@ -71,6 +72,14 @@ const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
     )
   ])
 )
+
+/**
+ * The authored path an action resolved on: its d20's result path, or ON_USE when it rolled no d20
+ * (a direct use, such as a hold applied as soon as the action is used).
+ */
+export function actionResolvedPath(d20: { resultPath: string } | null | undefined): string {
+  return d20 ? d20.resultPath : PATH_CODE.ON_USE
+}
 
 export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
   z
@@ -429,7 +438,7 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
               application.kind !== 'CONDITION_APPLY' ||
               !relationshipEffect ||
               relationshipEffect.frozenGraphNodeId !== application.sourceNodeId ||
-              application.resolvedPath !== batch.d20?.resultPath
+              application.resolvedPath !== actionResolvedPath(batch.d20)
             )
               context.addIssue({
                 code: 'custom',
