@@ -8,6 +8,7 @@ import {
   DURATION_KIND,
   EFFECT_KIND,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -22,7 +23,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -232,61 +233,19 @@ export const theFiend: ClassAuthored = {
         amount: 1
       },
       effects: [
-        closedRuleEffect({
-          id: classRowId(W, 20, 5),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(W, 21, 5), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(W, 20, 5),
+            range: classRowId(W, 21, 5),
+            path: classRowId(W, 0x74, 1),
+            result: classRowId(W, 0x75, 1),
+            outcome: classRowId(W, 0x76, 1)
           },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
-        }),
-        closedRuleEffect({
-          id: classRowId(W, 20, 6),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(W, 21, 6), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
-        }),
-        closedRuleEffect({
-          id: classRowId(W, 20, 7),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-            range: { id: classRowId(W, 21, 7), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
-        }),
-        closedRuleEffect({
-          id: classRowId(W, 20, 8),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-            range: { id: classRowId(W, 21, 8), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_HURL_THROUGH_HELL
+          label: 'Hurl Through Hell',
+          instructions:
+            'The GM removes the target you just hit from play until the end of your next turn, when it returns to its space or the nearest unoccupied space. If it is not a fiend, the GM deals 10d10 psychic damage to it.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          resourceUse: { chargeId: classRowId(W, 22, 2), cost: 1 }
         })
       ]
     }

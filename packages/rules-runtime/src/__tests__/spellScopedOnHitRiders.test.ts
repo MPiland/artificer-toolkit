@@ -23,7 +23,8 @@ function repellingBlastRiders() {
   if (!feature) throw new Error('Repelling Blast is missing from the SRD Warlock.')
   return collectOnHitRiders(
     (feature.effects ?? []).map((effect) => compileEffect(effect)),
-    feature.id
+    feature.id,
+    feature.label
   )
 }
 

@@ -16,11 +16,7 @@ import {
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
 import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
-import type {
-  ActorRelationshipAuthored,
-  OptionalOnHitAuthored,
-  FollowUpSaveRepeatTriggerAuthored
-} from '@artificer-toolkit/shared/authored'
+import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors,
@@ -33,7 +29,6 @@ import type {
   CharacterRuleActionSystemAdapter,
   CharacterRuleActionActiveEffectPlan
 } from '../../characterRuleActionSystemAdapter.js'
-import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
@@ -95,6 +90,7 @@ import {
 } from './effectActionTestOutcomes.js'
 import {
   authoredAlike,
+  canonicalRepeatTriggers,
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
@@ -882,8 +878,8 @@ function repeatingImmediateFollowUpSavePlan(
 function immediateFollowUpSaveDuration(
   action: Dnd5eCompiledEffectActionSource
 ): CompiledDuration | undefined {
-  const firstEntry = action.compiledEffect.entries[0]
-  return firstEntry && 'duration' in firstEntry ? firstEntry.duration : undefined
+  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
+  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
 }
 
 /**
@@ -926,19 +922,23 @@ function timedImmediateConditionPlan(
     condition?.effectKind !== 'CONDITION' ||
     !initialRemaining ||
     !knownConditionIds.includes(condition.conditionId) ||
-    !UUID.test(resolved.saveEntry.resultBlockId) ||
+    !UUID.test(resolved.saveEntry.entryId) ||
     band?.riders.some(
       ({ conditionContributions: [c] }) => !knownConditionIds.includes(c!.conditionId)
     ) ||
     rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
+  // "Until the end of your next turn" counts the source's turns (Stunning Strike).
+  const turnAnchor =
+    'lifecycle' in resolved.saveEntry ? resolved.saveEntry.lifecycle?.turnAnchor : undefined
   return {
     authoredEffectId: action.effectId,
-    compiledEntryId: resolved.saveEntry.resultBlockId,
+    compiledEntryId: resolved.saveEntry.entryId,
     frozenGraphNodeId: 'condition-duration',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN',
+    recurrenceStage: turnAnchor?.boundary ?? 'END_OF_TURN',
+    tickAnchor: planTickAnchor(turnAnchor),
     initialRemaining,
     conditionContributions: [
       {
@@ -1225,24 +1225,6 @@ export function incomingGateImmunityPlan(input: { wardId: string; duration: Comp
       })
     }
   }
-}
-
-/** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
-function canonicalRepeatTriggers(
-  triggers: readonly FollowUpSaveRepeatTriggerAuthored[]
-): ActiveEffectRepeatTrigger[] {
-  const keyed = new Map(
-    triggers.map(({ kind, by, damageTypeIds, rollInfluence }) => {
-      const trigger: ActiveEffectRepeatTrigger = {
-        event: kind,
-        by,
-        damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null,
-        rollInfluence: rollInfluence ?? null
-      }
-      return [JSON.stringify(trigger), trigger]
-    })
-  )
-  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
 /**
@@ -1727,7 +1709,15 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
   // never be saved against again. A duration belongs to the repeating save's condition or to a
   // one-time save's condition (D62.2), which its own active effect times.
   const entries = action.compiledEffect.entries
-  const lifecycle = entries.some((entry) => 'lifecycle' in entry && entry.lifecycle)
+  // A turn anchor only counts the duration of a timed condition; any other lifecycle is not held here.
+  const lifecycle = entries.some(
+    (entry) =>
+      'lifecycle' in entry &&
+      entry.lifecycle &&
+      Object.values({ ...entry.lifecycle, turnAnchor: undefined }).some(
+        (value) => value !== undefined
+      )
+  )
   const timed = entries.some((entry) => 'duration' in entry && entry.duration)
   const repeats = save.attempts.repeatOnFailure === true || escalatingImmediateSave(save) !== null
   const bandOutcomes = [
@@ -3555,13 +3545,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       outcomes: testOutcomeTemplateIdentities(source)
     }
   },
-  optionalOnHitRiders: ({ compilerSource }) => {
-    const riders = new Map<string, OptionalOnHitAuthored>()
-    for (const entry of dndSourceFromCompilerSource(compilerSource).compiledEffect.entries)
-      if ('optionalRider' in entry && entry.optionalRider)
-        riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
-    return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
-  },
+  optionalOnHitRiders: ({ compilerSource }) => [
+    ...new Map(
+      dndSourceFromCompilerSource(compilerSource).compiledEffect.entries.flatMap((entry) =>
+        'optionalRider' in entry && entry.optionalRider
+          ? [[entry.optionalRider.riderId, entry.optionalRider] as const]
+          : []
+      )
+    ).values()
+  ],
   outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
@@ -3892,12 +3884,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         (node) => node.id === 'nested-save-test'
       )
       const dcBinding = nestedSaveTest?.inputs.threshold
-      const dc =
-        dcBinding?.kind === 'LITERAL' &&
-        typeof dcBinding.value === 'number' &&
-        Number.isSafeInteger(dcBinding.value)
-          ? dcBinding.value
-          : null
+      // A derived DC (ability modifier + proficiency) is settled on the action; a fixed one is in the graph.
+      const dcValue =
+        dcBinding?.kind === 'FACT'
+          ? action.save?.dc
+          : dcBinding?.kind === 'LITERAL'
+            ? dcBinding.value
+            : undefined
+      const dc = typeof dcValue === 'number' && Number.isSafeInteger(dcValue) ? dcValue : null
       if (!nestedSaveNode || !nestedSaveTest || dc === null)
         throw new Dnd5eEffectActionCompilerError('D&D nested save graph is invalid.')
       const savingThrowDefinitions = targetDerivedFacts.savingThrowDefinitions

@@ -14,6 +14,7 @@ import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_SAVE_MODIFIER_FACT_KEY,
+  DND5E_SAVE_DC_FACT_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
@@ -78,17 +79,18 @@ export type FollowUpSaveConditionOutcome = Extract<
 
 /**
  * A save a hit calls for at once, settled inside the hit's OUTCOME so it cannot become an
- * independently invoked action or a delayed workflow: one roll against a fixed DC, whose failure
- * has outcomes and whose success ends it or has outcomes of its own.
+ * independently invoked action or a delayed workflow: one roll against a fixed DC, or against one
+ * derived from the attacker (8 + bonuses), whose failure has outcomes and whose success ends it or
+ * has outcomes of its own.
  */
 export function isImmediateFollowUpSave(save: FollowUpSaveOutcome): save is FollowUpSaveOutcome & {
   attempts: Extract<FollowUpSaveOutcome['attempts'], { kind: 'ONCE' }>
-  savingThrow: Extract<FollowUpSaveOutcome['savingThrow'], { dcMethod: 'FIXED_DC' }>
+  savingThrow: Extract<FollowUpSaveOutcome['savingThrow'], { dcMethod: 'FIXED_DC' | 'DERIVED_DC' }>
 } {
   return (
     save.timing === 'IMMEDIATE' &&
     save.attempts.kind === 'ONCE' &&
-    save.savingThrow.dcMethod === 'FIXED_DC' &&
+    (save.savingThrow.dcMethod === 'FIXED_DC' || save.savingThrow.dcMethod === 'DERIVED_DC') &&
     UUID.test(save.savingThrow.abilityDefinitionId) &&
     Number.isSafeInteger(save.savingThrow.baseDc) &&
     save.onFailure.kind === 'OUTCOMES' &&
@@ -284,6 +286,8 @@ export function immediateFollowUpSaveGraphDefinition(
   // A band's timings are held by its active effects; this refuses one that cannot be.
   timedBandConditions(save)
   const dc = save.savingThrow.baseDc
+  // A derived DC is the attacker's, bound at the hit; a fixed one is the graph's own.
+  const derivedDc = save.savingThrow.dcMethod === 'DERIVED_DC'
   // An escalating save's repeat is held by its active effect, not proposed by the hit.
   const repeat = escalatingImmediateSave(save)?.repeat
   const bands = [
@@ -420,7 +424,8 @@ export function immediateFollowUpSaveGraphDefinition(
       bands[0][2] ||
       repeat ||
       save.onDurationComplete ||
-      !exactFailureMarginRider(rider))
+      !exactFailureMarginRider(rider) ||
+      derivedDc)
   )
     unsupported(
       'D&D failure-margin rider must add bounded conditions to a save that does not repeat.'
@@ -460,7 +465,9 @@ export function immediateFollowUpSaveGraphDefinition(
             port: 'value'
           },
           modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'LITERAL', value: dc },
+          threshold: derivedDc
+            ? { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY }
+            : { kind: 'LITERAL', value: dc },
           contributorChecksum: {
             kind: 'FACT',
             factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY

@@ -388,10 +388,29 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
   )
 
 /** The creature an action conjures: the Encounter actor the cast creates, and its Scene token. */
-export type LiveSessionSummonedToken = { actor: EncounterRunActorState; token: SceneToken }
+export type LiveSessionSummonedToken = {
+  actor: EncounterRunActorState
+  token: SceneToken
+  /**
+   * The initiative the summon rolled for itself at the cast (D200), as one `1dN` face and the
+   * modifier added to it; absent when it takes no roll of its own.
+   */
+  initiativeRoll?: { sides: number; face: number; modifier: number }
+}
 
 export const liveSessionSummonedTokenSchema: z.ZodMiniType<LiveSessionSummonedToken> = lazySchema(
-  () => z.strictObject({ actor: encounterRunActorStateSchema, token: sceneStoredTokenDtoSchema })
+  () =>
+    z.strictObject({
+      actor: encounterRunActorStateSchema,
+      token: sceneStoredTokenDtoSchema,
+      initiativeRoll: z.optional(
+        z.strictObject({
+          sides: z.number().check(z.int()).check(z.gte(2)).check(z.lte(100)),
+          face: z.number().check(z.int()).check(z.gte(1)).check(z.lte(100)),
+          modifier: z.number().check(z.int()).check(z.gte(-100)).check(z.lte(100))
+        })
+      )
+    })
 )
 
 /**

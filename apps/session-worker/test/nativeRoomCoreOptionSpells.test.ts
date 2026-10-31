@@ -13,6 +13,7 @@ import { readCharacterPlay } from '@artificer-toolkit/schema/projections/charact
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { initiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
@@ -840,6 +841,29 @@ async function castSummon(
   return { ...summon, tokenId: summon.tokenId }
 }
 
+/** The Run's current round of initiative, in turn order, and the Initiative roll cards posted. */
+async function initiativeOrder(room: ActionRoom) {
+  const [run] = (await readRoomHistory(room.room.base.stub)).runs
+  if (!run) throw new Error('The room holds no Run.')
+  const state = encounterRunStateSchema.parse(JSON.parse(run.stateJson))
+  const stored = await runInDurableObject(room.room.base.stub, async (_instance, context) => {
+    const store = new RoomEncounterStore(context.storage)
+    return {
+      participants: store.documents('encounterInitiativeParticipants'),
+      payloads: store.documents('campaignConversationEntryPayloads')
+    }
+  })
+  return {
+    state,
+    participants: stored.participants
+      .filter(({ round }) => round === state.round)
+      .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0)),
+    cards: stored.payloads.flatMap((payload) =>
+      payload.kind === 'ROLL' && payload.roll?.source.kind === 'INITIATIVE' ? [payload.roll] : []
+    )
+  }
+}
+
 /** The caster attacks the Wolf through the creature its spell conjured. */
 async function attackThrough(room: ActionRoom, activation: 'FREE' | 'BONUS_ACTION') {
   const [offer] = (await room.actionChoices()).effectOffers
@@ -906,6 +930,61 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
     await room.advanceTurn()
     expect(await conjured(room)).toEqual([])
     expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+
+  /**
+   * SPELLS-35.T5: a stat-block summon authored to act on its own initiative takes a turn although
+   * its only attacks are its owner's offers, and rolls for it as the cast lands.
+   */
+  it('gives an own-initiative stat-block summon a rolled initiative and a turn of its own', async () => {
+    const ownInitiative = {
+      ...spiritualWeapon,
+      effects: spiritualWeapon.effects?.map((effect) => ({
+        ...effect,
+        paths: effect.paths.map((path) =>
+          path.selectionKind === 'FIXED'
+            ? {
+                ...path,
+                resultBlock: {
+                  ...path.resultBlock,
+                  outcomes: path.resultBlock.outcomes.map((outcome) =>
+                    outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'SUMMON'
+                      ? { ...outcome, turnTiming: 'OWN_INITIATIVE' as const }
+                      : outcome
+                  )
+                }
+              }
+            : path
+        )
+      }))
+    }
+    const room = await actionRoom({
+      rolls: [18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [ownInitiative], prepared: [ownInitiative.id] },
+      characterAction: (action) => action.label.startsWith(ownInitiative.label),
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+    const weapon = await castWeapon(room)
+
+    const { state, participants, cards } = await initiativeOrder(room)
+    const own = participants.find(({ actorId }) => actorId === weapon.actor.id)
+    expect(own?.initiativeScore).toEqual(expect.any(Number))
+    const scores = participants.map(({ initiativeScore }) => initiativeScore ?? 0)
+    expect(scores).toEqual([...scores].sort((a, b) => b - a))
+    expect(cards.map(({ evidence }) => evidence.total)).toContain(own?.initiativeScore)
+
+    const acted: string[] = []
+    for (let turn = 0; turn < state.actorIds.length; turn += 1) {
+      acted.push((await initiativeOrder(room)).state.currentActorId ?? '')
+      await room.advanceTurn()
+    }
+    expect(acted).toContain(weapon.actor.id)
   }, 120000)
 
   it('takes the weapon away again when the cast is reverted', async () => {
@@ -1250,7 +1329,11 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
       actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
       characterSpellcasting: { spells: [findFamiliar], prepared: [findFamiliar.id] },
       characterAction: (action) => action.label.startsWith(findFamiliar.label),
-      formCreatures: [applyCreatureAttackRolls(cat)]
+      formCreatures: [applyCreatureAttackRolls(cat)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
     })
   /** One square below the caster, within the spell's 10 feet. */
   const FAMILIAR_POINT = { x: 150, y: 250 }
@@ -1310,6 +1393,54 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     expect(await conjured(room)).toHaveLength(1)
     await setSummonHitPoints(room, familiar.actor.id, 0)
     await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+
+  it('rolls its own initiative at the cast and takes its own turn in every round (SPELLS-35.T5)', async () => {
+    const room = await familiarRoom()
+    const familiar = await castSummon(room, FAMILIAR_POINT, {
+      formId: catForm.id,
+      creatureTypeId: FEY
+    })
+    const readRun = async () => (await initiativeOrder(room)).state
+    const { state: run, participants, cards } = await initiativeOrder(room)
+    // The score the familiar rolled is its initiative participant's, sorted among the others', and
+    // the Initiative card the cast posted shows the same total.
+    const own = participants.find(({ actorId }) => actorId === familiar.actor.id)
+    expect(own?.initiativeScore).toEqual(expect.any(Number))
+    const scores = participants.map(({ initiativeScore }) => initiativeScore ?? 0)
+    expect(scores).toEqual([...scores].sort((a, b) => b - a))
+    const [card] = cards
+    expect(card?.evidence.total).toBe(own?.initiativeScore)
+    expect(card?.characterLabel).toBe('Cat')
+
+    const acted: string[] = []
+    for (let turn = 0; turn < run.actorIds.length; turn += 1) {
+      acted.push((await readRun()).currentActorId ?? '')
+      await room.advanceTurn()
+    }
+    expect(acted).toContain(familiar.actor.id)
+  }, 120000)
+
+  it('takes the familiar out of the initiative order again when the cast is reverted (SPELLS-35.T5)', async () => {
+    const room = await familiarRoom()
+    const before = (await initiativeOrder(room)).participants
+    await castSummon(room, FAMILIAR_POINT, { formId: catForm.id, creatureTypeId: FEY })
+    expect((await initiativeOrder(room)).participants).toHaveLength(before.length + 1)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const after = await initiativeOrder(room)
+    expect(after.participants.map(({ actorId }) => actorId)).toEqual(
+      before.map(({ actorId }) => actorId)
+    )
+    expect(after.state.currentActorId).toBe(
+      before.find(({ status }) => status === 'ACTIVE')?.actorId
+    )
   }, 120000)
 
   it('refuses a cast with no form, a type it does not offer, or a form a stat block summon never takes', async () => {

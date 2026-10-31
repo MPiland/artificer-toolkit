@@ -1,3 +1,4 @@
+import type { EncounterRunActorState } from '../projections/encounterRunState.js'
 import type { CharacterRulePolicyOutput } from '../api/characterRules.js'
 import type { EncounterActorRuleResult } from '../api/encounterActorRules.js'
 import type { CharacterMechanicsProjection } from '../projections/characterMechanics.js'
@@ -5,7 +6,12 @@ import type { ResolvedCampaignCharacterMechanicsProjection } from '../projection
 
 /** Exact server-owned inputs to a System adapter, not a repository or viewer projection. */
 // Systems validate the pinned snapshot's relevant mechanics before using them.
-type InitiativeRunActor = { id: string; sourceId: string | null; snapshot: unknown }
+type InitiativeRunActor = {
+  id: string
+  sourceId: string | null
+  snapshot: unknown
+  owner?: EncounterRunActorState['owner']
+}
 
 export type InitiativeActorFactSource =
   | {

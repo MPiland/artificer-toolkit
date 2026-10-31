@@ -2,12 +2,43 @@ import { describe, expect, it } from 'vitest'
 import {
   addedDieEntries,
   decisionTitle,
+  onHitChoiceTitle,
+  onHitOptionLabel,
   rollPromptText
 } from './CampaignTabletopDecisionDrawer.model'
 
 describe('decisionTitle', () => {
   it('titles a pending area as its saves', () => {
     expect(decisionTitle('AREA_SAVES')).toBe('Area saves')
+  })
+})
+
+describe('on-hit choice text', () => {
+  const rider = '11111111-1111-4111-8111-111111111111'
+  const stun = {
+    kind: 'RESOURCE_POOL',
+    optionId: 'a'.repeat(64),
+    riderId: rider,
+    riderLabel: 'Stunning Strike',
+    poolId: 'CLASS:monk:ki',
+    cost: 1
+  } as const
+  const smite = {
+    kind: 'SPELL_SLOT',
+    optionId: 'b'.repeat(64),
+    riderId: '22222222-2222-4222-8222-222222222222',
+    riderLabel: 'Divine Smite',
+    slotLevel: 2
+  } as const
+
+  it('titles one offered rider by its name and each option by name and cost', () => {
+    expect(onHitChoiceTitle([stun])).toBe('Stunning Strike?')
+    expect(onHitOptionLabel(stun)).toBe('Stunning Strike: spend 1 from a resource pool')
+    expect(onHitOptionLabel(smite)).toBe('Divine Smite: spend a level 2 slot')
+  })
+
+  it('titles several different riders generically so each option names its own', () => {
+    expect(onHitChoiceTitle([stun, smite])).toBe('Add an on-hit effect')
   })
 })
 

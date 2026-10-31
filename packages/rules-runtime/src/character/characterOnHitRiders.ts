@@ -7,6 +7,8 @@ type DamageEntry = CompiledEffectEntry & { outcome: { effectKind: 'DAMAGE' } }
 /** A passive Feature's `ON_HIT` outcomes, owed to every attack its trigger names. */
 export type OnHitRider = {
   riderId: string
+  /** The name of the Feature, option or feat that grants it: how the player tells riders apart. */
+  label: string
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
   /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
   optionalOnHit?: OptionalOnHitAuthored
@@ -27,6 +29,9 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
   return isOnHitOutcome(entry) && entry.outcome.effectKind === 'DAMAGE'
 }
 
+/** Names a rider whose owner carries no label, so the player can still read the offer. */
+const UNLABELED_RIDER = 'On-hit effect'
+
 /**
  * The `ON_HIT` outcomes of each passive Effect: they ride on the attack its trigger names. A rider
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
@@ -35,7 +40,8 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
  */
 export function collectOnHitRiders(
   effects: readonly CompiledEffectGroup[] | undefined,
-  ownerId: string
+  ownerId: string,
+  label: string | undefined
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
     if (
@@ -51,6 +57,7 @@ export function collectOnHitRiders(
       ? [
           {
             riderId: effect.id,
+            label: label?.trim() || UNLABELED_RIDER,
             triggerCode: effect.invocation.triggerCode,
             ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
               ? { optionalOnHit: effect.invocation.optionalOnHit }
@@ -76,7 +83,8 @@ export function collectOnHitRiders(
  *
  * A rider scoped to one Feature rides only that Feature's attacks, and joins the result block of the
  * attack's first `ON_HIT` damage as one sequence with it, so its damage and its follow-up save
- * resolve as part of the hit (D164 Charge). A rider scoped to Spells rides only the cast of one of
+ * resolve as part of the hit (D164 Charge). A rider that calls a follow-up save joins the hit the
+ * same way, scoped or not (Stunning Strike). A rider scoped to Spells rides only the cast of one of
  * them, and `castSpellId` names the Spell a cast is of (a Feature's attack names none).
  */
 export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
@@ -104,6 +112,12 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     ...effect.entries.map((entry) => entry.entryOrder),
     weaponDamage.entryOrder
   )
+  // A Feature-scoped rider, or any rider beside a rider that calls a save, resolves as part of the hit.
+  const joinsHit = matching.some(
+    (rider) =>
+      rider.ridesFeatureId !== undefined ||
+      rider.entries.some((entry) => entry.outcome.effectKind === 'FOLLOW_UP_SAVE')
+  )
   // A Feature acquired from two sources collects twice; its rider still applies once.
   const merged = [
     ...new Map(
@@ -118,13 +132,13 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     entryOrder: lastEntryOrder + entry.entryOrder,
     outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId),
     ...(rider.optionalOnHit
-      ? { optionalRider: { riderId: rider.riderId, cost: rider.optionalOnHit } }
+      ? { optionalRider: { riderId: rider.riderId, label: rider.label, cost: rider.optionalOnHit } }
       : {}),
-    ...(rider.ridesFeatureId !== undefined
+    ...(joinsHit
       ? { resultBlockId: weaponDamage.resultBlockId, groupKind: 'SEQUENTIAL' as const }
       : {})
   }))
-  const sequenced = matching.some((rider) => rider.ridesFeatureId !== undefined)
+  const sequenced = joinsHit
     ? effect.entries.map((entry) =>
         'resultBlockId' in entry && entry.resultBlockId === weaponDamage.resultBlockId
           ? { ...entry, groupKind: 'SEQUENTIAL' as const }

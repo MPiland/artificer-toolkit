@@ -38,16 +38,23 @@ export function onHitSlotChoices(
 
 /** Every way the attacker could pay for each of the action's optional on-hit riders now. */
 export function onHitCandidates(input: {
-  riders: readonly { riderId: string; cost: OptionalOnHitAuthored }[]
+  riders: readonly { riderId: string; label: string; cost: OptionalOnHitAuthored }[]
   spellSlots: SpellSlots
   resources: Resources
 }): EncounterOnHitCandidate[] {
   const choices = onHitSlotChoices(input.spellSlots)
-  return input.riders.flatMap(({ riderId, cost }): EncounterOnHitCandidate[] => {
+  return input.riders.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
     if (cost.kind === 'SPELL_SLOT')
-      return choices.map(({ level }) => ({ kind: 'SPELL_SLOT', riderId, slotLevel: level }))
+      return choices.map(({ level }) => ({
+        kind: 'SPELL_SLOT',
+        riderId,
+        riderLabel,
+        slotLevel: level
+      }))
     const pool = affordablePoolFor(input.resources, cost)
-    return pool ? [{ kind: 'RESOURCE_POOL', riderId, poolId: pool.poolId, cost: cost.cost }] : []
+    return pool
+      ? [{ kind: 'RESOURCE_POOL', riderId, riderLabel, poolId: pool.poolId, cost: cost.cost }]
+      : []
   })
 }
 
