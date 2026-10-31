@@ -55,7 +55,9 @@ describe('SignOutPage', () => {
 
     renderSignOutPage(queryClient)
 
-    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in' }))
+    await waitFor(() =>
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in', reloadDocument: true })
+    )
     expect(queryClient.getQueryData(['user'])).toBeUndefined()
     expect(mocks.invalidate).toHaveBeenCalledOnce()
   })
@@ -89,7 +91,9 @@ describe('SignOutPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
-    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in' }))
+    await waitFor(() =>
+      expect(mocks.navigate).toHaveBeenCalledWith({ to: '/sign-in', reloadDocument: true })
+    )
     expect(mocks.signOut).toHaveBeenCalledTimes(2)
     expect(queryClient.getQueryData(['user'])).toBeUndefined()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()

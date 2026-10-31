@@ -18,7 +18,15 @@ export function createAuthAdapterOptions(
     roles: { user: userAc, superadmin: adminAc }
   })
   return {
-    rateLimit: { enabled: true, storage: 'database' },
+    rateLimit: {
+      enabled: true,
+      storage: 'database',
+      // The count resets only after `window` seconds with no allowed request, because every allowed
+      // request refreshes `lastRequest`. The default (100 per 10s) therefore accumulates under steady
+      // SSR traffic from one IP and eventually 429s the token mint. A 1s window resets after any
+      // one-second lull, while still capping each IP at 20 mints per second.
+      customRules: { '/convex/token': { window: 1, max: 20 } }
+    },
     // OTP is recovery-only; don't expose a second signup or passwordless-login path.
     disabledPaths: [
       '/sign-in/email-otp',

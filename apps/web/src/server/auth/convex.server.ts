@@ -7,6 +7,8 @@ import {
 } from '@artificer-toolkit/apis/auth-proxy-context'
 import { authSessionSnapshotDtoSchema } from '@artificer-toolkit/schema/api/auth'
 
+const MAX_RATE_LIMIT_RETRY_MS = 2000
+
 function connection() {
   const convexUrl = import.meta.env.VITE_CONVEX_URL
   const convexSiteUrl = process.env.CONVEX_SITE_URL
@@ -70,10 +72,17 @@ export async function createAuthenticatedConvexClient(request: Request) {
     // The SDK's token helper discards HTTP failures. Preserve them so outages
     // cannot masquerade as anonymous SSR reads. workerd has no `redirect: 'error'`, so redirects
     // are not followed and fail the `ok` checks below instead.
-    const response = await fetch(`${convexSiteUrl}/api/auth/convex/token`, {
-      headers,
-      redirect: 'manual'
-    })
+    const fetchToken = () =>
+      fetch(`${convexSiteUrl}/api/auth/convex/token`, { headers, redirect: 'manual' })
+    let response = await fetchToken()
+    if (response.status === 429) {
+      // Rate limiting is not an auth outage. Honor Better Auth's retry hint once, then say so.
+      const retryAfterSeconds = Number(response.headers.get('x-retry-after'))
+      const delayMs = Math.min(Math.max(retryAfterSeconds, 0) * 1000, MAX_RATE_LIMIT_RETRY_MS)
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
+      response = await fetchToken()
+      if (response.status === 429) throw new Error('Authentication is rate limited.')
+    }
     if (response.status === 401) {
       // Better Auth's token middleware also maps session-adapter failures to 401.
       // Its get-session endpoint preserves those errors; only a successful null
