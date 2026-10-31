@@ -612,7 +612,7 @@ export function prepareCasterActionOnTarget(
   > & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actionId' | 'castModifierId' | 'acceptedWieldConflict' | 'target'
+      'actionId' | 'castModifierId' | 'spentUnits' | 'acceptedWieldConflict' | 'target'
     >
   },
   action: {
@@ -635,6 +635,7 @@ export function prepareCasterActionOnTarget(
     actionId: capability?.actionId ?? input.command.actionId,
     choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
     castModifierId: capability ? undefined : input.command.castModifierId,
+    spentUnits: capability ? undefined : input.command.spentUnits,
     ammunition: ammunitionCommandChoice(input.command.target),
     wieldConflictAcceptance: {
       kind: 'PROMPTED',

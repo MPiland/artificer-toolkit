@@ -191,7 +191,7 @@ Totals: **C 28, A 13, B 123** (B: 58 join a SPELLS-4.T2 group, 65 need a class-o
 
 - No `resourceUse` on Bardic Inspiration, Cutting Words, Peerless Skill, Turn the Unholy, Preserve Life or Draconic Presence.
 - Sacred Weapon spends Holy Nimbus's charge (`oath-of-devotion.ts`): a likely bug, regression test in T4e. Fixed in T4e: Oath of Devotion now has a Channel Divinity feature with one short-rest charge that Sacred Weapon and Turn the Unholy both spend; `classFeatureCoreOptions.test.ts` pins both.
-- No charges authored for Divine Sense, Lay on Hands, Cleansing Touch, Stroke of Luck or Eldritch Master.
+- T4f2a: Lay on Hands is a charged pool feature with a `RESOURCE_SPENT` heal (see rules-runtime.md, Chosen pool spend); its kind is deleted. No charges authored for Cleansing Touch, Stroke of Luck or Eldritch Master.
 - Aura of Courage and Aura of Devotion lack the 18th-level 30 ft range.
 - College of Lore's Additional Magical Secrets rule sits on the Bonus Proficiencies feature (deleted in T2; the 6th-level feature already grants the spells).
 - Fighter Extra Attack lacks 3 attacks at 11th and 4 at 20th (`fighter.ts:759`); outside the closed-rule scope, so a SPELLS-31 follow-up unless the orchestrator folds it into T3a.

@@ -157,6 +157,7 @@ import {
   DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
+  DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
@@ -2035,6 +2036,11 @@ const DND5E_DIRECT_OUTCOMES: {
       validateHealBonuses(outcome.bonuses)
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
+    if (outcome.valueKind === 'RESOURCE_SPENT') {
+      if (outcome.temporary || outcome.bonuses?.length || !(outcome.amount > 0))
+        unsupported('D&D spent healing is a plain positive amount per unit spent.')
+      return { kind: 'SPENT_HEAL' }
+    }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -3780,6 +3786,28 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
+    // A spent heal gives its per-unit amount for each unit the caster spent from the pool.
+    const requiresSpentHealAmount = published.definition.nodes.some((node) =>
+      Object.values(node.inputs).some(
+        (binding) => binding.kind === 'FACT' && binding.factKey === DND5E_SPENT_HEAL_AMOUNT_FACT_KEY
+      )
+    )
+    let spentHealAmountFacts: Record<string, number> = {}
+    if (requiresSpentHealAmount) {
+      const perUnit =
+        resolvedHealOutcomes.length === 1 ? /^\d+$/.exec(resolvedHealOutcomes[0]!.expression) : null
+      const { spentUnits } = actionMechanic
+      if (
+        !perUnit ||
+        spentUnits === undefined ||
+        !Number.isSafeInteger(spentUnits) ||
+        spentUnits < 1
+      )
+        throw new Dnd5eEffectActionCompilerError(
+          'D&D spent healing requires one exact resolved amount and the units spent.'
+        )
+      spentHealAmountFacts = { [DND5E_SPENT_HEAL_AMOUNT_FACT_KEY]: Number(perUnit[0]) * spentUnits }
+    }
     const action = actionMechanic as {
       attackBonus?: unknown
       attackRollMode?: unknown
@@ -3829,6 +3857,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealAmountFacts,
+      ...spentHealAmountFacts,
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

@@ -833,6 +833,8 @@ export interface CharacterRuleActionSystemAdapter {
       classLevels?: Readonly<Record<string, number>>
       /** The optional on-hit riders the player chose (D123), whose merged outcomes then resolve. */
       selectedOptionalRiderIds?: readonly string[]
+      /** The units the caster spent from the action's pool, which size a heal that gives hit points per unit spent. */
+      spentUnits?: number
     }
     /** Exact published graph selected under the aggregate lock. */
     published: ServerPublishedRuleDefinitionDto

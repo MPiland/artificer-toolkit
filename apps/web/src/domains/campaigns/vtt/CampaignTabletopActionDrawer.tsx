@@ -6,6 +6,7 @@ import {
   Group,
   List,
   MultiSelect,
+  NumberInput,
   Radio,
   SegmentedControl,
   Select,
@@ -247,6 +248,7 @@ export function CampaignTabletopActionDrawer({
   // The last ammunition stack picked stays preselected across actions while it still fits; it is
   // this panel's state only, never saved (ATTACK-19.4).
   const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
+  const [pickedSpentUnits, setPickedSpentUnits] = useState(1)
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -361,6 +363,10 @@ export function CampaignTabletopActionDrawer({
     itemOptions?.find((item) => item.id === pickedItemId)?.id ?? itemOptions?.[0]?.id ?? null
   const itemChoice = chosenItemId ? { boundItemInstanceId: chosenItemId } : {}
   const ammunitionOptions = selectedAction?.ammunition ?? []
+  const chosenSpend = selectedAction?.chosenSpend
+  const spentUnits = chosenSpend
+    ? Math.min(Math.max(pickedSpentUnits, 1), chosenSpend.max)
+    : undefined
   const chosenAmmunition =
     ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
     ammunitionOptions[0] ??
@@ -782,6 +788,7 @@ export function CampaignTabletopActionDrawer({
     setPickedCreatureTypeId(null)
     setPickedBandSide(null)
     setPickedItemId(null)
+    setPickedSpentUnits(1)
   }
 
   useEffect(() => {
@@ -885,6 +892,7 @@ export function CampaignTabletopActionDrawer({
         sceneContext: namesNoCreature ? null : sceneContext,
         acceptedWieldConflict,
         acknowledgedWarnings,
+        ...(spentUnits !== undefined ? { spentUnits } : {}),
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
           ? {
@@ -1155,6 +1163,19 @@ export function CampaignTabletopActionDrawer({
                   label='Ammunition'
                   value={chosenAmmunition?.itemInstanceId ?? null}
                   onChange={setPickedAmmunitionId}
+                />
+              ) : null}
+              {chosenSpend ? (
+                <NumberInput
+                  allowDecimal={false}
+                  clampBehavior='strict'
+                  description={`Each costs ${chosenSpend.unitCost}; up to ${chosenSpend.max}.`}
+                  disabled={selectionControlsDisabled || chosenSpend.max < 1}
+                  label='Amount to spend'
+                  max={chosenSpend.max}
+                  min={1}
+                  value={spentUnits ?? 1}
+                  onChange={(value) => setPickedSpentUnits(Number(value) || 1)}
                 />
               ) : null}
               {sparesCreatures ? (
@@ -1451,6 +1472,7 @@ export function CampaignTabletopActionDrawer({
                       !selectedAction ||
                       !target ||
                       incompleteOptionalChoices ||
+                      (chosenSpend !== undefined && chosenSpend.max < 1) ||
                       currentOptionalChoicesError !== null
                     }
                     loading={submitting}

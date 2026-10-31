@@ -1313,7 +1313,11 @@ function registerOutcomeFields(
             or([
               and([
                 local.field(['scalingKind']).eq('NONE'),
-                or([local.field(['valueKind']).eq('FIXED'), local.field(['valueKind']).eq('POOL')])
+                or([
+                  local.field(['valueKind']).eq('FIXED'),
+                  local.field(['valueKind']).eq('POOL'),
+                  local.field(['valueKind']).eq('RESOURCE_SPENT')
+                ])
               ]),
               and([
                 local.field(['scalingKind']).eq('PER_LEVEL'),

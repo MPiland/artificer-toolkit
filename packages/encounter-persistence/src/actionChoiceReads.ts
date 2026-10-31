@@ -4,6 +4,7 @@ import {
   encounterActionSuppressedWarning
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { ammunitionInStock } from '@artificer-toolkit/rules-runtime/character/characterAmmunition'
+import { chosenSpendChoice } from '@artificer-toolkit/rules-runtime/character/characterChosenSpend'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterActionChoiceRange } from '@artificer-toolkit/rules-runtime/encounterActionRange'
 import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
@@ -441,6 +442,7 @@ export async function readEncounterActionChoices(
                 }))
               }
             : {}),
+          chosenSpend: candidate ? chosenSpendChoice(candidate, policyOutput.resources) : undefined,
           attackSlot: economy.attackSlot,
           target: encounterActionChoiceTarget(
             targetPolicy,

@@ -28,6 +28,7 @@ import {
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
+  DND5E_SPENT_HEAL_AMOUNT_FACT_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
@@ -86,6 +87,16 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       operationKey: DND5E_HEAL_PROPOSAL_OPERATION_KEY,
       pathGatedOperationKey: DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
       payloadInputs: amountPayload,
+      payloadOutputs: ['amount'],
+      changesTargetState: true
+    },
+    // The amount is the spent-heal fact, which the use binds from the units the caster spent.
+    SPENT_HEAL: {
+      operationKey: DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+      pathGatedOperationKey: null,
+      payloadInputs: () => ({
+        amount: { kind: 'FACT', factKey: DND5E_SPENT_HEAL_AMOUNT_FACT_KEY }
+      }),
       payloadOutputs: ['amount'],
       changesTargetState: true
     },
