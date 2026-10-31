@@ -181,7 +181,8 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
     const SPELL = testUuid(0xb61)
     const [rider] = collectOnHitRiders(
       [compileEffect({ ...effect, invocation: { ...effect.invocation, ridesSpellIds: [SPELL] } })],
-      OWNER
+      OWNER,
+      'Rider'
     )
     expect(rider?.ridesSpellIds).toEqual([SPELL])
     const weapon = attack('MELEE_WEAPON_ATTACK', [{ damageTypeId: SLASHING }])
