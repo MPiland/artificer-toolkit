@@ -323,6 +323,22 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
       })
     ),
     /**
+     * The pool the caster divides among the creatures the action reaches, as `healShares` on the
+     * chosen creatures: `total` hit points in all, each creature restored to no more than `ceiling`
+     * of its hit point maximum when one is set; absent when the action divides nothing.
+     */
+    dividedHeal: z.optional(
+      z.strictObject({
+        total: z.number().check(z.int()).check(z.positive()),
+        ceiling: z.optional(
+          z.strictObject({
+            numerator: z.number().check(z.int()).check(z.positive()),
+            denominator: z.number().check(z.int()).check(z.positive())
+          })
+        )
+      })
+    ),
+    /**
      * The most creatures the caster may spare from this cast's area, naming them as
      * `unaffectedActorIds`; absent when the cast spares none.
      */

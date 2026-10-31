@@ -271,6 +271,8 @@ export function projectPlayerEncounterProjection(
         sourceRevision: null,
         public: actor.public,
         controllerUserIds: actor.controllerUserIds,
+        // The owner chain is how the player's client knows it commands a summon (D200).
+        ...(actor.owner && { owner: actor.owner }),
         disposition: actor.disposition,
         initiative: actor.initiative,
         manualOrder: actor.manualOrder,

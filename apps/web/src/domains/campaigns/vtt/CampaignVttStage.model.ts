@@ -314,7 +314,9 @@ export function controlledActorByTokenId(
 /**
  * The Run's current turn as the stage offers it: the current actor, whether the viewer acts for it
  * (the GM for every actor, a player for an actor they control), and that actor's movement readout
- * (V07.5), which only a viewer who acts for it sees.
+ * (V07.5), which only a viewer who acts for it sees. `summonTurn` names a summon and its owner when
+ * the current actor is a summon taking its own turn that the viewing player commands through its
+ * owner (SPELLS-35.5); the GM reads every turn in the order and is not prompted.
  */
 export function readActiveTurn(
   campaign: Pick<CampaignDetailDto, 'assignedCharacter' | 'role'>,
@@ -329,5 +331,13 @@ export function readActiveTurn(
   const turnMovement = currentActorMine
     ? state?.turnMovement.find((entry) => entry.actorId === currentActor?.id)
     : undefined
-  return { encounter, currentActor, currentActorMine, turnMovement }
+  const turnOwner =
+    campaign.role === 'PLAYER' && currentActorMine && currentActor?.owner
+      ? encounter?.actors.find((actor) => actor.id === currentActor.owner?.ownerActorId)
+      : undefined
+  const summonTurn =
+    currentActor && turnOwner
+      ? { ownerLabel: turnOwner.label, summonLabel: currentActor.label }
+      : undefined
+  return { encounter, currentActor, currentActorMine, summonTurn, turnMovement }
 }

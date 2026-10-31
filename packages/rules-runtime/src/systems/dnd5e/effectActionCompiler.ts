@@ -87,6 +87,7 @@ import {
   fixedHealAmount,
   healDiceConfiguration,
   positiveFixedAmount,
+  isChosenAmountHeal,
   validateHealBonuses,
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
@@ -2035,11 +2036,7 @@ const DND5E_DIRECT_OUTCOMES: {
       validateHealBonuses(outcome.bonuses)
       return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
     }
-    if (outcome.valueKind === 'RESOURCE_SPENT') {
-      if (outcome.temporary || outcome.bonuses?.length || !(outcome.amount > 0))
-        unsupported('D&D spent healing is a plain positive amount per unit spent.')
-      return { kind: 'SPENT_HEAL' }
-    }
+    if (isChosenAmountHeal(outcome)) return { kind: 'SPENT_HEAL' }
     const amount = fixedHealAmount(outcome, action.spellCastLevel)
     return { kind: outcome.temporary ? 'TEMPORARY_HIT_POINTS' : 'HEAL', amount }
   },
@@ -3821,7 +3818,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         : {}),
       ...resolvedHealModifierFacts,
       ...recurringHealFacts,
-      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic.spentUnits),
+      ...spentHealAmountFacts(published, resolvedHealOutcomes, actionMechanic),
       ...(spellCastLevel === undefined
         ? {}
         : { [DND5E_SPELL_CAST_LEVEL_FACT_KEY]: spellCastLevel }),

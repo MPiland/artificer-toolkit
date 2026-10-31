@@ -32,11 +32,14 @@ export function recurringHealAmountFacts(
   }
 }
 
-/** A spent heal's per-unit amount for each unit the caster spent from the pool. */
+/**
+ * The amount of a heal the caster sized at use: the per-unit amount for each unit spent from the
+ * pool, or this creature's share of a pool heal the caster divides among the creatures it reaches.
+ */
 export function spentHealAmountFacts(
   published: ServerPublishedRuleDefinitionDto,
   rows: readonly ResolvedHealRow[],
-  spentUnits: number | undefined
+  chosen: { spentUnits?: number; dividedAmount?: number }
 ): Record<string, number> {
   const requiresAmount = published.definition.nodes.some((node) =>
     Object.values(node.inputs).some(
@@ -44,6 +47,12 @@ export function spentHealAmountFacts(
     )
   )
   if (!requiresAmount) return {}
+  const { spentUnits, dividedAmount } = chosen
+  if (dividedAmount !== undefined) {
+    if (!Number.isSafeInteger(dividedAmount) || dividedAmount < 1)
+      throw new Dnd5eEffectActionCompilerError('D&D divided healing requires a positive share.')
+    return { [DND5E_SPENT_HEAL_AMOUNT_FACT_KEY]: dividedAmount }
+  }
   const perUnit = rows.length === 1 ? /^\d+$/.exec(rows[0]!.expression) : null
   if (!perUnit || spentUnits === undefined || !Number.isSafeInteger(spentUnits) || spentUnits < 1)
     throw new Dnd5eEffectActionCompilerError(

@@ -6,6 +6,7 @@ import {
   EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
+  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -26,6 +27,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { damageTypeId } from '../equipment/shared.js'
+import { creatureTypeId } from '../spells/shared.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { gmRulingEffect } from './mechanics.js'
 
@@ -194,21 +196,57 @@ export const lifeDomainCleric: ClassAuthored = {
         "Starting at 2nd level, you can use your Channel Divinity to heal the badly injured. As an action, you present your holy symbol and evoke healing energy that can restore a number of hit points equal to five times your cleric level. Choose any creatures within 30 feet of you, and divide those hit points among them. This feature can restore a creature to no more than half of its hit point maximum. You can't use this feature on an undead or a construct.",
       availableAtLevel: 2,
       order: 3,
+      // Spends the cleric's Channel Divinity use; the pool is five hit points per cleric level, which
+      // the caster divides among the chosen creatures, none past half its hit point maximum.
       effects: [
-        gmRulingEffect({
-          ids: {
-            effect: classRowId(C, 20, 2),
-            range: classRowId(C, 21, 2),
-            path: classRowId(C, 0xd0, 2),
-            result: classRowId(C, 0xd1, 2),
-            outcome: classRowId(C, 0xd2, 2)
+        {
+          id: classRowId(C, 20, 2),
+          order: 1,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(C, 0x66, 3), cost: 1 },
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: {
+              id: classRowId(C, 21, 2),
+              rangeKind: RANGE_KIND.DISTANCE,
+              amount: 30,
+              unit: MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+              excludedCreatureTypeIds: [creatureTypeId('UNDEAD'), creatureTypeId('CONSTRUCT')]
+            }
           },
-          label: 'Preserve Life',
-          instructions:
-            'Restore up to five times your cleric level in hit points, divided as you choose among creatures within 30 feet of you, none above half its hit point maximum. This does not work on an undead or a construct. The GM applies the division and the cap.',
-          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
-          activationCode: ACTIVATION_CODE.ACTION
-        })
+          paths: [
+            {
+              id: classRowId(C, 0xd0, 2),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(C, 0xd1, 2),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(C, 0xd2, 2),
+                    effectKind: EFFECT_KIND.HEAL,
+                    valueKind: 'POOL',
+                    scalingKind: SCALING.PER_LEVEL,
+                    scalingSource: SCALING_SOURCE.CLASS_LEVEL,
+                    classId: CLASS_IDS.CLERIC,
+                    multiplier: 5,
+                    splitKind: 'CASTER_DIVIDES',
+                    splitCeiling: { numerator: 1, denominator: 2 }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {

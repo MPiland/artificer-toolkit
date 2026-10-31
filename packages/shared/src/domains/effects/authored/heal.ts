@@ -86,24 +86,36 @@ export type HealDicePayload =
       scalingKind: typeof SCALABLE_SCALING_KIND.BREAKPOINTS
     } & HealBreakpointProgression<{ diceConfig: string }>)
 
-export type HealPoolPayload =
-  | {
-      amount: number
-      valueKind: 'POOL'
-      scalingKind: typeof SCALING.NONE
-    }
-  | ({
-      valueKind: 'POOL'
-      scalingKind: typeof SCALING.PER_LEVEL
-      scalingSource: 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
-      amount?: number
-      multiplier?: number
-      min?: number
-      max?: number
-    } & (
-      | { scalingSource: 'CLASS_LEVEL'; classId: string }
-      | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
-    ))
+/**
+ * Who splits a pool heal's amount among the creatures it reaches. `CASTER_DIVIDES` has the caster
+ * hand out the amount as they choose at use; `splitCeiling` caps what each creature may be
+ * restored to as a fraction of its hit point maximum.
+ */
+export type HealSplit = {
+  splitKind?: 'CASTER_DIVIDES'
+  splitCeiling?: { numerator: number; denominator: number }
+}
+
+export type HealPoolPayload = HealSplit &
+  (
+    | {
+        amount: number
+        valueKind: 'POOL'
+        scalingKind: typeof SCALING.NONE
+      }
+    | ({
+        valueKind: 'POOL'
+        scalingKind: typeof SCALING.PER_LEVEL
+        scalingSource: 'CHARACTER_LEVEL' | 'CLASS_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL'
+        amount?: number
+        multiplier?: number
+        min?: number
+        max?: number
+      } & (
+        | { scalingSource: 'CLASS_LEVEL'; classId: string }
+        | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
+      ))
+  )
 
 /**
  * Hit points regained for each unit the caster spends from the action's `resourceUse` pool. The
