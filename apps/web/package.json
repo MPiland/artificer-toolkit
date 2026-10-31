@@ -81,7 +81,7 @@
     "better-auth": "patch:better-auth@npm%3A1.6.33#~/.yarn/patches/better-auth-npm-1.6.33-041d1c7111.patch",
     "clsx": "^2.1.1",
     "convex": "1.48.0",
-    "convex-helpers": "^0.1.133",
+    "convex-helpers": "^0.1.131",
     "html-react-parser": "^6.1.9",
     "lucide-react": "^1.65.0",
     "pixi.js": "8.22.0",
