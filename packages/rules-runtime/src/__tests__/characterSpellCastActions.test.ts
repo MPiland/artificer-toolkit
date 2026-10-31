@@ -3600,6 +3600,7 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
       policyOutput: {
         ...character.output,
         ...policyWith([pool(rawUsed, input.maximum)]),
+        grantFold: character.output.grantFold,
         actionDecisions: built.decisions
       },
       resourceUsage:
