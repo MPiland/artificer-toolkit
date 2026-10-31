@@ -275,6 +275,15 @@ describe('roll table outcomes (ATTACK-16.T1a)', () => {
     ).toEqual(expected)
   })
 
+  it('settles a row with no outcomes as owing nothing', async () => {
+    const spell = tableSpell({
+      rows: [row(1, [1, 3], [blinded]), row(2, [4, 6], [])]
+    })
+    expect((await cast(spell, { tableRoll: 5 })).applications).toEqual([])
+    const first = await cast(spell, { tableRoll: 2 })
+    expect(first.applications).toMatchObject([{ kind: 'CONDITION_APPLY', conditionId: BLINDED }])
+  })
+
   it('records the table die and every row gate in the OUTCOME trace', async () => {
     const result = await cast(tableSpell(), { tableRoll: 4, damageDie: 2 })
     const trace = traceOf(result)

@@ -53,6 +53,11 @@ function isRollTableEntry(entry: Entry): boolean {
   return entry.resolutionKind === 'ROLL_TABLE' || entry.resolutionKind === 'ROLL_TABLE_REPEAT'
 }
 
+/** An authored row with no outcomes compiles to this placeholder: the face owes nothing. */
+function isEmptyRow(entry: RowEntry): boolean {
+  return entry.outcome.effectKind === 'NO_OUTCOME'
+}
+
 function rowLasts(entry: RowEntry): boolean {
   return hasLifecycleOverride(entry) || entry.outcome.effectKind === 'APPLY_GRANT'
 }
@@ -196,7 +201,7 @@ export function rollTablePath(
       entry.targetingOverride
     )
       unsupported('D&D roll table row carries a rider the table cannot gate.')
-    uuid(entry.id, 'D&D roll table outcome identity')
+    if (!isEmptyRow(entry)) uuid(entry.id, 'D&D roll table outcome identity')
     const [min, max] =
       entry.rollTableKind === 'RANGE' ? entry.rollRange : [entry.rollValue, entry.rollValue]
     const row = rows.get(entry.entryId)
@@ -267,7 +272,9 @@ function rollTableGraphDefinition(
       }
     }
     let rowDice = 0
-    const graphed = row.entries.filter(({ outcome }) => outcome.effectKind !== 'APPLY_GRANT')
+    const graphed = row.entries.filter(
+      (entry) => !isEmptyRow(entry) && entry.outcome.effectKind !== 'APPLY_GRANT'
+    )
     const outcomes = graphed.map((entry, index) => {
       const id = `${gateId}-${index + 1}`
       const { outcome } = entry
