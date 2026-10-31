@@ -495,14 +495,21 @@ player projection (`playerControlsActor`, `playerSeesActor`) and the room's auth
 carries `owner`. A departed owner's player stops controlling the owned actor because they stop controlling the
 owner; nothing is rewritten. A summoning cast sets `owner` on the actor it creates (SPELLS-4.T2v2a2c1).
 
-An owned actor takes no initiative turn: it acts on its owner's turn (D190a). The initiative cohort is the Run's
-unowned actors, with one home, `takesInitiativeTurns` in `validateInitiativeCursor`
-(`packages/rules-runtime/src/encounterInitiativeCursor.ts`). An owner link may carry `turnTiming` (`AFTER_OWNER`
-or `OWN_INITIATIVE`, D200); absence means the owner's turn, and only `OWN_INITIATIVE` joins the cohort. The field is
+An owned actor takes no initiative turn by default: it acts on its owner's turn (D190a). Two predicates in
+`packages/rules-runtime/src/encounterInitiativeCursor.ts` split the cohort: `rollsInitiative` (unowned, or
+`OWN_INITIATIVE`) names who rolls, and `takesInitiativeTurns` (unowned, or any explicit `turnTiming`) names who holds a
+place in the order and so is what `validateInitiativeCursor` expects. An owner link may carry `turnTiming`
+(`AFTER_OWNER` or `OWN_INITIATIVE`, D200); absence means the owner's turn. The field is
 optional on the stored `owner`, so existing Runs are unchanged and need no migration. Initiative staging, reinforcement, removal,
 reorder, correction and turn settlement pass the actors they already read in the same transaction, owners
 included, and the cursor leaves the owned ones out; no caller adds a read for it. `stableActors` lists each owned
 actor right after its owner (SPELLS-4.T2v2a3d).
+Current (SPELLS-35.T4, D200): an `AFTER_OWNER` summon is seated at cast time by `insertReinforcementInitiative` with
+`anchorActorId` (the nearest owner in the chain that holds a place, `followedActorId`): it takes the anchor's score and
+side, the place behind it, and `ACTED` or `READY` by whether that place is at or before the cursor, which does not move.
+`RESOLVE_ACTION` records the resulting round state as the nullable `initiativeStateJson` and `initiativeStateChecksum`
+pair, validated like the `SUMMONS_ENDED` one, so `REVERT_LAST_ACTION` restores it through `removeConjuredActors`. Each
+later round is seated by `anchorOwnedActors` in rules-runtime.
 
 ## Scene storage
 

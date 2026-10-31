@@ -999,23 +999,28 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
   const CARRIER_ID = testUuid(0xa36)
 
   /** The summon acts first, then the Wolf and the Character; `carrierRounds` gives the Character a carrier effect for that many of its turns. */
-  const summonRoom = ({ carrierRounds }: { carrierRounds?: number } = {}) => {
+  const summonRoom = ({
+    carrierRounds,
+    turnTiming = 'OWN_INITIATIVE'
+  }: { carrierRounds?: number; turnTiming?: 'OWN_INITIATIVE' | 'AFTER_OWNER' } = {}) => {
     const wolf = biteWolf('ATTACK')
+    const summon = {
+      ...srdCreatureActor({ id: SUMMON_ID, creature: wolf }),
+      initiative: 20,
+      owner: {
+        ownerActorId: CHARACTER_ACTOR_ID,
+        sourceEffectId: CARRIER_ID,
+        turnTiming
+      }
+    }
+    const rollers = [
+      { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 15 },
+      { ...casterActor(), initiative: 10 }
+    ]
     return actionRoom({
       fallbackRoll: 0,
-      actors: [
-        {
-          ...srdCreatureActor({ id: SUMMON_ID, creature: wolf }),
-          initiative: 20,
-          owner: {
-            ownerActorId: CHARACTER_ACTOR_ID,
-            sourceEffectId: CARRIER_ID,
-            turnTiming: 'OWN_INITIATIVE' as const
-          }
-        },
-        { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 15 },
-        { ...casterActor(), initiative: 10 }
-      ],
+      // The room opens on the first actor listed: the summon unless it follows its owner.
+      actors: turnTiming === 'AFTER_OWNER' ? [...rollers, summon] : [summon, ...rollers],
       ownerFeatureId: creatureFeature(wolf, 'Bite').id,
       ...(carrierRounds !== undefined && {
         seed: async ({ effects, encounterId, occurredAt }) => {
@@ -1081,6 +1086,29 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
     expect(run.actorIds).not.toContain(SUMMON_ID)
     expect(run.currentActorId).toBe(WOLF_ID)
     expect((await commandTypes(room)).filter((type) => type === 'ADVANCE_TURN')).toHaveLength(1)
+  }, 120000)
+
+  it('acts right after its owner, whatever initiative it was given, in every round (SPELLS-35.T4)', async () => {
+    const room = await summonRoom({ carrierRounds: 5, turnTiming: 'AFTER_OWNER' })
+    const acting = async () => {
+      const { currentActorId, round } = await runOf(room)
+      return [round, currentActorId]
+    }
+    // The summon's own initiative of 20 would put it first; it takes the place behind its owner instead.
+    const turns = [await acting()]
+    for (let turn = 0; turn < 5; turn += 1) {
+      await room.advanceTurn()
+      turns.push(await acting())
+    }
+    expect(turns).toEqual([
+      [1, WOLF_ID],
+      [1, CHARACTER_ACTOR_ID],
+      [1, SUMMON_ID],
+      [2, WOLF_ID],
+      [2, CHARACTER_ACTOR_ID],
+      [2, SUMMON_ID]
+    ])
+    expect((await runOf(room)).actorIds).toContain(SUMMON_ID)
   }, 120000)
 
   it('ends the turn of a summon that lands first after a wrap, once, and leaves a valid actor acting', async () => {
