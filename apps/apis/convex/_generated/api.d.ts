@@ -286353,6 +286353,7 @@ export declare const api: {
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
@@ -288118,6 +288119,7 @@ export declare const api: {
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
             castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
