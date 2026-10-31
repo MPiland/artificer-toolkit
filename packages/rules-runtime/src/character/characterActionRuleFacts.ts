@@ -782,7 +782,13 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  const items = snapshot.equipmentItems.flatMap((item, itemIndex) => {
+  const heldItems = [
+    ...snapshot.equipmentItems.map((item) => ({ item, equipped: Boolean(item.equippedState) })),
+    ...(snapshot.naturalWeapon
+      ? [{ item: { ...snapshot.naturalWeapon, attuned: false }, equipped: true }]
+      : [])
+  ]
+  const items = heldItems.flatMap(({ item, equipped }, itemIndex) => {
     const folded = grantFoldFacts.equipmentItems[itemIndex]
     if (!folded) return []
     const rootRequirements = sourceStateRequirements(folded.restrictions)
@@ -792,7 +798,7 @@ export function buildCharacterActionRuleFacts(params: {
       parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
       category: item.compiledItem.category ?? null,
       properties: [...(item.compiledItem.properties ?? [])],
-      equipped: Boolean(item.equippedState),
+      equipped,
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
       consumedOnUse: item.compiledItem.attributes?.includes('CONSUMED_ON_USE') ?? false,

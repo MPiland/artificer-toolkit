@@ -2,6 +2,8 @@ import type { SystemSeedRecord } from '../content.js'
 
 export const SRD_SYSTEM_ID = '00000000-0000-0000-0000-000000000001'
 export const SRD_USER_ID = '00000000-0000-0000-0000-000000000000'
+/** The natural-weapon Equipment item (equipment/unarmed-strike.ts) the SRD System defaults to. */
+export const SRD_UNARMED_STRIKE_EQUIPMENT_ID = '00000000-0000-0000-0060-018100000000'
 
 // ─── Vocabulary ID helpers ────────────────────────────────────────────────────
 // IDs are stable UUIDs derived from a simple prefix+index scheme so they are
@@ -1446,7 +1448,8 @@ export const srdSystemRecord: SystemSeedRecord = {
   defaults: {
     damageTypeId: srdIdByCode(SRD_DAMAGE_TYPES, 'FIRE'),
     conditionTypeId: srdIdByCode(SRD_CONDITION_TYPES, 'POISONED'),
-    movementTypeId: srdIdByCode(SRD_SPEEDS, 'WALK')
+    movementTypeId: srdIdByCode(SRD_SPEEDS, 'WALK'),
+    unarmedStrikeEquipmentId: SRD_UNARMED_STRIKE_EQUIPMENT_ID
   },
   // The DMG's square-grid corner method; another creature gives at most half cover (PHB).
   cover: {

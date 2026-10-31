@@ -116,6 +116,26 @@ export function specializedTestOutcome(
       damageTypeId: outcome.damageTypeId
     }
   }
+  if (
+    outcome.effectKind === 'DAMAGE' &&
+    outcome.valueKind === 'FIXED' &&
+    outcome.scalingKind === 'NONE' &&
+    facts
+  ) {
+    // A fixed weapon amount ("1 bludgeoning") the source adds its modifiers to, or whose die a grant
+    // sets, resolves to a total (3) or to dice (1d4 + 3) that replace the authored amount.
+    const resolved = facts.resolvedDamageOutcomeExpressions[entry.entryId]
+    if (resolved !== undefined && resolved !== String(outcome.amount)) {
+      uuid(outcome.damageTypeId, 'D&D damage type identity')
+      return /^\d+$/.test(resolved)
+        ? {
+            kind: 'DAMAGE',
+            amount: multipliedDamageAmount(Number(resolved), damageMultiplier(outcome)),
+            damageTypeId: outcome.damageTypeId
+          }
+        : { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
+    }
+  }
   if (outcome.effectKind === 'SCALAR_REDUCTION') {
     uuid(outcome.valueDefinitionId, 'D&D scalar definition identity')
     parseBoundedDiceConfiguration(outcome.amount.diceConfig)

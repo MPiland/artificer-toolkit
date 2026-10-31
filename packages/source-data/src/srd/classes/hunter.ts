@@ -135,33 +135,18 @@ export const hunterConclave: ClassAuthored = {
             'Once on each of your turns when you make a weapon attack, you can make another attack with the same weapon against a different creature that is within 5 feet of the original target and within range of your weapon.',
           order: 2,
           effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 3),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(RA, 21, 3), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(RA, 20, 3),
+                range: classRowId(RA, 21, 3),
+                path: classRowId(RA, 0xd0, 3),
+                result: classRowId(RA, 0xd1, 3),
+                outcome: classRowId(RA, 0xd2, 3)
               },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_HORDE_BREAKER
-            }),
-            closedRuleEffect({
-              id: classRowId(RA, 20, 12),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-                range: { id: classRowId(RA, 21, 12), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_ATTACK,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_HORDE_BREAKER
+              label: 'Horde Breaker',
+              instructions:
+                'Once on each of your turns when you make a weapon attack, you can make another attack with the same weapon against a different creature within 5 feet of the original target and within range of your weapon. Make the extra attack by hand; the GM tracks that it happens once a turn.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
             })
           ]
         }
