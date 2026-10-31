@@ -148,6 +148,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('uses the Character Constitution save: proficient Sorcerer +4, Wizard +2', () => {
     const sorcererFacts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 22,
       targetActorId: CASTER_ID,
       rulePolicyOutput: sorcerer.output
@@ -169,6 +170,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     expect(
       resolveDnd5eConcentrationSaveFacts({
         addedDice: [],
+        heldDice: [],
         appliedDamage: 22,
         targetActorId: CASTER_ID,
         rulePolicyOutput: wizard.output
@@ -179,6 +181,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('prefers a Concentration-scoped Constitution save and its advantage over the general save', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -202,6 +205,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
   it('ignores condition-scoped and other-rule Constitution saves', () => {
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([
@@ -227,6 +231,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     })
     const facts = resolveDnd5eConcentrationSaveFacts({
       addedDice: [],
+      heldDice: [],
       appliedDamage: 12,
       targetActorId: CASTER_ID,
       rulePolicyOutput: withSaves([constitutionSave({ contributors: [bane, WAR_CASTER] })])
@@ -251,6 +256,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
       expect(() =>
         resolveDnd5eConcentrationSaveFacts({
           addedDice: [],
+          heldDice: [],
           appliedDamage: 12,
           targetActorId: CASTER_ID,
           rulePolicyOutput
@@ -259,6 +265,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
     expect(() =>
       resolveDnd5eConcentrationSaveFacts({
         addedDice: [],
+        heldDice: [],
         appliedDamage: 0,
         targetActorId: CASTER_ID,
         rulePolicyOutput: sorcerer.output

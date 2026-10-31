@@ -141,8 +141,9 @@ export async function readRoomEncounterTurnCapture(
       }),
       appRoll: concentrationAdmission.kind === 'READY' ? concentrationAdmission.appRoll : null,
       state: concentrationAdmission.state,
+      // As stored: the save awaiting its d20, or the d20 window that follows it.
       snapshot:
-        concentrationAdmission.kind === 'READY' ? concentrationAdmission.pending.snapshot : null,
+        concentrationAdmission.kind === 'READY' ? concentrationAdmission.pending.stored : null,
       parentApplications:
         concentrationAdmission.kind === 'READY' ? concentrationAdmission.parentApplications : [],
       result: concentrationAdmission.kind === 'REPLAY' ? concentrationAdmission.result : null

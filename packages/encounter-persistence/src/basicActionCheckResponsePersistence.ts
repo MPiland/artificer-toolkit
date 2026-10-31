@@ -20,6 +20,10 @@ import {
   encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
+import {
+  isD20RolledCheck,
+  type D20RolledCheckDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -62,6 +66,21 @@ type AdmittedCheck = Exclude<
   { kind: 'REPLAY' }
 >
 type WindowPayload = EncounterD20WindowPendingContextDto['pause']['payload']
+/** A window on a completed check's d20, as opposed to one on a save awaiting its graph. */
+export type CheckWindowPayload = WindowPayload & { rolled: D20RolledCheckDto }
+/** A window pending context on a completed check, as opposed to a save awaiting its graph. */
+type CheckWindowContext = EncounterD20WindowPendingContextDto & {
+  source: Exclude<EncounterD20WindowPendingContextDto['source'], { kind: 'DAMAGE_SAVE_CHECK' }>
+  pause: { payload: CheckWindowPayload }
+}
+const isCheckWindow = (
+  context: AdmittedCheck['pending']['context']
+): context is CheckWindowContext =>
+  context.kind === 'ENCOUNTER_D20_WINDOW' &&
+  context.source.kind !== 'DAMAGE_SAVE_CHECK' &&
+  isCheckWindowPayload(context.pause.payload)
+export const isCheckWindowPayload = (payload: WindowPayload): payload is CheckWindowPayload =>
+  isD20RolledCheck(payload.rolled)
 
 const mismatch = () => new Error('Live Session check result does not match its pending evidence.')
 
@@ -175,7 +194,7 @@ export async function readCheckScope(
  * It returns the dice the window added and the receipt's value, the chosen offer's index.
  */
 export function requireD20WindowAnswer(input: {
-  offered: EncounterD20WindowPendingContextDto['pause']['payload']
+  offered: CheckWindowPayload
   resolution: AdmittedCheck['response']['resolution']
   spentEffect: ActiveRuleEffectRecord | null
   settled: {
@@ -220,7 +239,7 @@ export function requireD20WindowAnswer(input: {
  */
 export function readD20Answer(input: {
   admission: AdmittedCheck
-  window: WindowPayload | null
+  window: CheckWindowPayload | null
   settlement: { appRollId: string | null; window?: { spentEffect: ActiveRuleEffectRecord | null } }
   execution: { evidence: Parameters<typeof checksumRuleDocument>[0]; initialFactsChecksum?: string }
   d20: Parameters<typeof requireD20WindowAnswer>[0]['settled']['d20']
@@ -280,7 +299,8 @@ export function openedD20Window(
   paused: EncounterD20WindowPendingContextDto['source']['context']
 ) {
   return next.kind === 'ENCOUNTER_D20_WINDOW' &&
-    checksumCanonicalJson(next.source.context) === checksumCanonicalJson(paused)
+    checksumCanonicalJson(next.source.context) === checksumCanonicalJson(paused) &&
+    isCheckWindowPayload(next.pause.payload)
     ? next.pause.payload
     : null
 }
@@ -288,7 +308,7 @@ export function openedD20Window(
 /** Whether a rolled d20 a pause carries follows from the check's own answer under the Run's System. */
 export function pausedOnAnsweredD20(
   admission: AdmittedCheck,
-  rolled: Pick<WindowPayload, 'rolled' | 'appRollId'>
+  rolled: Pick<CheckWindowPayload, 'rolled' | 'appRollId'>
 ) {
   return (
     rolled.rolled.execution.evidence.source.gameSystemId === admission.state.gameSystemId &&
@@ -359,7 +379,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
   if (admission.kind === 'REPLAY') return admission.result
   const { state, campaign, occurrence, pending } = admission
   // A d20 window settles the check whose d20 opened it.
-  const window = pending.context.kind === 'ENCOUNTER_D20_WINDOW' ? pending.context : null
+  const window = isCheckWindow(pending.context) ? pending.context : null
   const context = window ? window.source.context : pending.context
   const { settlement } = input
   const { execution } = settlement
@@ -376,7 +396,7 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     throw mismatch()
   const answered = readD20Answer({
     admission,
-    window: window?.pause.payload ?? null,
+    window: window ? window.pause.payload : null,
     settlement,
     execution,
     d20

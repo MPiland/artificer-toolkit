@@ -16,7 +16,12 @@ import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shar
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import { requireDerivedD20Mode } from './encounterD20ModeValidation.js'
-import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
+import {
+  settleEncounterD20Answer,
+  settleEncounterD20Test,
+  type EncounterD20Roll
+} from './encounterD20Settlement.js'
+import { d20CheckTotal } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -285,8 +290,96 @@ export function damageSaveRollTrigger(
 type DamageSaveFacts = NativeConcentrationContext['save']
 
 /**
- * Settles a kernel-built damage save's d20 (Concentration, massive damage): the paused request must
- * be the chain item's own 1..20 roll, and the holder's frozen save mode decides the faces.
+ * Rolls a kernel-built damage save's d20 (Concentration, massive damage): the paused request must be
+ * the chain item's own 1..20 roll, and the holder's frozen save mode decides the faces.
+ */
+export function rollDamageSaveD20(input: {
+  gameSystemId: string
+  random: (maximum: number) => number
+  save: Pick<DamageSaveFacts, 'rollMode' | 'keep' | 'contributors' | 'addedDice'>
+  continuation: ServerRuleExecutionContinuationDto
+  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  expectedOccurrenceId: string
+  /** Names the source: its paused request is not this roll. */
+  refusal: string
+}): EncounterD20Roll {
+  const { continuation, resolution } = input
+  requireDamageSaveRequest(continuation, input.expectedOccurrenceId, input.refusal)
+  if (resolution.requestId !== continuation.request.requestId) throw new Error(input.refusal)
+  requireDerivedD20Mode({ gameSystemId: input.gameSystemId, ...input.save })
+  return settleEncounterD20Answer({
+    gameSystemId: input.gameSystemId,
+    d20: input.save,
+    answer: resolution,
+    rollD20: () => input.random(20) + 1,
+    random: input.random
+  })
+}
+
+function requireDamageSaveRequest(
+  continuation: ServerRuleExecutionContinuationDto,
+  expectedOccurrenceId: string,
+  refusal: string
+) {
+  if (
+    continuation.request.kind !== 'INTEGER_RANGE' ||
+    continuation.request.min !== 1 ||
+    continuation.request.max !== 20 ||
+    continuation.occurrenceId !== expectedOccurrenceId
+  )
+    throw new Error(refusal)
+}
+
+/**
+ * The d20 a roller rolled before a d20 window (D168) holds its save: the roll's evidence, whose
+ * total counts the dice rolled so far.
+ */
+export function damageSaveRolledD20(input: {
+  requestId: string
+  save: Pick<DamageSaveFacts, 'rollMode' | 'modifier' | 'contributors' | 'contributorChecksum'>
+  roll: EncounterD20Roll
+}) {
+  const { roll, save } = input
+  return {
+    requestId: input.requestId,
+    rollMode: roll.rollMode,
+    keep: roll.keep,
+    derivedRollMode: save.rollMode,
+    rawFaces: roll.rawFaces,
+    selectedNatural: roll.natural,
+    modifier: save.modifier,
+    total: d20CheckTotal({
+      selectedNatural: roll.natural,
+      modifier: save.modifier,
+      addedDice: roll.addedDice
+    }),
+    contributors: save.contributors,
+    contributorChecksum: save.contributorChecksum,
+    ...(roll.addedDice.length > 0 ? { addedDice: roll.addedDice } : {})
+  }
+}
+
+/** The roll a d20 window's settled evidence carries, which resumes the save it paused. */
+export function damageSaveWindowRoll(d20: {
+  rollMode: EncounterD20Roll['rollMode']
+  keep: EncounterD20Roll['keep']
+  rawFaces: number[]
+  selectedNatural: number
+  addedDice?: EncounterD20Roll['addedDice']
+}): EncounterD20Roll {
+  return {
+    rawFaces: d20.rawFaces,
+    rollMode: d20.rollMode,
+    keep: d20.keep,
+    natural: d20.selectedNatural,
+    addedDice: d20.addedDice ?? []
+  }
+}
+
+/**
+ * Settles a kernel-built damage save's d20 (Concentration, massive damage). The roll is the roller's
+ * answer, or the one a d20 window settled (`window`), whose paused request it resumes; a window's
+ * save may still take dice its graph optionally asks for.
  */
 export async function settleDamageSaveD20(input: {
   gameSystemId: string
@@ -294,32 +387,34 @@ export async function settleDamageSaveD20(input: {
   random: (maximum: number) => number
   save: DamageSaveFacts
   continuation: ServerRuleExecutionContinuationDto
-  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  resolution?: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  window?: { requestId: string; roll: EncounterD20Roll }
   expectedOccurrenceId: string
   /** Names the source: its paused request is not this roll, or its result is not the frozen one. */
   refusals: { request: string; result: string }
 }) {
-  const { continuation, resolution } = input
+  const { continuation } = input
   const refusal = () => new Error(input.refusals.result)
-  if (
-    continuation.request.kind !== 'INTEGER_RANGE' ||
-    continuation.request.min !== 1 ||
-    continuation.request.max !== 20 ||
-    resolution.requestId !== continuation.request.requestId ||
-    continuation.occurrenceId !== input.expectedOccurrenceId
-  )
-    throw new Error(input.refusals.request)
-  requireDerivedD20Mode({ gameSystemId: input.gameSystemId, ...input.save })
-  const roll = settleEncounterD20Answer({
-    gameSystemId: input.gameSystemId,
-    d20: input.save,
-    answer: resolution,
-    rollD20: () => input.random(20) + 1,
-    random: input.random
-  })
+  const roll = input.window
+    ? (() => {
+        requireDamageSaveRequest(continuation, input.expectedOccurrenceId, input.refusals.request)
+        if (input.window.requestId !== continuation.request.requestId)
+          throw new Error(input.refusals.request)
+        return input.window.roll
+      })()
+    : input.resolution
+      ? rollDamageSaveD20({
+          ...input,
+          resolution: input.resolution,
+          refusal: input.refusals.request
+        })
+      : (() => {
+          throw new Error(input.refusals.request)
+        })()
   const execution = await settleEncounterD20Test({
     continuation,
     roll,
+    mayAddDice: input.window !== undefined,
     resume: (step) => input.runtime.resume(step),
     outputs: { rawDie: 'naturalD20', total: { port: 'total', modifier: input.save.modifier } },
     refusal
@@ -372,7 +467,8 @@ export async function evaluateNativeConcentrationEvidence(input: {
   random: (maximum: number) => number
   context: NativeConcentrationContext
   continuation: ServerRuleExecutionContinuationDto
-  resolution: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  resolution?: Exclude<EncounterEvidenceAnswer, { kind: 'ENTER_INTEGER' }>
+  window?: Parameters<typeof settleDamageSaveD20>[0]['window']
   expectedOccurrenceId: string
 }) {
   const { context } = input
