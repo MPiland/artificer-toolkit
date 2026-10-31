@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 
 import { rollSummonInitiative } from '../encounterSummonInitiative.js'
 import { createSrdRulesRuntime } from '../testing/dnd5eSrdEncounter.js'
-import { initiativePolicySnapshot } from '../testing/initiativePolicySnapshot.js'
+import {
+  initiativePolicySnapshot,
+  seededInitiativePolicySnapshot
+} from '../testing/initiativePolicySnapshot.js'
 import { creatureActor, creatureEncounter } from './encounterCreatureAction.js'
 import { scriptedDice } from './encounterInitiativeFixtures.js'
 
@@ -64,10 +68,9 @@ describe('rollSummonInitiative (SPELLS-35.T5)', () => {
 
   it('rolls nothing in a Run with no policy snapshot or one that is not an actor roll', async () => {
     const dice = scriptedDice([13])
-    const declared = initiativePolicySnapshot({
-      procedure: 'DECLARED_ACTION_ROLL',
-      cadence: 'EACH_ROUND'
-    })
+    const declared = seededInitiativePolicySnapshot(
+      SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID
+    )
 
     expect(await roll(runWith(null), familiar, dice)).toBeNull()
     expect(await roll(runWith(declared), familiar, dice)).toBeNull()

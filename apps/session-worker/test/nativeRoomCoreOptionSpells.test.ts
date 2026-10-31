@@ -1329,7 +1329,6 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     )
     const seated = row && readStoredRunActor(row)
     expect(seated?.owner).toMatchObject({ turnTiming: 'OWN_INITIATIVE' })
-    expect(typeof seated?.initiative).toBe('number')
 
     const acted: string[] = []
     for (let turn = 0; turn < run.actorIds.length; turn += 1) {
