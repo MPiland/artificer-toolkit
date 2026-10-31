@@ -28,6 +28,8 @@ export function registerHealOutcomeFields(
   const { text, selectSingle, groupObject } = nodes
   const local = cond.local()
   const isHeal = local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
+  const isPool = logic.and([isHeal, local.field(['valueKind']).eq('POOL')])
+  const isSplit = logic.and([isPool, local.field(['splitKind']).eq('CASTER_DIVIDES')])
   const isDamageDealt = logic.and([isHeal, local.field(['valueKind']).eq('DAMAGE_DEALT')])
   map
     .set(
@@ -58,6 +60,30 @@ export function registerHealOutcomeFields(
         'Recipient',
         { kind: 'INLINE_OPTIONS', options: [{ code: 'SOURCE', label: 'The Source' }] },
         { requiredIf: true, showIf: isDamageDealt }
+      )
+    )
+    .set(
+      'healSplitKind',
+      selectSingle(
+        ['splitKind'],
+        'Who Splits It',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'CASTER_DIVIDES', label: 'The Caster Divides It Among Targets' }]
+        },
+        { showIf: isPool }
+      )
+    )
+    .set(
+      'healSplitCeiling',
+      groupObject(
+        ['splitCeiling'],
+        'Most Each Target Is Restored To',
+        () => HEAL_FRACTION_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: isSplit
+        }
       )
     )
 }
