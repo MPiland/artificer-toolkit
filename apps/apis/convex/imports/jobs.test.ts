@@ -57,6 +57,7 @@ const testSchema = defineSchema({
   authoredImportRefs: contentTables.authoredImportRefs,
   authoredImageSlots: contentTables.authoredImageSlots,
   authoredRoots: contentTables.authoredRoots,
+  authoredSourceFacts: contentTables.authoredSourceFacts,
   authoredSpellClasses: contentTables.authoredSpellClasses,
   authoredDrafts: contentTables.authoredDrafts,
   authoredDraftPayloads: contentTables.authoredDraftPayloads,

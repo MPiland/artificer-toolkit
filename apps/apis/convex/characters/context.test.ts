@@ -1,3 +1,4 @@
+import { readStoredSourceFacts, writeSourceFacts } from '../content/sourceFacts'
 import { describe, expect, it } from 'vitest'
 import { authoredDraftCommandInputSchema } from '@artificer-toolkit/schema/api/authoredDrafts'
 import type { AuthoredPublishDraftInput } from '@artificer-toolkit/schema/api/authoredPublication'
@@ -377,13 +378,12 @@ describe('native current Character rule context', () => {
         .query('authoredRoots')
         .withIndex('by_publicId', (q) => q.eq('id', own.id))
         .unique()
-      if (!root?.authoringSources) throw new Error('Missing feature owner metadata.')
-      await ctx.db.patch(root._id, {
-        authoringSources: { ...root.authoringSources, checksum: '0'.repeat(64) }
-      })
+      const facts = root && (await readStoredSourceFacts(ctx, root))
+      if (!root || !facts) throw new Error('Missing feature owner metadata.')
+      await writeSourceFacts(ctx, root.id, { ...facts, checksum: '0'.repeat(64) })
     })
     await expect(t.run((ctx) => serializableContext(ctx, character, owner.userId))).rejects.toThrow(
-      'feature source checksum mismatch'
+      'authoring source checksum mismatch'
     )
   })
 

@@ -2,14 +2,13 @@ import {
   authoredSourceKindsByTable,
   sortAuthoredSourceRows
 } from '@artificer-toolkit/authoring/nodeRuntime'
-import {
-  AUTHORED_SOURCE_FACTS_VERSION,
-  authoredNodeRuntimeSourceFactsSchema,
-  type AuthoredNodeRuntimeSourceFacts,
-  type NodeRuntimeSourceTable
+import type {
+  AuthoredNodeRuntimeSourceFacts,
+  NodeRuntimeSourceTable
 } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { Doc } from '../_generated/dataModel'
 import type { QueryCtx } from '../_generated/server'
+import { readSourceFacts } from '../content/sourceFacts'
 import { readAuthoringSources } from '../content/sources'
 import { contentStream } from '../content/streams'
 import { isImportRowVisible } from '../imports/visibility'
@@ -41,15 +40,7 @@ export function createAuthoredSourceReader(ctx: QueryCtx, systemId: string, user
         throw new Error('Authoring options require paginated search.')
       for (const root of roots) {
         if (root.systemId !== systemId) throw new Error('Stored authoring System mismatch.')
-        if (!root.authoringSources) throw new Error('Authoring source facts are not materialized.')
-        const projected = authoredNodeRuntimeSourceFactsSchema.parse(root.authoringSources)
-        if (projected.checksum !== root.checksum)
-          throw new Error('Stored authoring source checksum mismatch.')
-        if (projected.factsVersion !== AUTHORED_SOURCE_FACTS_VERSION)
-          throw new Error(
-            'Stored authoring source facts are superseded; run content/sourceMigrations.'
-          )
-        facts.push(projected)
+        facts.push(await readSourceFacts(ctx, root))
       }
     }
     return facts

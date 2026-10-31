@@ -1,9 +1,11 @@
 import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
+import type { AuthoredNodeRuntimeSourceFacts } from '@artificer-toolkit/schema/api/nodeRuntimeSources'
 import type { Doc } from '../_generated/dataModel'
 import type { MutationCtx } from '../_generated/server'
 import { catalogueMetadata, syncCatalogueMetadata } from './catalogueMetadata'
 import { publishClassCatalogueFamily, readCatalogueParent } from './catalogueFamilies'
 import { deleteAuthoredVersion, insertAuthoredVersion } from './documents'
+import { writeSourceFacts } from './sourceFacts'
 
 /**
  * Makes `version` the subject's single current version: the one replacement shared by user
@@ -24,6 +26,7 @@ export async function replaceCurrentAuthoredVersion(
       Doc<'authoredRoots'>,
       '_id' | '_creationTime' | 'currentVersionId' | 'catalogue' | 'catalogueFamily'
     >
+    authoringSources: AuthoredNodeRuntimeSourceFacts
     document: Parameters<typeof catalogueMetadata>[1]['document']
     publicId: string
   }
@@ -38,6 +41,7 @@ export async function replaceCurrentAuthoredVersion(
   }
   const rootId = root?._id ?? (await ctx.db.insert('authoredRoots', fields))
   if (root) await ctx.db.replace(root._id, fields)
+  await writeSourceFacts(ctx, current.id, args.authoringSources)
   if (previous) await deleteAuthoredVersion(ctx, previous)
   const published = await ctx.db.get(currentVersionId)
   if (!published) throw new Error('Published content is missing.')
