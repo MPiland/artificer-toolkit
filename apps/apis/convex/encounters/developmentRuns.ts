@@ -64,6 +64,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       const [
         actors,
         effects,
+        maintainedStates,
         commands,
         occurrences,
         receipts,
@@ -84,6 +85,10 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         ctx.db
           .query('encounterActiveRuleEffects')
           .withIndex('by_encounterId_targetActorId_id', (q) => q.eq('encounterId', run.id))
+          .take(101),
+        ctx.db
+          .query('encounterMaintainedEffectStates')
+          .withIndex('by_encounterId_id', (q) => q.eq('encounterId', run.id))
           .take(101),
         ctx.db
           .query('encounterRunCommands')
@@ -144,6 +149,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         run,
         actors,
         effects,
+        maintainedStates,
         commands,
         occurrences,
         receipts,
@@ -206,6 +212,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
       ({
         actors,
         effects,
+        maintainedStates,
         commands,
         occurrences,
         receipts,
@@ -215,9 +222,11 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
         actorBindings
       }) =>
         actors.length > 11 ||
+        maintainedStates.length > 100 ||
         effects.some(
           (effect) =>
-            effect.maintainedEffectStateId !== null ||
+            (effect.maintainedEffectStateId !== null &&
+              !maintainedStates.some((state) => state.id === effect.maintainedEffectStateId)) ||
             !actors.some((actor) => actor.id === effect.targetActorId)
         ) ||
         rounds.length > 10 ||
@@ -262,6 +271,7 @@ export async function removeFixtureRunState(ctx: MutationCtx, args: FixtureRunAr
     for (const row of child.actorBindings) await ctx.db.delete(row._id)
     if (child.binding) await ctx.db.delete(child.binding._id)
     for (const row of child.effects) await ctx.db.delete(row._id)
+    for (const row of child.maintainedStates) await ctx.db.delete(row._id)
     for (const row of child.occurrences) await ctx.db.delete(row._id)
     for (const row of [
       ...child.participants,
