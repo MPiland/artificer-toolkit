@@ -42,7 +42,7 @@ import {
   projectEncounterActionTarget,
   type ProjectableCharacterFacts
 } from './encounterActionProjection.js'
-import { encounterConditionSaveAutoFails } from './encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from './conditionSaveAutoFail.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'

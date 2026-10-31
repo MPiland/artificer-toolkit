@@ -127,7 +127,9 @@ import {
   isSpecializedPath,
   multipliedDamageAmount,
   encodeForcedMovementCollision,
-  decodeForcedMovementCollision
+  decodeForcedMovementCollision,
+  dnd5eSaveAutoFailConditionIds,
+  dnd5eSaveOutcomeRule
 } from './effectActionContracts.js'
 
 export function simpleOperation(key: string): ProposalRuleOperationContract {
@@ -926,16 +928,6 @@ export function dnd5eTestResultPath(
   return input.outcomeRule === 'HIT_IS_CRITICAL' ? 'ON_CRIT' : 'ON_HIT'
 }
 
-/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
-export function dnd5eSaveOutcomeRule(
-  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
-  abilityDefinitionId: string
-): Dnd5eTestOutcomeRule {
-  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
-    ? 'SAVE_AUTO_FAIL'
-    : 'NONE'
-}
-
 /** The save outcome rule as the bound fact of a TEST phase. */
 export function saveOutcomeFact(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
@@ -954,20 +946,6 @@ export function saveAudit(
     savingThrowAbilityDefinitionId: abilityDefinitionId,
     ...(autoFailConditionIds.length ? { autoFailConditionIds } : {})
   }
-}
-
-/** The conditions that fail a target's save of this ability unrolled, sorted and unique (D94). */
-export function dnd5eSaveAutoFailConditionIds(
-  rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
-  abilityDefinitionId: string
-): string[] {
-  return [
-    ...new Set(
-      (rules?.saveAutoFails ?? [])
-        .filter((failure) => failure.abilityDefinitionId === abilityDefinitionId)
-        .map(({ conditionDefinitionId }) => conditionDefinitionId)
-    )
-  ].sort()
 }
 
 /**

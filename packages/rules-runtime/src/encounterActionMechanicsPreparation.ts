@@ -66,9 +66,9 @@ import {
   encounterConditionAttackContributors,
   encounterConditionHitIsCritical,
   encounterConditionMechanicsInSourceSight,
-  encounterConditionSaveAutoFails,
   encounterConditionSources
 } from './encounterConditionMechanics.js'
+import { encounterConditionSaveAutoFails } from './conditionSaveAutoFail.js'
 import { featureChargeUsed, snapshotCreatureTypeId } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
