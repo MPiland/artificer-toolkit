@@ -754,7 +754,6 @@ const browserProofModes = [
   'player-browser',
   'heat-metal-browser',
   'delegated-attack-browser',
-  'summon-turn-browser',
   'account-deletion-browser',
   'builder-browser',
   'character-sheet-browser',
