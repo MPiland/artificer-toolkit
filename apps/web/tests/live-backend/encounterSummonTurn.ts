@@ -81,7 +81,20 @@ export async function verifyEncounterSummonTurnBrowser(
       },
       assertPromptedForSummon: async () => {
         stage = 'see the summon turn prompt'
-        await expect(prompt).toBeVisible()
+        await expect(prompt)
+          .toBeVisible({ timeout: 15_000 })
+          .catch(async (error: unknown) => {
+            const names = await page.getByRole('button').allInnerTexts()
+            const statuses = await page.getByRole('status').allInnerTexts()
+            throw new Error(
+              'DEBUG buttons=' +
+                JSON.stringify(names) +
+                ' statuses=' +
+                JSON.stringify(statuses) +
+                ' ' +
+                String(error).slice(0, 200)
+            )
+          })
         await expect(prompt).toContainText(input.hero.label)
         await page.screenshot({
           caret: 'initial',
