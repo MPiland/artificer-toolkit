@@ -44,7 +44,6 @@ import type {
 import type {
   MeasurementUnitCode,
   BreakpointScalingAuthored,
-  CastModifierAuthored,
   ModifierAttackDecoysAuthored,
   ModifierDamageDieAuthored,
   ModifierDamageInterceptionAuthored,
@@ -54,6 +53,7 @@ import type {
 } from '@artificer-toolkit/shared/core'
 import type {
   ActorRelationshipAuthored,
+  CastModifierAuthored,
   ApplyGrantAuthored,
   ActorRelationshipModuleAuthored,
   CastingTimeAuthored,

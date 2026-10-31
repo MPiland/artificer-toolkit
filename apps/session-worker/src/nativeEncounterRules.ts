@@ -8,6 +8,7 @@ import {
   actionTargetActorId,
   ammunitionCommandChoice,
   castChoiceOptionId,
+  resolveCheckActionInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   type RemoveAreaTargetInputDto,
   type ResolveEncounterActionInputDto,
@@ -34,7 +35,6 @@ import {
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
-import { resolveCheckActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
   isEncounterBasicActionId,
   readEncounterBasicActionEntries
