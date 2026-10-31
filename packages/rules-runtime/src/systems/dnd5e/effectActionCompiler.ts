@@ -932,7 +932,8 @@ function timedImmediateConditionPlan(
   )
     return null
   // "Until the end of your next turn" counts the source's turns (Stunning Strike).
-  const turnAnchor = resolved.saveEntry.lifecycle?.turnAnchor
+  const turnAnchor =
+    'lifecycle' in resolved.saveEntry ? resolved.saveEntry.lifecycle?.turnAnchor : undefined
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: resolved.saveEntry.entryId,
