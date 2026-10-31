@@ -343,7 +343,10 @@ export async function verifyCampaignMembershipBrowser<T>(
         const delay = Math.min(retry + 1, 3) * 1000
         if (
           !(error instanceof Error) ||
-          !error.message.includes('Function execution timed out') ||
+          !(
+            error.message.includes('Function execution timed out') ||
+            error.message.includes('IsolateNotClean')
+          ) ||
           Date.now() + delay > deadline
         )
           throw error
