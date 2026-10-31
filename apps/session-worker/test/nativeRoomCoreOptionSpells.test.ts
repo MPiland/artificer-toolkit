@@ -1324,11 +1324,27 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
       return encounterRunStateSchema.parse(JSON.parse(run.stateJson))
     }
     const run = await readRun()
-    const row = (await readRoomHistory(room.room.base.stub)).actors.find(
-      ({ id }) => id === familiar.actor.id
+    // The score the familiar rolled is its initiative participant's, sorted among the others', and
+    // the Initiative card the cast posted shows the same total.
+    const stored = await runInDurableObject(room.room.base.stub, async (_instance, context) => {
+      const store = new RoomEncounterStore(context.storage)
+      return {
+        participants: store.documents('encounterInitiativeParticipants'),
+        cards: store.documents('campaignConversationEntryPayloads')
+      }
+    })
+    const participants = stored.participants
+      .filter(({ round }) => round === run.round)
+      .sort((a, b) => (a.turnOrderOrdinal ?? 0) - (b.turnOrderOrdinal ?? 0))
+    const own = participants.find(({ actorId }) => actorId === familiar.actor.id)
+    expect(typeof own?.initiativeScore).toBe('number')
+    const scores = participants.map(({ initiativeScore }) => initiativeScore ?? 0)
+    expect(scores).toEqual([...scores].sort((a, b) => b - a))
+    const [card] = stored.cards.flatMap((payload) =>
+      payload.kind === 'ROLL' && payload.roll.source.kind === 'INITIATIVE' ? [payload.roll] : []
     )
-    const seated = row && readStoredRunActor(row)
-    expect(seated?.owner).toMatchObject({ turnTiming: 'OWN_INITIATIVE' })
+    expect(card?.total).toBe(own?.initiativeScore)
+    expect(card?.characterLabel).toBe('Cat')
 
     const acted: string[] = []
     for (let turn = 0; turn < run.actorIds.length; turn += 1) {
