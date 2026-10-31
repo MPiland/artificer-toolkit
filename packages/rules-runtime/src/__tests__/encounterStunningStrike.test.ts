@@ -35,6 +35,7 @@ const RIDER_ID = STUNNING_STRIKE.effects[0].id
 const kiAt = (cost: number): EncounterOnHitCandidate => ({
   kind: 'RESOURCE_POOL',
   riderId: RIDER_ID,
+  riderLabel: 'Stunning Strike',
   poolId: KI_POOL_ID,
   cost
 })
@@ -133,7 +134,15 @@ describe('Stunning Strike as an optional ki rider (SPELLS-31.T5rb)', () => {
       pause: {
         kind: 'ON_HIT',
         payload: {
-          options: [{ kind: 'RESOURCE_POOL', riderId: RIDER_ID, poolId: KI_POOL_ID, cost: 1 }]
+          options: [
+            {
+              kind: 'RESOURCE_POOL',
+              riderId: RIDER_ID,
+              riderLabel: 'Stunning Strike',
+              poolId: KI_POOL_ID,
+              cost: 1
+            }
+          ]
         }
       }
     })

@@ -72,7 +72,7 @@ describe('the SRD Assassin’s and Spy’s Sneak Attack, authored from core opti
       const feature = creatureFeature(srdByLabel(SRD.creatures, creature), label)
       const effects = (feature.effects ?? []).map((effect) => compileEffect(effect))
       for (const effect of effects) expect(effectReadsEnemyProximity(effect)).toBe(true)
-      const riders = collectOnHitRiders(effects, feature.id)
+      const riders = collectOnHitRiders(effects, feature.id, feature.label)
       expect(riders.map((rider) => rider.triggerCode)).toEqual([
         'MELEE_WEAPON_ATTACK',
         'RANGED_WEAPON_ATTACK'
@@ -120,7 +120,8 @@ describe('the SRD Assassin’s and Spy’s Sneak Attack, authored from core opti
     expect(
       collectOnHitRiders(
         (feature.effects ?? []).map((effect) => compileEffect(effect)),
-        feature.id
+        feature.id,
+        feature.label
       )
     ).toEqual([])
     // Morningstar, +4: 2d8 + 2 piercing, with no 2d6 surprise damage. d20 15; dice 3 and 1.

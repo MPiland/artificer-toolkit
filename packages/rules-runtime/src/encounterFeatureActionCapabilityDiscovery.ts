@@ -727,7 +727,8 @@ function creatureActionEffect(
     featureEffectEntries(feature, features).flatMap((entry) =>
       collectOnHitRiders(
         [compileEffect(entry.effect)],
-        entry.featureOption?.id ?? entry.ownerFeature.id
+        entry.featureOption?.id ?? entry.ownerFeature.id,
+        entry.featureOption?.label ?? entry.ownerFeature.label ?? ''
       )
     )
   )

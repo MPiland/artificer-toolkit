@@ -405,12 +405,14 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
                 kind: z.literal('SPELL_SLOT'),
                 optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
                 riderId: uuidSchema,
+                riderLabel: z.string().min(1),
                 slotLevel: z.number().check(z.int()).check(z.positive())
               }),
               z.strictObject({
                 kind: z.literal('RESOURCE_POOL'),
                 optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
                 riderId: uuidSchema,
+                riderLabel: z.string().min(1),
                 poolId: characterResourcePoolIdentitySchema,
                 cost: z.number().check(z.int()).check(z.positive())
               })

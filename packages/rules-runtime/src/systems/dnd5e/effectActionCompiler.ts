@@ -16,10 +16,7 @@ import {
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
 import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
-import type {
-  ActorRelationshipAuthored,
-  OptionalOnHitAuthored
-} from '@artificer-toolkit/shared/authored'
+import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors,
@@ -3540,13 +3537,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       outcomes: testOutcomeTemplateIdentities(source)
     }
   },
-  optionalOnHitRiders: ({ compilerSource }) => {
-    const riders = new Map<string, OptionalOnHitAuthored>()
-    for (const entry of dndSourceFromCompilerSource(compilerSource).compiledEffect.entries)
-      if ('optionalRider' in entry && entry.optionalRider)
-        riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
-    return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
-  },
+  optionalOnHitRiders: ({ compilerSource }) => [
+    ...new Map(
+      dndSourceFromCompilerSource(compilerSource).compiledEffect.entries.flatMap((entry) =>
+        'optionalRider' in entry && entry.optionalRider
+          ? [[entry.optionalRider.riderId, entry.optionalRider] as const]
+          : []
+      )
+    ).values()
+  ],
   outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({

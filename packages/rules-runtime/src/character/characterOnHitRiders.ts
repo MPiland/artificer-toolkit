@@ -7,6 +7,8 @@ type DamageEntry = CompiledEffectEntry & { outcome: { effectKind: 'DAMAGE' } }
 /** A passive Feature's `ON_HIT` outcomes, owed to every attack its trigger names. */
 export type OnHitRider = {
   riderId: string
+  /** The name of the Feature, option or feat that grants it: how the player tells riders apart. */
+  label: string
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
   /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
   optionalOnHit?: OptionalOnHitAuthored
@@ -35,7 +37,8 @@ function isOnHitDamage(entry: CompiledEffectGroup['entries'][number]): entry is 
  */
 export function collectOnHitRiders(
   effects: readonly CompiledEffectGroup[] | undefined,
-  ownerId: string
+  ownerId: string,
+  label: string
 ): OnHitRider[] {
   return (effects ?? []).flatMap((effect) => {
     if (
@@ -51,6 +54,7 @@ export function collectOnHitRiders(
       ? [
           {
             riderId: effect.id,
+            label,
             triggerCode: effect.invocation.triggerCode,
             ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
               ? { optionalOnHit: effect.invocation.optionalOnHit }
@@ -125,7 +129,7 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     entryOrder: lastEntryOrder + entry.entryOrder,
     outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId),
     ...(rider.optionalOnHit
-      ? { optionalRider: { riderId: rider.riderId, cost: rider.optionalOnHit } }
+      ? { optionalRider: { riderId: rider.riderId, label: rider.label, cost: rider.optionalOnHit } }
       : {}),
     ...(joinsHit
       ? { resultBlockId: weaponDamage.resultBlockId, groupKind: 'SEQUENTIAL' as const }

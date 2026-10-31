@@ -33,6 +33,8 @@ import {
   adjudicationSelectionValues,
   contestCheckEvidence,
   decisionTitle,
+  onHitChoiceTitle,
+  onHitOptionLabel,
   movementPassageOptionLabel,
   rollPromptText,
   type InitiativeDeclarationAdjudicationValues
@@ -221,7 +223,9 @@ export function CampaignTabletopDecisionDrawer({
                   ? 'Concentration check'
                   : pending.kind === 'D20_EVIDENCE' && pending.trigger?.kind === 'DEATH_SAVE'
                     ? 'Death save'
-                    : decisionTitle(pending.kind)}
+                    : pending.kind === 'ON_HIT_CHOICE'
+                      ? onHitChoiceTitle(pending.options)
+                      : decisionTitle(pending.kind)}
             </Text>
             {skipped ? null : (
               <Text c='dimmed' size='sm'>
@@ -356,9 +360,7 @@ export function CampaignTabletopDecisionDrawer({
                   key={option.optionId}
                   onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
                 >
-                  {option.kind === 'SPELL_SLOT'
-                    ? `Spend a level ${option.slotLevel} slot`
-                    : `Spend ${option.cost} from a resource pool`}
+                  {onHitOptionLabel(option)}
                 </Button>
               ))}
               <Button

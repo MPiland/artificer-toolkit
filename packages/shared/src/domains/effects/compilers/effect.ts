@@ -119,7 +119,7 @@ export type CompiledEffect = {
    * Set on an optional on-hit rider's entry merged into a weapon attack (D123): the entry resolves
    * only when its rider is among the ones the player chose, paying this cost.
    */
-  optionalRider?: { riderId: string; cost: OptionalOnHitAuthored }
+  optionalRider?: { riderId: string; label: string; cost: OptionalOnHitAuthored }
   /** Set on a CHOICE option's entries: the option is offered only while this optional rule is on. */
   requiresOptionalRule?: { definitionId: string }
   outcome: CompiledEffectOutcome

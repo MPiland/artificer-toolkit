@@ -31,6 +31,8 @@ export const encounterOnHitOptionDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('SPELL_SLOT'),
       riderId: uuidSchema,
+      /** The name of the Feature, option or feat that grants the rider. */
+      riderLabel: z.string().min(1),
       /** The slot level paid. */
       slotLevel: positiveIntegerSchema,
       useOptionId: checksumSchema
@@ -38,6 +40,7 @@ export const encounterOnHitOptionDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('RESOURCE_POOL'),
       riderId: uuidSchema,
+      riderLabel: z.string().min(1),
       /** The resource pool charged. */
       poolId: characterResourcePoolIdentitySchema,
       /** The charges paid. */

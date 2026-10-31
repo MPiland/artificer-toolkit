@@ -728,6 +728,7 @@ export interface CharacterRuleActionSystemAdapter {
    */
   optionalOnHitRiders(input: { compilerSource: CompiledActionCompilerSource }): readonly {
     riderId: string
+    label: string
     cost: OptionalOnHitAuthored
   }[]
   /** The target preconditions the System's outcome registry declares for these effect kinds (D173 Q1). */
