@@ -92,9 +92,45 @@ describe('the Water Elemental’s Whelm in the room (D202)', () => {
     await answerAllSaves(room)
     const afterWhelm = await hitPointsOf(room, MEDIUM_ID)
 
-    // The turn passes round the table back to the elemental, whose turn start deals the damage.
-    for (let turn = 0; turn < 4; turn += 1) await room.advanceTurn()
+    // The turn passes round the table back to the elemental, whose turn start asks for the damage dice.
+    for (let turn = 0; turn < 3; turn += 1) await room.advanceTurn()
+    expect(await hitPointsOf(room, MEDIUM_ID)).toBe(afterWhelm)
+    const advanced = await room.send({
+      type: 'ADVANCE_TURN',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(advanced.type, JSON.stringify(advanced)).toBe('COMMAND_COMMITTED')
 
-    expect((await hitPointsOf(room, MEDIUM_ID)) ?? 0).toBeLessThan(afterWhelm ?? 0)
+    // 2d8+4 is two dice and the 4, each die asked of the elemental's roller at the turn start.
+    let dice = 0
+    let result = advanced
+    for (;;) {
+      const pending =
+        result.type === 'COMMAND_COMMITTED' &&
+        result.delta?.scope === 'ENCOUNTER' &&
+        'occurrence' in result.delta.result
+          ? result.delta.result.occurrence?.pending
+          : null
+      if (!pending) break
+      if (pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+        throw new Error(`Expected the damage dice, got ${pending.kind}.`)
+      expect(pending).toMatchObject({ rollerActorId: ELEMENTAL_ID, request: { min: 1, max: 8 } })
+      result = await room.send({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version(),
+        occurrenceId: pending.occurrenceId,
+        expectedOccurrenceVersion: pending.occurrenceVersion,
+        correlationId: null,
+        resolution: { kind: 'ENTER_INTEGER', requestId: pending.request.requestId, value: 8 }
+      })
+      expect(result.type, JSON.stringify(result)).toBe('COMMAND_COMMITTED')
+      dice += 1
+    }
+    expect(dice).toBe(2)
+    expect((await hitPointsOf(room, MEDIUM_ID)) ?? 0).toBe((afterWhelm ?? 0) - 20)
   })
 })
