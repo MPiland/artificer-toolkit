@@ -66,6 +66,13 @@ export function snapshotAbilityScore(
   return typeof scores?.[abilityCode] === 'number' ? scores[abilityCode] : null
 }
 
+/** An ability score of the stat block a spell summon resolved at its cast; null when it has none. */
+export function summonSnapshotAbilityScore(snapshot: unknown, abilityCode: string): number | null {
+  const summon = isRecord(snapshot) && isRecord(snapshot.summon) ? snapshot.summon : null
+  const scores = isRecord(summon?.abilityScores) ? summon.abilityScores : null
+  return typeof scores?.[abilityCode] === 'number' ? scores[abilityCode] : null
+}
+
 /** A Creature's finite ability scores from its snapshot, or null when it has none. */
 export function snapshotAbilityScores(actor: {
   kind: string

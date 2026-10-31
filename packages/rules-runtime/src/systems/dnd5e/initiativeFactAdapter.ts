@@ -1,6 +1,7 @@
 import { readInitiativeSourceRoll } from '../../encounterInitiativeRoll.js'
 import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
-import { snapshotAbilityScore } from '../../encounterActorState.js'
+import { abilityModifier } from './abilityModifier.js'
+import { snapshotAbilityScore, summonSnapshotAbilityScore } from '../../encounterActorState.js'
 import type { InitiativeActorFactSource } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import {
@@ -93,7 +94,7 @@ function dexterityScore(source: InitiativeActorFactSource): number | null {
         'DEXTERITY'
       )
     case 'CUSTOM':
-      return null
+      return summonSnapshotAbilityScore(source.actor.snapshot, 'DEXTERITY')
   }
 }
 
@@ -156,8 +157,12 @@ export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
     )
   },
   bindActor(source) {
-    if (source.kind === 'CUSTOM') return { automatic: false }
-    const { modifier, rollMode } = readInitiativeSourceRoll(source)
+    // A GM-made custom actor rolls by hand; a summon's stat block gives its Dexterity modifier.
+    if (source.kind === 'CUSTOM' && !source.actor.owner) return { automatic: false }
+    const roll = readInitiativeSourceRoll(source)
+    const dexterity = source.kind === 'CUSTOM' ? dexterityScore(source) : null
+    const modifier = dexterity === null ? roll.modifier : abilityModifier(dexterity)
+    const { rollMode } = roll
     return {
       automatic: true,
       facts: {

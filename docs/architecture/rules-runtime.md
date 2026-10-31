@@ -2256,9 +2256,17 @@ measures from the delegate's token and offers no optional rules. The room stays 
 A `SUMMON` manifest may author `cannotAttack` (SPELLS-34.T4; the SRD familiar does). It compiles onto
 `summonPlacement.cannotAttack`, and `buildEncounterSummon` keeps it in the actor's `body`, on a form summon too;
 `encounterActorCannotAttack` is its one reader. Such an actor offers no attack as a reaction
-(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon never acts
-by itself (D190a: the owner is the command actor), so its own attack is refused `NOT_CURRENT_ACTOR` and the flag needs
-no turn gate; a delegation is its owner's attack and still resolves.
+(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon with its own
+turn (`turnTiming`, D200) is the current actor on it, so the room refuses its own attack roll there
+(`SOURCE_REQUIREMENTS_NOT_MET`, `nativeEncounterRules`) while a delegation is its owner's attack and still resolves
+(SPELLS-35.T5).
+
+**Own initiative at the cast (current, SPELLS-35.T5, D200).** A summon authored `OWN_INITIATIVE` rolls its initiative as it
+is conjured into an ACTIVE Run: `rollSummonInitiative` runs the Run's pinned `ACTOR_ROLL` policy graph in `AUTO_ROLL`
+through the one initiative score path, whatever the Run's evidence mode, and the cast never pauses on it. The roll
+(`initiativeRoll` on the summoned token) seats the actor through `insertReinforcementInitiative` by score and posts its
+Initiative card. Cast into a PREPARED Run it rolls nothing: it joins the start cohort. A summon the policy cannot score
+by one automatic `1dN` (a manual Run, a non-`ACTOR_ROLL` procedure) is seated behind its owner. A stat-block summon (a `CUSTOM` actor with an owner) is bound by the D&D initiative adapter with the Dexterity modifier of the stat block its cast resolved (0 when it names none); a GM-made custom actor still rolls by hand. A summon's turn comes from its authored `turnTiming` alone, never from what it can attack with.
 
 ### Summon placement (current compile only, SPELLS-4.T2v2a2a)
 
@@ -2651,7 +2659,11 @@ any `REACTION` pause has resolved, the attacker's riders it can still pay for ho
 `ON_HIT` pause (`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
 a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
 `optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
-`chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+`chargeId` and holds `cost`). Each option also carries `riderLabel`, the name of the Feature, option or feat that grants the rider, which
+`collectOnHitRiders` takes from its owner when the rider is collected (nothing is authored for it), so the decision drawer can tell two on-hit
+options apart and title them by name and cost. The use option id hashes the hit, the way of paying and that label, so a changed pool, cost or
+label is stale. A rider that calls a follow-up save (Stunning Strike) joins the hit's result block like a Feature-scoped rider; a derived-DC
+save is supported there, with the DC a FACT bound from the holder. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
 spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` also builds for an action's own
 `resourceUse`) rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine

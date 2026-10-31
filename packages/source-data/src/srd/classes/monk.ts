@@ -9,10 +9,12 @@ import {
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
+  DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
+  FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
@@ -38,6 +40,7 @@ import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { CLASS_IDS } from '../ids.js'
 import {
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_CURRENCIES,
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
@@ -727,10 +730,9 @@ export const monk: ClassAuthored = {
       availableAtLevel: 5,
       order: 9,
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(M, 0x60, 10),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_STUNNING_STRIKE,
-          pathCode: PATH_CODE.ON_HIT,
+          order: 0,
           invocation: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -738,9 +740,66 @@ export const monk: ClassAuthored = {
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: 'HOSTILE'
+            },
+            optionalOnHit: { kind: 'RESOURCE_POOL', chargeId: kiCharge.id, cost: 1 }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 10),
+              order: 1,
+              pathCode: PATH_CODE.ON_HIT,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 10),
+                resultKind: 'SINGLE',
+                // "Stunned until the end of your next turn" counts the monk's turns.
+                duration: {
+                  id: classRowId(M, 0x83, 10),
+                  durationKind: DURATION_KIND.ROUND,
+                  amount: 1
+                },
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 10),
+                    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: classRowId(M, 0x84, 10),
+                      dcMethod: 'DERIVED_DC',
+                      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 8,
+                      bonuses: [
+                        {
+                          id: classRowId(M, 0x85, 40),
+                          bonusKind: 'ABILITY_MODIFIER',
+                          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
+                        },
+                        { id: classRowId(M, 0x85, 41), bonusKind: 'PROFICIENCY_BONUS' }
+                      ]
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: classRowId(M, 0x6c, 10),
+                          effectKind: EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('STUNNED')
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
-          }
-        })
+          ]
+        }
       ]
     },
     {

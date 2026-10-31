@@ -312,6 +312,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
   })
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
+    abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
     grantFoldFacts,
     totalLevel,
     derivedBaseFacts: buildCharacterDerivedRuleFacts(snapshot, registry),

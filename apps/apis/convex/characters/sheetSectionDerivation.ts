@@ -22,6 +22,7 @@ import {
   characterSheetSection,
   readCharacterSheetFingerprint,
   readCharacterSheetStoreState,
+  type CharacterSheetFingerprintReads,
   readCharacterSheetPendingStore,
   writeCharacterSheetSections,
   type CharacterSheetSectionValue
@@ -114,22 +115,41 @@ export async function storeCharacterSheetSections(
 }
 
 /** Derives the Sheet once over its own sources and stores its sections. */
+export async function deriveAndStoreCharacterSheet(
+  ctx: MutationCtx,
+  characterId: string,
+  token: string
+) {
+  // A newer write queued its own derivation; this one began before it could be cancelled.
+  const pending = await readCharacterSheetPendingStore(ctx, characterId)
+  if (pending && pending.token !== token) return null
+  if (pending) await ctx.db.delete('characterSheetPendingStores', pending._id)
+  const { active } = await loadCharacterState(ctx, characterId)
+  // A deleted Character, or one that needs Builder repair, has no Sheet to store.
+  if (active?.status !== 'ACTIVE') return null
+  // A later write may already have stored the Sheet over the same inputs.
+  const reads: Partial<CharacterSheetFingerprintReads> = {}
+  const state = await readCharacterSheetStoreState(ctx, active.userId, characterId, reads)
+  if (state?.current) return null
+  // The facts reuse the System, sources and effects the fingerprint just read.
+  const facts = await loadCharacterSheetFacts(
+    ctx,
+    active.userId,
+    characterId,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    active,
+    undefined,
+    reads
+  )
+  if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state?.fingerprint)
+  return null
+}
+
 export const store = internalMutation({
   args: { characterId: v.string(), token: v.string() },
   returns: v.null(),
-  handler: async (ctx, { characterId, token }) => {
-    // A newer write queued its own derivation; this one began before it could be cancelled.
-    const pending = await readCharacterSheetPendingStore(ctx, characterId)
-    if (pending && pending.token !== token) return null
-    if (pending) await ctx.db.delete('characterSheetPendingStores', pending._id)
-    const { active } = await loadCharacterState(ctx, characterId)
-    // A deleted Character, or one that needs Builder repair, has no Sheet to store.
-    if (active?.status !== 'ACTIVE') return null
-    // A later write may already have stored the Sheet over the same inputs.
-    const state = await readCharacterSheetStoreState(ctx, active.userId, characterId)
-    if (state?.current) return null
-    const facts = await loadCharacterSheetFacts(ctx, active.userId, characterId)
-    if (facts) await storeCharacterSheetSections(ctx, facts, undefined, state?.fingerprint)
-    return null
-  }
+  handler: (ctx, { characterId, token }) => deriveAndStoreCharacterSheet(ctx, characterId, token)
 })

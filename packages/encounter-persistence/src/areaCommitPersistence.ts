@@ -85,6 +85,7 @@ import type {
 } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { insertReinforcementInitiative } from './actorReinforcementInitiative.js'
+import { persistSummonInitiativeRollCard } from './initiativeRollCards.js'
 import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { storedInitiativeReceipt } from './initiativeReceipt.js'
@@ -933,34 +934,47 @@ export async function persistEncounterAreaCommit(
     : { moves: [], landings: [], actors: settledChildren.actors, rules: input.rules }
   // The creature the cast conjures is a new Encounter actor and stands on the Scene from this
   // commit (D187b). One authored to act right after its owner takes the place behind it in the
-  // round (D200).
+  // round; one authored to roll its own joins at the score it rolled, or behind its owner when the
+  // policy could not roll it (D200).
   let castActors = settledMovements.actors
   let seatedInitiative: EncounterInitiativeRoundStateDto | null = null
   const summonedActors: EncounterRunActorState[] = []
-  for (const { actor } of input.summonedTokens) {
+  for (const { actor, initiativeRoll } of input.summonedTokens) {
     const anchorActorId =
-      actor.owner?.turnTiming === 'AFTER_OWNER'
+      actor.owner?.turnTiming === 'AFTER_OWNER' ||
+      (actor.owner?.turnTiming === 'OWN_INITIATIVE' && !initiativeRoll)
         ? followedActorId(actor, castActors, (id) => {
             const followed = castActors.find((candidate) => candidate.id === id)
             return followed !== undefined && takesInitiativeTurns(followed)
           })
         : null
-    const seated = anchorActorId
-      ? await insertReinforcementInitiative({
-          ctx,
-          state: nextState,
-          actors: castActors,
-          actor,
-          initiative: null,
-          anchorActorId,
-          occurredAt: input.occurredAt
-        })
-      : null
+    const seated =
+      anchorActorId || initiativeRoll
+        ? await insertReinforcementInitiative({
+            ctx,
+            state: nextState,
+            actors: castActors,
+            actor,
+            initiative: initiativeRoll ? initiativeRoll.face + initiativeRoll.modifier : null,
+            ...(anchorActorId ? { anchorActorId } : {}),
+            occurredAt: input.occurredAt
+          })
+        : null
     const placed = seated?.actor ?? actor
     seatedInitiative = seated?.state ?? seatedInitiative
     castActors = [...castActors, placed]
     summonedActors.push(placed)
     await insertRunActor(ctx, placed)
+    if (initiativeRoll && seated?.state)
+      await persistSummonInitiativeRollCard(ctx, {
+        state: nextState,
+        campaign,
+        actor: placed,
+        roll: initiativeRoll,
+        occurrenceId: areaOccurrenceId,
+        initiatorUserId,
+        occurredAt: input.occurredAt
+      })
   }
   const summoned = input.summonedTokens.length
     ? await callbacks.applySummonTokens({
