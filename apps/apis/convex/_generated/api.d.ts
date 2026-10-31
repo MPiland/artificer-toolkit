@@ -286681,6 +286681,10 @@ export declare const api: {
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
+            dividedHeal?: {
+              ceiling?: { denominator: number; numerator: number };
+              total: number;
+            };
             grip: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
@@ -288448,6 +288452,10 @@ export declare const api: {
             componentsLabel?: string;
             damageLabel?: string;
             delegateActorId?: string;
+            dividedHeal?: {
+              ceiling?: { denominator: number; numerator: number };
+              total: number;
+            };
             grip: {
               attackKey: string;
               value: "ONE_HANDED" | "TWO_HANDED";
