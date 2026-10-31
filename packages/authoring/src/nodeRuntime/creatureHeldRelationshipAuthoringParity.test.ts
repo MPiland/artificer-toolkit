@@ -5,13 +5,19 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbedDevil } from '@artificer-toolkit/source-data/srd/creatures/barbed-devil.js'
 import { chainDevil } from '@artificer-toolkit/source-data/srd/creatures/chain-devil.js'
+import { behir } from '@artificer-toolkit/source-data/srd/creatures/behir.js'
 import { chuul } from '@artificer-toolkit/source-data/srd/creatures/chuul.js'
+import { giantFrog } from '@artificer-toolkit/source-data/srd/creatures/giant-frog.js'
+import { giantToad } from '@artificer-toolkit/source-data/srd/creatures/giant-toad.js'
+import { kraken } from '@artificer-toolkit/source-data/srd/creatures/kraken.js'
 import { cloaker } from '@artificer-toolkit/source-data/srd/creatures/cloaker.js'
 import { marilith } from '@artificer-toolkit/source-data/srd/creatures/marilith.js'
 import { mimic } from '@artificer-toolkit/source-data/srd/creatures/mimic.js'
+import { remorhaz } from '@artificer-toolkit/source-data/srd/creatures/remorhaz.js'
 import { roper } from '@artificer-toolkit/source-data/srd/creatures/roper.js'
 import { shamblingMound } from '@artificer-toolkit/source-data/srd/creatures/shambling-mound.js'
 import { stirge } from '@artificer-toolkit/source-data/srd/creatures/stirge.js'
+import { tarrasque } from '@artificer-toolkit/source-data/srd/creatures/tarrasque.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   srdSystemRecord
@@ -67,7 +73,7 @@ describe('held-creature riders from core options (D187a)', () => {
     {
       creature: stirge,
       label: 'Blood Drain',
-      kinds: ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION']
+      kinds: ['DAMAGE', 'ACTOR_RELATIONSHIP']
     }
   ])(
     'authors $creature.label $label from core options and passes the node map unchanged',
@@ -159,6 +165,58 @@ describe('held-creature riders from core options (D187a)', () => {
     const result = await normalize(shamblingMound)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(shamblingMound.features)
+  })
+
+  it.each([
+    { creature: giantFrog, dice: '2d4' },
+    { creature: giantToad, dice: '3d6' },
+    { creature: behir, dice: '6d6' },
+    { creature: remorhaz, dice: '6d6' },
+    { creature: tarrasque, dice: '16d6' },
+    { creature: kraken, dice: '12d6' }
+  ])(
+    '$creature.label swallows with $dice acid at the start of each of its own turns (SPELLS-33.T6n3)',
+    async ({ creature, dice }) => {
+      const outcomes = (creature.features ?? []).flatMap((candidate) =>
+        featureOutcomes(creature, candidate.label)
+      )
+      expect(
+        outcomes.find(
+          (outcome) =>
+            outcome.effectKind === 'ACTOR_RELATIONSHIP' &&
+            outcome.recurrence?.turnAnchor.actor === 'SOURCE'
+        )
+      ).toMatchObject({
+        recurrence: {
+          turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+          outcome: { effectKind: 'DAMAGE', diceConfig: dice }
+        }
+      })
+      expect(
+        outcomes.filter(
+          (outcome) =>
+            outcome.effectKind === 'MANUAL_ADJUDICATION' && /swallow/i.test(outcome.label)
+        )
+      ).toEqual([])
+      const result = await normalize(creature)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
+    }
+  )
+
+  it('drains the Stirge’s blood as hit point loss at the start of each of its turns (SPELLS-33.T6n3)', async () => {
+    const attach = featureOutcomes(stirge, 'Blood Drain').find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    expect(attach).toMatchObject({
+      recurrence: {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        outcome: { effectKind: 'HIT_POINT_LOSS', diceConfig: '1d4+3' }
+      }
+    })
+    const result = await normalize(stirge)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(stirge.features)
   })
 
   it('lets the Chuul Tentacles target only a creature the chuul holds', () => {

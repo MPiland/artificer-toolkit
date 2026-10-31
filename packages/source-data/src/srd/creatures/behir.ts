@@ -189,6 +189,22 @@ export const behir: CreatureAuthored = {
       label: 'Swallow',
       description:
         "Swallow. The behir makes one bite attack against a Medium or smaller target it is grappling. If the attack hits, the target is also swallowed, and the grapple ends. While swallowed, the target is blinded and restrained, it has total cover against attacks and other effects outside the behir, and it takes 21 (6d6) acid damage at the start of each of the behir's turns. A behir can have only one creature swallowed at a time. If the behir takes 30 damage or more on a single turn from the swallowed creature, the behir must succeed on a DC 14 Constitution saving throw at the end of that turn or regurgitate the creature, which falls prone in a space within 10 feet of the behir. If the behir dies, a swallowed creature is no longer restrained by it and can escape from the corpse by using 15 feet of movement, exiting prone.",
+      effects: [
+        S.heldByUseEffect({
+          effectId: S.actionId(43, 40),
+          rangeId: S.actionId(43, 41),
+          pathId: S.actionId(43, 42),
+          outcome: S.swallowedOutcome(43, {
+            localIndex: 10,
+            damageOutcomeId: S.actionId(43, 43),
+            escapeDc: 16,
+            heldAtOnce: 1,
+            largestTarget: S.SIZE_CODE.MEDIUM,
+            damageType: 'ACID',
+            diceConfig: '6d6'
+          })
+        })
+      ],
       order: 5
     }
   ]
