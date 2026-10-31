@@ -35,9 +35,11 @@ import {
   type ClosedRuleKind,
   type EffectAuthored,
   type FacetAuthored,
-  type ShapeAuthored
+  type ShapeAuthored,
+  type TargetingAuthored
 } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
+import { creatureTypeId } from '../spells/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
@@ -472,6 +474,13 @@ const paladinSpellLimits = [
   }
 ]
 
+/** Lay on Hands has no effect on undead and constructs; healing and curing share the one touch. */
+const LAY_ON_HANDS_TARGETING: TargetingAuthored = {
+  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+  dispositionKind: TARGET_DISPOSITION_KIND.ANY,
+  excludedCreatureTypeIds: [creatureTypeId('UNDEAD'), creatureTypeId('CONSTRUCT')]
+}
+
 export const paladin: ClassAuthored = {
   id: CLASS_IDS.PALADIN,
   label: 'Paladin',
@@ -885,8 +894,9 @@ export const paladin: ClassAuthored = {
         multiplier: 5,
         resetKind: 'LONG_REST'
       },
-      // Curing a disease or poison and the undead/construct exclusion stay with the GM until the
-      // pool-spend option gains a creature-type filter and a spend per cure.
+      // Healing and curing share one touch and one filter; the cure spends 5 from the pool as a
+      // fixed cost, so it chooses no amount. A disease has no condition to end yet (Lesser
+      // Restoration is the same), so the cure ends the poisoned condition.
       effects: [
         {
           id: classRowId(P, 0x60, 2),
@@ -897,10 +907,7 @@ export const paladin: ClassAuthored = {
             resourceUse: { chargeId: classRowId(P, 0x66, 2), cost: 1 },
             activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: classRowId(P, 0x69, 2), rangeKind: RANGE_KIND.TOUCH },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.ANY
-            }
+            targeting: LAY_ON_HANDS_TARGETING
           },
           paths: [
             {
@@ -920,6 +927,40 @@ export const paladin: ClassAuthored = {
                     valueKind: 'RESOURCE_SPENT',
                     scalingKind: SCALING.NONE,
                     amount: 1
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          id: classRowId(P, 0x60, 0x62),
+          order: 2,
+          invocation: {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: classRowId(P, 0x66, 2), cost: 5 },
+            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+            range: { id: classRowId(P, 0x69, 0x62), rangeKind: RANGE_KIND.TOUCH },
+            targeting: LAY_ON_HANDS_TARGETING
+          },
+          paths: [
+            {
+              id: classRowId(P, 0x80, 0x62),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(P, 0x81, 0x62),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(P, 0x82, 0x62),
+                    effectKind: EFFECT_KIND.END_EFFECTS,
+                    scope: 'ONE_CHOSEN',
+                    selectors: [{ kind: 'CONDITION', conditionIds: [conditionTypeId('POISONED')] }]
                   }
                 ]
               }

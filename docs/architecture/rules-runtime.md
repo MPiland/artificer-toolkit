@@ -2390,9 +2390,11 @@ user spends from the action's `resourceUse` pool. It is the generic option behin
 - `prepareNativeCharacterActionState` spends `cost x spentUnits` from the pool and refuses more than
   remains. The compiler binds `dnd5e.spent-heal-amount` (per-unit amount x units) into the `SPENT_HEAL`
   outcome's heal proposal. Spend and heal commit and undo together.
-- Not yet on the option (T4f2b, T4f2c): the undead/construct filter, the 5-point cure spend and a
-  caster-divides split with per-target caps. Both extend the `RESOURCE_SPENT` source rather than
-  reshaping it. Until then Lay on Hands' cures and exclusions remain in its description.
+- SPELLS-31.T4f2b adds no code: Lay on Hands' undead/construct exclusion is the generic single-target
+  `excludedCreatureTypeIds` (an overridable `TARGET_CREATURE_TYPE_EXCLUDED` warning), and its cure
+  is a second action on the same pool with a fixed `resourceUse.cost` of 5 and an `END_EFFECTS`
+  outcome (no chosen amount). It ends the poisoned condition; a disease has no condition to end yet.
+- Not yet on the option (T4f2c): a caster-divides split with per-target caps.
 
 ## Spell slot exchange (current, SPELLS-31.T5j)
 
