@@ -63,6 +63,23 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   weaponDamageDieFaces?: number
 }>
 
+/** The attack TEST's facts about its target: its creature type, and whether it is wounded. */
+export function dnd5eAttackTargetFacts(
+  targetDerivedFacts: Readonly<Record<string, unknown>>,
+  currentHitPoints: number,
+  maximumHitPoints: number
+): Record<string, RuleValue> {
+  const { creatureTypeId } = targetDerivedFacts
+  return {
+    ...(typeof creatureTypeId === 'string'
+      ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: creatureTypeId }
+      : {}),
+    ...(currentHitPoints < maximumHitPoints
+      ? { [DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY]: true }
+      : {})
+  }
+}
+
 /** The compile boundary: the one place locked rule-value facts become typed scaling facts. */
 export function dnd5eEffectScalingFacts(input: {
   facts: Readonly<Record<string, RuleValue>>
