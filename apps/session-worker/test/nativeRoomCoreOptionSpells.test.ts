@@ -1004,21 +1004,23 @@ describe('room summon with its own initiative ends (SPELLS-35.T3b)', () => {
     turnTiming = 'OWN_INITIATIVE'
   }: { carrierRounds?: number; turnTiming?: 'OWN_INITIATIVE' | 'AFTER_OWNER' } = {}) => {
     const wolf = biteWolf('ATTACK')
+    const summon = {
+      ...srdCreatureActor({ id: SUMMON_ID, creature: wolf }),
+      initiative: 20,
+      owner: {
+        ownerActorId: CHARACTER_ACTOR_ID,
+        sourceEffectId: CARRIER_ID,
+        turnTiming
+      }
+    }
+    const rollers = [
+      { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 15 },
+      { ...casterActor(), initiative: 10 }
+    ]
     return actionRoom({
       fallbackRoll: 0,
-      actors: [
-        {
-          ...srdCreatureActor({ id: SUMMON_ID, creature: wolf }),
-          initiative: 20,
-          owner: {
-            ownerActorId: CHARACTER_ACTOR_ID,
-            sourceEffectId: CARRIER_ID,
-            turnTiming
-          }
-        },
-        { ...srdCreatureActor({ id: WOLF_ID, creature: wolf }), initiative: 15 },
-        { ...casterActor(), initiative: 10 }
-      ],
+      // The room opens on the first actor listed: the summon unless it follows its owner.
+      actors: turnTiming === 'AFTER_OWNER' ? [...rollers, summon] : [summon, ...rollers],
       ownerFeatureId: creatureFeature(wolf, 'Bite').id,
       ...(carrierRounds !== undefined && {
         seed: async ({ effects, encounterId, occurredAt }) => {
