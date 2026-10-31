@@ -175,6 +175,9 @@ export const DND5E_CLASS_LEVELS_FACT_KEY = 'dnd5e.class-levels'
 export const DND5E_WEAPON_DAMAGE_DIE_FACT_KEY = 'dnd5e.weapon-damage-die'
 /** The attacked creature's type, which a path restriction reads when its outcome specializes. */
 export const DND5E_TARGET_CREATURE_TYPE_FACT_KEY = 'dnd5e.target-creature-type'
+/** Whether the attacked creature is below its hit point maximum, which a path restriction reads. */
+export const DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY =
+  'dnd5e.target-below-maximum-hit-points'
 /** The nearest able enemy of the attack's target (a JSON object); absent when no Scene measured it. */
 export const DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY = 'dnd5e.attack-enemy-proximity'
 /** How far the attacker's latest move closed on the target (a JSON object); absent when no Scene measured it. */

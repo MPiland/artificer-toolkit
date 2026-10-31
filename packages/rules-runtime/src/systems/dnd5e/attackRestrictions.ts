@@ -17,6 +17,8 @@ export type Dnd5eAttackCircumstances = {
   moveToward: MoveToward | null
   /** The creature type of the target; null for a target with none, such as a Character. */
   targetCreatureTypeId: string | null
+  /** Whether the target is below its hit point maximum; false when the attack cannot say. */
+  targetBelowMaximumHitPoints: boolean
   /** The authored Effects active on the attacker that bind the attacking item (Pact of the Blade). */
   attackItemBindingEffectIds: readonly string[]
 }
@@ -31,12 +33,17 @@ type CreatureTypeCondition = Extract<Condition, { predicateCode: 'CREATURE_TYPE'
 type EnemyNearCondition = Extract<Condition, { predicateCode: 'ENEMY_NEAR_TARGET' }>
 type DamageTypeCondition = Extract<Condition, { predicateCode: 'DAMAGE_TYPE' }>
 type BoundByEffectCondition = Extract<Condition, { predicateCode: 'BOUND_BY_EFFECT' }>
+type TargetBelowMaximumCondition = Extract<
+  Condition,
+  { predicateCode: 'TARGET_BELOW_MAXIMUM_HIT_POINTS' }
+>
 type CircumstanceCondition =
   | RollModeCondition
   | BoundByEffectCondition
   | EnemyNearCondition
   | MoveTowardCondition
   | CreatureTypeCondition
+  | TargetBelowMaximumCondition
 
 function isEnemyNearCondition(condition: Condition): condition is EnemyNearCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'ENEMY_NEAR_TARGET'
@@ -48,6 +55,14 @@ function isMoveTowardCondition(condition: Condition): condition is MoveTowardCon
 
 function isCreatureTypeCondition(condition: Condition): condition is CreatureTypeCondition {
   return condition.kind === 'PREDICATE' && condition.predicateCode === 'CREATURE_TYPE'
+}
+
+function isTargetBelowMaximumCondition(
+  condition: Condition
+): condition is TargetBelowMaximumCondition {
+  return (
+    condition.kind === 'PREDICATE' && condition.predicateCode === 'TARGET_BELOW_MAXIMUM_HIT_POINTS'
+  )
 }
 
 function isBoundByEffectCondition(condition: Condition): condition is BoundByEffectCondition {
@@ -83,7 +98,7 @@ function damageTypeChecksMet(group: Group, dealtDamageTypeIds: ReadonlySet<strin
 /**
  * The checks an attack decides at the moment it rolls, rather than from the weapon it holds: its
  * net roll mode, the enemies near its target, how far it closed on its target, the creature type of
- * the target, and the Active Effects that bind its weapon, which begin and end during play.
+ * the target, whether it is below its hit point maximum, and the Active Effects that bind its weapon, which begin and end during play.
  */
 function isCircumstanceCondition(
   context: Context,
@@ -94,7 +109,8 @@ function isCircumstanceCondition(
     isEnemyNearCondition(condition) ||
     isMoveTowardCondition(condition) ||
     (context.subject === 'EQUIPMENT' && isBoundByEffectCondition(condition)) ||
-    (context.subject === 'CREATURE' && isCreatureTypeCondition(condition))
+    (context.subject === 'CREATURE' &&
+      (isCreatureTypeCondition(condition) || isTargetBelowMaximumCondition(condition)))
   )
 }
 
@@ -228,6 +244,8 @@ function circumstanceMet(
     matches =
       condition.authoringModeKind === 'ALL' ||
       (targetCreatureTypeId !== null && condition.creatureTypeIds.includes(targetCreatureTypeId))
+  } else if (isTargetBelowMaximumCondition(condition)) {
+    matches = circumstances.targetBelowMaximumHitPoints
   } else if (isBoundByEffectCondition(condition)) {
     matches = condition.effectIds.some((id) =>
       circumstances.attackItemBindingEffectIds.includes(id)

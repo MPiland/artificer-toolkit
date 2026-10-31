@@ -26,6 +26,7 @@ import {
   DND5E_SAVE_DC_FACT_KEY,
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
+  DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY,
   DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
@@ -45,6 +46,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   selectedOptionalRiderIds: readonly string[]
   attackRollMode: Dnd5eAttackRollMode
   targetCreatureTypeId?: string
+  targetBelowMaximumHitPoints?: boolean
   attackEnemyProximity?: EnemyProximity
   attackMoveToward?: MoveToward
   attackTurnUses?: readonly string[]
@@ -88,6 +90,8 @@ export function dnd5eEffectScalingFacts(input: {
       typeof facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY] === 'string'
         ? facts[DND5E_TARGET_CREATURE_TYPE_FACT_KEY]
         : undefined,
+    targetBelowMaximumHitPoints:
+      facts[DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY] === true ? true : undefined,
     attackEnemyProximity: parseEnemyProximity(facts[DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY]),
     attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
     attackTurnUses: parseTextList(facts[DND5E_ATTACK_TURN_USES_FACT_KEY], 'turn uses'),

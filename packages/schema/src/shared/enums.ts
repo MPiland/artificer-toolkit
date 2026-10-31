@@ -142,6 +142,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'ATTACK_ROLL_MODE',
     'ENEMY_NEAR_TARGET',
     'TARGET_HAS_NOT_TAKEN_TURN',
+    'TARGET_BELOW_MAXIMUM_HIT_POINTS',
     'MOVED_TOWARD_TARGET',
     'HOLDER_IN_BRIGHT_LIGHT',
     'ARMOR_CLASS',

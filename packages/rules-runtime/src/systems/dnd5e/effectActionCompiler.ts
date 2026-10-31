@@ -160,6 +160,7 @@ import {
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
+  DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY,
   DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
@@ -3997,6 +3998,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
+            : {}),
+          ...(currentHitPoints < maximumHitPoints
+            ? { [DND5E_TARGET_BELOW_MAXIMUM_HIT_POINTS_FACT_KEY]: true }
             : {}),
           ...attackCircumstanceFacts,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,

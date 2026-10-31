@@ -2681,7 +2681,7 @@ rule (`choosesUnaffected`, no cap). Whether the spared creatures are ones the ca
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eActionRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` and `TARGET_BELOW_MAXIMUM_HIT_POINTS` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -2690,7 +2690,9 @@ the mode the rules derived from roll contributors. A hand-rolled advantage unloc
 derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that.
 A `CREATURE_TYPE` check reads the target's creature type from `dnd5e.target-creature-type`, which the attack
 TEST binds from the target's derived facts (a `CREATURE` context is `authoringModeKind: ALL` or `SELECTED` over
-`creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+`creatureTypeIds`). A `TARGET_BELOW_MAXIMUM_HIT_POINTS` check (also a `CREATURE` context) reads
+`dnd5e.target-below-maximum-hit-points`, which the attack TEST binds when the target's current hit points are
+below its maximum (Colossus Slayer). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred

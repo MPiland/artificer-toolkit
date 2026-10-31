@@ -125,6 +125,7 @@ function riderOwed(rider: EffectAuthored, bindingEffectIds: readonly string[]) {
         enemyProximity: null,
         moveToward: null,
         targetCreatureTypeId: null,
+        targetBelowMaximumHitPoints: false,
         attackItemBindingEffectIds: bindingEffectIds
       })
   )

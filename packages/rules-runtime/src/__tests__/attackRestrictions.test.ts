@@ -45,6 +45,7 @@ const circumstances = (
   rollMode,
   enemyProximity,
   targetCreatureTypeId,
+  targetBelowMaximumHitPoints: false,
   moveToward,
   attackItemBindingEffectIds
 })

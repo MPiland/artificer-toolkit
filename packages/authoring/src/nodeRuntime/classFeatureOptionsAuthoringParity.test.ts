@@ -27,7 +27,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 /**
  * SPELLS-31.T3a-T3c and T5s (D156): Fast Movement, Divine Strike, Purity of Body, Magical Secrets,
- * Divine Sense, Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
+ * Divine Sense, Colossus Slayer (T4i), Signature Spells, Empty Body, Devil's Sight, Gaze of Two Minds, Divine Intervention,
  * Volley, Whirlwind Attack (T3), Sacred Weapon and Ki-Empowered Strikes (T4e), Elusive and Escape
  * the Horde (T4k2a) and Nature's Sanctuary (T4k2b) resolve from the
  * same core options a Builder author has on a class feature or option, so each must pass the class
@@ -233,6 +233,30 @@ const CASES: ReadonlyArray<{
         throw new Error('Whirlwind Attack must attack with the wielded weapons within a distance.')
       effect.invocation.range.amount = 10
       effect.weaponAttack.requiredPropertyCodes = ['REACH']
+      return record
+    }
+  },
+  {
+    record: hunterConclave,
+    label: 'Colossus Slayer',
+    parent: "Hunter's Prey",
+    variant: () => {
+      const record = structuredClone(hunterConclave)
+      for (const effect of option(record, "Hunter's Prey", 'Colossus Slayer').effects ?? []) {
+        const path = effect.paths[0]
+        const damage = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+        const condition = path?.restrictions?.groups[0]?.contexts[0]?.conditions?.[0]
+        if (
+          damage?.effectKind !== 'DAMAGE' ||
+          !('diceConfig' in damage) ||
+          condition?.kind !== 'PREDICATE' ||
+          condition.predicateCode !== 'TARGET_BELOW_MAXIMUM_HIT_POINTS'
+        )
+          throw new Error('Colossus Slayer must author dice held to a target below its maximum.')
+        // A homebrew variant that adds two dice, only against a target at its maximum.
+        damage.diceConfig = '2d8'
+        condition.constraint = 'EXCLUDE'
+      }
       return record
     }
   },

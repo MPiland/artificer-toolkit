@@ -29,6 +29,7 @@ export function entryOwed(
     enemyProximity: facts.attackEnemyProximity ?? null,
     moveToward: facts.attackMoveToward ?? null,
     targetCreatureTypeId: facts.targetCreatureTypeId ?? null,
+    targetBelowMaximumHitPoints: facts.targetBelowMaximumHitPoints === true,
     attackItemBindingEffectIds: facts.attackItemBindingEffectIds ?? []
   })
 }

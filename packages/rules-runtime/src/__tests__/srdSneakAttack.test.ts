@@ -36,6 +36,7 @@ const circumstances = (
   rollMode,
   enemyProximity: nearestFeet === undefined ? null : { nearestFeet },
   targetCreatureTypeId: null,
+  targetBelowMaximumHitPoints: false,
   moveToward: null,
   attackItemBindingEffectIds: []
 })

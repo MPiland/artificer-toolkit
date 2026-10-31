@@ -2,22 +2,29 @@ import {
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   ATTACK_OCCASION_CODE,
+  AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  PATH_GROUP_TYPE,
+  PATH_USAGE,
   EQUIPMENT_PROPERTY_CODE,
   RANGE_KIND,
+  SCALING,
   SHAPE_KIND,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ClassAuthored,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
@@ -44,6 +51,81 @@ function conditionTypeId(code: string): string {
 
 const RA = 8
 
+/**
+ * Colossus Slayer as authored data: an `ON_HIT` rider of the weapon's own damage type, held to a
+ * target below its hit point maximum and limited to once per turn. The melee and ranged triggers are
+ * two effects of the one option, which share its single use each turn.
+ */
+function colossusSlayerEffect(variant: 'MELEE' | 'RANGED'): EffectAuthored {
+  const melee = variant === 'MELEE'
+  const effectEntry = melee ? 1 : 11
+  const id = (entry: number) => classRowId(RA, 0xe0, (melee ? 0 : 0x10) + entry)
+  return {
+    id: classRowId(RA, 20, effectEntry),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: melee ? TRIGGER.MELEE_WEAPON_ATTACK : TRIGGER.RANGED_WEAPON_ATTACK,
+      range: { id: classRowId(RA, 21, effectEntry), rangeKind: RANGE_KIND.SPECIAL },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: TARGET_DISPOSITION_KIND.ANY
+      }
+    },
+    paths: [
+      {
+        id: id(0),
+        order: 1,
+        pathCode: PATH_CODE.ON_HIT,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        usage: PATH_USAGE.ONCE_PER_TURN,
+        restrictions: {
+          id: id(1),
+          groups: [
+            {
+              id: id(2),
+              order: 0,
+              contexts: [
+                {
+                  id: id(3),
+                  order: 0,
+                  subject: 'CREATURE',
+                  authoringModeKind: AUTHORING_MODE_KIND.ALL,
+                  conditions: [
+                    {
+                      id: id(4),
+                      order: 0,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      predicateCode: 'TARGET_BELOW_MAXIMUM_HIT_POINTS'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        resultBlock: {
+          id: id(5),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: id(6),
+              effectKind: EFFECT_KIND.DAMAGE,
+              usesTriggeringWeaponDamageType: true,
+              valueKind: 'DICE',
+              scalingKind: SCALING.NONE,
+              diceConfig: '1d8'
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 export const hunterConclave: ClassAuthored = {
   id: SUBCLASS_IDS.HUNTER,
   label: 'Hunter',
@@ -68,36 +150,7 @@ export const hunterConclave: ClassAuthored = {
           description:
             "Your tenacity can wear down the most potent foes. When you hit a creature with a weapon attack, the creature takes an extra 1d8 damage if it's below its hit point maximum. You can deal this extra damage only once per turn.",
           order: 0,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 1),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(RA, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_HIT,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_COLOSSUS_SLAYER
-            }),
-            closedRuleEffect({
-              id: classRowId(RA, 20, 11),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-                range: { id: classRowId(RA, 21, 11), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_HIT,
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_COLOSSUS_SLAYER
-            })
-          ]
+          effects: [colossusSlayerEffect('MELEE'), colossusSlayerEffect('RANGED')]
         },
         {
           id: classRowId(RA, 12, 2),
