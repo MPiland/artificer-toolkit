@@ -581,16 +581,16 @@
         {
           "id": "PLATFORM-13",
           "title": "Fast, reliable backend, worker and package tests; current dependencies",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
               "text": "The native boundary audit (node scripts/auditNativeBoundaries.mjs) passes on the phase source and runs in CI, so package layering and removed-service rules cannot drift.",
               "status": "DONE",
               "proof": [
-                "Closed by PLATFORM-13.T16undefined), PLATFORM-13.T11undefined), PLATFORM-13.T12undefined), PLATFORM-13.T13undefined), PLATFORM-13.T21 (m554), PLATFORM-13.T22 (m558); see each task's proof."
+                "Closed by PLATFORM-13.T16, PLATFORM-13.T11, PLATFORM-13.T12, PLATFORM-13.T13, PLATFORM-13.T21 (m554), PLATFORM-13.T22 (m558); see each task's proof."
               ],
               "note": "Reworded 2026-10-29 (user): the old \"Code-quality groundwork\" criterion was vague; its built parts are in the earlier note (planLiveSceneCommand, callLiveSessionRoute, ed1faa3e6) and its flake tasks T11, T12, T13, T16 are done. Closed by PLATFORM-13.T21. Closed 2026-10-30 by PLATFORM-13.T16, PLATFORM-13.T11, PLATFORM-13.T12, PLATFORM-13.T13, PLATFORM-13.T21, PLATFORM-13.T22.",
               "origin": [
@@ -617,9 +617,11 @@
             },
             {
               "text": "Dependency refresh to latest, before the pre-staging lifecycle run (zod held at 4.4.3 for convex-helpers#1019)",
-              "status": "IN_PROGRESS",
-              "proof": [],
-              "note": "needs proof",
+              "status": "DONE",
+              "proof": [
+                "Closed by PLATFORM-13.T2 (m555), PLATFORM-13.T23 (m567), PLATFORM-13.T24 (m560), PLATFORM-13.T25 (m567), PLATFORM-13.T27 (m581); see each task's proof."
+              ],
+              "note": "needs proof Closed 2026-10-31 by PLATFORM-13.T2, PLATFORM-13.T23, PLATFORM-13.T24, PLATFORM-13.T25, PLATFORM-13.T27.",
               "origin": [
                 "REL-8"
               ],
@@ -1148,7 +1150,7 @@
               "note": "Bug registered by the orchestrator on 2026-10-29 from the PLATFORM-13.T2 hold list. Merged in m567 (6b43784ed)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.5"
               ],
@@ -1163,7 +1165,7 @@
                 ]
               },
               "text": "Lift the app zod 4.4.3 hold, and add a first-use schema cost probe that reports what a cold schema parse costs inside a query, so the 1 s limit is measured rather than met by accident.",
-              "note": "Split from T25 by user ruling on 2026-10-30 (keep 4.4.3, merge only the readScopeKind move)."
+              "note": "Split from T25 by user ruling on 2026-10-30 (keep 4.4.3, merge only the readScopeKind move). Merged in m581 (8cd8148f3). Zod stays held at 4.4.3, with reasons in docs/validation; 4.5.3 and 4.6.7 cause widespread 1 s timeouts in Browser journeys. Holds approved by the user on 2026-10-31."
             },
             {
               "id": "PLATFORM-13.T26",
@@ -1245,7 +1247,8 @@
               "text": "Bug: storageRecovery.test.ts \"replaces DRAINING authority\" fails on a 1 ms clock race (expected 1793408752741 <= 1793408752740). Fix the test clock or the ordering without weakening the assertion. Also: retryNativeQuery in campaignMembership.ts retries the 1 s timeout but not the Convex IsolateNotClean error that follows one (run 41158016895, campaign-membership-browser).",
               "note": "Found on Tests run 41152531895 shard 3 (tip 577cb310a). Merged in m574 (9d1677f1d). Expiry now asserted exactly from the mutation's own createdAt; the mutation clock can read ahead of the test's."
             }
-          ]
+          ],
+          "internalReason": "Dependency refresh, auth bug fixes and tooling: no new user-visible flow of its own. The existing Browser journeys cover the refreshed stack, including auth-browser, profile-browser and social-browser."
         },
         {
           "id": "PLATFORM-14",
@@ -15575,7 +15578,7 @@
               "text": "Spell action choices, slot spend and undo, upcasting, rituals, concentration start, multi-effect spells and components work in an Encounter.",
               "status": "DONE",
               "proof": [
-                "Closed by SPELLS-8.T1undefined), SPELLS-8.T5undefined), SPELLS-8.T6undefined), SPELLS-8.T7 (m422), SPELLS-8.T8undefined), SPELLS-8.T9undefined), SPELLS-8.T10undefined), SPELLS-8.T11undefined), SPELLS-8.T12undefined), SPELLS-8.T14 (m352); see each task's proof."
+                "Closed by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7 (m422), SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14 (m352); see each task's proof."
               ],
               "origin": [],
               "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain. Closed 2026-10-24 by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7, SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14.",
@@ -17972,7 +17975,7 @@
               "text": "An effect authored to end on an event ends when its holder triggers it, through one generic end-event consumer: Invisibility ends when the invisible creature makes an attack roll or casts a spell, and GM undo of that attack or cast restores it.",
               "status": "DONE",
               "proof": [
-                "Closed by SPELLS-27.T1undefined), SPELLS-27.T2aundefined), SPELLS-27.T2bundefined), SPELLS-27.T3undefined), SPELLS-27.T3bundefined), SPELLS-27.T6 (m546); see each task's proof."
+                "Closed by SPELLS-27.T1, SPELLS-27.T2a, SPELLS-27.T2b, SPELLS-27.T3, SPELLS-27.T3b, SPELLS-27.T6 (m546); see each task's proof."
               ],
               "origin": [],
               "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads. Closed 2026-10-29 by SPELLS-27.T1, SPELLS-27.T2a, SPELLS-27.T2b, SPELLS-27.T3, SPELLS-27.T3b, SPELLS-27.T6.",

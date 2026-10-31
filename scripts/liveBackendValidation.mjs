@@ -1,9 +1,9 @@
-// Manifest, codegen push, deploy, seed, in-place replace probe, reseed and SRD audit against the
+// Manifest, codegen push, deploy, first-use schema cost probe, seed, in-place replace probe, reseed and SRD audit against the
 // self-hosted Convex backend container at http://127.0.0.1:3210: the local Docker backend by default, or an ephemeral container on a GitHub
 // runner (.github/workflows/live-backend.yml). Stops at the first failing step; with --log-dir each
 // step's log and duration are written there. The admin key never reaches a log or a file.
 //   node scripts/liveBackendValidation.mjs [--container=<name>] [--fresh]
-//     [--steps=manifest,codegen,deploy,seed,replace,reseed,audit] [--log-dir=<dir>]
+//     [--steps=manifest,codegen,deploy,schemaCost,seed,replace,reseed,audit] [--log-dir=<dir>]
 // --fresh is for a just-started ephemeral container: it first sets the deployment env the auth config
 // needs. It is refused for the local container, which keeps its own. The opt-in `snapshots` step
 // waits until every Content snapshot the seed marked is built, for browser proofs on a fresh stack.
@@ -29,7 +29,16 @@ import {
 } from './convexSelfHosted.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const defaultSteps = ['manifest', 'codegen', 'deploy', 'seed', 'replace', 'reseed', 'audit']
+const defaultSteps = [
+  'manifest',
+  'codegen',
+  'deploy',
+  'schemaCost',
+  'seed',
+  'replace',
+  'reseed',
+  'audit'
+]
 
 const options = {
   container: localConvex.container,
@@ -85,6 +94,15 @@ const allSteps = {
   env: [convex('env', 'set', 'JWKS', '')],
   codegen: [convex('codegen', '--typecheck', 'disable')],
   deploy: [[...convexDeployArguments, ...convexCliArguments(localConvex.url, adminKey)]],
+  // The first schema parses after the deploy, so their cold cost is what the probe reports.
+  schemaCost: [
+    [
+      'exec',
+      'tsx',
+      'apps/apis/scripts/liveBackendSchemaProbe.ts',
+      `--container=${options.container}`
+    ]
+  ],
   seed: [convex('run', 'content/seed:seed')],
   // Replaces canonical subjects, the System, content source, catalogue and a reusable definition in
   // place and times each mutation; the reseed then replaces the one subject the probe leaves
