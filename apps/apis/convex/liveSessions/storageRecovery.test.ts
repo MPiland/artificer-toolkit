@@ -1,5 +1,5 @@
 import { makeFunctionReference } from 'convex/server'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   type LiveSessionAuthorityDto,
   type LiveSessionStorageRecoveryInput
@@ -15,8 +15,6 @@ const recoverStorage = makeFunctionReference<
 >('liveSessions/authority:recoverStorage')
 
 describe('Campaign room storage recovery', () => {
-  afterEach(() => vi.useRealTimers())
-
   it.each(['ACTIVATING', 'DO_ACTIVE', 'DRAINING'] as const)(
     'replaces %s authority without publishing the abandoned room state',
     async (phase) => {
@@ -65,8 +63,6 @@ describe('Campaign room storage recovery', () => {
             .unique()
         }))
       const before = await readProduct()
-      // Pin the clock: the mutation's own Date.now() can read 1 ms ahead of the test's.
-      vi.useFakeTimers({ toFake: ['Date'], now: Date.now() })
       const startedAt = Date.now()
       const replacement = await base.t.mutation(recoverStorage, {
         campaignId: base.campaign.id,
@@ -83,8 +79,10 @@ describe('Campaign room storage recovery', () => {
       expect(replacement.activationExpiresAt).toBeGreaterThanOrEqual(
         startedAt + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
       )
-      expect(replacement.activationExpiresAt).toBeLessThanOrEqual(
-        Date.now() + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
+      // The mutation's Date.now() can read ahead of the test's, so bound the expiry by the
+      // mutation's own timestamp instead of the test clock.
+      expect(replacement.activationExpiresAt).toBe(
+        Date.parse(replacement.createdAt) + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
       )
       expect(replacement.createdAt).toBe(replacement.updatedAt)
       expect(Date.parse(replacement.createdAt)).toBeGreaterThanOrEqual(startedAt)
