@@ -1312,6 +1312,33 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
   }, 120000)
 
+  it('rolls its own initiative at the cast and takes its own turn in every round (SPELLS-35.T5)', async () => {
+    const room = await familiarRoom()
+    const familiar = await castSummon(room, FAMILIAR_POINT, {
+      formId: catForm.id,
+      creatureTypeId: FEY
+    })
+    const readRun = async () => {
+      const [run] = (await readRoomHistory(room.room.base.stub)).runs
+      if (!run) throw new Error('The room holds no Run.')
+      return encounterRunStateSchema.parse(JSON.parse(run.stateJson))
+    }
+    const run = await readRun()
+    const row = (await readRoomHistory(room.room.base.stub)).actors.find(
+      ({ id }) => id === familiar.actor.id
+    )
+    const seated = row && readStoredRunActor(row)
+    expect(seated?.owner).toMatchObject({ turnTiming: 'OWN_INITIATIVE' })
+    expect(typeof seated?.initiative).toBe('number')
+
+    const acted: string[] = []
+    for (let turn = 0; turn < run.actorIds.length; turn += 1) {
+      acted.push((await readRun()).currentActorId ?? '')
+      await room.advanceTurn()
+    }
+    expect(acted).toContain(familiar.actor.id)
+  }, 120000)
+
   it('refuses a cast with no form, a type it does not offer, or a form a stat block summon never takes', async () => {
     const room = await familiarRoom()
     const refusedWith = async (picks: { formId?: string; creatureTypeId?: string }) => {

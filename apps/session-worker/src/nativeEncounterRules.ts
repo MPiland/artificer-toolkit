@@ -88,6 +88,7 @@ import {
 import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
+import { encounterActorCannotAttack } from '@artificer-toolkit/rules-runtime/encounterActorBody'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireChosenItemInstance } from './nativeChosenItem.js'
 import {
@@ -656,6 +657,13 @@ export async function planNativeLiveEncounterAction(
   const delegatingActor = actors.find((actor) => actor.id === command.delegatingActorId)
   if (command.delegatingActorId !== undefined && !delegatingActor)
     throw new Error('Encounter rules input binding mismatch.')
+  // A summon that cannot attack still has its own turn (D200); only its owner's delegated attack resolves.
+  if (prepared.makesAttackRoll && !delegatingActor && encounterActorCannotAttack(prepared.actor))
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+      message: 'This creature cannot attack on its own.'
+    })
   const { activationCode, economy, suppressed, attackAction, grantedUseKey, delegation } =
     await evaluateNativeLiveActionEconomy({
       delegation: delegatingActor && {
