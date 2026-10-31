@@ -83,12 +83,14 @@ export function encounterFacingArcs(
 export const TOUCH_RANGE = { amount: 5, unit: 'FEET' } as const
 
 /**
- * An action's reach: Touch's 5 feet or its normal distance. A relationship the action takes hold with
+ * An action's reach: Touch's 5 feet (also a Self action's, whose area is the source's own space) or
+ * its normal distance. A relationship the action takes hold with
  * seals it (D152), and a forced movement aside stays within it (D157).
  */
 export function encounterActionReachFeet(policy: CompiledActionTargetPolicy): number {
   const { range } = policy
-  if (range.rangeKind === 'TOUCH') return lengthMeasurementInFeet(TOUCH_RANGE)
+  if (range.rangeKind === 'TOUCH' || range.rangeKind === 'SELF')
+    return lengthMeasurementInFeet(TOUCH_RANGE)
   if (range.rangeKind === 'DISTANCE') return lengthMeasurementInFeet(range)
   throw new Error('This action has no measurable reach.')
 }
