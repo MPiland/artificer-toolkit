@@ -18692,7 +18692,7 @@
               "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m579 (562822e23)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18707,8 +18707,7 @@
                 ]
               },
               "text": "Save window: the remaining sites where a roller answers the save.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m583 (4ee9905f5)."
             },
             {
               "status": "TODO",
@@ -18748,7 +18747,7 @@
             },
             {
               "id": "SPELLS-31.T4c1c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18764,8 +18763,7 @@
                 ]
               },
               "text": "D168 result window on the Sheet roll path (split 2026-10-20): a carried die offered after the roll through the same option; proofs for Peerless Skill and Dark One's Own Luck. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
-              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": " D198 rubric (user 2026-10-28): see d187a-replan.md#rubric-pass-d198-2026-10-28 for this task's description-only and rebuilt features. Merged in m583 (4ee9905f5)."
             },
             {
               "id": "SPELLS-31.T4c2",
@@ -19126,7 +19124,7 @@
             },
             {
               "id": "SPELLS-31.T4m",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19134,15 +19132,15 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-4.T2l",
                   "SPELLS-4.T2m1"
                 ]
               },
-              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text), Turn the Unholy (with resource use), Destroy Undead. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "text": "Join SPELLS-4.T2m: Turn Undead (with its description text) and Turn the Unholy (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Merged in m583 (4ee9905f5)."
             },
             {
               "id": "SPELLS-31.T4n",
@@ -19840,7 +19838,7 @@
             },
             {
               "id": "SPELLS-31.T5i4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19854,8 +19852,7 @@
                 ]
               },
               "text": "Add a SAVE_SUCCESS_DAMAGE HALF modifier with a damage-only ON_SAVE_SUCCESS path (G3); Potent Cantrip. Authoring-parity proof; deletes its kind (D156).",
-              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from SPELLS-31.T5i, approved by the user 2026-10-29. Merged in m583 (4ee9905f5)."
             },
             {
               "status": "DONE",
@@ -19893,6 +19890,24 @@
               },
               "text": "Delegated attack, web half: the action-choices read (actionChoiceReads.ts) lists a delegate's attacks under its caster, and the web action drawer picks the familiar's attack for the caster's command. Browser journey.",
               "note": "Split from SPELLS-31.T4v2 at sizing (option a). Approved by the user on 2026-10-29. Merged in m563 (eb5dfedd5)."
+            },
+            {
+              "id": "SPELLS-31.T4m2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T4m"
+                ]
+              },
+              "text": "Destroy Undead: the kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted.",
+              "note": "Split from T4m on 2026-10-31. Held: the user has not ruled on the CR gate (about size 8, recommended) vs a GM ruling with the CR table. Design in spells-31-t4m-design-packet.md. Don't start until ruled; re-size if the gate is approved."
             }
           ]
         },
@@ -26513,7 +26528,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
