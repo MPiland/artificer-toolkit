@@ -65,6 +65,7 @@ import { onHitOutcomeBinding, outcomeSelectionFacts } from './encounterActionOnH
 import {
   actionComplete,
   type CompleteNativeActionGraphs,
+  type NativeOutcomePhase,
   type NativePhaseReceipts
 } from './encounterActionCompletion.js'
 import type { z } from 'zod'

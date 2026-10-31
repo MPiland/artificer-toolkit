@@ -12,7 +12,7 @@ import type { EncounterForcedMovementOfferDto } from '@artificer-toolkit/schema/
 import type { z } from 'zod'
 
 export type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
-type NativeOutcomePhase = Extract<NativeTwoPhase, { phase: 'OUTCOME' }>
+export type NativeOutcomePhase = Extract<NativeTwoPhase, { phase: 'OUTCOME' }>
 
 export type CompleteNativeActionGraphs = Awaited<ReturnType<typeof executeNativeActionGraphs>> & {
   kind: 'COMPLETE'
