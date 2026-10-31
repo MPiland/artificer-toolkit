@@ -79,8 +79,10 @@ describe('Campaign room storage recovery', () => {
       expect(replacement.activationExpiresAt).toBeGreaterThanOrEqual(
         startedAt + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
       )
-      expect(replacement.activationExpiresAt).toBeLessThanOrEqual(
-        Date.now() + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
+      // The mutation's Date.now() can read ahead of the test's, so bound the expiry by the
+      // mutation's own timestamp instead of the test clock.
+      expect(replacement.activationExpiresAt).toBe(
+        Date.parse(replacement.createdAt) + LIVE_SESSION_TICKET_TTL_SECONDS * 1_000
       )
       expect(replacement.createdAt).toBe(replacement.updatedAt)
       expect(Date.parse(replacement.createdAt)).toBeGreaterThanOrEqual(startedAt)
