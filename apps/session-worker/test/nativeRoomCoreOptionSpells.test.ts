@@ -1341,9 +1341,9 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     const scores = participants.map(({ initiativeScore }) => initiativeScore ?? 0)
     expect(scores).toEqual([...scores].sort((a, b) => b - a))
     const [card] = stored.cards.flatMap((payload) =>
-      payload.kind === 'ROLL' && payload.roll.source.kind === 'INITIATIVE' ? [payload.roll] : []
+      payload.kind === 'ROLL' && payload.roll?.source.kind === 'INITIATIVE' ? [payload.roll] : []
     )
-    expect(card?.total).toBe(own?.initiativeScore)
+    expect(card?.evidence.total).toBe(own?.initiativeScore)
     expect(card?.characterLabel).toBe('Cat')
 
     const acted: string[] = []
