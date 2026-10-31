@@ -1229,7 +1229,7 @@
             },
             {
               "id": "PLATFORM-13.T31",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PLATFORM-13.15"
               ],
@@ -1241,7 +1241,7 @@
                 "after": []
               },
               "text": "Bug: storageRecovery.test.ts \"replaces DRAINING authority\" fails on a 1 ms clock race (expected 1793408752741 <= 1793408752740). Fix the test clock or the ordering without weakening the assertion. Also: retryNativeQuery in campaignMembership.ts retries the 1 s timeout but not the Convex IsolateNotClean error that follows one (run 41158016895, campaign-membership-browser).",
-              "note": "Found on Tests run 41152531895 shard 3 (tip 577cb310a)."
+              "note": "Found on Tests run 41152531895 shard 3 (tip 577cb310a). Merged in m574 (9d1677f1d). Expiry now asserted exactly from the mutation's own createdAt; the mutation clock can read ahead of the test's."
             }
           ]
         },
