@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessions'
 import type {
   EncounterCommandResultDto,
+  MoveHeldEffectInputDto,
   RemoveAreaTargetInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
@@ -17,6 +18,7 @@ const expect = playwrightExpect.configure({ timeout: 90_000 })
 type CapturedEncounterCommandInput =
   | ResolveEncounterActionInputDto
   | ResolveRuleOccurrenceInputDto
+  | MoveHeldEffectInputDto
   | RemoveAreaTargetInputDto
   | SetConcealmentObserversInputDto
 
@@ -27,7 +29,7 @@ type CapturedEncounterCommand = {
 }
 
 /**
- * Records the Encounter actions, decision answers and GM concealment edits a page sends through its Session room socket
+ * Records the Encounter actions, decision answers, held-effect moves and GM concealment edits a page sends through its Session room socket
  * (the only door for Encounter commands), with the room's result or refusal, and Convex query
  * failures from its sync socket.
  */
@@ -54,6 +56,7 @@ export function captureEncounterCommands(
         if (
           command.type !== 'RESOLVE_ACTION' &&
           command.type !== 'RESOLVE_RULE_OCCURRENCE' &&
+          command.type !== 'MOVE_HELD_EFFECT' &&
           command.type !== 'REMOVE_AREA_TARGET' &&
           command.type !== 'SET_CONCEALMENT_OBSERVERS'
         )

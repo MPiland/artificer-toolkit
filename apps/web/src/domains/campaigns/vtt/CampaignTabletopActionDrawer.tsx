@@ -534,7 +534,7 @@ export function CampaignTabletopActionDrawer({
     [actorIdByTokenId, sceneTokens, targetActorId]
   )
   const targetTokenId = targetToken?.id ?? null
-  // An effect offer's pick is measured from the effect's holder, and only a live creature other than the holder may take it.
+  // An effect offer's range is measured from the creature moving the effect, and only a live creature other than the holder may take it.
   const moveOffers = effectOffers.filter(isMoveEffectOffer)
   const chosenOffer = moveOffers.find((offer) => effectOfferKey(offer) === chosenOfferKey) ?? null
   const offerTargetActorId =
@@ -556,7 +556,7 @@ export function CampaignTabletopActionDrawer({
       ? { sceneId: scene.id, expectedSceneVersion: scene.version, sourceTokenId, targetTokenId }
       : null
   }
-  const offerHolderTokenId = tokenIdOfActor(chosenOffer?.holderActorId ?? null)
+  const offerSourceTokenId = tokenIdOfActor(currentActorId)
   const offerTargetTokenId = tokenIdOfActor(offerTargetActorId)
   const sceneContext = useMemo(
     () =>
@@ -775,10 +775,10 @@ export function CampaignTabletopActionDrawer({
   const actionPreview = useMemo<VttActionPreview | null>(
     () =>
       chosenOffer
-        ? offerHolderTokenId
+        ? offerSourceTokenId
           ? {
               range: { kind: 'WITHIN', distance: chosenOffer.range },
-              sourceTokenId: offerHolderTokenId,
+              sourceTokenId: offerSourceTokenId,
               targetTokenId: offerTargetTokenId
             }
           : null
@@ -791,7 +791,7 @@ export function CampaignTabletopActionDrawer({
           : null,
     [
       chosenOffer,
-      offerHolderTokenId,
+      offerSourceTokenId,
       offerTargetTokenId,
       selectedAction,
       sourceTokenId,
@@ -1504,8 +1504,8 @@ export function CampaignTabletopActionDrawer({
                 encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
               }
               offers={effectOffers}
-              sceneContext={(offer, newHolderActorId) =>
-                sceneContextBetween(offer.holderActorId, newHolderActorId)
+              sceneContext={(newHolderActorId) =>
+                sceneContextBetween(currentActor.id, newHolderActorId)
               }
               repeatSceneContext={(offer) =>
                 sceneContextBetween(offer.originActorId ?? currentActor.id, offer.holderActorId)
