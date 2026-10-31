@@ -63,6 +63,7 @@ import { useMaintainedReplacementChoice } from './useMaintainedReplacementChoice
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import {
   CampaignTabletopOptionalChoiceFields,
+  CampaignTabletopHealSharesInput,
   CampaignTabletopSpendInput
 } from './CampaignTabletopChoiceInputs'
 import { CampaignTabletopEscapes } from './CampaignTabletopEscapes'
@@ -72,6 +73,7 @@ import { CampaignTabletopHeldGrantEnds } from './CampaignTabletopHeldGrantEnds'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileTargets'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
+import { AREA_AIM_COPY, BAND_SIDES } from './campaignTabletopAimCopy'
 import { sparedCreatureLimit } from './sparedCreatureLimit'
 import {
   aimedAreaShape,
@@ -83,44 +85,6 @@ import { effectOfferKey, isMoveEffectOffer } from './effectOffers.model'
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
 const NO_TOKENS: CampaignSceneStateDto['tokens'] = []
-
-/** How the drawer words each way of aiming an area on the map. */
-const AREA_AIM_COPY = {
-  POINT: { title: 'Area origin', pick: 'Pick on map', clear: 'Clear origin', hint: null },
-  DIRECTED: {
-    title: 'Area direction',
-    pick: 'Aim on map',
-    clear: 'Clear aim',
-    hint: "Drag from your token's edge toward where it points."
-  },
-  WALL: {
-    title: 'Wall',
-    pick: 'Draw on map',
-    clear: 'Clear wall',
-    hint: 'Drag from one end of the wall to the other.'
-  },
-  RING: {
-    title: 'Ring',
-    pick: 'Draw on map',
-    clear: 'Clear ring',
-    hint: "Drag from the ring's center out to its edge."
-  }
-} as const
-
-/** The sides of a drawn wall a zone's band can reach (D154): a wall's as drawn, or a ring's. */
-const BAND_SIDES = {
-  WALL: [
-    { label: 'Left as drawn', value: 'LEFT' },
-    { label: 'Right as drawn', value: 'RIGHT' }
-  ],
-  RING: [
-    { label: 'Inside', value: 'INSIDE' },
-    { label: 'Outside', value: 'OUTSIDE' }
-  ]
-} as const satisfies Record<
-  'WALL' | 'RING',
-  ReadonlyArray<{ label: string; value: SpatialWallSide }>
->
 
 function attackSlotLabel({ number, total }: NonNullable<EncounterActionChoiceDto['attackSlot']>) {
   return `Attack ${number} of ${total}`
@@ -255,6 +219,7 @@ export function CampaignTabletopActionDrawer({
   // this panel's state only, never saved (ATTACK-19.4).
   const [pickedAmmunitionId, setPickedAmmunitionId] = useState<string | null>(null)
   const [pickedSpentUnits, setPickedSpentUnits] = useState(1)
+  const [pickedHealShares, setPickedHealShares] = useState<Record<string, number>>({})
   const [optionalChoicesError, setOptionalChoicesError] = useState<{
     requestIdentity: string
     value: string
@@ -371,6 +336,16 @@ export function CampaignTabletopActionDrawer({
   const ammunitionOptions = selectedAction?.ammunition ?? []
   const chosenSpend = selectedAction?.chosenSpend
   const spentUnits = chosenSpend && Math.min(pickedSpentUnits, chosenSpend.max)
+  const dividedHeal = selectedAction?.dividedHeal
+  const healShareTargets = encounter.actors.filter((actor) => pickedActorIds.includes(actor.id))
+  const healShares = healShareTargets.map(({ id }) => ({
+    actorId: id,
+    amount: pickedHealShares[id] ?? 0
+  }))
+  const healSharesInvalid =
+    dividedHeal !== undefined &&
+    (healShares.some(({ amount }) => amount < 1) ||
+      healShares.reduce((sum, { amount }) => sum + amount, 0) > dividedHeal.total)
   const chosenAmmunition =
     ammunitionOptions.find((stack) => stack.itemInstanceId === pickedAmmunitionId) ??
     ammunitionOptions[0] ??
@@ -499,6 +474,7 @@ export function CampaignTabletopActionDrawer({
       ? {
           kind: 'ACTORS',
           actorIds: pickedActorIds,
+          ...(dividedHeal ? { healShares } : {}),
           ...castChoice,
           ...ammunitionChoice,
           ...(chosenForm ? { formId: chosenForm.id } : {}),
@@ -794,6 +770,7 @@ export function CampaignTabletopActionDrawer({
     setPickedBandSide(null)
     setPickedItemId(null)
     setPickedSpentUnits(1)
+    setPickedHealShares({})
   }
 
   useEffect(() => {
@@ -1178,6 +1155,15 @@ export function CampaignTabletopActionDrawer({
                   onChange={setPickedSpentUnits}
                 />
               ) : null}
+              {dividedHeal ? (
+                <CampaignTabletopHealSharesInput
+                  disabled={selectionControlsDisabled}
+                  divided={dividedHeal}
+                  shares={pickedHealShares}
+                  targets={healShareTargets}
+                  onChange={setPickedHealShares}
+                />
+              ) : null}
               {spareLimit !== undefined ? (
                 <MultiSelect
                   comboboxProps={{ withinPortal: false }}
@@ -1446,6 +1432,7 @@ export function CampaignTabletopActionDrawer({
                       !target ||
                       incompleteOptionalChoices ||
                       (chosenSpend !== undefined && chosenSpend.max < 1) ||
+                      healSharesInvalid ||
                       currentOptionalChoicesError !== null
                     }
                     loading={submitting}

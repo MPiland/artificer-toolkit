@@ -134,6 +134,11 @@ describe('player encounter projection', () => {
     expect(
       projectPlayerEncounterProjection(gm, viewer(OTHER_PLAYER_ID)).actors.map((actor) => actor.id)
     ).toEqual([PUBLIC_ACTOR_ID])
+    expect(
+      projectPlayerEncounterProjection(gm, viewer(PLAYER_ID)).actors.find(
+        (actor) => actor.id === HIDDEN_ACTOR_ID
+      )?.owner
+    ).toEqual({ ownerActorId: PUBLIC_ACTOR_ID })
   })
 
   it('carries only what each health display level allows', () => {
