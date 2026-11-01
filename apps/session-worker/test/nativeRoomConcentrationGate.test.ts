@@ -3,7 +3,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/testing/concentrationCapacityItem'
-import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
+import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
 import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
@@ -49,8 +49,8 @@ function spellRoom(equipment: readonly (typeof gatedItem)[]) {
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     characterSpellcasting: {
-      spells: [shieldOfFaith, bless, haste],
-      prepared: [shieldOfFaith.id, bless.id, haste.id]
+      spells: [shieldOfFaith, heroism, haste],
+      prepared: [shieldOfFaith.id, heroism.id, haste.id]
     },
     characterEquipment: equipment,
     characterAction: (action) => action.label.startsWith(shieldOfFaith.label)
@@ -86,7 +86,7 @@ describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
   it('keeps a second Concentration when both spells are within the limit', async () => {
     const room = await spellRoom([gatedItem])
     await cast(room, 'Shield of Faith (1st level)')
-    await cast(room, 'Bless (1st level)')
+    await cast(room, 'Heroism (1st level)')
     const held = await heldStates(room)
     expect(held).toHaveLength(2)
     expect(held.map((state) => state.descriptor.spellLevel)).toEqual([1, 1])
@@ -106,7 +106,7 @@ describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
   it('replaces a held Concentration that is above the limit with a spell within it', async () => {
     const room = await spellRoom([gatedItem])
     await cast(room, 'Haste (3rd level)')
-    await cast(room, 'Bless (1st level)')
+    await cast(room, 'Heroism (1st level)')
     const held = await heldStates(room)
     expect(held).toHaveLength(1)
     expect(held[0]?.descriptor.spellLevel).toBe(1)
@@ -115,7 +115,7 @@ describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
   it('replaces the held Concentration without the item', async () => {
     const room = await spellRoom([])
     await cast(room, 'Shield of Faith (1st level)')
-    await cast(room, 'Bless (1st level)')
+    await cast(room, 'Heroism (1st level)')
     expect(await heldStates(room)).toHaveLength(1)
   })
 })
