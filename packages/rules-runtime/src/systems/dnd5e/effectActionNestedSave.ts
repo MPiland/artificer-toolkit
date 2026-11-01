@@ -1,6 +1,10 @@
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
-import { type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import {
+  type CompiledDuration,
+  type CompiledEffectGroup
+} from '@artificer-toolkit/shared/compilers'
 import type { FailureMarginRiderAuthored } from '@artificer-toolkit/shared/authored'
 import {
   compareThresholdRuleOperation,
@@ -30,12 +34,13 @@ import {
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   nestedSaveGateNodeId
 } from './effectActionContracts.js'
-import { type FollowUpSaveOutcome } from './effectActionFollowUp.js'
+import { conditionDurationTurns, type FollowUpSaveOutcome } from './effectActionFollowUp.js'
 import {
   hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
   dnd5eTestMarginConditionProposalOperation
 } from './effectActionOperationRegistry.js'
+import { isTallyCount } from './effectActionRepeatSaveEvidence.js'
 import { timedBandConditions } from './effectActionBandConditions.js'
 import { gateNodeInputs } from './effectActionGates.js'
 import { boundedDiceTerm, parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
@@ -113,6 +118,70 @@ export function escalationCondition(
     outcome?.effectKind === 'CONDITION' &&
     UUID.test(outcome.conditionId)
     ? outcome
+    : null
+}
+
+/** The turns a repeating save's held effect lasts: a tally waits for a count, a source-turn save one tick. */
+export function repeatSaveHeldTurns(input: {
+  save: FollowUpSaveOutcome
+  escalated: boolean
+  sourceTurn: boolean
+  duration: CompiledDuration | undefined
+}) {
+  if (input.escalated)
+    return input.save.attempts.kind === 'THRESHOLDS' ? MAX_ACTIVE_EFFECT_TURNS : 1
+  if (input.sourceTurn) return 1
+  return input.duration ? conditionDurationTurns(input.duration) : null
+}
+
+/** Whether a repeating save's timing and attempts are a shape the plan counts on the holder's turn. */
+export function repeatCadenceSupported(save: FollowUpSaveOutcome, escalated: boolean) {
+  return (
+    (save.timing === 'TARGET_TURN_END' || save.timing === 'ON_TRIGGERS_ONLY') &&
+    (save.attempts.kind === 'ONCE'
+      ? (save.attempts.repeatOnFailure === true) !== escalated
+      : isTallyCount(save.attempts.successesToEnd) && isTallyCount(save.attempts.failuresToResolve))
+  )
+}
+
+/**
+ * A one-time save at the start of its source's next turn that ends the held effect whether it is
+ * made or failed. A failure leaves only GM rulings (a special-destination teleport is a place the
+ * table does not model, so it is ruled by the manual adjudication beside it); the ids of those
+ * rulings are returned. Null for any other shape.
+ */
+export function sourceTurnStartSave(save: FollowUpSaveOutcome) {
+  const { onFailure } = save
+  if (
+    save.timing !== 'SOURCE_NEXT_TURN_START' ||
+    save.attempts.kind !== 'ONCE' ||
+    save.attempts.repeatOnFailure === true ||
+    save.onSuccess.kind !== 'END' ||
+    save.onDurationComplete !== undefined ||
+    save.repeatAttemptGate ||
+    save.repeatRollInfluence ||
+    save.repeatTriggers?.length ||
+    onFailure.kind !== 'OUTCOMES' ||
+    !onFailure.endCurrent ||
+    onFailure.gate
+  )
+    return null
+  const rulings = onFailure.outcomes.filter(
+    (outcome) => outcome.effectKind === 'MANUAL_ADJUDICATION'
+  )
+  const unmodelled = (outcome: (typeof onFailure.outcomes)[number]) =>
+    outcome.effectKind === 'TELEPORT' && outcome.destinationKind === 'SPECIAL'
+  return rulings.length > 0 &&
+    rulings.every(({ id }) => UUID.test(id)) &&
+    onFailure.outcomes.every(
+      (outcome) => outcome.effectKind === 'MANUAL_ADJUDICATION' || unmodelled(outcome)
+    )
+    ? {
+        recurrenceStage: 'START_OF_TURN' as const,
+        tickAnchor: 'SOURCE' as const,
+        countedByTurnEffects: true as const,
+        failureRulingIds: rulings.map(({ id }) => id)
+      }
     : null
 }
 

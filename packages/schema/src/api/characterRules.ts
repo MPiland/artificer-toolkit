@@ -1249,15 +1249,17 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     attacksPerAttackAction: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
     concentrationCapacity: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
     /**
-     * Capacity bonuses that carry a deferred requirement (a spell-level limit): each counts for one cast
-     * only when the Concentration it starts, and every one it would keep, meets that requirement.
+     * Capacity bonuses that carry a deferred requirement (a spell-level limit) or uses (`chargeId`):
+     * each counts for one cast only when the Concentration it starts, and every one it would keep,
+     * meets that requirement, and a bonus with uses only while its charge has one left.
      */
     gatedConcentrationCapacity: z._default(
       z
         .array(
           z.strictObject({
             acceptedModifierIndex: integerSchema.check(z.gte(0)),
-            value: integerSchema
+            value: integerSchema,
+            chargeId: z.optional(boundedIdentitySchema)
           })
         )
         .check(z.maxLength(100)),

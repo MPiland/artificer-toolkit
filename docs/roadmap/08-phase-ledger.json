@@ -15183,7 +15183,7 @@
             {
               "id": "SPELLS-4.T2ps-c",
               "text": "Runtime for the SOURCE_NEXT_TURN_START save (row 7), which also unblocks Prismatic Wall.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15196,8 +15196,7 @@
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling. Merged in m594 (8b6104a3e)."
             },
             {
               "id": "SPELLS-4.T2ps-d",
@@ -16292,10 +16291,12 @@
           "acs": [
             {
               "text": "An authored rule (on an item, Feature or other source) lets its holder keep a second Concentration when starting a new one, limited by authored conditions (such as a maximum spell level for both spells) and authored uses with a recovery (such as once per dawn); without it, or with no uses left, a new Concentration replaces the old one as today.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-12.T1 (m587), SPELLS-12.T2a (m590), SPELLS-12.T2a2 (m592), SPELLS-12.T2b (m594); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Design (user, 2026-10-09: generic, not built around the ring): Concentration capacity becomes a System stat (dnd5e default 1) held as a set of maintained states per actor; a capacity modifier joins the existing modifier pipeline from any source (equipped/attuned item, Feature, grant) with the existing predicates (WHILE_SOURCE_EQUIPPED etc.); the per-use gate is an authored predicate over the new and held spells (spell level) and the uses ride the existing limited-use/recovery model. No ring-specific code or kinds. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting).",
+              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Design (user, 2026-10-09: generic, not built around the ring): Concentration capacity becomes a System stat (dnd5e default 1) held as a set of maintained states per actor; a capacity modifier joins the existing modifier pipeline from any source (equipped/attuned item, Feature, grant) with the existing predicates (WHILE_SOURCE_EQUIPPED etc.); the per-use gate is an authored predicate over the new and held spells (spell level) and the uses ride the existing limited-use/recovery model. No ring-specific code or kinds. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting). Closed 2026-11-01 by SPELLS-12.T1, SPELLS-12.T2a, SPELLS-12.T2a2, SPELLS-12.T2b.",
               "id": "SPELLS-12.1"
             },
             {
@@ -16377,7 +16378,7 @@
             {
               "id": "SPELLS-12.T2b",
               "text": "Limited uses with recovery on the second Concentration rule.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1"
               ],
@@ -16390,8 +16391,7 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Split from T2. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T2. Approved by the user on 2026-10-31 (D204). Merged in m594 (8b6104a3e)."
             },
             {
               "id": "SPELLS-12.T3a",
