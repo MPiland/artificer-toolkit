@@ -34,7 +34,7 @@ import {
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored,
-  type ModifierGrantAuthored,
+  type ModifierRolledDieAuthored,
   type SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
@@ -127,33 +127,28 @@ function selfClassRuleEffect(
  * after the d20 is seen; an attack-roll grant of the same shape is the follow-up window's to add.
  */
 function bardicInspirationEffect(): EffectAuthored {
-  const die = (
-    entry: number,
-    valueDomainCode: 'ABILITY_CHECK' | 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER'
-  ): ModifierGrantAuthored => ({
-    id: classRowId(BD, 0x84, entry),
+  const payload: ModifierRolledDieAuthored = {
+    count: 1,
+    faces: 6,
+    sign: ROLLED_DIE_SIGN.ADD,
+    timing: 'AFTER_ROLL',
+    facesScaling: {
+      classId: CLASS_IDS.BARD,
+      levels: [
+        { level: 5, faces: 8 },
+        { level: 10, faces: 10 },
+        { level: 15, faces: 12 }
+      ]
+    }
+  }
+  const die = {
     grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode,
     domain: {},
     modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-    payload: {
-      count: 1,
-      faces: 6,
-      sign: ROLLED_DIE_SIGN.ADD,
-      timing: 'AFTER_ROLL',
-      facesScaling: {
-        classId: CLASS_IDS.BARD,
-        levels: [
-          { level: 5, faces: 8 },
-          { level: 10, faces: 10 },
-          { level: 15, faces: 12 }
-        ]
-      }
-    },
-    order: entry
-  })
+    payload
+  }
   return {
     id: classRowId(BD, 0x60, 1),
     order: 1,
@@ -202,8 +197,18 @@ function bardicInspirationEffect(): EffectAuthored {
               effectKind: EFFECT_KIND.APPLY_GRANT,
               grants: {
                 modifiers: [
-                  die(1, VALUE_DOMAIN_CODE.ABILITY_CHECK),
-                  die(2, VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER)
+                  {
+                    ...die,
+                    id: classRowId(BD, 0x84, 1),
+                    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                    order: 1
+                  },
+                  {
+                    ...die,
+                    id: classRowId(BD, 0x84, 2),
+                    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                    order: 2
+                  }
                 ]
               }
             }
