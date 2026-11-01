@@ -321,7 +321,10 @@ const published = createDnd5eConcentrationCheckDefinition()
 
 async function startCheck(input: {
   checked: ConcentrationDamageApplicationDto
-  remaining?: readonly (ConcentrationDamageApplicationDto & { maintainedStateId: string })[]
+  remaining?: readonly (ConcentrationDamageApplicationDto & {
+    maintainedStateId: string
+    castAt: string
+  })[]
   rulePolicyOutput?: CharacterRulePolicyOutput
 }) {
   const runtime = createSrdRulesRuntime()
@@ -547,11 +550,13 @@ describe('completeNativeConcentrationResult', () => {
   const checked = application({ ordinal: 0, appliedAmount: 22 })
   const sameSpell = {
     ...application({ ordinal: 1, appliedAmount: 8 }),
-    maintainedStateId: MAINTAINED_ID
+    maintainedStateId: MAINTAINED_ID,
+    castAt: TIMESTAMP
   }
   const otherSpell = {
     ...application({ ordinal: 2, appliedAmount: 30, targetActorId: OTHER_CASTER_ID }),
-    maintainedStateId: OTHER_MAINTAINED_ID
+    maintainedStateId: OTHER_MAINTAINED_ID,
+    castAt: TIMESTAMP
   }
 
   async function complete(face: number) {
@@ -581,7 +586,7 @@ describe('completeNativeConcentrationResult', () => {
 
     expect(result.applicationOutputs).toMatchObject({
       outcome: 'SAVE_SUCCESS',
-      application: { ...checked, maintainedStateId: MAINTAINED_ID },
+      application: { ...checked, maintainedStateId: MAINTAINED_ID, castAt: TIMESTAMP },
       cleanup: null,
       nextOccurrenceId: concentrationOccurrenceId(PARENT_OCCURRENCE_ID, sameSpell),
       skipped: []

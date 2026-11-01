@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { compareDamageSaveApplications } from '../shared/ruleExecutionConcentration.js'
 import { encounterCommandInputDtoSchema } from '../api/encounters.js'
 import { characterSheetCommandInputDtoSchema } from '../api/characterSheetCommandInputs.js'
 import {
@@ -90,5 +91,47 @@ describe('Concentration listing', () => {
       concentrationListingDtoSchema.safeParse({ label: null, sourceHidden: true, spellId: id(8) })
         .success
     ).toBe(false)
+  })
+})
+
+describe('Damage save chain order', () => {
+  const damage = {
+    ordinal: 0,
+    sourceNodeId: 'node',
+    sourceOperationKey: 'op',
+    targetActorId: id(1),
+    appliedAmount: 5,
+    damageTypeId: null
+  }
+
+  it('runs one holder’s Concentration checks in casting order, whatever their ids', () => {
+    const earlier = { ...damage, maintainedStateId: id(9), castAt: '2026-01-01T00:00:00.000Z' }
+    const later = { ...damage, maintainedStateId: id(2), castAt: '2026-01-01T00:00:01.000Z' }
+    expect([later, earlier].sort(compareDamageSaveApplications)).toEqual([earlier, later])
+  })
+
+  it('falls back to the state id when two Concentrations began together', () => {
+    const castAt = '2026-01-01T00:00:00.000Z'
+    const low = { ...damage, maintainedStateId: id(2), castAt }
+    const high = { ...damage, maintainedStateId: id(9), castAt }
+    expect([high, low].sort(compareDamageSaveApplications)).toEqual([low, high])
+  })
+
+  it('keeps damage order ahead of casting order', () => {
+    const laterDamage = {
+      ...damage,
+      ordinal: 1,
+      maintainedStateId: id(2),
+      castAt: '2026-01-01T00:00:00.000Z'
+    }
+    const earlierDamage = {
+      ...damage,
+      maintainedStateId: id(9),
+      castAt: '2026-01-01T00:00:01.000Z'
+    }
+    expect([laterDamage, earlierDamage].sort(compareDamageSaveApplications)).toEqual([
+      earlierDamage,
+      laterDamage
+    ])
   })
 })
