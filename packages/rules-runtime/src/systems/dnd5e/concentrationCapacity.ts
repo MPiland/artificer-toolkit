@@ -1,6 +1,7 @@
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 
+import { affordablePoolFor } from '../../character/characterResourcePool.js'
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -14,7 +15,8 @@ type Fold = Pick<CharacterGrantFoldOutput, 'modifiers'>
 /**
  * How many Concentrations a Character keeps: 1 plus the `CONCENTRATION_CAPACITY` bonuses that apply
  * Character-wide. A bonus with a deferred requirement (a spell-level limit) cannot be judged without
- * a cast, so it is listed apart and counts per cast (`dnd5eConcentrationCapacityForCast`).
+ * a cast, and one with uses spends them per cast, so both are listed apart and count per cast
+ * (`dnd5eConcentrationCapacityForCast`).
  */
 export function evaluateDnd5eConcentrationCapacity(
   grantFold: Fold,
@@ -29,35 +31,50 @@ export function evaluateDnd5eConcentrationCapacity(
     .map((contribution) => ({
       acceptedModifierIndex: contribution.acceptedModifierIndex,
       value: contribution.value,
+      chargeId: grantFold.modifiers[contribution.acceptedModifierIndex]?.domain.usesChargeId,
       applicability: dnd5eFoldedModifierApplicability(grantFold, contribution)
     }))
   return {
     concentrationCapacity:
       1 +
       bonuses
-        .filter((bonus) => dnd5eModifierApplies(bonus.applicability, DND5E_CHARACTER_WIDE_TARGET))
+        .filter(
+          (bonus) =>
+            bonus.chargeId === undefined &&
+            dnd5eModifierApplies(bonus.applicability, DND5E_CHARACTER_WIDE_TARGET)
+        )
         .reduce((sum, bonus) => sum + bonus.value, 0),
     gatedConcentrationCapacity: bonuses
-      .filter((bonus) => bonus.applicability.deferredRequirements.length > 0)
-      .map(({ acceptedModifierIndex, value }) => ({ acceptedModifierIndex, value }))
+      .filter(
+        (bonus) =>
+          bonus.applicability.deferredRequirements.length > 0 || bonus.chargeId !== undefined
+      )
+      .map(({ acceptedModifierIndex, value, chargeId }) => ({
+        acceptedModifierIndex,
+        value,
+        ...(chargeId !== undefined && { chargeId })
+      }))
   }
 }
 
 /**
  * The Concentrations a cast lets its caster keep: the Character-wide capacity plus each gated bonus
  * whose requirement the new spell and every spell already held meet. A held Concentration that no
- * spell cast started has no spell, so it meets none.
+ * spell cast started has no spell, so it meets none. When the holder already keeps that many, the
+ * first bonus with uses that applies and has a use left makes room for one more, and the cast pays
+ * that charge's pool (`use`); `usesAvailable` is false where the cast cannot pay one.
  */
 export function dnd5eConcentrationCapacityForCast(input: {
   policyOutput: Pick<
     CharacterRulePolicyOutput,
-    'grantFold' | 'concentrationCapacity' | 'gatedConcentrationCapacity'
+    'grantFold' | 'concentrationCapacity' | 'gatedConcentrationCapacity' | 'resources'
   >
   /** The spell being cast, at its cast level. */
   newSpell: Pick<Dnd5eCastSpell, 'id' | 'level'>
   /** The cast level of each Concentration already held, null where no spell cast started it. */
   heldSpellLevels: readonly (number | null)[]
-}): number {
+  usesAvailable: boolean
+}): { capacity: number; use: { poolId: string; chargeId: string } | null } {
   const { policyOutput } = input
   const targets = [
     { id: input.newSpell.id, level: input.newSpell.level },
@@ -66,13 +83,22 @@ export function dnd5eConcentrationCapacityForCast(input: {
     ...DND5E_CHARACTER_WIDE_TARGET,
     spell: { ...spell, magicSchoolId: null, damageTypeId: null }
   }))
-  return (
-    policyOutput.concentrationCapacity +
-    policyOutput.gatedConcentrationCapacity
-      .filter((bonus) => {
-        const applicability = dnd5eFoldedModifierApplicability(policyOutput.grantFold, bonus)
-        return targets.every((target) => dnd5eModifierApplies(applicability, target))
-      })
-      .reduce((sum, bonus) => sum + bonus.value, 0)
+  const applying = policyOutput.gatedConcentrationCapacity.filter((bonus) =>
+    targets.every((target) =>
+      dnd5eModifierApplies(dnd5eFoldedModifierApplicability(policyOutput.grantFold, bonus), target)
+    )
   )
+  const capacity =
+    policyOutput.concentrationCapacity +
+    applying
+      .filter(({ chargeId }) => chargeId === undefined)
+      .reduce((sum, { value }) => sum + value, 0)
+  if (!input.usesAvailable || input.heldSpellLevels.length < capacity)
+    return { capacity, use: null }
+  for (const { chargeId, value } of applying) {
+    if (chargeId === undefined) continue
+    const pool = affordablePoolFor(policyOutput.resources, { chargeId, cost: 1 })
+    if (pool) return { capacity: capacity + value, use: { poolId: pool.poolId, chargeId } }
+  }
+  return { capacity, use: null }
 }

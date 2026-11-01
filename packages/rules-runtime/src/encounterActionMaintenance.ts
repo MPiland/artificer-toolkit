@@ -55,7 +55,11 @@ type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechani
 function characterConcentrationCapacity(
   source: Extract<PreparedMechanics['source'], { kind: 'CHARACTER_ACTION' }>,
   adapter: PreparedMechanics['adapter'],
-  cast: { spellLevel: number | null; held: readonly EncounterMaintainedEffectStateRecord[] }
+  cast: {
+    spellLevel: number | null
+    held: readonly EncounterMaintainedEffectStateRecord[]
+    usesAvailable: boolean
+  }
 ) {
   const { effectivePolicyOutput } = source
   const owner = source.candidate.mechanicsOwner
@@ -63,8 +67,9 @@ function characterConcentrationCapacity(
     adapter.concentrationCapacityForCast?.({
       policyOutput: effectivePolicyOutput,
       newSpell: { id: owner.kind === 'SPELL' ? owner.id : '', level: cast.spellLevel },
-      heldSpellLevels: cast.held.map((state) => state.descriptor.spellLevel ?? null)
-    }) ?? effectivePolicyOutput.concentrationCapacity
+      heldSpellLevels: cast.held.map((state) => state.descriptor.spellLevel ?? null),
+      usesAvailable: cast.usesAvailable
+    }) ?? { capacity: effectivePolicyOutput.concentrationCapacity, use: null }
   )
 }
 
@@ -77,6 +82,11 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
   /** The held state the caster chose to end at capacity; required when several are held. */
   chosenStateId?: string | undefined
+  /**
+   * Whether this cast can pay a use of a bonus that makes room for one more Concentration (the
+   * caller settles the spend with the cast). Where it cannot, a cast at capacity replaces.
+   */
+  allowCapacityUses?: boolean
   /** The acting actor's held states for the definition, oldest first. */
   readHeldStates: (definitionId: string) => Promise<EncounterMaintainedEffectStateRecord[]>
   /** One held state and the effects that depend on it. */
@@ -152,11 +162,18 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     characterActionState: prepared.characterActionState ?? null
   })
   // A Character holds as many as its stat allows, more for a cast its gated bonuses cover; a
-  // Creature holds one.
-  const capacity =
+  // Creature holds one. A caster who names the state to end chooses to replace, so spends no use.
+  const { capacity, use: capacityUse } =
     prepared.source.kind === 'CHARACTER_ACTION'
-      ? characterConcentrationCapacity(prepared.source, prepared.adapter, { spellLevel, held })
-      : 1
+      ? characterConcentrationCapacity(prepared.source, prepared.adapter, {
+          spellLevel,
+          held,
+          usesAvailable:
+            input.allowCapacityUses === true &&
+            !held.some((state) => state.id === input.chosenStateId) &&
+            !prepared.characterActionState?.resourceConsumption
+        })
+      : { capacity: 1, use: null }
   const replaced = chooseReplacedMaintainedState({
     definitionId: policy.definitionId,
     held,
@@ -187,6 +204,8 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     policy,
     definitionChecksum: definition.checksum,
     prior,
+    /** The pool the cast spends a use of because a bonus made room for this Concentration. */
+    capacityUse,
     spellLevel,
     removed,
     carried: sortedCarried,
