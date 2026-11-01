@@ -62,7 +62,9 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     players,
     grantGmTier: (userId: string) =>
       t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
+    // Each finished Campaign's room is closed from both ends, so the next one activates on a quiet Worker.
     releaseRoom: async (campaignId: string) => {
+      for (const account of accounts) account.client.closeRooms()
       await closeRoom(campaignId)
     },
     buildSnapshots: seedRoomContentSnapshots,

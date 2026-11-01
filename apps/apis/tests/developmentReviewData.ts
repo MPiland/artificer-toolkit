@@ -349,18 +349,11 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   const declaredAction = (actorId: string) => turnActions.get(actorId)?.shift() || undefined
   const execute = (command: EncounterExecuteInput['command']) =>
     gm.client.mutation(executeEncounterCommand, { command })
-  // The first command of a Campaign activates its room, which can drop the socket while it warms
-  // up. The command ID makes a repeat an exact replay, so the same START is sent again.
-  const start = {
-    type: 'START' as const,
+  let started = await execute({
+    type: 'START',
     encounterId: created.id,
     commandId: crypto.randomUUID(),
     expectedVersion: created.version
-  }
-  let started = await execute(start).catch((error: unknown) => {
-    if (!String(error).includes('closed the connection')) throw error
-    log(`${scenario.campaign}: room dropped during activation; starting again`)
-    return execute(start)
   })
   for (let resolutions = 0; started.occurrence?.status === 'PENDING'; resolutions++) {
     assert.ok(resolutions < 30, `${scenario.campaign} initiative did not settle.`)
