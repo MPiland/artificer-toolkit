@@ -1963,3 +1963,11 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Open Hand Technique is built** as its own task (T4l2b). **Horde Breaker is a GM ruling:** the player makes the extra attack by hand.
 - **Save windows cover area saves (T4c1b4) and movement reaction saves (T4c1b4b).** Zone and forced-movement saves stay system-rolled, so D170 stands.
 - **Dark One's Blessing is built** on a generic killer-side trigger (T4i2).
+
+### D204: Double Concentration ring, Prismatic Spray, Conjure groups (user decisions, 2026-10-31)
+
+- **The double Concentration ring is built without its reaction prompt.** SPELLS-12 splits into T2a gate, T2b uses, T3a saves and T3b advantage and disadvantage, about +8. A reaction cast of a Concentration spell at capacity with two held is refused, and the player can end one first.
+- **Prismatic Spray keeps its always-built ruling** and splits into T2ps-a to T2ps-d, about +7. T2ps-b also unblocks Flesh to Stone, and T2ps-c also unblocks Prismatic Wall.
+- **T30 may read `node_modules/convex-test/dist`** with Read and Grep only.
+- **SPELLS-31.T5q is built and splits** into T5q-A ability maximum and T5q-B check bonuses, about +7.
+- **Orchestrator ruling on SPELLS-35.T7:** `owner.count` is optional on the Run actor owner, absence means 1, and `UPDATE_ACTOR.groupCount` lets the GM set 1..32 in either direction. The multiplier lives in one attack-slot derivation. Upcast multipliers are not applied at cast: the GM raises the count afterward.
