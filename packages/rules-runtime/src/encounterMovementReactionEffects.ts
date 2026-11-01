@@ -8,6 +8,7 @@ import {
 import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
 import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
+import { windowSpentEffects } from './encounterD20Window.js'
 import { createLinkedRiders, riderEffectKey } from './encounterActionEffectPlans.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import { isMeleeAttackSource } from './encounterActionSources.js'
@@ -153,11 +154,10 @@ export function planEncounterMovementReactionEffects<
   })
   // A hit on one of the mover's decoys destroys it: the last ends the effect, any other spends a use.
   const decoyStrike = decoyStrikeEffects(prepared.attackDecoy, input.execution.d20?.resultPath)
+  const moverEffects = prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []
   const mover = targetEndedEffects({
     holderActorId: prepared.target.id,
-    held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
-      ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
-    ),
+    held: moverEffects.filter(({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)),
     attack: makesAttackRoll
       ? { melee: isMeleeAttackSource(prepared.state.gameSystemId, prepared.source) }
       : null,
@@ -192,7 +192,11 @@ export function planEncounterMovementReactionEffects<
         ...reactor.consumedGrants,
         ...decoyStrike.endedGrants,
         ...mover.endedEffects,
-        ...mover.replacedEffects
+        ...mover.replacedEffects,
+        // A held die the mover spent in its save's d20 window ends with the reaction (D168).
+        ...windowSpentEffects(input.execution, moverEffects).filter(
+          ({ id }) => !mover.endedEffects.some((ended) => ended.id === id)
+        )
       ],
       decoyStrike,
       sourceReleases: reactor.sourceReleases,

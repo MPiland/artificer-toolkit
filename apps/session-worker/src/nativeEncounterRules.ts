@@ -178,11 +178,9 @@ import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
-import {
-  settledActionSaveWindow,
-  targetSaveWindow,
-  windowSpentEffects
-} from './nativeActionSaveWindow.js'
+import { settledActionSaveWindow } from './nativeActionSaveWindow.js'
+import { targetSaveWindow } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 

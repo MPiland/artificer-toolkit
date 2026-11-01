@@ -1977,3 +1977,15 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **A group token's hit points are one creature's hit points times the count.** Eight wolves of 11 HP are one 88 HP pool. Area damage hits the pool once, and the token leaves at 0 through the existing summon removal.
 - **Changing the count:** lowering it leaves hit points alone. Raising it adds one creature's hit points per added creature to current and maximum. The count never changes by itself.
 - **Orchestrator rulings:** a Multiattack creature in a group makes one attack per creature (D200), a Monk holding a one-handed non-monk weapon keeps Martial Arts, and Sheet Extras show no group count. All three are deferred edge cases.
+
+### D206: Metamagic parameters, damage rerolls, Bardic attacks and Open Hand (user decisions, 2026-11-01)
+
+- **Great Weapon styles:** `DAMAGE_DIE_REROLL` `{ rerollAtOrBelow }` is automatic, keeps the new roll, shows both dice on the roll card, and its threshold is authored.
+- **Empowered Spell (T5e2) is a trigger:** the window opens only when the caster holds an after-damage-roll reroll option and can pay. Other casts are unchanged. It covers area damage, with one shared window per damage roll, and the caster answers once.
+- **Cast parameters:** `parameters` is a discriminated union on CAST_MODIFIER and the server re-checks guards. Distant uses the RANGE variant and Overchannel is a GM ruling.
+- **Quickened Spell** ships with a generic limit for all spells: after a bonus-action spell only a 1-action cantrip, a bonus-action spell is refused after an action-cast non-cantrip, and reaction spells are unaffected.
+- **Extended Spell** is a modifier on the feature. It doubles the initial duration only, after the summon check, capped at 24 hours, offered for timed spells of 1 minute or more and not Concentration-only ones.
+- **Bardic Inspiration on attacks (T4c2b)** opens a window only when the attacker holds an eligible die.
+- **SPELLS-15.T2** is size 8, because the AC needs the legendary action aim.
+- **PERF-4.T1:** `composeRoomSceneVision` gets a senses-only reader, no cache, and the 25 ms budget stays.
+- **Open Hand Technique (T4l2b):** `GRANTED_ACTION_OPTION` with `{ optionEffectId }` names a sibling Effect that holds the outcomes in the ordinary grammar, read at attack time by the held offer. A strike counts as a Flurry strike while an unspent offer is held, with no pick on the attack command.

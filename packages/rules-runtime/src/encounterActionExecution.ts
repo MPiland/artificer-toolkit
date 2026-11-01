@@ -38,9 +38,9 @@ import {
   heldWindowedSave,
   openActionSaveWindow,
   windowedSaveResponse,
+  type EncounterActionSaveWindow,
   type EncounterActionWindowAnswer
 } from './encounterActionSaveWindow.js'
-import type { EncounterD20WindowHeldDie } from './encounterD20Window.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import {
   actionResponse,
@@ -411,7 +411,7 @@ export async function prepareNativeActionTest(
     /** The true and believed sight of the attack roll, as in `advanceNativeActionGraphs`. */
     attackSight?: EncounterPreparedAttackSight | null
     /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
-    saveWindow?: { heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[] }
+    saveWindow?: EncounterActionSaveWindow
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
@@ -1063,7 +1063,7 @@ export async function advanceNativeActionGraphs(input: {
    * rolled d20 in a window before the save resolves; the window's answer resumes the save with the
    * roll and the die it spent.
    */
-  saveWindow?: { heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[] }
+  saveWindow?: EncounterActionSaveWindow
   resume?: {
     pending: ResumedNativeActionGraphs
     resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
