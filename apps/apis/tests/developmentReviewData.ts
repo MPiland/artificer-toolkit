@@ -12,6 +12,7 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
@@ -211,7 +212,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     ...fields,
     expectedVersion: version,
     automationMode: 'ASSISTED',
-    initiativePolicyDefinitionId: null,
+    initiativePolicyDefinitionId: SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID,
     initiativeTieDefinitionId: null
   })
 
