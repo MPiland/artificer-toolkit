@@ -15,11 +15,7 @@ import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import {
-  CHARACTER_SHEET_STORE_DELAY_MS,
-  characterSheetSection,
-  readStoredCharacterSheetSection
-} from './sheetSections'
+import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
 
 /**
  * A stored section read checks authority and the derivation's inputs (the System document is 34 KB
