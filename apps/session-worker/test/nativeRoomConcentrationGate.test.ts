@@ -7,6 +7,7 @@ import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -41,7 +42,10 @@ function spellRoom(equipment: readonly (typeof gatedItem)[]) {
   return actionRoom({
     autoRoll: 'BOTH',
     actors: [
-      characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+      {
+        ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+        snapshot: { kind: 'CHARACTER', id: CASTER_ID, systemId: srdSystemRecord.id }
+      },
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     characterSpellcasting: {
