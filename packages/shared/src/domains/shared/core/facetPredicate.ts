@@ -115,11 +115,6 @@ export type PredicatePayloadByCode = {
   HOLDER_IN_BRIGHT_LIGHT: {
     requiresDaylight: boolean
   }
-  /** The holder maintains this many Concentrations when a Concentration save is rolled, the one saved for included. */
-  HELD_CONCENTRATION_COUNT: {
-    min: number
-    max?: number
-  }
   /**
    * The damage behind a Concentration save exceeds `over` plus `perSpellLevel` times the level of
    * the spell whose Concentration is saved for.
@@ -175,6 +170,14 @@ export type PredicatePayloadByCode = {
    */
   HOLDER_ACTIVE_EFFECT: {
     effectIds: string[]
+  }
+  /**
+   * The holder keeps `min` to `max` Concentrations now (the ring that gives vulnerability while two
+   * are held). Decided live in an Encounter.
+   */
+  HOLDER_CONCENTRATION_COUNT: {
+    min: number
+    max?: number
   }
   /**
    * The holder took the Attack action this turn with a weapon that has every listed property
@@ -439,14 +442,6 @@ export const PREDICATE_REGISTRY = {
     subjects: ['EQUIPMENT']
   },
 
-  HELD_CONCENTRATION_COUNT: {
-    code: 'HELD_CONCENTRATION_COUNT',
-    label: 'Held Concentration Count',
-    description:
-      'Requires the holder to maintain a number of Concentrations within a range when a Concentration save is rolled.',
-    subjects: ['EQUIPMENT']
-  },
-
   CONCENTRATION_DAMAGE_OVER: {
     code: 'CONCENTRATION_DAMAGE_OVER',
     label: 'Concentration Damage Over',
@@ -532,6 +527,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Holder Has Active Effect',
     description: 'Requires the holder to have one of the selected effects active on it.',
     subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  HOLDER_CONCENTRATION_COUNT: {
+    code: 'HOLDER_CONCENTRATION_COUNT',
+    label: 'Holder Concentration Count',
+    description:
+      'Requires the holder to keep a number of Concentrations, within a minimum and an optional maximum.',
+    subjects: ['EQUIPMENT', 'CHARACTER']
   },
 
   ATTACK_ACTION_OTHER_WEAPON: {

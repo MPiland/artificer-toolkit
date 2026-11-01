@@ -42,7 +42,8 @@ const holderState = (kind: EncounterHolderState['kind']): EncounterHolderState =
   freeHand: true,
   stowableHeldItemInstanceId: null,
   turnMovement: { usedFeet: 0, speedFeet: 30 },
-  activeAuthoredEffectIds: []
+  activeAuthoredEffectIds: [],
+  heldConcentrationCount: 0
 })
 
 const creatureHolder = (creature: CreatureAuthored) =>
@@ -58,7 +59,8 @@ const creatureHolder = (creature: CreatureAuthored) =>
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
     runEffectsByActorId: new Map(),
-    readTurnMovedFeet: async () => 0
+    readTurnMovedFeet: async () => 0,
+    readHeldConcentrationCount: async () => 0
   })
 
 /** The roll mode of the holder's save of `ability` against a source, with no condition named. */

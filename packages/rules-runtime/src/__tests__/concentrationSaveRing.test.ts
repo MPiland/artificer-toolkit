@@ -11,7 +11,7 @@ const advantageWhenOneHeld = concentrationSaveItem({
   number: 920,
   label: 'Lone Focus Ring',
   influence: 'ADVANTAGE',
-  conditions: [{ predicateCode: 'HELD_CONCENTRATION_COUNT', min: 1, max: 1 }]
+  conditions: [{ predicateCode: 'HOLDER_CONCENTRATION_COUNT', min: 1, max: 1 }]
 })
 const disadvantageOnHeavyDamage = concentrationSaveItem({
   number: 921,
@@ -25,7 +25,7 @@ const disadvantageWhenTwoHeldAndHeavy = concentrationSaveItem({
   label: 'Divided Focus Ring',
   influence: 'DISADVANTAGE',
   conditions: [
-    { predicateCode: 'HELD_CONCENTRATION_COUNT', min: 2 },
+    { predicateCode: 'HOLDER_CONCENTRATION_COUNT', min: 2 },
     { predicateCode: 'CONCENTRATION_DAMAGE_OVER', over: 10, perSpellLevel: 1 }
   ] satisfies ConcentrationSaveCondition[]
 })

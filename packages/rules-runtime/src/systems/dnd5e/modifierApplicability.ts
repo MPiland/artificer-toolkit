@@ -24,7 +24,7 @@ const SPELL_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
 ])
 
 const CONCENTRATION_SAVE_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
-  'HELD_CONCENTRATION_COUNT',
+  'HOLDER_CONCENTRATION_COUNT',
   'CONCENTRATION_DAMAGE_OVER'
 ])
 
@@ -142,7 +142,7 @@ function concentrationSaveConditionMatches(
   save: Dnd5eConcentrationSave
 ): boolean {
   switch (condition.kind) {
-    case 'HELD_CONCENTRATION_COUNT':
+    case 'HOLDER_CONCENTRATION_COUNT':
       return (
         save.heldCount >= (condition.min ?? 0) &&
         (condition.max === null || save.heldCount <= condition.max)

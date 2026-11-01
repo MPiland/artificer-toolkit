@@ -91,12 +91,12 @@ const restrictionConditionSchema = lazySchema(() =>
       'TARGET_HAS_NOT_TAKEN_TURN',
       /** The holder stands in bright light on its Scene, in daylight when `requiresDaylight` (Encounter state). */
       'HOLDER_IN_BRIGHT_LIGHT',
+      /** The holder keeps `min`..`max` Concentrations now (Encounter state). */
+      'HOLDER_CONCENTRATION_COUNT',
       /**
-       * Concentration-save conditions are evaluated against the save being rolled, never
-       * Character-wide: the holder maintains `min`..`max` Concentrations, and the damage behind the
-       * save exceeds `min` plus `perSpellLevel` per level of the spell saved for.
+       * The damage behind a Concentration save exceeds `min` plus `perSpellLevel` per level of the
+       * spell saved for; evaluated against the save being rolled, never Character-wide.
        */
-      'HELD_CONCENTRATION_COUNT',
       'CONCENTRATION_DAMAGE_OVER',
       /**
        * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on

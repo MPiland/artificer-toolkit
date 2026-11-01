@@ -277,11 +277,6 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_IN_BRIGHT_LIGHT),
         requiresDaylight: z.boolean()
       }),
-      HELD_CONCENTRATION_COUNT: z.object({
-        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HELD_CONCENTRATION_COUNT),
-        min: z.number(),
-        max: z.optional(z.number())
-      }),
       CONCENTRATION_DAMAGE_OVER: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONCENTRATION_DAMAGE_OVER),
         over: z.number(),
@@ -410,6 +405,11 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.TURN_MOVEMENT),
         maxFeet: z.optional(z.number()),
         maxSpeedFraction: z.optional(z.number())
+      }),
+      HOLDER_CONCENTRATION_COUNT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_CONCENTRATION_COUNT),
+        min: z.number(),
+        max: z.optional(z.number())
       }),
       HOLDER_ACTIVE_EFFECT: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_ACTIVE_EFFECT),

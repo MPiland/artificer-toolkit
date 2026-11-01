@@ -715,7 +715,8 @@ describe('D&D 5e saving throws and defenses', () => {
           freeHand: true,
           stowableHeldItemInstanceId: null,
           turnMovement: { usedFeet, speedFeet: 30 },
-          activeAuthoredEffectIds: []
+          activeAuthoredEffectIds: [],
+          heldConcentrationCount: 0
         }
       }).map(({ influence }) => influence)
     expect(stealth(0)).toEqual(['ADVANTAGE'])
@@ -734,7 +735,8 @@ describe('D&D 5e saving throws and defenses', () => {
           freeHand: true,
           stowableHeldItemInstanceId: null,
           turnMovement: { usedFeet: 0, speedFeet: 30 },
-          activeAuthoredEffectIds: []
+          activeAuthoredEffectIds: [],
+          heldConcentrationCount: 0
         }
       })
     ).toEqual([])
@@ -784,7 +786,8 @@ describe('D&D 5e saving throws and defenses', () => {
       freeHand: true,
       stowableHeldItemInstanceId: null,
       turnMovement: { usedFeet: 0, speedFeet: 30 },
-      activeAuthoredEffectIds: []
+      activeAuthoredEffectIds: [],
+      heldConcentrationCount: 0
     })
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(true))).toBe(true)
     expect(holderStateRestrictionsHold(dangerSense!.restrictions, holderState(false))).toBe(false)

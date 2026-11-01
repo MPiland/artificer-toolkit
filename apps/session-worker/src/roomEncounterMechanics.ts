@@ -20,6 +20,7 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { collectDamageMirrors } from './roomDamageMirrorCollector.js'
+import { collectDefeatReward } from './roomDefeatRewardCollector.js'
 
 /** Applies the existing mechanics plan and receipts inside the admitted room command transaction. */
 export async function applyRoomEncounterMechanicsBatch(input: {
@@ -31,6 +32,8 @@ export async function applyRoomEncounterMechanicsBatch(input: {
   epoch: string
   observed: LiveSessionRulesRevisions
   batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+  /** The actor whose action dealt the batch's damage, when one did; a defeat is credited to it. */
+  damagerActorId?: string
 }): Promise<EncounterMechanicsBatchResult> {
   const { ctx, store, transaction, inputs, campaignId, epoch, observed, batch } = input
   const read = await readEncounterMechanicsBatchTarget(ctx, {
@@ -134,6 +137,14 @@ export async function applyRoomEncounterMechanicsBatch(input: {
   collectDamageMirrors(transaction, {
     holderActorId: read.actor.id,
     heldEffects,
+    occurrenceId: batch.occurrenceId,
+    rootCommandId: batch.sourceCommandId,
+    receiptApplications: result.receiptApplications
+  })
+  collectDefeatReward(transaction, {
+    killerActorId: input.damagerActorId,
+    defeatedActorId: read.actor.id,
+    defeatedDisposition: read.actor.disposition,
     occurrenceId: batch.occurrenceId,
     rootCommandId: batch.sourceCommandId,
     receiptApplications: result.receiptApplications

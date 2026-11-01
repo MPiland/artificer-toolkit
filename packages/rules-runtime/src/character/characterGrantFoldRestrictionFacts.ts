@@ -63,6 +63,19 @@ function holderActiveEffectCondition(
   }
 }
 
+function holderConcentrationCountCondition(
+  condition: Parameters<typeof baseCondition>[0] & {
+    readonly min: number
+    readonly max?: number
+  }
+): RestrictionCondition {
+  return {
+    ...baseCondition(condition, 'HOLDER_CONCENTRATION_COUNT'),
+    min: condition.min,
+    max: condition.max ?? null
+  }
+}
+
 function normalizeCondition(
   condition: FacetConditionAuthored<'CHARACTER'>,
   normalizeProficiencyTarget: NormalizeProficiencyTarget
@@ -134,6 +147,8 @@ function normalizeCondition(
       return turnMovementCondition(condition)
     case 'HOLDER_ACTIVE_EFFECT':
       return holderActiveEffectCondition(condition)
+    case 'HOLDER_CONCENTRATION_COUNT':
+      return holderConcentrationCountCondition(condition)
     case 'ATTACK_ACTION_OTHER_WEAPON':
       return {
         ...baseCondition(condition, 'ATTACK_ACTION_OTHER_WEAPON'),
@@ -312,16 +327,15 @@ function normalizeItemContext(
         return { ...baseCondition(condition, 'ENEMY_NEAR_TARGET'), max: condition.feet }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'TARGET_HAS_NOT_TAKEN_TURN')
         return baseCondition(condition, 'TARGET_HAS_NOT_TAKEN_TURN')
+      if (
+        condition.kind === 'PREDICATE' &&
+        condition.predicateCode === 'HOLDER_CONCENTRATION_COUNT'
+      )
+        return holderConcentrationCountCondition(condition)
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'HOLDER_IN_BRIGHT_LIGHT')
         return {
           ...baseCondition(condition, 'HOLDER_IN_BRIGHT_LIGHT'),
           requiresDaylight: condition.requiresDaylight
-        }
-      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'HELD_CONCENTRATION_COUNT')
-        return {
-          ...baseCondition(condition, 'HELD_CONCENTRATION_COUNT'),
-          min: condition.min,
-          max: condition.max ?? null
         }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'CONCENTRATION_DAMAGE_OVER')
         return {

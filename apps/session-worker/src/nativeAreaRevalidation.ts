@@ -5,10 +5,12 @@ import { type EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterAreaLegendaryResistanceAudits } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
-import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
 import { answerEncounterAreaTest } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { collisionStruckCapability } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
-import { targetSaveWindow } from './nativeActionSaveWindow.js'
+import {
+  targetSaveWindow,
+  type EncounterActionWindowAnswer
+} from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'

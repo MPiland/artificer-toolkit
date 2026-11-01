@@ -241,6 +241,18 @@ function createFacetPredicateNodeMap(
     const { and, or, not } = logic
     const local = cond.local()
     const predicateCode = local.field(['predicateCode'])
+    /** Predicates whose Min and Max amounts are plain numbers. */
+    const numericCodes = [
+      'SPELL_LEVEL',
+      'SAVING_THROW_DC',
+      'ARMOR_CLASS',
+      'HOLDER_CONCENTRATION_COUNT',
+      'CHARACTER_LEVEL',
+      'CLASS_LEVEL',
+      'ABILITY_SCORE',
+      'SAVING_THROW_ABILITY_BONUS'
+    ] as const
+    const numericPredicates = numericCodes.map((code) => predicateCode.eq(code))
     const amountShowIf = or([
       and([
         predicateCode.eq('RANGE'),
@@ -262,14 +274,7 @@ function createFacetPredicateNodeMap(
           local.field(['authoringModeKind']).eq('ALL')
         ])
       ]),
-      predicateCode.eq('SPELL_LEVEL'),
-      predicateCode.eq('HELD_CONCENTRATION_COUNT'),
-      predicateCode.eq('SAVING_THROW_DC'),
-      predicateCode.eq('ARMOR_CLASS'),
-      predicateCode.eq('CHARACTER_LEVEL'),
-      predicateCode.eq('CLASS_LEVEL'),
-      predicateCode.eq('ABILITY_SCORE'),
-      predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
+      ...numericPredicates
     ])
     const owner =
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(3)

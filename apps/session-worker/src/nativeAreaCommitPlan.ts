@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { isMeleeAttackSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import {
   buildEncounterJoinedMaintenanceTransition,
@@ -30,7 +31,7 @@ import {
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
-import { windowSpentEffects } from './nativeActionSaveWindow.js'
+import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
 import type {
@@ -97,7 +98,6 @@ export async function planAreaOutcomes(args: {
   >
   formCreature?: EncounterActorFormCreature | null
   maintenance: Awaited<ReturnType<typeof prepareAreaCommitMaintenance>>['maintenance']
-  removedIds: ReadonlySet<string>
   holdingZone: Parameters<typeof prepareNativeActionEffectsPlan>[0]['holdingZone']
   dispositions: ReadonlyMap<string, EncounterRunActorState['disposition']>
   consumedGrants: ReturnType<typeof actionEndedEffects>['consumedGrants']
@@ -125,7 +125,6 @@ export async function planAreaOutcomes(args: {
     reactionEffects,
     formCreature,
     maintenance,
-    removedIds,
     holdingZone,
     dispositions,
     consumedGrants,
@@ -184,10 +183,11 @@ export async function planAreaOutcomes(args: {
     const joined = effects.maintenance ? maintainedState : null
     // A creature named again meets the effects its earlier entries left it.
     const earlierEffects = createdEffects.get(actor.id) ?? []
+    const heldEffects = input.activeEffectsByActorId.get(actor.id) ?? []
     const targetEffects = [
-      ...(input.activeEffectsByActorId.get(actor.id) ?? []).filter(
-        (effect) => !joined || !removedIds.has(effect.id)
-      ),
+      ...(joined
+        ? effectsAfterEnding(heldEffects, maintenance?.removed ?? [], occurredAt)
+        : heldEffects),
       ...earlierEffects
     ]
     const effectInput = {

@@ -9,7 +9,7 @@ import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/
 
 /** What a Concentration save must meet, authored as the item's predicates. */
 export type ConcentrationSaveCondition =
-  | { predicateCode: 'HELD_CONCENTRATION_COUNT'; min: number; max?: number }
+  | { predicateCode: 'HOLDER_CONCENTRATION_COUNT'; min: number; max?: number }
   | { predicateCode: 'CONCENTRATION_DAMAGE_OVER'; over: number; perSpellLevel: number }
 
 /**

@@ -10,8 +10,8 @@ import { createSrdNodeRuntimeReader } from '../tests/srdSourceReader.js'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 /**
- * SPELLS-31.T5g2: Careful and Heightened Spell resolve from the `castModifier` core option and its
- * per-target outcome, so each passes the class node map exactly as authored, with no closed rule,
+ * SPELLS-31.T5g2 and T5g3: Careful, Heightened and Twinned Spell resolve from the `castModifier` core option and its
+ * per-target outcome (and, for Twinned, its per-level cost), so each passes the class node map exactly as authored, with no closed rule,
  * as does a homebrew variant.
  */
 
@@ -41,7 +41,7 @@ function find(nodes: Node[] | undefined, label: string): Node | undefined {
   return undefined
 }
 
-const LABELS = ['Careful Spell', 'Heightened Spell']
+const LABELS = ['Careful Spell', 'Heightened Spell', 'Twinned Spell']
 
 function targetsOf(record: ClassAuthored, label: string) {
   const invocation = find(record.features, label)?.effects?.[0]?.invocation
@@ -51,7 +51,7 @@ function targetsOf(record: ClassAuthored, label: string) {
     : undefined
 }
 
-describe('cast modifier targets through the class node map (SPELLS-31.T5g2)', () => {
+describe('cast modifier targets through the class node map (SPELLS-31.T5g2, T5g3)', () => {
   it.each(LABELS)(
     'keeps the SRD %s exactly as authored, with no closed rule',
     async (label) => {
@@ -69,6 +69,19 @@ describe('cast modifier targets through the class node map (SPELLS-31.T5g2)', ()
     const targets = targetsOf(authored, label)!
     targets.base = 4
     expect(authored.features).not.toEqual(sorcerer.features)
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+
+  it('keeps the per-level cost and extra target of a homebrew Twinned variant', async () => {
+    const authored = structuredClone(sorcerer)
+    const invocation = find(authored.features, 'Twinned Spell')?.effects?.[0]?.invocation as {
+      castModifier: { perSpellLevel?: boolean; targets: { base: number } }
+    }
+    expect(invocation.castModifier.perSpellLevel).toBe(true)
+    invocation.castModifier.perSpellLevel = false
+    invocation.castModifier.targets.base = 2
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
