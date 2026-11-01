@@ -50,12 +50,11 @@ export function chooseReplacedMaintainedState<TState extends { id: string }>(inp
   )
 }
 
+type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+
 function characterConcentrationCapacity(
-  source: Extract<
-    Parameters<typeof prepareEncounterActionMaintenance>[0]['prepared']['source'],
-    { kind: 'CHARACTER_ACTION' }
-  >,
-  adapter: Parameters<typeof prepareEncounterActionMaintenance>[0]['prepared']['adapter'],
+  source: Extract<PreparedMechanics['source'], { kind: 'CHARACTER_ACTION' }>,
+  adapter: PreparedMechanics['adapter'],
   cast: { spellLevel: number | null; held: readonly EncounterMaintainedEffectStateRecord[] }
 ) {
   const { effectivePolicyOutput } = source
@@ -71,13 +70,8 @@ function characterConcentrationCapacity(
 
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
-  prepared: Pick<
-    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
-    'state' | 'actor' | 'plan' | 'source' | 'adapter'
-  > &
-    Partial<
-      Pick<Awaited<ReturnType<typeof prepareEncounterActionMechanics>>, 'characterActionState'>
-    >
+  prepared: Pick<PreparedMechanics, 'state' | 'actor' | 'plan' | 'source' | 'adapter'> &
+    Partial<Pick<PreparedMechanics, 'characterActionState'>>
   /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
   activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
