@@ -99,6 +99,8 @@ export type PredicatePayloadByCode = {
   }
   /** The target has not taken a turn in the Encounter yet: its Round-1 initiative turn is still to come. */
   TARGET_HAS_NOT_TAKEN_TURN: EmptyObject
+  /** The attack's target is below its hit point maximum. */
+  TARGET_BELOW_MAXIMUM_HIT_POINTS: EmptyObject
   /**
    * The attacker's latest voluntary move this turn closed its distance to the target by at least
    * `minFeet` (D164). On the grid that is a move of at least that far straight toward the target.
@@ -399,6 +401,13 @@ export const PREDICATE_REGISTRY = {
     label: 'Target Has Not Taken a Turn',
     description: 'Requires the attack target not to have taken a turn in the Encounter yet.',
     subjects: ['EQUIPMENT']
+  },
+
+  TARGET_BELOW_MAXIMUM_HIT_POINTS: {
+    code: 'TARGET_BELOW_MAXIMUM_HIT_POINTS',
+    label: 'Target Below Maximum Hit Points',
+    description: 'Requires the attack target to be below its hit point maximum.',
+    subjects: ['CREATURE']
   },
 
   MOVED_TOWARD_TARGET: {

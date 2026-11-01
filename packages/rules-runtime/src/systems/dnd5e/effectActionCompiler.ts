@@ -160,7 +160,6 @@ import {
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
-  DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
@@ -239,6 +238,7 @@ import {
 } from './effectActionTargetPolicy.js'
 import {
   dnd5eEffectScalingFacts,
+  dnd5eAttackTargetFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
   type Dnd5eEffectScalingFacts
@@ -3995,9 +3995,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
-          ...(typeof targetDerivedFacts.creatureTypeId === 'string'
-            ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
-            : {}),
+          ...dnd5eAttackTargetFacts(targetDerivedFacts, currentHitPoints, maximumHitPoints),
           ...attackCircumstanceFacts,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical
