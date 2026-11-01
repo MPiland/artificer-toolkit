@@ -25,10 +25,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
@@ -63,31 +60,6 @@ const F = 5 // Fighter class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(F, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(F, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 export const fighter: ClassAuthored = {
   id: CLASS_IDS.FIGHTER,
   label: 'Fighter',
@@ -725,8 +697,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 5, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 6),
@@ -749,8 +720,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 8),
@@ -770,8 +740,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 9, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 10),
@@ -839,10 +808,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 12, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 13),
@@ -854,10 +820,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 13, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 14),
@@ -877,10 +840,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 15, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 16),
@@ -892,10 +852,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 16, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 17),

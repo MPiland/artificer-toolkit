@@ -8,6 +8,8 @@ export interface AbilityScoreCapabilityAdapter {
   abilityModifier(score: number): number
   /** The score a new stat block gives each ability. */
   defaultScore: number
+  /** The ceiling an ability score can reach from increases, before any granted maximum raises it. */
+  defaultMaximumScore: number
   /** Ability definition ids by authored code. */
   abilityDefinitionIdByCode: Readonly<Record<string, string>>
   /** The authored code of an ability definition id; an id outside the System throws. */

@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -22,9 +21,7 @@ import {
   STARTING_EQUIPMENT_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
@@ -41,7 +38,6 @@ import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   duelingRestriction,
   gmRulingEffect,
   landsStrideRuling,
@@ -74,19 +70,6 @@ const RA = 8 // Ranger class index
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
-  return closedRuleEffect({
-    id: classRowId(RA, 0x60, entry),
-    ruleKind,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(RA, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    }
-  })
-}
 
 // Ranger spell slot charge — half caster (starts L2), resets on long rest
 const rangerSlotCharge = {
@@ -792,10 +775,7 @@ export const ranger: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(RA, 5, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(RA, 3, 8),
@@ -844,10 +824,7 @@ export const ranger: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(RA, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(RA, 3, 22),
@@ -927,10 +904,7 @@ export const ranger: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(RA, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(RA, 3, 15),
@@ -984,10 +958,7 @@ export const ranger: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(RA, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(RA, 3, 19),
@@ -1008,10 +979,7 @@ export const ranger: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(RA, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(RA, 3, 21),

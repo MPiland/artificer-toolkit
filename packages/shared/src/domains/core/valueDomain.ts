@@ -46,6 +46,7 @@ export const VALUE_DOMAIN_CODE = {
   INITIATIVE: 'INITIATIVE',
   ABILITY_CHECK: 'ABILITY_CHECK',
   ABILITY_SCORE: 'ABILITY_SCORE',
+  ABILITY_SCORE_MAXIMUM: 'ABILITY_SCORE_MAXIMUM',
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
@@ -264,6 +265,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ABILITY_SCORE,
     label: 'Ability Score',
     description: 'An ability score value.'
+  },
+
+  [VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM]: {
+    code: VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM,
+    label: 'Ability Score Maximum',
+    description:
+      "The ceiling an ability score can reach from increases. The highest ceiling granted wins over the System's default."
   },
 
   [VALUE_DOMAIN_CODE.SPEED]: {
@@ -600,6 +608,9 @@ export type ValueDomainParamByCode = {
    * ────────────────────────────────────────────── */
 
   ABILITY_SCORE: { ability: string }
+
+  // Omitting the ability raises the ceiling for every ability.
+  ABILITY_SCORE_MAXIMUM: { ability?: string }
 
   /* ──────────────────────────────────────────────
    * MOVEMENT & SENSES

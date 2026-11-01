@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -28,10 +27,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { conditionTypeId, skillId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -51,7 +47,6 @@ import { repellingBlastEffect } from './warlock-repelling-blast.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   gmRulingEffect,
   selfActionEffect
 } from './mechanics.js'
@@ -138,32 +133,6 @@ function eldritchBlastOnly(entry: number) {
       }
     ]
   }
-}
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(W, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(W, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
 }
 
 /** The rows of one Warlock Feature entry, by group. */
@@ -1896,10 +1865,7 @@ export const warlock: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(W, 0x20, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     // L5 — (no new feature — spell slot upgrade covered by spellLimits)
     // L6 — Otherworldly Patron Feature
@@ -1924,10 +1890,7 @@ export const warlock: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(W, 0x21, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     // L9 — (no new feature)
     // L10 — Otherworldly Patron Feature + Mystic Arcanum (6th level)
@@ -1952,10 +1915,7 @@ export const warlock: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(W, 0x22, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(W, 3, 32),
@@ -1978,10 +1938,7 @@ export const warlock: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(W, 0x23, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     mysticArcanum({ spellLevel: 9, entry: 35, availableAtLevel: 17, order: 14 }),
     // L19 — Ability Score Improvement
@@ -1996,10 +1953,7 @@ export const warlock: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(W, 0x24, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     // L20 — Eldritch Master
     {

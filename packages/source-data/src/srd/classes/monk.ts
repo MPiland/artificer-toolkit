@@ -29,9 +29,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
@@ -84,32 +82,6 @@ function equipmentId(index: number): string {
 const M = 6 // Monk class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(M, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(M, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD walk speed required.')
@@ -683,8 +655,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(M, 3, 8),
@@ -902,10 +873,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 15, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 16),
@@ -1004,10 +972,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 19, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 20),
@@ -1082,10 +1047,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 23, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 24),
@@ -1169,10 +1131,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 26, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(26, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 27),
