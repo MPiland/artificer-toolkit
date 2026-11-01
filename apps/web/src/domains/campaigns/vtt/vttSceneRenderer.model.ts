@@ -548,6 +548,7 @@ export function stageOverlays({
   areaAim,
   areaSize,
   auras,
+  casterTokenId,
   destinationOverlays,
   drawerOpened,
   placedZones,
@@ -558,13 +559,16 @@ export function stageOverlays({
   areaAim: VttAreaAim | null
   areaSize: VttAreaSize | null
   auras: EncounterSessionStateDto['auras']
+  /** The token a directed area is drawn from, where it is not the one the action preview names. */
+  casterTokenId?: string | null
   destinationOverlays: readonly VttScenePresentationOverlay[]
   drawerOpened: boolean
   placedZones: EncounterSessionStateDto['placedZones']
   scene: Pick<CampaignSceneStateDto, 'grid' | 'tokens'> | null
 }): VttScenePresentationOverlay[] | undefined {
-  // A directed area is drawn from the token the action is previewed for.
-  const caster = scene?.tokens.find((token) => token.id === actionPreview?.sourceTokenId) ?? null
+  // A directed area is drawn from the token the action is previewed for, or the one that aims it.
+  const casterId = casterTokenId ?? actionPreview?.sourceTokenId
+  const caster = scene?.tokens.find((token) => token.id === casterId) ?? null
   const picked = areaSize && areaAim && !aimingArea ? areaOverlay(areaSize, areaAim, caster) : null
   const band = picked && areaSize && areaAim ? areaBandOverlay(areaSize, areaAim) : null
   const overlays = [

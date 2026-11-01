@@ -15,7 +15,8 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { offeredRollModes } from '../../../test/offeredRollModes'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
-import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
+import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
+import type { LegendaryAreaAim } from './CampaignTabletopDecisionDrawer.model'
 
 vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
   useGmRollVisibilityPreference: () => ({
@@ -648,6 +649,72 @@ describe('CampaignTabletopDecisionDrawer Legendary and Cleaving choices', () => 
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
         resolution: { kind: 'LEGENDARY_OPTION', optionId: 'd'.repeat(64), targetActorId: target.id }
+      })
+    )
+  })
+
+  it('aims a Legendary area option on the map and answers with that aim (SPELLS-15)', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const owner = tabletopGmEncounter.actors[0]!
+    const breathPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      ...legendaryPending,
+      options: [
+        {
+          optionId: 'e'.repeat(64),
+          actionId: 'breath',
+          ownerFeatureId: '77777777-7777-4777-8777-777777777799',
+          label: 'Breath',
+          featureCost: 2,
+          targetActorIds: [owner.id],
+          area: { kind: 'DIRECTED', area: { kind: 'CONE', length: { amount: 15, unit: 'FEET' } } }
+        }
+      ]
+    })
+    const token = tabletopLiveScene.tokens[0]!
+    const aim: LegendaryAreaAim = {
+      scene: tabletopLiveScene,
+      sourceTokenId: token.id,
+      areaAim: null,
+      aiming: false,
+      onAreaAimChange: vi.fn(),
+      onAreaSizeChange: vi.fn(),
+      onPickAreaOrigin: vi.fn()
+    }
+    const drawer = (nextAim: LegendaryAreaAim) => (
+      <CampaignTabletopDecisionDrawer
+        aim={nextAim}
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={breathPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+    const { rerender } = renderWithAppProviders(drawer(aim))
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('combobox', { name: 'Legendary Action' }))
+    await user.click(screen.getByRole('option', { name: 'Breath · 2 actions' }))
+    expect(screen.getByRole('button', { name: 'Use Legendary Action' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: 'Aim on map' }))
+    expect(aim.onPickAreaOrigin).toHaveBeenCalledOnce()
+
+    const origin = { x: token.position.x + 35, y: token.position.y }
+    const toward = { x: origin.x + 400, y: origin.y }
+    rerender(drawer({ ...aim, areaAim: { origin, toward } }))
+    await user.click(screen.getByRole('button', { name: 'Use Legendary Action' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: {
+          kind: 'LEGENDARY_OPTION',
+          optionId: 'e'.repeat(64),
+          targetActorId: owner.id,
+          aim: { kind: 'DIRECTED', origin, toward }
+        }
       })
     )
   })

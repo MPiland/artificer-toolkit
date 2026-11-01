@@ -257,15 +257,89 @@ export async function verifyEncounterAreaBrowser(
           path: input.evidenceDirectory + '/area-owner-history.png',
           fullPage: true
         })
+      },
+      endTurn: async () => {
+        stage = 'end the turn'
+        await open(ownerPage, ownerSession)
+        await ownerPage.getByRole('button', { name: 'Open turn order', exact: true }).click()
+        await ownerPage.getByRole('button', { name: 'Next turn', exact: true }).click()
+        await ownerPage.getByRole('button', { name: 'Close turn order', exact: true }).click()
+        await openDecision(ownerPage)
+        await expect(
+          decisionDrawer(ownerPage).getByRole('combobox', { name: 'Legendary Action', exact: true })
+        ).toBeVisible()
+      },
+      breathe: async (optionLabel, toward, caught) => {
+        stage = 'aim the Legendary breath'
+        const drawer = decisionDrawer(ownerPage)
+        await drawer.getByRole('combobox', { name: 'Legendary Action', exact: true }).click()
+        await ownerPage.getByRole('option', { name: new RegExp('^' + optionLabel) }).click()
+        const use = drawer.getByRole('button', { name: 'Use Legendary Action', exact: true })
+        await expect(use).toBeDisabled()
+        await drawer.getByRole('button', { name: 'Aim on map', exact: true }).click()
+        await expect(drawer).toBeHidden()
+        const bounds = await ownerPage
+          .getByRole('region', { name: 'Live scene: ' + input.scene.name })
+          .locator('canvas')
+          .boundingBox()
+        if (!bounds) throw new Error('Area Scene canvas is unavailable.')
+        const point = (label: string) => {
+          const at = input.map.points[label]
+          if (!at) throw new Error('Area fixture position is missing for ' + label + '.')
+          const scale =
+            Math.min(bounds.width / input.map.width, bounds.height / input.map.height) * 0.94
+          // Tokens are 50 px wide; aim from the middle of one to the middle of another.
+          return {
+            x: bounds.x + (bounds.width - input.map.width * scale) / 2 + (at.x + 25) * scale,
+            y: bounds.y + (bounds.height - input.map.height * scale) / 2 + (at.y + 25) * scale
+          }
+        }
+        const from = point(input.casterLabel)
+        const to = point(toward)
+        await ownerPage.mouse.move(from.x, from.y)
+        await ownerPage.mouse.down()
+        await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
+        await ownerPage.mouse.up()
+        await expect(drawer).toBeVisible()
+        const inArea = drawer.getByText(/^In the area:/)
+        await expect(inArea).toBeVisible()
+        for (const label of caught) await expect(inArea).toContainText(label)
+        await ownerPage.screenshot({
+          caret: 'initial',
+          path: input.evidenceDirectory + '/area-owner-breath-aim.png',
+          fullPage: true
+        })
+        const count = ownerCommands.size
+        await use.click()
+        const result = await waitForCommand(ownerCommands, count)
+        if (result.command.type !== 'RESOLVE_RULE_OCCURRENCE')
+          throw new Error('Decision drawer did not submit RESOLVE_RULE_OCCURRENCE.')
+        submitted.push({ actor: 'OWNER', command: result.command })
+        return { command: result.command, result: result.result }
+      },
+      assertBreathSaves: async (caught, playerOwn) => {
+        stage = 'verify the breath saves'
+        await openDecision(ownerPage)
+        const drawer = decisionDrawer(ownerPage)
+        await expect(drawer.getByText('Area saves', { exact: true })).toBeVisible()
+        for (const label of caught) await expect(saveGroup(ownerPage, label)).toBeVisible()
+        await expect(drawer.getByRole('group')).toHaveCount(caught.length)
+        await openDecision(playerPage)
+        await expect(saveGroup(playerPage, playerOwn)).toBeVisible()
+        await expect(decisionDrawer(playerPage).getByRole('group')).toHaveCount(1)
       }
     })
     expect(submitted.map(({ actor, command }) => [actor, command.type])).toEqual([
       ['OWNER', 'RESOLVE_ACTION'],
       ['OWNER', 'REMOVE_AREA_TARGET'],
       ['PLAYER', 'RESOLVE_RULE_OCCURRENCE'],
+      ['OWNER', 'RESOLVE_RULE_OCCURRENCE'],
+      ['OWNER', 'RESOLVE_RULE_OCCURRENCE'],
+      ['PLAYER', 'RESOLVE_RULE_OCCURRENCE'],
+      ['OWNER', 'RESOLVE_RULE_OCCURRENCE'],
       ['OWNER', 'RESOLVE_RULE_OCCURRENCE']
     ])
-    expect(playerCommands.size).toBe(1)
+    expect(playerCommands.size).toBe(2)
     expect(forbiddenLegacyRequests).toEqual([])
   } catch (error) {
     failure = error instanceof Error ? error.message : 'Area browser proof failed.'

@@ -141,6 +141,8 @@ export function CampaignVttStage({
   const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
   const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
+  // Whether the pending decision, not the Actions drawer, asked for the area aim now under way.
+  const decisionAimsArea = useRef(false)
   // The zone the GM zone tool aims on the map, with where its picked center goes.
   const [zoneAim, setZoneAim] = useState<ZonePointPick | null>(null)
   const zoneAimRef = useRef(zoneAim)
@@ -683,14 +685,20 @@ export function CampaignVttStage({
     selectedTokenId,
     targetEntries
   })
+  // A Legendary option's area is aimed from its owner's token.
+  const legendaryOwnerTokenId =
+    drawerDecision?.kind === 'LEGENDARY_ACTION_CHOICE'
+      ? [...actorIdByTokenId].find(([, actorId]) => actorId === drawerDecision.ownerActorId)?.[0]
+      : undefined
+  const aimCasterTokenId = actionPreview?.sourceTokenId ?? legendaryOwnerTokenId ?? null
   const rendererAreaAim = useMemo(
     () =>
       aimingArea && areaSize
-        ? { casterTokenId: actionPreview?.sourceTokenId ?? null, size: areaSize }
+        ? { casterTokenId: aimCasterTokenId, size: areaSize }
         : zoneAim
           ? { casterTokenId: null, size: zoneAim.size }
           : null,
-    [actionPreview?.sourceTokenId, aimingArea, areaSize, zoneAim]
+    [aimCasterTokenId, aimingArea, areaSize, zoneAim]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(
@@ -701,6 +709,7 @@ export function CampaignVttStage({
         areaAim,
         areaSize,
         auras: encounterSessionState?.auras ?? [],
+        casterTokenId: aimCasterTokenId,
         destinationOverlays: forcedMovementDestinationOverlays(destinationPick, focusedDestination),
         drawerOpened: actionsOpened,
         // The Run's zones are fixed to its Scene; another presented Scene draws none.
@@ -710,6 +719,7 @@ export function CampaignVttStage({
     [
       actionPreview,
       actionsOpened,
+      aimCasterTokenId,
       areaAim,
       areaSize,
       destinationPick,
@@ -928,14 +938,17 @@ export function CampaignVttStage({
     const host = rendererHost.current
     if (!host || !scene) return
     let disposed = false
+    const endAreaAim = () => {
+      setAimingArea(false)
+      if (!decisionAimsArea.current) setActionsOpened(true)
+    }
     void createVttSceneRenderer(host, campaign.gameSystemId, {
       onAreaAimCancel: () => {
         if (zoneAimRef.current) {
           setZoneAim(null)
           return
         }
-        setAimingArea(false)
-        setActionsOpened(true)
+        endAreaAim()
       },
       onAreaPoint: (point) => {
         if (zoneAimRef.current) {
@@ -944,13 +957,11 @@ export function CampaignVttStage({
           return
         }
         setAreaAim({ origin: point, toward: null })
-        setAimingArea(false)
-        setActionsOpened(true)
+        endAreaAim()
       },
       onAreaDirection: (aim) => {
         setAreaAim(aim)
-        setAimingArea(false)
-        setActionsOpened(true)
+        endAreaAim()
       },
       onSquarePick: (center) => pickDestinationRef.current?.(center),
       onZoomChange: (scale, origin) => {
@@ -1592,7 +1603,10 @@ export function CampaignVttStage({
               onAreaAimChange={setAreaAim}
               onAreaSizeChange={setAreaSize}
               onActionPreviewChange={setActionPreview}
-              onPickAreaOrigin={() => setAimingArea(true)}
+              onPickAreaOrigin={() => {
+                decisionAimsArea.current = false
+                setAimingArea(true)
+              }}
               pickedTargetActorId={pickedTargetActorId}
               onPickTargetOnMap={setTargetingRequest}
               onTargetPick={setPickedTargetActorId}
@@ -1612,6 +1626,18 @@ export function CampaignVttStage({
               encounter={activeEncounter}
               latestRoll={latestEvidenceRoll}
               pending={drawerDecision}
+              aim={{
+                scene: encounterScene,
+                sourceTokenId: legendaryOwnerTokenId ?? null,
+                areaAim,
+                aiming: aimingArea,
+                onAreaAimChange: setAreaAim,
+                onAreaSizeChange: setAreaSize,
+                onPickAreaOrigin: () => {
+                  decisionAimsArea.current = true
+                  setAimingArea(true)
+                }
+              }}
               skipped={
                 !pendingOccurrence && decisionOutcome === 'GM_SKIP'
                   ? { onDismiss: () => setShownDecision(null) }

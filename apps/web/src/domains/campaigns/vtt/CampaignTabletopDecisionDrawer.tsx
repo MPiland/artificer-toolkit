@@ -14,7 +14,7 @@ import {
 } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { CircleHelp } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type {
   EncounterD20RollModeDto,
   EncounterEvidenceRollDto,
@@ -36,14 +36,20 @@ import {
   onHitChoiceTitle,
   onHitOptionLabel,
   movementPassageOptionLabel,
+  NO_AREA_AIM,
+  NO_SCENE_TOKENS,
+  type LegendaryAreaAim,
   rollPromptText,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
+import { AREA_AIM_COPY } from './campaignTabletopAimCopy'
+import { useAimedArea } from './useAimedArea'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
 import { CampaignTabletopEvidenceRollRow } from './CampaignTabletopEvidenceRollRow'
 
 export function CampaignTabletopDecisionDrawer({
+  aim = NO_AREA_AIM,
   canVoid,
   connected,
   encounter,
@@ -53,6 +59,8 @@ export function CampaignTabletopDecisionDrawer({
   submitting,
   onResolve
 }: {
+  /** What a Legendary option needs to have its area aimed on the map; absent away from the stage. */
+  aim?: LegendaryAreaAim
   /** The GM may void a stuck decision and chooses whether their rolls are Public or Private. */
   canVoid: boolean
   connected: boolean
@@ -204,7 +212,9 @@ export function CampaignTabletopDecisionDrawer({
       </Tooltip>
       <Drawer
         closeButtonProps={{ 'aria-label': 'Close pending decision' }}
-        opened={opened}
+        // Aiming hides the drawer to free the map; the chosen option and aim return with it.
+        keepMounted={aim.aiming}
+        opened={opened && !aim.aiming}
         position='right'
         size='min(30rem, 100vw)'
         title='Pending decision'
@@ -449,6 +459,7 @@ export function CampaignTabletopDecisionDrawer({
           ) : pending.kind === 'LEGENDARY_ACTION_CHOICE' ? (
             <LegendaryActionControls
               actors={encounter.actors}
+              aim={aim}
               disabled={disabled}
               key={`${pending.occurrenceId}:${pending.occurrenceVersion}`}
               pending={pending}
@@ -753,11 +764,13 @@ function AreaSavesControls({
 /** Picks one Legendary Action option and, unless it only targets its user, its target (D51). */
 function LegendaryActionControls({
   actors,
+  aim,
   disabled,
   pending,
   onSubmit
 }: {
   actors: readonly { id: string; label: string }[]
+  aim: LegendaryAreaAim
   disabled: boolean
   pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'LEGENDARY_ACTION_CHOICE' }>
   onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
@@ -768,6 +781,33 @@ function LegendaryActionControls({
   const targetIds = option?.targetActorIds ?? []
   // A self action has exactly one target: its user.
   const target = targetIds.length === 1 ? (targetIds[0] ?? null) : targetActorId
+  const { areaAim, onAreaAimChange, onAreaSizeChange } = aim
+  const area = option?.area ?? null
+  const { areaSize, tokensInArea } = useAimedArea({
+    scene: aim.scene,
+    sceneTokens: aim.scene?.tokens ?? NO_SCENE_TOKENS,
+    sourceTokenId: aim.sourceTokenId,
+    areaAim,
+    areaTarget: area,
+    drawnTarget: null,
+    bandSide: null,
+    needsBandSide: false,
+    zoneChoices: {},
+    sparedChoice: {},
+    summonChoices: {}
+  })
+  useEffect(() => {
+    onAreaSizeChange(areaSize)
+    return () => onAreaSizeChange(null)
+  }, [areaSize, onAreaSizeChange])
+  // The aim belongs to this window: it leaves with it.
+  useEffect(() => () => onAreaAimChange(null), [onAreaAimChange])
+  const aimed = !area
+    ? undefined
+    : area.kind === 'POINT'
+      ? areaAim && ({ kind: 'POINT', point: areaAim.origin } as const)
+      : areaAim?.toward &&
+        ({ kind: 'DIRECTED', origin: areaAim.origin, toward: areaAim.toward } as const)
 
   return (
     <Stack gap='sm'>
@@ -783,6 +823,7 @@ function LegendaryActionControls({
         onChange={(value) => {
           setOptionId(value)
           setTargetActorId(null)
+          onAreaAimChange(null)
         }}
       />
       {option && targetIds.length > 1 ? (
@@ -799,12 +840,51 @@ function LegendaryActionControls({
           onChange={setTargetActorId}
         />
       ) : null}
+      {area ? (
+        <Stack gap='xs'>
+          <Text fw={600} size='sm'>
+            {AREA_AIM_COPY[area.kind].title}
+          </Text>
+          {aim.scene === null ? (
+            <Text c='dimmed' size='sm'>
+              There is no Scene for this Encounter, so an area cannot be placed.
+            </Text>
+          ) : areaSize === null ? (
+            <Text c='dimmed' size='sm'>
+              This area cannot be drawn on the current Scene.
+            </Text>
+          ) : (
+            <>
+              <Group align='flex-end'>
+                <Button disabled={disabled} variant='default' onClick={aim.onPickAreaOrigin}>
+                  {AREA_AIM_COPY[area.kind].pick}
+                </Button>
+                {AREA_AIM_COPY[area.kind].hint ? (
+                  <Text c='dimmed' size='sm'>
+                    {AREA_AIM_COPY[area.kind].hint}
+                  </Text>
+                ) : null}
+              </Group>
+              {areaAim ? (
+                <Text size='sm'>
+                  In the area: {tokensInArea.length ? tokensInArea.join(', ') : 'no one'}
+                </Text>
+              ) : null}
+            </>
+          )}
+        </Stack>
+      ) : null}
       <Group>
         <Button
-          disabled={disabled || !option || !target}
+          disabled={disabled || !option || !target || (area !== null && !aimed)}
           onClick={() => {
             if (!option || !target) return
-            onSubmit({ kind: 'LEGENDARY_OPTION', optionId: option.optionId, targetActorId: target })
+            onSubmit({
+              kind: 'LEGENDARY_OPTION',
+              optionId: option.optionId,
+              targetActorId: target,
+              ...(aimed ? { aim: aimed } : {})
+            })
           }}
         >
           Use Legendary Action
