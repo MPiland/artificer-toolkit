@@ -15147,7 +15147,7 @@
             {
               "id": "SPELLS-4.T2ps-a",
               "text": "Roll-table row specialization on the ATTACK-16.T1a authored ROLL_TABLE, with Prismatic Spray rows 1-5 and the success table (verify the cone first).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15160,8 +15160,7 @@
                   "ATTACK-16.T1a2"
                 ]
               },
-              "note": "Registered 2026-10-25 (user ruling: roll tables must cover Prismatic Spray; measured 11-13 by the ATTACK-16 session). Split from T2ps. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered 2026-10-25 (user ruling: roll tables must cover Prismatic Spray; measured 11-13 by the ATTACK-16 session). Split from T2ps. Approved by the user on 2026-10-31 (D204). Merged in m589 (708822d29)."
             },
             {
               "id": "SPELLS-4.T2ps-b",
@@ -16358,6 +16357,24 @@
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
+              "id": "SPELLS-12.T2a2",
+              "text": "Bug: replacing a held Haste with a new Concentration spell fails with \"Created action effect changed before settlement\" (`packages/encounter-persistence/src/actionEffectPersistence.ts`). Red-first test using Haste, plus the fix.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-12.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": [
+                  "SPELLS-12.T2a"
+                ]
+              },
+              "note": "Found by T2a's journey, which swapped to Fly to avoid it. It may predate T2a. A bug, so allowed under D187."
+            },
+            {
               "id": "SPELLS-12.T2b",
               "text": "Limited uses with recovery on the second Concentration rule.",
               "status": "TODO",
@@ -16378,7 +16395,7 @@
             {
               "id": "SPELLS-12.T3a",
               "text": "One Concentration save per held spell in casting order; each failure ends only its spell and grants.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.2"
               ],
@@ -16391,8 +16408,7 @@
                   "SPELLS-12.T1"
                 ]
               },
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). Inherited from T1 (orchestrator review 2026-10-31): damage-save chains act on the oldest maintained state until this task gives each spell its own save; carried grants (D99) end on any new Concentration even with room; a movement-reaction cast at capacity with several held gets a rejection, because that path does not carry the choice yet. All three are in scope here. Split from T3. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). Inherited from T1 (orchestrator review 2026-10-31): damage-save chains act on the oldest maintained state until this task gives each spell its own save; carried grants (D99) end on any new Concentration even with room; a movement-reaction cast at capacity with several held gets a rejection, because that path does not carry the choice yet. All three are in scope here. Split from T3. Approved by the user on 2026-10-31 (D204). Merged in m589 (708822d29)."
             },
             {
               "id": "SPELLS-12.T3b",
@@ -18805,7 +18821,7 @@
               "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m583 (4ee9905f5)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18820,8 +18836,7 @@
                 ]
               },
               "text": "Save window on area saves (D203). Several die-holders on one area resolve their windows in initiative order, and the settled d20 is stored, never re-rolled.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m589 (708822d29)."
             },
             {
               "id": "SPELLS-31.T4c1b4b",
@@ -19604,7 +19619,7 @@
               "note": "Growth from 5 to about 12 across T5g, T5g2 and T5g3. Approved by the user on 2026-10-30. Merged in m573 (23363591b)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19619,8 +19634,7 @@
                 ]
               },
               "text": "Careful, Sculpt and Heightened on CAST_MODIFIER, with per-target outcomes sealed in the pending context: Careful auto-succeeds the save (half damage still applies), Sculpt takes no damage, Heightened gives disadvantage on one first save. Parity proofs; deletes their kinds.",
-              "note": "Split from T5g. Approved by the user on 2026-10-30. From the review: the Action Drawer had no way to pick a CAST_MODIFIER, so this task also ships the drawer control with a creature picker capped at targets.max.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T5g. Approved by the user on 2026-10-30. From the review: the Action Drawer had no way to pick a CAST_MODIFIER, so this task also ships the drawer control with a creature picker capped at targets.max. Merged in m589 (708822d29)."
             },
             {
               "status": "TODO",
@@ -20064,7 +20078,7 @@
             },
             {
               "id": "SPELLS-31.T4m2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -20078,8 +20092,7 @@
                 ]
               },
               "text": "Destroy Undead with a CR gate: a failed Turn Undead save destroys an undead at or below the Cleric level's CR limit. The kill goes on Turn Undead's failed-save block, the Destroy Undead row stays description-only, and CLASS_CLERIC_DESTROY_UNDEAD is deleted. Authoring-parity proof.",
-              "note": "Split from T4m on 2026-10-31. Growth approved by the user on 2026-10-31 (D202). Design in spells-31-t4m-design-packet.md.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T4m on 2026-10-31. Growth approved by the user on 2026-10-31 (D202). Design in spells-31-t4m-design-packet.md. Merged in m589 (708822d29)."
             },
             {
               "id": "SPELLS-31.T6w",
@@ -22469,9 +22482,11 @@
         {
           "id": "SPELLS-35",
           "title": "Summons take their own turns when authored",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/session-worker/test/nativeRoomCoreOptionSpells.test.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -22533,10 +22548,12 @@
             {
               "id": "SPELLS-35.6",
               "text": "A multi-creature Conjure spell (Conjure Animals, Conjure Minor Elementals, Conjure Woodland Beings) creates one group token for the chosen creature and count, with one shared turn; the GM tracks losses on it and the player rolls one attack per surviving creature.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-35.T7 (m589); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-30."
+              "note": "Approved by the user on 2026-10-30. Closed 2026-11-01 by SPELLS-35.T7."
             }
           ],
           "tasks": [
@@ -22669,7 +22686,7 @@
             },
             {
               "id": "SPELLS-35.T7",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-35.6"
               ],
@@ -22683,8 +22700,7 @@
                 ]
               },
               "text": "Group token: one token per cast with creature pick and `count` (owner.count), a GM-set count of 1..32, and one attack per counted creature from one attack-slot derivation. The form limit comes from CR.",
-              "note": "Approved by the user on 2026-10-30. Upcast multipliers are a deferred edge case (D204): the GM raises the count after the cast.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Approved by the user on 2026-10-30. Upcast multipliers are a deferred edge case (D204): the GM raises the count after the cast. Merged in m589 (708822d29). The m589 merge also moved the aimed-area logic from the Action Drawer into `useAimedArea.ts` to stay under the file size limit."
             }
           ]
         }

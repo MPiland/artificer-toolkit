@@ -1971,3 +1971,9 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **T30 may read `node_modules/convex-test/dist`** with Read and Grep only.
 - **SPELLS-31.T5q is built and splits** into T5q-A ability maximum and T5q-B check bonuses, about +7.
 - **Orchestrator ruling on SPELLS-35.T7:** `owner.count` is optional on the Run actor owner, absence means 1, and `UPDATE_ACTOR.groupCount` lets the GM set 1..32 in either direction. The multiplier lives in one attack-slot derivation. Upcast multipliers are not applied at cast: the GM raises the count afterward.
+
+### D205: Conjure group token hit points (user decisions, 2026-10-31)
+
+- **A group token's hit points are one creature's hit points times the count.** Eight wolves of 11 HP are one 88 HP pool. Area damage hits the pool once, and the token leaves at 0 through the existing summon removal.
+- **Changing the count:** lowering it leaves hit points alone. Raising it adds one creature's hit points per added creature to current and maximum. The count never changes by itself.
+- **Orchestrator rulings:** a Multiattack creature in a group makes one attack per creature (D200), a Monk holding a one-handed non-monk weapon keeps Martial Arts, and Sheet Extras show no group count. All three are deferred edge cases.

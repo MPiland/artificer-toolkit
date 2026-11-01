@@ -100,6 +100,9 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Multiattack on a group token (D205):** a group makes one attack per creature, so four black bears make four attacks rather than eight.
+- **Monk holding a one-handed non-monk weapon (D205):** a Monk attacking with a monk weapon while also holding, say, a Longsword keeps Martial Arts, though the rules take it away. Fixing it needs a new predicate.
+- **Group count on Sheet Extras (D205):** the Sheet's Extras show no group count. The count shows on the token.
 - **Reaction Concentration cast with two held (D204):** a reaction cast of a Concentration spell at capacity with two spells held is refused, because that path carries no replacement choice. The player can end one first. Accepted by the user on 2026-10-31.
 - **Conjure upcast count (D204):** the higher-slot multiplier isn't applied at cast, so the GM raises the group count afterward.
 - **Careful Spell on the roll card (SPELLS-31.T5g2):** an auto-succeeded save shows no annotation saying why, because the card's rule-check union has no member for it. The result is still correct.
