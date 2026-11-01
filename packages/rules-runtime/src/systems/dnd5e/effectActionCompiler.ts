@@ -2296,9 +2296,8 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         'outcome' in entry &&
         entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
     )
-  ) {
+  )
     unsupported('D&D test action has an unsupported bounded shape.')
-  }
   const paths = new Set<string>()
   const tablePaths = admitRollTablePaths(
     action,
