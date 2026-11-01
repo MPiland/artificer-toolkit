@@ -255,7 +255,9 @@ import {
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
   exactFailureMarginRider,
-  immediateFollowUpSaveGraphDefinition
+  immediateFollowUpSaveGraphDefinition,
+  repeatCadenceSupported,
+  sourceTurnStartSave
 } from './effectActionNestedSave.js'
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
@@ -1582,11 +1584,14 @@ function repeatingDirectFollowUpSavePlan(
       : null
   if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
     return null
-  const initialRemaining = escalation
-    ? 1
-    : leadEntry.duration
-      ? conditionDurationTurns(leadEntry.duration)
-      : null
+  const sourceTurn =
+    lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
+  const initialRemaining =
+    escalation || sourceTurn
+      ? 1
+      : leadEntry.duration
+        ? conditionDurationTurns(leadEntry.duration)
+        : null
   const repeatSave = dnd5eRepeatSave({
     abilityDefinitionId: save.savingThrow.abilityDefinitionId,
     savingThrow: save.savingThrow,
@@ -1632,15 +1637,10 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
-    (save.attempts.kind === 'ONCE'
-      ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
-      : escalation !== null ||
-        !isTallyCount(save.attempts.successesToEnd) ||
-        !isTallyCount(save.attempts.failuresToResolve)) ||
+    (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
-    (escalation === null && save.onFailure.kind !== 'CONTINUE') ||
+    (escalation === null && !sourceTurn && save.onFailure.kind !== 'CONTINUE') ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
@@ -1653,6 +1653,7 @@ function repeatingDirectFollowUpSavePlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
+    ...sourceTurn,
     ...contribution,
     // A held grant is made only on the save result it is authored on; held conditions are the graph's.
     ...(lead.effectKind !== 'CONDITION' &&
@@ -1675,10 +1676,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */

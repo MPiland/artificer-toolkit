@@ -392,11 +392,19 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               typeof trace.outputs.resultPath === 'string'
           )
           const hasD20Trace = d20RequestTraces.length > 0 || d20ResultTraces.length > 0
-          // The recurring save is its d20, the d20's added dice (D156) and the save test.
-          const [repeatRequest, repeatAddedDice, repeatResult] = execution.execution.evidence.trace
+          // The recurring save is its d20, the d20's added dice (D156) and the save test, then any GM
+          // rulings its failure proposes: they change nothing in the holder, so no application binds them.
+          const [repeatRequest, repeatAddedDice, repeatResult, ...repeatRulings] =
+            execution.execution.evidence.trace
           const repeatSaveShape =
-            execution.execution.evidence.trace.length === 3 &&
-            execution.execution.evidence.sourceEntryBindings?.length === 1 &&
+            execution.execution.evidence.trace.length >= 3 &&
+            repeatRulings.every(
+              (trace) =>
+                /^manual_adjudication-\d+$/.test(trace.nodeId) &&
+                trace.operation.key === 'dnd5e.test-manual-adjudication-proposal' &&
+                trace.outputs.changesTargetState === false
+            ) &&
+            execution.execution.evidence.sourceEntryBindings?.length === 1 + repeatRulings.length &&
             bindings.length === 1 &&
             repeatRequest?.nodeId === 'repeat-save-d20' &&
             repeatRequest.operation.contractVersion === 1 &&
@@ -664,7 +672,9 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             .map((trace, traceIndex) => ({ trace, traceIndex }))
             .filter(
               ({ trace }) =>
-                trace.outputs.applicationCandidate === true && trace.outputs.authorized === true
+                trace.outputs.applicationCandidate === true &&
+                trace.outputs.authorized === true &&
+                !(repeatSaveShape && repeatRulings.includes(trace))
             )
           if (
             authorizedCandidates.some(

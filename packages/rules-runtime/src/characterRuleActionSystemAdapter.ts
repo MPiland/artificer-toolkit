@@ -104,6 +104,13 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   tickAnchor?: 'HOLDER' | 'SOURCE'
   /**
+   * A repeat save at the start of the anchor's turn is rolled, counted and ended by the turn-effect
+   * kernel even when the anchor is the source, which the grant tick planner would otherwise count.
+   */
+  countedByTurnEffects?: true
+  /** The GM rulings a failed repeat save proposes beside the save, as authored outcome ids. */
+  failureRulingIds?: readonly string[]
+  /**
    * The source-bound conditions this effect owns together (Hypnotic Pattern: charmed and
    * incapacitated). The aggregate records each pre-existing baseline when it creates the
    * active-effect row; adapters do not infer condition ownership from labels or later mutable state.

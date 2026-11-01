@@ -516,7 +516,7 @@ export function prepareRecurringActiveEffect(
   // indefinite effect that recurs on its source's turns (Engulf).
   const countedByGrantTicks = grantContribution
     ? !grantContribution.countedByTurnEffects
-    : tickAnchor === 'SOURCE' && baseRemaining !== null
+    : tickAnchor === 'SOURCE' && baseRemaining !== null && !plan.countedByTurnEffects
   // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
   // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
   // "for the turn" already is that end of turn.
