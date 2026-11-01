@@ -231,6 +231,7 @@ async function startWorker() {
   const environmentFile = resolve(directory, 'worker.env')
   await writeFile(environmentFile, '')
   const errorLogs: string[] = []
+  const allLogs: string[] = []
   const { unstable_startWorker } = await import('wrangler')
   vi.stubEnv('WRANGLER_LOG', 'warn')
   const worker = await unstable_startWorker({
@@ -258,6 +259,7 @@ async function startWorker() {
       server: { hostname: '127.0.0.1', port: 0 },
       structuredLogsHandler: (log: { level: string; message: string }) => {
         if (log.level === 'error') errorLogs.push(log.message)
+        allLogs.push(`${log.level}: ${log.message}`)
       },
       watch: false
     }
@@ -266,6 +268,7 @@ async function startWorker() {
   const url = await worker.url
   return {
     errorLogs,
+    allLogs,
     r2,
     bridge,
     url: url.origin,
@@ -533,6 +536,11 @@ export function readRoomEncounter(caller: RoomCaller, campaignId: string, read: 
  */
 export function roomErrorLogs(): readonly string[] {
   return room().worker.errorLogs
+}
+
+/** Every Worker log line at any level, for a failure whose cause the room did not log as an error. */
+export function roomAllLogs(): readonly string[] {
+  return room().worker.allLogs
 }
 
 /** A refusal the room redacted to the member: its code and the message it sent (never the cause). */
