@@ -14,18 +14,25 @@ import { aimedAreaShape, type VttAreaAim, type VttAreaSize } from './vttSceneRen
 
 type CommandTarget = ResolveEncounterActionInputDto['target']
 type WallOrRingArea = Parameters<typeof wallAreaBoundsInSceneCoordinates>[0]
+type SideBand = { distance: Parameters<typeof authoredLengthInSceneCoordinates>[0] }
 
 /** An area the caster aims by placing an origin: a point area or a directed one. */
-export type AimedAreaTarget =
+type AimedAreaTarget =
   | { kind: 'POINT'; area: Parameters<typeof pointAreaInSceneCoordinates>[0] }
   | { kind: 'DIRECTED'; area: Parameters<typeof directedAreaSizeInSceneCoordinates>[0] }
 
 /** A wall or ring the caster draws on the map, optionally with a band beside it (D154). */
-export type DrawnAreaTarget = {
-  kind: 'WALL' | 'RING'
-  area: Omit<WallOrRingArea, 'kind'>
-  sideBand?: { distance: Parameters<typeof authoredLengthInSceneCoordinates>[0] }
-}
+type DrawnAreaTarget =
+  | {
+      kind: 'WALL'
+      area: Omit<Extract<WallOrRingArea, { kind: 'WALL' }>, 'kind'>
+      sideBand?: SideBand
+    }
+  | {
+      kind: 'RING'
+      area: Omit<Extract<WallOrRingArea, { kind: 'RING' }>, 'kind'>
+      sideBand?: SideBand
+    }
 
 /** What the caster's aim picks up on the Scene: the area's measure, who it catches, and the target it sends. */
 export function useAimedArea({
