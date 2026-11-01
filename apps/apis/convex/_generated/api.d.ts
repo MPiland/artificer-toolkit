@@ -23623,6 +23623,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -33406,6 +33407,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -43139,6 +43141,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -52960,6 +52963,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -62743,6 +62747,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -72476,6 +72481,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -82306,6 +82312,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -92089,6 +92096,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -101822,6 +101830,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -111643,6 +111652,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -121426,6 +121436,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -131159,6 +131170,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -141015,6 +141027,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -150798,6 +150811,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -160531,6 +160545,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -170352,6 +170367,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -180135,6 +180151,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -189868,6 +189885,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -199690,6 +199708,7 @@ export declare const api: {
                               };
                               kind: "PASSIVE";
                               optionalOnHit?:
+                                | { kind: "FREE" }
                                 | { kind: "SPELL_SLOT" }
                                 | {
                                     chargeId: string;
@@ -209423,6 +209442,7 @@ export declare const api: {
                         };
                         kind: "PASSIVE";
                         optionalOnHit?:
+                          | { kind: "FREE" }
                           | { kind: "SPELL_SLOT" }
                           | {
                               chargeId: string;
@@ -219024,6 +219044,7 @@ export declare const api: {
                         };
                         kind: "PASSIVE";
                         optionalOnHit?:
+                          | { kind: "FREE" }
                           | { kind: "SPELL_SLOT" }
                           | {
                               chargeId: string;
@@ -228729,6 +228750,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -238512,6 +238534,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -248245,6 +248268,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -258066,6 +258090,7 @@ export declare const api: {
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
+                                  | { kind: "FREE" }
                                   | { kind: "SPELL_SLOT" }
                                   | {
                                       chargeId: string;
@@ -267849,6 +267874,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -277582,6 +277608,7 @@ export declare const api: {
                           };
                           kind: "PASSIVE";
                           optionalOnHit?:
+                            | { kind: "FREE" }
                             | { kind: "SPELL_SLOT" }
                             | {
                                 chargeId: string;
@@ -291473,6 +291500,12 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<
                   | {
+                      kind: "FREE";
+                      optionId: string;
+                      riderId: string;
+                      riderLabel: string;
+                    }
+                  | {
                       kind: "SPELL_SLOT";
                       optionId: string;
                       riderId: string;
@@ -292435,6 +292468,12 @@ export declare const api: {
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<
+                    | {
+                        kind: "FREE";
+                        optionId: string;
+                        riderId: string;
+                        riderLabel: string;
+                      }
                     | {
                         kind: "SPELL_SLOT";
                         optionId: string;
@@ -294064,6 +294103,12 @@ export declare const api: {
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<
+              | {
+                  kind: "FREE";
+                  optionId: string;
+                  riderId: string;
+                  riderLabel: string;
+                }
               | {
                   kind: "SPELL_SLOT";
                   optionId: string;
@@ -295708,6 +295753,12 @@ export declare const api: {
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<
+                  | {
+                      kind: "FREE";
+                      optionId: string;
+                      riderId: string;
+                      riderLabel: string;
+                    }
                   | {
                       kind: "SPELL_SLOT";
                       optionId: string;
