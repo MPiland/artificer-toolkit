@@ -26,9 +26,9 @@ const reaction = {
   option: { candidate: { pathDistance: 1, movingActorId: 'mover' } },
   application: { kind: 'ENCOUNTER_ACTOR_MECHANICS_BATCH' },
   characterTransitions: [],
-  concentrationEnd: end
+  concentrationEnds: [end]
 }
-const { concentrationEnd: _end, ...reactionEvidence } = reaction
+const { concentrationEnds: _end, ...reactionEvidence } = reaction
 
 function settle(settlements: unknown[], automationMode?: 'MANUAL') {
   const callbacks = {

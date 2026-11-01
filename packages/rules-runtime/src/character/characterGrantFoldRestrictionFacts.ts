@@ -33,7 +33,8 @@ function baseCondition(
     category: null,
     requiredProperties: [],
     sourceState: null,
-    requiresDaylight: false
+    requiresDaylight: false,
+    perSpellLevel: 0
   }
 }
 
@@ -335,6 +336,12 @@ function normalizeItemContext(
         return {
           ...baseCondition(condition, 'HOLDER_IN_BRIGHT_LIGHT'),
           requiresDaylight: condition.requiresDaylight
+        }
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'CONCENTRATION_DAMAGE_OVER')
+        return {
+          ...baseCondition(condition, 'CONCENTRATION_DAMAGE_OVER'),
+          min: condition.over,
+          perSpellLevel: condition.perSpellLevel
         }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')

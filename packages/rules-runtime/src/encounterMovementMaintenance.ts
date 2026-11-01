@@ -30,6 +30,10 @@ export type MovementMaintenanceOwner<TRow extends MovementCharacterRow> = {
   effects: ActiveRuleEffectRecord[]
   character: TRow | null
 }
+/** One held maintained state's simulated slot; an actor can hold several at once. */
+export function movementSlotKey(actorId: string, definitionId: string, stateId: string) {
+  return `${actorId}:${definitionId}:${stateId}`
+}
 export type MovementMaintenanceProjection<TRow extends MovementCharacterRow> = {
   slots: ReadonlyMap<
     string,
@@ -40,6 +44,30 @@ export type MovementMaintenanceProjection<TRow extends MovementCharacterRow> = {
     }
   >
   owners: ReadonlyMap<string, MovementMaintenanceOwner<TRow>>
+}
+/**
+ * An actor's held states as the movement chain sees them, in casting order: the stored ones less
+ * those the chain ended or replaced, plus those it created.
+ */
+export function projectedHeldStates(
+  projection: Pick<MovementMaintenanceProjection<MovementCharacterRow>, 'slots'> | undefined,
+  stored: readonly EncounterMaintainedEffectStateRecord[],
+  actorId: string,
+  definitionId: string
+) {
+  const slots = projection?.slots
+  if (!slots) return [...stored]
+  const held = stored.filter(
+    ({ id }) => slots.get(movementSlotKey(actorId, definitionId, id))?.state !== null
+  )
+  for (const { state } of slots.values())
+    if (
+      state?.ownerActorId === actorId &&
+      state.maintenanceDefinitionId === definitionId &&
+      !held.some(({ id }) => id === state.id)
+    )
+      held.push(state)
+  return held.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id))
 }
 type Maintenance<TRow extends MovementCharacterRow> = {
   prior: EncounterMaintainedEffectStateRecord | null
@@ -226,11 +254,17 @@ export function projectEncounterMovementMaintenance<
   const dependents = input.createdEffects.filter(
     (effect) => effect.maintainedEffectStateId === input.state.id
   )
-  slots.set(`${input.state.ownerActorId}:${input.state.maintenanceDefinitionId}`, {
-    state: input.state,
-    dependents,
-    zoneIds: []
-  })
+  const { prior } = input.maintenance
+  if (prior)
+    slots.set(movementSlotKey(prior.ownerActorId, prior.maintenanceDefinitionId, prior.id), {
+      state: null,
+      dependents: [],
+      zoneIds: []
+    })
+  slots.set(
+    movementSlotKey(input.state.ownerActorId, input.state.maintenanceDefinitionId, input.state.id),
+    { state: input.state, dependents, zoneIds: [] }
+  )
   return {
     targets,
     ownerTransitions,
@@ -265,7 +299,7 @@ export function projectEncounterMovementConcentrationEnd<
   )
   const { state, removed, zoneIds, characterVersions } = input.maintenance
   const slots = new Map(input.projection?.slots)
-  slots.set(`${state.ownerActorId}:${state.maintenanceDefinitionId}`, {
+  slots.set(movementSlotKey(state.ownerActorId, state.maintenanceDefinitionId, state.id), {
     state: null,
     dependents: [],
     zoneIds: []

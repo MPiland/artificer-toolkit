@@ -330,6 +330,7 @@ async function startCheck(input: {
   const runtime = createSrdRulesRuntime()
   const { context, facts } = createNativeConcentrationContext({
     gameSystemId: DND5E_SYSTEM_ID,
+    heldCount: 1,
     current: {
       maintained,
       pins: {
@@ -913,6 +914,7 @@ describe('Concentration held by a Creature', () => {
     const { context, facts } = createNativeConcentrationContext({
       gameSystemId: DND5E_SYSTEM_ID,
       current,
+      heldCount: 1,
       parentOccurrenceId: PARENT_OCCURRENCE_ID,
       parentCommandFingerprint: CHECKSUM('7'),
       application: checked,

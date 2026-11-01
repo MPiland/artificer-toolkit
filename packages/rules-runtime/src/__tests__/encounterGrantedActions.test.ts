@@ -16,6 +16,7 @@ import {
   grantedActionId,
   heldGrantedActions,
   nextGrantedActionUseKey,
+  openGrantedAttackEffectIds,
   parseGrantedActionId,
   resolveGrantedAction,
   standingGrantedActions
@@ -128,6 +129,24 @@ describe('the offers a held effect makes', () => {
       activation: 'BONUS_ACTION'
     })
     expect(nextGrantedAttackCharge([holds[0]!], [hasteKey as string])).toBeNull()
+  })
+
+  it('names the authored Effect of each weapon-attack offer still open', () => {
+    const held = hasteHeld()
+    const holds = heldGrantedActions([held, retreatHeld()])
+    const spent = nextGrantedActionUseKey(holds[0]!, []) as string
+    expect(openGrantedAttackEffectIds(holds, [held], [])).toEqual([
+      held.definition.authoredEffectId
+    ])
+    // The offer's use is spent, and the other offer makes no weapon attack.
+    expect(openGrantedAttackEffectIds(holds, [held], [spent])).toEqual([])
+  })
+
+  it('names a standing offer by its own effect id', () => {
+    const [haste] = heldGrantedActions([hasteHeld()])
+    expect(openGrantedAttackEffectIds([{ ...haste!, effectId: 'standing' }], [], [])).toEqual([
+      'standing'
+    ])
   })
 })
 
