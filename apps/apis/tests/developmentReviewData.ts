@@ -128,7 +128,7 @@ async function admitPlayers(
       audience: 'PUBLIC',
       systemId: srdSystemRecord.id,
       playMode: 'ONLINE',
-      capacity: 6,
+      capacity: REVIEW_PLAYERS.length,
       schedule: {
         kind: 'FLEXIBLE',
         timeZone: 'America/Chicago',
