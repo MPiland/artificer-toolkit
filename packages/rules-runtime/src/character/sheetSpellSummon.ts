@@ -13,7 +13,7 @@ import {
   type FormSummonStats,
   type SummonFormPick
 } from '../spellSummonStatBlock.js'
-import { summonHitPoints } from '../summonHitPoints.js'
+import { groupHitPointPool, summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
 /** A System Creature a Sheet summon of a chosen form may become, read before the reducer runs. */
@@ -80,7 +80,7 @@ export function buildSheetSpellSummon(input: {
   const maximumHitPoints =
     'statBlock' in placement
       ? summonHitPoints(placement.statBlock, input.casterHitPointMaximum)
-      : form!.creature.maxHitPoints
+      : groupHitPointPool(form!.creature.maxHitPoints, form!.pick.count)
   return {
     id: input.id,
     ...resolveSpellSummonStatBlock({

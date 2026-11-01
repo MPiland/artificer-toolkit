@@ -569,6 +569,12 @@ Convex read the same total. The GM sets the count after the cast with `UPDATE_AC
 direction, so an upcast raises it); only an actor that has a count takes it. That edit is a GM edit and is not
 undoable; undoing an attack returns its slot and leaves the count alone. The token shows a `GROUP` status badge
 ("N creatures") read from the actor's `owner.count`. A group at 0 is the existing token removal, not a count.
+The group's hit point pool is one creature's hit points times its count: `buildEncounterSummon` and the Sheet's
+`buildSheetSpellSummon` both size it with `groupHitPointPool` (8 wolves of 11 hit points start at 88), so the Run actor and
+the Sheet's record of the summon agree. The token leaves at 0 through the existing summon removal; one hit does not
+remove it, and area damage hits the pool once. `UPDATE_ACTOR.groupCount` goes through `groupCountChange`: lowering
+leaves hit points alone (the GM lowers it after damage already took them), and raising adds one creature's hit points
+(maximum divided by the old count) per added creature to both current and maximum. The count never changes by itself.
 Known limit: an upcast does not raise the picked count by itself, and the cast offers no count above a form's
 lowest-slot maximum; the GM raises it. Separate tokens per creature are a future enhancement.
 

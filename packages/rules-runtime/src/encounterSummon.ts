@@ -11,7 +11,7 @@ import { summonBody } from './encounterActorBody.js'
 import type { EncounterActorFormCreature } from './encounterActorForm.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { FormSummonStats } from './spellSummonStatBlock.js'
-import { summonHitPoints } from './summonHitPoints.js'
+import { groupHitPointPool, summonHitPoints } from './summonHitPoints.js'
 
 /**
  * The stat values a form summon lists, read from the System Creature the caster chose. It lives on
@@ -102,7 +102,11 @@ export function buildEncounterSummon(input: {
           label
         })
       : creatureSummonBody(summon.creature, summon.creatureTypeId)
-  const { maxHitPoints } = body
+  // A group token holds the pool of every creature it stands for (D200).
+  const maxHitPoints = groupHitPointPool(
+    body.maxHitPoints,
+    summon.kind === 'CREATURE' ? summon.count : null
+  )
   const statBlock = summon.kind === 'STAT_BLOCK' ? summon.statBlock : { occupiesSpace: true }
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),

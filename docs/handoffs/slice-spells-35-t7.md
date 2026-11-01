@@ -12,6 +12,12 @@ SPELLS-34 form path. No spell is named in code.
 - **Attacks:** the multiplier is `owner.count` in `encounterAttackAction.ts` (`anyAttackSlots`), chunked into slots of at
   most `MAX_ATTACK_SLOT_COUNT`.
 - **Undo:** undoing an attack returns its slot and leaves the count; the GM count edit is not undoable.
+- **Hit points (user ruling):** the pool is one creature's hit points times the count (`groupHitPointPool`), at cast in
+  `buildEncounterSummon` and on the Sheet in `buildSheetSpellSummon`, so both records agree. `groupCountChange` (used by
+  `UPDATE_ACTOR.groupCount`) leaves hit points when the count is lowered and adds one creature's hit points per added
+  creature to current and maximum when it is raised. The token leaves at 0 through the existing summon removal.
+- **GM control:** a "Creatures in the group" number field in `EncounterActorControlFields` (room drawer and workspace
+  card), shown for an actor with `owner.count`, sends `UPDATE_ACTOR.groupCount`.
 - **Token:** the web shows a `GROUP` status badge from `owner.count`.
 - **Known limits (deferred edge cases):** no upcast multiplier (the GM raises the count after the cast); the Sheet's
   Extras list shows no count.

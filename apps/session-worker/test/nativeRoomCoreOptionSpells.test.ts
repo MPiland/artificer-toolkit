@@ -1603,6 +1603,65 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
     expect((await conjured(room))[0]?.actor.owner?.count).toBe(2)
   }, 120000)
 
+  it('holds the pool of every creature, which the GM lowering the count leaves and raising it grows (SPELLS-35.T7)', async () => {
+    const room = await groupRoom()
+    const summons = await ownerSheet(room)
+    const group = await castSummon(room, GROUP_POINT, {
+      formId: wolfForm.id,
+      creatureTypeId: FEY,
+      count: 3
+    })
+    const pool = () => conjured(room).then(([entry]) => entry?.actor)
+    const eachWolf = wolf.hitPoints
+    // Three wolves start at three times one wolf's hit points, on the Run actor and the Sheet alike.
+    expect(await pool()).toMatchObject({
+      currentHitPoints: 3 * eachWolf,
+      maxHitPoints: 3 * eachWolf
+    })
+    await vi.waitFor(
+      () =>
+        expect(summons()?.[0]?.hitPoints).toEqual({
+          current: 3 * eachWolf,
+          maximum: 3 * eachWolf,
+          temp: 0
+        }),
+      ROOM_REPLY_WAIT
+    )
+
+    // One hit does not remove the group; the count stays what the GM sets.
+    await setSummonHitPoints(room, group.actor.id, 3 * eachWolf - 5)
+    expect(await conjured(room)).toHaveLength(1)
+
+    // Lowering the count leaves the hit points the damage already took.
+    expect((await setCount(room, group.actor.id, 2)).type).toBe('COMMAND_COMMITTED')
+    expect(await pool()).toMatchObject({
+      currentHitPoints: 3 * eachWolf - 5,
+      maxHitPoints: 3 * eachWolf,
+      owner: { count: 2 }
+    })
+
+    // Raising it (an upcast) adds one wolf's hit points per added wolf to both.
+    expect((await setCount(room, group.actor.id, 4)).type).toBe('COMMAND_COMMITTED')
+    expect(await pool()).toMatchObject({
+      currentHitPoints: 4 * eachWolf - 5,
+      maxHitPoints: 4 * eachWolf,
+      owner: { count: 4 }
+    })
+    await vi.waitFor(
+      () =>
+        expect(summons()?.[0]?.hitPoints).toEqual({
+          current: 4 * eachWolf - 5,
+          maximum: 4 * eachWolf,
+          temp: 0
+        }),
+      ROOM_REPLY_WAIT
+    )
+
+    // At 0 the whole group leaves.
+    await setSummonHitPoints(room, group.actor.id, 0)
+    await vi.waitFor(() => expect(summons()).toEqual([]), ROOM_REPLY_WAIT)
+  }, 120000)
+
   it('lets the GM raise the count, and refuses a count on a single form, above a form’s maximum, or on a non-group actor', async () => {
     const room = await groupRoom()
     const refusedWith = async (picks: { formId: string; count: number }) => {
