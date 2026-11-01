@@ -10,14 +10,19 @@ import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
   SRD_ACROBATICS_SKILL_ID,
-  SRD_ATHLETICS_SKILL_ID
+  SRD_ATHLETICS_SKILL_ID,
+  SRD_CONDITION_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
-import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
+import {
+  concentrationDescriptor,
+  plainWolf,
+  reactionWolf
+} from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   CONCENTRATION_STATE_ID,
@@ -664,6 +669,20 @@ describe('movement-triggered Concentration', () => {
   }
 
   const walk = [MOVER_START, { x: 550, y: 150 }]
+  const SECOND_STATE_ID = testUuid(0x5002)
+  /** The mover holds a second Concentration, cast after the room's first. */
+  const seedSecondHeldSpell: NonNullable<MovementRoomConfig['seed']> = async ({
+    effects,
+    encounterId
+  }) => {
+    await effects.createMaintainedState({
+      id: SECOND_STATE_ID,
+      encounterId,
+      ownerActorId: MOVER_ID,
+      descriptor: await concentrationDescriptor(MOVER_ID),
+      occurredAt: '2026-09-30T00:00:01.000Z'
+    })
+  }
 
   it('waits for the check roll when the owner has not asked for automatic rolls', async () => {
     const room = await concentrationRoom({ autoRoll: false })
@@ -710,6 +729,61 @@ describe('movement-triggered Concentration', () => {
         }
       }
     })
+  })
+
+  it('checks each held spell once, in casting order, and a failure ends only its spell', async () => {
+    const room = await movementRoom({
+      actors: [characterActor({ id: MOVER_ID, characterId: CHARACTER_ID })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: MOVER_START },
+      autoRoll: 'PLAYER',
+      concentration: true,
+      spatialEffects: [hazard],
+      // The first spell's save succeeds (natural 20); the later spell's fails (natural 1).
+      rolls: [19, 0],
+      seed: seedSecondHeldSpell
+    })
+
+    await room.move(walk)
+
+    const saves = (await room.receipts()).filter(
+      (entry) => entry.commandType === 'DAMAGE_SAVE_CHECK'
+    )
+    expect(saves.map((entry) => entry.result)).toMatchObject([
+      { applicationOutputs: { outcome: 'SAVE_SUCCESS', cleanup: null } },
+      {
+        applicationOutputs: {
+          outcome: 'SAVE_FAILURE',
+          cleanup: { maintainedStateId: SECOND_STATE_ID }
+        }
+      }
+    ])
+  })
+
+  it('ends every held spell with no check when a contact incapacitates the holder (D95)', async () => {
+    const incapacitated = SRD_CONDITION_TYPES.find((type) => type.code === 'INCAPACITATED')
+    if (!incapacitated) throw new Error('The SRD INCAPACITATED condition is missing.')
+    const room = await movementRoom({
+      actors: [characterActor({ id: MOVER_ID, characterId: CHARACTER_ID })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: MOVER_START },
+      autoRoll: 'PLAYER',
+      concentration: true,
+      spatialEffects: [{ ...hazard, condition: { conditionId: incapacitated.id } }],
+      seed: seedSecondHeldSpell
+    })
+
+    await room.move(walk)
+
+    const receipts = await room.receipts()
+    expect(receipts.filter((entry) => entry.commandType === 'DAMAGE_SAVE_CHECK')).toHaveLength(0)
+    expect(
+      receipts
+        .filter((entry) => entry.commandType === 'CONCENTRATION_END')
+        .map((entry) => entry.result as { applicationOutputs: { maintainedStateId: string } })
+        .map((result) => result.applicationOutputs.maintainedStateId)
+    ).toEqual([CONCENTRATION_STATE_ID, SECOND_STATE_ID])
+    expect(room.diceDrawn()).toBe(0)
   })
 
   it('checks Concentration once for two same-contact hazards that damage the Character', async () => {

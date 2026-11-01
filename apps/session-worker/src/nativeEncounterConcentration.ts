@@ -1005,14 +1005,14 @@ export async function planNativeLiveConcentration(input: {
     }
     const application = unboundDamageSaveApplication(item)
     const { maintainedStateId } = item
-    const loaded = (await currentStates(application.targetActorId)).find(
-      ({ maintained }) => maintained.id === maintainedStateId
-    )
+    const held = await currentStates(application.targetActorId)
+    const loaded = held.find(({ maintained }) => maintained.id === maintainedStateId)
     if (!loaded) throw new Error('The concentration state changed before its check.')
     const unspent = { ...loaded, target: chainTarget(loaded.target) }
     const { context, facts } = createNativeConcentrationContext({
       gameSystemId: state.gameSystemId,
       current: unspent,
+      heldCount: held.length,
       parentOccurrenceId: input.parentOccurrenceId,
       parentCommandFingerprint: input.parentCommandFingerprint,
       application,

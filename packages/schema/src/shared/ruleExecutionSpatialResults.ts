@@ -357,7 +357,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
         const applyConcentrationChildren = (
           children: readonly (MovementConcentrationExecutionDto | MovementConcentrationEndDto)[],
           path: (string | number)[],
-          key: 'concentrationEnd' | 'concentrationChecks'
+          key: 'concentrationEnds' | 'concentrationChecks'
         ) => {
           for (const [index, check] of children.entries()) {
             const checkPath = [...path, key, index]
@@ -453,7 +453,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
               const priorState = currentStates.get(ownerKey)
               if (
                 priorState !== undefined &&
-                !(key === 'concentrationEnd'
+                !(key === 'concentrationEnds'
                   ? continuesWithDerivedConditions(priorState, ownerTransition.before)
                   : sameState(priorState, ownerTransition.before))
               )
@@ -570,14 +570,14 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             if (characterId !== null && currentVersion === undefined)
               currentVersions.set(characterId, pinVersion!)
             if (
-              execution.concentrationEnd !== undefined ||
+              execution.concentrationEnds !== undefined ||
               execution.concentrationChecks !== undefined
             ) {
               finishSpatialGroups()
               applyConcentrationChildren(
-                execution.concentrationEnd ? [execution.concentrationEnd] : [],
+                execution.concentrationEnds ?? [],
                 ['executions', event.index],
-                'concentrationEnd'
+                'concentrationEnds'
               )
               applyConcentrationChildren(
                 execution.concentrationChecks ?? [],
@@ -809,9 +809,9 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             currentStates.set(ownerKey, transition.after)
           }
           applyConcentrationChildren(
-            reaction.concentrationEnd ? [reaction.concentrationEnd] : [],
+            reaction.concentrationEnds ?? [],
             ['reactionExecutions', event.index],
-            'concentrationEnd'
+            'concentrationEnds'
           )
           applyConcentrationChildren(
             reaction.concentrationChecks ?? [],

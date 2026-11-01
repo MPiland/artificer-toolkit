@@ -12,7 +12,8 @@ import {
   dnd5eAcceptedModifierApplicability,
   dnd5eFoldedModifierApplicability,
   dnd5eModifierApplies,
-  dnd5eSaveRequiresSourceSight
+  dnd5eSaveRequiresSourceSight,
+  type Dnd5eModifierTarget
 } from '../systems/dnd5e/modifierApplicability.js'
 import { resolveDnd5eRollMode } from '../systems/dnd5e/rollModePolicy.js'
 
@@ -29,7 +30,10 @@ type ScopedSavingThrow = {
   groups: Map<string, string | null>
 }
 
-function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThrow[] {
+function scopedSavingThrows(
+  output: CharacterRulePolicyOutput,
+  target: Dnd5eModifierTarget
+): ScopedSavingThrow[] {
   const scoped = new Map<string, ScopedSavingThrow>()
   for (const modifier of output.grantFold.modifiers) {
     const influence = modifierRollInfluence(modifier)
@@ -37,10 +41,7 @@ function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThro
       (modifier.modifierKind !== 'BONUS' &&
         modifier.modifierKind !== 'PENALTY' &&
         influence === null) ||
-      !dnd5eModifierApplies(
-        dnd5eAcceptedModifierApplicability(modifier),
-        DND5E_CHARACTER_WIDE_TARGET
-      )
+      !dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), target)
     )
       continue
     const { domain } = modifier
@@ -86,6 +87,76 @@ function resolveRollMode(
   contributors: CharacterRulePolicyOutput['rollContributorEvidence']['initiative']
 ): CharacterRollMode {
   return resolveDnd5eRollMode(contributors).rollMode
+}
+
+/** The unscoped save plus the grants scoped to `scoped` that apply to `target`. */
+function scopedSavingThrowRow(
+  output: CharacterRulePolicyOutput,
+  base: CharacterRulePolicyOutput['savingThrowDefinitions'][number],
+  scoped: ScopedSavingThrow,
+  target: Dnd5eModifierTarget
+) {
+  const resolvedModifierGroups = new Map(
+    output.modifierGroups.map((group) => [group.domainKey, group])
+  )
+  let modifier = base.modifier
+  const scopedContributors: CharacterRollContributor[] = []
+  for (const [domainKey, influence] of scoped.groups) {
+    const group = resolvedModifierGroups.get(domainKey)
+    if (!group) continue
+    const contributions = group.contributions.filter((contribution) =>
+      dnd5eModifierApplies(dnd5eFoldedModifierApplicability(output.grantFold, contribution), target)
+    )
+    if (influence === null) {
+      modifier += contributions
+        .filter((contribution) => contribution.state === 'APPLIED')
+        .reduce((sum, contribution) => sum + contribution.value, 0)
+      continue
+    }
+    for (const contribution of contributions) {
+      if (!contribution.source || !contribution.grantId || !contribution.domainKey)
+        throw new Error('Scoped character saving throws require contributor provenance.')
+      scopedContributors.push({
+        sourceId: contribution.sourceId,
+        source: rollModeContributorSourceOfMechanicSource(contribution.source),
+        grantId: contribution.grantId,
+        domainKey: contribution.domainKey,
+        influence
+      })
+    }
+  }
+  const contributors = canonicalizeRollContributors([...base.contributors, ...scopedContributors])
+  return { modifier, rollMode: resolveRollMode(contributors), contributors }
+}
+
+/**
+ * The Character's save of an ability for one authored rule, evaluated for a roll's own facts
+ * (a Concentration save's held count, spell level and damage). Null when no grant is scoped to
+ * that rule, so the stored unscoped save stands.
+ */
+export function resolveCharacterRuleSavingThrow(
+  output: CharacterRulePolicyOutput,
+  input: { abilityCode: string; abilityDefinitionId: string; ruleDefinitionId: string },
+  target: Dnd5eModifierTarget
+) {
+  const scoped = scopedSavingThrows(output, target).find(
+    (entry) =>
+      entry.abilityId === input.abilityCode &&
+      'ruleDefinitionId' in entry.scope &&
+      entry.scope.ruleDefinitionId === input.ruleDefinitionId
+  )
+  const base = output.savingThrowDefinitions.find(
+    (savingThrow) =>
+      savingThrow.abilityDefinitionId === input.abilityDefinitionId &&
+      savingThrow.ruleDefinitionId === undefined &&
+      savingThrow.conditionTypeId === undefined
+  )
+  if (!scoped || !base) return null
+  return {
+    abilityDefinitionId: base.abilityDefinitionId,
+    ruleDefinitionId: input.ruleDefinitionId,
+    ...scopedSavingThrowRow(output, base, scoped, target)
+  }
 }
 
 function resolveRollModeRecord<T extends Record<string, readonly { influence: string }[]>>(
@@ -155,52 +226,17 @@ export function resolveCharacterRulePolicyRollModes(
         contributors: savingThrowEvidence
       }
     })
-  const resolvedModifierGroups = new Map(
-    output.modifierGroups.map((group) => [group.domainKey, group])
-  )
-  for (const scoped of scopedSavingThrows(output)) {
+  for (const scoped of scopedSavingThrows(output, DND5E_CHARACTER_WIDE_TARGET)) {
     const base = savingThrowDefinitions.find(
       (savingThrow) =>
         abilityDefinitions.find((ability) => ability.id === savingThrow.abilityDefinitionId)
           ?.code === scoped.abilityId
     )
     if (!base) continue
-    let modifier = base.modifier
-    const scopedContributors: CharacterRollContributor[] = []
-    for (const [domainKey, influence] of scoped.groups) {
-      const group = resolvedModifierGroups.get(domainKey)
-      if (!group) continue
-      const contributions = group.contributions.filter((contribution) =>
-        dnd5eModifierApplies(
-          dnd5eFoldedModifierApplicability(output.grantFold, contribution),
-          DND5E_CHARACTER_WIDE_TARGET
-        )
-      )
-      if (influence === null) {
-        modifier += contributions
-          .filter((contribution) => contribution.state === 'APPLIED')
-          .reduce((sum, contribution) => sum + contribution.value, 0)
-        continue
-      }
-      for (const contribution of contributions) {
-        if (!contribution.source || !contribution.grantId || !contribution.domainKey)
-          throw new Error('Scoped character saving throws require contributor provenance.')
-        scopedContributors.push({
-          sourceId: contribution.sourceId,
-          source: rollModeContributorSourceOfMechanicSource(contribution.source),
-          grantId: contribution.grantId,
-          domainKey: contribution.domainKey,
-          influence
-        })
-      }
-    }
-    const contributors = canonicalizeRollContributors([...base.contributors, ...scopedContributors])
     savingThrowDefinitions.push({
       abilityDefinitionId: base.abilityDefinitionId,
       ...scoped.scope,
-      modifier,
-      rollMode: resolveRollMode(contributors),
-      contributors
+      ...scopedSavingThrowRow(output, base, scoped, DND5E_CHARACTER_WIDE_TARGET)
     })
   }
   const scopeKey = (savingThrow: (typeof savingThrowDefinitions)[number]) =>

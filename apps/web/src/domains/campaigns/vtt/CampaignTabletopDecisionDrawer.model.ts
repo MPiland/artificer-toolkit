@@ -103,8 +103,9 @@ export function onHitChoiceTitle(options: OnHitChoice['options']): string {
   return only && labels.size === 1 ? `${only}?` : 'Add an on-hit effect'
 }
 
-/** "Stunning Strike: spend 1 from a resource pool": the rider and what it costs. */
+/** "Stunning Strike: spend 1 from a resource pool": the rider and what it costs; a free one is the name alone. */
 export function onHitOptionLabel(option: OnHitChoice['options'][number]): string {
+  if (option.kind === 'FREE') return option.riderLabel
   return `${option.riderLabel}: ${
     option.kind === 'SPELL_SLOT'
       ? `spend a level ${option.slotLevel} slot`

@@ -25,7 +25,11 @@ import {
   MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { MovementMaintenanceProjection } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
+import {
+  movementSlotKey,
+  projectedHeldStates,
+  type MovementMaintenanceProjection
+} from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { ProjectableCharacterFacts } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -250,9 +254,6 @@ export async function prepareNativeLiveActionMaintenance(input: {
       return response.definition
     },
     readHeldStates: async (definitionId) => {
-      // A movement chain's projection stands for the actor's one simulated slot.
-      const projected = input.projection?.slots.get(`${prepared.actor.id}:${definitionId}`)
-      if (projected) return projected.state ? [projected.state] : []
       const response = await capture({
         kind: 'MAINTENANCE_STATES',
         actorId: prepared.actor.id,
@@ -260,11 +261,11 @@ export async function prepareNativeLiveActionMaintenance(input: {
       })
       if (response.kind !== 'MAINTENANCE_STATES')
         throw new Error('Maintenance states are unavailable.')
-      return response.states
+      return projectedHeldStates(input.projection, response.states, prepared.actor.id, definitionId)
     },
     readSlot: async (definitionId, stateId) => {
       const result =
-        input.projection?.slots.get(`${prepared.actor.id}:${definitionId}`) ??
+        input.projection?.slots.get(movementSlotKey(prepared.actor.id, definitionId, stateId)) ??
         (await readNativeLiveMaintenanceSlot({
           encounterId: prepared.state.id,
           actorId: prepared.actor.id,
@@ -364,7 +365,8 @@ export function settledCharacterActionSpend(input: {
       })
     }
   const pool =
-    chosenOnHit ?? (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
+    (chosenOnHit?.kind === 'FREE' ? null : chosenOnHit) ??
+    (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
   if (!pool) return null
   const { characterFacts } = prepared.sourceFacts
   if (!characterFacts)

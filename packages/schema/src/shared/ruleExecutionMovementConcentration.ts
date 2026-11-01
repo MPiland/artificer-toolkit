@@ -107,9 +107,15 @@ export const movementConcentrationExecutionsDtoSchema = lazySchema(() =>
       z.superRefine((values, context) => {
         const ids = new Set<string>()
         let priorOrdinal = -1
+        let priorCastAt = ''
         for (const [index, value] of values.entries()) {
           const application = value.result.applicationOutputs.application
-          if (ids.has(value.result.occurrenceId) || application.ordinal <= priorOrdinal)
+          // One damage application owes a check per held spell, in casting order.
+          if (
+            ids.has(value.result.occurrenceId) ||
+            application.ordinal < priorOrdinal ||
+            (application.ordinal === priorOrdinal && application.castAt < priorCastAt)
+          )
             context.addIssue({
               code: 'custom',
               path: [index],
@@ -118,12 +124,13 @@ export const movementConcentrationExecutionsDtoSchema = lazySchema(() =>
             })
           ids.add(value.result.occurrenceId)
           priorOrdinal = application.ordinal
+          priorCastAt = application.castAt
         }
       })
     )
 )
 
-/** A holder's Concentration that ended at a movement contact with no check (D95); one holder per contact. */
+/** A holder's Concentration that ended at a movement contact with no check (D95). */
 export const movementConcentrationEndDtoSchema = lazySchema(() =>
   z
     .strictObject({
@@ -147,6 +154,27 @@ export const movementConcentrationEndDtoSchema = lazySchema(() =>
           value.result.applicationOutputs.cleanup,
           context
         )
+      })
+    )
+)
+
+/** Every Concentration a contact ended with no check, one per held state (D95), in casting order. */
+export const movementConcentrationEndsDtoSchema = lazySchema(() =>
+  z
+    .array(movementConcentrationEndDtoSchema)
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+    .check(
+      z.superRefine((values, context) => {
+        const ids = new Set<string>()
+        for (const [index, value] of values.entries()) {
+          if (ids.has(value.result.occurrenceId))
+            context.addIssue({
+              code: 'custom',
+              path: [index],
+              message: 'Movement Concentration ends must have unique child identities.'
+            })
+          ids.add(value.result.occurrenceId)
+        }
       })
     )
 )

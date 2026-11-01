@@ -6,7 +6,11 @@ import { deadCharacterIdsOfTargets } from '@artificer-toolkit/rules-runtime/enco
 import { encounterConcentrationEndReason } from '@artificer-toolkit/rules-runtime/encounterConcentrationEnd'
 import { prepareEncounterConcentrationState } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { prepareEncounterMovementConcentration } from '@artificer-toolkit/rules-runtime/encounterMovementConcentration'
-import { projectEncounterMovementConcentrationEnd } from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
+import {
+  movementSlotKey,
+  projectEncounterMovementConcentrationEnd,
+  projectedHeldStates
+} from '@artificer-toolkit/rules-runtime/encounterMovementMaintenance'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import {
@@ -19,8 +23,8 @@ import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 
 type CharacterFacts = PreparedLiveCharacterSheet
 
-/** Both spatial damage interruption and save preparation observe the same projected slot. */
-export async function readNativeLiveMovementConcentrationState(input: {
+/** Both spatial damage interruption and save preparation observe the same projected states, in casting order. */
+export async function readNativeLiveMovementConcentrationStates(input: {
   state: Parameters<typeof prepareEncounterConcentrationState>[0]['state']
   targetActorId: string
   targets: Parameters<
@@ -34,30 +38,37 @@ export async function readNativeLiveMovementConcentrationState(input: {
 }) {
   const { state, targetActorId, targets, projection, capture } = input
   const definitionId = requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
-  const projected = projection?.slots.get(`${targetActorId}:${definitionId}`)
-  const stored = projected
-    ? null
-    : await capture({ kind: 'MAINTENANCE_SLOT', actorId: targetActorId, definitionId })
-  if (stored && stored.kind !== 'MAINTENANCE_SLOT')
-    throw new Error('Movement Concentration slot is unavailable.')
-  return prepareEncounterConcentrationState({
-    state,
-    targetActorId,
-    maintained: projected ? projected.state : (stored?.state ?? null),
-    loadTarget: () => targets.get(targetActorId),
-    readDefinition: async (definitionId) => {
-      const response = await capture({ kind: 'DEFINITION', definitionId })
-      if (response.kind !== 'DEFINITION')
-        throw new Error('Movement Concentration definition is unavailable.')
-      return response.definition
-    },
-    readVocabulary: async () => {
-      const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
-      if (response.kind !== 'SYSTEM_VOCABULARY')
-        throw new Error('Movement Concentration vocabulary is unavailable.')
-      return response.snapshot
-    }
+  const response = await capture({
+    kind: 'MAINTENANCE_STATES',
+    actorId: targetActorId,
+    definitionId
   })
+  if (response.kind !== 'MAINTENANCE_STATES')
+    throw new Error('Movement Concentration states are unavailable.')
+  const held = projectedHeldStates(projection, response.states, targetActorId, definitionId)
+  const prepared = await Promise.all(
+    held.map((maintained) =>
+      prepareEncounterConcentrationState({
+        state,
+        targetActorId,
+        maintained,
+        loadTarget: () => targets.get(targetActorId),
+        readDefinition: async (definitionId) => {
+          const response = await capture({ kind: 'DEFINITION', definitionId })
+          if (response.kind !== 'DEFINITION')
+            throw new Error('Movement Concentration definition is unavailable.')
+          return response.definition
+        },
+        readVocabulary: async () => {
+          const response = await capture({ kind: 'SYSTEM_VOCABULARY' })
+          if (response.kind !== 'SYSTEM_VOCABULARY')
+            throw new Error('Movement Concentration vocabulary is unavailable.')
+          return response.snapshot
+        }
+      })
+    )
+  )
+  return prepared.filter((entry) => entry !== null)
 }
 
 /** Computes checks against the state after the preceding movement contact; no writes or new versions. */
@@ -80,26 +91,25 @@ export function prepareNativeLiveMovementConcentration(
   >(input, {
     runtime: async () => input.runtime,
     random: input.random,
-    loadState: (targetActorId, targets, projection) =>
-      readNativeLiveMovementConcentrationState({
+    loadStates: (targetActorId, targets, projection) =>
+      readNativeLiveMovementConcentrationStates({
         state,
         targetActorId,
         targets,
         projection,
         capture
       }),
-    findEnd: async (actorId, targets, projection) => {
-      const definitionId = requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
-      const slot =
-        projection?.slots.get(`${actorId}:${definitionId}`) ??
-        (await readNativeLiveMaintenanceSlot({
-          encounterId: state.id,
-          actorId,
-          definitionId,
-          capture
-        }))
+    findEnds: async (actorId, targets, projection) => {
       const target = targets.get(actorId)
-      if (!slot.state || !target) return null
+      if (!target) return []
+      const held = await readNativeLiveMovementConcentrationStates({
+        state,
+        targetActorId: actorId,
+        targets,
+        projection,
+        capture
+      })
+      if (!held.length) return []
       const reason = await encounterConcentrationEndReason({
         actor: target.actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -116,27 +126,27 @@ export function prepareNativeLiveMovementConcentration(
         }
       })
       return reason
-        ? {
+        ? held.map(({ maintained }) => ({
             maintainedState: {
-              id: slot.state.id,
-              version: slot.state.version,
-              maintenanceDefinitionId: slot.state.maintenanceDefinitionId,
-              descriptorChecksum: slot.state.descriptorChecksum,
-              createdAt: slot.state.createdAt
+              id: maintained.id,
+              version: maintained.version,
+              maintenanceDefinitionId: maintained.maintenanceDefinitionId,
+              descriptorChecksum: maintained.descriptorChecksum,
+              createdAt: maintained.createdAt
             },
             reason
-          }
-        : null
+          }))
+        : []
     },
     projectEnd: async ({ actorId, maintainedState }, targets, projection) => {
       const definitionId = maintainedState.maintenanceDefinitionId
-      const projectedSlot = projection?.slots.get(`${actorId}:${definitionId}`)
       const slot =
-        projectedSlot ??
+        projection?.slots.get(movementSlotKey(actorId, definitionId, maintainedState.id)) ??
         (await readNativeLiveMaintenanceSlot({
           encounterId: state.id,
           actorId,
           definitionId,
+          stateId: maintainedState.id,
           capture
         }))
       const maintained = slot.state

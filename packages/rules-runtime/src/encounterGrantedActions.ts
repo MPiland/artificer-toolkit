@@ -105,6 +105,33 @@ export function nextGrantedAttackCharge(
   return charged ? { activation: charged.offer.activation } : null
 }
 
+/**
+ * The authored Effects of the weapon-attack offers that can still charge an attack now (an unspent
+ * use, or an offer charged to an allowance). A strike made while one is open is one of its strikes,
+ * so the options that Effect names are offered on it. A held effect's authored Effect is read from
+ * its definition; a standing offer's is its own effect id.
+ */
+export function openGrantedAttackEffectIds(
+  holds: readonly HeldGrantedAction[],
+  heldEffects: readonly HeldEffect[],
+  spentKeys: readonly string[]
+): string[] {
+  return [
+    ...new Set(
+      holds
+        .filter(
+          (held) =>
+            nextGrantedActionUseKey(held, spentKeys) !== undefined && held.offer.weaponAttack
+        )
+        .map(
+          (held) =>
+            heldEffects.find(({ id }) => id === held.effectId)?.definition.authoredEffectId ??
+            held.effectId
+        )
+    )
+  ]
+}
+
 /** The rules a Character's standing offers are read from; see `compiledStandingGrantedActions`. */
 export type StandingGrantedActionCharacterRules = {
   standingGrantedActions: readonly HeldGrantedAction[]
