@@ -4,6 +4,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { prepareMaintainedEffectStateRecord } from '../activeRuleEffectRecords.js'
 import {
+  movementSlotKey,
   projectEncounterMovementConcentrationEnd,
   type MovementCharacterRow,
   type MovementMaintenanceOwner
@@ -36,8 +37,8 @@ const SECOND_TARGET_ID = testUuid(0x301)
 const MISSING_TARGET_ID = testUuid(0x303)
 const STATE_ID = testUuid(0x310)
 const MAINTENANCE_DEFINITION_ID = testUuid(0x311)
-const OTHER_SLOT_KEY = `${CASTER_ID}:${testUuid(0x312)}`
-const SLOT_KEY = `${CASTER_ID}:${MAINTENANCE_DEFINITION_ID}`
+const OTHER_SLOT_KEY = movementSlotKey(CASTER_ID, testUuid(0x312), testUuid(0x313))
+const SLOT_KEY = movementSlotKey(CASTER_ID, MAINTENANCE_DEFINITION_ID, STATE_ID)
 
 const state = prepareMaintainedEffectStateRecord({
   id: STATE_ID,
