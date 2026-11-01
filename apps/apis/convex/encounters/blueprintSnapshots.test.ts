@@ -1,6 +1,9 @@
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
-import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
+import { seededSrdCreature, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
+import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintSnapshots'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
+import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
@@ -61,7 +64,8 @@ async function fixture() {
 describe('native Blueprint enemy snapshots', () => {
   it('pins Creature, Equipment and real vocabulary provenance without later source changes', async () => {
     const t = await fixture()
-    const [enemy] = await t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, input))
+    const setup = await t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, input))
+    const [enemy] = setup.enemies
     expect(enemy).toMatchObject({
       kind: 'CREATURE',
       sourceId: wolf.id,
@@ -74,7 +78,8 @@ describe('native Blueprint enemy snapshots', () => {
         .withIndex('by_systemId_snapshotVersion', (q) => q.eq('systemId', wolf.systemId))
         .first()
     )
-    expect(enemy?.snapshot).toMatchObject({
+    const snapshot = blueprintEnemySnapshot(setup, enemy!)
+    expect(snapshot).toMatchObject({
       sourceChecksum: checksumRuleDocument(creature),
       ruleFacts: {
         vocabularySnapshotId: vocabulary?.snapshotId,
@@ -92,8 +97,8 @@ describe('native Blueprint enemy snapshots', () => {
         }
       ]
     })
-    expect(enemy?.snapshot).not.toHaveProperty('equipmentSources.0.payload')
-    const before = JSON.stringify(enemy)
+    expect(snapshot).not.toHaveProperty('equipmentSources.0.payload')
+    const before = JSON.stringify(setup)
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')
@@ -105,7 +110,42 @@ describe('native Blueprint enemy snapshots', () => {
     await expect(t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, input))).rejects.toThrow(
       'unavailable'
     )
-    expect(JSON.stringify(enemy)).toBe(before)
+    expect(JSON.stringify(setup)).toBe(before)
+  }, 30000)
+
+  it('stores one snapshot per distinct Creature source, so a full Blueprint of a large Creature fits', async () => {
+    const t = await fixture()
+    const duergar = { ...seededSrdCreature('Duergar'), equipmentLoadout: [] }
+    await importSeededSubjects(t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [importedSubject({ ...duergar, subjectKind: 'CREATURE', document: duergar })]
+    })
+    const custom = { kind: 'CUSTOM' as const, label: 'Training dummy', maxHitPoints: 1 }
+    const setup = await t.run((ctx) =>
+      snapshotBlueprintEnemies(ctx, owner, {
+        gameSystemId: duergar.systemId,
+        enemies: [
+          ...Array.from({ length: MAX_ENCOUNTER_ACTORS - 2 }, () => ({
+            kind: 'CREATURE' as const,
+            sourceId: duergar.id
+          })),
+          { kind: 'CREATURE' as const, sourceId: wolf.id },
+          custom
+        ]
+      })
+    )
+    const [duergarSnapshot] = setup.snapshots
+    // One snapshot per enemy would not fit the payload limit; that is what this proves.
+    expect(JSON.stringify(duergarSnapshot).length * (MAX_ENCOUNTER_ACTORS - 2)).toBeGreaterThan(
+      AUTHORED_LIMITS.mutationPayloadBytes
+    )
+    expect(setup.enemies).toHaveLength(MAX_ENCOUNTER_ACTORS)
+    expect(setup.snapshots).toHaveLength(3)
+    expect(setup.enemies.slice(0, MAX_ENCOUNTER_ACTORS - 2).map((e) => e.snapshotIndex)).toEqual(
+      Array.from({ length: MAX_ENCOUNTER_ACTORS - 2 }, () => 0)
+    )
+    for (const enemy of setup.enemies.slice(-2))
+      expect(blueprintEnemySnapshot(setup, enemy)).toMatchObject({ label: enemy.label })
   }, 30000)
 
   it('refuses Equipment from another Game System when pinning a Creature loadout', async () => {
@@ -128,15 +168,18 @@ describe('native Blueprint enemy snapshots', () => {
     const custom = { kind: 'CUSTOM' as const, label: 'Training dummy', maxHitPoints: 0 }
     expect(
       await t.run((ctx) => snapshotBlueprintEnemies(ctx, owner, { ...input, enemies: [custom] }))
-    ).toEqual([
-      {
-        ...custom,
-        sourceId: null,
-        sourceRevision: null,
-        systemId: wolf.systemId,
-        snapshot: { ...custom, systemId: wolf.systemId }
-      }
-    ])
+    ).toEqual({
+      enemies: [
+        {
+          ...custom,
+          sourceId: null,
+          sourceRevision: null,
+          systemId: wolf.systemId,
+          snapshotIndex: 0
+        }
+      ],
+      snapshots: [{ ...custom, systemId: wolf.systemId }]
+    })
     await t.run(async (ctx) => {
       const root = await ctx.db
         .query('authoredRoots')

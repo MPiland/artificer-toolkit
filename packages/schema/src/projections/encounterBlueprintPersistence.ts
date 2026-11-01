@@ -5,7 +5,8 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 export const encounterStoredBlueprintSchema = lazySchema(() =>
   z.extend(encounterBlueprintMetadataDtoSchema, {
     ownerUserId: postgresUuidSchema,
-    enemiesJson: z.string(),
+    /** JSON of the Blueprint's `enemies` and the `snapshots` they point at. */
+    setupJson: z.string(),
     commandId: postgresUuidSchema,
     commandFingerprint: z.string().check(z.regex(/^[a-f0-9]{64}$/))
   })
