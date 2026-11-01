@@ -153,7 +153,8 @@ export async function executeRoomEncounterAction(input: {
         campaignId: scope.campaignId,
         epoch: scope.authorityEpoch,
         observed,
-        batch
+        batch,
+        damagerActorId: captured.command.actorId
       }),
     applyForcedMovements: (movement) =>
       applyRoomForcedMovements({
