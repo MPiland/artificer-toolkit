@@ -283,19 +283,28 @@ export async function verifyEncounterAreaBrowser(
           .locator('canvas')
           .boundingBox()
         if (!bounds) throw new Error('Area Scene canvas is unavailable.')
-        const point = (label: string) => {
+        const scale =
+          Math.min(bounds.width / input.map.width, bounds.height / input.map.height) * 0.94
+        const onPage = (at: { x: number; y: number }) => ({
+          x: bounds.x + (bounds.width - input.map.width * scale) / 2 + at.x * scale,
+          y: bounds.y + (bounds.height - input.map.height * scale) / 2 + at.y * scale
+        })
+        const centerOf = (label: string) => {
           const at = input.map.points[label]
           if (!at) throw new Error('Area fixture position is missing for ' + label + '.')
-          const scale =
-            Math.min(bounds.width / input.map.width, bounds.height / input.map.height) * 0.94
-          // Tokens are 50 px wide; aim from the middle of one to the middle of another.
-          return {
-            x: bounds.x + (bounds.width - input.map.width * scale) / 2 + (at.x + 25) * scale,
-            y: bounds.y + (bounds.height - input.map.height * scale) / 2 + (at.y + 25) * scale
-          }
+          // Tokens are 50 px square.
+          return { x: at.x + 25, y: at.y + 25 }
         }
-        const from = point(input.casterLabel)
-        const to = point(toward)
+        const casterCenter = centerOf(input.casterLabel)
+        const towardCenter = centerOf(toward)
+        // The cone starts on the caster's edge nearest the press, so press just outside that edge,
+        // on the side facing the target.
+        const reach = Math.hypot(towardCenter.x - casterCenter.x, towardCenter.y - casterCenter.y)
+        const from = onPage({
+          x: casterCenter.x + ((towardCenter.x - casterCenter.x) / reach) * 32,
+          y: casterCenter.y + ((towardCenter.y - casterCenter.y) / reach) * 32
+        })
+        const to = onPage(towardCenter)
         await ownerPage.mouse.move(from.x, from.y)
         await ownerPage.mouse.down()
         await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
