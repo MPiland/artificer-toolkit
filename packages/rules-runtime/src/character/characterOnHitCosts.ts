@@ -46,11 +46,11 @@ export function offerableOnHitRiders<
 >(
   riders: readonly TRider[],
   openOfferEffectIds: readonly string[],
-  settled: object | null | undefined
+  settled: { spellConsumption?: unknown; resourceConsumption?: unknown } | null | undefined
 ): TRider[] {
   const paid = {
-    SPELL_SLOT: !!settled && 'spellConsumption' in settled && !!settled.spellConsumption,
-    RESOURCE_POOL: !!settled && 'resourceConsumption' in settled && !!settled.resourceConsumption
+    SPELL_SLOT: !!settled?.spellConsumption,
+    RESOURCE_POOL: !!settled?.resourceConsumption
   }
   return riders.filter(({ cost, grantedByEffectId }) => {
     if (grantedByEffectId !== undefined && !openOfferEffectIds.includes(grantedByEffectId))
