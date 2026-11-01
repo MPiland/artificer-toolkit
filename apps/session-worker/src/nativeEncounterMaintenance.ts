@@ -365,7 +365,8 @@ export function settledCharacterActionSpend(input: {
       })
     }
   const pool =
-    chosenOnHit ?? (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
+    (chosenOnHit?.kind === 'FREE' ? null : chosenOnHit) ??
+    (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
   if (!pool) return null
   const { characterFacts } = prepared.sourceFacts
   if (!characterFacts)

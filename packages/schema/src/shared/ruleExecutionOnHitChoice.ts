@@ -23,11 +23,17 @@ import {
 
 /**
  * One way the attacker may pay for an optional on-hit rider: the rider (its authored effect) and its
- * cost, either the spell-slot level paid or the resource pool charged. The use option identity is
- * derived from the hit it was offered for.
+ * cost, either nothing, the spell-slot level paid or the resource pool charged. The use option
+ * identity is derived from the hit it was offered for.
  */
 export const encounterOnHitOptionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('FREE'),
+      riderId: uuidSchema,
+      riderLabel: z.string().check(z.minLength(1)),
+      useOptionId: checksumSchema
+    }),
     z.strictObject({
       kind: z.literal('SPELL_SLOT'),
       riderId: uuidSchema,
