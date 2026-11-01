@@ -25,6 +25,7 @@ import {
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd'
 import {
   SRD_ABILITIES,
+  SRD_SKILLS,
   SRD_SPEEDS,
   srdSystemRecord
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -85,7 +86,8 @@ function registryWith(
     registry: {
       ...compiled,
       system: {
-        skills: [],
+        abilities: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+        skills: [...SRD_SKILLS],
         speeds: [...SRD_SPEEDS],
         defaults: srdSystemRecord.defaults
       }
