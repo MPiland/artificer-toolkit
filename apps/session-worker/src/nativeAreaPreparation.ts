@@ -200,7 +200,7 @@ export async function prepareCasterSource(
   input: AreaPlanBase & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actorId' | 'actionId' | 'target' | 'castModifierId' | 'acceptedWieldConflict'
+      'actorId' | 'actionId' | 'target' | 'acceptedWieldConflict' | 'castModifierId'
     >
   },
   targetKind: ResolveEncounterActionTargetDto['kind']

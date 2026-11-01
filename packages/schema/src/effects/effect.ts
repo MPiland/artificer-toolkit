@@ -60,9 +60,10 @@ const castModifierDtoSchema = lazySchema(() =>
   z.object({
     ...resourceUseDtoShape(),
     parameters: z.optional(z.array(castModifierParameterDtoSchema).check(z.maxLength(8))),
+    perSpellLevel: z.optional(z.boolean()),
     targets: z.optional(
       z.object({
-        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
         base: z.number().check(z.int()).check(z.gte(0)),
         abilityDefinitionId: z.optional(authoredIdentifierSchema),
         minimum: z.optional(z.number().check(z.int()).check(z.gte(0)))

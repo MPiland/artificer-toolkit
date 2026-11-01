@@ -325,6 +325,18 @@ export const movementReactionActionEvidenceCommandDtoSchema = lazySchema(() =>
       ...movementResolutionCommandBaseShape(),
       requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
       kind: z.literal('ENTER_INTEGER')
+    }),
+    /** The mover's answer to the d20 window on its save: the held die it spends, or none. */
+    z.strictObject({
+      ...movementResolutionCommandBaseShape(),
+      requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+      kind: z.literal('D20_WINDOW_DECLINE')
+    }),
+    z.strictObject({
+      ...movementResolutionCommandBaseShape(),
+      requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+      kind: z.literal('D20_WINDOW_USE'),
+      optionId: checksumSchema
     })
   ])
 )

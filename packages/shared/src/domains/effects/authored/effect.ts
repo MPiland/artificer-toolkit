@@ -57,12 +57,17 @@ export type CastModifierParameterAuthored = {
  * succeed unrolled (the success path still applies, half damage included), `SAVE_DISADVANTAGE`
  * gives it disadvantage. The cast may name up to `base` plus the holder's `abilityDefinitionId`
  * modifier creatures, never fewer than `minimum` (default 1 when the ability is added).
+ * `EXTRA_TARGET` instead makes the named creatures further targets of the same cast; it is offered
+ * only for a spell that targets a single creature at the level cast (not Self), so a spell that
+ * can already reach several is never offered it. `perSpellLevel` multiplies the cost by the level
+ * the spell is cast at (a cantrip counts as 1).
  */
 export type CastModifierAuthored = ResourceUseAuthored & {
   /** What the paid modifier changes about the cast itself; each parameter applies only to a spell it fits. */
   parameters?: CastModifierParameterAuthored[]
+  perSpellLevel?: boolean
   targets?: {
-    outcome: 'SAVE_AUTO_SUCCESS' | 'SAVE_DISADVANTAGE'
+    outcome: 'SAVE_AUTO_SUCCESS' | 'SAVE_DISADVANTAGE' | 'EXTRA_TARGET'
     base: number // int
     abilityDefinitionId?: string
     minimum?: number // int
