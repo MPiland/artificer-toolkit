@@ -27,20 +27,17 @@ type ConcentrationChild = {
   }
 }
 
-/** A contact's Concentration children advance Character versions in order: its end, then its checks. */
+/** A contact's Concentration children advance Character versions in order: its ends, then its checks. */
 function concentrationChildren(contact: {
-  concentrationEnd?: ConcentrationChild
+  concentrationEnds?: readonly ConcentrationChild[]
   concentrationChecks?: readonly ConcentrationChild[]
 }) {
-  return [
-    ...(contact.concentrationEnd ? [contact.concentrationEnd] : []),
-    ...(contact.concentrationChecks ?? [])
-  ]
+  return [...(contact.concentrationEnds ?? []), ...(contact.concentrationChecks ?? [])]
 }
 
 type MovementReactionCharacterExecution = {
   characterTransitions: readonly CharacterVersionTransition[]
-  concentrationEnd?: ConcentrationChild
+  concentrationEnds?: readonly ConcentrationChild[]
   concentrationChecks?: readonly ConcentrationChild[]
 }
 
@@ -53,7 +50,7 @@ type MovementPendingSpatialExecution = {
       | { kind: 'ENCOUNTER_ACTOR' }
   }
   targetTransition: { before: unknown; after: unknown }
-  concentrationEnd?: ConcentrationChild
+  concentrationEnds?: readonly ConcentrationChild[]
   concentrationChecks?: readonly ConcentrationChild[]
 }
 
@@ -180,7 +177,7 @@ export function movementPendingCharacterAggregateVersions(
         before: execution.targetTransition.before,
         after: execution.targetTransition.after
       })
-    if (execution.concentrationEnd !== undefined || execution.concentrationChecks !== undefined) {
+    if (execution.concentrationEnds !== undefined || execution.concentrationChecks !== undefined) {
       finishSpatialGroups()
       for (const child of concentrationChildren(execution))
         for (const transition of child.result.applicationOutputs.cleanup

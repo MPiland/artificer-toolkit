@@ -555,9 +555,26 @@ run in casting order. The pending context pins the answered state's `createdAt`,
 `remaining` from every held state and checksums it against the context, and a failed save ends only its own
 state, its dependents and the later entries bound to it. `concentrationOccurrenceId` names the state, so
 two saves for one damage get distinct child occurrences. Incapacitation or defeat (D95) ends every state
-the holder keeps, each as its own `CONCENTRATION_END`, with no save. The movement chain still binds one
-state per holder (`MAINTENANCE_SLOT`, the oldest); a movement contact on a holder with several
-Concentrations is a documented residual.
+the holder keeps, each as its own `CONCENTRATION_END`, with no save.
+
+**Movement Concentration per spell (current, SPELLS-12.T3b, D95).** The movement chain saves once per held
+state too. `readNativeLiveMovementConcentrationStates` and `projectedHeldStates` give every held state, stored
+and projected, in casting order; the projection's slots are keyed per state (`movementSlotKey(actor,
+definition, stateId)`), so a failed save ends only its own state and a later contact sees the others. Each
+bound save carries `maintainedStateId` and `castAt`, and the movement result carries `concentrationEnds` (an
+array, one `CONCENTRATION_END` per state, persisted and checksummed with its contact children) beside
+`concentrationChecks`. Incapacitation or defeat ends every held state with no save (D95).
+
+**Authored Concentration save predicates (current, SPELLS-12.T3b).** A save modifier scoped to Concentration
+(`domain.ruleDefinitionId`) is an ordinary roll-influence or bonus grant; two Equipment-context predicates
+gate it on the save being rolled. The existing `HOLDER_CONCENTRATION_COUNT` (`min`, `max?`) counts the
+Concentrations the holder keeps, the one saved for included; one predicate serves the holder-state grants and the save. `CONCENTRATION_DAMAGE_OVER` (`over`, `perSpellLevel`) holds when the
+damage exceeds `over + perSpellLevel x` the level of the spell saved for (`descriptor.spellLevel`; it fails
+closed when no spell cast the state), so "10 + the spell's level" is data, not code. Both fold to the
+action-condition kinds `HOLDER_CONCENTRATION_COUNT` and `CONCENTRATION_DAMAGE_OVER`, deferred like a spell
+condition: the Character-wide save leaves them out, and `saveFacts` re-evaluates the scoped save with
+`resolveCharacterRuleSavingThrow` for each roll (`Dnd5eModifierTarget.concentrationSave`). The facts reach it
+as `heldCount` on `createNativeConcentrationContext`, from both the non-movement and the movement chain.
 
 ## Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 
@@ -2320,6 +2337,7 @@ A held effect's result block may carry `lifecycle.grantedActions` (generic autho
 - **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action, charged to the offer's use key when the offer is `FREE`, or to the offer's own allowance otherwise (`nextGrantedAttackCharge`; SPELLS-31.T5f4: Frenzy's `BONUS_ACTION` offer spends the Bonus Action, and is refused once that is spent).
 - **Ends with a held effect (SPELLS-31.T5f4, D172):** a held effect's lifecycle may name `endsWithHeldEffectId`, an authored effect id its holder must hold. `prepareRecurringActiveEffect` sets the new effect's `linkedEffectId` to that held effect (and refuses when the target holds none), so it ends whenever its parent ends: on event hooks and GM releases as before, and now also on grant-tick expiry (`planEncounterGrantTicks`) and the idle-turn check (`planIdleTurnCheck`, which keeps a dependent of an exempt effect: Frenzy stays with a Persistent Rage). The compiled activated action carries the `ON_USE` path's `holderRestrictions`, so Frenzy is offered only while Rage is held and Frenzy is not.
 - **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
+- **Options of a granted action (current, SPELLS-31.T4l2b, D156):** a Feature's `GRANTED_ACTION_OPTION` modifier (`ADD_OPTION`, param `grantedByEffectId`, payload `optionEffectId` and `label`) names a sibling passive `ON_HIT` Effect as an option of the attacks of one granted action's authored Effect. `collectOnHitRiders` turns a named Effect into a rider with a `FREE` optional cost (`OptionalOnHitAuthored` kind `FREE`: no spend, one choice per hit) and the modifier's label, and carries `grantedByEffectId` onto the merged entries' `optionalRider`. The Worker offers it only when `openGrantedAttackEffectIds` (the weapon-attack offers with a use left, as authored Effect ids; a standing offer is its own id) names that Effect, so a strike counts as a Flurry strike while an unspent Flurry offer is held. Open Hand Technique authors three such options (Dexterity save or prone, Strength save or pushed, no reactions) with no named-feature code; its push is `EXACT` 15 ft as Charge's is, not `UP_TO`. **Deferred edge case (GM ruling):** a normal attack made after using the Flurry strikes early, while an offer is still unspent, also receives the options.
 
 ### Owner-derived control (current, SPELLS-4.T2v2a1)
 

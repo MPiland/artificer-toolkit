@@ -449,6 +449,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   const pending = createNativeConcentrationContext({
     gameSystemId: state.gameSystemId,
     current,
+    heldCount: 1,
     parentOccurrenceId,
     parentCommandFingerprint: parentFingerprint,
     application,

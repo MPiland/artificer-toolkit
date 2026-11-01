@@ -40,7 +40,7 @@ import type { MovementReactionSettlementInput } from '@artificer-toolkit/rules-r
 import type { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import {
   prepareNativeLiveMovementConcentration,
-  readNativeLiveMovementConcentrationState
+  readNativeLiveMovementConcentrationStates
 } from './nativeEncounterMovementConcentration.js'
 import type {
   NativeLiveMovementMaintenanceProjection,
@@ -141,13 +141,15 @@ export function nativeSpatialStepCallbacks(
             : async (actorIds, selected) => {
                 const active = await Promise.all(
                   actorIds.map(async (targetActorId) =>
-                    (await readNativeLiveMovementConcentrationState({
-                      state,
-                      targetActorId,
-                      targets: selected,
-                      projection: spatial.maintenanceProjection,
-                      capture
-                    }))
+                    (
+                      await readNativeLiveMovementConcentrationStates({
+                        state,
+                        targetActorId,
+                        targets: selected,
+                        projection: spatial.maintenanceProjection,
+                        capture
+                      })
+                    ).length
                       ? targetActorId
                       : null
                   )

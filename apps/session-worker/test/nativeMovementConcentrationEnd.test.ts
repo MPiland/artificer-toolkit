@@ -95,8 +95,8 @@ describe('movement-path Concentration ends (D95)', () => {
     const [move] = await receiptsOf(room, 'MOVE_SCENE_TOKEN')
     const { executions } = move!.result as { executions: object[] }
     expect(executions).toHaveLength(2)
-    expect(executions[0]).toHaveProperty('concentrationEnd')
-    expect(executions[1]).not.toHaveProperty('concentrationEnd')
+    expect(executions[0]).toHaveProperty('concentrationEnds')
+    expect(executions[1]).not.toHaveProperty('concentrationEnds')
     expect(executions[1]).not.toHaveProperty('concentrationChecks')
   })
 

@@ -253,6 +253,29 @@ function createFacetPredicateNodeMap(
       'SAVING_THROW_ABILITY_BONUS'
     ] as const
     const numericPredicates = numericCodes.map((code) => predicateCode.eq(code))
+    const amountShowIf = or([
+      and([
+        predicateCode.eq('RANGE'),
+        or([
+          and([
+            local.field(['rangeKind']).contains(['DISTANCE']),
+            local.field(['authoringModeKind']).eq('SELECTED')
+          ]),
+          local.field(['authoringModeKind']).eq('ALL')
+        ])
+      ]),
+      and([
+        predicateCode.eq('DURATION'),
+        or([
+          and([
+            not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
+            local.field(['authoringModeKind']).eq('SELECTED')
+          ]),
+          local.field(['authoringModeKind']).eq('ALL')
+        ])
+      ]),
+      ...numericPredicates
+    ])
     const owner =
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(3)
     const selection =
@@ -636,57 +659,13 @@ function createFacetPredicateNodeMap(
         number(['min'], 'Min Amount', {
           order: 3,
           requiredIf: true,
-          showIf: or([
-            and([
-              predicateCode.eq('RANGE'),
-              or([
-                and([
-                  local.field(['rangeKind']).contains(['DISTANCE']),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            and([
-              predicateCode.eq('DURATION'),
-              or([
-                and([
-                  not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            ...numericPredicates
-          ])
+          showIf: amountShowIf
         })
       )
       .set(
         'max',
         number(['max'], 'Max Amount', {
-          showIf: or([
-            and([
-              predicateCode.eq('RANGE'),
-              or([
-                and([
-                  local.field(['rangeKind']).contains(['DISTANCE']),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            and([
-              predicateCode.eq('DURATION'),
-              or([
-                and([
-                  not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            ...numericPredicates
-          ])
+          showIf: amountShowIf
         })
       )
       .set(
@@ -1051,6 +1030,22 @@ function createFacetPredicateNodeMap(
           order: 3,
           showIf: predicateCode.eq('MOVED_TOWARD_TARGET'),
           requiredIf: predicateCode.eq('MOVED_TOWARD_TARGET')
+        })
+      )
+      .set(
+        'damageOver',
+        number(['over'], 'Damage Over', {
+          order: 3,
+          showIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER'),
+          requiredIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER')
+        })
+      )
+      .set(
+        'perSpellLevel',
+        number(['perSpellLevel'], 'Plus Per Spell Level', {
+          order: 4,
+          showIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER'),
+          requiredIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER')
         })
       )
       .set(

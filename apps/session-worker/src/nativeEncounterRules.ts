@@ -668,7 +668,7 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer
+      weaponAttackOffer: weaponAttackOffer.charge
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
@@ -1131,13 +1131,12 @@ export async function planNativeLiveEncounterAction(
   const onHitNow =
     prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: prepared.adapter
-            .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
-            .filter(({ cost }) =>
-              cost.kind === 'SPELL_SLOT'
-                ? !prepared.characterActionState?.spellConsumption
-                : !prepared.characterActionState?.resourceConsumption && !maintenance?.capacityUse
-            ),
+          riders: prepared.adapter.optionalOnHitRiders({
+            compilerSource: attackPlan.compilerSource
+          }),
+          openOfferEffectIds: weaponAttackOffer.openEffectIds,
+          settled: prepared.characterActionState,
+          capacityUse: maintenance?.capacityUse,
           spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
           resources: prepared.source.effectivePolicyOutput.resources
         })

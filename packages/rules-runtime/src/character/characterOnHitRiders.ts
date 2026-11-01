@@ -1,5 +1,8 @@
 import type { OptionalOnHitAuthored } from '@artificer-toolkit/shared/authored'
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type {
+  CompiledEffectGroup,
+  CompiledModifierGrant
+} from '@artificer-toolkit/shared/compilers'
 
 type CompiledEffectEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
 type DamageEntry = CompiledEffectEntry & { outcome: { effectKind: 'DAMAGE' } }
@@ -12,6 +15,8 @@ export type OnHitRider = {
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
   /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
   optionalOnHit?: OptionalOnHitAuthored
+  /** Present when only the attacks of this granted action's authored Effect offer the rider (a `GRANTED_ACTION_OPTION`). */
+  grantedByEffectId?: string
   /** Present when the rider rides only the attacks of this sibling Feature (D164 Charge). */
   ridesFeatureId?: string
   /** Present when the rider rides only the casts of these Spells (G4); such a rider rides no other attack. */
@@ -37,13 +42,34 @@ const UNLABELED_RIDER = 'On-hit effect'
  * with a usage limit spends its owner's use (the Feature, option or feat that grants it), so
  * every Effect of that owner shares one. An Effect that still carries a closed rule is not yet
  * executable, so none of its outcomes ride: its gate or remainder would be lost (D156).
+ *
+ * A passive Effect that a `GRANTED_ACTION_OPTION` modifier of the owner names is not an ordinary
+ * rider: it is a free optional one, labelled by the modifier, that only the attacks of the granted
+ * action's authored Effect offer (Open Hand Technique).
  */
 export function collectOnHitRiders(
   effects: readonly CompiledEffectGroup[] | undefined,
   ownerId: string,
-  label: string | undefined
+  label: string | undefined,
+  modifiers?: readonly CompiledModifierGrant[]
 ): OnHitRider[] {
+  const options = new Map(
+    (modifiers ?? []).flatMap(({ valueDomainCode, domain, payload }) =>
+      valueDomainCode === 'GRANTED_ACTION_OPTION' &&
+      'grantedByEffectId' in domain &&
+      payload &&
+      'optionEffectId' in payload
+        ? [
+            [
+              payload.optionEffectId,
+              { label: payload.label, grantedByEffectId: domain.grantedByEffectId }
+            ] as const
+          ]
+        : []
+    )
+  )
   return (effects ?? []).flatMap((effect) => {
+    const option = options.get(effect.id)
     if (
       effect.entries.some(
         (entry) => 'outcome' in entry && entry.outcome.effectKind === 'CLOSED_RULE'
@@ -57,11 +83,16 @@ export function collectOnHitRiders(
       ? [
           {
             riderId: effect.id,
-            label: label?.trim() || UNLABELED_RIDER,
+            label: option?.label ?? (label?.trim() || UNLABELED_RIDER),
             triggerCode: effect.invocation.triggerCode,
-            ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
-              ? { optionalOnHit: effect.invocation.optionalOnHit }
-              : {}),
+            ...(option
+              ? {
+                  optionalOnHit: { kind: 'FREE' as const },
+                  grantedByEffectId: option.grantedByEffectId
+                }
+              : 'optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
+                ? { optionalOnHit: effect.invocation.optionalOnHit }
+                : {}),
             ...('ridesFeatureId' in effect.invocation && effect.invocation.ridesFeatureId
               ? { ridesFeatureId: effect.invocation.ridesFeatureId }
               : {}),
@@ -132,7 +163,14 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     entryOrder: lastEntryOrder + entry.entryOrder,
     outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId),
     ...(rider.optionalOnHit
-      ? { optionalRider: { riderId: rider.riderId, label: rider.label, cost: rider.optionalOnHit } }
+      ? {
+          optionalRider: {
+            riderId: rider.riderId,
+            label: rider.label,
+            cost: rider.optionalOnHit,
+            ...(rider.grantedByEffectId ? { grantedByEffectId: rider.grantedByEffectId } : {})
+          }
+        }
       : {}),
     ...(joinsHit
       ? { resultBlockId: weaponDamage.resultBlockId, groupKind: 'SEQUENTIAL' as const }

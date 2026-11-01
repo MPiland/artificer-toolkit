@@ -19,7 +19,7 @@ import {
   readNativeLiveMaintenanceOwners,
   readNativeLiveMaintenanceSlot
 } from '../src/nativeEncounterMaintenance.js'
-import { readNativeLiveMovementConcentrationState } from '../src/nativeEncounterMovementConcentration.js'
+import { readNativeLiveMovementConcentrationStates } from '../src/nativeEncounterMovementConcentration.js'
 import {
   readNativeLiveActorsAndEffects,
   readNativeLiveSpellPins
@@ -218,10 +218,10 @@ describe('readNativeLiveMaintenanceOwners', () => {
   })
 })
 
-describe('readNativeLiveMovementConcentrationState', () => {
+describe('readNativeLiveMovementConcentrationStates', () => {
   const state = encounterRunState({ actors: [runActor({ id: CASTER_ID })] })
   const read = (fake: ReturnType<typeof captureFake>) =>
-    readNativeLiveMovementConcentrationState({
+    readNativeLiveMovementConcentrationStates({
       state,
       targetActorId: CASTER_ID,
       targets: new Map(),
@@ -236,23 +236,22 @@ describe('readNativeLiveMovementConcentrationState', () => {
     })
     // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({
-      kind: 'MAINTENANCE_SLOT',
+      kind: 'MAINTENANCE_STATES',
       ...captureEnvelope,
-      state: foreign,
-      zoneIds: []
+      states: [foreign]
     }))
 
     await expect(read(fake)).rejects.toThrow(
       'The concentration state does not match its Encounter owner.'
     )
-    expect(fake.requests.map((request) => request.kind)).toEqual(['MAINTENANCE_SLOT'])
+    expect(fake.requests.map((request) => request.kind)).toEqual(['MAINTENANCE_STATES'])
   })
 
   it('refuses a slot capture answered with another kind', async () => {
     // Fake: the test pins how the reader handles this capture response, which the real producer never emits.
     const fake = captureFake(() => ({ kind: 'DEFINITION', ...captureEnvelope, definition: null }))
 
-    await expect(read(fake)).rejects.toThrow('Movement Concentration slot is unavailable.')
+    await expect(read(fake)).rejects.toThrow('Movement Concentration states are unavailable.')
   })
 })
 

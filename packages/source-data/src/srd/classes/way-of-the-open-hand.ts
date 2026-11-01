@@ -3,6 +3,9 @@ import {
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
+  FOLLOW_UP_SAVE_TIMING,
+  MEASUREMENT_UNIT_CODE,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -16,11 +19,14 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ClassAuthored
+  type ClassAuthored,
+  type ResultBlockAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { conditionTypeId } from '../equipment/shared.js'
 import { closedRuleEffect } from './mechanics.js'
+import { FLURRY_OF_BLOWS_EFFECT_ID } from './monk.js'
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
   const gg = group.toString(16).padStart(2, '0')
@@ -28,6 +34,109 @@ function classRowId(classIndex: number, group: number, entry: number): string {
   return `00000000-0000-0000-c0${xx}-${gg}${nn}00000000`
 }
 const M = 6
+
+type TechniqueResult = Pick<ResultBlockAuthored, 'duration' | 'lifecycle' | 'outcomes'>
+
+/**
+ * A save against the Monk's ki save DC (8 + proficiency + Wisdom) whose failure imposes
+ * `onFailure`; `index` is the technique's slot, and it names every row the save owns.
+ */
+function techniqueSave(
+  index: number,
+  abilityDefinitionId: string,
+  onFailure: ResultBlockAuthored['outcomes']
+): ResultBlockAuthored['outcomes'] {
+  return [
+    {
+      id: classRowId(M, 29, 20 + index),
+      effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+      timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+      savingThrow: {
+        id: classRowId(M, 25, 3 + index),
+        dcMethod: 'DERIVED_DC',
+        abilityDefinitionId,
+        baseDc: 8,
+        bonuses: [
+          {
+            id: classRowId(M, 30, 2 * index),
+            bonusKind: 'ABILITY_MODIFIER',
+            abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+          },
+          { id: classRowId(M, 30, 2 * index + 1), bonusKind: 'PROFICIENCY_BONUS' }
+        ]
+      },
+      attempts: { kind: 'ONCE' },
+      onSuccess: { kind: 'END' },
+      onFailure: { kind: 'OUTCOMES', endCurrent: false, resultKind: 'SINGLE', outcomes: onFailure }
+    }
+  ]
+}
+
+/**
+ * What the Monk may impose on the target of a Flurry of Blows hit, one at a time. Each is an
+ * ordinary `ON_HIT` Effect of this Feature that a `GRANTED_ACTION_OPTION` modifier names.
+ */
+const OPEN_HAND_TECHNIQUES: readonly { label: string; result: TechniqueResult }[] = [
+  {
+    label: 'Knock prone',
+    result: {
+      outcomes: techniqueSave(0, SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY, [
+        {
+          id: classRowId(M, 29, 10),
+          effectKind: EFFECT_KIND.CONDITION,
+          conditionId: conditionTypeId('PRONE')
+        }
+      ])
+    }
+  },
+  {
+    label: 'Push 15 feet',
+    result: {
+      outcomes: techniqueSave(1, SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH, [
+        {
+          id: classRowId(M, 29, 11),
+          effectKind: EFFECT_KIND.FORCED_MOVEMENT,
+          direction: 'AWAY_FROM_SOURCE',
+          actionEconomy: 'NONE',
+          // As the Charge riders do: the app moves the target the whole distance unless blocked.
+          distanceMode: 'EXACT',
+          amount: 15,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        }
+      ])
+    }
+  },
+  {
+    label: 'No reactions',
+    result: {
+      // "Until the end of your next turn" counts the Monk's turns, as Stunning Strike does.
+      duration: { id: classRowId(M, 30, 10), durationKind: DURATION_KIND.ROUND, amount: 1 },
+      lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+      outcomes: [
+        {
+          id: classRowId(M, 29, 12),
+          effectKind: EFFECT_KIND.APPLY_GRANT,
+          grants: {
+            modifiers: [
+              {
+                id: classRowId(M, 28, 13),
+                grantKind: GRANT_KIND.MODIFIER_GRANT,
+                valueDomainCode: VALUE_DOMAIN_CODE.REACTION_COUNT,
+                domain: {},
+                modifierKind: MODIFIER_KIND.SET_VALUE,
+                payload: { amount: 0 },
+                scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                order: 1
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+]
+
 export const wayOfTheOpenHand: ClassAuthored = {
   id: SUBCLASS_IDS.OPEN_HAND,
   label: 'Way of the Open Hand',
@@ -45,22 +154,48 @@ export const wayOfTheOpenHand: ClassAuthored = {
         "Starting when you choose this tradition at 3rd level, you can manipulate your enemy's ki when you harness your own. Whenever you hit a creature with one of the attacks granted by your Flurry of Blows, you can impose one of the following effects on that target:\n* It must succeed on a Dexterity saving throw or be knocked prone.\n* It must make a Strength saving throw. If it fails, you can push it up to 15 feet away from you.\n* It can't take reactions until the end of your next turn.",
       availableAtLevel: 3,
       order: 0,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(M, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.UNARMED_ATTACK,
-            range: { id: classRowId(M, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
+      // Each option is a free optional rider of the strikes Flurry of Blows grants (one per hit).
+      grants: {
+        modifiers: OPEN_HAND_TECHNIQUES.map(({ label }, index) => ({
+          id: classRowId(M, 28, 10 + index),
+          grantKind: GRANT_KIND.MODIFIER_GRANT,
+          valueDomainCode: VALUE_DOMAIN_CODE.GRANTED_ACTION_OPTION,
+          domain: { grantedByEffectId: FLURRY_OF_BLOWS_EFFECT_ID },
+          modifierKind: MODIFIER_KIND.ADD_OPTION,
+          payload: { optionEffectId: classRowId(M, 20, 5 + index), label },
+          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          order: index
+        }))
+      },
+      effects: OPEN_HAND_TECHNIQUES.map(({ result }, index) => ({
+        id: classRowId(M, 20, 5 + index),
+        order: index,
+        invocation: {
+          kind: 'PASSIVE' as const,
+          triggerCode: TRIGGER.UNARMED_ATTACK,
+          range: { id: classRowId(M, 21, 5 + index), rangeKind: RANGE_KIND.SPECIAL },
+          targeting: {
+            selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+            dispositionKind: 'ANY' as const
+          }
+        },
+        paths: [
+          {
+            id: classRowId(M, 27, 5 + index),
+            order: 1,
+            pathCode: PATH_CODE.ON_HIT,
+            groupType: PATH_GROUP_TYPE.SINGLE,
+            originKind: 'SOURCE' as const,
+            selectionKind: 'FIXED' as const,
+            resultBlock: {
+              id: `${classRowId(M, 27, 5 + index)}__result`,
+              resultKind: 'SINGLE' as const,
+              ...result
             }
-          },
-          pathCode: PATH_CODE.ON_HIT,
-          ruleKind: CLOSED_RULE_KIND.CLASS_WAY_OF_THE_OPEN_HAND_TECHNIQUE
-        })
-      ]
+          }
+        ]
+      }))
     },
     {
       id: classRowId(M, 11, 2),
