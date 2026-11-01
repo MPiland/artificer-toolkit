@@ -1960,6 +1960,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `domainKey`) adds the cast level. A cantrip, a non-spell action and temporary hit points get nothing. The bonus is the caster's, so it is
   resolved with the cast and not per target.
 
+- **Defeat temporary hit points (SPELLS-31.T4i2, D156/D203).** A `DEFEAT_TEMPORARY_HIT_POINTS` `BONUS` modifier gives its holder temporary hit
+  points when the holder's own action reduces a hostile creature to 0 hit points (Dark One's Blessing: Charisma modifier + warlock level, at
+  least 1). `encounterDefeatReward.ts` holds the pure pieces: `reducedToZeroHitPoints` reads a receipt (never mirrored damage),
+  `defeatTemporaryHitPoints` folds the holder's `modifierGroups` and `defeatRewardMechanicsBatch` builds one `TEMPORARY_HIT_POINTS`
+  application that keeps the higher pool (phase `DEFEAT_REWARD`). No Convex function executes Encounter commands, so the room is the single
+  settlement path and covers spell and weapon damage alike: `applyRoomEncounterMechanicsBatch` takes the root action's `damagerActorId` (the
+  action's actor, or a Cleaving response's source), `collectDefeatReward` records a hostile defeat, and `settleDefeatRewards` gives the killer
+  its reward fresh, as a post-settlement step beside `settleDamageMirrors` (`settleFollowUps` in `roomEncounterCommands.ts`);
+  `RoomEncounterStore.transact` fails a command that collected a reward it never settled. A reward that landed marks the root `damageMirrored`,
+  so undo of it is a typed refusal. Turn and zone damage have no damager and reward nothing.
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -2156,7 +2167,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
   (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
   the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
-  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). A damage `RESISTANCE`, `IMMUNITY` or
+  `VULNERABILITY` grant restricted by a holder-state predicate is deferred the same way and joins `defenses` through
+  `withHolderStateDefenses` (SPELLS-12.T4). `HOLDER_CONCENTRATION_COUNT { min, max? }` holds while the holder keeps that many
+  Concentrations (`EncounterHolderState.heldConcentrationCount`, read from the maintained states by `readHeldConcentrationCount`,
+  and in the session worker from a `MAINTENANCE_STATES` capture): the double-Concentration ring's psychic vulnerability is an
+  ordinary modifier read where modifiers are read, so it ends with whichever Concentration ends and needs no timed grant.
+  Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true
@@ -3608,3 +3625,5 @@ ownership and frozen acceptance. Implementers decide ordinary internal details. 
 is in the repository root `AGENTS.md`.
 
 **Critical hit rules (SPELLS-31.T5d, D158).** Two modifier domains change an attack's critical hits: `CRITICAL_HIT_THRESHOLD` (`CAP_VALUE`, the lowest natural d20 that crits, default 20, lowest source wins) and `CRITICAL_EXTRA_DICE` (`BONUS`, extra rolls of the attack's own damage die, so a crit rolls `2n + k`). Both carry an `attackDomain`; Improved and Superior Critical grant the first for melee, ranged and unarmed attacks, Brutal Critical grants the second for melee at Barbarian levels 9, 13 and 17. A Character reads accepted grants (`dnd5eAttackCriticalRules`), a Creature reads its held effects (`activeAttackCriticalRules`); Encounter prep passes the result as the `attackCriticalRules` source fact. The attack test operation (contract version 4) takes a required `criticalThreshold`, and commit-time verification checks it against the evidence fact. A roll at or above it is `ON_CRIT` whatever the target's AC; a natural 1 always misses. Added damage dice (D156) still only double.
+
+**Damage die rerolls (SPELLS-31.T5e).** A third modifier domain, `DAMAGE_DIE_REROLL` (`SET_VALUE`, `attackDomain`, payload `amount`), names the highest face an attack's own hit damage dice roll once more (Great Weapon Fighting: 2, melee, restricted to a two-handed grip). It is authored data, so a homebrew variant is another amount, not a code path. `attackCriticalRules` carries it as the optional `damageRerollAtOrBelow` (the highest amount wins); Encounter prep passes it in the same source fact and the compiler emits `dnd5e.damage-die-reroll`. For the attack's ON_HIT or ON_CRIT hit damage, `rolledDiceNodes` then adds per die a `number.at-or-below-threshold` check, a second dice evidence node enabled by that check and a `number.select` that keeps the new roll, so the reroll is automatic, never a choice, and the original and the new die are both in the trace and on the roll card. Added dice (D156), authored ON_CRIT riders and save damage keep their dice. Empowered Spell is not built on this domain (a cast-time choice with a resource cost).

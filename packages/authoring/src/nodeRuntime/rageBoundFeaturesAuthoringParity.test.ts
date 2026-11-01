@@ -65,7 +65,8 @@ function holderState(activeAuthoredEffectIds: readonly string[]): EncounterHolde
     freeHand: true,
     stowableHeldItemInstanceId: null,
     turnMovement: { usedFeet: 0, speedFeet: 30 },
-    activeAuthoredEffectIds
+    activeAuthoredEffectIds,
+    heldConcentrationCount: 0
   }
 }
 

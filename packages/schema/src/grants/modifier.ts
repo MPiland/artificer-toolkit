@@ -894,6 +894,12 @@ const buildModifierGrantVariants = () =>
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
+      'DAMAGE_DIE_REROLL',
+      'SET_VALUE',
+      attackDomainParamDtoSchema,
+      z.object({ amount: z.number().check(z.int()).check(z.gte(1)) })
+    ),
+    buildModifierGrantVariant(
       'ATTACKS_AGAINST',
       'ROLL_INFLUENCE',
       attacksAgainstParamDtoSchema,
@@ -921,6 +927,12 @@ const buildModifierGrantVariants = () =>
       'HEALING_DEALT',
       'BONUS',
       healingDealtParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DEFEAT_TEMPORARY_HIT_POINTS',
+      'BONUS',
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),

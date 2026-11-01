@@ -1,6 +1,8 @@
+import type { AttackCriticalRulesDto } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { SRD_ABILITIES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import { DND5E_DAMAGE_PROPOSAL_OPERATION_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { dnd5eCharacterActionCapabilityAdapter } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
@@ -16,7 +18,7 @@ const TARGET_ID = testUuid(0xd2)
 async function longswordAttack(input: {
   armorClass: number
   rolls: number[]
-  attackCriticalRules?: { threshold: number; extraDice: number }
+  attackCriticalRules?: AttackCriticalRulesDto
 }) {
   const character = evaluateSrdCharacter({
     abilities: { STRENGTH: 16 },
@@ -133,5 +135,113 @@ describe('attack critical rules (D158)', () => {
       attackCriticalRules: rules
     })
     expect(outcomeDice(hit.execution).hit).toEqual(['d8'])
+  })
+})
+
+/** Every damage die the hit rolled in trace order — each original and each reroll — and the damage dealt. */
+function damageRolls({ execution }: Awaited<ReturnType<typeof longswordAttack>>['execution']) {
+  const { trace } = execution.evidence
+  return {
+    dice: trace.flatMap((entry) =>
+      /die-\d+(-reroll)?$/.test(entry.nodeId) && entry.evidence
+        ? [
+            {
+              id: entry.nodeId.replace(/^.*(die-\d+(-reroll)?)$/, '$1'),
+              value: entry.evidence.value
+            }
+          ]
+        : []
+    ),
+    amount: trace.find((entry) => entry.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY)
+      ?.outputs.amount
+  }
+}
+
+describe('attack damage die rerolls (SPELLS-31.T5e)', () => {
+  const rules = (damageRerollAtOrBelow: number): AttackCriticalRulesDto => ({
+    threshold: 20,
+    extraDice: 0,
+    damageRerollAtOrBelow
+  })
+
+  it('rerolls a die at or below the face once and keeps the new roll, showing both dice', async () => {
+    const { execution, unusedRolls } = await longswordAttack({
+      armorClass: 11,
+      rolls: [12, 0, 4],
+      attackCriticalRules: rules(2)
+    })
+    expect(damageRolls(execution)).toEqual({
+      dice: [
+        { id: 'die-1', value: 1 },
+        { id: 'die-1-reroll', value: 5 }
+      ],
+      amount: 8
+    })
+    expect(unusedRolls).toEqual([])
+  })
+
+  it('keeps a new roll that is itself at or below the face', async () => {
+    const { execution } = await longswordAttack({
+      armorClass: 11,
+      rolls: [12, 0, 1],
+      attackCriticalRules: rules(2)
+    })
+    expect(damageRolls(execution).amount).toBe(5)
+  })
+
+  it('does not reroll a die above the face', async () => {
+    const { execution, unusedRolls } = await longswordAttack({
+      armorClass: 11,
+      rolls: [12, 2],
+      attackCriticalRules: rules(2)
+    })
+    expect(damageRolls(execution)).toEqual({ dice: [{ id: 'die-1', value: 3 }], amount: 6 })
+    expect(unusedRolls).toEqual([])
+  })
+
+  it('rerolls up to an authored homebrew face, not a fixed 2', async () => {
+    const { execution } = await longswordAttack({
+      armorClass: 11,
+      rolls: [12, 2, 5],
+      attackCriticalRules: rules(3)
+    })
+    expect(damageRolls(execution)).toEqual({
+      dice: [
+        { id: 'die-1', value: 3 },
+        { id: 'die-1-reroll', value: 6 }
+      ],
+      amount: 9
+    })
+  })
+
+  it('may leave a rerolled die worse than the original, as the reroll is not a choice', async () => {
+    const { execution } = await longswordAttack({
+      armorClass: 11,
+      rolls: [12, 2, 0],
+      attackCriticalRules: rules(3)
+    })
+    expect(damageRolls(execution).amount).toBe(4)
+  })
+
+  it('rerolls each low die of a critical hit', async () => {
+    const { execution, unusedRolls } = await longswordAttack({
+      armorClass: 11,
+      rolls: [19, 0, 5, 3],
+      attackCriticalRules: rules(2)
+    })
+    expect(damageRolls(execution)).toEqual({
+      dice: [
+        { id: 'die-1', value: 1 },
+        { id: 'die-2', value: 6 },
+        { id: 'die-1-reroll', value: 4 }
+      ],
+      amount: 13
+    })
+    expect(unusedRolls).toEqual([])
+  })
+
+  it('rolls the same dice with no reroll rule', async () => {
+    const { execution } = await longswordAttack({ armorClass: 11, rolls: [12, 0] })
+    expect(damageRolls(execution)).toEqual({ dice: [{ id: 'die-1', value: 1 }], amount: 4 })
   })
 })

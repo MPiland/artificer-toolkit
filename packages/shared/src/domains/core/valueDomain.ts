@@ -18,6 +18,7 @@ export const VALUE_DOMAIN_CODE = {
   WEAPON_PROFICIENCY: 'WEAPON_PROFICIENCY',
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
+  DAMAGE_DIE_REROLL: 'DAMAGE_DIE_REROLL',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
   FREE_OPPORTUNITY_REACTION: 'FREE_OPPORTUNITY_REACTION',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
@@ -31,6 +32,7 @@ export const VALUE_DOMAIN_CODE = {
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   HEALING_RECEIVED: 'HEALING_RECEIVED',
   HEALING_DEALT: 'HEALING_DEALT',
+  DEFEAT_TEMPORARY_HIT_POINTS: 'DEFEAT_TEMPORARY_HIT_POINTS',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -149,6 +151,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: "Extra rolls of an attack's own damage die when it scores a critical hit."
   },
 
+  [VALUE_DOMAIN_CODE.DAMAGE_DIE_REROLL]: {
+    code: VALUE_DOMAIN_CODE.DAMAGE_DIE_REROLL,
+    label: 'Damage Die Reroll',
+    description:
+      "An attack's damage die that shows this number or lower is rolled again, and the new roll stands; the highest source applies."
+  },
+
   [VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY]: {
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
@@ -235,6 +244,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Healing Dealt',
     description:
       'Bonus hit points the holder’s spells restore, optionally plus the level the spell is cast at (a cantrip adds nothing).'
+  },
+
+  [VALUE_DOMAIN_CODE.DEFEAT_TEMPORARY_HIT_POINTS]: {
+    code: VALUE_DOMAIN_CODE.DEFEAT_TEMPORARY_HIT_POINTS,
+    label: 'Temporary Hit Points On Defeat',
+    description:
+      'Temporary hit points the holder gains when they reduce a hostile creature to 0 hit points, at least 1 in all.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -531,6 +547,7 @@ export type ValueDomainParamByCode = {
   }
   CRITICAL_HIT_THRESHOLD: { attackDomain: AttackDomainCode }
   CRITICAL_EXTRA_DICE: { attackDomain: AttackDomainCode }
+  DAMAGE_DIE_REROLL: { attackDomain: AttackDomainCode }
 
   // The attack has a trait that bypasses qualified defenses ("from nonmagical attacks"), for one
   // attack domain when named (Ki-Empowered Strikes: unarmed strikes).
@@ -582,6 +599,9 @@ export type ValueDomainParamByCode = {
 
   // Healing the holder’s spells restore; `addsSpellLevel` also adds the level the spell is cast at.
   HEALING_DEALT: { addsSpellLevel?: boolean }
+
+  // Temporary hit points the holder gains on reducing a hostile creature to 0 hit points.
+  DEFEAT_TEMPORARY_HIT_POINTS: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: string }

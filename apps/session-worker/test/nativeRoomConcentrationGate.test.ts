@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/testing/concentrationCapacityItem'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
@@ -61,8 +62,8 @@ function spellRoom(equipment: readonly (typeof gatedItem)[]) {
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     characterSpellcasting: {
-      spells: [shieldOfFaith, heroism, fly],
-      prepared: [shieldOfFaith.id, heroism.id, fly.id]
+      spells: [shieldOfFaith, heroism, fly, haste],
+      prepared: [shieldOfFaith.id, heroism.id, fly.id, haste.id]
     },
     characterEquipment: equipment,
     characterAction: (action) => action.label.startsWith(shieldOfFaith.label)
@@ -122,6 +123,15 @@ describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
     const held = await heldStates(room)
     expect(held).toHaveLength(1)
     expect(held[0]?.descriptor.spellLevel).toBe(1)
+  })
+
+  it('replaces a held Haste, which leaves its lethargy, with a new Concentration', async () => {
+    const room = await spellRoom([gatedItem])
+    await cast(room, 'Haste (3rd level)')
+    await cast(room, 'Fly (3rd level)')
+    const held = await heldStates(room)
+    expect(held).toHaveLength(1)
+    expect(held[0]?.descriptor.spellLevel).toBe(3)
   })
 
   it('replaces the held Concentration without the item', async () => {

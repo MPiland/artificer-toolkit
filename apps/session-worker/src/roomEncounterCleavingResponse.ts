@@ -77,7 +77,7 @@ export async function executeRoomEncounterCleavingResponse(input: {
         readRoomActionSceneInputs(ctx, transaction, state, command),
       validateReadFence: async (state, characterIds, revisions) =>
         assertRoomEncounterRulesRevisions(observed, state, characterIds, revisions),
-      applyMechanics: (batch) =>
+      applyMechanics: (batch, damagerActorId) =>
         applyRoomEncounterMechanicsBatch({
           ctx,
           store,
@@ -86,7 +86,8 @@ export async function executeRoomEncounterCleavingResponse(input: {
           campaignId: scope.campaignId,
           epoch: scope.authorityEpoch,
           observed,
-          batch
+          batch,
+          damagerActorId
         }),
       bindConcentrationApplications: (state, applications) =>
         bindEncounterConcentrationApplications(ctx, state, applications),

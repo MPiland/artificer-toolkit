@@ -46,6 +46,7 @@ import { listActiveRuleEffects } from './effectStore.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
 import { readEncounterSpellPins } from './spellPins.js'
+import { readHeldConcentrationCount } from './concentrationListing.js'
 import { readTurnMovedFeet, readTurnUses } from './turnMovement.js'
 import type { EncounterReadPorts, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
@@ -118,7 +119,9 @@ export async function readActionHolderState(
       state: input.state,
       actors: await readRunActors(tx, input.state)
     }),
-    readTurnMovedFeet: () => readTurnMovedFeet(tx, { state: input.state, actorId: input.actor.id })
+    readTurnMovedFeet: () => readTurnMovedFeet(tx, { state: input.state, actorId: input.actor.id }),
+    readHeldConcentrationCount: () =>
+      readHeldConcentrationCount(tx, { state: input.state, actorId: input.actor.id })
   })
 }
 
