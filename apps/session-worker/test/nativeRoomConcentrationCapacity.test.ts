@@ -2,13 +2,9 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/testing/concentrationCapacityItem'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
-import {
-  equipId,
-  magicArmorModifiers
-} from '@artificer-toolkit/source-data/srd/equipment/shared.js'
-import { signetRing } from '@artificer-toolkit/source-data/srd/equipment/signet-ring.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -97,17 +93,7 @@ const firstWard = wardFeature(0xe100, 'First Ward')
 const secondWard = wardFeature(0xe200, 'Second Ward')
 const thirdWard = wardFeature(0xe300, 'Third Ward')
 
-/** A worn item whose authored modifier adds one to how many Concentrations its holder keeps. */
-const capacityItem: EquipmentAuthored = {
-  ...signetRing,
-  id: equipId(920),
-  label: 'Capacity Item',
-  modifiers: magicArmorModifiers(equipId(920), 1).map((modifier) => ({
-    ...modifier,
-    valueDomainCode: 'CONCENTRATION_CAPACITY' as const,
-    domain: {}
-  }))
-}
+const capacityItem = concentrationCapacityItem({ number: 920, label: 'Capacity Item', bonus: 1 })
 
 function wardRoom(equipment: readonly EquipmentAuthored[]) {
   return actionRoom({

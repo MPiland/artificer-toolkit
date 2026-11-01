@@ -6,6 +6,7 @@ import {
 
 import { evaluateDnd5e2014CharacterActions } from './characterActions.js'
 import { evaluateDnd5eCharacterCompanionMechanics } from './characterCompanionMechanics.js'
+import { evaluateDnd5eConcentrationCapacity } from './concentrationCapacity.js'
 import { evaluateDnd5eCharacterDefenses } from './characterDefenses.js'
 import { evaluateDnd5eCharacterDerivedStats } from './characterDerivedStats.js'
 import {
@@ -149,6 +150,7 @@ export function evaluateDnd5e2014CharacterPolicy(
           }
   })
   const recoveredHitDice = (total: number) => (total === 0 ? 0 : Math.max(1, Math.floor(total / 2)))
+  const concentrationCapacity = evaluateDnd5eConcentrationCapacity(grantFold, modifierGroups)
   return characterRulePolicyOutputSchema.parse({
     grantFold,
     proficiencies: proficiencies.map(({ kind, subjectId, scaling, source, category, grantId }) => ({
@@ -193,21 +195,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         )
         .map((contribution) => contribution.value)
     ),
-    concentrationCapacity:
-      1 +
-      modifierGroups
-        .filter(
-          (group) =>
-            group.valueDomainCode === 'CONCENTRATION_CAPACITY' && group.modifierKind === 'BONUS'
-        )
-        .flatMap((group) => group.contributions)
-        .filter((contribution) =>
-          dnd5eModifierApplies(
-            dnd5eFoldedModifierApplicability(grantFold, contribution),
-            DND5E_CHARACTER_WIDE_TARGET
-          )
-        )
-        .reduce((sum, contribution) => sum + contribution.value, 0),
+    ...concentrationCapacity,
     hitPointProgression,
     derivedStats: { ...derived, ...vitals },
     ...spells,

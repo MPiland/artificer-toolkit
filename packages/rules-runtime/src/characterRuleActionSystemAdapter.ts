@@ -1,3 +1,4 @@
+import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
@@ -762,6 +763,18 @@ export interface CharacterRuleActionSystemAdapter {
   compileSummonPlacement?(input: {
     action: EffectActionCapabilityDescriptor
   }): CharacterRuleActionSummonPlacementPlan | null
+  /**
+   * The Concentrations a Character keeps while casting this spell: the System's capacity stat plus
+   * any gated bonus the new spell and every held one meet. Omitted: the stat alone.
+   */
+  concentrationCapacityForCast?(input: {
+    policyOutput: Pick<
+      CharacterRulePolicyOutput,
+      'grantFold' | 'concentrationCapacity' | 'gatedConcentrationCapacity'
+    >
+    newSpell: { id: string; level: number | null }
+    heldSpellLevels: readonly (number | null)[]
+  }): number
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

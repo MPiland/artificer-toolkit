@@ -2,6 +2,7 @@ import {
   type ActiveEffectSaveTally,
   type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -3616,6 +3617,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   passiveDamageGrantPlan,
   standingEffectPlan,
+  concentrationCapacityForCast: dnd5eConcentrationCapacityForCast,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)

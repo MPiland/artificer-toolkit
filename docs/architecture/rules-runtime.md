@@ -519,6 +519,14 @@ with several held, the state the command's `endedMaintainedStateId` names, or el
 `MaintainedReplacementRequiredError`, which the Worker answers as a `MAINTAINED_REPLACEMENT_REQUIRED`
 domain rejection carrying the held states (`heldStates`, with the label of what each keeps alive) so the
 caster chooses before the spell takes effect. Persistence reads the prior from the receipt by id.
+**Per-cast capacity (current, SPELLS-12.T2a).** A `CONCENTRATION_CAPACITY` `BONUS` carrying `deferredRequirements`
+is not in the stat; the policy lists it in `gatedConcentrationCapacity` (by `acceptedModifierIndex`). For one cast,
+the System adapter's `concentrationCapacityForCast` adds each gated bonus whose requirement groups hold for the new
+spell _and_ every held spell, so the holder keeps another Concentration only for a cast the item allows.
+`SPELL_LEVEL` here is the cast level (`preparedSpellCastLevel`); a held spell is checked by level alone, read from
+the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
+satisfies a level requirement). A Creature stays at 1.
+
 Interim: damage-save chains and the other single-state consumers act on the oldest held state, and carried
 grants (D99) still end on any new Concentration.
 
