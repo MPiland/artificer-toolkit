@@ -200,9 +200,9 @@ export async function verifyEncounterPlayerBrowser(
           fullPage: true
         })
         // The Character pays the cast modifier's cost and names the Wolf as the creature it affects.
-        await page.getByLabel('Pay a cost', { exact: true }).click()
+        await page.getByRole('combobox', { name: 'Pay a cost' }).click()
         await page.getByRole('option', { name: /\(costs 1\)$/ }).click()
-        await page.getByLabel('Creatures it affects').click()
+        await page.getByRole('combobox', { name: 'Creatures it affects' }).click()
         await page.getByRole('option', { name: input.wolf.label, exact: true }).click()
         await page.screenshot({
           caret: 'initial',
