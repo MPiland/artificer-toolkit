@@ -229,7 +229,7 @@ export async function prepareNativeLiveActionMaintenance(input: {
   projection?: NativeLiveMovementMaintenanceProjection
   /** The held maintained effect the caster chose to end at capacity (the command's choice). */
   endedMaintainedStateId?: string | undefined
-  /** The caller settles the use a capacity bonus spends (`concentrationCapacityUseSpend`). */
+  /** The caller settles the use a capacity bonus spends (`settledCharacterActionSpend`). */
   allowCapacityUses?: boolean
   /** D99: given, a Character caster's new Concentration ends carried grants; loads and fences each holder. */
   loadCarriedHolder?: (
