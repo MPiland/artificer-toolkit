@@ -60,14 +60,29 @@ export function offerableOnHitRiders<
   })
 }
 
-/** Every way the attacker could pay for each of the action's optional on-hit riders now. */
+/**
+ * Every way the attacker could pay for each of the action's offerable optional on-hit riders now:
+ * `offerableOnHitRiders` against the open offers, the settled spend and the capacity bonus use.
+ */
 export function onHitCandidates(input: {
-  riders: readonly { riderId: string; label: string; cost: OptionalOnHitAuthored }[]
+  riders: readonly {
+    riderId: string
+    label: string
+    cost: OptionalOnHitAuthored
+    grantedByEffectId?: string
+  }[]
+  openOfferEffectIds?: readonly string[]
+  settled?: { spellConsumption?: unknown; resourceConsumption?: unknown } | null | undefined
+  capacityUse?: unknown
   spellSlots: SpellSlots
   resources: Resources
 }): EncounterOnHitCandidate[] {
   const choices = onHitSlotChoices(input.spellSlots)
-  return input.riders.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
+  const offerable = offerableOnHitRiders(input.riders, input.openOfferEffectIds ?? [], {
+    spellConsumption: input.settled?.spellConsumption,
+    resourceConsumption: input.settled?.resourceConsumption ?? input.capacityUse
+  })
+  return offerable.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
     if (cost.kind === 'FREE') return [{ kind: 'FREE', riderId, riderLabel }]
     if (cost.kind === 'SPELL_SLOT')
       return choices.map(({ level }) => ({

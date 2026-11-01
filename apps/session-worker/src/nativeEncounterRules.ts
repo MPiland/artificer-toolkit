@@ -102,10 +102,7 @@ import {
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
-import {
-  offerableOnHitRiders,
-  onHitCandidates
-} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
@@ -1134,13 +1131,12 @@ export async function planNativeLiveEncounterAction(
   const onHitNow =
     prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: offerableOnHitRiders(
-            prepared.adapter
-              .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
-              .filter(({ cost }) => cost.kind !== 'RESOURCE_POOL' || !maintenance?.capacityUse),
-            weaponAttackOffer.openEffectIds,
-            prepared.characterActionState
-          ),
+          riders: prepared.adapter.optionalOnHitRiders({
+            compilerSource: attackPlan.compilerSource
+          }),
+          openOfferEffectIds: weaponAttackOffer.openEffectIds,
+          settled: prepared.characterActionState,
+          capacityUse: maintenance?.capacityUse,
           spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
           resources: prepared.source.effectivePolicyOutput.resources
         })
