@@ -8,29 +8,17 @@ import {
 } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { signetRing } from '@artificer-toolkit/source-data/srd/equipment/signet-ring.js'
 
-import {
-  SRD,
-  evaluateSrdCharacter,
-  srdByLabel,
-  srdFeature,
-  vocabulary
-} from '../testing/dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
 /**
  * SPELLS-31.T5q-A: the ability score maximum is a generic modifier domain. The System default is 20;
  * Primal Champion and any authored feature raise it with the same SET_VALUE grant.
  */
 
-const abilityId = (code: string) => {
-  const found = vocabulary.document.abilities.find((ability) => ability.code === code)
-  if (!found) throw new Error(`SRD ability ${code} is missing.`)
-  return found.id
-}
-
 /** The effective score and modifier of one ability, as the policy derives them for the Sheet. */
 function abilityOf(code: string, input: Parameters<typeof evaluateSrdCharacter>[0]) {
   const entry = evaluateSrdCharacter(input).output.derivedStats.abilities.find(
-    (ability) => ability.abilityId === abilityId(code)
+    (ability) => ability.abilityId === code
   )
   if (!entry) throw new Error(`The policy derives ${code}.`)
   return { score: entry.score.effective, modifier: entry.modifier.effective }
