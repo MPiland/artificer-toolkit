@@ -20,7 +20,9 @@ function operationInputs(hitPoints: number, taken: string[], suppressed: string[
     hitPointsAtMost: Number.MAX_SAFE_INTEGER,
     targetDamageTypesTaken: damageTypeIdsText(taken),
     suppressedDamageTypeIds: damageTypeIdsText(suppressed),
-    reducedToZeroByNodeId: ''
+    reducedToZeroByNodeId: '',
+    targetChallengeRating: 0,
+    maxChallengeRating: 0
   }
 }
 
@@ -53,6 +55,34 @@ describe('the dnd5e gate table (SPELLS-33.T4i1b2)', () => {
     expect(gateNodeInputs({ suppressedByDamageTypeIds: [RADIANT] })).toMatchObject({
       hitPointsAbove: { kind: 'LITERAL', value: -1 },
       suppressedDamageTypeIds: { kind: 'LITERAL', value: damageTypeIdsText([RADIANT]) }
+    })
+  })
+
+  describe('the challenge rating gate (SPELLS-31.T4m2)', () => {
+    const capped = gateNodeInputs({ challengeRatingCap: 1 })
+
+    it('is gated, reads the target rating as a fact, and binds its cap as a literal', () => {
+      expect(isGated({ challengeRatingCap: 1 })).toBe(true)
+      expect(capped).toMatchObject({
+        targetChallengeRating: { kind: 'FACT' },
+        maxChallengeRating: { kind: 'LITERAL', value: 1 }
+      })
+      expect(gateNodeInputs({}).targetChallengeRating).toEqual({ kind: 'LITERAL', value: 0 })
+    })
+
+    it.each([
+      [0.25, true],
+      [1, true],
+      [3, false],
+      [Number.MAX_SAFE_INTEGER, false]
+    ])('admits a target of rating %s against a cap of 1: %s', (rating, admitted) => {
+      expect(
+        gatesAdmit({
+          ...operationInputs(10, [], []),
+          targetChallengeRating: rating,
+          maxChallengeRating: 1
+        })
+      ).toBe(admitted)
     })
   })
 

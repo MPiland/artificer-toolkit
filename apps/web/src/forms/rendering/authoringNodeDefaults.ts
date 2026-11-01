@@ -156,6 +156,9 @@ type AreaContentsTargeting = Extract<TargetingAuthored, { selectionKind: 'AREA_C
 type DurationScalingBreakpoint = BreakpointOf<
   Extract<DurationAuthored, { amount: number }>['scaling']
 >
+type ChallengeRatingGateScaling = NonNullable<
+  Extract<ResultBlockGateAuthored, { kind: 'TARGET_CHALLENGE_RATING_AT_MOST' }>['scaling']
+>
 type DistanceRangeDto = Extract<RangeDto, { rangeKind: 'DISTANCE' }>
 type OutcomeBreakpoint =
   | DamageBreakpointProgressionLevel<{ amount: number }>
@@ -577,6 +580,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         order,
         value: { maxChallengeRatingId: '' }
       } satisfies BreakpointOf<ManifestCreatureFormFilterAuthored['scaling']>
+    case 'resultBlockGateChallengeRatingCap':
+      return { maxChallengeRating: 0 } satisfies BreakpointOf<ChallengeRatingGateScaling>['value']
+    case 'resultBlockGateChallengeRatingScalingBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: { maxChallengeRating: 0 }
+      } satisfies BreakpointOf<ChallengeRatingGateScaling>
     case 'manifestDestructionCriterion':
       return {
         id: crypto.randomUUID(),
