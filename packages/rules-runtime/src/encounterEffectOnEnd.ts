@@ -6,6 +6,8 @@ import {
   type ActiveRuleEffectDefinitionDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
+import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
+
 const ON_END_GRANT_NAMESPACE = '8e2b4c1a-6d7f-4a39-b0c5-1f9a3d7e5b62'
 
 type ModifierGrantContribution = Extract<
@@ -72,4 +74,26 @@ export function onEndGrantEffect(
     }),
     lifecycle: { schemaVersion: 1 as const, remainingTicks: onEnd.turns }
   }
+}
+
+/**
+ * The effects a holder carries once `removed` ends in order, with each ended effect's `onEnd` grant
+ * stacked where the effect store creates it, at that effect's removal. Planning an effect created
+ * beside the removal stacks it after these, as persisting does.
+ */
+export function effectsAfterEnding(
+  held: readonly ActiveRuleEffectRecord[],
+  removed: readonly Pick<ActiveRuleEffectRecord, 'id' | 'owner' | 'definition'>[],
+  occurredAt: string
+) {
+  const current = [...held]
+  for (const ended of removed) {
+    const index = current.findIndex((effect) => effect.id === ended.id)
+    if (index < 0) continue
+    current.splice(index, 1)
+    const grant = onEndGrantEffect(ended)
+    if (grant)
+      current.push(prepareActiveRuleEffectRecord({ ...grant, currentEffects: current, occurredAt }))
+  }
+  return current
 }

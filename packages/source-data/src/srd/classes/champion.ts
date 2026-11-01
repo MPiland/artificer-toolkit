@@ -8,7 +8,6 @@ import {
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  PATH_CODE,
   RANGE_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
@@ -22,6 +21,7 @@ import {
   closedRuleEffect,
   criticalHitThresholdGrants,
   duelingRestriction,
+  greatWeaponFightingGrant,
   twoWeaponFightingGrants
 } from './mechanics.js'
 
@@ -194,22 +194,13 @@ export const championMartialArchetype: ClassAuthored = {
           description:
             'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.',
           order: 3,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 20, 4),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 21, 4), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              pathCode: PATH_CODE.ON_HIT,
-              ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_GREAT_WEAPON_FIGHTING
-            })
-          ]
+          grants: {
+            modifiers: [
+              greatWeaponFightingGrant(classRowId(F, 0x22, 13), (entry) =>
+                classRowId(F, 0x7a, 0x48 + entry)
+              )
+            ]
+          }
         },
         {
           id: classRowId(F, 0x22, 5),

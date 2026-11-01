@@ -164,6 +164,14 @@ export type PredicatePayloadByCode = {
     effectIds: string[]
   }
   /**
+   * The holder keeps `min` to `max` Concentrations now (the ring that gives vulnerability while two
+   * are held). Decided live in an Encounter.
+   */
+  HOLDER_CONCENTRATION_COUNT: {
+    min: number
+    max?: number
+  }
+  /**
    * The holder took the Attack action this turn with a weapon that has every listed property
    * (any weapon when not selected), other than the item the requirement belongs to.
    */
@@ -503,6 +511,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Holder Has Active Effect',
     description: 'Requires the holder to have one of the selected effects active on it.',
     subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  HOLDER_CONCENTRATION_COUNT: {
+    code: 'HOLDER_CONCENTRATION_COUNT',
+    label: 'Holder Concentration Count',
+    description:
+      'Requires the holder to keep a number of Concentrations, within a minimum and an optional maximum.',
+    subjects: ['EQUIPMENT', 'CHARACTER']
   },
 
   ATTACK_ACTION_OTHER_WEAPON: {

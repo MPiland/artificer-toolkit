@@ -11,6 +11,22 @@ import {
 } from './effectStore.js'
 import type { EncounterReadContext } from './store.js'
 
+/** How many Concentrations an Encounter actor keeps now; 0 when it holds none. */
+export async function readHeldConcentrationCount(
+  ctx: EncounterReadContext,
+  input: { state: Pick<EncounterRunState, 'id' | 'gameSystemId'>; actorId: string }
+): Promise<number> {
+  const { state } = input
+  const slots = await readMaintainedStatesByDefinition(ctx, {
+    encounterId: state.id,
+    ownerActorId: input.actorId,
+    maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+      state.gameSystemId
+    )
+  })
+  return slots.length
+}
+
 /**
  * The effects an Encounter actor's Concentration keeps alive: those depending on its live slot in
  * the Run, or for a Character the grants a finished Run carried over from its last Concentration.

@@ -53,7 +53,8 @@ import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
   closedRuleEffect,
-  duelingRestriction
+  duelingRestriction,
+  greatWeaponFightingGrant
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -1028,22 +1029,13 @@ export const paladin: ClassAuthored = {
           label: 'Great Weapon Fighting',
           description:
             'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll. The weapon must have the two-handed or versatile property for you to gain this benefit.',
-          effects: [
-            closedRuleEffect({
-              id: classRowId(P, 0x60, 22),
-              ruleKind: CLOSED_RULE_KIND.CLASS_PALADIN_FIGHTING_STYLE_GREAT_WEAPON,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(P, 0x69, 22), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-                }
-              }
-            })
-          ],
+          grants: {
+            modifiers: [
+              greatWeaponFightingGrant(classRowId(P, 4, 12), (entry) =>
+                classRowId(P, 0x7a, 0x28 + entry)
+              )
+            ]
+          },
           order: 2
         },
         {

@@ -515,6 +515,43 @@ describe('grant and facet schema parsing', () => {
     expect(parsed.groups).toHaveLength(1)
   })
 
+  it('parses a held-Concentration-count predicate and refuses one without a minimum', () => {
+    const facet = (condition: Record<string, unknown>) => ({
+      id: 'held-count-facet',
+      groups: [
+        {
+          id: 'group-1',
+          order: 1,
+          contexts: [
+            {
+              id: 'context-1',
+              order: 1,
+              subject: 'CHARACTER',
+              conditions: [
+                {
+                  id: 'condition-1',
+                  order: 1,
+                  kind: 'PREDICATE',
+                  constraint: 'INCLUDE',
+                  ...condition
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
+    for (const bounds of [{ min: 2 }, { min: 2, max: 2 }]) {
+      expect(
+        facetDtoSchema.safeParse(facet({ predicateCode: 'HOLDER_CONCENTRATION_COUNT', ...bounds }))
+          .success
+      ).toBe(true)
+    }
+    expect(
+      facetDtoSchema.safeParse(facet({ predicateCode: 'HOLDER_CONCENTRATION_COUNT' })).success
+    ).toBe(false)
+  })
+
   it('parses explicit ALL facet authoring mode', () => {
     const parsed = facetDtoSchema.parse({
       id: 'explicit-all-facet',
