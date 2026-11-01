@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { MAX_GROUP_COUNT } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import {
   createCharacterMechanicSourceKey,
@@ -3137,7 +3138,8 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       expect(placement.forms[1]).toEqual({
         id: expect.any(String),
         label: 'Cat',
-        creatureId: CREATURE_IDS.CAT
+        creatureId: CREATURE_IDS.CAT,
+        maxTargets: 1
       })
       expect(placement.creatureTypeIds).toEqual(
         [creatureTypeId('CELESTIAL'), creatureTypeId('FEY'), creatureTypeId('FIEND')].sort()
@@ -3187,7 +3189,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         }),
         familiar((outcome) => {
           outcome.forms = outcome.forms?.map((form, index) =>
-            index === 0 ? { ...form, maxTargets: 2 } : form
+            index === 0 ? { ...form, maxTargets: MAX_GROUP_COUNT + 1 } : form
           )
         })
       ]
@@ -3223,7 +3225,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         formStats: formSummonStats(formCreature)
       })
       const { actor } = buildEncounterSummon({
-        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
+        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey, count: null },
         spellSummon,
         caster,
         casterHitPointMaximum: 40,

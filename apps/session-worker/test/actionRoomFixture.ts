@@ -733,6 +733,8 @@ export async function actionRoom(config: ActionRoomConfig) {
             /** The summon form and creature type a summon that authors forms takes. */
             formId?: string
             creatureTypeId?: string
+            /** How many creatures a form conjured in groups stands for. */
+            count?: number
           }
         | { kind: 'DIRECTED'; origin: { x: number; y: number }; toward: { x: number; y: number } }
         | { kind: 'CASTER_CENTERED'; unaffectedActorIds?: string[]; choiceOptionId?: string }

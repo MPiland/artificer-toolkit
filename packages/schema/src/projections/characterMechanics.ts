@@ -15,6 +15,7 @@ import {
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
+import { AUTHORED_LIMITS, MAX_GROUP_COUNT } from '../shared/authoredLimits.js'
 import {
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
@@ -695,11 +696,13 @@ export const compiledActionSummonPlacementSchema = lazySchema(() => {
           z.strictObject({
             id: serverUuidIdentityDtoSchema,
             label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
-            creatureId: serverUuidIdentityDtoSchema
+            creatureId: serverUuidIdentityDtoSchema,
+            /** The most creatures one cast conjures of this form: 1 for a single creature. */
+            maxTargets: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT))
           })
         )
         .check(z.minLength(1))
-        .check(z.maxLength(32)),
+        .check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems)),
       /** Empty: the form keeps its own Creature Type. */
       creatureTypeIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(32))
     })
