@@ -1210,7 +1210,7 @@
 00000020-0000-0210-00ec-000000000001 CHARACTER:spells Prayer of Healing | SINGLE_GRAPH 83b6593c06d82674e9c9d3e576d1ced763eb569c0a4469ebc4ccccbe36ac81c0 nodes=5 outputs=2
 00000020-0000-0210-00ec-000000000001 @U9 | SINGLE_GRAPH 8a3e13bfe422553d6eb691440a2286146c9ebbc77840257d3676516ec4fd7eaa nodes=19 outputs=2
 00000020-0000-0210-00ed-000000000001 CHARACTER:spells Prestidigitation | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-00ee-000000000001 CHARACTER:spells Prismatic Spray | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000020-0000-0210-00ee-000000000001 CHARACTER:spells Prismatic Spray | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D roll table repeats are not supported.
 00000020-0000-0210-00ef-000000000001 CHARACTER:spells Prismatic Wall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f0-000000000001 CHARACTER:spells Private Sanctum | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f1-000000000001 CHARACTER:spells Produce Flame | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
