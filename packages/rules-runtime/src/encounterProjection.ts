@@ -111,6 +111,15 @@ export function snapshotCreatureHitPoints(actor: { snapshot: unknown }): number 
   return hitPoints
 }
 
+/** A Creature's senses as its snapshot holds them; a malformed one fails the read. */
+export function snapshotCreatureSenses(actor: { kind: string; snapshot: unknown }) {
+  const payload =
+    actor.kind === 'CREATURE' && isRecord(actor.snapshot) ? actor.snapshot.payload : undefined
+  return isRecord(payload) && Array.isArray(payload.senses)
+    ? payload.senses.map((entry) => creatureSenseDtoSchema.parse(entry))
+    : []
+}
+
 export function snapshotStatBlock(actor: {
   kind: string
   systemId: string | null
@@ -147,9 +156,7 @@ export function snapshotStatBlock(actor: {
     speeds: Array.isArray(payload.speeds)
       ? payload.speeds.map((entry) => speedDtoSchema.parse(entry))
       : [],
-    senses: Array.isArray(payload.senses)
-      ? payload.senses.map((entry) => creatureSenseDtoSchema.parse(entry))
-      : [],
+    senses: snapshotCreatureSenses(actor),
     damageVulnerabilities: stringValues(payload.damageVulnerabilities),
     damageResistances: stringValues(payload.damageResistances),
     damageImmunities: stringValues(payload.damageImmunities),

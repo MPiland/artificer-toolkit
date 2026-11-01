@@ -608,9 +608,21 @@ export const ROLLED_DIE_TIMING_OPTIONS: readonly CoreMeta<RolledDieTiming>[] = [
  */
 export type ModifierRolledDieAuthored = {
   count: number
+  /** The die's size; for a `facesScaling` die, the size below every row. */
   faces: (typeof ROLLED_DIE_FACES)[number]
   sign: RolledDieSign
   timing?: RolledDieTiming
+  facesScaling?: ModifierRolledDieFacesScaling
+}
+
+/**
+ * A die whose size rises with the granting creature's level in a class (D168, Bardic Inspiration's
+ * d6 to d12). Applying the grant picks the row the granter's level reaches and freezes it into
+ * `faces`, so the stored grant never carries this field.
+ */
+export type ModifierRolledDieFacesScaling = {
+  classId: string
+  levels: { level: number; faces: (typeof ROLLED_DIE_FACES)[number] }[]
 }
 
 /** Who deals the damage a rolled damage die joins: the holder, or the effect's source to the holder. */

@@ -7,6 +7,7 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -20,6 +21,7 @@ import {
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELL_GRANT_ATTRIBUTE,
@@ -29,6 +31,8 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type ClassAuthored,
+  type EffectAuthored,
+  type ModifierRolledDieAuthored,
   type SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
@@ -43,7 +47,6 @@ import {
 } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
-  closedRuleEffect,
   gmRulingEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
@@ -88,6 +91,104 @@ const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 const bardicInspirationDescription =
   '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>'
+
+/**
+ * The die is the Bard's own at the level the Bard has when it is given (D168): the face below grows
+ * with the granter's class level and is frozen into the holder's grant. It joins a check or a save
+ * after the d20 is seen; an attack-roll grant of the same shape is the follow-up window's to add.
+ */
+function bardicInspirationEffect(): EffectAuthored {
+  const payload: ModifierRolledDieAuthored = {
+    count: 1,
+    faces: 6,
+    sign: ROLLED_DIE_SIGN.ADD,
+    timing: 'AFTER_ROLL',
+    facesScaling: {
+      classId: CLASS_IDS.BARD,
+      levels: [
+        { level: 5, faces: 8 },
+        { level: 10, faces: 10 },
+        { level: 15, faces: 12 }
+      ]
+    }
+  }
+  const die = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload
+  }
+  return {
+    id: classRowId(BD, 0x60, 1),
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      resourceUse: { chargeId: bardicInspirationCharge.id, cost: 1 },
+      activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
+      range: {
+        id: classRowId(BD, 0x69, 1),
+        rangeKind: RANGE_KIND.DISTANCE,
+        amount: 60,
+        unit: MEASUREMENT_UNIT_CODE.FEET
+      },
+      targeting: {
+        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+        dispositionKind: 'ANY',
+        self: 'WARN'
+      }
+    },
+    paths: [
+      {
+        id: classRowId(BD, 0x80, 1),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: classRowId(BD, 0x81, 1),
+          resultKind: 'SINGLE',
+          duration: {
+            id: classRowId(BD, 0x83, 1),
+            durationKind: DURATION_KIND.MINUTE,
+            amount: 10
+          },
+          lifecycle: {
+            endTriggers: [
+              { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_ABILITY_CHECK' },
+              { event: 'LIFECYCLE', timing: 'CONSUME', code: 'ON_SAVING_THROW' }
+            ]
+          },
+          outcomes: [
+            {
+              id: classRowId(BD, 0x82, 1),
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  {
+                    ...die,
+                    id: classRowId(BD, 0x84, 1),
+                    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+                    order: 1
+                  },
+                  {
+                    ...die,
+                    id: classRowId(BD, 0x84, 2),
+                    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                    order: 2
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 
 // Bard spell slot charge — resets on long rest
 const bardSlotCharge = {
@@ -765,28 +866,7 @@ export const bard: ClassAuthored = {
       id: classRowId(BD, 3, 1),
       label: 'Bardic Inspiration',
       description: bardicInspirationDescription,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 0x60, 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARD_BARDIC_INSPIRATION,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-            range: {
-              id: classRowId(BD, 0x69, 1),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY',
-              self: 'WARN'
-            }
-          }
-        })
-      ],
+      effects: [bardicInspirationEffect()],
       availableAtLevel: 1,
       order: 0
     },
