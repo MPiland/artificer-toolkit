@@ -295,7 +295,7 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     ).toEqual(live.panel)
   }, 60_000)
 
-  it('leaves a derivation that already started alone when a newer write queues its own', async () => {
+  it('cancels only a queued derivation that has not started, as Convex does', async () => {
     const { t, player, character, visibility } = await setup()
     const createNote = (expectedVersion: number, title: string) =>
       player.caller.mutation(api.characters.sheetCommands.execute, {
@@ -309,20 +309,28 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
         }
       })
     const first = await createNote(visibility.streamVersion, 'Session one')
-    // Start the queued derivation without letting it finish.
-    vi.advanceTimersByTime(CHARACTER_SHEET_STORE_DELAY_MS)
-    const readRunning = () =>
-      t.run(async (ctx) =>
-        (await ctx.db.system.query('_scheduled_functions').collect()).find(
-          (row) => row.state.kind === 'inProgress'
-        )
-      )
-    await vi.waitUntil(readRunning)
-    const running = (await readRunning())!._id
-    await createNote(first.streamVersion, 'Session two')
-    // convex-test throws "Unexpected scheduled function state" if the running job was cancelled.
+    const queued = await t.run(async (ctx) => {
+      const [row] = await ctx.db.query('characterSheetPendingStores').take(1)
+      return row!
+    })
+    // The derivation runs, so the job is no longer pending. Point the Character's pending row at it
+    // again, as a write racing the running job sees it.
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    expect((await t.run((ctx) => ctx.db.system.get(running)))?.state.kind).toBe('success')
+    const finished = await t.run((ctx) => ctx.db.system.get(queued.scheduledId))
+    expect(finished?.state.kind).toBe('success')
+    await t.run((ctx) =>
+      ctx.db.insert('characterSheetPendingStores', {
+        characterId: queued.characterId,
+        scheduledId: queued.scheduledId,
+        token: queued.token
+      })
+    )
+    await createNote(first.streamVersion, 'Session two')
+    // convex-test, like Convex, cancels only a pending job; cancelling a started one trips its
+    // "Unexpected scheduled function state" invariant.
+    expect((await t.run((ctx) => ctx.db.system.get(queued.scheduledId)))?.state.kind).toBe(
+      'success'
+    )
   }, 60_000)
 
   it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {
