@@ -293981,13 +293981,7 @@ export declare const api: {
             kind: "CREATURE" | "CUSTOM";
             label: string;
             maxHitPoints: number;
-            snapshot:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
+            snapshotIndex: number;
             sourceId: string | null;
             sourceRevision: number | null;
             systemId: string | null;
@@ -293996,6 +293990,9 @@ export declare const api: {
           id: string;
           name: string;
           setupChecksum: string;
+          snapshots: Array<
+            string | number | boolean | null | Array<any> | Record<string, any>
+          >;
           updatedAt: string;
           version: number;
         }
@@ -294021,13 +294018,7 @@ export declare const api: {
               kind: "CREATURE" | "CUSTOM";
               label: string;
               maxHitPoints: number;
-              snapshot:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
+              snapshotIndex: number;
               sourceId: string | null;
               sourceRevision: number | null;
               systemId: string | null;
@@ -294036,6 +294027,14 @@ export declare const api: {
             id: string;
             name: string;
             setupChecksum: string;
+            snapshots: Array<
+              | string
+              | number
+              | boolean
+              | null
+              | Array<any>
+              | Record<string, any>
+            >;
             updatedAt: string;
             version: number;
           }>;
@@ -294062,13 +294061,7 @@ export declare const api: {
             kind: "CREATURE" | "CUSTOM";
             label: string;
             maxHitPoints: number;
-            snapshot:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
+            snapshotIndex: number;
             sourceId: string | null;
             sourceRevision: number | null;
             systemId: string | null;
@@ -294077,6 +294070,9 @@ export declare const api: {
           id: string;
           name: string;
           setupChecksum: string;
+          snapshots: Array<
+            string | number | boolean | null | Array<any> | Record<string, any>
+          >;
           updatedAt: string;
           version: number;
         }
