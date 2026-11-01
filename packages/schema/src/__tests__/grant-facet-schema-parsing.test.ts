@@ -304,6 +304,24 @@ describe('grant and facet schema parsing', () => {
     expect(floor('ABILITY_CHECK', { ability: 'CHARISMA' }, 1)).toBe(false)
     expect(floor('ABILITY_CHECK', { ability: 'CHARISMA' }, 21)).toBe(false)
     expect(floor('SAVING_THROW_MODIFIER', { ability: 'WISDOM' }, 15)).toBe(false)
+    // An ability-check bonus may name an ability, gate itself to unproficient checks, and round a
+    // fraction of the proficiency bonus either way.
+    const checkBonus = (valueDomainCode: string, domain: object, payload: object) =>
+      modifierGrantDtoSchema.safeParse({
+        ...base,
+        valueDomainCode,
+        modifierKind: 'BONUS',
+        domain,
+        payload
+      }).success
+    const half = { valueKind: 'PROFICIENCY_BONUS', multiplier: 0.5 }
+    expect(checkBonus('ABILITY_CHECK', { unproficientOnly: true }, half)).toBe(true)
+    expect(checkBonus('ABILITY_CHECK', { ability: 'STRENGTH' }, { ...half, rounding: 'UP' })).toBe(
+      true
+    )
+    expect(checkBonus('ABILITY_CHECK', {}, { ...half, rounding: 'DOWN' })).toBe(true)
+    expect(checkBonus('ABILITY_CHECK', {}, { ...half, rounding: 'NEAREST' })).toBe(false)
+    expect(checkBonus('ABILITY_CHECK', { unproficientOnly: 'yes' }, half)).toBe(false)
     for (const grant of unsupported) {
       const parsed = modifierGrantDtoSchema.safeParse(grant)
       expect(parsed.success).toBe(false)
