@@ -383,11 +383,10 @@ export async function persistEncounterConcentrationResponse(
   const ownerRequests = new Set<string>()
   for (const request of input.maintenanceOwners) {
     const key = checksumCanonicalJson(request)
-    const requestSlot = slots.get(request.actorId)
+    const requestSlot = slots.get(request.actorId)?.find((slot) => slot.id === request.stateId)
     if (
       !commitMutated ||
       !requestSlot ||
-      request.stateId !== requestSlot.id ||
       request.definitionId !== requestSlot.maintenanceDefinitionId ||
       ownerRequests.has(key)
     )
