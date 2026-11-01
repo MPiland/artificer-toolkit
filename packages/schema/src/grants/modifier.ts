@@ -1416,6 +1416,7 @@ function spellScopedOutsideSpellAttacks(value: {
     spellScoped &&
     !(
       value.valueDomainCode === 'RANGE' ||
+      value.valueDomainCode === 'CONCENTRATION_CAPACITY' ||
       ((value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
         attackDomain === 'SPELL')
     )
@@ -1441,7 +1442,7 @@ export const modifierGrantDtoSchema = lazySchema(() => {
           ctx.addIssue({
             code: 'custom',
             message:
-              'Spell-scoped modifiers are supported only for spell attack rolls, damage and ranges.',
+              'Spell-scoped modifiers are supported only for spell attack rolls, damage, ranges and Concentration capacity.',
             path: ['restrictions']
           })
         if (!value.modifierKind.includes('BONUS')) return

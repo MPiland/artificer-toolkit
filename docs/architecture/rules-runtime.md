@@ -523,6 +523,14 @@ Carried grants (D99) are one more Concentration of the caster's: they end when t
 state or leaves no room beside them (`held + 1 >= capacity`), and the receipt's `endedCarriedGrants` is the
 one list persistence settles.
 
+**Per-cast capacity (current, SPELLS-12.T2a).** A `CONCENTRATION_CAPACITY` `BONUS` carrying `deferredRequirements`
+is not in the stat; the policy lists it in `gatedConcentrationCapacity` (by `acceptedModifierIndex`). For one cast,
+the System adapter's `concentrationCapacityForCast` adds each gated bonus whose requirement groups hold for the new
+spell _and_ every held spell, so the holder keeps another Concentration only for a cast the item allows.
+`SPELL_LEVEL` here is the cast level (`preparedSpellCastLevel`); a held spell is checked by level alone, read from
+the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
+satisfies a level requirement). A Creature stays at 1.
+
 **Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
 save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
 each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage

@@ -78,7 +78,8 @@ export function planEncounterMovementReactionEffects<
           },
           sourceActorId: prepared.actor.id,
           replacementPolicy: maintenance.policy.replacementPolicy,
-          emptyDependentPolicy: maintenance.policy.emptyDependentPolicy
+          emptyDependentPolicy: maintenance.policy.emptyDependentPolicy,
+          ...(maintenance.spellLevel !== null && { spellLevel: maintenance.spellLevel })
         }
       })
     : null

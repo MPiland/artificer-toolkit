@@ -718,7 +718,9 @@ export const encounterMaintainedEffectDescriptorDtoSchema = lazySchema(() =>
   z.extend(encounterMaintainedEffectDescriptorBaseDtoSchema, {
     schemaVersion: z.literal(2),
     /** Whether the state ends when its last dependent effect does (Concentration), or stays until a terminal event. */
-    emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL'])
+    emptyDependentPolicy: z.enum(['TERMINATE_WHEN_EMPTY', 'RETAIN_UNTIL_TERMINAL']),
+    /** The level the starting spell was cast at (0 for a cantrip); absent when no spell cast started it. */
+    spellLevel: z.optional(z.number().check(z.int(), z.gte(0), z.lte(9)))
   })
 )
 

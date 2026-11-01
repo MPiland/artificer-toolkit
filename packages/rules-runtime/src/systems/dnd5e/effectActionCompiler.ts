@@ -2,6 +2,7 @@ import {
   type ActiveEffectSaveTally,
   type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -231,6 +232,7 @@ import {
 } from './effectActionInterpretation.js'
 import {
   repeatedFollowUpSaveResultPath,
+  isTallyCount,
   repeatSaveAttemptAllowed,
   repeatSaveGated
 } from './effectActionRepeatSaveEvidence.js'
@@ -1677,10 +1679,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
@@ -3605,6 +3603,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   passiveDamageGrantPlan,
   standingEffectPlan,
+  concentrationCapacityForCast: dnd5eConcentrationCapacityForCast,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)
