@@ -1,8 +1,16 @@
 import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import {
+  onHitSpellConsumption,
+  poolResourceConsumption
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import type { EncounterOnHitCost } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   MaintainedReplacementRequiredError,
-  SpellcastingLockedError
+  SpellcastingLockedError,
+  StaleCharacterActionError
 } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { heldConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
@@ -221,6 +229,8 @@ export async function prepareNativeLiveActionMaintenance(input: {
   projection?: NativeLiveMovementMaintenanceProjection
   /** The held maintained effect the caster chose to end at capacity (the command's choice). */
   endedMaintainedStateId?: string | undefined
+  /** The caller settles the use a capacity bonus spends (`settledCharacterActionSpend`). */
+  allowCapacityUses?: boolean
   /** D99: given, a Character caster's new Concentration ends carried grants; loads and fences each holder. */
   loadCarriedHolder?: (
     actor: EncounterRunActorState
@@ -232,6 +242,7 @@ export async function prepareNativeLiveActionMaintenance(input: {
   return prepareEncounterActionMaintenance({
     prepared,
     chosenStateId: input.endedMaintainedStateId,
+    allowCapacityUses: input.allowCapacityUses,
     activeEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
     readDefinition: async (definitionId) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -324,6 +335,51 @@ export async function prepareNativeLiveActionMaintenance(input: {
     }
     throw error
   })
+}
+
+/**
+ * The resource or slot spend that settles with a Character action beyond its own cost: what the
+ * attacker's chosen on-hit rider is paid with, else the use a Concentration capacity bonus spent to
+ * make room for the cast's Concentration. Null when neither applies.
+ */
+export function settledCharacterActionSpend(input: {
+  prepared: Pick<
+    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
+    'source' | 'sourceFacts'
+  >
+  chosenOnHit: EncounterOnHitCost | null
+  maintenance: { capacityUse: { poolId: string } | null } | null
+  automationMode: AutomationModeDto
+}) {
+  const { prepared, chosenOnHit } = input
+  const { source } = prepared
+  if (source.kind !== 'CHARACTER_ACTION') return null
+  if (chosenOnHit?.kind === 'SPELL_SLOT')
+    return {
+      spellConsumption: onHitSpellConsumption({
+        spellSlots: source.effectivePolicyOutput.spellSlots,
+        slotLevel: chosenOnHit.slotLevel,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion
+      })
+    }
+  const pool =
+    chosenOnHit ?? (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
+  if (!pool) return null
+  const { characterFacts } = prepared.sourceFacts
+  if (!characterFacts)
+    throw new StaleCharacterActionError('The selected Character action source is stale.')
+  return {
+    resourceConsumption: poolResourceConsumption({
+      resources: source.effectivePolicyOutput.resources,
+      resourceUsage: characterFacts.sheetState.resourceUsage,
+      poolId: pool.poolId,
+      cost: pool.cost,
+      characterId: source.characterId,
+      expectedStreamVersion: source.characterStreamVersion,
+      automationMode: input.automationMode
+    })
+  }
 }
 
 /** The maintained state a completed action's Concentration creates, once its policy still matches the prepared one. */

@@ -79,8 +79,8 @@ export function onHitSpellConsumption(input: {
   }
 }
 
-/** The charges an optional on-hit rider spends from the pool it was offered against, as the pool stands now. */
-export function onHitResourceConsumption(input: {
+/** The charges spent from `poolId` (an on-hit rider's pool, a Concentration capacity bonus's uses), as the pool stands now. */
+export function poolResourceConsumption(input: {
   resources: Resources
   resourceUsage: readonly CharacterResourceUsage[]
   poolId: string

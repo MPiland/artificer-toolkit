@@ -192,7 +192,8 @@ export async function verifyEncounterHeldEffectBrowser(
         }, next)
         await page.mouse.click(next.x, next.y)
         await expect(page.getByRole('dialog', { name: 'Pick a target' })).toBeHidden()
-        await openActions()
+        // The Actions drawer reopens by itself once the pick lands.
+        await expect(actionsDrawer).toBeVisible()
         await expect(page.getByRole('combobox', { name: 'New holder' })).toHaveValue(
           input.next.label
         )
