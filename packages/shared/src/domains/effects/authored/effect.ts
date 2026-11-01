@@ -7,7 +7,7 @@ import type {
   ShapeAuthored,
   TargetingAuthored
 } from '#authored'
-import type { ACTIVATION_CODE, ActivationCode, Trigger } from '#core'
+import type { ACTIVATION_CODE, ActivationCode, LengthUnitCode, Trigger } from '#core'
 import type { PathCode } from '../core/path.js'
 
 export const EFFECT_INVOCATION_KIND = {
@@ -42,6 +42,16 @@ export type OptionalOnHitAuthored =
   | ({ kind: 'RESOURCE_POOL' } & ResourceUseAuthored)
 
 /**
+ * `RANGE` multiplies the cast's distance range by `multiplier`; a Touch range becomes
+ * `touchDistance`. It fits a spell whose range is a distance or Touch, never Self or Unlimited.
+ */
+export type CastModifierParameterAuthored = {
+  parameter: 'RANGE'
+  multiplier: number // int, at least 2
+  touchDistance: { amount: number; unit: LengthUnitCode }
+}
+
+/**
  * A cost the holder may pay on casting a spell. With `targets`, the caster also names creatures the
  * paid modifier gives an outcome on their save against the cast: `SAVE_AUTO_SUCCESS` makes the save
  * succeed unrolled (the success path still applies, half damage included), `SAVE_DISADVANTAGE`
@@ -49,6 +59,8 @@ export type OptionalOnHitAuthored =
  * modifier creatures, never fewer than `minimum` (default 1 when the ability is added).
  */
 export type CastModifierAuthored = ResourceUseAuthored & {
+  /** What the paid modifier changes about the cast itself; each parameter applies only to a spell it fits. */
+  parameters?: CastModifierParameterAuthored[]
   targets?: {
     outcome: 'SAVE_AUTO_SUCCESS' | 'SAVE_DISADVANTAGE'
     base: number // int

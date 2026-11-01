@@ -113,6 +113,7 @@ import type {
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { castModifierRange } from './character/characterCastModifiers.js'
 import { damageTypeIdsTaken } from './encounterDamageTypesSinceTurnStart.js'
 import {
   encounterStowedItemInstanceId,
@@ -197,6 +198,8 @@ export async function prepareEncounterActionSource<
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   /** The option the caster picked of an action that offers a pick at cast (D140, D148). */
   choiceOptionId?: string
+  /** The `castModifiers` entry of the cast candidate the caster pays; its parameters change the policy returned. */
+  castModifierId?: string
   /**
    * A read of the action's test alone, before any pick: every option shares it (options that test
    * differently compile MANUAL), so the top-level option serves and no pick is asked for.
@@ -322,7 +325,30 @@ export async function prepareEncounterActionSource<
     source.kind === 'CHARACTER_ACTION'
       ? source.entry.compilation.executionPlan
       : compileEncounterFeatureActionPlan(adapter, source.capability)
-  return { source, adapter, targetPolicy, plan }
+  // The cast modifier is resolved here so every flow that reads the policy, the area flow included,
+  // sees the cast as the paid modifier changes it.
+  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  const castModifier =
+    input.castModifierId === undefined || source.kind !== 'CHARACTER_ACTION'
+      ? null
+      : (source.candidate.castModifiers?.find(
+          ({ modifierId }) => modifierId === input.castModifierId
+        ) ?? null)
+  if (input.castModifierId !== undefined && !castModifier)
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  const range = castModifier?.parameters
+    ? castModifierRange(castModifier.parameters, targetPolicy.range)
+    : targetPolicy.range
+  if (!range)
+    throw new EncounterValidationError('The selected cast modifier does not fit this spell.')
+  return {
+    source,
+    adapter,
+    targetPolicy: range === targetPolicy.range ? targetPolicy : { ...targetPolicy, range },
+    plan,
+    castModifier
+  }
 }
 
 /** Prepares current source, target, and resource facts without persistence access. */
@@ -492,13 +518,14 @@ export async function prepareEncounterActionMechanics<
     inSourceSight(currentSourceFacts),
     inSourceSight(currentTargetFacts)
   ])
-  const { source, adapter, targetPolicy, plan } = await prepareEncounterActionSource({
+  const { source, adapter, targetPolicy, plan, castModifier } = await prepareEncounterActionSource({
     state,
     actor,
     actionId,
     sourceFacts,
     loadSource: input.loadSource,
     choiceOptionId: input.choiceOptionId,
+    castModifierId: input.castModifierId,
     readsSharedTest: input.readsSharedTest,
     // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
     // first authored option of a pick it cannot ask for.
@@ -530,16 +557,6 @@ export async function prepareEncounterActionMechanics<
             ).actual
         : undefined
     })
-  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
-    throw new EncounterValidationError('The selected cast modifier is not offered.')
-  const castModifier =
-    input.castModifierId === undefined || source.kind !== 'CHARACTER_ACTION'
-      ? null
-      : (source.candidate.castModifiers?.find(
-          ({ modifierId }) => modifierId === input.castModifierId
-        ) ?? null)
-  if (input.castModifierId !== undefined && !castModifier)
-    throw new EncounterValidationError('The selected cast modifier is not offered.')
   const castModifierActorIds = input.castModifierActorIds ?? []
   if (castModifierActorIds.length > (castModifier?.targets?.max ?? 0))
     throw new EncounterValidationError(

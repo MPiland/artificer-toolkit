@@ -5,7 +5,11 @@ import { sorceryPointsCharge } from '@artificer-toolkit/source-data/srd/classes/
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { castModifierTargetCap, sparedCreatureCap } from '../character/characterCastModifiers.js'
+import {
+  castModifierRange,
+  castModifierTargetCap,
+  sparedCreatureCap
+} from '../character/characterCastModifiers.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -243,4 +247,42 @@ describe('the creatures a paid cast modifier names (SPELLS-31.T5g2)', () => {
     ])
     expect(castModifierTargetCap(targets, () => 3)).toBe(5)
   })
+})
+
+describe('the range a paid cast modifier gives a cast (SPELLS-31.T5h)', () => {
+  const double = [
+    {
+      parameter: 'RANGE' as const,
+      multiplier: 2,
+      touchDistance: { amount: 30, unit: 'FEET' as const }
+    }
+  ]
+
+  it('multiplies a distance, its long range too', () => {
+    expect(
+      castModifierRange(double, {
+        id: 'r',
+        rangeKind: 'DISTANCE',
+        amount: 80,
+        longAmount: 320,
+        unit: 'FEET'
+      })
+    ).toEqual({ id: 'r', rangeKind: 'DISTANCE', amount: 160, longAmount: 640, unit: 'FEET' })
+  })
+
+  it('turns Touch into the authored distance', () => {
+    expect(castModifierRange(double, { id: 'r', rangeKind: 'TOUCH' })).toEqual({
+      id: 'r',
+      rangeKind: 'DISTANCE',
+      amount: 30,
+      unit: 'FEET'
+    })
+  })
+
+  it.each(['SELF', 'SIGHT', 'SPECIAL', 'UNLIMITED'] as const)(
+    'does not fit a %s range',
+    (rangeKind) => {
+      expect(castModifierRange(double, { id: 'r', rangeKind })).toBeNull()
+    }
+  )
 })

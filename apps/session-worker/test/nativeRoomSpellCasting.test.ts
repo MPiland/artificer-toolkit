@@ -574,6 +574,84 @@ describe('room burst cast by a Character who pays a cast modifier for its target
   }, 120000)
 })
 
+describe('room burst cast by a Character who pays a cast modifier for its range (SPELLS-31.T5h)', () => {
+  const POOL_ID = testUuid(0x7d0)
+  const FAR_REACH_ID = testUuid(0x7d2)
+  const reachFeature: ClassFeature = {
+    id: testUuid(0x7d1),
+    label: 'Spell Reach',
+    description: 'Pay a use to double how far a spell reaches.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: FAR_REACH_ID,
+          range: testUuid(0x7d3),
+          path: testUuid(0x7d4),
+          result: testUuid(0x7d5),
+          outcome: testUuid(0x7d6)
+        },
+        label: 'Far reach',
+        instructions: 'The spell reaches twice as far.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 1,
+          parameters: [
+            { parameter: 'RANGE', multiplier: 2, touchDistance: { amount: 30, unit: 'FEET' } }
+          ]
+        }
+      })
+    ]
+  }
+
+  const reachRoom = (spell: SpellAuthored) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterClassFeatures: [reachFeature],
+      characterAction: (action) => action.label === `${spell.label} (1st level)`
+    })
+
+  it('casts a spell that has a distance, paying the pool', async () => {
+    const room = await reachRoom(emberBurst)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: FAR_REACH_ID,
+      actorIds: []
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.resourceConsumption).toBeTruthy()
+  }, 120000)
+
+  it('refuses the option on a spell whose range it cannot change', async () => {
+    const special = structuredClone(emberBurst)
+    special.id = testUuid(0x7d7)
+    special.label = 'Odd Burst'
+    special.effects![0]!.range = { id: testUuid(0x7d8), rangeKind: 'SPECIAL' }
+    const room = await reachRoom(special)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: FAR_REACH_ID,
+      actorIds: []
+    })
+    expect(answer.type).toBe('COMMAND_REJECTED')
+  }, 120000)
+})
+
 describe('room Ice Storm upcast by a Character wizard (SPELLS-7.2)', () => {
   it('adds 1d8 bludgeoning for the 5th-level slot and keeps the cold at 4d6', async () => {
     // 3d8 bludgeoning then 4d6 cold, every face 1; a further die would roll the fallback 6.

@@ -19,6 +19,7 @@ import { higherLevelCheckDtoSchema, reactionTriggerBindingDtoSchema } from '../s
 import { facetDtoSchema } from '../shared/facet.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { spellSlotExchangeDtoSchema } from '../effects/spellSlotExchange.js'
+import { castModifierParameterDtoSchema } from '../effects/effect.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -585,6 +586,10 @@ export const characterActionCandidatesSchema = lazySchema(() =>
                 chargeId: identitySchema,
                 cost: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)),
                 poolId: characterResourcePoolIdentitySchema,
+                /** What the paid modifier changes about the cast itself; the cast runs with them applied. */
+                parameters: z.optional(
+                  z.array(castModifierParameterDtoSchema).check(z.maxLength(8))
+                ),
                 /** Creatures the paid modifier gives a save outcome on; the cast command names up to `max`. */
                 targets: z.optional(
                   z.strictObject({

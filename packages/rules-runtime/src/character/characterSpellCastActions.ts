@@ -16,6 +16,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { spellComponentsLabel } from '../spellCastCandidates.js'
 import {
+  castModifierRange,
   castModifierTargetCap,
   sparedCreatureCap,
   type CastModifierSource,
@@ -284,7 +285,10 @@ export function buildCharacterSpellCastActions(input: {
         ? []
         : (input.castModifiers ?? []).flatMap(({ modifierId, label, cost }) => {
             const modifierPool = affordablePoolFor(policyOutput.resources, cost)
-            return modifierPool
+            const fitsSpell =
+              !cost.parameters ||
+              castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null
+            return modifierPool && fitsSpell
               ? [
                   {
                     modifierId,
@@ -292,6 +296,7 @@ export function buildCharacterSpellCastActions(input: {
                     chargeId: cost.chargeId,
                     cost: cost.cost,
                     poolId: modifierPool.poolId,
+                    ...(cost.parameters && { parameters: cost.parameters }),
                     ...(cost.targets && {
                       targets: {
                         outcome: cost.targets.outcome,

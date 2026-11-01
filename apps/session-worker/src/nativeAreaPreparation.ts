@@ -200,7 +200,7 @@ export async function prepareCasterSource(
   input: AreaPlanBase & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actorId' | 'actionId' | 'target' | 'acceptedWieldConflict'
+      'actorId' | 'actionId' | 'target' | 'castModifierId' | 'acceptedWieldConflict'
     >
   },
   targetKind: ResolveEncounterActionTargetDto['kind']
@@ -215,6 +215,7 @@ export async function prepareCasterSource(
     actor: caster,
     actionId: command.actionId,
     choiceOptionId: castChoiceOptionId(command.target),
+    castModifierId: command.castModifierId,
     sourceFacts: casterFacts,
     loadSource: async (source) =>
       resolveEncounterActionSource({
