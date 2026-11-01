@@ -619,6 +619,7 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...attackRollRollModeParamDtoSchema.shape,
       ...attackTraitParamDtoSchema.shape,
       ...abilityCheckFloorParamDtoSchema.shape,
+      ...abilityCheckBonusParamDtoSchema.shape,
       ...savingThrowParamDtoSchema.shape,
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
