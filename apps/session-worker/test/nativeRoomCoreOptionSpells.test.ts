@@ -743,7 +743,7 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
     const room = await actionRoom({
       rolls: [18],
       fallbackRoll: 0,
-      actors: [casterActor(), srdCreatureActor({ id: OGRE_ID, creature: ogre })],
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
       characterPlay: { classLevel: 5 },
       characterSpellcasting: { spells: [spell], prepared: [spell.id] },
       characterAction: (action) => action.label.startsWith(spell.label)
@@ -1508,7 +1508,10 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
       autoRoll: 'BOTH',
       rolls: [18, ...Array.from({ length: 30 }, (_, index) => (index % 2 === 0 ? 14 : 1))],
       fallbackRoll: 0,
-      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      actors: [
+        casterActor(),
+        srdCreatureActor({ id: OGRE_ID, creature: seededSrdCreature('Ogre') })
+      ],
       characterPlay: { classLevel: 5 },
       characterSpellcasting: { spells: [conjureAnimals], prepared: [conjureAnimals.id] },
       characterAction: (action) => action.label.startsWith(conjureAnimals.label),
