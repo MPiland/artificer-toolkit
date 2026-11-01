@@ -21,6 +21,7 @@ describe('the Sheet ability check roll', () => {
 
     const resolved = resolveCharacterSheetRoll(
       {
+        characterId: sheet.meta.characterId,
         expression: `1d20 + ${strength.checkModifier}`,
         rollMode: strength.rollMode,
         source: { kind: 'ABILITY_CHECK', label: `${strength.label} check` }
@@ -43,6 +44,7 @@ describe('the Sheet ability check roll', () => {
     expect(() =>
       resolveCharacterSheetRoll(
         {
+          characterId: sheet.meta.characterId,
           expression: `1d20 + ${strength.modifier}`,
           rollMode: strength.rollMode,
           source: { kind: 'ABILITY_CHECK', label: `${strength.label} check` }
