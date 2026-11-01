@@ -32,7 +32,11 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-async function strike(wolfHitPoints: number, features: readonly (typeof BLESSING)[]) {
+async function strike(
+  wolfHitPoints: number,
+  features: readonly (typeof BLESSING)[],
+  sender: 'GM' | 'PLAYER' = 'GM'
+) {
   const room = await actionRoom({
     autoRoll: 'BOTH',
     // The attack d20 shows 20 and the Club's d4 shows 3, enough to defeat the wolf at 1 hit point.
@@ -49,9 +53,25 @@ async function strike(wolfHitPoints: number, features: readonly (typeof BLESSING
     ],
     characterClassFeatures: features,
     characterPlay: { equipped: true },
+    playerControlledActorIds: [WARLOCK_ACTOR_ID],
     characterAction: (action) => action.label.includes('Club')
   })
-  const { answer } = await room.startAction(WOLF_ID, ['TARGET_RANGE_UNCHECKED'])
+  const answer =
+    sender === 'GM'
+      ? (await room.startAction(WOLF_ID, ['TARGET_RANGE_UNCHECKED'])).answer
+      : await room.sendAsPlayer({
+          type: 'RESOLVE_ACTION',
+          acceptedWieldConflict: null,
+          acknowledgedWarnings: ['TARGET_RANGE_UNCHECKED'],
+          encounterId: room.room.encounterId,
+          commandId: crypto.randomUUID(),
+          expectedVersion: await room.version(),
+          actorId: WARLOCK_ACTOR_ID,
+          target: { kind: 'ACTOR', actorId: WOLF_ID },
+          actionId: room.actionId,
+          optionalCombatIntent: null,
+          sceneContext: null
+        })
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   const vitals = vitalsOf(await readRoomHistory(room.room.base.stub))
   const warlockTemporary = await runInDurableObject(room.room.base.stub, (_instance, context) => {
@@ -70,6 +90,12 @@ async function strike(wolfHitPoints: number, features: readonly (typeof BLESSING
 describe("room Dark One's Blessing (SPELLS-31.T4i2)", () => {
   it('gives the holder at least 1 temporary hit point for defeating a hostile creature', async () => {
     const { warlockTemporary, wolfHitPoints } = await strike(1, [BLESSING])
+    expect(wolfHitPoints).toBe(0)
+    expect(warlockTemporary).toBeGreaterThanOrEqual(1)
+  }, 120000)
+
+  it("gives the holder temporary hit points when the holder's own player lands the blow", async () => {
+    const { warlockTemporary, wolfHitPoints } = await strike(1, [BLESSING], 'PLAYER')
     expect(wolfHitPoints).toBe(0)
     expect(warlockTemporary).toBeGreaterThanOrEqual(1)
   }, 120000)
