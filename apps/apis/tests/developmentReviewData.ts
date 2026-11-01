@@ -18,6 +18,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { api } from '../convex/_generated/api.js'
 import { createDevelopmentCharacter } from './developmentCharacterFixture'
 import { type DevelopmentClient, executeEncounterCommand } from './developmentClient'
+import { declarationCommand } from './fixtures/encounterInitiative'
 import { createDevelopmentSpellCharacter } from './developmentSpellCharacterFixture'
 import {
   REVIEW_PLAYERS,
@@ -38,6 +39,32 @@ type Resolution = Extract<
   EncounterExecuteInput['command'],
   { type: 'RESOLVE_RULE_OCCURRENCE' }
 >['resolution']
+
+type PendingOccurrence = NonNullable<EncounterCommandResultDto['occurrence']>['pending']
+
+/**
+ * The GM's answer to an initiative decision: the top score, the first tie choice, the first
+ * declared option. Null for any other pending decision.
+ */
+function initiativeResolution(encounterId: string, pending: PendingOccurrence): Resolution | null {
+  switch (pending?.kind) {
+    case 'INITIATIVE_EVIDENCE':
+      return {
+        kind: 'ENTER_INTEGER',
+        requestId: pending.request.requestId,
+        value: pending.request.max
+      }
+    case 'INITIATIVE_ORDER': {
+      const entityId = pending.optionIds[0]
+      assert.ok(entityId, 'The initiative tie has no choice.')
+      return { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
+    }
+    case 'INITIATIVE_DECLARATION':
+      return declarationCommand({ encounterId, pending }).command.resolution
+    default:
+      return null
+  }
+}
 
 export type ReviewClient = DevelopmentClient & Pick<ConvexHttpClient, 'action'>
 export type ReviewAccount = { client: ReviewClient; userId: string; username: string }
@@ -255,18 +282,11 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   for (let resolutions = 0; started.occurrence?.status === 'PENDING'; resolutions++) {
     assert.ok(resolutions < 30, `${scenario.campaign} initiative did not settle.`)
     const pending = started.occurrence.pending
-    let resolution: Resolution
-    if (pending?.kind === 'INITIATIVE_EVIDENCE')
-      resolution = {
-        kind: 'ENTER_INTEGER',
-        requestId: pending.request.requestId,
-        value: pending.request.max
-      }
-    else if (pending?.kind === 'INITIATIVE_ORDER') {
-      const entityId = pending.optionIds[0]
-      if (!entityId) throw new Error(`${scenario.campaign} has no initiative choice.`)
-      resolution = { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
-    } else throw new Error(`${scenario.campaign} met an unexpected initiative continuation.`)
+    const resolution = initiativeResolution(created.id, pending)
+    if (!resolution)
+      throw new Error(
+        `${scenario.campaign} met an unexpected initiative continuation: ${pending?.kind ?? 'none'}.`
+      )
     started = await execute({
       type: 'RESOLVE_RULE_OCCURRENCE',
       encounterId: created.id,
@@ -542,8 +562,13 @@ function stepPlayer({
         resolution = { kind: 'OPTION', optionId: option.optionId }
         // The reacting Character's own player decides it, as at a table.
         client = ownerOf.get(pending.targetActorId)?.client ?? gm.client
-      } else
-        throw new Error(`A review action met an unexpected pending ${pending?.kind ?? 'none'}.`)
+      } else {
+        // A turn that wraps the round asks for the next round's initiative.
+        const initiative = initiativeResolution(encounterId, pending)
+        if (!initiative)
+          throw new Error(`A review action met an unexpected pending ${pending?.kind ?? 'none'}.`)
+        resolution = initiative
+      }
       current = await client.mutation(executeEncounterCommand, {
         command: {
           type: 'RESOLVE_RULE_OCCURRENCE',
