@@ -93,9 +93,10 @@ export async function seedReviewData(
 async function findCampaign(client: ReviewClient, name: string): Promise<string | null> {
   let cursor: string | null = null
   for (;;) {
-    const page = await client.query(api.campaigns.queries.list, {
-      paginationOpts: { cursor, numItems: 8 }
-    })
+    const page: { page: { id: string; name: string }[]; isDone: boolean; continueCursor: string } =
+      await client.query(api.campaigns.queries.list, {
+        paginationOpts: { cursor, numItems: 8 }
+      })
     const match = page.page.find((campaign) => campaign.name === name)
     if (match) return match.id
     if (page.isDone) return null
@@ -321,6 +322,21 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const { bindScene, bindToken } = await import('./developmentEncounterLifecycle')
   const placed = [...actors.values()]
+  const [firstToken, secondToken, ...otherTokens] = placed.map((actor) => ({
+    id: actor.tokenId,
+    assetId: null,
+    controlledByUserIds: actor.controlledBy,
+    height: 50,
+    hidden: false as const,
+    label: actor.label,
+    locked: false as const,
+    position: actor.position,
+    rotationDegrees: 0,
+    senses: [],
+    vision: null,
+    width: 50
+  }))
+  assert.ok(firstToken && secondToken, 'A review Scene needs at least two tokens.')
   const scene = await createEncounterLifecycleScene({
     owner: gm.client,
     campaignId,
@@ -337,20 +353,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
         diagonalPolicy: 'EQUAL',
         unit: 'FEET'
       },
-      tokens: placed.map((actor) => ({
-        id: actor.tokenId,
-        assetId: null,
-        controlledByUserIds: actor.controlledBy,
-        height: 50,
-        hidden: false as const,
-        label: actor.label,
-        locked: false as const,
-        position: actor.position,
-        rotationDegrees: 0,
-        senses: [],
-        vision: null,
-        width: 50
-      })) as Parameters<typeof createEncounterLifecycleScene>[0]['options']['tokens']
+      tokens: [firstToken, secondToken, ...otherTokens]
     }
   })
   const presentation = await gm.client.query(api.scenes.presentations.get, { campaignId })
