@@ -75,7 +75,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     }))
   const names = REVIEW_SCENARIOS.map((scenario) => scenario.campaign)
 
-  const first = await seedReviewData(context).catch((error: unknown) => {
+  const first = await seedReviewData(context, REVIEW_SCENARIOS.slice(2)).catch((error: unknown) => {
     throw new Error(
       ['Review seed failed:', String(error), ...roomErrorLogs(), ...roomAllLogs().slice(-30)].join(
         ' | '
