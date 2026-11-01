@@ -48,10 +48,12 @@
 00000000-0000-0000-c005-608400000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c005-608500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-0b1500000000 CHARACTER:classes Wholeness of Body | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
-00000000-0000-0000-c006-140100000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140200000000 CHARACTER:classes Tranquility | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-140300000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140400000000 CHARACTER:classes Quivering Palm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-140500000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-140600000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-140700000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-600600000000 CHARACTER:classes Deflect Missiles | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c006-600800000000 CHARACTER:classes Slow Fall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600a00000000 CHARACTER:classes Stunning Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
