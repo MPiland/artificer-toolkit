@@ -1640,18 +1640,19 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
       owner: { count: 2 }
     })
 
-    // Raising it (an upcast) adds one wolf's hit points per added wolf to both.
+    // Raising it (an upcast) adds one wolf's hit points per added wolf to both. The lowered count
+    // left the maximum, so two added wolves grow it from three wolves' worth, not from two.
     expect((await setCount(room, group.actor.id, 4)).type).toBe('COMMAND_COMMITTED')
     expect(await pool()).toMatchObject({
-      currentHitPoints: 4 * eachWolf - 5,
-      maxHitPoints: 4 * eachWolf,
+      currentHitPoints: 5 * eachWolf - 5,
+      maxHitPoints: 5 * eachWolf,
       owner: { count: 4 }
     })
     await vi.waitFor(
       () =>
         expect(summons()?.[0]?.hitPoints).toEqual({
-          current: 4 * eachWolf - 5,
-          maximum: 4 * eachWolf,
+          current: 5 * eachWolf - 5,
+          maximum: 5 * eachWolf,
           temp: 0
         }),
       ROOM_REPLY_WAIT
