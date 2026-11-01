@@ -356,6 +356,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   for (let resolutions = 0; started.occurrence?.status === 'PENDING'; resolutions++) {
     assert.ok(resolutions < 30, `${scenario.campaign} initiative did not settle.`)
     const pending = started.occurrence.pending
+    log(`${scenario.campaign}: initiative ${pending?.kind ?? 'none'}`)
     const resolution = initiativeResolution(created.id, pending, declaredAction)
     if (!resolution)
       throw new Error(
