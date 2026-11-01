@@ -2320,6 +2320,52 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
       )
     })
 
+    it('sends a further target as a second creature of the cast, not as a named creature', async () => {
+      const user = userEvent.setup()
+      const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      const primary = tabletopGmEncounter.actors.find(
+        (actor) => actor.id !== tabletopGmEncounter.currentActorId
+      )
+      const further = tabletopGmEncounter.actors.find(
+        (actor) => actor.id === tabletopGmEncounter.currentActorId
+      )
+      if (!primary || !further) throw new Error('The fixture needs two creatures.')
+      renderDrawer(onResolve, {
+        choices: [
+          validatedChoice({
+            ...actions[0]!,
+            id: 'creature-wolf:hold',
+            label: 'Hold',
+            castModifiers: [
+              {
+                id: MODIFIER_ID,
+                label: 'Echoing',
+                cost: 2,
+                targets: { outcome: 'EXTRA_TARGET', max: 1 }
+              }
+            ]
+          })
+        ]
+      })
+
+      await user.click(await screen.findByRole('combobox', { name: 'Action' }))
+      await user.keyboard('{ArrowDown}{Enter}')
+      await user.click(screen.getByRole('combobox', { name: 'Target' }))
+      await user.click(screen.getByRole('option', { name: primary.label }))
+      await user.click(screen.getByRole('combobox', { name: 'Pay a cost' }))
+      await user.click(screen.getByRole('option', { name: 'Echoing (costs 2)' }))
+      await user.click(screen.getByRole('combobox', { name: 'Further targets' }))
+      await user.click(screen.getByRole('option', { name: further.label }))
+      await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+      const command = onResolve.mock.calls[0]?.[0]
+      expect(command).toMatchObject({
+        castModifierId: MODIFIER_ID,
+        target: { kind: 'ACTORS', actorIds: [primary.id, further.id] }
+      })
+      expect(command).not.toHaveProperty('castModifierActorIds')
+    })
+
     it('sends no cost until the caster picks one', async () => {
       const user = userEvent.setup()
       const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
