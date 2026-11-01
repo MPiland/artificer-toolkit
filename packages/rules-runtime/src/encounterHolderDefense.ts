@@ -14,10 +14,12 @@ import {
   hasFeatureSourceRestrictedGrants,
   hasEncounterDefensiveGrants,
   hasFeatureHolderStateConditionImmunities,
+  hasFeatureHolderStateDefenses,
   hasFeatureHolderStateSkillGrants,
   hasFeatureAttacksAgainstGrants,
   holderStateRestrictionsHold,
   withActiveGrantSpeeds,
+  withHolderStateDefenses,
   withHolderStateGrantSaves,
   type EncounterHolderState
 } from './encounterActiveGrants.js'
@@ -46,6 +48,8 @@ export async function encounterHolderState(input: {
   runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   /** Reads the feet the holder has moved this turn (0 off its turn); called once per state. */
   readTurnMovedFeet: () => Promise<number>
+  /** Reads how many Concentrations the holder keeps now; called once per state. */
+  readHeldConcentrationCount: () => Promise<number>
 }): Promise<EncounterHolderState> {
   const { target } = input
   const speeds =
@@ -76,6 +80,7 @@ export async function encounterHolderState(input: {
     activeAuthoredEffectIds: target.activeEffects.map(
       ({ definition }) => definition.authoredEffectId
     ),
+    heldConcentrationCount: await input.readHeldConcentrationCount(),
     stowableHeldItemInstanceId: freeHand ? null : stowableHeldWeapon(target, items, holds)
   }
 }
@@ -140,6 +145,7 @@ export async function withEncounterHolderDefense<T extends MovementTarget>(input
   speedDefinitions: readonly { id: string }[]
   runEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   readTurnMovedFeet: () => Promise<number>
+  readHeldConcentrationCount: () => Promise<number>
 }): Promise<T> {
   const { target } = input
   if (!hasHolderDefenseGrants(input.gameSystemId, target)) return target
@@ -167,6 +173,7 @@ function hasHolderDefenseGrants(gameSystemId: string, target: MovementTarget): b
     hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureSourceRestrictedGrants(featureGrants(target)) ||
     hasFeatureHolderStateConditionImmunities(featureGrants(target)) ||
+    hasFeatureHolderStateDefenses(featureGrants(target)) ||
     hasEffectSourceRestrictedGrants(target.activeEffects) ||
     sourceSightSaveGrants(gameSystemId, target).length > 0
   )
@@ -183,6 +190,7 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
   return {
     ...target,
     holderState,
+    defenses: withHolderStateDefenses(target.defenses, featureGrants(target), holderState),
     attackAgainstContributors: encounterAttackAgainstContributors({
       holderActorId: target.actor.id,
       effects: target.activeEffects,

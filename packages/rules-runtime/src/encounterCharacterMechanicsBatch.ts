@@ -60,6 +60,7 @@ export type EncounterCharacterMechanicsEventPhase =
   | 'INITIATIVE_RESTORE'
   | 'TURN_EFFECT'
   | 'DAMAGE_MIRROR'
+  | 'DEFEAT_REWARD'
 
 export function deriveEncounterCharacterMechanicsEventCommandId(input: {
   occurrenceId: string

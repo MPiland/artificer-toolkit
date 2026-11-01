@@ -104,7 +104,8 @@ const holderState: EncounterHolderState = {
   freeHand: true,
   stowableHeldItemInstanceId: null,
   turnMovement: { usedFeet: 0, speedFeet: 30 },
-  activeAuthoredEffectIds: []
+  activeAuthoredEffectIds: [],
+  heldConcentrationCount: 0
 }
 
 describe("Nature's Ward, Multiattack Defense and Land's Stride (SPELLS-31.T4j)", () => {
