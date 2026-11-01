@@ -22,10 +22,7 @@ import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtim
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { hydrateSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
-import {
-  readNativeLiveHeldConcentrationCount,
-  readNativeLiveTurnMovedFeet
-} from './nativeTurnUses.js'
+import { nativeLiveHolderStateReads } from './nativeTurnUses.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 
 /** The Run's pinned Spells (D163), hydrated from the room's stored pins; nothing compiles. */
@@ -174,9 +171,7 @@ export async function prepareNativeLiveMovementTarget(input: {
     definitions,
     speedDefinitions: inputs.system.speeds,
     runEffectsByActorId: input.activeEffectsByActorId,
-    readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, actor.id),
-    readHeldConcentrationCount: () =>
-      readNativeLiveHeldConcentrationCount(capture, state.gameSystemId, actor.id)
+    ...nativeLiveHolderStateReads(capture, state.gameSystemId, actor.id)
   })
   const saved = await withEncounterOccupantAuras({
     target: defended,

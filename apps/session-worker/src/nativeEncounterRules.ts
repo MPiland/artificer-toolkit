@@ -82,8 +82,7 @@ import {
 import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
-  readNativeLiveHeldConcentrationCount,
-  readNativeLiveTurnMovedFeet,
+  nativeLiveHolderStateReads,
   readNativeWeaponAttackOffer
 } from './nativeTurnUses.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
@@ -631,9 +630,7 @@ export async function planNativeLiveEncounterAction(
       definitions,
       speedDefinitions: system.speeds,
       runEffectsByActorId: activeEffectsByActorId,
-      readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, prepared.actor.id),
-      readHeldConcentrationCount: () =>
-        readNativeLiveHeldConcentrationCount(capture, state.gameSystemId, prepared.actor.id)
+      ...nativeLiveHolderStateReads(capture, state.gameSystemId, prepared.actor.id)
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)

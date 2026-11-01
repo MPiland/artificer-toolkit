@@ -13,7 +13,7 @@ import {
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 
 /** The feet an actor has moved this turn, read from the room's store. */
-export async function readNativeLiveTurnMovedFeet(
+async function readNativeLiveTurnMovedFeet(
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => Promise<LiveSessionEncounterRulesResponse>,
@@ -25,7 +25,7 @@ export async function readNativeLiveTurnMovedFeet(
 }
 
 /** How many Concentrations an actor keeps now, read from the room's store. */
-export async function readNativeLiveHeldConcentrationCount(
+async function readNativeLiveHeldConcentrationCount(
   capture: (
     request: LiveSessionEncounterRulesRequest
   ) => Promise<LiveSessionEncounterRulesResponse>,
@@ -39,6 +39,21 @@ export async function readNativeLiveHeldConcentrationCount(
   })
   if (captured.kind !== 'MAINTENANCE_STATES') throw new Error('Concentration is unavailable.')
   return captured.states.length
+}
+
+/** The Encounter holder-state reads of one actor, as `encounterHolderState` takes them. */
+export function nativeLiveHolderStateReads(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  gameSystemId: string,
+  actorId: string
+) {
+  return {
+    readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, actorId),
+    readHeldConcentrationCount: () =>
+      readNativeLiveHeldConcentrationCount(capture, gameSystemId, actorId)
+  }
 }
 
 /** An actor's latest voluntary move this turn (D164), read from the room's store. */
