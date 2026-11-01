@@ -34,6 +34,7 @@ import {
   type ClassAuthored,
   type ClosedRuleKind,
   type EffectAuthored,
+  type ModifierGrantAuthored,
   type SpellGrantAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
@@ -126,8 +127,13 @@ function selfClassRuleEffect(
  * after the d20 is seen; an attack-roll grant of the same shape is the follow-up window's to add.
  */
 function bardicInspirationEffect(): EffectAuthored {
-  const die = {
+  const die = (
+    entry: number,
+    valueDomainCode: ModifierGrantAuthored['valueDomainCode']
+  ): ModifierGrantAuthored => ({
+    id: classRowId(BD, 0x84, entry),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode,
     domain: {},
     modifierKind: MODIFIER_KIND.ADD_BONUS_DIE,
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
@@ -145,8 +151,9 @@ function bardicInspirationEffect(): EffectAuthored {
           { level: 15, faces: 12 }
         ]
       }
-    }
-  } as const
+    },
+    order: entry
+  })
   return {
     id: classRowId(BD, 0x60, 1),
     order: 1,
@@ -195,18 +202,8 @@ function bardicInspirationEffect(): EffectAuthored {
               effectKind: EFFECT_KIND.APPLY_GRANT,
               grants: {
                 modifiers: [
-                  {
-                    ...die,
-                    id: classRowId(BD, 0x84, 1),
-                    valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
-                    order: 1
-                  },
-                  {
-                    ...die,
-                    id: classRowId(BD, 0x84, 2),
-                    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                    order: 2
-                  }
+                  die(1, VALUE_DOMAIN_CODE.ABILITY_CHECK),
+                  die(2, VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER)
                 ]
               }
             }
