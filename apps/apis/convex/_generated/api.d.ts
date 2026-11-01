@@ -23613,6 +23613,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -33399,6 +33408,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -43135,6 +43152,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -52959,6 +52984,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -62745,6 +62779,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -72481,6 +72523,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -82314,6 +82364,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -92100,6 +92159,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -101836,6 +101903,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -111660,6 +111735,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -121446,6 +121530,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -131182,6 +131274,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -141041,6 +141141,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -150827,6 +150936,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -160563,6 +160680,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -170387,6 +170512,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -180173,6 +180307,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -189909,6 +190051,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -199734,6 +199884,14 @@ export declare const api: {
                               castModifier?: {
                                 chargeId: string;
                                 cost: number;
+                                parameters?: Array<{
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }>;
                                 perSpellLevel?: boolean;
                                 targets?: {
                                   abilityDefinitionId?: string;
@@ -209471,6 +209629,14 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          parameters?: Array<{
+                            multiplier: number;
+                            parameter: "RANGE";
+                            touchDistance: {
+                              amount: number;
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          }>;
                           perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
@@ -219076,6 +219242,14 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          parameters?: Array<{
+                            multiplier: number;
+                            parameter: "RANGE";
+                            touchDistance: {
+                              amount: number;
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          }>;
                           perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
@@ -228784,6 +228958,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -238570,6 +238753,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -248306,6 +248497,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -258130,6 +258329,15 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -267916,6 +268124,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -277652,6 +277868,14 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
