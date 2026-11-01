@@ -31,8 +31,13 @@ import {
   sourceQualifierAdmits,
   encounterSavingThrowAfterRollDice,
   withSourceSaves,
-  withSourceSightSave
+  withSaveContributors
 } from './encounterActiveGrants.js'
+import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
+import {
+  ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID,
+  encounterRuleContributorSource
+} from './encounterRollModeReasons.js'
 import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
 import type { EncounterPreparedAttackSight } from './encounterAttackBelief.js'
 import {
@@ -333,6 +338,8 @@ export async function prepareEncounterActionMechanics<
   choiceOptionId?: string
   /** The `castModifiers` entry of the cast candidate the caster pays on this cast. */
   castModifierId?: string
+  /** The creatures the paid cast modifier's save outcome applies to, up to its candidate's `targets.max`. */
+  castModifierActorIds?: readonly string[]
   /** The units the caster spends from the action's pool, for a heal that gives hit points per unit spent. */
   spentUnits?: number
   /** This creature's share of a pool the caster divides among the creatures the action reaches. */
@@ -525,6 +532,34 @@ export async function prepareEncounterActionMechanics<
     })
   if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
     throw new EncounterValidationError('The selected cast modifier is not offered.')
+  const castModifier =
+    input.castModifierId === undefined || source.kind !== 'CHARACTER_ACTION'
+      ? null
+      : (source.candidate.castModifiers?.find(
+          ({ modifierId }) => modifierId === input.castModifierId
+        ) ?? null)
+  if (input.castModifierId !== undefined && !castModifier)
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  const castModifierActorIds = input.castModifierActorIds ?? []
+  if (castModifierActorIds.length > (castModifier?.targets?.max ?? 0))
+    throw new EncounterValidationError(
+      'The selected cast modifier cannot name that many creatures.'
+    )
+  const castModifierOutcome = castModifierActorIds.includes(target.id)
+    ? (castModifier?.targets?.outcome ?? null)
+    : null
+  const castModifierContributors: readonly EncounterRelationshipD20Contributor[] =
+    castModifierOutcome === 'SAVE_DISADVANTAGE'
+      ? [
+          {
+            sourceId: ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID,
+            grantId: null,
+            domainKey: ENCOUNTER_CAST_MODIFIER_CONTRIBUTOR_SOURCE_ID,
+            influence: 'DISADVANTAGE',
+            source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.CAST_MODIFIER)
+          }
+        ]
+      : []
   const characterFacts = source.kind === 'CHARACTER_ACTION' ? sourceFacts.characterFacts : null
   const characterActionState =
     source.kind === 'CHARACTER_ACTION'
@@ -535,14 +570,6 @@ export async function prepareEncounterActionMechanics<
             characterFacts.character.systemId !== state.gameSystemId
           )
             throw new StaleCharacterActionError('The selected Character action source is stale.')
-          const castModifier =
-            input.castModifierId === undefined
-              ? null
-              : (source.candidate.castModifiers?.find(
-                  ({ modifierId }) => modifierId === input.castModifierId
-                ) ?? null)
-          if (input.castModifierId !== undefined && !castModifier)
-            throw new EncounterValidationError('The selected cast modifier is not offered.')
           return prepareNativeCharacterActionState({
             castModifier,
             spentUnits: input.spentUnits,
@@ -888,6 +915,11 @@ export async function prepareEncounterActionMechanics<
         })
   )
   const attackDecoy = attackKind === null ? null : (input.attackDecoy ?? null)
+  // What the target's save of the action's ability gains: the true sight of the one who sees it, and the cast modifier.
+  const saveContributors = [
+    ...(attackSight && attackKind === null ? attackSight.trueSight : []),
+    ...castModifierContributors
+  ]
   return {
     state,
     actor,
@@ -1003,14 +1035,12 @@ export async function prepareEncounterActionMechanics<
           ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
           : withSourceSaves(
               state.gameSystemId,
-              attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
-                ? withSourceSightSave(
-                    state.gameSystemId,
-                    targetFacts.targetDerivedFacts,
-                    compilerSource.savingThrowAbilityDefinitionId,
-                    attackSight.trueSight
-                  )
-                : targetFacts.targetDerivedFacts,
+              withSaveContributors(
+                state.gameSystemId,
+                targetFacts.targetDerivedFacts,
+                compilerSource?.savingThrowAbilityDefinitionId,
+                saveContributors
+              ),
               targetFacts.sourceSaves,
               attackSource,
               spellCastSystemId
@@ -1026,7 +1056,12 @@ export async function prepareEncounterActionMechanics<
             target: targetFacts.conditionMechanics,
             attack: conditionAttack
           }),
-        saveAutoFails: encounterConditionSaveAutoFails(targetFacts.conditionMechanics)
+        saveAutoFails: encounterConditionSaveAutoFails(targetFacts.conditionMechanics),
+        saveAutoSucceeds:
+          castModifierOutcome === 'SAVE_AUTO_SUCCESS' &&
+          compilerSource?.savingThrowAbilityDefinitionId
+            ? [compilerSource.savingThrowAbilityDefinitionId]
+            : []
       },
       currentHitPoints: targetFacts.state.current,
       temporaryHitPoints: targetFacts.state.temporary,

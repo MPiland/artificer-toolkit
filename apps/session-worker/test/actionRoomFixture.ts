@@ -20,6 +20,12 @@ import { connectPlayer, ROOM_REPLY_WAIT } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
 import { readPendingActionDecision } from './roomHistoryReads.js'
 
+/** A paid cast modifier and the creatures it names. */
+export interface CastModifierChoice {
+  id: string
+  actorIds: string[]
+}
+
 /** Which roll a Bite resolves with: the target's Dexterity save (DC 10) or the source's attack d20. */
 export type BiteKind = 'SAVE' | 'ATTACK'
 
@@ -679,12 +685,14 @@ export async function actionRoom(config: ActionRoomConfig) {
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
       /** Whose socket sends it: the GM's, or the player who controls the acting actor. */
       sender: 'GM' | 'PLAYER' = 'GM',
-      unaffectedActorIds?: string[]
+      unaffectedActorIds?: string[],
+      castModifier?: CastModifierChoice
     ) {
       return this.startAreaCommand(
         { kind: 'POINT', point, ...(unaffectedActorIds ? { unaffectedActorIds } : {}) },
         acknowledgedWarnings,
-        sender
+        sender,
+        castModifier
       )
     },
     /** The acting actor's directed area action from `origin` toward `toward`; not yet checked. */
@@ -743,7 +751,8 @@ export async function actionRoom(config: ActionRoomConfig) {
             choiceOptionId?: string
           },
       acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings'] = [],
-      sender: 'GM' | 'PLAYER' = 'GM'
+      sender: 'GM' | 'PLAYER' = 'GM',
+      castModifier?: CastModifierChoice
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -760,7 +769,11 @@ export async function actionRoom(config: ActionRoomConfig) {
         },
         actionId,
         optionalCombatIntent: null,
-        sceneContext: null
+        sceneContext: null,
+        ...(castModifier && {
+          castModifierId: castModifier.id,
+          castModifierActorIds: castModifier.actorIds
+        })
       }
       return {
         command,

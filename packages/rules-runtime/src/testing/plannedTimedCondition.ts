@@ -40,12 +40,14 @@ export function compiledTestSpellCast(input: {
 }) {
   const { spell, cast } = input
   const built = buildCharacterSpellCastActions({
+    gameSystemId: SRD_SYSTEM_ID,
     spellCastCandidates: [cast],
     spellAccessCandidates: input.spellAccessCandidates ?? [],
     onHitRiders: input.onHitRiders ?? [],
     castableCandidateIds: new Set([cast.candidateId]),
     policyOutput: {
       grantFold: { modifiers: [] },
+      derivedStats: { abilities: [] },
       resources: [],
       spellCastDecisions: [{ candidateId: cast.candidateId, ...input.decision }],
       spellCastMechanics: [

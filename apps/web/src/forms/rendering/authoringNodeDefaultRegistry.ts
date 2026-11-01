@@ -133,6 +133,8 @@ type AuthoringDefaultKind =
   | 'range'
   | 'slotCost'
   | 'reactionTrigger'
+  | 'castModifier'
+  | 'castModifierTargets'
   | 'resourceUse'
   | 'resultBlockGate'
   | 'scaling'
@@ -320,6 +322,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range', 'senseRange'],
   slotCost: ['slotCost'],
   reactionTrigger: ['reactionTrigger'],
+  castModifier: ['castModifier'],
+  castModifierTargets: ['castModifierTargets'],
   resourceUse: ['resourceUse'],
   resultBlockGate: ['resultBlockGate'],
   scaling: [
