@@ -43,8 +43,8 @@ type Resolution = Extract<
 type PendingOccurrence = NonNullable<EncounterCommandResultDto['occurrence']>['pending']
 
 /**
- * The GM's answer to an initiative decision: the top score, the first tie choice, the first
- * declared option. Null for any other pending decision.
+ * The GM's answer to an initiative decision: the top score, the first tie choice, the declared
+ * option of the actor's first step. Null for any other pending decision.
  */
 function initiativeResolution(
   encounterId: string,
@@ -64,8 +64,15 @@ function initiativeResolution(
       assert.ok(entityId, 'The initiative tie has no choice.')
       return { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
     }
-    case 'INITIATIVE_DECLARATION':
-      return declarationCommand({ encounterId, pending }).command.resolution
+    case 'INITIATIVE_DECLARATION': {
+      // The option whose label starts with the actor's first step action, else the first option.
+      const label = declaredAction.get(pending.actorId)
+      const option = label && pending.primaryOptions.find((entry) => entry.label.startsWith(label))
+      return declarationCommand({
+        encounterId,
+        pending: option ? { ...pending, primaryOptions: [option] } : pending
+      }).command.resolution
+    }
     default:
       return null
   }
@@ -279,6 +286,57 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     commandId: crypto.randomUUID()
   })
   log(`${scenario.campaign}: Run ${created.id} prepared`)
+  const prepared = encounterGmProjectionDtoSchema.parse(
+    await gm.client.query(api.encounters.projectionReads.get, { encounterId: created.id })
+  )
+  // Heroes by slug, creatures by key: the n-th spec creature of a source is its n-th actor.
+  const actors = new Map<
+    string,
+    {
+      id: string
+      label: string
+      position: { x: number; y: number }
+      tokenId: string
+      controlledBy: string[]
+    }
+  >()
+  for (const { hero, owner, characterId } of heroRecords) {
+    const actor = prepared.actors.find(
+      (entry) => entry.kind === 'CHARACTER' && entry.sourceId === characterId
+    )
+    assert.ok(actor, `Review hero ${hero.slug} is absent from the Run.`)
+    actors.set(hero.slug, {
+      id: actor.id,
+      label: actor.label,
+      position: hero.position,
+      tokenId: crypto.randomUUID(),
+      controlledBy: [owner.userId]
+    })
+  }
+  const seen = new Map<string, number>()
+  for (const creature of scenario.creatures) {
+    const ordinal = seen.get(creature.sourceId) ?? 0
+    seen.set(creature.sourceId, ordinal + 1)
+    const actor = prepared.actors.filter(
+      (entry) => entry.kind === 'CREATURE' && entry.sourceId === creature.sourceId
+    )[ordinal]
+    assert.ok(actor, `Review creature ${creature.key} is absent from the Run.`)
+    actors.set(creature.key, {
+      id: actor.id,
+      label: actor.label,
+      position: creature.position,
+      tokenId: crypto.randomUUID(),
+      controlledBy: []
+    })
+  }
+
+  // An actor declares, at initiative, the action it takes first: the label its first step names.
+  const declaredAction = new Map<string, string>()
+  for (const step of scenario.steps) {
+    const found = actors.get(step.actor)
+    if (found && 'action' in step && step.action && !declaredAction.has(found.id))
+      declaredAction.set(found.id, step.action)
+  }
   const execute = (command: EncounterExecuteInput['command']) =>
     gm.client.mutation(executeEncounterCommand, { command })
   let started = await execute({
@@ -290,7 +348,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   for (let resolutions = 0; started.occurrence?.status === 'PENDING'; resolutions++) {
     assert.ok(resolutions < 30, `${scenario.campaign} initiative did not settle.`)
     const pending = started.occurrence.pending
-    const resolution = initiativeResolution(created.id, pending)
+    const resolution = initiativeResolution(created.id, pending, declaredAction)
     if (!resolution)
       throw new Error(
         `${scenario.campaign} met an unexpected initiative continuation: ${pending?.kind ?? 'none'}.`
@@ -308,47 +366,6 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   }
   log(`${scenario.campaign}: Run started`)
   let run = encounterGmProjectionDtoSchema.parse(started.projection)
-
-  // Heroes by slug, creatures by key: the n-th spec creature of a source is its n-th actor.
-  const actors = new Map<
-    string,
-    {
-      id: string
-      label: string
-      position: { x: number; y: number }
-      tokenId: string
-      controlledBy: string[]
-    }
-  >()
-  for (const { hero, owner, characterId } of heroRecords) {
-    const actor = run.actors.find(
-      (entry) => entry.kind === 'CHARACTER' && entry.sourceId === characterId
-    )
-    assert.ok(actor, `Review hero ${hero.slug} is absent from the Run.`)
-    actors.set(hero.slug, {
-      id: actor.id,
-      label: actor.label,
-      position: hero.position,
-      tokenId: crypto.randomUUID(),
-      controlledBy: [owner.userId]
-    })
-  }
-  const seen = new Map<string, number>()
-  for (const creature of scenario.creatures) {
-    const ordinal = seen.get(creature.sourceId) ?? 0
-    seen.set(creature.sourceId, ordinal + 1)
-    const actor = run.actors.filter(
-      (entry) => entry.kind === 'CREATURE' && entry.sourceId === creature.sourceId
-    )[ordinal]
-    assert.ok(actor, `Review creature ${creature.key} is absent from the Run.`)
-    actors.set(creature.key, {
-      id: actor.id,
-      label: actor.label,
-      position: creature.position,
-      tokenId: crypto.randomUUID(),
-      controlledBy: []
-    })
-  }
 
   const { createEncounterLifecycleScene } = await import('./developmentEncounterScenes')
   const { bindScene, bindToken } = await import('./developmentEncounterLifecycle')
