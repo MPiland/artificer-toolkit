@@ -2074,6 +2074,7 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                stateId?: string;
                 type: "END_CONCENTRATION";
               }
             | {
@@ -2965,10 +2966,11 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             armorClass: number;
-            concentration: {
+            concentrations: Array<{
               label: string | null;
               sourceHidden: boolean;
-            } | null;
+              stateId: string | null;
+            }>;
             conditions: Array<{
               conditionTypeId: string;
               description?: string;
@@ -17813,10 +17815,11 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             armorClass: number;
-            concentration: {
+            concentrations: Array<{
               label: string | null;
               sourceHidden: boolean;
-            } | null;
+              stateId: string | null;
+            }>;
             conditions: Array<{
               conditionTypeId: string;
               description?: string;
@@ -19571,6 +19574,7 @@ export declare const api: {
             | {
                 commandId: string;
                 expectedVersion: number;
+                stateId?: string;
                 type: "END_CONCENTRATION";
               }
             | {
@@ -20006,10 +20010,11 @@ export declare const api: {
                   sourceHidden: boolean;
                 }>;
                 armorClass: number;
-                concentration: {
+                concentrations: Array<{
                   label: string | null;
                   sourceHidden: boolean;
-                } | null;
+                  stateId: string | null;
+                }>;
                 conditions: Array<{
                   conditionTypeId: string;
                   description?: string;
