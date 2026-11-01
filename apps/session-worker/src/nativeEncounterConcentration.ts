@@ -123,10 +123,11 @@ export async function planNativeLiveConcentration(input: {
     | 'maintenanceOwners'
     | 'maintainedState'
     | 'createdEffects'
-  > & {
-    /** The held state the action's new Concentration replaced; it no longer counts as held. */
-    replacedMaintainedStateId?: string | null
-  }
+  > &
+    Partial<Pick<ReturnType<typeof planNativeLiveEncounterSettlement>, 'maintenanceTransition'>> & {
+      /** The held state an area commit's new Concentration replaced; it no longer counts as held. */
+      replacedMaintainedStateId?: string | null
+    }
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
@@ -214,6 +215,9 @@ export async function planNativeLiveConcentration(input: {
     state.gameSystemId
   )
   /** Every Concentration the actor holds after the parent action, in casting order. */
+  const replacedId =
+    input.settlement.replacedMaintainedStateId ??
+    input.settlement.maintenanceTransition?.priorState?.id
   async function heldFor(targetActorId: string) {
     if (!slots.has(targetActorId)) {
       const response = await capture({
@@ -224,9 +228,7 @@ export async function planNativeLiveConcentration(input: {
       if (response.kind !== 'MAINTENANCE_STATES')
         throw new Error('Concentration slot is unavailable.')
       const created = input.settlement.maintainedState
-      const stored = response.states.filter(
-        ({ id }) => id !== input.settlement.replacedMaintainedStateId && id !== created?.id
-      )
+      const stored = response.states.filter(({ id }) => id !== replacedId && id !== created?.id)
       slots.set(
         targetActorId,
         created?.ownerActorId === targetActorId &&

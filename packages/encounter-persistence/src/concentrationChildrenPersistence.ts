@@ -165,7 +165,7 @@ export async function persistEncounterConcentrationChildren(
     slot: NonNullable<Awaited<ReturnType<typeof store.findMaintainedStateById>>>
     holder: EncounterRunActorState
   }[] = []
-  let previousOwnerId: string | null = null
+  let previous: { ownerActorId: string; castKey: string } | null = null
   for (const end of args.concentrationEnds) {
     const slot = await store.findMaintainedStateById({
       encounterId: state.id,
@@ -174,7 +174,6 @@ export async function persistEncounterConcentrationChildren(
     const holder = actors.find((actor) => actor.id === end.ownerActorId)
     if (
       state.automationMode === 'MANUAL' ||
-      (previousOwnerId !== null && end.ownerActorId.localeCompare(previousOwnerId) <= 0) ||
       !slot ||
       slot.ownerActorId !== end.ownerActorId ||
       slot.maintenanceDefinitionId !==
@@ -184,7 +183,12 @@ export async function persistEncounterConcentrationChildren(
         end.reason
     )
       throw new Error('Live Session concentration end is unexpected.')
-    previousOwnerId = end.ownerActorId
+    // Holders ascend by id; one holder's states end in casting order (`createdAt`, then id).
+    const castKey = `${slot.createdAt}:${slot.id}`
+    const owners = previous ? end.ownerActorId.localeCompare(previous.ownerActorId) : 1
+    if (owners < 0 || (owners === 0 && castKey <= previous!.castKey))
+      throw new Error('Live Session concentration end is unexpected.')
+    previous = { ownerActorId: end.ownerActorId, castKey }
     ends.push({ end, slot, holder })
   }
   // The saving-throw dice (D156) the settled checks spend from their holders, by the same rule an
