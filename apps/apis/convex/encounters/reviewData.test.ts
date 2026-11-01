@@ -39,13 +39,16 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   await t.action(internal.content.seed.seed, {})
   await attachRoomWorker(t)
   const accounts: ReviewAccount[] = []
+  const roomClients: ReturnType<typeof roomDevelopmentClient>[] = []
   for (const [index, spec] of [REVIEW_GM, ...REVIEW_PLAYERS].entries()) {
     const user = await createPartyUser(t, {
       username: spec.username,
       email: `draft_review00000${index}@example.invalid`
     })
+    const client = roomDevelopmentClient(user.caller)
+    roomClients.push(client)
     accounts.push({
-      client: roomDevelopmentClient(user.caller),
+      client,
       userId: user.userId,
       username: spec.username
     })
@@ -64,7 +67,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
       t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
     // Each finished Campaign's room is closed from both ends, so the next one activates on a quiet Worker.
     releaseRoom: async (campaignId: string) => {
-      for (const account of accounts) account.client.closeRooms()
+      for (const client of roomClients) client.closeRooms()
       await closeRoom(campaignId)
     },
     buildSnapshots: seedRoomContentSnapshots,
