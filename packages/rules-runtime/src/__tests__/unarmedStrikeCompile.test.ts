@@ -5,6 +5,7 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import {
@@ -19,9 +20,13 @@ import {
  * grant (Martial Arts) sets a weapon die, and stays a flat amount without one.
  */
 
+const TARGET_ID = '00000000-0000-4000-8000-0000000c0001'
+
 function hitDiceGraph(input: SrdCharacterInput) {
   const character = evaluateSrdCharacter(input)
-  const { candidate } = itemAction(character, 'Unarmed Strike', { attackKind: 'UNARMED' })
+  const { candidate, decision } = itemAction(character, 'Unarmed Strike', {
+    attackKind: 'UNARMED'
+  })
   const entry = compileCharacterActionEntryPoints({
     gameSystemId: SRD_SYSTEM_ID,
     candidates: character.facts.actionCandidates,
@@ -37,8 +42,29 @@ function hitDiceGraph(input: SrdCharacterInput) {
     throw new Error('The Unarmed Strike must compile.')
   const { executionPlan } = entry.compilation
   if (executionPlan.kind !== 'TEST_OUTCOME') throw new Error('The strike must roll a test.')
-  const hit = executionPlan.outcomes.find(({ pathCode }) => pathCode === 'ON_HIT')
-  return JSON.stringify(hit)
+  const { facts } = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
+    actionMechanic: decision.mechanic,
+    published: executionPlan.test,
+    sourceDerivedFacts: {},
+    targetActorId: TARGET_ID,
+    targetDerivedFacts: {},
+    targetConditionIds: [],
+    currentHitPoints: 20,
+    temporaryHitPoints: 0,
+    maximumHitPoints: 20,
+    targetScalarValues: {},
+    defenses: []
+  })
+  const specialized = dnd5eCharacterRuleActionSystemAdapter.specializeOutcomeTemplate?.({
+    compilerSource: executionPlan.compilerSource,
+    testTemplate: executionPlan.test,
+    selectedPath: 'ON_HIT',
+    facts,
+    testOutputs: { resultPath: 'ON_HIT' },
+    testRollMode: 'NORMAL'
+  })
+  if (!specialized) throw new Error('The ON_HIT template must specialize.')
+  return JSON.stringify(specialized.published.definition.nodes)
 }
 
 const DIE_NODE = /"key":"evidence\.integer-range".{0,160}?"max":\{"kind":"LITERAL","value":(\d+)\}/g
