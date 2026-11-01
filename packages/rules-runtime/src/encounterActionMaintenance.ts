@@ -129,14 +129,16 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     publishedPolicy.emptyDependentPolicy !== policy.emptyDependentPolicy
   )
     throw new Error('The active-effect maintenance policy does not match its published definition.')
+  const held = await input.readHeldStates(policy.definitionId)
+  // A Character holds as many as its stat allows; a Creature holds one.
+  const capacity =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? prepared.source.effectivePolicyOutput.concentrationCapacity
+      : 1
   const replaced = chooseReplacedMaintainedState({
     definitionId: policy.definitionId,
-    held: await input.readHeldStates(policy.definitionId),
-    // A Character holds as many as its stat allows; a Creature holds one.
-    capacity:
-      prepared.source.kind === 'CHARACTER_ACTION'
-        ? prepared.source.effectivePolicyOutput.concentrationCapacity
-        : 1,
+    held,
+    capacity,
     chosenStateId: input.chosenStateId
   })
   const slot = replaced
@@ -144,17 +146,21 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     : { state: null, dependents: [] }
   const prior = slot.state
   const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
+  // Carried grants (D99) are one Concentration of the caster's own not yet in the Run's states, so
+  // they end when the new one leaves no room beside it (or replaces another).
+  const carriedEffects = casterCharacterId && input.readCarried ? await input.readCarried() : []
   const carried = planConcentrationCarriedGrantEnds({
     casterCharacterId: casterCharacterId ?? '',
-    effects: casterCharacterId && input.readCarried ? await input.readCarried() : []
+    effects: carriedEffects
   })
+  const carriedEnds = replaced || held.length + 1 >= capacity ? carried : []
   const byOwnerOrder = (left: ActiveRuleEffectRecord, right: ActiveRuleEffectRecord) => {
     const key = (effect: ActiveRuleEffectRecord) =>
       `${effect.owner.kind === 'CHARACTER' ? `0:${effect.owner.characterId}` : `1:${effect.owner.targetActorId}`}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.id}`
     return key(left).localeCompare(key(right))
   }
-  const removed = [...slot.dependents, ...carried].sort(byOwnerOrder)
-  const sortedCarried = [...carried].sort(byOwnerOrder)
+  const removed = [...slot.dependents, ...carriedEnds].sort(byOwnerOrder)
+  const sortedCarried = [...carriedEnds].sort(byOwnerOrder)
   return {
     policy,
     definitionChecksum: definition.checksum,

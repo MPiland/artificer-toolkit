@@ -22,6 +22,8 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { snapshotCreatureHitPoints } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { groupCountChange } from '@artificer-toolkit/rules-runtime/summonHitPoints'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { initiativeRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
@@ -424,6 +426,12 @@ async function recordEncounterToolCommand(
       actor.kind === 'CHARACTER'
     )
       throw new Error("A Character's grant is ended through its Sheet command.")
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      input.groupCount !== undefined &&
+      actor.owner?.count === undefined
+    )
+      throw new Error('Only a summoned group has a creature count.')
     if (input.type === 'UPDATE_ACTOR' && input.endConcentration && actor.kind === 'CHARACTER')
       throw new Error("A Character's Concentration is ended through its Sheet command.")
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
@@ -504,6 +512,17 @@ async function recordEncounterToolCommand(
             ...(input.reveal === undefined ? {} : { reveal: input.reveal }),
             ...(input.returnToInitiative ? { absence: null } : {}),
             ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
+            ...(input.groupCount === undefined || actor.kind === 'CHARACTER' || !actor.owner?.count
+              ? {}
+              : {
+                  owner: { ...actor.owner, count: input.groupCount },
+                  ...groupCountChange(
+                    actor,
+                    snapshotCreatureHitPoints(actor),
+                    actor.owner.count,
+                    input.groupCount
+                  )
+                }),
             updatedAt
           }
     )

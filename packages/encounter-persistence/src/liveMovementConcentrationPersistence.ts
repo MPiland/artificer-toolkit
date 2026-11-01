@@ -131,8 +131,8 @@ export async function persistLiveMovementConcentration(
   const { state, parentOccurrenceId } = input
   const result = execution.result
   const output = result.applicationOutputs
-  const { maintainedStateId, ...damage } = output.application
-  const expectedId = concentrationOccurrenceId(parentOccurrenceId, damage)
+  const { maintainedStateId } = output.application
+  const expectedId = concentrationOccurrenceId(parentOccurrenceId, output.application)
   if (
     execution.sourceCommandId !== input.sourceCommandId ||
     result.occurrenceId !== expectedId ||

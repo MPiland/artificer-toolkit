@@ -372,6 +372,79 @@ describe('CampaignTabletopEncounterDrawer', () => {
     )
   })
 
+  describe('the creatures in a group token (SPELLS-35.T7)', () => {
+    const warden = tabletopGmEncounter.actors[1]!
+    const groupDrawer = (count: number | undefined, onCommand = vi.fn()) =>
+      renderWithAppProviders(
+        <CampaignTabletopEncounterDrawer
+          actorIdByTokenId={new Map()}
+          connected
+          currentActorMine
+          encounter={{
+            ...tabletopGmEncounter,
+            actors: tabletopGmEncounter.actors.map((actor) =>
+              actor.id === warden.id
+                ? {
+                    ...actor,
+                    owner: {
+                      ownerActorId: tabletopGmEncounter.actors[0]!.id,
+                      sourceEffectId: crypto.randomUUID(),
+                      ...(count === undefined ? {} : { count })
+                    }
+                  }
+                : actor
+            )
+          }}
+          holds={[]}
+          memberships={createTabletopCampaign('OWNER').memberships}
+          pending={false}
+          role='OWNER'
+          scene={tabletopLiveScene}
+          session={undefined}
+          onCommand={onCommand}
+          onEndCharacterConcentration={() => undefined}
+          onRelease={vi.fn()}
+        />
+      )
+
+    it('lets the GM lower a group’s count', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      groupDrawer(3, onCommand)
+
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      const count = screen.getByRole('textbox', { name: 'Vault Warden creatures in the group' })
+      expect(count).toHaveValue('3')
+      await user.clear(count)
+      await user.type(count, '2')
+      await user.tab()
+
+      expect(onCommand).toHaveBeenCalledWith({
+        actorId: warden.id,
+        commandId: expect.any(String),
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        groupCount: 2,
+        type: 'UPDATE_ACTOR'
+      })
+    })
+
+    it('sends nothing for an unchanged count, and offers no count to an actor that is not a group', async () => {
+      const user = userEvent.setup()
+      const onCommand = vi.fn()
+      const { unmount } = groupDrawer(3, onCommand)
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      await user.click(screen.getByRole('textbox', { name: 'Vault Warden creatures in the group' }))
+      await user.tab()
+      expect(onCommand).not.toHaveBeenCalled()
+      unmount()
+
+      groupDrawer(undefined, onCommand)
+      await user.click(screen.getByRole('button', { name: 'Open turn order' }))
+      expect(screen.queryByLabelText('Vault Warden creatures in the group')).toBeNull()
+    })
+  })
+
   describe('revealing a creature the map hides (ATTACK-17.3)', () => {
     const warden = tabletopGmEncounter.actors[1]!
     const gmDrawer = (encounter: EncounterGmProjectionDto, onCommand = vi.fn()) =>

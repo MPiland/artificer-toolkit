@@ -52,12 +52,13 @@ export async function readEncounterWaitingOn(
   if (!decision) return null
   if (decision.kind === 'AREA_SAVES') {
     const controllers = await Promise.all(
-      [...decision.saves, ...decision.legendaryResistance].map(async ({ actorId }) =>
-        readEncounterActorPrimaryController(
-          ctx,
-          campaign,
-          await readRunActor(ctx, readRunState(row), actorId)
-        )
+      [...decision.saves, ...decision.windows, ...decision.legendaryResistance].map(
+        async ({ actorId }) =>
+          readEncounterActorPrimaryController(
+            ctx,
+            campaign,
+            await readRunActor(ctx, readRunState(row), actorId)
+          )
       )
     )
     return controllers.every((controller) => controller === campaign.ownerUserId) ? 'GM' : 'PLAYER'

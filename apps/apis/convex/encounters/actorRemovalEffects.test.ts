@@ -270,6 +270,7 @@ describe('native actor maintained-effect cleanup', () => {
         maintainedState: {
           id: maintained.id,
           version: maintained.version,
+          createdAt: maintained.createdAt,
           maintenanceDefinitionId: maintained.maintenanceDefinitionId,
           descriptorChecksum: maintained.descriptorChecksum
         },

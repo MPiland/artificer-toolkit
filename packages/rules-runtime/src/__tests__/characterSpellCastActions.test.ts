@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { MAX_GROUP_COUNT } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import {
   createCharacterMechanicSourceKey,
@@ -34,6 +35,7 @@ import {
   SRD_TRUESIGHT_SENSE_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
 import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
@@ -42,6 +44,7 @@ import {
   RITUAL_CAST_REFUSAL,
   readSpellCastSlot
 } from '../character/characterSpellCastActions.js'
+import type { CastModifierSource } from '../character/characterCastModifiers.js'
 import { spellCastActionId } from '../spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
@@ -157,6 +160,7 @@ function policyFor(
 ) {
   return {
     grantFold: { modifiers: [] },
+    derivedStats: { abilities: [] },
     spellCastDecisions: candidates.map(
       (cast): CharacterRulePolicyOutput['spellCastDecisions'][number] => ({
         candidateId: cast.candidateId,
@@ -485,6 +489,7 @@ function build(
   slotKeyFor?: Parameters<typeof policyFor>[2]
 ) {
   return buildCharacterSpellCastActions({
+    gameSystemId: SRD_SYSTEM_ID,
     spellCastCandidates: candidates,
     spellAccessCandidates: [],
     castableCandidateIds: new Set(candidates.map((cast) => cast.candidateId)),
@@ -616,6 +621,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
     ...character.output,
     ...policy,
     grantFold: character.output.grantFold,
+    derivedStats: character.output.derivedStats,
     actionDecisions: built.decisions
   }
   const compiled = compileCharacterActionEntryPoints({
@@ -767,6 +773,7 @@ describe('a cast paid from a spell-source pool', () => {
     return {
       ...policy,
       grantFold: character.output.grantFold,
+      derivedStats: character.output.derivedStats,
       resources: [pool(rawUsed)],
       spellSlots: { ...policy.spellSlots, slotPools: paysPact ? [pactPool] : [] }
     }
@@ -807,6 +814,7 @@ describe('a cast paid from a spell-source pool', () => {
           ...character.output,
           ...pooledPolicy(cast, rawUsed),
           grantFold: character.output.grantFold,
+          derivedStats: character.output.derivedStats,
           actionDecisions: built.decisions
         },
         resourceUsage:
@@ -3130,7 +3138,8 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       expect(placement.forms[1]).toEqual({
         id: expect.any(String),
         label: 'Cat',
-        creatureId: CREATURE_IDS.CAT
+        creatureId: CREATURE_IDS.CAT,
+        maxTargets: 1
       })
       expect(placement.creatureTypeIds).toEqual(
         [creatureTypeId('CELESTIAL'), creatureTypeId('FEY'), creatureTypeId('FIEND')].sort()
@@ -3180,7 +3189,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         }),
         familiar((outcome) => {
           outcome.forms = outcome.forms?.map((form, index) =>
-            index === 0 ? { ...form, maxTargets: 2 } : form
+            index === 0 ? { ...form, maxTargets: MAX_GROUP_COUNT + 1 } : form
           )
         })
       ]
@@ -3216,7 +3225,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         formStats: formSummonStats(formCreature)
       })
       const { actor } = buildEncounterSummon({
-        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
+        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey, count: null },
         spellSummon,
         caster,
         casterHitPointMaximum: 40,
@@ -3623,6 +3632,7 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
         ...character.output,
         ...policyWith([pool(rawUsed, input.maximum)]),
         grantFold: character.output.grantFold,
+        derivedStats: character.output.derivedStats,
         actionDecisions: built.decisions
       },
       resourceUsage:
@@ -3656,6 +3666,59 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     expect(offered([pool(0)]).candidates[0]?.castModifiers).toEqual([
       { modifierId: MODIFIER_ID, label: 'Quiet Casting', chargeId: CHARGE_ID, cost: 1, poolId }
     ])
+  })
+
+  describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
+    const charisma = character.output.derivedStats.abilities.find(
+      ({ abilityId }) =>
+        abilityId ===
+        abilityScoreCapabilityRegistry
+          .require(SRD_SYSTEM_ID)
+          .abilityCode(SRD_ABILITY_DEFINITION_IDS.CHARISMA)
+    )!
+    const offeredWith = (targets: CastModifierSource['cost']['targets']) =>
+      build([cast], {
+        castModifiers: [{ ...modifier, cost: { ...modifier.cost, targets } }],
+        policyOutput: {
+          ...policyWith([pool(0)]),
+          derivedStats: character.output.derivedStats
+        }
+      }).candidates[0]?.castModifiers?.[0]
+
+    it('offers the outcome with the base plus the ability modifier as the most creatures', () => {
+      expect(
+        offeredWith({
+          outcome: 'SAVE_AUTO_SUCCESS',
+          base: 2,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA
+        })?.targets
+      ).toEqual({
+        outcome: 'SAVE_AUTO_SUCCESS',
+        max: Math.max(1, 2 + charisma.modifier.effective)
+      })
+    })
+
+    it('offers the minimum when the modifier is lower', () => {
+      expect(
+        offeredWith({
+          outcome: 'SAVE_AUTO_SUCCESS',
+          base: -20,
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
+          minimum: 3
+        })?.targets
+      ).toEqual({ outcome: 'SAVE_AUTO_SUCCESS', max: 3 })
+    })
+
+    it('offers a fixed number of creatures when no ability is named', () => {
+      expect(offeredWith({ outcome: 'SAVE_DISADVANTAGE', base: 1 })?.targets).toEqual({
+        outcome: 'SAVE_DISADVANTAGE',
+        max: 1
+      })
+    })
+
+    it('offers no targets for a modifier that authors none', () => {
+      expect(offered([pool(0)]).candidates[0]?.castModifiers?.[0]).not.toHaveProperty('targets')
+    })
   })
 
   it('offers nothing when the pool is spent, missing, or the cast is already paid from a pool', () => {

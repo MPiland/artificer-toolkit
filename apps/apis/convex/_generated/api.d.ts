@@ -2204,6 +2204,7 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                count?: number;
                 creatureTypeId?: string;
                 expectedVersion: number;
                 formId?: string;
@@ -4857,7 +4858,11 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
-              creatureTypes?: Array<{ id: string; label: string }>;
+              creatureTypes?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -4866,7 +4871,11 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
-              summonForms?: Array<{ id: string; label: string }>;
+              summonForms?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -11205,7 +11214,11 @@ export declare const api: {
               concentration: boolean;
               currentHitPoints?: number;
               customName?: string;
-              form?: { creatureId: string; creatureTypeId?: string };
+              form?: {
+                count?: number;
+                creatureId: string;
+                creatureTypeId?: string;
+              };
               id: string;
               label: string;
               maximumHitPoints?: number;
@@ -11604,7 +11617,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -12002,7 +12019,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -12591,7 +12612,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -13188,7 +13213,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -13788,7 +13817,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -14371,7 +14404,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -15655,7 +15692,11 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
-              creatureTypes?: Array<{ id: string; label: string }>;
+              creatureTypes?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -15664,7 +15705,11 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
-              summonForms?: Array<{ id: string; label: string }>;
+              summonForms?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -19656,6 +19701,7 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                count?: number;
                 creatureTypeId?: string;
                 expectedVersion: number;
                 formId?: string;
@@ -23567,6 +23613,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -33340,7 +33393,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -43063,7 +43126,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -52877,6 +52950,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -62650,7 +62730,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -72373,7 +72463,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -82196,6 +82296,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -91969,7 +92076,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -101692,7 +101809,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -111506,6 +111633,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -121279,7 +121413,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -131002,7 +131146,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -140851,6 +141005,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -150624,7 +150785,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -160347,7 +160518,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -170161,6 +170342,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -179934,7 +180122,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -189657,7 +189855,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -199469,7 +199677,17 @@ export declare const api: {
                               triggerCode: "SAVING_THROW" | "HP_ZERO";
                             }
                           | {
-                              castModifier?: { chargeId: string; cost: number };
+                              castModifier?: {
+                                chargeId: string;
+                                cost: number;
+                                targets?: {
+                                  abilityDefinitionId?: string;
+                                  base: number;
+                                  minimum?: number;
+                                  outcome:
+                                    "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                };
+                              };
                               kind: "PASSIVE";
                               optionalOnHit?:
                                 | { kind: "SPELL_SLOT" }
@@ -209193,7 +209411,16 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
-                        castModifier?: { chargeId: string; cost: number };
+                        castModifier?: {
+                          chargeId: string;
+                          cost: number;
+                          targets?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                          };
+                        };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -218785,7 +219012,16 @@ export declare const api: {
                         triggerCode: "SAVING_THROW" | "HP_ZERO";
                       }
                     | {
-                        castModifier?: { chargeId: string; cost: number };
+                        castModifier?: {
+                          chargeId: string;
+                          cost: number;
+                          targets?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                          };
+                        };
                         kind: "PASSIVE";
                         optionalOnHit?:
                           | { kind: "SPELL_SLOT" }
@@ -228483,6 +228719,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -238256,7 +238499,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -247979,7 +248232,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -257793,6 +258056,13 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  targets?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                    outcome:
+                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                  };
                                 };
                                 kind: "PASSIVE";
                                 optionalOnHit?:
@@ -267566,7 +267836,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -277289,7 +277569,17 @@ export declare const api: {
                           triggerCode: "SAVING_THROW" | "HP_ZERO";
                         }
                       | {
-                          castModifier?: { chargeId: string; cost: number };
+                          castModifier?: {
+                            chargeId: string;
+                            cost: number;
+                            targets?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                              outcome:
+                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            };
+                          };
                           kind: "PASSIVE";
                           optionalOnHit?:
                             | { kind: "SPELL_SLOT" }
@@ -286741,7 +287031,15 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
-            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            castModifiers?: Array<{
+              cost: number;
+              id: string;
+              label: string;
+              targets?: {
+                max: number;
+                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+              };
+            }>;
             chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
@@ -287156,9 +287454,17 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
-                  creatureTypes?: Array<{ id: string; label: string }>;
+                  creatureTypes?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                   kind: "POINT";
-                  summonForms?: Array<{ id: string; label: string }>;
+                  summonForms?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                 }
               | {
                   area:
@@ -288512,7 +288818,15 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
-            castModifiers?: Array<{ cost: number; id: string; label: string }>;
+            castModifiers?: Array<{
+              cost: number;
+              id: string;
+              label: string;
+              targets?: {
+                max: number;
+                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+              };
+            }>;
             chosenSpend?: { max: number; unitCost: number };
             componentsLabel?: string;
             damageLabel?: string;
@@ -288927,9 +289241,17 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
-                  creatureTypes?: Array<{ id: string; label: string }>;
+                  creatureTypes?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                   kind: "POINT";
-                  summonForms?: Array<{ id: string; label: string }>;
+                  summonForms?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                 }
               | {
                   area:
@@ -290691,6 +291013,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -290858,6 +291181,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -291040,7 +291364,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                  | "ENTER_DICE"
+                  | "SYSTEM_ROLL"
+                  | "D20_WINDOW_DECLINE"
+                  | "D20_WINDOW_USE"
+                  | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
                 caught: Array<string>;
@@ -291076,6 +291404,19 @@ export declare const api: {
                       label: string;
                     }>;
                   };
+                  targetActorId: string;
+                }>;
+                windows: Array<{
+                  actorId: string;
+                  d20: { selectedNatural: number; total: number };
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
                   targetActorId: string;
                 }>;
               }
@@ -291982,7 +292323,11 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<
-                    "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                    | "ENTER_DICE"
+                    | "SYSTEM_ROLL"
+                    | "D20_WINDOW_DECLINE"
+                    | "D20_WINDOW_USE"
+                    | "AREA_LEGENDARY_RESISTANCE"
                   >;
                   casterActorId: string | null;
                   caught: Array<string>;
@@ -292021,6 +292366,19 @@ export declare const api: {
                         label: string;
                       }>;
                     };
+                    targetActorId: string;
+                  }>;
+                  windows: Array<{
+                    actorId: string;
+                    d20: { selectedNatural: number; total: number };
+                    options: Array<{
+                      count: number;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      optionId: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
+                    requestId: string;
                     targetActorId: string;
                   }>;
                 }
@@ -292939,6 +293297,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -293106,6 +293465,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -293599,7 +293959,11 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<
-              "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+              | "ENTER_DICE"
+              | "SYSTEM_ROLL"
+              | "D20_WINDOW_DECLINE"
+              | "D20_WINDOW_USE"
+              | "AREA_LEGENDARY_RESISTANCE"
             >;
             casterActorId: string | null;
             caught: Array<string>;
@@ -293632,6 +293996,19 @@ export declare const api: {
                   label: string;
                 }>;
               };
+              targetActorId: string;
+            }>;
+            windows: Array<{
+              actorId: string;
+              d20: { selectedNatural: number; total: number };
+              options: Array<{
+                count: number;
+                faces: 4 | 6 | 8 | 10 | 12;
+                label: string;
+                optionId: string;
+                sign: "ADD" | "SUBTRACT";
+              }>;
+              requestId: string;
               targetActorId: string;
             }>;
           }
@@ -294479,6 +294856,7 @@ export declare const api: {
                   | "GROUP_LEADER_TAKEN_PRISONER";
               }>;
               owner?: {
+                count?: number;
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -294645,6 +295023,7 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               owner?: {
+                count?: number;
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -294911,6 +295290,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -295078,6 +295458,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -295219,7 +295600,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "ENTER_DICE" | "SYSTEM_ROLL" | "AREA_LEGENDARY_RESISTANCE"
+                  | "ENTER_DICE"
+                  | "SYSTEM_ROLL"
+                  | "D20_WINDOW_DECLINE"
+                  | "D20_WINDOW_USE"
+                  | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
                 caught: Array<string>;
@@ -295255,6 +295640,19 @@ export declare const api: {
                       label: string;
                     }>;
                   };
+                  targetActorId: string;
+                }>;
+                windows: Array<{
+                  actorId: string;
+                  d20: { selectedNatural: number; total: number };
+                  options: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    optionId: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  requestId: string;
                   targetActorId: string;
                 }>;
               }
@@ -296161,6 +296559,7 @@ export declare const api: {
                 | "GROUP_LEADER_TAKEN_PRISONER";
             }>;
             owner?: {
+              count?: number;
               ownerActorId: string;
               sourceEffectId?: string;
               turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -305550,6 +305949,7 @@ export declare const internal: {
                 id: string;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                 owner?: {
+                  count?: number;
                   ownerActorId: string;
                   sourceEffectId?: string;
                   turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";

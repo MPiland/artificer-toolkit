@@ -102,6 +102,15 @@ function stringValues(value: unknown): string[] {
     : []
 }
 
+/** One creature's hit points as its snapshot holds them; a group's pool is this times its count. */
+export function snapshotCreatureHitPoints(actor: { snapshot: unknown }): number {
+  const payload = isRecord(actor.snapshot) ? actor.snapshot.payload : undefined
+  const hitPoints = isRecord(payload) ? payload.hitPoints : undefined
+  if (typeof hitPoints !== 'number' || !Number.isInteger(hitPoints) || hitPoints < 1)
+    throw new Error("The creature's hit points are not in its snapshot.")
+  return hitPoints
+}
+
 export function snapshotStatBlock(actor: {
   kind: string
   systemId: string | null

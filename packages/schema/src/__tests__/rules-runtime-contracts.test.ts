@@ -860,7 +860,8 @@ describe('rules runtime contracts', () => {
         id: '00000000-0000-4000-8000-000000000304',
         version: 1,
         maintenanceDefinitionId: '00000000-0000-4000-8000-000000000305',
-        descriptorChecksum: 'c'.repeat(64)
+        descriptorChecksum: 'c'.repeat(64),
+        createdAt: '2026-01-01T00:00:00.000Z'
       },
       concentrationDefinition: {
         id: '00000000-0000-4000-8000-0000000000c2',
@@ -934,7 +935,8 @@ describe('rules runtime contracts', () => {
     const turnRemaining = [9999, 10000].map((ordinal) => ({
       ...application,
       ordinal,
-      maintainedStateId: pending.maintainedState.id
+      maintainedStateId: pending.maintainedState.id,
+      castAt: pending.maintainedState.createdAt
     }))
     expect(
       serverRuleExecutionPendingApplicationContextDtoSchema.parse({
@@ -971,7 +973,11 @@ describe('rules runtime contracts', () => {
         savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
         targetCharacter: pending.targetCharacter,
         systemVocabularySnapshot: pending.systemVocabularySnapshot,
-        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        application: {
+          ...application,
+          maintainedStateId: pending.maintainedState.id,
+          castAt: pending.maintainedState.createdAt
+        },
         trigger: pending.trigger,
         outcome: 'SAVE_SUCCESS',
         d20: {
@@ -1055,7 +1061,11 @@ describe('rules runtime contracts', () => {
         savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
         targetCharacter: pending.targetCharacter,
         systemVocabularySnapshot: pending.systemVocabularySnapshot,
-        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        application: {
+          ...application,
+          maintainedStateId: pending.maintainedState.id,
+          castAt: pending.maintainedState.createdAt
+        },
         trigger: pending.trigger,
         outcome: 'SAVE_SUCCESS',
         d20: {
@@ -1088,7 +1098,11 @@ describe('rules runtime contracts', () => {
         savingThrowAbilityDefinitionId: pending.save.savingThrowAbilityDefinitionId,
         targetCharacter: pending.targetCharacter,
         systemVocabularySnapshot: pending.systemVocabularySnapshot,
-        application: { ...application, maintainedStateId: pending.maintainedState.id },
+        application: {
+          ...application,
+          maintainedStateId: pending.maintainedState.id,
+          castAt: pending.maintainedState.createdAt
+        },
         outcome: 'SAVE_FAILURE',
         d20: {
           requestId: 'concentration-d20',

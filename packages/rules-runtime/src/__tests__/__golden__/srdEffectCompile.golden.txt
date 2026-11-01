@@ -44,7 +44,6 @@
 00000000-0000-0000-c003-140600000000 CHARACTER:classes Divine Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c003-600300000000 CHARACTER:classes Channel Divinity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000000-0000-0000-c003-600500000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c003-600600000000 CHARACTER:classes Destroy Undead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c003-600800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c003-600a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c003-600b00000000 CHARACTER:classes Divine Intervention | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
@@ -1271,8 +1270,8 @@
 00000020-0000-0210-00e6-000000000001 CHARACTER:spells Plant Growth | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00e7-000000000001 CHARACTER:spells Poison Spray | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=802b342b98ffbd851ff5eb613e324b1900a8f70bf0b6dd387e890ff7b743f474]
 00000020-0000-0210-00e8-000000000001 CHARACTER:spells Polymorph | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[]
-00000020-0000-0210-00ea-000000000001 CHARACTER:spells Power Word Kill | SINGLE_GRAPH fcbce29f39d1a4c6d737ce7abf8c5873e26a49adbafff4875e1999b33889942a nodes=1 outputs=1
-00000020-0000-0210-00eb-000000000001 CHARACTER:spells Power Word Stun | SINGLE_GRAPH 0f3cdf0f724e89ef96f9809b63cf72b3d778eb46109a8f3412e3629d22481914 nodes=1 outputs=3
+00000020-0000-0210-00ea-000000000001 CHARACTER:spells Power Word Kill | SINGLE_GRAPH da93cc180b986d15ec4b6aae4a08a6adb67fe776b2f94cdd80ae1db3b4e75f87 nodes=1 outputs=1
+00000020-0000-0210-00eb-000000000001 CHARACTER:spells Power Word Stun | SINGLE_GRAPH 547e82fc5d3d8adcddc4420973cc8fc85a7e7da2cc111d6d0333be6475262498 nodes=1 outputs=3
 00000020-0000-0210-00ec-000000000001 CHARACTER:spells Prayer of Healing | SINGLE_GRAPH 83b6593c06d82674e9c9d3e576d1ced763eb569c0a4469ebc4ccccbe36ac81c0 nodes=5 outputs=2
 00000020-0000-0210-00ec-000000000001 @U9 | SINGLE_GRAPH 8a3e13bfe422553d6eb691440a2286146c9ebbc77840257d3676516ec4fd7eaa nodes=19 outputs=2
 00000020-0000-0210-00ed-000000000001 CHARACTER:spells Prestidigitation | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1

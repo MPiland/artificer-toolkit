@@ -335,6 +335,44 @@ describe('VTT token presentation model', () => {
     }
   })
 
+  it('shows how many creatures a group token stands for, and follows the GM lowering it (SPELLS-35.T7)', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const enemyId = tabletopGmEncounter.actors[1]!.id
+    const present = (count: number | undefined) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, enemyId]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: {
+          ...tabletopGmEncounter,
+          currentActorId: null,
+          actors: tabletopGmEncounter.actors.map((actor) =>
+            actor.id === enemyId
+              ? {
+                  ...actor,
+                  owner: {
+                    ownerActorId: tabletopGmEncounter.actors[0]!.id,
+                    sourceEffectId: crypto.randomUUID(),
+                    ...(count === undefined ? {} : { count })
+                  }
+                }
+              : actor
+          )
+        },
+        pending: null,
+        scene
+      })[token.id]!
+    const groupBadge = (count: number | undefined) =>
+      present(count).statuses.filter((status) => status.kind === 'GROUP')
+    expect(groupBadge(3)).toEqual([
+      { category: 'OTHER', id: 'group', kind: 'GROUP', label: '3 creatures' }
+    ])
+    expect(groupBadge(2)[0]?.label).toBe('2 creatures')
+    expect(present(3).accessibleDescription).toContain('3 creatures')
+    expect(groupBadge(undefined)).toEqual([])
+  })
+
   it('marks a defeated creature that has loot, only when given the loot actors (the GM view)', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!

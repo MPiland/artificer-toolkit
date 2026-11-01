@@ -2,6 +2,7 @@ import type {
   EncounterAttackActionStateDto,
   EncounterAttackActionTransitionDto
 } from '@artificer-toolkit/schema/projections/encounterAttackAction'
+import { MAX_ATTACK_SLOT_COUNT } from '@artificer-toolkit/schema/features/attackSlots'
 import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
@@ -72,6 +73,18 @@ export function creatureAttackSlotAlternatives(
   return snapshotFeatureDefinitions(actor).flatMap(
     (feature) => feature.attackSlots?.alternatives ?? []
   )
+}
+
+/**
+ * The slots of an Attack action that takes `attacks` attacks of any kind: the actor's attacks per
+ * Attack action, times the creatures of a group token (`owner.count`). A slot holds at most
+ * MAX_ATTACK_SLOT_COUNT attacks, so a larger total spreads over several slots.
+ */
+function anyAttackSlots(attacks: number) {
+  return Array.from({ length: Math.ceil(attacks / MAX_ATTACK_SLOT_COUNT) }, (_, index) => ({
+    count: Math.min(MAX_ATTACK_SLOT_COUNT, attacks - index * MAX_ATTACK_SLOT_COUNT),
+    fillers: [{ kind: 'ANY_ATTACK' as const }]
+  }))
 }
 
 function slotAttack(attack: EncounterAttackMade): AttackSlotAttack {
@@ -166,12 +179,9 @@ export async function evaluateEncounterAttackAction(
     encounterAttackActionStanding(state.gameSystemId, before).incomplete
   const alternatives = [
     {
-      slots: [
-        {
-          count: target?.effectiveRulePolicyOutput?.attacksPerAttackAction ?? 1,
-          fillers: [{ kind: 'ANY_ATTACK' as const }]
-        }
-      ]
+      slots: anyAttackSlots(
+        (target?.effectiveRulePolicyOutput?.attacksPerAttackAction ?? 1) * (actor.owner?.count ?? 1)
+      )
     },
     ...creatureAlternatives
   ]

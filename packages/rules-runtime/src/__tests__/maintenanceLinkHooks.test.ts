@@ -9,6 +9,8 @@ const { hooks } = maintenanceLinkCapabilityRegistry.require(DND5E_SYSTEM_ID)
 const discover = (events: EncounterEvent[]) =>
   discoverEncounterEventHooks({ maintenanceHooks: hooks, events })
 
+const CAST_AT = '2026-01-01T00:00:00.000Z'
+
 describe('maintenance link hooks', () => {
   it('breaks with the first break hook an event meets, defeat before incapacity', () => {
     expect(discover([{ kind: 'DEFEATED' }]).maintenanceBreakReason).toBe('DEFEATED')
@@ -56,10 +58,42 @@ describe('maintenance link hooks', () => {
       concentrationSaveApplications({
         gameSystemId: DND5E_SYSTEM_ID,
         applications: [application('held'), application('bare')],
-        maintainedStateIds: new Map([['held', 'state-1']]),
+        maintainedStates: new Map([['held', [{ id: 'state-1', createdAt: CAST_AT }]]]),
         damagerActorId: null,
         dispositions: new Map()
       })
-    ).toEqual([{ ...application('held'), maintainedStateId: 'state-1' }])
+    ).toEqual([{ ...application('held'), maintainedStateId: 'state-1', castAt: CAST_AT }])
+  })
+
+  it('owes a holder one save per held link, each carrying when its link began', () => {
+    const damage = {
+      ordinal: 0,
+      sourceNodeId: 'n',
+      sourceOperationKey: 'k',
+      targetActorId: 'held',
+      appliedAmount: 7,
+      damageTypeId: null
+    }
+    const later = '2026-01-01T00:00:05.000Z'
+    expect(
+      concentrationSaveApplications({
+        gameSystemId: DND5E_SYSTEM_ID,
+        applications: [damage],
+        maintainedStates: new Map([
+          [
+            'held',
+            [
+              { id: 'state-1', createdAt: CAST_AT },
+              { id: 'state-2', createdAt: later }
+            ]
+          ]
+        ]),
+        damagerActorId: null,
+        dispositions: new Map()
+      })
+    ).toEqual([
+      { ...damage, maintainedStateId: 'state-1', castAt: CAST_AT },
+      { ...damage, maintainedStateId: 'state-2', castAt: later }
+    ])
   })
 })

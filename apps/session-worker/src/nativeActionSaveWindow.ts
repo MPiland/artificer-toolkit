@@ -7,13 +7,14 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 
 /**
- * The evidence an answered d20 window resumes its action's TEST save with: the roll it froze, with the
- * die it spent added to it.
+ * The evidence an answered pause resumes its action's TEST save with: the roll's own evidence, or for
+ * a d20 window the roll it froze with the die it spent added to it.
  */
 export async function settledActionSaveWindow(
   pauseAnswer: NativePauseAnswer | null,
   options: { runtime: RulesRuntimeService; random?: (maxExclusive: number) => number }
 ) {
+  if (pauseAnswer?.kind === 'EVIDENCE') return pauseAnswer.answer
   if (pauseAnswer?.kind !== 'D20_WINDOW') return null
   const { offer, continuation, selection } = pauseAnswer.answer
   const settled = await settleEncounterD20Window({

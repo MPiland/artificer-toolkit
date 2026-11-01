@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterActorBody, encounterActorCannotAttack } from '../encounterActorBody.js'
+import type { EncounterActorFormCreature } from '../encounterActorForm.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
-import { summonHitPoints } from '../summonHitPoints.js'
+import { groupCountChange, groupHitPointPool, summonHitPoints } from '../summonHitPoints.js'
 
 const USER = crypto.randomUUID()
 const NOW = '2026-10-23T00:00:00.000Z'
@@ -80,6 +81,77 @@ describe('buildEncounterSummon', () => {
       sourceEffectId: CARRIER_ID,
       turnTiming: 'OWN_INITIATIVE'
     })
+  })
+
+  it('records how many creatures a group summon stands for on its owner link (SPELLS-35.T7)', () => {
+    const { actor } = buildEncounterSummon({
+      summon: {
+        kind: 'CREATURE',
+        creature: {
+          sourceId: crypto.randomUUID(),
+          sourceRevision: 1,
+          systemId: caster.systemId,
+          maxHitPoints: 11,
+          snapshot: { kind: 'CREATURE', payload: {} }
+        } as unknown as EncounterActorFormCreature,
+        creatureTypeId: null,
+        count: 4
+      },
+      spellSummon: null,
+      turnTiming: 'OWN_INITIATIVE',
+      caster,
+      casterHitPointMaximum: 40,
+      label: 'Wolf',
+      sourceEffectId: CARRIER_ID,
+      point: { x: 250, y: 150 },
+      edgeLength: 100,
+      occurredAt: NOW
+    })
+    expect(actor.owner).toEqual({
+      ownerActorId: caster.id,
+      sourceEffectId: CARRIER_ID,
+      turnTiming: 'OWN_INITIATIVE',
+      count: 4
+    })
+  })
+
+  it('holds the pool of every creature in a group, and one creature’s hit points when it has no count (SPELLS-35.T7)', () => {
+    const summonAt = (count: number | null) =>
+      buildEncounterSummon({
+        summon: {
+          kind: 'CREATURE',
+          creature: {
+            sourceId: crypto.randomUUID(),
+            sourceRevision: 1,
+            systemId: caster.systemId,
+            maxHitPoints: 11,
+            snapshot: { kind: 'CREATURE', payload: {} }
+          } as unknown as EncounterActorFormCreature,
+          creatureTypeId: null,
+          count
+        },
+        spellSummon: null,
+        caster,
+        casterHitPointMaximum: 40,
+        label: 'Wolf',
+        sourceEffectId: CARRIER_ID,
+        point: { x: 250, y: 150 },
+        edgeLength: 100,
+        occurredAt: NOW
+      }).actor
+    expect(summonAt(8)).toMatchObject({ currentHitPoints: 88, maxHitPoints: 88 })
+    expect(summonAt(null)).toMatchObject({ currentHitPoints: 11, maxHitPoints: 11 })
+  })
+
+  it('sizes a group pool, leaves hit points when the count is lowered and grows them when it is raised (SPELLS-35.T7)', () => {
+    expect(groupHitPointPool(11, 8)).toBe(88)
+    expect(groupHitPointPool(11, null)).toBe(11)
+    const damaged = { maxHitPoints: 33, currentHitPoints: 28 }
+    expect(groupCountChange(damaged, 11, 3, 2)).toEqual({})
+    expect(groupCountChange(damaged, 11, 3, 3)).toEqual({})
+    expect(groupCountChange(damaged, 11, 3, 5)).toEqual({ maxHitPoints: 55, currentHitPoints: 50 })
+    // After a lower the maximum is no longer a multiple of the count; one creature's hit points still is 11.
+    expect(groupCountChange(damaged, 11, 2, 4)).toEqual({ maxHitPoints: 55, currentHitPoints: 50 })
   })
 
   it('stands the token at the point with the caster’s controllers', () => {
