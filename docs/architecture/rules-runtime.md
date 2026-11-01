@@ -2749,7 +2749,17 @@ or `SAVE_DISADVANTAGE` (Heightened Spell: disadvantage on the named creature's f
 `CAST_MODIFIER` disadvantage contributor to the save of the effect's ability, or lists that ability in
 `conditionOutcomeRules.saveAutoSucceeds` (the existing `SAVE_AUTO_SUCCESS` test-outcome rule). A condition that fails the save unrolled
 wins over a paid success. The command is sealed in the area pending context, so each creature's outcome is fixed at cast. Gap: the roll
-card does not annotate an auto-succeeded save. Twinned stays a follow-on task.
+card does not annotate an auto-succeeded save.
+
+**Cast modifier further targets (SPELLS-31.T5g3, current).** `targets.outcome: 'EXTRA_TARGET'` (Twinned Spell) adds `base` creatures to a
+spell that aims at one creature: `aimsAtOneCreature` (no shape, range not Self, targeting absent or SINGLE_TARGET) gates the offer in
+`buildCharacterSpellCastActions`, so a list, area or Self spell never offers it. A modifier's `perSpellLevel` multiplies its `cost` by the cast
+level (`castModifierCostAtLevel`, minimum 1 for a cantrip). The seam is `prepareEncounterActionSource`: given the chosen `castModifierId` it
+derives a `targetPolicy` whose targeting is `CHOSEN_CREATURES` with `maxTargets = 1 + max`, so the cast runs through the existing `ACTORS`
+path (`planNativeLiveEncounterActorsAction`) with each creature still held to the spell's single-target requirements (`creatureTargeting`).
+The client sends the primary and further creatures as `target.kind: 'ACTORS'` without `castModifierActorIds`; the room refuses fewer creatures
+than paid for. Twinned Spell is authored from core options only (`gmRulingEffect` + `castModifier`), and the `CLASS_SORCERER_METAMAGIC_TWINNED`
+closed kind is deleted.
 
 **Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
 Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed

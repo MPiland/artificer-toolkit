@@ -3721,6 +3721,59 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     })
   })
 
+  describe('adding a target to a spell that aims at one creature (SPELLS-31.T5g3)', () => {
+    const twin = {
+      ...modifier,
+      cost: {
+        chargeId: CHARGE_ID,
+        cost: 1,
+        perSpellLevel: true,
+        targets: { outcome: 'EXTRA_TARGET' as const, base: 1 }
+      }
+    }
+    const RAY_OF_FROST = spell('Ray of Frost')
+    const documents = new Map([
+      ...authoredById,
+      ...[RAY_OF_FROST, spell('Scorching Ray'), spell('Magic Missile')].map(
+        (entry) => [entry.id, entry] as const
+      )
+    ])
+    const offeredFor = (spellAuthored: SpellAuthored, level: number, remaining = 5) => {
+      const twinnable = candidate(spellAuthored, level)
+      return build([twinnable], {
+        castModifiers: [twin],
+        spellsById: compiledById(documents),
+        policyOutput: {
+          ...policyFor([twinnable], documents),
+          resources: [pool(0, remaining)]
+        }
+      }).candidates[0]?.castModifiers?.[0]
+    }
+
+    it('charges the spell level, and 1 for a cantrip, and offers one further target', () => {
+      expect(offeredFor(HOLD_PERSON, 2)).toMatchObject({
+        cost: 2,
+        targets: { outcome: 'EXTRA_TARGET', max: 1 }
+      })
+      expect(offeredFor(HOLD_PERSON, 4)?.cost).toBe(4)
+      expect(offeredFor(RAY_OF_FROST, 0)?.cost).toBe(1)
+    })
+
+    it('offers nothing when the pool cannot pay the level', () => {
+      expect(offeredFor(HOLD_PERSON, 4, 3)).toBeUndefined()
+    })
+
+    it('offers nothing for a spell that already reaches several creatures or an area', () => {
+      expect(offeredFor(spell('Scorching Ray'), 2)).toBeUndefined()
+      expect(offeredFor(spell('Magic Missile'), 1)).toBeUndefined()
+      expect(offeredFor(FIREBALL, 3)).toBeUndefined()
+    })
+
+    it('offers nothing for a spell with a range of Self', () => {
+      expect(offeredFor(PROTECTION_FROM_ENERGY_ON_SELF, 3)).toBeUndefined()
+    })
+  })
+
   it('offers nothing when the pool is spent, missing, or the cast is already paid from a pool', () => {
     expect(offered([pool(2)]).candidates[0]?.castModifiers).toBeUndefined()
     expect(offered([]).candidates[0]?.castModifiers).toBeUndefined()
