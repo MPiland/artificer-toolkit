@@ -783,6 +783,7 @@ function LegendaryActionControls({
   const target = targetIds.length === 1 ? (targetIds[0] ?? null) : targetActorId
   const { areaAim, onAreaAimChange, onAreaSizeChange } = aim
   const area = option?.area ?? null
+  console.log('AIMDBG legendary', JSON.stringify({ optionId, found: option !== null, area, aiming: aim.aiming, ids: pending.options.map((o) => o.optionId) }))
   const { areaSize, tokensInArea } = useAimedArea({
     scene: aim.scene,
     sceneTokens: aim.scene?.tokens ?? NO_SCENE_TOKENS,
