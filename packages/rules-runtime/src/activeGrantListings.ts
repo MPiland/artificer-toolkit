@@ -231,7 +231,12 @@ export function heldConcentration(
  * (no live state to name). Empty when the effects are null.
  */
 export function listSheetConcentrations(
-  effects: readonly ActiveRuleEffectRecord[] | null,
+  effects:
+    | readonly Pick<
+        ActiveRuleEffectRecord,
+        'id' | 'createdOrdinal' | 'definition' | 'lifecycle' | 'maintainedEffectStateId'
+      >[]
+    | null,
   heldStateIds: readonly string[]
 ): SheetConcentrationListingDto[] {
   if (!effects) return []
@@ -267,6 +272,10 @@ export function hideActiveGrantSources(
 }
 
 /** A Concentration as a player reads it: a hidden source's label is withheld. */
+export function hideConcentrationSource<T extends ConcentrationListingDto>(concentration: T): T
+export function hideConcentrationSource<T extends ConcentrationListingDto>(
+  concentration: T | null
+): T | null
 export function hideConcentrationSource<T extends ConcentrationListingDto>(
   concentration: T | null
 ): T | null {

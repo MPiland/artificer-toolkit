@@ -719,7 +719,12 @@ interface ProjectCharacterSheetBundleParams {
    * over from one (SPELLS-5.11); null when it maintains none. They name the Concentration, and the
    * damage dice they grant against their holders join the Character's rows (SPELLS-8.6).
    */
-  concentrationEffects: ProjectCharacterSheetBundleParams['activeEffects'] | null
+  concentrationEffects:
+    | readonly Pick<
+        ActiveRuleEffectRecord,
+        'id' | 'createdOrdinal' | 'definition' | 'lifecycle' | 'maintainedEffectStateId'
+      >[]
+    | null
   /** The ids of the live Concentration states the Character holds in an active Run; empty otherwise. */
   heldConcentrationStateIds?: readonly string[]
   /** The summons this Character's Run actor owns in an active Run, listed in Extras (SPELLS-34.2). */
