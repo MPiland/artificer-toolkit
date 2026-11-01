@@ -3,6 +3,7 @@ import {
   addNumbersRuleOperation,
   atOrBelowThresholdRuleOperation,
   selectNumberRuleOperation,
+  type RuleGraphDefinition,
   type RuleInputBinding
 } from '@artificer-toolkit/shared/rules'
 import {
@@ -216,7 +217,7 @@ export function rolledDiceNodes(
   const diceNodes = Array.from({ length: term.count }, (_, index) =>
     evidenceNode(dieNodeId(index), enabled)
   )
-  const rerollNodes =
+  const rerollNodes: RuleGraphDefinition['nodes'] =
     rerollAtOrBelow === undefined
       ? []
       : diceNodes.flatMap((die, index) => {
@@ -278,7 +279,8 @@ export function rolledDiceNodes(
           nodeId: sumNodeId(term.count - 2),
           port: 'value'
         }
-  return { nodes: [...diceNodes, ...rerollNodes, ...sumNodes], subtotal }
+  const nodes: RuleGraphDefinition['nodes'] = [...diceNodes, ...rerollNodes, ...sumNodes]
+  return { nodes, subtotal }
 }
 
 /** An outcome from the registry gated on a test node's result path, with the amount its own dice rolled. */
