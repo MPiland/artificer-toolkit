@@ -16,7 +16,6 @@ import {
   checkpointRoom,
   closeRoom,
   roomDevelopmentClient,
-  roomAllLogs,
   roomErrorLogs,
   seedRoomContentSnapshots,
   useLocalRoomWorker
@@ -80,11 +79,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   const names = REVIEW_SCENARIOS.map((scenario) => scenario.campaign)
 
   const first = await seedReviewData(context).catch((error: unknown) => {
-    throw new Error(
-      ['Review seed failed:', String(error), ...roomErrorLogs(), ...roomAllLogs().slice(-30)].join(
-        ' | '
-      )
-    )
+    throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
   })
   const built = await counts()
   const second = await seedReviewData(context)
