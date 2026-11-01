@@ -51,6 +51,7 @@ export const VALUE_DOMAIN_CODE = {
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
   MOVEMENT_PASSAGE: 'MOVEMENT_PASSAGE',
+  GRANTED_ACTION_OPTION: 'GRANTED_ACTION_OPTION',
   SENSE_RANGE: 'SENSE_RANGE',
   SPELL_SLOT_COUNT: 'SPELL_SLOT_COUNT',
   SPELL_SLOT_LEVEL_MAX: 'SPELL_SLOT_LEVEL_MAX',
@@ -290,6 +291,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.MOVEMENT_PASSAGE,
     label: 'Movement Passage',
     description: 'Moving through hostile creatures and objects.'
+  },
+
+  [VALUE_DOMAIN_CODE.GRANTED_ACTION_OPTION]: {
+    code: VALUE_DOMAIN_CODE.GRANTED_ACTION_OPTION,
+    label: 'Granted Action Option',
+    description: 'An extra on-hit choice offered on the attacks a granted action makes.'
   },
 
   [VALUE_DOMAIN_CODE.SENSE_RANGE]: {
@@ -626,6 +633,9 @@ export type ValueDomainParamByCode = {
   // Passage through creatures and objects: one domain, the payload says what may be passed.
   MOVEMENT_PASSAGE: EmptyObject
 
+  // The granted-action offer (by its authored Effect id) whose attacks the option rides.
+  GRANTED_ACTION_OPTION: { grantedByEffectId: string }
+
   // Sense range is per UUID-backed sense definition.
   SENSE_RANGE: { senseDefinitionId: string }
 
@@ -709,6 +719,15 @@ export type MovementPassageOption = {
   costMultiplier: 1 | 2
 }
 
+/**
+ * A sibling passive Effect of the same Feature whose ON_HIT paths are offered on the granted action's
+ * attacks, under `label` (the options of one hit are told apart by it).
+ */
+export type GrantedActionOption = {
+  optionEffectId: string
+  label: string
+}
+
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
   DAMAGE_RESISTANCE:
@@ -744,6 +763,8 @@ export type ValueDomainOptionPayloadByDomain = {
   MOVEMENT_MODE: { movementModeId: string }
 
   MOVEMENT_PASSAGE: MovementPassageOption
+
+  GRANTED_ACTION_OPTION: GrantedActionOption
 
   // Replace option for charge reset should use the actual enum/kind, not a random id
   CHARGE_RESET: { resetKind: ChargeResetKind }

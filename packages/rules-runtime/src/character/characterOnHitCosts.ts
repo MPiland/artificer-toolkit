@@ -44,6 +44,7 @@ export function onHitCandidates(input: {
 }): EncounterOnHitCandidate[] {
   const choices = onHitSlotChoices(input.spellSlots)
   return input.riders.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
+    if (cost.kind === 'FREE') return [{ kind: 'FREE', riderId, riderLabel }]
     if (cost.kind === 'SPELL_SLOT')
       return choices.map(({ level }) => ({
         kind: 'SPELL_SLOT',

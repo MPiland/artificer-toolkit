@@ -7,6 +7,7 @@ import type { EncounterActionSourceInput } from '@artificer-toolkit/rules-runtim
 import {
   actorGrantedActions,
   nextGrantedAttackCharge,
+  openGrantedAttackEffectIds,
   parseGrantedActionId
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
@@ -88,7 +89,8 @@ export async function readNativeActionSourceOffers(input: {
 
 /**
  * What the actor's next weapon attack charges through its weapon-attack offers (Flurry of Blows),
- * as they stand now; null when no offer covers it.
+ * as they stand now (`charge` is null when no offer covers it), and the authored Effects of the
+ * offers still open, whose options the attack offers on a hit.
  */
 export async function readNativeWeaponAttackOffer(input: {
   capture: Parameters<typeof readNativeLiveTurnUses>[0]
@@ -100,7 +102,10 @@ export async function readNativeWeaponAttackOffer(input: {
     ({ offer }) => offer.weaponAttack
   )
   const spent = holds.length > 0 ? await readNativeLiveTurnUses(input.capture, input.actor.id) : []
-  return nextGrantedAttackCharge(holds, spent)
+  return {
+    charge: nextGrantedAttackCharge(holds, spent),
+    openEffectIds: openGrantedAttackEffectIds(holds, input.heldEffects, spent)
+  }
 }
 
 /**

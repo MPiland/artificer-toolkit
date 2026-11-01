@@ -256,6 +256,22 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
     ).toEqual([])
   })
 
+  it('offers a free rider with no slot or pool, even when the Character holds neither', () => {
+    expect(
+      onHitCandidates({
+        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID, label: 'Shove', cost: { kind: 'FREE' } }],
+        spellSlots: {
+          calculationId: 'slots',
+          sourceClassIds: [],
+          maxByLevel: [],
+          slotPools: [],
+          fusionStrategy: 'NONE'
+        },
+        resources: []
+      })
+    ).toEqual([{ kind: 'FREE', riderId: OPTIONAL_SMITE_EFFECT_ID, riderLabel: 'Shove' }])
+  })
+
   it('pays a level from a slot pool only where no standard slot or earlier pool is left there', () => {
     const slotPool = (poolCode: string, level: number, remaining: number) => ({
       poolCode,

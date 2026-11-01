@@ -649,12 +649,13 @@ export async function planNativeLiveEncounterAction(
   })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const weaponAttackOffer = await readNativeWeaponAttackOffer({
-    capture,
-    actor: prepared.actor,
-    heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-    characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
-  })
+  const { charge: weaponAttackOffer, openEffectIds: openOfferEffectIds } =
+    await readNativeWeaponAttackOffer({
+      capture,
+      actor: prepared.actor,
+      heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+      characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
+    })
   const delegatingActor = actors.find((actor) => actor.id === command.delegatingActorId)
   if (command.delegatingActorId !== undefined && !delegatingActor)
     throw new Error('Encounter rules input binding mismatch.')
@@ -1136,11 +1137,17 @@ export async function planNativeLiveEncounterAction(
       ? onHitCandidates({
           riders: prepared.adapter
             .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
-            .filter(({ cost }) =>
-              cost.kind === 'SPELL_SLOT'
+            .filter(({ cost, grantedByEffectId }) => {
+              if (
+                grantedByEffectId !== undefined &&
+                !openOfferEffectIds.includes(grantedByEffectId)
+              )
+                return false
+              if (cost.kind === 'FREE') return true
+              return cost.kind === 'SPELL_SLOT'
                 ? !prepared.characterActionState?.spellConsumption
                 : !prepared.characterActionState?.resourceConsumption
-            ),
+            }),
           spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
           resources: prepared.source.effectivePolicyOutput.resources
         })
@@ -1216,7 +1223,8 @@ export async function planNativeLiveEncounterAction(
     settled?.onHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
   const onHitSpend = (() => {
-    if (!chosenOnHit || prepared.source.kind !== 'CHARACTER_ACTION') return null
+    if (!chosenOnHit || chosenOnHit.kind === 'FREE' || prepared.source.kind !== 'CHARACTER_ACTION')
+      return null
     const { source } = prepared
     if (chosenOnHit.kind === 'SPELL_SLOT')
       return {

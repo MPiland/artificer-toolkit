@@ -61,6 +61,7 @@ const castModifierDtoSchema = lazySchema(() =>
 
 const optionalOnHitDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
+    z.object({ kind: z.literal('FREE') }),
     z.object({ kind: z.literal('SPELL_SLOT') }),
     z.object({ kind: z.literal('RESOURCE_POOL'), ...resourceUseDtoShape() })
   ])

@@ -134,6 +134,12 @@ const senseParamDtoSchema = lazySchema(() =>
   })
 )
 
+const grantedActionOptionParamDtoSchema = lazySchema(() =>
+  z.object({
+    grantedByEffectId: authoredIdentifierSchema
+  })
+)
+
 const healingDealtParamDtoSchema = lazySchema(() =>
   z.object({
     addsSpellLevel: z.optional(z.boolean())
@@ -530,6 +536,17 @@ const movementModePayloadDtoSchema = lazySchema(() =>
 )
 
 /**
+ * A sibling passive Effect of the same Feature whose ON_HIT paths the holder may choose on each
+ * attack the named granted action makes.
+ */
+const grantedActionOptionPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    optionEffectId: authoredIdentifierSchema,
+    label: z.string().check(z.minLength(1), z.maxLength(120))
+  })
+)
+
+/**
  * Where the holder's voluntary movement may pass: through hostile creatures (any, or only those
  * larger than itself), ending inside them, through blocking barriers, and what each foot inside a
  * passed creature or object costs. Several grants combine as a union; the highest multiplier wins.
@@ -608,7 +625,8 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...speedParamDtoSchema.shape,
       ...senseParamDtoSchema.shape,
       ...spellLevelParamDtoSchema.shape,
-      ...healingDealtParamDtoSchema.shape
+      ...healingDealtParamDtoSchema.shape,
+      ...grantedActionOptionParamDtoSchema.shape
     })
   )
 )
@@ -646,6 +664,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     attributePayloadDtoSchema,
     movementModePayloadDtoSchema,
     movementPassagePayloadDtoSchema,
+    grantedActionOptionPayloadDtoSchema,
     rangeReplacementPayloadDtoSchema,
     saveSuccessDamagePayloadDtoSchema,
     durationSetValuePayloadDtoSchema,
@@ -1116,6 +1135,12 @@ const buildModifierGrantVariants = () =>
       'ADD_OPTION',
       emptyDomainDtoSchema,
       movementPassagePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'GRANTED_ACTION_OPTION',
+      'ADD_OPTION',
+      grantedActionOptionParamDtoSchema,
+      grantedActionOptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('SENSE_RANGE', 'BONUS', senseParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant(

@@ -232,6 +232,13 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         )
       )
       .set(
+        'grantedByEffectId',
+        text(['grantedByEffectId'], 'Granted Action Effect ID', {
+          showIf: parent.field(['valueDomainCode']).eq('GRANTED_ACTION_OPTION'),
+          requiredIf: true
+        })
+      )
+      .set(
         'ruleDefinitionId',
         selectSingle(
           ['ruleDefinitionId'],
@@ -782,6 +789,20 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'movementModeId',
         text(['movementModeId'], 'Movement Mode ID', {
           showIf: parent.field(['valueDomainCode']).eq('MOVEMENT_MODE')
+        })
+      )
+      .set(
+        'optionEffectId',
+        text(['optionEffectId'], 'Option Effect ID', {
+          showIf: parent.field(['valueDomainCode']).eq('GRANTED_ACTION_OPTION'),
+          requiredIf: true
+        })
+      )
+      .set(
+        'label',
+        text(['label'], 'Option Label', {
+          showIf: parent.field(['valueDomainCode']).eq('GRANTED_ACTION_OPTION'),
+          requiredIf: true
         })
       )
       .set(
