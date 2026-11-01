@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import type { ConvexHttpClient } from 'convex/browser'
-import { makeFunctionReference } from 'convex/server'
+import { type FunctionReturnType, makeFunctionReference } from 'convex/server'
 import {
   type EncounterCommandResultDto,
   type EncounterExecuteInput,
-  type PendingEncounterRuleOccurrenceSummaryDto,
   encounterGmProjectionDtoSchema,
   resolveEncounterActionInputDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
@@ -49,7 +48,9 @@ type PendingOccurrence = NonNullable<EncounterCommandResultDto['occurrence']>['p
  */
 function initiativeResolution(
   encounterId: string,
-  pending: PendingOccurrence | PendingEncounterRuleOccurrenceSummaryDto
+  pending:
+    | PendingOccurrence
+    | FunctionReturnType<typeof api.encounters.pendingReads.pendingRuleOccurrence>
 ): Resolution | null {
   switch (pending?.kind) {
     case 'INITIATIVE_EVIDENCE':
