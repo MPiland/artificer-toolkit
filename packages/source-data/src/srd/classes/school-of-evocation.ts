@@ -1,23 +1,18 @@
 import {
-  ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  RANGE_KIND,
   SCALING_AMOUNT_KIND,
-  TARGET_SELECTION_KIND,
-  TRIGGER,
   VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { ABILITY_CODE, SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -186,16 +181,18 @@ export const schoolOfEvocation: ClassAuthored = {
       availableAtLevel: 14,
       order: 4,
       effects: [
-        closedRuleEffect({
-          id: classRowId(WZ, 20, 5),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.FREE },
-            range: { id: classRowId(WZ, 21, 5), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(WZ, 20, 5),
+            range: classRowId(WZ, 21, 5),
+            path: classRowId(WZ, 0x80, 5),
+            result: classRowId(WZ, 0x81, 5),
+            outcome: classRowId(WZ, 0x82, 5)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_SCHOOL_OF_EVOCATION_OVERCHANNEL
+          label: 'Overchannel',
+          instructions:
+            'A wizard spell of 1st through 5th level that deals damage deals maximum damage. The first use each long rest has no adverse effect; each later use before a long rest deals necrotic damage to the wizard as the feature describes.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     }

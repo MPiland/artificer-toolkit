@@ -136,6 +136,7 @@ type AuthoringDefaultKind =
   | 'slotCost'
   | 'reactionTrigger'
   | 'castModifier'
+  | 'castModifierParameter'
   | 'castModifierTargets'
   | 'resourceUse'
   | 'resultBlockGate'
@@ -176,6 +177,8 @@ type AuthoringDefaultKind =
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
   | 'damageDieCastLevelScaling'
+  | 'rolledDieFacesScaling'
+  | 'rolledDieFacesScalingLevel'
   | 'damageLevelScalingEntry'
   | 'endEffectsSelector'
   | 'weight'
@@ -329,6 +332,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   slotCost: ['slotCost'],
   reactionTrigger: ['reactionTrigger'],
   castModifier: ['castModifier'],
+  castModifierParameter: ['castModifierParameter'],
   castModifierTargets: ['castModifierTargets'],
   resourceUse: ['resourceUse'],
   resultBlockGate: ['resultBlockGate'],
@@ -375,6 +379,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   targetRequirement: ['targetRequirement'],
   targeting: ['targeting'],
   damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
+  rolledDieFacesScaling: ['rolledDieFacesScaling'],
+  rolledDieFacesScalingLevel: ['rolledDieFacesScalingLevel'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
   endEffectsSelector: ['endEffectsSelector'],
   weight: ['weight']
