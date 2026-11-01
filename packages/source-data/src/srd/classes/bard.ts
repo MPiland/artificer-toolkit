@@ -129,7 +129,7 @@ function selfClassRuleEffect(
 function bardicInspirationEffect(): EffectAuthored {
   const die = (
     entry: number,
-    valueDomainCode: ModifierGrantAuthored['valueDomainCode']
+    valueDomainCode: 'ABILITY_CHECK' | 'ATTACK_ROLL' | 'SAVING_THROW_MODIFIER'
   ): ModifierGrantAuthored => ({
     id: classRowId(BD, 0x84, entry),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
