@@ -36,6 +36,7 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type RolledDieFacesScaling = NonNullable<AllUnionFields<ModifierPayload>['facesScaling']>
 type AttackDecoys = Extract<ModifierPayload, { thresholds: unknown[] }>
 type AttackDecoyArmorClass = NonNullable<AttackDecoys['armorClass']>
 type AttackDecoyThreshold = NonNullable<AttackDecoys['thresholds']>[number]
@@ -316,6 +317,51 @@ const MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP = attackDecoyThreshold.define(
       .set(
         'minimumRoll',
         number(['minimumRoll'], 'Minimum d20 Roll', { constraints: { minimum: 1, maximum: 21 } })
+      )
+  }
+)
+
+const rolledDieFacesScalingLevel = buildNodeMap<RolledDieFacesScaling['levels'][number]>()
+
+const ROLLED_DIE_FACES_SCALING_LEVEL_NODE_MAP = rolledDieFacesScalingLevel.define(
+  'rolledDieFacesScalingLevel',
+  ({ map, nodes }) => {
+    const { number } = nodes
+
+    map
+      .set(
+        'level',
+        number(['level'], 'From Class Level', { constraints: { minimum: 1, maximum: 20 } })
+      )
+      .set(
+        'faces',
+        number(['faces'], 'Die Faces', {
+          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) }
+        })
+      )
+  }
+)
+
+const rolledDieFacesScaling = buildNodeMap<RolledDieFacesScaling>()
+
+const ROLLED_DIE_FACES_SCALING_NODE_MAP = rolledDieFacesScaling.define(
+  'rolledDieFacesScaling',
+  ({ map, nodes, data }) => {
+    const { selectSingle, groupArray } = nodes
+
+    map
+      .set(
+        'classId',
+        selectSingle(['classId'], 'Granter Class', {
+          kind: 'DATA',
+          relationship: data.table('classes', { selectColumns: ['id', 'label'] })
+        })
+      )
+      .set(
+        'levels',
+        groupArray(['levels'], 'Larger Die From', () => ROLLED_DIE_FACES_SCALING_LEVEL_NODE_MAP, {
+          presentation: 'table'
+        })
       )
   }
 )
@@ -603,6 +649,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Joins The Roll',
           { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_TIMING_OPTIONS },
           { showIf: and([isRolledDie, not(isDamageDie)]) }
+        )
+      )
+      .set(
+        'facesScaling',
+        groupObject(
+          ['facesScaling'],
+          'Die Grows With Granter Level',
+          () => ROLLED_DIE_FACES_SCALING_NODE_MAP,
+          { presentation: 'inline', showIf: and([isRolledDie, not(isDamageDie)]) }
         )
       )
       .set(

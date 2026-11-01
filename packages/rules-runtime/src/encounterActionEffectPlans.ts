@@ -16,6 +16,7 @@ import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
+import { selectScalingRow } from './scalingRowSelection.js'
 import { sizeRank } from './systemSizes.js'
 import {
   installedGameSystemRuleOperations,
@@ -346,6 +347,26 @@ function bindTriggerDamageTypes(
   }))
 }
 
+/**
+ * A die that grows with the granter's class level (D168) takes the size of the row the granter's level
+ * reaches, frozen into the stored grant; the grant never keeps the scaling, so a later level-up of the
+ * granter cannot change a die already given.
+ */
+function bindFacesScaling(
+  modifier: CharacterGrantFoldModifier,
+  sourceClassLevels: Readonly<Record<string, number>>
+): CharacterGrantFoldModifier {
+  const { payload } = modifier
+  if (payload === undefined || !('facesScaling' in payload) || payload.facesScaling === undefined)
+    return modifier
+  const { facesScaling, ...die } = payload
+  const row = selectScalingRow(
+    facesScaling.levels.map((level) => ({ ...level, order: 0 })),
+    sourceClassLevels[facesScaling.classId] ?? 0
+  )
+  return { ...modifier, payload: row ? { ...die, faces: row.faces } : die }
+}
+
 /** An action's lasting effect on one creature, from its plan alone; null when the plan yields none. */
 export function prepareRecurringActiveEffect(
   input: Omit<
@@ -661,7 +682,10 @@ export function prepareRecurringActiveEffect(
               kind: 'MODIFIER_GRANT' as const,
               applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
               modifiers: grantContribution.modifiers.flatMap((modifier) =>
-                bindTriggerDamageTypes(modifier, input.trigger?.damageTypeIds ?? [])
+                bindTriggerDamageTypes(
+                  bindFacesScaling(modifier, input.sourceClassLevels ?? {}),
+                  input.trigger?.damageTypeIds ?? []
+                )
               ),
               senses: grantContribution.senses,
               sourceLabel: grantLabel,

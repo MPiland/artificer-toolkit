@@ -448,7 +448,24 @@ export const rollInfluencePayloadDtoSchema = lazySchema(() =>
  * `AFTER_ROLL` die is offered in the roll's window once the d20 is seen, never rolled with it.
  */
 export const rolledDiePayloadDtoSchema = lazySchema(() =>
-  z.strictObject({ ...rolledDieShape(), timing: z.optional(z.literal('AFTER_ROLL')) })
+  z.strictObject({
+    ...rolledDieShape(),
+    timing: z.optional(z.literal('AFTER_ROLL')),
+    facesScaling: z.optional(
+      z.strictObject({
+        classId: authoredIdentifierSchema,
+        levels: z
+          .array(
+            z.strictObject({
+              level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+              faces: z.literal(ROLLED_DIE_FACES)
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(20))
+      })
+    )
+  })
 )
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
