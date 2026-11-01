@@ -35,8 +35,8 @@ type RowEntry = Extract<Entry, { resolutionKind: 'ROLL_TABLE' }>
 
 /**
  * A table path: its die, and each row's faces with the row's outcomes in authored order. A row
- * lasts when one of its outcomes outlives the OUTCOME phase: a timed outcome, or a grant, which
- * only an active effect holds.
+ * lasts when one of its outcomes outlives the OUTCOME phase: a timed outcome, or a grant or a
+ * repeated save, which only an active effect holds.
  */
 export type RollTable = Readonly<{
   pathCode: string
@@ -58,8 +58,13 @@ function isEmptyRow(entry: RowEntry): boolean {
   return entry.outcome.effectKind === 'NO_OUTCOME'
 }
 
+/** A grant, or the save that repeats, is held by the row's plan alone: the OUTCOME phase applies none. */
+function isHeldByRowPlan(entry: RowEntry): boolean {
+  return entry.outcome.effectKind === 'APPLY_GRANT' || entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
+}
+
 function rowLasts(entry: RowEntry): boolean {
-  return hasLifecycleOverride(entry) || entry.outcome.effectKind === 'APPLY_GRANT'
+  return hasLifecycleOverride(entry) || isHeldByRowPlan(entry)
 }
 
 /**
@@ -82,7 +87,7 @@ export function admitRollTablePaths(
     rollTablePath(action, pathCode)
   }
   for (const { rowId, lasts, rowAction } of rollTableRowActions(action) ?? [])
-    if (lasts && rowPlan(rowAction)?.compiledEntryId !== rowId)
+    if (lasts && !isRowPlanId(rowPlan(rowAction)?.compiledEntryId, rowAction, rowId))
       unsupported('D&D roll table row lasts beyond its outcome phase without a timed plan.')
   return paths
 }
@@ -119,9 +124,17 @@ export function rollTableRowActions(action: Dnd5eCompiledEffectActionSource) {
     )
   ]
   const tables = paths.flatMap((pathCode) => rollTablePath(action, pathCode) ?? [])
-  if (!tables.some(({ rows }) => rows.some(({ lasts }) => lasts))) return null
-  const [table, ...others] = tables
-  if (!table || others.length > 0)
+  const lasting = tables.filter(({ rows }) => rows.some(({ lasts }) => lasts))
+  if (lasting.length === 0) return null
+  const [table, ...others] = lasting
+  // The rolled row picks the plan, and a plan binds to the condition applications that match what
+  // it holds: another table that applies one of those would bind its own face to the plan.
+  const held = new Set(tableConditionIds(table))
+  if (
+    !table ||
+    others.length > 0 ||
+    tables.some((other) => other !== table && tableConditionIds(other).some((id) => held.has(id)))
+  )
     unsupported('D&D roll table rows last only on an action with one table.')
   const narrowed = narrowedActions(
     action,
@@ -133,6 +146,27 @@ export function rollTableRowActions(action: Dnd5eCompiledEffectActionSource) {
     if (!first || !rowAction) unsupported('D&D roll table row has no outcomes to narrow.')
     return { rowId: first.entryId, row: { min, max }, lasts, rowAction }
   })
+}
+
+/** A row's plan is keyed by its entry, or by the result block it repeats a save for. */
+export function isRowPlanId(
+  id: string | undefined,
+  rowAction: Dnd5eCompiledEffectActionSource,
+  rowId: string
+): boolean {
+  return (
+    id === rowId ||
+    (id !== undefined &&
+      rowAction.compiledEffect.entries.some(({ resultBlockId }) => resultBlockId === id))
+  )
+}
+
+function tableConditionIds(table: RollTable): string[] {
+  return table.rows.flatMap(({ entries }) =>
+    entries.flatMap(({ outcome }) =>
+      outcome.effectKind === 'CONDITION' ? [outcome.conditionId] : []
+    )
+  )
 }
 
 /** A row's outcome as a direct result of the table's path. */
@@ -269,7 +303,7 @@ function rollTableGraphDefinition(
     }
   })
   const graphedEntries = table.rows.map((row) =>
-    row.entries.filter((entry) => !isEmptyRow(entry) && entry.outcome.effectKind !== 'APPLY_GRANT')
+    row.entries.filter((entry) => !isEmptyRow(entry) && !isHeldByRowPlan(entry))
   )
   // Adjacent rows that roll the same dice for the same multiplier share one set of dice, enabled
   // across all their faces, so a table of alike damage rows stays within the graph's node bound.

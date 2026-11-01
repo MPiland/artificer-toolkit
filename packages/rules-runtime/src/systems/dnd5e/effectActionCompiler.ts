@@ -1,7 +1,4 @@
-import {
-  type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds
-} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -228,9 +225,12 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import {
+  countRepeatSave,
+  isTallyCount,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
-  repeatSaveGated
+  repeatSaveGated,
+  tallyEnds
 } from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
@@ -261,6 +261,7 @@ import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
   admitRollTablePaths,
   directRollTableGraph,
+  isRowPlanId,
   rollTableOutcomeTemplate,
   rollTablePath,
   rollTableRowActions
@@ -1582,8 +1583,11 @@ function repeatingDirectFollowUpSavePlan(
       : null
   if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
     return null
+  // A tally has no turn of its own to wait for: it lasts until a count is reached.
   const initialRemaining = escalation
-    ? 1
+    ? save.attempts.kind === 'THRESHOLDS'
+      ? MAX_ACTIVE_EFFECT_TURNS
+      : 1
     : leadEntry.duration
       ? conditionDurationTurns(leadEntry.duration)
       : null
@@ -1635,8 +1639,7 @@ function repeatingDirectFollowUpSavePlan(
     (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
-      : escalation !== null ||
-        !isTallyCount(save.attempts.successesToEnd) ||
+      : !isTallyCount(save.attempts.successesToEnd) ||
         !isTallyCount(save.attempts.failuresToResolve)) ||
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
@@ -1675,22 +1678,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
-}
-
-/** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
-function countRepeatSave(
-  thresholds: ActiveEffectSaveThresholds,
-  before: ActiveEffectSaveTally | undefined,
-  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
-): ActiveEffectSaveTally {
-  const { successes, failures } = before ?? { successes: 0, failures: 0 }
-  return path === 'ON_SAVE_SUCCESS'
-    ? { successes: successes + 1, failures: thresholds.consecutive ? 0 : failures }
-    : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
 }
 
 /** The entries the repeat-save effect holds (its condition or grant), without the follow-up save. */
@@ -2299,8 +2286,12 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
   if (
+    // A table row's repeated save is held by the row's plan, which admitRollTablePaths requires.
     action.compiledEffect.entries.some(
-      (entry) => 'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
+      (entry) =>
+        entry.resolutionKind !== 'ROLL_TABLE' &&
+        'outcome' in entry &&
+        entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
     )
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
@@ -2309,7 +2300,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   const tablePaths = admitRollTablePaths(
     action,
     kind === 'SAVE' ? allowedPaths : [],
-    timedActiveEffectPlan
+    lastingRowPlan
   )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
@@ -3007,6 +2998,15 @@ function repeatingFollowUpSavePlan(action: Dnd5eCompiledEffectActionSource) {
   )
 }
 
+/** The plan that holds a roll-table row that lasts: a repeating save, or a duration alone. */
+function lastingRowPlan(rowAction: Dnd5eCompiledEffectActionSource) {
+  return (
+    repeatingDirectFollowUpSavePlan(rowAction) ??
+    repeatingDirectFollowUpSavePlan(rowAction, 'ACTIVATED') ??
+    timedActiveEffectPlan(rowAction)
+  )
+}
+
 /** The effect whose own duration counts it down, with no save repeating. */
 function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
   return (
@@ -3209,7 +3209,7 @@ function compileEffectActionGraph(
       published: compileTestDefinition(action, plan, recurringPlan)
     })
   }
-  const table = directRollTableGraph(action, timedActiveEffectPlan)
+  const table = directRollTableGraph(action, lastingRowPlan)
   if (table) return bindMovementInterruptionOutput({ action, published: table })
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
@@ -3620,7 +3620,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (rows)
       return rows.flatMap(({ rowId, row, rowAction }) =>
         dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
-          plan.compiledEntryId === rowId
+          isRowPlanId(plan.compiledEntryId, rowAction, rowId)
             ? { ...plan, rollTableRow: row }
             : unsupported('D&D roll table row plan must hold its own row.')
         )
@@ -4426,15 +4426,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }
       const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
+      const escalationConditionId =
+        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
       const saveTally =
         thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
           ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
           : undefined
       // A failed or refused attempt on the last counted turn ends the effect with its duration. A
-      // thresholds effect ends on its last success instead, and settles on its last failure.
+      // thresholds effect ends on its last success instead, and on its last failure when that
+      // escalates; one that does not escalate settles there.
       const terminal =
         (thresholds
-          ? saveTally !== undefined && saveTally.successes >= thresholds.successesToEnd
+          ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
           : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
       // Grants held by the effect leave with it; only held conditions need removing.
       if (conditionIds === null)
@@ -4444,8 +4447,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           emptyApplicationAllowed: true,
           ...(saveTally ? { saveTally } : {})
         }
-      const escalationConditionId =
-        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
       if (
         escalationConditionId !== undefined &&
         (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))

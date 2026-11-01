@@ -159,3 +159,32 @@ export function repeatedFollowUpSaveResultPath(input: {
   }
   return expected
 }
+
+export function isTallyCount(count: number) {
+  return Number.isSafeInteger(count) && count >= 1 && count <= 255
+}
+
+/** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
+export function countRepeatSave(
+  thresholds: ActiveEffectSaveThresholds,
+  before: ActiveEffectSaveTally | undefined,
+  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+): ActiveEffectSaveTally {
+  const { successes, failures } = before ?? { successes: 0, failures: 0 }
+  return path === 'ON_SAVE_SUCCESS'
+    ? { successes: successes + 1, failures: thresholds.consecutive ? 0 : failures }
+    : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
+}
+
+/** Whether the tally has reached the successes that end the effect, or the failures that escalate it. */
+export function tallyEnds(
+  thresholds: ActiveEffectSaveThresholds,
+  tally: ActiveEffectSaveTally | undefined,
+  escalates: boolean
+) {
+  return (
+    tally !== undefined &&
+    (tally.successes >= thresholds.successesToEnd ||
+      (escalates && tally.failures >= thresholds.failuresToResolve))
+  )
+}

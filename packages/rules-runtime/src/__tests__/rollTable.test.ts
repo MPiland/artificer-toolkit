@@ -11,9 +11,11 @@ import {
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
+import { DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -30,6 +32,8 @@ import { compiledTestSpellCast } from '../testing/plannedTimedCondition.js'
 
 const CHARISMA = SRD_ABILITIES.find(({ code }) => code === 'CHARISMA')!.id
 const BLINDED = SRD_CONDITION_TYPES.find(({ code }) => code === 'BLINDED')!.id
+const RESTRAINED = SRD_CONDITION_TYPES.find(({ code }) => code === 'RESTRAINED')!.id
+const PETRIFIED = SRD_CONDITION_TYPES.find(({ code }) => code === 'PETRIFIED')!.id
 const DEAFENED = SRD_CONDITION_TYPES.find(({ code }) => code === 'DEAFENED')!.id
 const FIRE = SRD_DAMAGE_TYPES.find(({ code }) => code === 'FIRE')!.id
 const TARGET_ID = testUuid(0xa160)
@@ -448,10 +452,9 @@ const LASTING_ROWS = [
   row(3, [5, 6], [mockeryGrant], { duration: ONE_ROUND })
 ]
 
-describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
-  const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
-  // The authored spell with the rows its later tasks build (6-8) emptied: they owe nothing yet.
-  const spray: SpellAuthored = {
+// The authored spell with the rows its later tasks build emptied: they owe nothing yet.
+function sprayWithRowsEmptiedFrom(firstEmptied: number): SpellAuthored {
+  return {
     ...prismaticSpray,
     effects: prismaticSpray.effects!.map((effect) => ({
       ...effect,
@@ -460,7 +463,7 @@ describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
           ? {
               ...path,
               rows: path.rows.map((tableRow) =>
-                tableRow.order >= 6
+                tableRow.order >= firstEmptied
                   ? {
                       id: tableRow.id,
                       order: tableRow.order,
@@ -479,6 +482,11 @@ describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
       )
     }))
   }
+}
+
+describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
+  const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
+  const spray = sprayWithRowsEmptiedFrom(6)
   const sprayCast = (tableRoll: number, dc: number) =>
     cast(spray, { tableRoll, damageDie: 3, dc, ability: DEXTERITY, tableDie: 8 })
 
@@ -492,6 +500,35 @@ describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
     const saved = await sprayCast(5, 1)
     expect(saved.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 15 }])
     expect((await sprayCast(6, 1)).applications).toEqual([])
+  })
+})
+
+describe('a table row that petrifies after three failed saves (SPELLS-4.T2ps-b)', () => {
+  // Rows 7 and 8 are the later tasks'; row 6 is authored as it ships.
+  it('plans row 6 on its own face as a restraint that repeats to a tally, with petrified at the end', () => {
+    const spray = castCompilation(sprayWithRowsEmptiedFrom(7))
+    const plan = (spray.rollTableRowPlans ?? []).find(({ rollTableRow }) => rollTableRow.min === 6)
+    expect(plan).toMatchObject({
+      rollTableRow: { min: 6, max: 6 },
+      initialRemaining: MAX_ACTIVE_EFFECT_TURNS,
+      conditionContributions: [{ conditionId: RESTRAINED }],
+      saveThresholds: { successesToEnd: 3, failuresToResolve: 3, consecutive: false },
+      adapterFacts: { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]: PETRIFIED }
+    })
+  })
+
+  it('restrains on a failed save for its plan to hold, and applies nothing on a made one', async () => {
+    const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
+    const spray = sprayWithRowsEmptiedFrom(7)
+    const sprayCast = (dc: number) =>
+      cast(spray, { tableRoll: 6, damageDie: 3, dc, ability: DEXTERITY, tableDie: 8 })
+    const failed = await sprayCast(UNSAVEABLE_DC)
+    expect(failed.applications).toMatchObject([
+      { kind: 'CONDITION_APPLY', conditionId: RESTRAINED }
+    ])
+    expect(failed.execution.outputs.rollTableRoll).toBe(6)
+    const saved = await sprayCast(1)
+    expect(saved.applications).toEqual([])
   })
 })
 
