@@ -307,14 +307,8 @@ export async function verifyEncounterAreaBrowser(
         await ownerPage.mouse.move(from.x, from.y)
         await ownerPage.mouse.down()
         await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
-        await ownerPage.screenshot({
-          path: input.evidenceDirectory + '/area-owner-breath-drag.png'
-        })
         await ownerPage.mouse.up()
-        await ownerPage.screenshot({
-          path: input.evidenceDirectory + '/area-owner-breath-released.png'
-        })
-        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to })).toBeVisible()
+        await expect(drawer).toBeVisible()
         const inArea = drawer.getByText(/^In the area:/)
         await expect(inArea).toBeVisible()
         for (const label of caught) await expect(inArea).toContainText(label)

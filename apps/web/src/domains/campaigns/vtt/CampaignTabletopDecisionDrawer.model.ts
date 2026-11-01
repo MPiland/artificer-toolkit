@@ -1,6 +1,20 @@
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
 
+import {
+  contestCheckD20Request,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import {
+  concentrationPromptText,
+  concentrationTriggerText,
+  deathSavePromptText
+} from '../ruleCheckCopy'
+
 /** A decision shown away from the stage map has no scene to aim on. */
 export const NO_AREA_AIM: LegendaryAreaAim = {
   scene: null,
@@ -26,20 +40,6 @@ export type LegendaryAreaAim = {
   onAreaSizeChange: (size: VttAreaSize | null) => void
   onPickAreaOrigin: () => void
 }
-
-import {
-  contestCheckD20Request,
-  type PendingEncounterRuleOccurrenceSummaryDto
-} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
-import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import {
-  concentrationPromptText,
-  concentrationTriggerText,
-  deathSavePromptText
-} from '../ruleCheckCopy'
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>
