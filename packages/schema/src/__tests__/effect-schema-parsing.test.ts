@@ -121,7 +121,7 @@ describe('effect schema parsing', () => {
       {
         id: 'closed-rule-outcome',
         effectKind: 'CLOSED_RULE',
-        ruleKind: CLOSED_RULE_KIND.CLASS_BARD_BARDIC_INSPIRATION
+        ruleKind: CLOSED_RULE_KIND.CLASS_BARD_JACK_OF_ALL_TRADES
       },
       {
         id: 'manual-adjudication-outcome',

@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/actorSenses'
 import { creatureEmittedLight } from '@artificer-toolkit/rules-runtime/creatureLight'
 import { encounterActorMovementPassage } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
-import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
+import { snapshotCreatureSenses } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateCharacterActiveGrantRules } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import {
   sceneSessionVisionCompositionSchema,
@@ -229,7 +229,7 @@ export async function composeRoomSceneVision(input: {
     actorVisions.push({
       ...deriveActorSceneVision(
         actor.id,
-        await actorSenses(snapshotStatBlock(actor)?.senses ?? []),
+        await actorSenses(snapshotCreatureSenses(actor)),
         creatureEmittedLight(actor)
       ),
       ...barrierPassage(campaign.gameSystemId, actor, null)
