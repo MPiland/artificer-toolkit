@@ -1,25 +1,9 @@
 // @vitest-environment node
-import { register } from '@convex-dev/r2/test'
-import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { components, internal } from '../_generated/api'
-import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
-import { createPartyUser } from '../../tests/fixtures/partyPlayer'
-import { seedReviewData, type ReviewAccount } from '../../tests/developmentReviewData'
-import {
-  REVIEW_GM,
-  REVIEW_PLAYERS,
-  REVIEW_SCENARIOS
-} from '../../tests/developmentReviewDataScenarios'
-import {
-  attachRoomWorker,
-  checkpointRoom,
-  closeRoom,
-  roomDevelopmentClient,
-  roomErrorLogs,
-  seedRoomContentSnapshots,
-  useLocalRoomWorker
-} from '../../tests/fixtures/localRoomWorker'
+import { seedReviewData } from '../../tests/developmentReviewData'
+import { REVIEW_SCENARIOS } from '../../tests/developmentReviewDataScenarios'
+import { roomErrorLogs, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import { reviewDataHarness } from '../../tests/fixtures/reviewDataHarness'
 
 useLocalRoomWorker()
 beforeEach(() => {
@@ -31,63 +15,19 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-it('builds the review Campaigns once and skips every finished one on a re-run', async () => {
-  const { t } = await readySheetFixture()
-  register(t)
-  registerRetrier(t, 'r2/actionRetrier')
-  // The Characters are built from the SRD corpus, as on the seeded local backend.
-  await t.action(internal.content.seed.seed, {})
-  await attachRoomWorker(t)
-  const accounts: ReviewAccount[] = []
-  const roomClients: ReturnType<typeof roomDevelopmentClient>[] = []
-  for (const [index, spec] of [REVIEW_GM, ...REVIEW_PLAYERS].entries()) {
-    const user = await createPartyUser(t, {
-      username: spec.username,
-      email: `draft_review00000${index}@example.invalid`
-    })
-    const client = roomDevelopmentClient(user.caller)
-    roomClients.push(client)
-    accounts.push({
-      client,
-      userId: user.userId,
-      username: spec.username
-    })
-  }
-  const [gm, ...players] = accounts as [ReviewAccount, ...ReviewAccount[]]
-  await t.run((ctx) =>
-    ctx.runMutation(components.betterAuth.adapter.updateMany, {
-      input: { model: 'session', update: { expiresAt: Date.now() + 3 * 86_400_000 } },
-      paginationOpts: { cursor: null, numItems: 10 }
-    })
-  )
-  const context = {
-    gm,
-    players,
-    grantGmTier: (userId: string) =>
-      t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
-    // Each finished Campaign's room is closed from both ends, so the next one activates on a quiet Worker.
-    releaseRoom: async (campaignId: string) => {
-      for (const client of roomClients) client.closeRooms()
-      await closeRoom(campaignId)
-    },
-    buildSnapshots: seedRoomContentSnapshots,
-    checkpoint: async (campaignId: string) => {
-      await checkpointRoom(campaignId)
-    },
-    log: (message: string) => console.log(message)
-  }
-  const counts = () =>
-    t.run(async (ctx) => ({
-      campaigns: (await ctx.db.query('campaigns').collect()).map((row) => row.name).sort(),
-      runs: (await ctx.db.query('encounterRuns').collect()).length
-    }))
-  const names = REVIEW_SCENARIOS.map((scenario) => scenario.campaign)
+// The Worker keeps every room it has hosted until the test ends, so the last Campaign is built by
+// reviewDataFireAndThunder.test.ts on a Worker of its own.
+const scenarios = REVIEW_SCENARIOS.slice(0, 2)
 
-  const first = await seedReviewData(context).catch((error: unknown) => {
+it('builds the review Campaigns once and skips every finished one on a re-run', async () => {
+  const { context, counts } = await reviewDataHarness()
+  const names = scenarios.map((scenario) => scenario.campaign)
+
+  const first = await seedReviewData(context, scenarios).catch((error: unknown) => {
     throw new Error(['Review seed failed:', String(error), ...roomErrorLogs()].join(' | '))
   })
   const built = await counts()
-  const second = await seedReviewData(context)
+  const second = await seedReviewData(context, scenarios)
 
   expect(first).toEqual({ created: names, skipped: [] })
   expect(built.campaigns).toEqual([...names].sort())
