@@ -1,5 +1,5 @@
 import type { CharacterSheetCommonDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
-import { Button, Collapse, Group, Stack, Text } from '@mantine/core'
+import { Button, Collapse, Stack, Text } from '@mantine/core'
 import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
@@ -187,27 +187,38 @@ export function CharacterSheetOverviewStatusStrip({
           ))}
         </ul>
       ) : null}
-      {sheet.overview.concentration && sheet.meta.capabilities.managePlayState ? (
-        <Group gap='xs'>
-          <Text size='xs'>
-            {sheet.overview.concentration.label
-              ? `Concentrating on ${sheet.overview.concentration.label}`
-              : 'Concentrating'}
-          </Text>
-          <Button
-            disabled={pending}
-            size='compact-xs'
-            variant='default'
-            onClick={() =>
-              submitCommand({
-                type: 'END_CONCENTRATION',
-                expectedVersion: sheet.meta.streamVersion
-              })
-            }
-          >
-            End Concentration
-          </Button>
-        </Group>
+      {sheet.overview.concentrations.length > 0 && sheet.meta.capabilities.managePlayState ? (
+        <ul aria-label='Concentrations' className={activeGrantStyles.list}>
+          {sheet.overview.concentrations.map((concentration) => {
+            const named = concentration.label
+              ? `Concentrating on ${concentration.label}`
+              : 'Concentrating'
+            return (
+              <li key={concentration.stateId ?? 'carried'} className={activeGrantStyles.item}>
+                <Text size='xs'>{named}</Text>
+                <Button
+                  aria-label={
+                    sheet.overview.concentrations.length > 1
+                      ? `End Concentration: ${concentration.label ?? 'unnamed'}`
+                      : undefined
+                  }
+                  disabled={pending}
+                  size='compact-xs'
+                  variant='default'
+                  onClick={() =>
+                    submitCommand({
+                      type: 'END_CONCENTRATION',
+                      ...(concentration.stateId && { stateId: concentration.stateId }),
+                      expectedVersion: sheet.meta.streamVersion
+                    })
+                  }
+                >
+                  End Concentration
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
       ) : null}
 
       <Collapse

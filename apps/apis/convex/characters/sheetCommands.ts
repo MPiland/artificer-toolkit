@@ -558,7 +558,10 @@ export async function executeCharacterSheetCommand(
       }
     )
 
-  if (command.type === 'END_CONCENTRATION')
+  if (command.type === 'END_CONCENTRATION') {
+    // A named state is a Run's live Concentration, which the room ends; Convex holds none.
+    if (command.stateId)
+      throw new CharacterSheetCommandError('That Concentration is held in an active Encounter.')
     await endCarriedConcentration(ctx, {
       characterId: initial.active.id,
       campaignId: initial.campaignContext.campaignId,
@@ -567,6 +570,7 @@ export async function executeCharacterSheetCommand(
         (summon) => summon.concentration
       )
     })
+  }
 
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }

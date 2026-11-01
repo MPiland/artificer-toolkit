@@ -50,6 +50,7 @@ import {
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
+import { createConcentrationCapacityFeatures } from './fixtures/encounterConcentrationCapacity'
 import type { CharacterListPage } from '@artificer-toolkit/schema/api/characterList'
 import type { CharacterDraftListPage } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
@@ -2711,6 +2712,7 @@ try {
     process.argv.includes('--encounter-player-browser') ||
     process.argv.includes('--encounter-heat-metal-browser') ||
     process.argv.includes('--encounter-held-effect-browser') ||
+    process.argv.includes('--encounter-concentration-sheet-browser') ||
     process.argv.includes('--encounter-delegated-attack-browser') ||
     process.argv.includes('--encounter-summon-turn-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
@@ -2747,6 +2749,9 @@ try {
     const playerBrowser = process.argv.includes('--encounter-player-browser')
     const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
     const heldEffectBrowser = process.argv.includes('--encounter-held-effect-browser')
+    const concentrationSheetBrowser = process.argv.includes(
+      '--encounter-concentration-sheet-browser'
+    )
     const delegatedAttackBrowser = process.argv.includes('--encounter-delegated-attack-browser')
     const summonTurnBrowser = process.argv.includes('--encounter-summon-turn-browser')
     const lifecycle =
@@ -2761,6 +2766,7 @@ try {
       playerBrowser ||
       heatMetalBrowser ||
       heldEffectBrowser ||
+      concentrationSheetBrowser ||
       delegatedAttackBrowser ||
       summonTurnBrowser ||
       workload
@@ -2786,6 +2792,7 @@ try {
       ...(playerBrowser ||
       heatMetalBrowser ||
       heldEffectBrowser ||
+      concentrationSheetBrowser ||
       delegatedAttackBrowser ||
       summonTurnBrowser
         ? (['SPELL'] as const)
@@ -2808,6 +2815,8 @@ try {
       await import('@artificer-toolkit/source-data/srd/spells/find-familiar.js')
     const { huntersMark } =
       await import('@artificer-toolkit/source-data/srd/spells/hunters-mark.js')
+    const { shieldOfFaith } =
+      await import('@artificer-toolkit/source-data/srd/spells/shield-of-faith.js')
     const spellCharacter = playerBrowser
       ? await createDevelopmentSpellCharacter(
           player.client,
@@ -2830,24 +2839,33 @@ try {
               [huntersMark],
               [{ spellLevel: 1, slotCount: 1 }]
             )
-          : delegatedAttackBrowser
+          : concentrationSheetBrowser
             ? await createDevelopmentSpellCharacter(
                 player.client,
                 characterId,
-                [findFamiliar],
-                [{ spellLevel: 1, slotCount: 1 }],
-                (await import('./fixtures/encounterDelegatedAttack')).createDelegatedAttackFeatures
+                [huntersMark, shieldOfFaith],
+                [{ spellLevel: 1, slotCount: 2 }],
+                () => createConcentrationCapacityFeatures()
               )
-            : summonTurnBrowser
+            : delegatedAttackBrowser
               ? await createDevelopmentSpellCharacter(
                   player.client,
                   characterId,
                   [findFamiliar],
                   [{ spellLevel: 1, slotCount: 1 }],
-                  undefined,
-                  (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
+                  (await import('./fixtures/encounterDelegatedAttack'))
+                    .createDelegatedAttackFeatures
                 )
-              : null
+              : summonTurnBrowser
+                ? await createDevelopmentSpellCharacter(
+                    player.client,
+                    characterId,
+                    [findFamiliar],
+                    [{ spellLevel: 1, slotCount: 1 }],
+                    undefined,
+                    (await import('./fixtures/encounterSummonTurn')).summonActsAfterOwner
+                  )
+                : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3358,6 +3376,55 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/held-effect-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (concentrationSheetBrowser) {
+        if (!spellCharacter)
+          throw new Error('The Concentration sheet journey needs its spell Character.')
+        const marked = await publishJourneyOgre('Marked ogre')
+        const warded = await publishJourneyOgre('Warded ogre')
+        const { verifyEncounterConcentrationSheet } =
+          await import('./developmentEncounterConcentrationSheet')
+        await verifyEncounterConcentrationSheet({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          characterPublicId: spellCharacter.committed.publicId,
+          playerUserId: player.identity.userId,
+          markedSourceId: marked.id,
+          wardedSourceId: warded.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterConcentrationSheetBrowser } =
+              await import('../../web/tests/live-backend/encounterConcentrationSheet')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterConcentrationSheetBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/concentration-sheet-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url

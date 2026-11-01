@@ -480,7 +480,7 @@ it('lets the caster end a carried Concentration with no action, ending every gra
       characterId: character.id
     })
   const sheet = await read()
-  expect(sheet.overview.concentration).not.toBeNull()
+  expect(sheet.overview.concentrations).toHaveLength(1)
 
   await player.caller.mutation(api.campaigns.characterSheet.execute, {
     campaignId: campaign.id,
@@ -495,7 +495,7 @@ it('lets the caster end a carried Concentration with no action, ending every gra
   expect(await stored()).toEqual([])
   const ended = await read()
   expect(ended.overview.activeGrants).toEqual([])
-  expect(ended.overview.concentration).toBeNull()
+  expect(ended.overview.concentrations).toEqual([])
   await expect(
     player.caller.mutation(api.campaigns.characterSheet.execute, {
       campaignId: campaign.id,

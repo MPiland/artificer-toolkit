@@ -92,7 +92,9 @@ export async function endOutsideCasterConcentration(
  * Every grant the Run's slot maintains ends with it, and a Character's carried-over grants held by
  * the Run's Characters end too (D99); the caster joins the Run's caster set so the completing
  * checkpoint ends the ones outside the Run. The end is a child receipt of the command like any D95
- * end, keyed on the command id. Throws when the actor has nothing to end.
+ * end, keyed on the command id. Throws when the actor has nothing to end. A holder of more than one
+ * Concentration names the state to end (SPELLS-12.3); only that state's dependents end, and a
+ * carried-over Concentration stays.
  */
 export async function endChosenConcentration(
   ctx: EncounterCharacterWriteTransaction & {
@@ -104,6 +106,8 @@ export async function endChosenConcentration(
     /** Every Run actor as the command left it. */
     actors: EncounterRunActorState[]
     holder: EncounterRunActorState
+    /** The held Concentration state to end; required while the holder keeps more than one. */
+    stateId?: string
     commandId: string
     userId: string
     occurredAt: string
@@ -127,18 +131,22 @@ export async function endChosenConcentration(
   )
     rejectDomain('PENDING_DECISION')
   const store = createActiveRuleEffectStore(ctx)
-  const slot = await store.findMaintainedState({
+  const slots = await store.findMaintainedStates({
     encounterId: state.id,
     ownerActorId: holder.id,
     maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
       state.gameSystemId
     )
   })
+  if (!input.stateId && slots.length > 1)
+    throw new Error(`${holder.label} holds more than one Concentration: choose which to end.`)
+  const slot = input.stateId ? slots.find(({ id }) => id === input.stateId) : slots[0]
+  if (input.stateId && !slot) throw new Error(`${holder.label} is not holding that Concentration.`)
   const authorizedCharacterIds = new Set(
     input.actors.flatMap((actor) => (actor.kind === 'CHARACTER' ? [actor.sourceId] : []))
   )
   const carried =
-    holder.kind === 'CHARACTER'
+    holder.kind === 'CHARACTER' && !input.stateId
       ? await endCarriedGrantsOfConcentratingCasters(ctx, {
           encounterId: state.id,
           casterCharacterIds: [holder.sourceId],
@@ -147,7 +155,8 @@ export async function endChosenConcentration(
           occurredAt: input.occurredAt
         })
       : []
-  if (holder.kind === 'CHARACTER') await recordConcentrationCaster(ctx, state.id, holder.sourceId)
+  if (holder.kind === 'CHARACTER' && !input.stateId)
+    await recordConcentrationCaster(ctx, state.id, holder.sourceId)
   if (!slot) {
     if (carried.length === 0) throw new Error(`${holder.label} is not concentrating.`)
     // Carried grants have no slot, so no receipt: the command keys the chat line.

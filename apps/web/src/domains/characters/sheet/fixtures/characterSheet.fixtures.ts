@@ -106,7 +106,7 @@ export const characterSheetFixture = {
     maxHitPointsReductions: [],
     activeGrants: [],
     standingEffects: [],
-    concentration: null,
+    concentrations: [],
     consequences: [],
     exhaustion: {
       label: 'Exhaustion',

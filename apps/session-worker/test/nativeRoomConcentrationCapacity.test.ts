@@ -7,13 +7,15 @@ import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/test
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import { dependentEffectDefinition } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -405,5 +407,91 @@ describe('Held-count gated effect (SPELLS-12.T4)', () => {
       'COMMAND_COMMITTED'
     )
     expect(before - (await hitPoints())).toBe(6)
+  })
+})
+
+describe('Sheet ends a chosen Concentration (SPELLS-12.T4b)', () => {
+  async function sheetPlayer(room: WardRoom) {
+    const player = await connectPlayer(room.room.base)
+    player.socket.send(
+      JSON.stringify({ type: 'SUBSCRIBE_CHARACTER_SHEET', characterId: FIGHTER_ID })
+    )
+    const latestSheet = () => {
+      const sheets = player.messages.filter((each) => each.type === 'CHARACTER_SHEET')
+      const latest = sheets.at(-1)
+      if (latest?.type !== 'CHARACTER_SHEET') throw new Error('The room sent no Sheet.')
+      return latest.sheet
+    }
+    const end = async (stateId?: string) => {
+      const streamVersion = await runInDurableObject(room.room.base.stub, (_instance, context) => {
+        const play = new RoomEncounterStore(context.storage)
+          .documents('characterPlayStates')
+          .find((row) => row.characterId === FIGHTER_ID)
+        if (!play) throw new Error('Missing room Character play state.')
+        return play.streamVersion
+      })
+      const commandId = crypto.randomUUID()
+      player.socket.send(
+        JSON.stringify({
+          type: 'COMMAND',
+          expectedSessionSequence: 0,
+          command: {
+            scope: 'CHARACTER_SHEET',
+            characterId: FIGHTER_ID,
+            encounterId: room.room.encounterId,
+            command: {
+              type: 'END_CONCENTRATION',
+              commandId,
+              expectedVersion: streamVersion,
+              ...(stateId && { stateId })
+            }
+          }
+        })
+      )
+      return vi.waitFor(() => {
+        const answer = player.messages.find(
+          (message) =>
+            (message.type === 'COMMAND_COMMITTED' || message.type === 'COMMAND_REJECTED') &&
+            message.commandId === commandId
+        )
+        if (!answer) throw new Error('The room has not answered the command.')
+        return answer.type
+      })
+    }
+    return { latestSheet, end }
+  }
+
+  it('lists each held Concentration and ends only the one the player picks', async () => {
+    const room = await wardRoom([capacityItem])
+    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const [first, second] = await heldStateIds(room)
+    const { latestSheet, end } = await sheetPlayer(room)
+
+    await vi.waitFor(() =>
+      expect(latestSheet().overview.concentrations.map(({ stateId }) => stateId)).toEqual([
+        first,
+        second
+      ])
+    )
+    expect(latestSheet().overview.concentrations.every(({ label }) => label !== null)).toBe(true)
+
+    expect(await end(first)).toBe('COMMAND_COMMITTED')
+    expect(await heldStateIds(room)).toEqual([second])
+    await vi.waitFor(() =>
+      expect(latestSheet().overview.concentrations.map(({ stateId }) => stateId)).toEqual([second])
+    )
+  })
+
+  it('refuses an end that names no Concentration, or one not held, while two are held', async () => {
+    const room = await wardRoom([capacityItem])
+    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const held = await heldStateIds(room)
+    const { end } = await sheetPlayer(room)
+
+    expect(await end()).toBe('COMMAND_REJECTED')
+    expect(await end(crypto.randomUUID())).toBe('COMMAND_REJECTED')
+    expect(await heldStateIds(room)).toEqual(held)
   })
 })

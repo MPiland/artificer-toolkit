@@ -38,7 +38,7 @@ import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
   activeGrantListingDtoSchema,
-  concentrationListingDtoSchema
+  sheetConcentrationListingDtoSchema
 } from '../shared/activeGrantListing.js'
 import { offeredRollModeSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
@@ -201,11 +201,12 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
       })
     ),
     /**
-     * A Concentration this Character cast whose grants a finished Run carried onto the Campaign clock
-     * (SPELLS-5.11); the caster ends it with END_CONCENTRATION. Null for a viewer who does not control
-     * the Character; the label is null for a hidden source.
+     * Every Concentration this Character maintains: each one it holds in an active Run, or the one
+     * whose grants a finished Run carried onto the Campaign clock (SPELLS-5.11). The caster ends one
+     * with END_CONCENTRATION, naming its state while it holds more than one (SPELLS-12.3). Empty for a
+     * viewer who does not control the Character; a label is null for a hidden source.
      */
-    concentration: z.nullable(concentrationListingDtoSchema),
+    concentrations: z.array(sheetConcentrationListingDtoSchema),
     /** Consequence rows the GM accepted, such as lingering injuries, with the healing the table names. */
     consequences: z.array(characterConsequenceDtoSchema),
     savingThrows: z.array(

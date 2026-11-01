@@ -5,7 +5,8 @@ import type {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   ActiveGrantListingDto,
-  ConcentrationListingDto
+  ConcentrationListingDto,
+  SheetConcentrationListingDto
 } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { modifierRollInfluence, type ValueDomainCode } from '@artificer-toolkit/shared/core'
 
@@ -223,6 +224,23 @@ export function heldConcentration(
   return { label: first?.label ?? null, sourceHidden: first?.sourceHidden ?? false }
 }
 
+/**
+ * Every Concentration a Sheet lists (SPELLS-12.3): one per live state the caster holds, each named by
+ * the grants that depend on it, or the single Concentration whose grants a finished Run carried
+ * (no live state to name). Empty when the effects are null.
+ */
+export function listSheetConcentrations(
+  effects: readonly ActiveRuleEffectRecord[] | null,
+  heldStateIds: readonly string[]
+): SheetConcentrationListingDto[] {
+  if (!effects) return []
+  if (heldStateIds.length === 0) return [{ ...heldConcentration(effects), stateId: null }]
+  return heldStateIds.map((stateId) => ({
+    ...heldConcentration(effects.filter((effect) => effect.maintainedEffectStateId === stateId)),
+    stateId
+  }))
+}
+
 /** The Concentration the caster's carried grants depend on; null when none are carried. */
 export function carriedConcentration(
   effects: Parameters<typeof listActiveGrantListings>[0]
@@ -248,8 +266,8 @@ export function hideActiveGrantSources(
 }
 
 /** A Concentration as a player reads it: a hidden source's label is withheld. */
-export function hideConcentrationSource(
-  concentration: ConcentrationListingDto | null
-): ConcentrationListingDto | null {
+export function hideConcentrationSource<T extends ConcentrationListingDto>(
+  concentration: T | null
+): T | null {
   return concentration?.sourceHidden ? { ...concentration, label: null } : concentration
 }
