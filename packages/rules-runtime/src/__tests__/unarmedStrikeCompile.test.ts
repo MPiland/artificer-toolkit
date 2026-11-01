@@ -47,7 +47,7 @@ function hitDiceGraph(input: SrdCharacterInput) {
     published: executionPlan.test.published,
     sourceDerivedFacts: {},
     targetActorId: TARGET_ID,
-    targetDerivedFacts: {},
+    targetDerivedFacts: { statBlock: { armorClass: 12 } },
     targetConditionIds: [],
     currentHitPoints: 20,
     temporaryHitPoints: 0,
