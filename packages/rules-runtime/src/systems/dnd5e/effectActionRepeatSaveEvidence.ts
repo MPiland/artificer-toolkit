@@ -1,4 +1,5 @@
 import type {
+  ActiveEffectSaveTally,
   ActiveEffectSaveThresholds,
   ActiveRuleEffectLifecycleDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'

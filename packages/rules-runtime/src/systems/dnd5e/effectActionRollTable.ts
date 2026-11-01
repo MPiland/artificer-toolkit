@@ -157,7 +157,9 @@ export function isRowPlanId(
   return (
     id === rowId ||
     (id !== undefined &&
-      rowAction.compiledEffect.entries.some(({ resultBlockId }) => resultBlockId === id))
+      rowAction.compiledEffect.entries.some(
+        (entry) => 'resultBlockId' in entry && entry.resultBlockId === id
+      ))
   )
 }
 
