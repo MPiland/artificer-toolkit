@@ -228,6 +228,7 @@ import {
 } from './effectActionInterpretation.js'
 import {
   repeatedFollowUpSaveResultPath,
+  isTallyCount,
   repeatSaveAttemptAllowed,
   repeatSaveGated
 } from './effectActionRepeatSaveEvidence.js'
@@ -1673,10 +1674,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */

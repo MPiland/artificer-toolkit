@@ -6,6 +6,7 @@ import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/test
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
+import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -70,8 +71,12 @@ async function cast(room: SpellRoom, label: string) {
   expect(result.answer.type, JSON.stringify(result.answer)).toBe('COMMAND_COMMITTED')
 }
 
+/** The held Concentration states, each with its stored descriptor decoded by the product schema. */
 const heldStates = async (room: SpellRoom) =>
-  (await readRoomHistory(room.room.base.stub)).maintainedStates
+  (await readRoomHistory(room.room.base.stub)).maintainedStates.map(({ id, descriptorJson }) => ({
+    id,
+    descriptor: encounterMaintainedEffectDescriptorDtoSchema.parse(JSON.parse(descriptorJson))
+  }))
 
 describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
   it('keeps a second Concentration when both spells are within the limit', async () => {
