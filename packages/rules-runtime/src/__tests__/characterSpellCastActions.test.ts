@@ -3216,7 +3216,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         formStats: formSummonStats(formCreature)
       })
       const { actor } = buildEncounterSummon({
-        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey },
+        summon: { kind: 'CREATURE', creature: formCreature, creatureTypeId: fey, count: null },
         spellSummon,
         caster,
         casterHitPointMaximum: 40,
