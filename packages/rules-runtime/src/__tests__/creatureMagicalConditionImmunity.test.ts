@@ -16,6 +16,7 @@ const holderState = {
   freeHand: true,
   turnMovement: { usedFeet: 0, speedFeet: 0 },
   activeAuthoredEffectIds: [],
+  heldConcentrationCount: 0,
   stowableHeldItemInstanceId: null
 } as const
 

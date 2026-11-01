@@ -80,7 +80,8 @@ const holderState: EncounterHolderState = {
   freeHand: true,
   stowableHeldItemInstanceId: null,
   turnMovement: { usedFeet: 0, speedFeet: 30 },
-  activeAuthoredEffectIds: []
+  activeAuthoredEffectIds: [],
+  heldConcentrationCount: 0
 }
 
 const PALADIN = srdByLabel(SRD.classes, 'Paladin')

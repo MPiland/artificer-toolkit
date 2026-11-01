@@ -50,7 +50,8 @@ const defend = (target: MovementTarget) =>
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
     runEffectsByActorId: new Map(),
-    readTurnMovedFeet: async () => 0
+    readTurnMovedFeet: async () => 0,
+    readHeldConcentrationCount: async () => 0
   })
 
 describe('Protection from Evil and Good as source-qualified grants', () => {

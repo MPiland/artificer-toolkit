@@ -91,6 +91,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'TARGET_HAS_NOT_TAKEN_TURN',
       /** The holder stands in bright light on its Scene, in daylight when `requiresDaylight` (Encounter state). */
       'HOLDER_IN_BRIGHT_LIGHT',
+      /** The holder keeps `min`..`max` Concentrations now (Encounter state). */
+      'HOLDER_CONCENTRATION_COUNT',
       /**
        * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
        * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).
