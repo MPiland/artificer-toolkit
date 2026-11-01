@@ -460,11 +460,11 @@ describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
           ? {
               ...path,
               rows: path.rows.map((tableRow) =>
-                tableRow.rollValue >= 6
+                tableRow.order >= 6
                   ? {
                       id: tableRow.id,
                       order: tableRow.order,
-                      rollValue: tableRow.rollValue,
+                      rollValue: tableRow.order,
                       resolutionKind: 'RESULT' as const,
                       resultBlock: {
                         id: `${tableRow.id}__result`,
