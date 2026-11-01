@@ -1,5 +1,10 @@
 import type { ForcedMovementCollisionAuthored } from '@artificer-toolkit/shared/authored'
-import { addNumbersRuleOperation, type RuleInputBinding } from '@artificer-toolkit/shared/rules'
+import {
+  addNumbersRuleOperation,
+  atOrBelowThresholdRuleOperation,
+  selectNumberRuleOperation,
+  type RuleInputBinding
+} from '@artificer-toolkit/shared/rules'
 import {
   type CharacterRuleActionForcedMovementCollision,
   isCharacterRuleActionForcedMovementDirection
@@ -174,27 +179,83 @@ export function settledForcedMovementCollision(
 
 /**
  * One evidence node per die plus the running sums, and the output that holds the rolled subtotal.
- * With `enabled` the dice ask for no request (and settle at 1) unless that output is true.
+ * With `enabled` the dice ask for no request (and settle at 1) unless that output is true. With
+ * `rerollAtOrBelow` each die at or below that face is rolled once more and the new roll stands; the
+ * original and the new roll both stay in the trace.
  */
 export function rolledDiceNodes(
   term: BoundedDiceTerm,
   prefix: string,
-  enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
+  options: {
+    enabled?: { kind: 'NODE_OUTPUT'; nodeId: string; port: string }
+    rerollAtOrBelow?: number
+  } = {}
 ) {
+  const { enabled, rerollAtOrBelow } = options
   const dieNodeId = (index: number) => `${prefix}die-${index + 1}`
+  const rerollNodeId = (index: number) => `${prefix}die-${index + 1}-reroll`
+  const keptNodeId = (index: number) => `${prefix}die-${index + 1}-kept`
   const sumNodeId = (index: number) => `${prefix}sum-${index + 1}`
-  const diceNodes = Array.from({ length: term.count }, (_, index) => ({
-    id: dieNodeId(index),
+  const rolled = (index: number) => ({
+    kind: 'NODE_OUTPUT' as const,
+    nodeId: rerollAtOrBelow === undefined ? dieNodeId(index) : keptNodeId(index),
+    port: 'value'
+  })
+  const evidenceNode = (id: string, dieEnabled: typeof enabled) => ({
+    id,
     operation: {
-      key: enabled ? 'evidence.optional-integer-range' : 'evidence.integer-range',
+      key: dieEnabled ? 'evidence.optional-integer-range' : 'evidence.integer-range',
       contractVersion: 1
     },
     inputs: {
       min: { kind: 'LITERAL' as const, value: 1 },
       max: { kind: 'LITERAL' as const, value: term.die },
-      ...(enabled ? { enabled } : {})
+      ...(dieEnabled ? { enabled: dieEnabled } : {})
     }
-  }))
+  })
+  const diceNodes = Array.from({ length: term.count }, (_, index) =>
+    evidenceNode(dieNodeId(index), enabled)
+  )
+  const rerollNodes =
+    rerollAtOrBelow === undefined
+      ? []
+      : diceNodes.flatMap((die, index) => {
+          const lowNodeId = `${prefix}die-${index + 1}-low`
+          return [
+            {
+              id: lowNodeId,
+              operation: {
+                key: atOrBelowThresholdRuleOperation.key,
+                contractVersion: atOrBelowThresholdRuleOperation.contractVersion
+              },
+              inputs: {
+                value: { kind: 'NODE_OUTPUT' as const, nodeId: die.id, port: 'value' },
+                threshold: { kind: 'LITERAL' as const, value: rerollAtOrBelow }
+              }
+            },
+            evidenceNode(rerollNodeId(index), {
+              kind: 'NODE_OUTPUT',
+              nodeId: lowNodeId,
+              port: 'passed'
+            }),
+            {
+              id: keptNodeId(index),
+              operation: {
+                key: selectNumberRuleOperation.key,
+                contractVersion: selectNumberRuleOperation.contractVersion
+              },
+              inputs: {
+                condition: { kind: 'NODE_OUTPUT' as const, nodeId: lowNodeId, port: 'passed' },
+                whenTrue: {
+                  kind: 'NODE_OUTPUT' as const,
+                  nodeId: rerollNodeId(index),
+                  port: 'value'
+                },
+                whenFalse: { kind: 'NODE_OUTPUT' as const, nodeId: die.id, port: 'value' }
+              }
+            }
+          ]
+        })
   const sumNodes = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
     id: sumNodeId(index),
     operation: {
@@ -204,32 +265,20 @@ export function rolledDiceNodes(
     inputs: {
       left:
         index === 0
-          ? {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: dieNodeId(0),
-              port: 'value'
-            }
-          : {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: sumNodeId(index - 1),
-              port: 'value'
-            },
-      right: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: dieNodeId(index + 1),
-        port: 'value'
-      }
+          ? rolled(0)
+          : { kind: 'NODE_OUTPUT' as const, nodeId: sumNodeId(index - 1), port: 'value' },
+      right: rolled(index + 1)
     }
   }))
   const subtotal =
     term.count === 1
-      ? { kind: 'NODE_OUTPUT' as const, nodeId: dieNodeId(0), port: 'value' }
+      ? rolled(0)
       : {
           kind: 'NODE_OUTPUT' as const,
           nodeId: sumNodeId(term.count - 2),
           port: 'value'
         }
-  return { nodes: [...diceNodes, ...sumNodes], subtotal }
+  return { nodes: [...diceNodes, ...rerollNodes, ...sumNodes], subtotal }
 }
 
 /** An outcome from the registry gated on a test node's result path, with the amount its own dice rolled. */

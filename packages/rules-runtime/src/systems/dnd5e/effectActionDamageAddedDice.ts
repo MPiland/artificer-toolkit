@@ -33,8 +33,16 @@ export function isCriticalHitDamage(
   selectedPath: SpecializedPath,
   entry: CompiledEffectGroup['entries'][number]
 ): boolean {
+  return selectedPath === 'ON_CRIT' && isAttackHitDamage(selectedPath, entry)
+}
+
+/** The attack's own hit damage, on a hit or a critical hit: the damage a damage die reroll applies to. */
+export function isAttackHitDamage(
+  selectedPath: SpecializedPath,
+  entry: CompiledEffectGroup['entries'][number]
+): boolean {
   return (
-    selectedPath === 'ON_CRIT' &&
+    (selectedPath === 'ON_HIT' || selectedPath === 'ON_CRIT') &&
     entry.pathCode === 'ON_HIT' &&
     'outcome' in entry &&
     entry.outcome.effectKind === 'DAMAGE'

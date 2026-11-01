@@ -31,6 +31,8 @@ export function diceGraphDefinition(input: {
   diceConfig: string
   /** Roll the dice twice plus the extra dice for a critical hit; the modifier is still added once. */
   critical?: { extraDice: number }
+  /** Reroll each die that lands at or below this face once, keeping the new roll. */
+  rerollAtOrBelow?: number
   modifierFactKey?: string
   nodePrefix?: string
   recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
@@ -55,7 +57,9 @@ export function diceGraphDefinition(input: {
     outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
   const prefix = input.nodePrefix ?? ''
   const { modifier: authoredModifier, term } = boundedDiceTerm(input.diceConfig, input.critical)
-  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix)
+  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix, {
+    rerollAtOrBelow: input.rerollAtOrBelow
+  })
   const modifier = input.modifierFactKey
     ? { kind: 'FACT' as const, factKey: input.modifierFactKey }
     : { kind: 'LITERAL' as const, value: authoredModifier }

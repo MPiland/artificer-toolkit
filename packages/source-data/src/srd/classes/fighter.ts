@@ -35,6 +35,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  greatWeaponFightingGrant,
   gmRulingEffect,
   twoWeaponFightingGrants,
   equippedCategoryRestriction
@@ -476,22 +477,13 @@ export const fighter: ClassAuthored = {
           description:
             'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.',
           order: 3,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 0x60, 0x84),
-              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_GREAT_WEAPON_FIGHTING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
-              }
-            })
-          ]
+          grants: {
+            modifiers: [
+              greatWeaponFightingGrant(classRowId(F, 4, 13), (entry) =>
+                classRowId(F, 0x7a, 0x28 + entry)
+              )
+            ]
+          }
         },
         {
           id: classRowId(F, 4, 5),

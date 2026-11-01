@@ -10,12 +10,13 @@ type AttackKind = 'MELEE' | 'RANGED'
 function criticalRules(
   input: Parameters<typeof evaluateSrdCharacter>[0],
   item: string,
-  attackKind: AttackKind
+  attackKind: AttackKind,
+  grip?: 'ONE_HANDED' | 'TWO_HANDED'
 ) {
   const character = evaluateSrdCharacter({ ...input, items: [{ label: item, equipped: true }] })
   const { candidate } = itemAction(character, item, {
     attackKind,
-    ...(item === 'Longsword' ? { grip: 'ONE_HANDED' as const } : {})
+    ...(grip ? { grip } : item === 'Longsword' ? { grip: 'ONE_HANDED' as const } : {})
   })
   return dnd5eAttackCriticalRules(
     character.output,
@@ -110,5 +111,48 @@ describe('Character critical rules from authored grants (D158)', () => {
       features: [brutalCritical()]
     }
     expect(criticalRules(halfOrcBarbarian, 'Greataxe', 'MELEE').extraDice).toBe(2)
+  })
+})
+
+const greatWeaponFighting = (owner: 'Fighter' | 'Paladin') => ({
+  abilities: { STRENGTH: 16 },
+  classes: [{ label: owner, level: 2 }],
+  features: [
+    srdFeature({
+      owner: 'CLASS',
+      classLabel: owner,
+      featureLabel: 'Fighting Style',
+      level: 2,
+      optionLabels: ['Great Weapon Fighting']
+    })
+  ]
+})
+
+describe('Character damage die rerolls from authored grants (SPELLS-31.T5e)', () => {
+  it.each(['Fighter', 'Paladin'] as const)(
+    'gives a %s with Great Weapon Fighting a reroll of 1s and 2s with a two-handed melee weapon',
+    (owner) => {
+      expect(
+        criticalRules(greatWeaponFighting(owner), 'Greatsword', 'MELEE').damageRerollAtOrBelow
+      ).toBe(2)
+    }
+  )
+
+  it('applies to a versatile weapon only while it is held in two hands', () => {
+    const style = greatWeaponFighting('Fighter')
+    expect(criticalRules(style, 'Longsword', 'MELEE', 'TWO_HANDED').damageRerollAtOrBelow).toBe(2)
+    expect(
+      criticalRules(style, 'Longsword', 'MELEE', 'ONE_HANDED').damageRerollAtOrBelow
+    ).toBeUndefined()
+  })
+
+  it('gives no reroll to a ranged attack or to a Fighter without the style', () => {
+    expect(
+      criticalRules(greatWeaponFighting('Fighter'), 'Shortbow', 'RANGED').damageRerollAtOrBelow
+    ).toBeUndefined()
+    expect(
+      criticalRules({ classes: [{ label: 'Fighter', level: 3 }] }, 'Greatsword', 'MELEE')
+        .damageRerollAtOrBelow
+    ).toBeUndefined()
   })
 })

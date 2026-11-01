@@ -584,6 +584,56 @@ export function duelingRestriction(makeId: (entry: number) => string): FacetAuth
 }
 
 /**
+ * Great Weapon Fighting: "reroll a 1 or 2 on a damage die for a melee weapon you wield with two
+ * hands". Melee damage dice at or below 2 are rolled once more and the new roll stands, for an
+ * attack with a melee weapon held two-handed (a versatile weapon counts when it is). Uses ids
+ * `makeId(0..4)` for the restriction.
+ */
+export function greatWeaponFightingGrant(
+  id: string,
+  makeId: (entry: number) => string
+): ModifierGrantAuthored {
+  const property = (entry: number, code: 'MELEE' | 'TWO_HANDED') => ({
+    id: makeId(entry),
+    order: entry - 3,
+    kind: 'PREDICATE' as const,
+    constraint: 'INCLUDE' as const,
+    predicateCode: 'EQUIPMENT_PROPERTY' as const,
+    authoringModeKind: 'SELECTED' as const,
+    properties: [code]
+  })
+  return {
+    id,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_DIE_REROLL,
+    domain: { attackDomain: 'MELEE' as const },
+    modifierKind: MODIFIER_KIND.SET_VALUE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { amount: 2 },
+    order: 0,
+    restrictions: {
+      id: makeId(0),
+      groups: [
+        {
+          id: makeId(1),
+          order: 0,
+          contexts: [
+            {
+              id: makeId(2),
+              order: 0,
+              subject: 'EQUIPMENT',
+              authoringModeKind: 'ALL',
+              conditions: [property(3, 'MELEE'), property(4, 'TWO_HANDED')]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
+
+/**
  * Two-Weapon Fighting: "add your ability modifier to the damage of the second attack". One grant
  * per ability restores the positive modifier (`min: 0`) to a Light weapon's bonus-action attack
  * made with that ability. `makeGrantId(0..1)` names the grants and `makeId(g * 8 + 0..5)` the

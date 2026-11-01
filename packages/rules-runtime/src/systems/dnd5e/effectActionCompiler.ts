@@ -152,6 +152,7 @@ import {
   dnd5eSaveOutcomeRule,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
+  DND5E_DAMAGE_DIE_REROLL_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
@@ -252,7 +253,11 @@ import {
 } from './effectActionScalingFacts.js'
 
 import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
-import { isCriticalHitDamage, withDamageAddedDice } from './effectActionDamageAddedDice.js'
+import {
+  isAttackHitDamage,
+  isCriticalHitDamage,
+  withDamageAddedDice
+} from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
   escalationCondition,
@@ -2554,6 +2559,15 @@ function criticalHitDice(
     : undefined
 }
 
+/** The die faces an attack's hit damage rerolls once, from the attack's damage die reroll grants. */
+function damageDieRerollAtOrBelow(
+  selectedPath: SpecializedPath,
+  entry: CompiledEffectGroup['entries'][number],
+  facts: Dnd5eEffectScalingFacts
+): number | undefined {
+  return isAttackHitDamage(selectedPath, entry) ? facts.damageRerollAtOrBelow : undefined
+}
+
 function fixedOutcomeGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
@@ -2804,6 +2818,11 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         entry: primaryDamageEntry,
         diceConfig: primaryDiceConfiguration,
         critical: criticalHitDice(input.selectedPath, primaryDamageEntry, input.facts),
+        rerollAtOrBelow: damageDieRerollAtOrBelow(
+          input.selectedPath,
+          primaryDamageEntry,
+          input.facts
+        ),
         ...nodePrefix
       })
     })
@@ -2918,6 +2937,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                 ? outcome.diceConfig
                 : compiledDiceConfiguration(entry),
           critical: criticalHitDice(input.selectedPath, entry, input.facts),
+          rerollAtOrBelow: damageDieRerollAtOrBelow(input.selectedPath, entry, input.facts),
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),
@@ -3983,6 +4003,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]: criticalRules.threshold,
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
+            : {}),
+          ...(criticalRules.damageRerollAtOrBelow !== undefined
+            ? { [DND5E_DAMAGE_DIE_REROLL_FACT_KEY]: criticalRules.damageRerollAtOrBelow }
             : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
