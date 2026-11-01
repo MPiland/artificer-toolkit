@@ -36,6 +36,26 @@ export function onHitSlotChoices(
     .sort((left, right) => left.level - right.level)
 }
 
+/**
+ * The optional on-hit riders the attacker can still choose now: an option of a granted action only
+ * while that action's attack offer is open, and a paid rider only while its cost is not already
+ * settled on the action.
+ */
+export function offerableOnHitRiders<
+  TRider extends { cost: OptionalOnHitAuthored; grantedByEffectId?: string }
+>(
+  riders: readonly TRider[],
+  openOfferEffectIds: readonly string[],
+  settled: { spellConsumption?: unknown; resourceConsumption?: unknown } | undefined
+): TRider[] {
+  return riders.filter(({ cost, grantedByEffectId }) => {
+    if (grantedByEffectId !== undefined && !openOfferEffectIds.includes(grantedByEffectId))
+      return false
+    if (cost.kind === 'FREE') return true
+    return cost.kind === 'SPELL_SLOT' ? !settled?.spellConsumption : !settled?.resourceConsumption
+  })
+}
+
 /** Every way the attacker could pay for each of the action's optional on-hit riders now. */
 export function onHitCandidates(input: {
   riders: readonly { riderId: string; label: string; cost: OptionalOnHitAuthored }[]

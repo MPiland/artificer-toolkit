@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import type { EncounterSealedChoiceSelection } from '../encounterSealedChoice.js'
-import { onHitCandidates, onHitSlotChoices } from '../character/characterOnHitCosts.js'
+import {
+  offerableOnHitRiders,
+  onHitCandidates,
+  onHitSlotChoices
+} from '../character/characterOnHitCosts.js'
 import { advanceNativeActionGraphs } from '../encounterActionExecution.js'
 import { resolveNativeActionOnHit } from '../encounterActionOnHit.js'
 import type { EncounterOnHitCandidate } from '../encounterOnHitChoice.js'
@@ -254,6 +258,30 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
         }
       })
     ).toEqual([])
+  })
+
+  it('offers a granted action’s option only while that action’s attack offer is open', () => {
+    const option = { cost: { kind: 'FREE' as const }, grantedByEffectId: 'flurry' }
+    const smite = { cost: { kind: 'SPELL_SLOT' as const } }
+
+    expect(offerableOnHitRiders([option, smite], ['flurry'], undefined)).toEqual([option, smite])
+    expect(offerableOnHitRiders([option, smite], [], undefined)).toEqual([smite])
+    expect(offerableOnHitRiders([option, smite], ['other'], undefined)).toEqual([smite])
+  })
+
+  it('withholds a paid rider whose cost is already settled on the action, never a free one', () => {
+    const free = { cost: { kind: 'FREE' as const } }
+    const smite = { cost: { kind: 'SPELL_SLOT' as const } }
+    const strike = { cost: { kind: 'RESOURCE_POOL' as const, chargeId: 'ki', cost: 1 } }
+
+    expect(offerableOnHitRiders([free, smite, strike], [], { spellConsumption: {} })).toEqual([
+      free,
+      strike
+    ])
+    expect(offerableOnHitRiders([free, smite, strike], [], { resourceConsumption: {} })).toEqual([
+      free,
+      smite
+    ])
   })
 
   it('offers a free rider with no slot or pool, even when the Character holds neither', () => {

@@ -101,6 +101,7 @@ import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/enco
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import {
+  offerableOnHitRiders,
   onHitCandidates,
   onHitResourceConsumption,
   onHitSpellConsumption
@@ -649,13 +650,12 @@ export async function planNativeLiveEncounterAction(
   })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const { charge: weaponAttackOffer, openEffectIds: openOfferEffectIds } =
-    await readNativeWeaponAttackOffer({
-      capture,
-      actor: prepared.actor,
-      heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
-      characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
-    })
+  const weaponAttackOffer = await readNativeWeaponAttackOffer({
+    capture,
+    actor: prepared.actor,
+    heldEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
+    characterRules: movementTargets.get(prepared.actor.id)?.characterFacts?.ruleEvaluation
+  })
   const delegatingActor = actors.find((actor) => actor.id === command.delegatingActorId)
   if (command.delegatingActorId !== undefined && !delegatingActor)
     throw new Error('Encounter rules input binding mismatch.')
@@ -673,7 +673,7 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer
+      weaponAttackOffer: weaponAttackOffer.charge
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
@@ -1135,19 +1135,11 @@ export async function planNativeLiveEncounterAction(
   const onHitNow =
     prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
-          riders: prepared.adapter
-            .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
-            .filter(({ cost, grantedByEffectId }) => {
-              if (
-                grantedByEffectId !== undefined &&
-                !openOfferEffectIds.includes(grantedByEffectId)
-              )
-                return false
-              if (cost.kind === 'FREE') return true
-              return cost.kind === 'SPELL_SLOT'
-                ? !prepared.characterActionState?.spellConsumption
-                : !prepared.characterActionState?.resourceConsumption
-            }),
+          riders: offerableOnHitRiders(
+            prepared.adapter.optionalOnHitRiders({ compilerSource: attackPlan.compilerSource }),
+            weaponAttackOffer.openEffectIds,
+            prepared.characterActionState
+          ),
           spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
           resources: prepared.source.effectivePolicyOutput.resources
         })
