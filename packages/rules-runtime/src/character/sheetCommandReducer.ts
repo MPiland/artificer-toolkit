@@ -572,9 +572,7 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'END_CONCENTRATION':
-      // A named live state is a Run's Concentration, which holds no Sheet summon.
-      if (!command.stateId)
-        next.state.spellSummons = withoutConcentrationSummons(next.state.spellSummons)
+      next.state.spellSummons = withoutConcentrationSummons(next.state.spellSummons)
       return clearEmptyStateArrays(next)
 
     case 'SET_INSPIRATION':

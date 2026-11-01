@@ -90,7 +90,7 @@ export async function verifyEncounterConcentrationSheetBrowser(
     async function openSheet() {
       if (sheet) return sheet
       sheet = await playerContext.newPage()
-      captureDiagnostics(sheet, 'sheet', () => stage, diagnostics, abortedRequests)
+      captureDiagnostics(sheet, 'player', () => stage, diagnostics, abortedRequests)
       await sheet.goto(origin + '/characters/' + encodeURIComponent(input.characterPublicId), {
         waitUntil: 'domcontentloaded',
         timeout: 90_000
