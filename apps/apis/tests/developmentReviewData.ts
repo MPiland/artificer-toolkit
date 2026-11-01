@@ -242,6 +242,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     blueprintId: blueprint.id,
     commandId: crypto.randomUUID()
   })
+  log(`${scenario.campaign}: Run ${created.id} prepared`)
   const execute = (command: EncounterExecuteInput['command']) =>
     gm.client.mutation(executeEncounterCommand, { command })
   let started = await execute({
@@ -276,6 +277,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       resolution
     })
   }
+  log(`${scenario.campaign}: Run started`)
   let run = encounterGmProjectionDtoSchema.parse(started.projection)
 
   // Heroes by slug, creatures by key: the n-th spec creature of a source is its n-th actor.

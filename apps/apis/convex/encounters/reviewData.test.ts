@@ -63,7 +63,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     buildSnapshots: seedRoomContentSnapshots,
     checkpoint: (campaignId: string) =>
       awaitCampaignCheckpoint(roomDevelopmentClient(gmCaller), campaignId),
-    log: () => undefined
+    log: (message: string) => console.log(message)
   }
   const counts = () =>
     t.run(async (ctx) => ({
