@@ -1,7 +1,9 @@
 import type {
   CastModifierAuthored,
+  CastModifierParameterAuthored,
   SparesCreaturesAuthored
 } from '@artificer-toolkit/shared/authored'
+import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 /** A cost a Character may pay on casting a spell, authored as a passive Effect's `castModifier`. */
@@ -57,6 +59,34 @@ export function castModifierTargetCap(
   const added = targets.abilityDefinitionId ? abilityModifier(targets.abilityDefinitionId) : 0
   const minimum = targets.minimum ?? (targets.abilityDefinitionId ? 1 : 0)
   return Math.max(minimum, targets.base + added)
+}
+
+/**
+ * The range a cast has once a paid modifier's parameters change it, or null when a parameter does not
+ * fit the spell: `RANGE` multiplies a distance (its long range too) and turns Touch into the
+ * authored distance, and fits no other range. Offering a modifier and refusing a cast that names it
+ * both ask this, so a forged pick on an ineligible spell is refused.
+ */
+export function castModifierRange(
+  parameters: readonly CastModifierParameterAuthored[],
+  range: RangeDto
+): RangeDto | null {
+  let changed: RangeDto | null = range
+  for (const parameter of parameters) {
+    if (!changed) return null
+    if (changed.rangeKind === 'TOUCH')
+      changed = { id: changed.id, rangeKind: 'DISTANCE', ...parameter.touchDistance }
+    else if (changed.rangeKind === 'DISTANCE')
+      changed = {
+        ...changed,
+        amount: changed.amount * parameter.multiplier,
+        ...(changed.longAmount !== undefined && {
+          longAmount: changed.longAmount * parameter.multiplier
+        })
+      }
+    else return null
+  }
+  return changed
 }
 
 /** Creatures a Character may spare from an area spell it casts, authored as a passive Effect's `sparesCreatures`. */
