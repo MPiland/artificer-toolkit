@@ -2949,6 +2949,7 @@ export declare const api: {
           overview: {
             abilities: Array<{
               ability: string;
+              checkModifier: number;
               label: string;
               modifier: number;
               rollMode: string;
@@ -17797,6 +17798,7 @@ export declare const api: {
           overview: {
             abilities: Array<{
               ability: string;
+              checkModifier: number;
               label: string;
               modifier: number;
               rollMode: string;
@@ -19990,6 +19992,7 @@ export declare const api: {
               overview: {
                 abilities: Array<{
                   ability: string;
+                  checkModifier: number;
                   label: string;
                   modifier: number;
                   rollMode: string;
