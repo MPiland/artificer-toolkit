@@ -100,6 +100,8 @@ for (const spec of REVIEW_PLAYERS) players.push(await connect(spec))
 const result = await seedReviewData({
   gm,
   players,
+  grantGmTier: (userId) =>
+    cli('accountEntitlements:setTier', { userId, tier: 'GM' }, false).then(() => {}),
   checkpoint: (campaignId) => awaitCampaignCheckpoint(gm.client, campaignId),
   log: (message) => console.log(message)
 })

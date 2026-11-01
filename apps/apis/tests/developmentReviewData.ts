@@ -78,6 +78,8 @@ export type ReviewContext = {
   gm: ReviewAccount
   /** One account per entry of REVIEW_PLAYERS, in order. */
   players: readonly ReviewAccount[]
+  /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
+  grantGmTier: (userId: string) => Promise<void>
   /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
   checkpoint: (campaignId: string) => Promise<void>
   /** Builds the Campaign's content snapshots where nothing schedules them (convex-test); a live backend builds its own. */
@@ -104,6 +106,7 @@ export async function seedReviewData(
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
+  await context.grantGmTier(context.gm.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
   for (const account of [context.gm, ...context.players])
     await account.client.mutation(api.account.setAutoRollDice, { autoRollDice: false })

@@ -59,6 +59,8 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   const context = {
     gm,
     players,
+    grantGmTier: (userId: string) =>
+      t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
     buildSnapshots: seedRoomContentSnapshots,
     checkpoint: async (campaignId: string) => {
       await checkpointRoom(campaignId)
