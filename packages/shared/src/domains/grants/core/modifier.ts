@@ -79,6 +79,15 @@ export function modifierRollInfluence(
 
 export type ModifierTypeOption = CoreMeta<ModifierKind>
 
+/** How a fractional proficiency-bonus value rounds to a whole bonus. */
+export const MODIFIER_ROUNDING = { DOWN: 'DOWN', UP: 'UP' } as const
+export type ModifierRounding = (typeof MODIFIER_ROUNDING)[keyof typeof MODIFIER_ROUNDING]
+
+export const MODIFIER_ROUNDING_OPTIONS: readonly CoreMeta<ModifierRounding>[] = [
+  { code: MODIFIER_ROUNDING.DOWN, label: 'Round down' },
+  { code: MODIFIER_ROUNDING.UP, label: 'Round up' }
+]
+
 export const MODIFIER_KIND_REGISTRY: Record<ModifierKind, ModifierTypeOption> = {
   BONUS: {
     code: MODIFIER_KIND.BONUS,
@@ -254,6 +263,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   INITIATIVE: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.ROLL_INFLUENCE],
 
   ABILITY_CHECK: [
+    MODIFIER_KIND.BONUS,
     MODIFIER_KIND.ROLL_INFLUENCE,
     MODIFIER_KIND.ADD_BONUS_DIE,
     MODIFIER_KIND.MINIMUM_ROLL
@@ -527,7 +537,7 @@ export const MODIFIER_VALUE_SOURCE_OPTIONS = valuesOf(
 
 export type ModifierScalarValueAuthored =
   | { valueKind: 'FIXED'; amount: number }
-  | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
+  | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number; rounding?: ModifierRounding }
   | {
       valueKind: 'ABILITY_MODIFIER'
       ability: string
@@ -638,7 +648,8 @@ export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign' |
  * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
  * domain, so it joins every damage its recipient deals, spells included (Bestow Curse). A d20 floor
  * on ability checks may hold only for checks that add the holder's full proficiency bonus or more
- * (`proficientOnly`, Reliable Talent); half proficiency does not count.
+ * (`proficientOnly`, Reliable Talent); half proficiency does not count. A bonus on ability checks
+ * may hold only for checks that add none (`unproficientOnly`, Jack of All Trades).
  */
 export type ModifierDomainFor<
   V extends ValueDomainCode,
@@ -653,7 +664,11 @@ export type ModifierDomainFor<
     ? V extends 'ABILITY_CHECK'
       ? ValueDomainParam<V> & { proficientOnly?: boolean }
       : ValueDomainParam<V>
-    : ValueDomainParam<V>
+    : K extends 'BONUS'
+      ? V extends 'ABILITY_CHECK'
+        ? ValueDomainParam<V> & { unproficientOnly?: boolean }
+        : ValueDomainParam<V>
+      : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }

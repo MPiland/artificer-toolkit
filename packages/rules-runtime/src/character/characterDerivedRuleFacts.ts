@@ -29,7 +29,7 @@ const NUMERIC_MODIFIER_KINDS = [
 
 function modifierBonuses(
   valueDomainCode: string,
-  domain: Record<string, string> = {},
+  domain: Record<string, string | boolean> = {},
   includeSetValue = true
 ): NumericBonus[] {
   return NUMERIC_MODIFIER_KINDS.flatMap((modifierKind) => {
@@ -40,10 +40,23 @@ function modifierBonuses(
         kind: 'MODIFIER_GROUP' as const,
         sourceId: domainKey,
         domainKey,
+        ...(domain.unproficientOnly === true ? { unproficientOnly: true } : {}),
         operation: modifierKind === 'SET_VALUE' ? ('SET' as const) : ('ADD' as const)
       }
     ]
   })
+}
+
+/**
+ * Every ability-check bonus group a check on `abilityId` can draw from: any check or this ability's,
+ * each either ungated or held only while the check adds no proficiency.
+ */
+function abilityCheckBonuses(abilityId: string): NumericBonus[] {
+  return [{}, { ability: abilityId }].flatMap((scope) =>
+    [{}, { unproficientOnly: true }].flatMap((gate) =>
+      modifierBonuses('ABILITY_CHECK', { ...scope, ...gate }, false)
+    )
+  )
 }
 
 /** The snapshot's index of an ability code; null when absent. */
@@ -92,6 +105,7 @@ export function buildCharacterDerivedRuleFacts(
             ? [fixedBonus(manualBonus.id, manualBonus.value)]
             : [])
         ],
+        checkBonuses: abilityCheckBonuses(abilityId),
         scoreOverride:
           override && typeof override.value === 'number'
             ? {
@@ -219,6 +233,7 @@ export function buildCharacterDerivedRuleFacts(
         ...skillSubjectIds.flatMap((subjectId) =>
           modifierBonuses('SKILL_MODIFIER', { skillId: subjectId }, false)
         ),
+        ...abilityCheckBonuses(governingOverride?.value ?? defaultAbilityId),
         ...manualBonuses.flatMap((adjustment) =>
           typeof adjustment.value === 'number' ? [fixedBonus(adjustment.id, adjustment.value)] : []
         )
@@ -257,7 +272,7 @@ export function buildCharacterDerivedRuleFacts(
     initiative: {
       abilityId: initiative,
       abilityIndex: abilityRecordIndex(snapshot.abilities, initiative),
-      bonuses: modifierBonuses('INITIATIVE', {}, false)
+      bonuses: [...modifierBonuses('INITIATIVE', {}, false), ...abilityCheckBonuses(initiative)]
     },
     spellcasting: spellcastingAbility
       ? {

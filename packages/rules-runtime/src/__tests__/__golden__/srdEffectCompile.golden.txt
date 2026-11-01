@@ -22,7 +22,6 @@
 00000000-0000-0000-c002-140100000000 CHARACTER:classes Cutting Words | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-140200000000 CHARACTER:classes Peerless Skill | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-600100000000 CHARACTER:classes Bardic Inspiration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c002-600300000000 CHARACTER:classes Jack of All Trades | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-600400000000 CHARACTER:classes Song of Rest | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-600900000000 CHARACTER:classes Countercharm | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c002-601400000000 CHARACTER:classes Superior Inspiration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -39,7 +38,6 @@
 00000000-0000-0000-c004-600d00000000 CHARACTER:classes Beast Spells | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c004-600f00000000 CHARACTER:classes Archdruid | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-031500000000 CHARACTER:classes Second Wind | SINGLE_GRAPH 6ecb6e54cabb8202fe27e7a39f870ee8c285f55f752fafc17c7f9044e3334e21 nodes=3 outputs=2
-00000000-0000-0000-c005-140200000000 CHARACTER:classes Remarkable Athlete | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-140400000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c005-140500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-140800000000 CHARACTER:classes Survivor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

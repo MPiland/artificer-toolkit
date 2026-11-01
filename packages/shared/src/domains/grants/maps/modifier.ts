@@ -13,6 +13,7 @@ import {
   MODIFIER_KIND_OPTIONS,
   MODIFIER_SCOPE_OPTIONS,
   MAX_ROLLED_DIE_COUNT,
+  MODIFIER_ROUNDING_OPTIONS,
   MODIFIER_VALUE_SOURCE_OPTIONS,
   RANGE_OPTIONS,
   ROLLED_DIE_FACES,
@@ -197,6 +198,15 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           showIf: and([
             parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             parent.field(['modifierKind']).eq('MINIMUM_ROLL')
+          ])
+        })
+      )
+      .set(
+        'unproficientOnly',
+        toggle(['unproficientOnly'], 'Only Checks Adding No Proficiency', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
+            parent.field(['modifierKind']).eq('BONUS')
           ])
         })
       )
@@ -552,6 +562,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
           ])
         })
+      )
+      .set(
+        'rounding',
+        selectSingle(
+          ['rounding'],
+          'Rounding',
+          { kind: 'INLINE_OPTIONS', options: MODIFIER_ROUNDING_OPTIONS },
+          { showIf: and([isBonus, local.field(['valueKind']).eq('PROFICIENCY_BONUS')]) }
+        )
       )
       .set(
         'subtractLevels',
