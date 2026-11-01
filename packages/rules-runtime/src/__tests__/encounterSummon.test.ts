@@ -147,9 +147,11 @@ describe('buildEncounterSummon', () => {
     expect(groupHitPointPool(11, 8)).toBe(88)
     expect(groupHitPointPool(11, null)).toBe(11)
     const damaged = { maxHitPoints: 33, currentHitPoints: 28 }
-    expect(groupCountChange(damaged, 3, 2)).toEqual({})
-    expect(groupCountChange(damaged, 3, 3)).toEqual({})
-    expect(groupCountChange(damaged, 3, 5)).toEqual({ maxHitPoints: 55, currentHitPoints: 50 })
+    expect(groupCountChange(damaged, 11, 3, 2)).toEqual({})
+    expect(groupCountChange(damaged, 11, 3, 3)).toEqual({})
+    expect(groupCountChange(damaged, 11, 3, 5)).toEqual({ maxHitPoints: 55, currentHitPoints: 50 })
+    // After a lower the maximum is no longer a multiple of the count; one creature's hit points still is 11.
+    expect(groupCountChange(damaged, 11, 2, 4)).toEqual({ maxHitPoints: 55, currentHitPoints: 50 })
   })
 
   it('stands the token at the point with the caster’s controllers', () => {

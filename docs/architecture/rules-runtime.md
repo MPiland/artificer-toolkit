@@ -574,7 +574,7 @@ The group's hit point pool is one creature's hit points times its count: `buildE
 the Sheet's record of the summon agree. The token leaves at 0 through the existing summon removal; one hit does not
 remove it, and area damage hits the pool once. `UPDATE_ACTOR.groupCount` goes through `groupCountChange`: lowering
 leaves hit points alone (the GM lowers it after damage already took them), and raising adds one creature's hit points
-(maximum divided by the old count) per added creature to both current and maximum. The count never changes by itself.
+(read from its snapshot, since the maximum no longer divides by the count once lowered) per added creature to both current and maximum. The count never changes by itself.
 Known limit: an upcast does not raise the picked count by itself, and the cast offers no count above a form's
 lowest-slot maximum; the GM raises it. Separate tokens per creature are a future enhancement.
 

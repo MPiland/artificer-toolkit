@@ -29,15 +29,17 @@ export function groupHitPointPool(creatureHitPoints: number, count: number | nul
 /**
  * What the GM setting a group's count changes beyond the count. Lowering leaves hit points alone:
  * the GM lowers it after the damage has already taken them. Raising (an upcast) adds one
- * creature's hit points per added creature to both current and maximum.
+ * creature's hit points per added creature to both current and maximum. One creature's hit points
+ * is read from its snapshot, since the maximum no longer divides by the count once it was lowered.
  */
 export function groupCountChange(
   actor: { maxHitPoints: number; currentHitPoints: number },
+  creatureHitPoints: number,
   oldCount: number,
   newCount: number
 ): { maxHitPoints: number; currentHitPoints: number } | Record<string, never> {
   if (newCount <= oldCount) return {}
-  const added = (actor.maxHitPoints / oldCount) * (newCount - oldCount)
+  const added = creatureHitPoints * (newCount - oldCount)
   return {
     maxHitPoints: actor.maxHitPoints + added,
     currentHitPoints: actor.currentHitPoints + added

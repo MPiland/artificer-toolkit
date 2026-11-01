@@ -22,6 +22,7 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { snapshotCreatureHitPoints } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { groupCountChange } from '@artificer-toolkit/rules-runtime/summonHitPoints'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { initiativeRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
@@ -515,7 +516,12 @@ async function recordEncounterToolCommand(
               ? {}
               : {
                   owner: { ...actor.owner, count: input.groupCount },
-                  ...groupCountChange(actor, actor.owner.count, input.groupCount)
+                  ...groupCountChange(
+                    actor,
+                    snapshotCreatureHitPoints(actor),
+                    actor.owner.count,
+                    input.groupCount
+                  )
                 }),
             updatedAt
           }
