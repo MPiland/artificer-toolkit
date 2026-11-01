@@ -15165,7 +15165,7 @@
             {
               "id": "SPELLS-4.T2ps-b",
               "text": "Thresholds escalation on the row-scoped repeat-save plan (row 6, 3 successes or 3 failures to petrified), which also unblocks Flesh to Stone.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15178,8 +15178,7 @@
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-4.T2ps-c",
@@ -16360,7 +16359,7 @@
             {
               "id": "SPELLS-12.T2a2",
               "text": "Bug: replacing a held Haste with a new Concentration spell fails with \"Created action effect changed before settlement\" (`packages/encounter-persistence/src/actionEffectPersistence.ts`). Red-first test using Haste, plus the fix.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1"
               ],
@@ -16373,8 +16372,7 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Found by T2a's journey, which swapped to Fly to avoid it. It may predate T2a. A bug, so allowed under D187.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Found by T2a's journey, which swapped to Fly to avoid it. It may predate T2a. A bug, so allowed under D187. Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-12.T2b",
@@ -16435,7 +16433,7 @@
             },
             {
               "id": "SPELLS-12.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.3"
               ],
@@ -16449,8 +16447,7 @@
                 ]
               },
               "text": "Held-count gated effect and journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-12.T4b",
@@ -19113,7 +19110,7 @@
             {
               "id": "SPELLS-31.T4i2",
               "text": "Dark One's Blessing on a generic killer-side trigger: the holder reduces a creature to 0 HP, covering spell and weapon damage in both the Worker and Convex settlement paths. Authoring-parity proof; deletes its kind (D156).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19126,8 +19123,7 @@
                   "SPELLS-31.T4i"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Approved by the user on 2026-10-31 (D203). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-31.T4j",
@@ -19563,7 +19559,7 @@
             },
             {
               "id": "SPELLS-31.T5e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19578,7 +19574,7 @@
                 ]
               },
               "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-31.T5e2",
@@ -26275,7 +26271,7 @@
                 "size": 2
               },
               "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
-              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one.",
+              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one. Fix merged in m592 (1d9d29081), but CI labelled sheetSections.test.ts ALREADY-PASSING against the base, so it stays open until a regression test fails before the fix.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
@@ -26862,7 +26858,7 @@
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays. Agenda: held-effect-browser failed on the m592 batch because the test clicks Open actions while the drawer reopens after a map pick; the test fix goes with SPELLS-12.T2b."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
@@ -27926,7 +27922,7 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted."
             }
           ]
         },
