@@ -1,4 +1,5 @@
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { d20CheckTotal } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import {
@@ -284,6 +285,15 @@ export async function settleEncounterD20Window(input: {
   if (selection.kind === 'DECLINE' || !option) return { option: null, d20: rolled.d20 }
   const rolledFaces =
     selection.faces ?? Array.from({ length: option.count }, () => input.random(option.faces) + 1)
+  return { option, d20: spendEncounterD20WindowDie(rolled.d20, option, rolledFaces) }
+}
+
+/** The d20 with the offered die added at the faces it rolled; the total counts it. */
+export function spendEncounterD20WindowDie(
+  d20: D20WindowPausePayloadDto['rolled']['d20'],
+  option: D20WindowOptionDto,
+  rolledFaces: readonly number[]
+) {
   if (
     rolledFaces.length !== option.count ||
     rolledFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > option.faces)
@@ -297,18 +307,32 @@ export async function settleEncounterD20Window(input: {
     spentEffectId: option.effectId,
     rolledFaces: [...rolledFaces]
   }
-  const addedDice = [...(rolled.d20.addedDice ?? []), die]
+  const addedDice = [...(d20.addedDice ?? []), die]
   return {
-    option,
-    d20: {
-      ...rolled.d20,
+    ...d20,
+    addedDice,
+    total: d20CheckTotal({
+      selectedNatural: d20.selectedNatural,
+      modifier: d20.modifier,
       addedDice,
-      total: d20CheckTotal({
-        selectedNatural: rolled.d20.selectedNatural,
-        modifier: rolled.d20.modifier,
-        addedDice,
-        minimumRoll: rolled.d20.minimumRoll
-      })
-    }
+      minimumRoll: d20.minimumRoll
+    })
   }
+}
+
+type SpentDiceHolder = { addedDice?: readonly { spentEffectId?: string }[] } | null | undefined
+
+/** The effects whose held die a window spent on the action's settled saves; each is used up with the action. */
+export function windowSpentEffects(
+  execution: Readonly<Record<'d20' | 'nestedD20', SpentDiceHolder>>,
+  targetEffects: readonly ActiveRuleEffectRecord[]
+) {
+  return [execution.d20, execution.nestedD20]
+    .flatMap((d20) => d20?.addedDice ?? [])
+    .flatMap(({ spentEffectId }) => {
+      if (!spentEffectId) return []
+      const spent = targetEffects.find(({ id }) => id === spentEffectId)
+      if (!spent) throw new Error('The d20 window die is no longer held.')
+      return [spent]
+    })
 }

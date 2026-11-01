@@ -70,7 +70,8 @@ const CAST_MODIFIER_OUTCOME_OPTIONS: {
   label: string
 }[] = [
   { code: 'SAVE_AUTO_SUCCESS', label: 'Their save succeeds' },
-  { code: 'SAVE_DISADVANTAGE', label: 'Their save has disadvantage' }
+  { code: 'SAVE_DISADVANTAGE', label: 'Their save has disadvantage' },
+  { code: 'EXTRA_TARGET', label: 'They are further targets of the spell' }
 ]
 
 const castModifierTargets = buildNodeMap<NonNullable<CastModifierAuthored['targets']>>()
@@ -120,7 +121,7 @@ const CAST_MODIFIER_TARGETS_NODE_MAP = castModifierTargets.define(
 const castModifier = buildNodeMap<CastModifierAuthored>()
 
 const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes }) => {
-  const { text, number, groupObject } = nodes
+  const { text, number, toggle, groupObject } = nodes
 
   map
     .set('chargeId', text(['chargeId'], 'Charge ID', { order: 1, requiredIf: true }))
@@ -128,11 +129,12 @@ const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes
       'cost',
       number(['cost'], 'Cost', { order: 2, constraints: { minimum: 1 }, requiredIf: true })
     )
+    .set('perSpellLevel', toggle(['perSpellLevel'], "Times the spell's level", { order: 3 }))
     .set(
       'targets',
       groupObject(['targets'], 'Creatures it affects', () => CAST_MODIFIER_TARGETS_NODE_MAP, {
         presentation: 'inline',
-        order: 3
+        order: 4
       })
     )
 })
