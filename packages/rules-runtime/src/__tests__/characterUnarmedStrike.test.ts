@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { buildCharacterHandRuleFacts } from '../character/characterHandRuleFacts.js'
+import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
 import { unarmedStrike } from '@artificer-toolkit/source-data/srd/equipment/unarmed-strike.js'
 
 import {
@@ -62,5 +64,26 @@ describe('Character Unarmed Strike (SPELLS-31.T4l2)', () => {
       documents: fixture.documents
     })
     expect(builder.context.catalog.equipment.map(({ id }) => id)).not.toContain(unarmedStrike.id)
+  })
+
+  it('counts the natural weapon in no hand, grip or carried weight', async () => {
+    const fixture = readyFighterFixture()
+    const sheet = await prepareFixtureSheet({
+      character: fixture.character,
+      documents: fixture.documents
+    })
+    const { snapshot } = sheet.ruleEvaluation
+    const naturalId = snapshot.naturalWeapon?.instanceId
+    expect(naturalId).toBeDefined()
+
+    const heldIds = buildCharacterHandRuleFacts(snapshot).handFacts.items.map(
+      (item) => item.itemInstanceId
+    )
+    const weighedIds = buildCharacterItemMechanicsRuleFacts(snapshot).itemMechanicsFacts.items.map(
+      (item) => item.itemInstanceId
+    )
+    expect(heldIds).not.toContain(naturalId)
+    expect(weighedIds).not.toContain(naturalId)
+    expect(unarmedRow(sheet)).toBeDefined()
   })
 })
