@@ -2,13 +2,9 @@
 import { register } from '@convex-dev/r2/test'
 import { register as registerRetrier } from '@convex-dev/action-retrier/test'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
-import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
-import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { components, internal } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createPartyUser } from '../../tests/fixtures/partyPlayer'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
-import { srdCreatureRecord } from '../../tests/fixtures/srdCreatures'
 import { awaitCampaignCheckpoint } from '../../tests/developmentCheckpoint'
 import { seedReviewData, type ReviewAccount } from '../../tests/developmentReviewData'
 import {
@@ -37,6 +33,8 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   const { t } = await readySheetFixture()
   register(t)
   registerRetrier(t, 'r2/actionRetrier')
+  // The Characters are built from the SRD corpus, as on the seeded local backend.
+  await t.action(internal.content.seed.seed, {})
   await attachRoomWorker(t)
   const accounts: ReviewAccount[] = []
   let gmCaller: Parameters<typeof roomDevelopmentClient>[0] = null
@@ -53,13 +51,12 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     })
   }
   const [gm, ...players] = accounts as [ReviewAccount, ...ReviewAccount[]]
-  await importSeededSubjects(t, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [wolf, goblin].map((creature) => {
-      const document = srdCreatureRecord(creature.id)
-      return importedSubject({ ...document, subjectKind: 'CREATURE', document })
+  await t.run((ctx) =>
+    ctx.runMutation(components.betterAuth.adapter.updateMany, {
+      input: { model: 'session', update: { expiresAt: Date.now() + 3 * 86_400_000 } },
+      paginationOpts: { cursor: null, numItems: 10 }
     })
-  })
+  )
   const context = {
     gm,
     players,
