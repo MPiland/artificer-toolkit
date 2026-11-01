@@ -1,6 +1,7 @@
 import type {
   ActivationAuthored,
   CastModifierAuthored,
+  CastModifierParameterAuthored,
   EffectInvocationKind,
   EffectInvocationAuthored,
   OptionalOnHitAuthored,
@@ -11,7 +12,12 @@ import type {
 } from '#authored'
 import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
-import { RANGE_NODE_MAP, SAVING_THROW_NODE_MAP, SHAPE_NODE_MAP } from '../../shared/maps/index.js'
+import {
+  MEASUREMENT_NODE_MAP,
+  RANGE_NODE_MAP,
+  SAVING_THROW_NODE_MAP,
+  SHAPE_NODE_MAP
+} from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 
@@ -118,10 +124,46 @@ const CAST_MODIFIER_TARGETS_NODE_MAP = castModifierTargets.define(
   }
 )
 
+const castModifierParameter = buildNodeMap<CastModifierParameterAuthored>()
+
+const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
+  'castModifierParameter',
+  ({ map, nodes }) => {
+    const { selectSingle, number, groupObject } = nodes
+
+    map
+      .set(
+        'parameter',
+        selectSingle(
+          ['parameter'],
+          'Changes',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'RANGE', label: 'The spell’s range' }] },
+          { order: 1, requiredIf: true }
+        )
+      )
+      .set(
+        'multiplier',
+        number(['multiplier'], 'Range multiplied by', {
+          order: 2,
+          constraints: { minimum: 2 },
+          requiredIf: true
+        })
+      )
+      .set(
+        'touchDistance',
+        groupObject(['touchDistance'], 'A Touch range becomes', () => MEASUREMENT_NODE_MAP, {
+          presentation: 'inline',
+          order: 3,
+          requiredIf: true
+        })
+      )
+  }
+)
+
 const castModifier = buildNodeMap<CastModifierAuthored>()
 
 const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes }) => {
-  const { text, number, toggle, groupObject } = nodes
+  const { text, number, toggle, groupObject, groupArray } = nodes
 
   map
     .set('chargeId', text(['chargeId'], 'Charge ID', { order: 1, requiredIf: true }))
@@ -130,6 +172,13 @@ const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes
       number(['cost'], 'Cost', { order: 2, constraints: { minimum: 1 }, requiredIf: true })
     )
     .set('perSpellLevel', toggle(['perSpellLevel'], "Times the spell's level", { order: 3 }))
+    .set(
+      'parameters',
+      groupArray(['parameters'], 'Changes to the cast', () => CAST_MODIFIER_PARAMETER_NODE_MAP, {
+        presentation: 'inline',
+        order: 4
+      })
+    )
     .set(
       'targets',
       groupObject(['targets'], 'Creatures it affects', () => CAST_MODIFIER_TARGETS_NODE_MAP, {

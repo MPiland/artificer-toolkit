@@ -3668,6 +3668,39 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     ])
   })
 
+  describe('changing the cast itself (SPELLS-31.T5h)', () => {
+    const rangeModifier = {
+      ...modifier,
+      cost: {
+        ...modifier.cost,
+        parameters: [
+          {
+            parameter: 'RANGE' as const,
+            multiplier: 2,
+            touchDistance: { amount: 30, unit: 'FEET' as const }
+          }
+        ]
+      }
+    }
+    const offeredFor = (spellCast: ReturnType<typeof candidate>) =>
+      build([spellCast], {
+        castModifiers: [rangeModifier],
+        policyOutput: {
+          ...policyFor([spellCast], authoredById),
+          resources: [pool(0)]
+        }
+      }).candidates[0]?.castModifiers
+
+    it('offers a modifier that changes the range with its parameters, on a spell with a distance', () => {
+      expect(offeredFor(cast)?.[0]?.parameters).toEqual(rangeModifier.cost.parameters)
+    })
+
+    it('offers it on a Touch spell and not on a Self spell', () => {
+      expect(offeredFor(candidate(INVISIBILITY, 2))).toHaveLength(1)
+      expect(offeredFor(candidate(PROTECTION_FROM_ENERGY_ON_SELF, 3))).toBeUndefined()
+    })
+  })
+
   describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
     const charisma = character.output.derivedStats.abilities.find(
       ({ abilityId }) =>

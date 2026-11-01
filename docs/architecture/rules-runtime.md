@@ -2780,6 +2780,8 @@ The client sends the primary and further creatures as `target.kind: 'ACTORS'` wi
 than paid for. Twinned Spell is authored from core options only (`gmRulingEffect` + `castModifier`), and the `CLASS_SORCERER_METAMAGIC_TWINNED`
 closed kind is deleted.
 
+**Cast modifier parameters (SPELLS-31.T5h, current).** A `castModifier` may author `parameters`, a discriminated union on `parameter` (schema `castModifierParameterDtoSchema`) that changes the cast itself. Only `RANGE` ships: `{ multiplier >= 2, touchDistance }`. `castModifierRange` (rules-runtime `characterCastModifiers.ts`) is the one rule: a DISTANCE range multiplies `amount` and `longAmount`, TOUCH becomes a DISTANCE of `touchDistance`, and any other kind (SELF, SIGHT, SPECIAL, UNLIMITED) returns null. The offer filters on it (a spell it cannot change is not offered the modifier) and echoes the parameters on `castModifiers[]`. `prepareEncounterActionSource` resolves `castModifierId` for both the single-target and the area paths: an id not in the candidate's offers, or one whose range returns null, throws `EncounterValidationError`, and otherwise the returned `targetPolicy.range` is the replaced range. Distant Spell is authored this way. Duration (Extended) and activation (Quickened) parameters are deferred (T5h-2, T5h-3); their closed rule kinds remain until then.
+
 **Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
 Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed
 across the Character's sources by `sparedCreatureCap`, and the action choice carries it to the client. The area command names the

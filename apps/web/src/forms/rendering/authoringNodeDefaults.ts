@@ -55,6 +55,7 @@ import type {
 import type {
   ActorRelationshipAuthored,
   CastModifierAuthored,
+  CastModifierParameterAuthored,
   ApplyGrantAuthored,
   ActorRelationshipModuleAuthored,
   CastingTimeAuthored,
@@ -857,6 +858,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { base: 1 } satisfies SparesCreaturesAuthored
     case 'castModifier':
       return { chargeId: '', cost: 1 } satisfies CastModifierAuthored
+    case 'castModifierParameter':
+      return {
+        parameter: 'RANGE',
+        multiplier: 2,
+        touchDistance: { amount: 30, unit: 'FEET' }
+      } satisfies CastModifierParameterAuthored
     case 'castModifierTargets':
       return { outcome: 'SAVE_AUTO_SUCCESS', base: 1 } satisfies NonNullable<
         CastModifierAuthored['targets']
