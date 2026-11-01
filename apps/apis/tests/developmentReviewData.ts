@@ -51,7 +51,7 @@ function initiativeResolution(
   pending:
     | PendingOccurrence
     | FunctionReturnType<typeof api.encounters.pendingReads.pendingRuleOccurrence>,
-  declaredAction: ReadonlyMap<string, string> = new Map()
+  declaredAction: (actorId: string) => string | undefined = () => undefined
 ): Resolution | null {
   switch (pending?.kind) {
     case 'INITIATIVE_EVIDENCE':
@@ -66,8 +66,8 @@ function initiativeResolution(
       return { kind: 'INITIATIVE_ENTITY', requestId: pending.requestId, entityId }
     }
     case 'INITIATIVE_DECLARATION': {
-      // The option whose label starts with the actor's first step action, else the first option.
-      const label = declaredAction.get(pending.actorId)
+      // The option whose label starts with the actor's next scripted turn action, else the first option.
+      const label = declaredAction(pending.actorId)
       const option = label && pending.primaryOptions.find((entry) => entry.label.startsWith(label))
       return declarationCommand({
         encounterId,
@@ -331,13 +331,20 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     })
   }
 
-  // An actor declares, at initiative, the action it takes first: the label its first step names.
-  const declaredAction = new Map<string, string>()
+  // An actor declares, each round, the action its next scripted turn takes first.
+  const turnActions = new Map<string, string[]>()
+  const turnAction = new Map<string, string | undefined>()
   for (const step of scenario.steps) {
     const found = actors.get(step.actor)
-    if (found && 'action' in step && step.action && !declaredAction.has(found.id))
-      declaredAction.set(found.id, step.action)
+    assert.ok(found, `Review step names an unknown actor "${step.actor}".`)
+    const turns = turnActions.get(found.id) ?? []
+    if ('advance' in step) {
+      turns.push(turnAction.get(found.id) ?? '')
+      turnAction.delete(found.id)
+    } else if (step.action && !turnAction.has(found.id)) turnAction.set(found.id, step.action)
+    turnActions.set(found.id, turns)
   }
+  const declaredAction = (actorId: string) => turnActions.get(actorId)?.shift() || undefined
   const execute = (command: EncounterExecuteInput['command']) =>
     gm.client.mutation(executeEncounterCommand, { command })
   let started = await execute({
@@ -453,6 +460,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     sceneId: scene.liveSceneId,
     actors,
     ownerOf,
+    declaredAction,
     execute
   })
   for (const step of scenario.steps) await playStep(step)
@@ -519,6 +527,7 @@ function stepPlayer({
   sceneId,
   actors,
   ownerOf,
+  declaredAction,
   execute
 }: {
   context: ReviewContext
@@ -528,6 +537,8 @@ function stepPlayer({
   actors: ReadonlyMap<string, PlacedActor>
   /** The account that controls each hero actor; it answers that actor's reaction prompts. */
   ownerOf: ReadonlyMap<string, ReviewAccount>
+  /** The next declaration an actor makes at initiative: the start of its scripted turn's action. */
+  declaredAction: (actorId: string) => string | undefined
   execute: (command: EncounterExecuteInput['command']) => Promise<EncounterCommandResultDto>
 }) {
   const { gm, checkpoint } = context
@@ -591,7 +602,7 @@ function stepPlayer({
         client = ownerOf.get(pending.targetActorId)?.client ?? gm.client
       } else {
         // A turn that wraps the round asks for the next round's initiative.
-        const initiative = initiativeResolution(encounterId, pending)
+        const initiative = initiativeResolution(encounterId, pending, declaredAction)
         if (!initiative)
           throw new Error(`A review action met an unexpected pending ${pending.kind}.`)
         resolution = initiative
