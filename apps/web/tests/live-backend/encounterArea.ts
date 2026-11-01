@@ -271,6 +271,10 @@ export async function verifyEncounterAreaBrowser(
       },
       breathe: async (optionLabel, toward, caught) => {
         stage = 'aim the Legendary breath'
+        const aimLogs: string[] = []
+        ownerPage.on('console', (message) => {
+          if (message.text().startsWith('AIMDBG')) aimLogs.push(message.text())
+        })
         const drawer = decisionDrawer(ownerPage)
         await drawer.getByRole('combobox', { name: 'Legendary Action', exact: true }).click()
         await ownerPage.getByRole('option', { name: new RegExp('^' + optionLabel) }).click()
@@ -304,10 +308,6 @@ export async function verifyEncounterAreaBrowser(
           y: casterCenter.y + ((towardCenter.y - casterCenter.y) / reach) * 40
         })
         const to = onPage(towardCenter)
-        const aimLogs: string[] = []
-        ownerPage.on('console', (message) => {
-          if (message.text().startsWith('AIMDBG')) aimLogs.push(message.text())
-        })
         await ownerPage.mouse.move(from.x, from.y)
         await ownerPage.mouse.down()
         await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
