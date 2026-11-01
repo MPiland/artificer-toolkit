@@ -86,8 +86,7 @@ function registryWith(
     registry: {
       ...compiled,
       system: {
-        abilities: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
-        skills: [...SRD_SKILLS],
+        skills: [],
         speeds: [...SRD_SPEEDS],
         defaults: srdSystemRecord.defaults
       }
@@ -98,9 +97,17 @@ function registryWith(
 
 export const srdRegistry = registryWith([], [])
 
-/** The SRD vocabulary slice that saving-throw projection reads. */
+/** The SRD vocabulary slice that saving-throw and skill projection read. */
 export const vocabulary = {
-  document: { abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })) }
+  document: {
+    abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })),
+    skills: SRD_SKILLS.map(({ id, code, label, governingAbilityDefinitionId }) => ({
+      id,
+      code,
+      label,
+      governingAbilityDefinitionId
+    }))
+  }
 } as Pick<SystemVocabularySnapshot, 'document'>
 
 /** A class, subclass, race or subrace feature acquisition, with any selected options. */
