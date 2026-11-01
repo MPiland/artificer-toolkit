@@ -101,7 +101,7 @@ export const waterElemental: CreatureAuthored = {
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
             range: { id: S.actionId(285, 206), rangeKind: S.RANGE_KIND.SELF },
             targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
@@ -125,13 +125,32 @@ export const waterElemental: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d8+4'
                   },
+                  S.grappledOutcome(285, {
+                    localIndex: 1,
+                    escapeDc: 14,
+                    heldAtOnce: 2,
+                    largestTarget: S.SIZE_CODE.LARGE,
+                    untilEnds: ['RESTRAINED'],
+                    // "At the start of each of the elemental's turns": counted on the holder's turns.
+                    recurrence: {
+                      turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+                      outcome: {
+                        id: S.actionId(285, 214),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d8+4'
+                      }
+                    }
+                  }),
                   {
                     id: S.actionId(285, 210),
                     effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
                     label: 'Resolve the whelm',
                     reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
                     instructions:
-                      "If the target is Large or smaller, it is also grappled (escape DC 14). Until this grapple ends, the target is restrained and unable to breathe unless it can breathe water. The elemental can grapple one Large creature or up to two Medium or smaller creatures at one time. At the start of each of the elemental's turns, each target grappled by it takes 13 (2d8 + 4) bludgeoning damage. A creature within 5 feet of the elemental can pull a creature or object out of it by taking an action to make a DC 14 Strength check and succeeding."
+                      'The held target is unable to breathe unless it can breathe water. The elemental can grapple one Large creature or up to two Medium or smaller creatures at one time. A creature within 5 feet of the elemental can pull a creature or object out of it by taking an action to make a DC 14 Strength check and succeeding.'
                   }
                 ]
               }
