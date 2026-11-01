@@ -9,7 +9,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -38,7 +37,7 @@ import { creatureTypeId } from '../spells/shared.js'
 import { TURNED_INSTRUCTIONS } from './turned.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
