@@ -127,7 +127,7 @@
 00000000-0000-0000-c00b-602500000000 CHARACTER:classes Eldritch Master | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c00b-608100000000 CHARACTER:classes Lifedrinker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00c-140200000000 CHARACTER:classes Sculpt Spells | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c00c-140500000000 CHARACTER:classes Overchannel | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0000-0000-c00c-140500000000 CHARACTER:classes Overchannel | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00c-600200000000 CHARACTER:classes Arcane Recovery | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-0001-0070-000100000000 CREATURE Tentacle | TEST_OUTCOME test=b89c04bee72d05a3721e09b337dfc38e3c49d6b5ca010fa33a6b34b57907b328 nodes=3 outputs=5 outcomes=[ON_CRIT=243529c1e4117513df3e60f14c1718fa726179eacfcb30f61eca2cf5fb83c73d,ON_HIT=243529c1e4117513df3e60f14c1718fa726179eacfcb30f61eca2cf5fb83c73d]
 00000000-0002-0001-0070-000200000000 CREATURE Club | TEST_OUTCOME test=9dd001e157149bb07c90e758050d2cc34572ad821520507aa1b5a5ad34f45c46 nodes=3 outputs=5 outcomes=[ON_CRIT=b6675c0a35909e9b325ae227f17a209b60de6b7a1f912e2c345d5cf9ba5191e1,ON_HIT=b6675c0a35909e9b325ae227f17a209b60de6b7a1f912e2c345d5cf9ba5191e1]

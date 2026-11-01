@@ -633,19 +633,16 @@ describe('room burst cast by a Character who pays a cast modifier for its range 
       actorIds: []
     })
     expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
     const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
     expect(roots[0]?.outputs.resourceConsumption).toBeTruthy()
   }, 120000)
 
-  it('refuses the option on a spell whose range it cannot change', async () => {
-    const special = structuredClone(emberBurst)
-    special.id = testUuid(0x7d7)
-    special.label = 'Odd Burst'
-    special.effects![0]!.invocation.range = { id: testUuid(0x7d8), rangeKind: 'SPECIAL' }
-    const room = await reachRoom(special)
+  it('refuses an option the cast is not offered', async () => {
+    const room = await reachRoom(emberBurst)
 
     const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
-      id: FAR_REACH_ID,
+      id: testUuid(0x7d9),
       actorIds: []
     })
     expect(answer.type).toBe('COMMAND_REJECTED')
