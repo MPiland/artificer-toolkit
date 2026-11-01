@@ -14,6 +14,7 @@ import {
 import {
   attachRoomWorker,
   checkpointRoom,
+  closeRoom,
   roomDevelopmentClient,
   roomAllLogs,
   roomErrorLogs,
@@ -62,6 +63,9 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     players,
     grantGmTier: (userId: string) =>
       t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
+    releaseRoom: async (campaignId: string) => {
+      await closeRoom(campaignId)
+    },
     buildSnapshots: seedRoomContentSnapshots,
     checkpoint: async (campaignId: string) => {
       await checkpointRoom(campaignId)
@@ -75,7 +79,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     }))
   const names = REVIEW_SCENARIOS.map((scenario) => scenario.campaign)
 
-  const first = await seedReviewData(context, REVIEW_SCENARIOS.slice(2)).catch((error: unknown) => {
+  const first = await seedReviewData(context).catch((error: unknown) => {
     throw new Error(
       ['Review seed failed:', String(error), ...roomErrorLogs(), ...roomAllLogs().slice(-30)].join(
         ' | '

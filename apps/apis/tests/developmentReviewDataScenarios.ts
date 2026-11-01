@@ -143,6 +143,11 @@ export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
       // A point area: all three goblins fail their saves.
       { actor: 'pyra', action: 'Fireball', target: 'goblin1', d20: 4 },
       { actor: 'pyra', advance: true },
+      // Everyone else's turn passes, so the round wraps and Pyra has an action again.
+      { actor: 'wolf', advance: true },
+      { actor: 'goblin1', advance: true },
+      { actor: 'goblin2', advance: true },
+      { actor: 'goblin3', advance: true },
       // A directed area from Pyra's side catches the adjacent wolf.
       { actor: 'pyra', action: 'Thunderwave', target: 'wolf', d20: 4 },
       { actor: 'pyra', advance: true }

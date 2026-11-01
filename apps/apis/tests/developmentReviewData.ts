@@ -88,6 +88,8 @@ export type ReviewContext = {
   players: readonly ReviewAccount[]
   /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
   grantGmTier: (userId: string) => Promise<void>
+  /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
+  releaseRoom?: (campaignId: string) => Promise<void>
   /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
   checkpoint: (campaignId: string) => Promise<void>
   /** Builds the Campaign's content snapshots where nothing schedules them (convex-test); a live backend builds its own. */
@@ -472,6 +474,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     campaignId,
     title: REVIEW_READY_TITLE
   })
+  await context.releaseRoom?.(campaignId)
 }
 
 /** Sheet commands go through Convex, so they come before the room holds the Character. */
