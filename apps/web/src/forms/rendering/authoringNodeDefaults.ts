@@ -46,6 +46,7 @@ import type {
   BreakpointScalingAuthored,
   ModifierAttackDecoysAuthored,
   ModifierDamageDieAuthored,
+  ModifierRolledDieAuthored,
   ModifierDamageInterceptionAuthored,
   ModifierIncomingAttackGateAuthored,
   ModifierScalarValueAuthored,
@@ -981,6 +982,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { level: 1, count: 1 } satisfies NonNullable<
         ModifierDamageDieAuthored['countPerCastLevelAbove']
       >
+    case 'rolledDieFacesScaling':
+      return { classId: '', levels: [] } satisfies NonNullable<
+        ModifierRolledDieAuthored['facesScaling']
+      >
+    case 'rolledDieFacesScalingLevel':
+      return { level: order, faces: 8 } satisfies NonNullable<
+        ModifierRolledDieAuthored['facesScaling']
+      >['levels'][number]
     case 'damageLevelScalingEntry':
       return {
         id: crypto.randomUUID(),

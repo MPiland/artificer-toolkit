@@ -30,6 +30,8 @@ export function seedModifierGrant(input: {
   id?: string
   /** The effect this one depends on: it ends with it. */
   linkedEffectId?: string
+  /** The granter's class levels at the apply, for a die that grows with them (Bardic Inspiration). */
+  sourceClassLevels?: Readonly<Record<string, number>>
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
     const { ownedConditionId, endsOnCast, maintainedEffectStateId, id, linkedEffectId, ...grant } =
