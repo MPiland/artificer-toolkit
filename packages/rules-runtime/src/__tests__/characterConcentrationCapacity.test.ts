@@ -14,13 +14,19 @@ const gatedItem = concentrationCapacityItem({
   bonus: 1,
   maxSpellLevel: 3
 })
+const usesItem = concentrationCapacityItem({
+  number: 913,
+  label: 'Limited Capacity Item',
+  bonus: 1,
+  uses: 1
+})
 
 /** The installed D&D policy's output for an SRD Wizard wearing the named items. */
 function wizardPolicy(items: readonly { label: string; equipped: boolean }[]) {
   return evaluateSrdCharacter({
     classes: [{ label: 'Wizard', level: 5 }],
     items,
-    extraEquipment: [firstItem, secondItem, gatedItem]
+    extraEquipment: [firstItem, secondItem, gatedItem, usesItem]
   }).output
 }
 
@@ -52,8 +58,9 @@ describe('Concentration capacity', () => {
       dnd5eConcentrationCapacityForCast({
         policyOutput,
         newSpell: { id: 'new-spell', level: newLevel },
-        heldSpellLevels
-      })
+        heldSpellLevels,
+        usesAvailable: true
+      }).capacity
 
     it('is left out of the Character-wide capacity and listed as gated', () => {
       expect(policyOutput.concentrationCapacity).toBe(1)
@@ -84,9 +91,62 @@ describe('Concentration capacity', () => {
         dnd5eConcentrationCapacityForCast({
           policyOutput: wizardPolicy([{ label: gatedItem.label, equipped: false }]),
           newSpell: { id: 'new-spell', level: 1 },
-          heldSpellLevels: [1]
-        })
+          heldSpellLevels: [1],
+          usesAvailable: true
+        }).capacity
       ).toBe(1)
+    })
+  })
+
+  describe('with a bonus that spends a use of an item charge', () => {
+    const policyOutput = wizardPolicy([{ label: usesItem.label, equipped: true }])
+    const castWith = (heldSpellLevels: (number | null)[], usesAvailable = true) =>
+      dnd5eConcentrationCapacityForCast({
+        policyOutput,
+        newSpell: { id: 'new-spell', level: 1 },
+        heldSpellLevels,
+        usesAvailable
+      })
+
+    it('is left out of the Character-wide capacity and listed with its charge', () => {
+      expect(policyOutput.concentrationCapacity).toBe(1)
+      expect(policyOutput.gatedConcentrationCapacity).toEqual([
+        expect.objectContaining({ chargeId: expect.any(String) })
+      ])
+    })
+
+    it('spends nothing while the holder keeps fewer than the base capacity', () => {
+      expect(castWith([])).toEqual({ capacity: 1, use: null })
+    })
+
+    it('makes room for one more and names the pool to spend once the base capacity is held', () => {
+      expect(castWith([1])).toEqual({
+        capacity: 2,
+        use: { poolId: expect.any(String), chargeId: expect.any(String) }
+      })
+    })
+
+    it('makes no room when the cast cannot pay a use', () => {
+      expect(castWith([1], false)).toEqual({ capacity: 1, use: null })
+    })
+
+    it('makes no room once the item has no use left', () => {
+      const spent = {
+        ...policyOutput,
+        resources: policyOutput.resources.map((resource) =>
+          resource.chargeId === policyOutput.gatedConcentrationCapacity[0]?.chargeId
+            ? { ...resource, remaining: 0 }
+            : resource
+        )
+      }
+      expect(
+        dnd5eConcentrationCapacityForCast({
+          policyOutput: spent,
+          newSpell: { id: 'new-spell', level: 1 },
+          heldSpellLevels: [1],
+          usesAvailable: true
+        })
+      ).toEqual({ capacity: 1, use: null })
     })
   })
 })

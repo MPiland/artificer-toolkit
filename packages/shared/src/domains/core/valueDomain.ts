@@ -665,7 +665,9 @@ export type ValueDomainParamByCode = {
   BONUS_ACTION_COUNT: EmptyObject
   REACTION_COUNT: EmptyObject
   ATTACKS_PER_ATTACK_ACTION: EmptyObject
-  CONCENTRATION_CAPACITY: EmptyObject
+  // `usesChargeId` names a charge of the same source; the bonus counts for a cast only while that
+  // charge has a use left, and the cast spends one.
+  CONCENTRATION_CAPACITY: { usesChargeId?: string }
 
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES

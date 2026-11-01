@@ -146,6 +146,13 @@ const spellLevelParamDtoSchema = lazySchema(() =>
   })
 )
 
+/** The pool of uses a Concentration capacity bonus spends one of each time it makes room. */
+const concentrationCapacityParamDtoSchema = lazySchema(() =>
+  z.object({
+    usesChargeId: z.optional(authoredIdentifierSchema)
+  })
+)
+
 const modifierScalarValueDtoSchema = lazySchema(() =>
   z.discriminatedUnion('valueKind', [
     z.object({
@@ -608,7 +615,8 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...speedParamDtoSchema.shape,
       ...senseParamDtoSchema.shape,
       ...spellLevelParamDtoSchema.shape,
-      ...healingDealtParamDtoSchema.shape
+      ...healingDealtParamDtoSchema.shape,
+      ...concentrationCapacityParamDtoSchema.shape
     })
   )
 )
@@ -1235,7 +1243,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'CONCENTRATION_CAPACITY',
       'BONUS',
-      emptyDomainDtoSchema,
+      concentrationCapacityParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(

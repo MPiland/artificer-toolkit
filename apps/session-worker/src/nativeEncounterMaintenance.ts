@@ -1,8 +1,12 @@
 import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { poolResourceConsumption } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   MaintainedReplacementRequiredError,
-  SpellcastingLockedError
+  SpellcastingLockedError,
+  StaleCharacterActionError
 } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { heldConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
@@ -221,6 +225,8 @@ export async function prepareNativeLiveActionMaintenance(input: {
   projection?: NativeLiveMovementMaintenanceProjection
   /** The held maintained effect the caster chose to end at capacity (the command's choice). */
   endedMaintainedStateId?: string | undefined
+  /** The caller settles the use a capacity bonus spends (`concentrationCapacityUseSpend`). */
+  allowCapacityUses?: boolean
   /** D99: given, a Character caster's new Concentration ends carried grants; loads and fences each holder. */
   loadCarriedHolder?: (
     actor: EncounterRunActorState
@@ -232,6 +238,7 @@ export async function prepareNativeLiveActionMaintenance(input: {
   return prepareEncounterActionMaintenance({
     prepared,
     chosenStateId: input.endedMaintainedStateId,
+    allowCapacityUses: input.allowCapacityUses,
     activeEffects: input.activeEffectsByActorId.get(prepared.actor.id) ?? [],
     readDefinition: async (definitionId) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -324,6 +331,36 @@ export async function prepareNativeLiveActionMaintenance(input: {
     }
     throw error
   })
+}
+
+/**
+ * The use a Concentration capacity bonus spent to make room for the cast's Concentration, as the
+ * resource spend that settles with the cast; null when no bonus was needed.
+ */
+export function concentrationCapacityUseSpend(input: {
+  prepared: Pick<
+    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
+    'source' | 'sourceFacts'
+  >
+  maintenance: { capacityUse: { poolId: string } | null } | null
+  automationMode: AutomationModeDto
+}) {
+  const use = input.maintenance?.capacityUse
+  const { source } = input.prepared
+  if (!use || source.kind !== 'CHARACTER_ACTION') return null
+  const { characterFacts } = input.prepared.sourceFacts
+  if (!characterFacts) throw new StaleCharacterActionError()
+  return {
+    resourceConsumption: poolResourceConsumption({
+      resources: source.effectivePolicyOutput.resources,
+      resourceUsage: characterFacts.sheetState.resourceUsage,
+      poolId: use.poolId,
+      cost: 1,
+      characterId: source.characterId,
+      expectedStreamVersion: source.characterStreamVersion,
+      automationMode: input.automationMode
+    })
+  }
 }
 
 /** The maintained state a completed action's Concentration creates, once its policy still matches the prepared one. */

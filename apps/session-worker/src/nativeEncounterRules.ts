@@ -96,13 +96,16 @@ import {
   planEndEffectsChecks,
   reactionCastEnded
 } from './nativeEndEffects.js'
-import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  concentrationCapacityUseSpend,
+  prepareNativeLiveActionMaintenance
+} from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import {
   onHitCandidates,
-  onHitResourceConsumption,
+  poolResourceConsumption,
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
@@ -842,6 +845,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     capture,
     endedMaintainedStateId: command.endedMaintainedStateId,
+    allowCapacityUses: true,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
@@ -1139,7 +1143,7 @@ export async function planNativeLiveEncounterAction(
             .filter(({ cost }) =>
               cost.kind === 'SPELL_SLOT'
                 ? !prepared.characterActionState?.spellConsumption
-                : !prepared.characterActionState?.resourceConsumption
+                : !prepared.characterActionState?.resourceConsumption && !maintenance?.capacityUse
             ),
           spellSlots: prepared.source.effectivePolicyOutput.spellSlots,
           resources: prepared.source.effectivePolicyOutput.resources
@@ -1231,7 +1235,7 @@ export async function planNativeLiveEncounterAction(
     if (!characterFacts)
       throw new StaleCharacterActionError('The selected Character action source is stale.')
     return {
-      resourceConsumption: onHitResourceConsumption({
+      resourceConsumption: poolResourceConsumption({
         resources: source.effectivePolicyOutput.resources,
         resourceUsage: characterFacts.sheetState.resourceUsage,
         poolId: chosenOnHit.poolId,
@@ -1242,11 +1246,20 @@ export async function planNativeLiveEncounterAction(
       })
     }
   })()
+  // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
+  // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
+  const settledSpend =
+    onHitSpend ??
+    concentrationCapacityUseSpend({
+      prepared,
+      maintenance,
+      automationMode: state.automationMode
+    })
   const settledPrepared =
-    onHitSpend && prepared.characterActionState
+    settledSpend && prepared.characterActionState
       ? {
           ...prepared,
-          characterActionState: { ...prepared.characterActionState, ...onHitSpend }
+          characterActionState: { ...prepared.characterActionState, ...settledSpend }
         }
       : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({

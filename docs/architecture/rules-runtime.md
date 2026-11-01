@@ -531,6 +531,17 @@ spell _and_ every held spell, so the holder keeps another Concentration only for
 the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
 satisfies a level requirement). A Creature stays at 1.
 
+**Capacity with limited uses (current, SPELLS-12.T2b).** A `CONCENTRATION_CAPACITY` `BONUS` whose domain names a
+`usesChargeId` (the item's or feature's authored charge, so its recovery is the existing `resetKind`) is also listed in
+`gatedConcentrationCapacity`, with its `chargeId`, and is left out of the stat. `concentrationCapacityForCast` counts
+it only when the holder already keeps the capacity everything else gives and `affordablePoolFor` finds a resolved pool
+with a use left: the result's `use` names that pool. The Worker then settles the spend through the cast's one
+`resourceConsumption` slot (`concentrationCapacityUseSpend`, as the on-hit pool rider does), so a cast that already
+spends a pool or a slot-modifier, and the on-hit rider beside it, never take the room: that cast replaces as before.
+The holder may instead name a held state to end (`endedMaintainedStateId`), which spends nothing. Casts the
+Worker does not settle (`allowCapacityUses` unset: area, reaction and movement paths) never spend a use, so they
+replace. Automation `MANUAL` checks the pool but writes no spend.
+
 **Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
 save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
 each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
