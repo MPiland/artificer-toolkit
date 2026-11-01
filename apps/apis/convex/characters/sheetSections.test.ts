@@ -311,21 +311,18 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     const first = await createNote(visibility.streamVersion, 'Session one')
     // Start the queued derivation without letting it finish.
     vi.advanceTimersByTime(CHARACTER_SHEET_STORE_DELAY_MS)
-    await vi.waitUntil(async () =>
+    const readRunning = () =>
       t.run(async (ctx) =>
-        (await ctx.db.system.query('_scheduled_functions').collect()).some(
+        (await ctx.db.system.query('_scheduled_functions').collect()).find(
           (row) => row.state.kind === 'inProgress'
         )
       )
-    )
+    await vi.waitUntil(readRunning)
+    const running = (await readRunning())!._id
     await createNote(first.streamVersion, 'Session two')
     // convex-test throws "Unexpected scheduled function state" if the running job was cancelled.
     await t.finishAllScheduledFunctions(vi.runAllTimers)
-    expect(
-      (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).map(
-        (row) => row.state.kind
-      )
-    ).not.toContain('canceled')
+    expect((await t.run((ctx) => ctx.db.system.get(running)))?.state.kind).toBe('success')
   }, 60_000)
 
   it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {
