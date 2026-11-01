@@ -361,8 +361,10 @@ export function resolvedDiceMatchAuthored(
   resolved: string,
   authored: string,
   halfHitPointsDice: string | null,
-  weaponDie: number | undefined
+  facts: Dnd5eEffectScalingFacts,
+  optionalRider: boolean
 ): boolean {
+  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
   const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
   const matches = (dice: string) => {
     const term = parseBoundedDiceConfiguration(dice).term

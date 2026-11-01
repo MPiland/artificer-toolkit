@@ -2537,14 +2537,7 @@ function exactDiceConfiguration(
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  if (
-    !resolvedDiceMatchAuthored(
-      resolved,
-      authored,
-      halfHitPointsDice,
-      optionalRider ? undefined : facts.weaponDamageDieFaces
-    )
-  )
+  if (!resolvedDiceMatchAuthored(resolved, authored, halfHitPointsDice, facts, optionalRider))
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
 }
