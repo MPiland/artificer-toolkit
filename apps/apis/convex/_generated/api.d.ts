@@ -2204,6 +2204,7 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                count?: number;
                 creatureTypeId?: string;
                 expectedVersion: number;
                 formId?: string;
@@ -4857,7 +4858,11 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
-              creatureTypes?: Array<{ id: string; label: string }>;
+              creatureTypes?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -4866,7 +4871,11 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
-              summonForms?: Array<{ id: string; label: string }>;
+              summonForms?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -11205,7 +11214,11 @@ export declare const api: {
               concentration: boolean;
               currentHitPoints?: number;
               customName?: string;
-              form?: { creatureId: string; creatureTypeId?: string };
+              form?: {
+                count?: number;
+                creatureId: string;
+                creatureTypeId?: string;
+              };
               id: string;
               label: string;
               maximumHitPoints?: number;
@@ -11604,7 +11617,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -12002,7 +12019,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -12591,7 +12612,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -13188,7 +13213,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -13788,7 +13817,11 @@ export declare const api: {
                 concentration: boolean;
                 currentHitPoints?: number;
                 customName?: string;
-                form?: { creatureId: string; creatureTypeId?: string };
+                form?: {
+                  count?: number;
+                  creatureId: string;
+                  creatureTypeId?: string;
+                };
                 id: string;
                 label: string;
                 maximumHitPoints?: number;
@@ -14371,7 +14404,11 @@ export declare const api: {
                   concentration: boolean;
                   currentHitPoints?: number;
                   customName?: string;
-                  form?: { creatureId: string; creatureTypeId?: string };
+                  form?: {
+                    count?: number;
+                    creatureId: string;
+                    creatureTypeId?: string;
+                  };
                   id: string;
                   label: string;
                   maximumHitPoints?: number;
@@ -15655,7 +15692,11 @@ export declare const api: {
             legalCastModes: Array<{
               available: boolean;
               castLevel?: number;
-              creatureTypes?: Array<{ id: string; label: string }>;
+              creatureTypes?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               kind:
                 | "AT_WILL"
                 | "SPELL_SLOT"
@@ -15664,7 +15705,11 @@ export declare const api: {
                 | "LIMITED_USE";
               label: string;
               slotKey?: string;
-              summonForms?: Array<{ id: string; label: string }>;
+              summonForms?: Array<{
+                id: string;
+                label: string;
+                maxCount?: number;
+              }>;
               unavailableReason?: string;
             }>;
             panelId: string;
@@ -19656,6 +19701,7 @@ export declare const api: {
               }
             | {
                 commandId: string;
+                count?: number;
                 creatureTypeId?: string;
                 expectedVersion: number;
                 formId?: string;
@@ -287155,9 +287201,17 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
-                  creatureTypes?: Array<{ id: string; label: string }>;
+                  creatureTypes?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                   kind: "POINT";
-                  summonForms?: Array<{ id: string; label: string }>;
+                  summonForms?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                 }
               | {
                   area:
@@ -288926,9 +288980,17 @@ export declare const api: {
                         kind: "CUBE";
                       };
                   choosesUnaffected?: true;
-                  creatureTypes?: Array<{ id: string; label: string }>;
+                  creatureTypes?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                   kind: "POINT";
-                  summonForms?: Array<{ id: string; label: string }>;
+                  summonForms?: Array<{
+                    id: string;
+                    label: string;
+                    maxCount?: number;
+                  }>;
                 }
               | {
                   area:
@@ -290690,6 +290752,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -290857,6 +290920,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -292938,6 +293002,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -293105,6 +293170,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -294478,6 +294544,7 @@ export declare const api: {
                   | "GROUP_LEADER_TAKEN_PRISONER";
               }>;
               owner?: {
+                count?: number;
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -294644,6 +294711,7 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               owner?: {
+                count?: number;
                 ownerActorId: string;
                 sourceEffectId?: string;
                 turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -294910,6 +294978,7 @@ export declare const api: {
                       | "GROUP_LEADER_TAKEN_PRISONER";
                   }>;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -295077,6 +295146,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   owner?: {
+                    count?: number;
                     ownerActorId: string;
                     sourceEffectId?: string;
                     turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -296160,6 +296230,7 @@ export declare const api: {
                 | "GROUP_LEADER_TAKEN_PRISONER";
             }>;
             owner?: {
+              count?: number;
               ownerActorId: string;
               sourceEffectId?: string;
               turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
@@ -305549,6 +305620,7 @@ export declare const internal: {
                 id: string;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                 owner?: {
+                  count?: number;
                   ownerActorId: string;
                   sourceEffectId?: string;
                   turnTiming?: "AFTER_OWNER" | "OWN_INITIATIVE";
