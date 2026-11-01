@@ -3,6 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import { encounterActionChoicesDtoSchema } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import {
+  pendingEncounterRuleOccurrenceSummaryDtoSchema,
+  type PendingEncounterRuleOccurrenceSummaryDto
+} from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { validated } from '../../../test/validatedFixture'
@@ -17,6 +21,7 @@ import type { HeldEncounterSession } from './useCampaignLiveSession'
 const mocks = vi.hoisted(() => ({
   onAreaDirection: null as ((aim: { origin: ScenePoint; toward: ScenePoint }) => void) | null,
   onAreaPoint: null as ((point: ScenePoint) => void) | null,
+  pending: null as PendingEncounterRuleOccurrenceSummaryDto | null,
   readEncounter: vi.fn(),
   resolve: vi.fn()
 }))
@@ -90,7 +95,7 @@ const room = (): HeldEncounterSession => ({
   version: tabletopGmEncounter.version,
   state: {
     encounter: tabletopGmEncounter,
-    pending: null,
+    pending: mocks.pending,
     waitingOn: null,
     turnMovement: [
       {
@@ -195,6 +200,11 @@ async function chooseAction(user: ReturnType<typeof userEvent.setup>, label: str
   await user.click(await screen.findByRole('option', { name: new RegExp(label) }))
 }
 
+const renderStage = () =>
+  renderWithAppProviders(
+    <CampaignVttStage campaign={campaign} currentUserId={tabletopCurrentUserId} />
+  )
+
 describe('CampaignVttStage aiming an area (SPELLS-23)', () => {
   beforeAll(() => {
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
@@ -207,6 +217,7 @@ describe('CampaignVttStage aiming an area (SPELLS-23)', () => {
     vi.clearAllMocks()
     mocks.onAreaDirection = null
     mocks.onAreaPoint = null
+    mocks.pending = null
     mocks.resolve.mockResolvedValue(resolved)
     mocks.readEncounter.mockImplementation(({ kind }: { kind: string }) =>
       Promise.resolve({
@@ -219,12 +230,10 @@ describe('CampaignVttStage aiming an area (SPELLS-23)', () => {
               : { kind, result: [{ ...binding, actorId: emberActor.id, tokenId: ember.id }] }
       })
     )
-    renderWithAppProviders(
-      <CampaignVttStage campaign={campaign} currentUserId={tabletopCurrentUserId} />
-    )
   })
 
   it('resolves a directed area with exactly the origin and direction the renderer gesture ended in', async () => {
+    renderStage()
     const user = userEvent.setup()
     await chooseAction(user, 'Cone')
     await user.click(await screen.findByRole('button', { name: 'Aim on map' }))
@@ -247,6 +256,7 @@ describe('CampaignVttStage aiming an area (SPELLS-23)', () => {
   })
 
   it('resolves a point area at exactly the point the renderer press landed on', async () => {
+    renderStage()
     const user = userEvent.setup()
     await chooseAction(user, 'Blast')
     await user.click(await screen.findByRole('button', { name: 'Pick on map' }))
@@ -263,6 +273,49 @@ describe('CampaignVttStage aiming an area (SPELLS-23)', () => {
           expectedSceneVersion: tabletopLiveScene.version,
           point: toward
         }
+      })
+    )
+  })
+
+  it('aims a Legendary breath from its owner token and returns the aim to the decision drawer (SPELLS-15)', async () => {
+    mocks.pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      kind: 'LEGENDARY_ACTION_CHOICE',
+      occurrenceId: '55555555-5555-4555-8555-555555555599',
+      occurrenceVersion: 1,
+      encounterVersion: tabletopGmEncounter.version,
+      ownerActorId: emberActor.id,
+      options: [
+        {
+          optionId: 'e'.repeat(64),
+          actionId: 'breath',
+          ownerFeatureId: '77777777-7777-4777-8777-777777777799',
+          label: 'Breath',
+          featureCost: 2,
+          targetActorIds: [emberActor.id],
+          area: { kind: 'DIRECTED', area: { kind: 'CONE', length: { amount: 15, unit: 'FEET' } } }
+        }
+      ],
+      allowedResponses: ['DECLINE', 'LEGENDARY_OPTION']
+    })
+    renderStage()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: 'Open pending decision' }))
+    await user.click(await screen.findByRole('combobox', { name: 'Legendary Action' }))
+    await user.click(await screen.findByRole('option', { name: /Breath/ }))
+    await user.click(await screen.findByRole('button', { name: 'Aim on map' }))
+    await waitFor(() => expect(mocks.onAreaDirection).not.toBeNull())
+    expect(screen.queryByRole('dialog', { name: 'Pending decision' })).toBeNull()
+    act(() => mocks.onAreaDirection!({ origin, toward }))
+
+    const use = await screen.findByRole('button', { name: 'Use Legendary Action' })
+    expect(use).toBeEnabled()
+    await user.click(use)
+    expect(mocks.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: expect.objectContaining({
+          kind: 'LEGENDARY_OPTION',
+          aim: { kind: 'DIRECTED', origin, toward }
+        })
       })
     )
   })

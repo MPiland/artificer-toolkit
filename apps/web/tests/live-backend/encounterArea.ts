@@ -278,13 +278,13 @@ export async function verifyEncounterAreaBrowser(
         await expect(use).toBeDisabled()
         await drawer.getByRole('button', { name: 'Aim on map', exact: true }).click()
         await expect(drawer).toBeHidden()
-        const bounds = await ownerPage
-          .getByRole('region', { name: 'Live scene: ' + input.scene.name })
-          .locator('canvas')
-          .boundingBox()
+        const bounds = await ownerPage.locator('canvas[aria-description]').boundingBox()
         if (!bounds) throw new Error('Area Scene canvas is unavailable.')
-        const scale =
-          Math.min(bounds.width / input.map.width, bounds.height / input.map.height) * 0.94
+        // The fitted map is centered at the zoom the toolbar shows.
+        const zoomText = await ownerPage
+          .getByRole('textbox', { name: 'Zoom percentage', exact: true })
+          .inputValue()
+        const scale = Number.parseInt(zoomText, 10) / 100
         const onPage = (at: { x: number; y: number }) => ({
           x: bounds.x + (bounds.width - input.map.width * scale) / 2 + at.x * scale,
           y: bounds.y + (bounds.height - input.map.height * scale) / 2 + at.y * scale
@@ -309,7 +309,7 @@ export async function verifyEncounterAreaBrowser(
         await ownerPage.mouse.down()
         await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
         await ownerPage.mouse.up()
-        await expect(drawer).toBeVisible()
+        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to })).toBeVisible()
         const inArea = drawer.getByText(/^In the area:/)
         await expect(inArea).toBeVisible()
         for (const label of caught) await expect(inArea).toContainText(label)
