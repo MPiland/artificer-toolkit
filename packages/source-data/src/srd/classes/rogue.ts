@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   MANUAL_ADJUDICATION_REASON,
@@ -25,7 +24,6 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type FacetAuthored
 } from '@artificer-toolkit/shared'
@@ -42,7 +40,6 @@ import {
 } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
-  closedRuleEffect,
   evasionGrant,
   gmRulingEffect,
   incomingDamageReactionEffect,
@@ -109,19 +106,6 @@ function elusiveRestriction(grant: number): FacetAuthored {
       }
     ]
   }
-}
-
-function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
-  return closedRuleEffect({
-    id: classRowId(R, 0x60, entry),
-    ruleKind,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(R, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    }
-  })
 }
 
 /** Rogue levels that raise Sneak Attack by a die: 1d6 at 1st, then one more every other level. */
@@ -734,10 +718,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 4, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 7),
@@ -817,10 +798,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 5, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 11),
@@ -841,10 +819,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 13),
@@ -881,10 +856,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 15),
@@ -936,10 +908,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 19),
@@ -982,10 +951,7 @@ export const rogue: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(R, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(45, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(R, 3, 22),

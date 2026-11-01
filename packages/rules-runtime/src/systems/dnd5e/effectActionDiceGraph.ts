@@ -31,6 +31,8 @@ export function diceGraphDefinition(input: {
   diceConfig: string
   /** Roll the dice twice plus the extra dice for a critical hit; the modifier is still added once. */
   critical?: { extraDice: number }
+  /** Reroll each die that lands at or below this face once, keeping the new roll. */
+  rerollAtOrBelow?: number
   modifierFactKey?: string
   nodePrefix?: string
   recurring?: Pick<CharacterRuleActionActiveEffectPlan, 'compiledEntryId' | 'frozenGraphNodeId'>
@@ -44,12 +46,20 @@ export function diceGraphDefinition(input: {
     unsupported('Only direct D&D dice outcomes are currently specialized.')
   const outcome = input.entry.outcome
   const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
-  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
+  // A fixed damage amount rolls the dice a grant adds to it (a die set on an unarmed strike).
+  if (
+    !scalar &&
+    outcome.valueKind !== 'DICE' &&
+    !(outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED')
+  )
+    unsupported('D&D outcome is not dice-backed.')
   const damageTypeId =
     outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
   const prefix = input.nodePrefix ?? ''
   const { modifier: authoredModifier, term } = boundedDiceTerm(input.diceConfig, input.critical)
-  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix)
+  const { nodes: rolledNodes, subtotal: rolledSubtotal } = rolledDiceNodes(term, prefix, {
+    rerollAtOrBelow: input.rerollAtOrBelow
+  })
   const modifier = input.modifierFactKey
     ? { kind: 'FACT' as const, factKey: input.modifierFactKey }
     : { kind: 'LITERAL' as const, value: authoredModifier }

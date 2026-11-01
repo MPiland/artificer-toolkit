@@ -1,7 +1,4 @@
-import {
-  type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds
-} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -84,6 +81,8 @@ import {
   specializedTestOutcome,
   fixedHealAmount,
   healDiceConfiguration,
+  fixedAmountDiceConfiguration,
+  resolvedDiceMatchAuthored,
   positiveFixedAmount,
   isChosenAmountHeal,
   validateHealBonuses,
@@ -149,6 +148,7 @@ import {
   dnd5eSaveOutcomeRule,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
+  DND5E_DAMAGE_DIE_REROLL_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
@@ -228,9 +228,11 @@ import {
   interpretSpatial
 } from './effectActionInterpretation.js'
 import {
+  countRepeatSave,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
-  repeatSaveGated
+  repeatSaveGated,
+  tallyEnds
 } from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
@@ -248,7 +250,7 @@ import {
 } from './effectActionScalingFacts.js'
 
 import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
-import { isCriticalHitDamage, withDamageAddedDice } from './effectActionDamageAddedDice.js'
+import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
   escalationCondition,
@@ -257,12 +259,14 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition,
   repeatCadenceSupported,
+  repeatSaveHeldTurns,
   sourceTurnStartSave
 } from './effectActionNestedSave.js'
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
   admitRollTablePaths,
   directRollTableGraph,
+  isRowPlanId,
   rollTableOutcomeTemplate,
   rollTablePath,
   rollTableRowActions
@@ -1586,12 +1590,12 @@ function repeatingDirectFollowUpSavePlan(
     return null
   const sourceTurn =
     lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
-  const initialRemaining =
-    escalation || sourceTurn
-      ? 1
-      : leadEntry.duration
-        ? conditionDurationTurns(leadEntry.duration)
-        : null
+  const initialRemaining = repeatSaveHeldTurns({
+    save,
+    escalated: escalation !== null,
+    sourceTurn: sourceTurn !== null,
+    duration: leadEntry.duration
+  })
   const repeatSave = dnd5eRepeatSave({
     abilityDefinitionId: save.savingThrow.abilityDefinitionId,
     savingThrow: save.savingThrow,
@@ -1676,18 +1680,6 @@ function repeatingDirectFollowUpSavePlan(
     maintenance: maintenancePlan(action, leadEntry),
     marginRiders: []
   }
-}
-
-/** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
-function countRepeatSave(
-  thresholds: ActiveEffectSaveThresholds,
-  before: ActiveEffectSaveTally | undefined,
-  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
-): ActiveEffectSaveTally {
-  const { successes, failures } = before ?? { successes: 0, failures: 0 }
-  return path === 'ON_SAVE_SUCCESS'
-    ? { successes: successes + 1, failures: thresholds.consecutive ? 0 : failures }
-    : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
 }
 
 /** The entries the repeat-save effect holds (its condition or grant), without the follow-up save. */
@@ -2296,17 +2288,20 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   if (relationshipEntries.length > 1)
     unsupported('D&D action has more than one relationship outcome.')
   if (
+    // A table row's repeated save is held by the row's plan, which admitRollTablePaths requires.
     action.compiledEffect.entries.some(
-      (entry) => 'outcome' in entry && entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
+      (entry) =>
+        entry.resolutionKind !== 'ROLL_TABLE' &&
+        'outcome' in entry &&
+        entry.outcome.effectKind === 'FOLLOW_UP_SAVE'
     )
-  ) {
+  )
     unsupported('D&D test action has an unsupported bounded shape.')
-  }
   const paths = new Set<string>()
   const tablePaths = admitRollTablePaths(
     action,
     kind === 'SAVE' ? allowedPaths : [],
-    timedActiveEffectPlan
+    lastingRowPlan
   )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
@@ -2505,6 +2500,8 @@ function exactDiceConfiguration(
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
+  if (outcome.valueKind === 'FIXED')
+    return fixedAmountDiceConfiguration(facts, outcomeId, optionalRider)
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
@@ -2533,31 +2530,9 @@ function exactDiceConfiguration(
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
-  const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).term
-    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
-  }
-  // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
-  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
-  if (
-    !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice)) &&
-    !(weaponDie && matchesAuthoredDice(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
-  )
+  if (!resolvedDiceMatchAuthored(resolved, authored, halfHitPointsDice, facts, optionalRider))
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
-}
-
-/** A critical hit's dice change for an entry: doubled, plus the attack's extra dice (D158). */
-function criticalHitDice(
-  selectedPath: SpecializedPath,
-  entry: CompiledEffectGroup['entries'][number],
-  facts: Dnd5eEffectScalingFacts
-): { extraDice: number } | undefined {
-  return isCriticalHitDamage(selectedPath, entry)
-    ? { extraDice: facts.criticalExtraDice ?? 0 }
-    : undefined
 }
 
 function fixedOutcomeGraphDefinition(input: {
@@ -2809,7 +2784,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         action: input.action,
         entry: primaryDamageEntry,
         diceConfig: primaryDiceConfiguration,
-        critical: criticalHitDice(input.selectedPath, primaryDamageEntry, input.facts),
+        ...hitDamageDiceChanges(input.selectedPath, primaryDamageEntry, input.facts),
         ...nodePrefix
       })
     })
@@ -2923,7 +2898,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig
                 : compiledDiceConfiguration(entry),
-          critical: criticalHitDice(input.selectedPath, entry, input.facts),
+          ...hitDamageDiceChanges(input.selectedPath, entry, input.facts),
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),
@@ -3001,6 +2976,15 @@ function repeatingFollowUpSavePlan(action: Dnd5eCompiledEffectActionSource) {
     repeatingDirectFollowUpSavePlan(action) ??
     repeatingDirectFollowUpSavePlan(action, 'ACTIVATED') ??
     repeatingImmediateFollowUpSavePlan(action)
+  )
+}
+
+/** The plan that holds a roll-table row that lasts: a repeating save, or a duration alone. */
+function lastingRowPlan(rowAction: Dnd5eCompiledEffectActionSource) {
+  return (
+    repeatingDirectFollowUpSavePlan(rowAction) ??
+    repeatingDirectFollowUpSavePlan(rowAction, 'ACTIVATED') ??
+    timedActiveEffectPlan(rowAction)
   )
 }
 
@@ -3206,7 +3190,7 @@ function compileEffectActionGraph(
       published: compileTestDefinition(action, plan, recurringPlan)
     })
   }
-  const table = directRollTableGraph(action, timedActiveEffectPlan)
+  const table = directRollTableGraph(action, lastingRowPlan)
   if (table) return bindMovementInterruptionOutput({ action, published: table })
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
@@ -3609,6 +3593,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   passiveDamageGrantPlan,
   standingEffectPlan,
+  concentrationCapacityForCast: dnd5eConcentrationCapacityForCast,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)
@@ -3617,7 +3602,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (rows)
       return rows.flatMap(({ rowId, row, rowAction }) =>
         dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
-          plan.compiledEntryId === rowId
+          isRowPlanId(plan.compiledEntryId, rowAction, rowId)
             ? { ...plan, rollTableRow: row }
             : unsupported('D&D roll table row plan must hold its own row.')
         )
@@ -3988,6 +3973,9 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           [DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]: criticalRules.threshold,
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
+            : {}),
+          ...(criticalRules.damageRerollAtOrBelow !== undefined
+            ? { [DND5E_DAMAGE_DIE_REROLL_FACT_KEY]: criticalRules.damageRerollAtOrBelow }
             : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
@@ -4423,15 +4411,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }
       const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
+      const escalationConditionId =
+        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
       const saveTally =
         thresholds && repeatedSavePath !== 'ATTEMPT_REFUSED'
           ? countRepeatSave(thresholds, lifecycle.saveTally, repeatedSavePath)
           : undefined
       // A failed or refused attempt on the last counted turn ends the effect with its duration. A
-      // thresholds effect ends on its last success instead, and settles on its last failure.
+      // thresholds effect ends on its last success instead, and on its last failure when that
+      // escalates; one that does not escalate settles there.
       const terminal =
         (thresholds
-          ? saveTally !== undefined && saveTally.successes >= thresholds.successesToEnd
+          ? tallyEnds(thresholds, saveTally, escalationConditionId !== undefined)
           : repeatedSavePath === 'ON_SAVE_SUCCESS') || lifecycle.remainingTicks === 1
       // Grants held by the effect leave with it; only held conditions need removing.
       if (conditionIds === null)
@@ -4441,8 +4432,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           emptyApplicationAllowed: true,
           ...(saveTally ? { saveTally } : {})
         }
-      const escalationConditionId =
-        definition.adapterFacts[DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY]
       if (
         escalationConditionId !== undefined &&
         (typeof escalationConditionId !== 'string' || !UUID.test(escalationConditionId))

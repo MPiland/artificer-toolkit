@@ -18,8 +18,6 @@ import {
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TARGET_DISPOSITION_KIND,
-  TARGET_SELECTION_KIND,
   TRIGGER,
   type ClassAuthored,
   type ClosedRuleKind,
@@ -676,10 +674,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 4),
@@ -864,17 +859,23 @@ export const sorcerer: ClassAuthored = {
           description:
             "When you cast a spell that targets only one creature and doesn't have a range of self, you can spend a number of sorcery points equal to the spell's level to target a second creature in range with the same spell (1 sorcery point if the spell is a cantrip).\n\nTo be eligible, a spell must be incapable of targeting more than one creature at the spell's current level. For example, magic missile and scorching ray aren't eligible, but ray of frost is.",
           effects: [
-            closedRuleEffect({
-              id: classRowId(S, 0x60, 27),
-              ruleKind: CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_TWINNED,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(S, 0x69, 27), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
-                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 27),
+                range: classRowId(S, 0x69, 27),
+                path: classRowId(S, 0x80, 27),
+                result: classRowId(S, 0x81, 27),
+                outcome: classRowId(S, 0x82, 27)
+              },
+              label: 'Twinned Spell',
+              instructions:
+                'The spell also targets a second creature in range. The sorcery points are spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 1,
+                perSpellLevel: true,
+                targets: { outcome: 'EXTRA_TARGET', base: 1 }
               }
             })
           ],
@@ -901,10 +902,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 8),
@@ -925,10 +923,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 10),
@@ -949,10 +944,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 12),
@@ -981,10 +973,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 10, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 15),

@@ -7,8 +7,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
+  SRD_DAMAGE_TYPES,
   SRD_SPEEDS
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { heldConcentrationVulnerabilityRing } from '../testing/heldConcentrationVulnerabilityRing.js'
 
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import { withCharacterActiveGrants } from '../character/characterRuleEvaluation.js'
@@ -70,7 +72,8 @@ const defend = (target: MovementTarget) =>
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
     runEffectsByActorId: new Map(),
-    readTurnMovedFeet: async () => 0
+    readTurnMovedFeet: async () => 0,
+    readHeldConcentrationCount: async () => 0
   })
 
 const dexteritySave = (target: MovementTarget) =>
@@ -254,7 +257,8 @@ describe('holder-state predicate HOLDER_ACTIVE_EFFECT (Mindless Rage)', () => {
       definitions: srdDefinitions,
       speedDefinitions: SRD_SPEEDS,
       runEffectsByActorId: new Map(),
-      readTurnMovedFeet: async () => 0
+      readTurnMovedFeet: async () => 0,
+      readHeldConcentrationCount: async () => 0
     })
     expect(state.activeAuthoredEffectIds).toEqual([RAGE_EFFECT_ID])
   })
@@ -269,6 +273,80 @@ describe('holder-state predicate HOLDER_ACTIVE_EFFECT (Mindless Rage)', () => {
   })
 })
 
+describe('holder-state predicate HOLDER_CONCENTRATION_COUNT (the double-Concentration ring)', () => {
+  const PSYCHIC = SRD_DAMAGE_TYPES.find((type) => type.code === 'PSYCHIC')?.id ?? ''
+  const ring = heldConcentrationVulnerabilityRing({
+    number: 930,
+    label: 'Ring Of Two Minds',
+    damageTypeCode: 'PSYCHIC',
+    min: 2
+  })
+  const wearer = (equipped: boolean) =>
+    evaluateSrdCharacter({
+      classes: [{ label: 'Wizard', level: 5 }],
+      items: [{ label: ring.label, equipped }],
+      extraEquipment: [ring]
+    })
+  const vulnerabilities = async (character: SrdCharacter, heldConcentrationCount: number) =>
+    (
+      await withEncounterHolderDefense({
+        target: characterHolder(character, []),
+        gameSystemId: SRD_SYSTEM_ID,
+        definitions: srdDefinitions,
+        speedDefinitions: SRD_SPEEDS,
+        runEffectsByActorId: new Map(),
+        readTurnMovedFeet: async () => 0,
+        readHeldConcentrationCount: async () => heldConcentrationCount
+      })
+    ).defenses.filter(({ kind }) => kind === 'VULNERABILITY')
+
+  it('does not fold the count-gated vulnerability into the Character itself', () => {
+    expect(characterHolder(wearer(true), []).defenses).toEqual([])
+  })
+
+  it('gives vulnerability only while the holder keeps two Concentrations', async () => {
+    expect(await vulnerabilities(wearer(true), 0)).toEqual([])
+    expect(await vulnerabilities(wearer(true), 1)).toEqual([])
+    expect(await vulnerabilities(wearer(true), 2)).toEqual([
+      { kind: 'VULNERABILITY', damageTypeId: PSYCHIC }
+    ])
+  })
+
+  it('gives nothing while the ring is not worn', async () => {
+    expect(await vulnerabilities(wearer(false), 2)).toEqual([])
+  })
+
+  it('honors an upper bound on the count', async () => {
+    const capped = heldConcentrationVulnerabilityRing({
+      number: 931,
+      label: 'Ring Of Exactly Two',
+      damageTypeCode: 'PSYCHIC',
+      min: 2,
+      max: 2
+    })
+    const holder = evaluateSrdCharacter({
+      classes: [{ label: 'Wizard', level: 5 }],
+      items: [{ label: capped.label, equipped: true }],
+      extraEquipment: [capped]
+    })
+    expect(await vulnerabilities(holder, 2)).toHaveLength(1)
+    expect(await vulnerabilities(holder, 3)).toEqual([])
+  })
+
+  it('reads the count from the holder state', async () => {
+    const state = await encounterHolderState({
+      target: characterHolder(wearer(true), []),
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: srdDefinitions,
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map(),
+      readTurnMovedFeet: async () => 0,
+      readHeldConcentrationCount: async () => 2
+    })
+    expect(state.heldConcentrationCount).toBe(2)
+  })
+})
+
 describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
   const state = (conditionIds: readonly string[]) =>
     encounterHolderState({
@@ -277,7 +355,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
       definitions: srdDefinitions,
       speedDefinitions: SRD_SPEEDS,
       runEffectsByActorId: new Map(),
-      readTurnMovedFeet: async () => 0
+      readTurnMovedFeet: async () => 0,
+      readHeldConcentrationCount: async () => 0
     })
 
   it('CAN_ACT fails once a condition suppresses the actor-action capability', async () => {
@@ -352,7 +431,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
         definitions: srdDefinitions,
         speedDefinitions: SRD_SPEEDS,
         runEffectsByActorId: new Map(),
-        readTurnMovedFeet: async () => 0
+        readTurnMovedFeet: async () => 0,
+        readHeldConcentrationCount: async () => 0
       })
     await expect(read([{ speedId: WALK_ID, amount: 30, unit: 'FEET' }])).resolves.toMatchObject({
       speedAboveZero: true
@@ -401,7 +481,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           freeHand: true,
           stowableHeldItemInstanceId: null,
           turnMovement: { usedFeet: 0, speedFeet: 30 },
-          activeAuthoredEffectIds: []
+          activeAuthoredEffectIds: [],
+          heldConcentrationCount: 0
         }
       })
     ).toEqual([])
@@ -418,7 +499,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           freeHand: true,
           stowableHeldItemInstanceId: null,
           turnMovement: { usedFeet: 0, speedFeet: 30 },
-          activeAuthoredEffectIds: []
+          activeAuthoredEffectIds: [],
+          heldConcentrationCount: 0
         }
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
@@ -439,7 +521,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           freeHand: true,
           stowableHeldItemInstanceId: null,
           turnMovement: { usedFeet: 0, speedFeet: 30 },
-          activeAuthoredEffectIds: []
+          activeAuthoredEffectIds: [],
+          heldConcentrationCount: 0
         }
       }).length > 0
     expect(holds(true, true)).toBe(true)

@@ -62,7 +62,8 @@ export async function persistEncounterCleavingResponse(
       revisions: LiveSessionRulesRevisions
     ): Promise<void>
     applyMechanics(
-      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
+      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>,
+      damagerActorId: string
     ): Promise<EncounterMechanicsBatchResult>
     bindConcentrationApplications(
       state: EncounterRunState,
@@ -165,19 +166,22 @@ export async function persistEncounterCleavingResponse(
       : null
   const mechanics =
     application && transition
-      ? await callbacks.applyMechanics({
-          encounterId: state.id,
-          targetActorId: application.targetActorId,
-          expectedEncounterVersion: state.version,
-          occurrenceId: occurrence.id,
-          sourceCommandId: occurrence.rootCommandId,
-          commandId: response.commandId,
-          occurredAt,
-          applications: [application],
-          effectiveMaximumHitPoints: transition.before.maximumHitPoints,
-          effectiveScalarValues: transition.before.scalarValues,
-          forceVersionAdvance: false
-        })
+      ? await callbacks.applyMechanics(
+          {
+            encounterId: state.id,
+            targetActorId: application.targetActorId,
+            expectedEncounterVersion: state.version,
+            occurrenceId: occurrence.id,
+            sourceCommandId: occurrence.rootCommandId,
+            commandId: response.commandId,
+            occurredAt,
+            applications: [application],
+            effectiveMaximumHitPoints: transition.before.maximumHitPoints,
+            effectiveScalarValues: transition.before.scalarValues,
+            forceVersionAdvance: false
+          },
+          context.sourceActorId
+        )
       : null
   const applied = mechanics?.receiptApplications[0]
   if (

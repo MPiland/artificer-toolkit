@@ -82,7 +82,7 @@ import {
 import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
-  readNativeLiveTurnMovedFeet,
+  nativeLiveHolderStateReads,
   readNativeWeaponAttackOffer
 } from './nativeTurnUses.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
@@ -180,11 +180,9 @@ import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
-import {
-  settledActionSaveWindow,
-  targetSaveWindow,
-  windowSpentEffects
-} from './nativeActionSaveWindow.js'
+import { settledActionSaveWindow } from './nativeActionSaveWindow.js'
+import { targetSaveWindow } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
@@ -630,7 +628,7 @@ export async function planNativeLiveEncounterAction(
       definitions,
       speedDefinitions: system.speeds,
       runEffectsByActorId: activeEffectsByActorId,
-      readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, prepared.actor.id)
+      ...nativeLiveHolderStateReads(capture, state.gameSystemId, prepared.actor.id)
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)

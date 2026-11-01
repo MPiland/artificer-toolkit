@@ -116,6 +116,26 @@ export function specializedTestOutcome(
       damageTypeId: outcome.damageTypeId
     }
   }
+  if (
+    outcome.effectKind === 'DAMAGE' &&
+    outcome.valueKind === 'FIXED' &&
+    outcome.scalingKind === 'NONE' &&
+    facts
+  ) {
+    // A fixed weapon amount ("1 bludgeoning") the source adds its modifiers to, or whose die a grant
+    // sets, resolves to a total (3) or to dice (1d4 + 3) that replace the authored amount.
+    const resolved = facts.resolvedDamageOutcomeExpressions[entry.entryId]
+    if (resolved !== undefined && resolved !== String(outcome.amount)) {
+      uuid(outcome.damageTypeId, 'D&D damage type identity')
+      return /^\d+$/.test(resolved)
+        ? {
+            kind: 'DAMAGE',
+            amount: multipliedDamageAmount(Number(resolved), damageMultiplier(outcome)),
+            damageTypeId: outcome.damageTypeId
+          }
+        : { kind: 'DICE_DAMAGE', damageTypeId: outcome.damageTypeId }
+    }
+  }
   if (outcome.effectKind === 'SCALAR_REDUCTION') {
     uuid(outcome.valueDefinitionId, 'D&D scalar definition identity')
     parseBoundedDiceConfiguration(outcome.amount.diceConfig)
@@ -315,4 +335,44 @@ function validateDiceOutcomeRow(outcome: CompiledDiceDamageEffect): void {
     unsupported('D&D dice outcomes use an unsupported scaling source.')
   }
   parseBoundedDiceConfiguration(outcome.dice)
+}
+
+/**
+ * A fixed weapon amount rolls dice only when a grant sets the weapon die (a monk's d4 for the unarmed
+ * strike's 1); the source's resolved expression is that die plus its modifiers.
+ */
+export function fixedAmountDiceConfiguration(
+  facts: Dnd5eEffectScalingFacts,
+  outcomeId: string,
+  optionalRider: boolean
+): string {
+  const resolved = facts.resolvedDamageOutcomeExpressions[outcomeId]
+  const die = optionalRider ? undefined : facts.weaponDamageDieFaces
+  if (resolved === undefined || !die || parseBoundedDiceConfiguration(resolved).term.die !== die)
+    unsupported('D&D resolved damage expression does not match the authored fixed amount.')
+  return resolved
+}
+
+/**
+ * Whether a resolved damage expression is the authored dice, the half-hit-point dice, or the authored
+ * dice with a weapon die a grant set (Shillelagh's d8) in place of the authored die.
+ */
+export function resolvedDiceMatchAuthored(
+  resolved: string,
+  authored: string,
+  halfHitPointsDice: string | null,
+  facts: Dnd5eEffectScalingFacts,
+  optionalRider: boolean
+): boolean {
+  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
+  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
+  const matches = (dice: string) => {
+    const term = parseBoundedDiceConfiguration(dice).term
+    return term.count === resolvedTerm.count && term.die === resolvedTerm.die
+  }
+  return (
+    matches(authored) ||
+    (!!halfHitPointsDice && matches(halfHitPointsDice)) ||
+    (!!weaponDie && matches(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
+  )
 }

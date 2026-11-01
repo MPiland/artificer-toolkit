@@ -360,7 +360,8 @@ export function prepareNativeLiveMaintainedState(input: {
       },
       sourceActorId: input.ownerActorId,
       replacementPolicy: maintenance.policy.replacementPolicy,
-      emptyDependentPolicy: maintenance.policy.emptyDependentPolicy
+      emptyDependentPolicy: maintenance.policy.emptyDependentPolicy,
+      ...(maintenance.spellLevel !== null && { spellLevel: maintenance.spellLevel })
     }
   })
 }

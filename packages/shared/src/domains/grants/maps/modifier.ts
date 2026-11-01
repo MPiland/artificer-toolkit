@@ -66,6 +66,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             showIf: or([
               parent.field(['valueDomainCode']).eq('ABILITY_SCORE'),
+              parent.field(['valueDomainCode']).eq('ABILITY_SCORE_MAXIMUM'),
               parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
               parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
               // An attack roll's advantage or disadvantage may cover only attacks made with an ability.
@@ -131,6 +132,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
               parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
               parent.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
               parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
+              parent.field(['valueDomainCode']).eq('DAMAGE_DIE_REROLL'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
           }
@@ -1390,10 +1392,12 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
             local.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
             local.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
+            local.field(['valueDomainCode']).eq('DAMAGE_DIE_REROLL'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
             local.field(['valueDomainCode']).eq('ABILITY_SCORE'),
+            local.field(['valueDomainCode']).eq('ABILITY_SCORE_MAXIMUM'),
             local.field(['valueDomainCode']).eq('SPEED'),
             local.field(['valueDomainCode']).eq('SENSE_RANGE'),
             local.field(['valueDomainCode']).eq('DAMAGE'),

@@ -47,6 +47,43 @@ export const compareThresholdRuleOperation = {
   }
 } satisfies RuleOperationContract
 
+/** Whether a number is at or below a threshold: the opposite test to `number.compare-threshold`. */
+export const atOrBelowThresholdRuleOperation = {
+  key: 'number.at-or-below-threshold',
+  contractVersion: 1,
+  inputs: {
+    value: RULE_VALUE_KIND.NUMBER,
+    threshold: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: {
+    passed: RULE_VALUE_KIND.BOOLEAN
+  },
+  executionKind: 'PURE',
+  execute(inputs) {
+    return { passed: requireNumber(inputs, 'value') <= requireNumber(inputs, 'threshold') }
+  }
+} satisfies RuleOperationContract
+
+/** Takes the replacement number while the condition holds and the original otherwise. */
+export const selectNumberRuleOperation = {
+  key: 'number.select',
+  contractVersion: 1,
+  inputs: {
+    condition: RULE_VALUE_KIND.BOOLEAN,
+    whenTrue: RULE_VALUE_KIND.NUMBER,
+    whenFalse: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: {
+    value: RULE_VALUE_KIND.NUMBER
+  },
+  executionKind: 'PURE',
+  execute(inputs) {
+    return {
+      value: requireNumber(inputs, inputs.condition === true ? 'whenTrue' : 'whenFalse')
+    }
+  }
+} satisfies RuleOperationContract
+
 export const integerRangeEvidenceRuleOperation = {
   key: 'evidence.integer-range',
   contractVersion: 1,
@@ -160,6 +197,8 @@ export const boundedChoiceIndexEvidenceRuleOperation = {
 export const coreRuleOperations = [
   addNumbersRuleOperation,
   compareThresholdRuleOperation,
+  atOrBelowThresholdRuleOperation,
+  selectNumberRuleOperation,
   integerRangeEvidenceRuleOperation,
   optionalIntegerRangeEvidenceRuleOperation,
   addedDiceTotalEvidenceRuleOperation,

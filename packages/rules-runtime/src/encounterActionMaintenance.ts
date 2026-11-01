@@ -18,6 +18,7 @@ import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
 import { MaintainedReplacementRequiredError, SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
+import { preparedSpellCastLevel } from './encounterPreparedSpellCast.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
 import {
   temporaryHitPointsAfterEffectsEnd,
@@ -49,12 +50,28 @@ export function chooseReplacedMaintainedState<TState extends { id: string }>(inp
   )
 }
 
+type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+
+function characterConcentrationCapacity(
+  source: Extract<PreparedMechanics['source'], { kind: 'CHARACTER_ACTION' }>,
+  adapter: PreparedMechanics['adapter'],
+  cast: { spellLevel: number | null; held: readonly EncounterMaintainedEffectStateRecord[] }
+) {
+  const { effectivePolicyOutput } = source
+  const owner = source.candidate.mechanicsOwner
+  return (
+    adapter.concentrationCapacityForCast?.({
+      policyOutput: effectivePolicyOutput,
+      newSpell: { id: owner.kind === 'SPELL' ? owner.id : '', level: cast.spellLevel },
+      heldSpellLevels: cast.held.map((state) => state.descriptor.spellLevel ?? null)
+    }) ?? effectivePolicyOutput.concentrationCapacity
+  )
+}
+
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
-  prepared: Pick<
-    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
-    'state' | 'actor' | 'plan' | 'source' | 'adapter'
-  >
+  prepared: Pick<PreparedMechanics, 'state' | 'actor' | 'plan' | 'source' | 'adapter'> &
+    Partial<Pick<PreparedMechanics, 'characterActionState'>>
   /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
   activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
@@ -130,10 +147,15 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
   )
     throw new Error('The active-effect maintenance policy does not match its published definition.')
   const held = await input.readHeldStates(policy.definitionId)
-  // A Character holds as many as its stat allows; a Creature holds one.
+  const spellLevel = preparedSpellCastLevel({
+    source: prepared.source,
+    characterActionState: prepared.characterActionState ?? null
+  })
+  // A Character holds as many as its stat allows, more for a cast its gated bonuses cover; a
+  // Creature holds one.
   const capacity =
     prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.effectivePolicyOutput.concentrationCapacity
+      ? characterConcentrationCapacity(prepared.source, prepared.adapter, { spellLevel, held })
       : 1
   const replaced = chooseReplacedMaintainedState({
     definitionId: policy.definitionId,
@@ -165,6 +187,7 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     policy,
     definitionChecksum: definition.checksum,
     prior,
+    spellLevel,
     removed,
     carried: sortedCarried,
     ...(await input.readOwners(removed, sortedCarried))

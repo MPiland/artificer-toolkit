@@ -100,6 +100,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Open Hand on a normal attack after early Flurry (D206):** a Monk who uses Flurry before finishing the Attack action gets the Open Hand choice on the remaining normal attack, because a strike counts as a Flurry strike while an offer is held. The table decides. A "Flurry strike" pick on the attack command would enforce it, at about +2 size.
+- **Defeat rewards outside the action path (SPELLS-31.T4i2):** Dark One's Blessing gives its temporary hit points for kills from the holder's own actions and Cleaving. A kill from a movement reaction, a basic action, a contest, or a zone on a turn gives none. The GM adds them by hand.
 - **Multiattack on a group token (D205):** a group makes one attack per creature, so four black bears make four attacks rather than eight.
 - **Monk holding a one-handed non-monk weapon (D205):** a Monk attacking with a monk weapon while also holding, say, a Longsword keeps Martial Arts, though the rules take it away. Fixing it needs a new predicate.
 - **Group count on Sheet Extras (D205):** the Sheet's Extras show no group count. The count shows on the token.

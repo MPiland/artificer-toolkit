@@ -212,6 +212,33 @@ export function projectEncounterSpatialOccurrenceSummary(
           pending: null
         }
       }
+      const window = context.phase.pause?.payload
+      if (window)
+        return {
+          occurrenceId: occurrence.id,
+          occurrenceVersion: occurrence.version,
+          status: 'PENDING',
+          pending: {
+            kind: 'D20_WINDOW',
+            occurrenceId: occurrence.id,
+            occurrenceVersion: occurrence.version,
+            encounterVersion,
+            rollerActorId: context.phase.rollerActorId,
+            requestId: pendingSnapshot.request.requestId,
+            d20: {
+              selectedNatural: window.rolled.d20.selectedNatural,
+              total: window.rolled.d20.total
+            },
+            options: window.offer.options.map(({ optionId, label, count, faces, sign }) => ({
+              optionId,
+              label,
+              count,
+              faces,
+              sign
+            })),
+            allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+          }
+        }
       return {
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,

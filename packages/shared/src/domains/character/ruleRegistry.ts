@@ -33,7 +33,7 @@ export interface CharacterAssemblyRegistrySystem {
   skills?: ReadonlyArray<CharacterAssemblyRegistrySystemSkill>
   speeds?: ReadonlyArray<CharacterAssemblyRegistrySystemSpeed>
   /** The System's default movement type, the primary speed when the player has not chosen one. */
-  defaults?: { movementTypeId: string }
+  defaults?: { movementTypeId: string; unarmedStrikeEquipmentId?: string }
 }
 
 export type CharacterAssemblyRegistryFeature = Pick<

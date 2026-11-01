@@ -25,10 +25,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
@@ -38,6 +35,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  greatWeaponFightingGrant,
   gmRulingEffect,
   twoWeaponFightingGrants,
   equippedCategoryRestriction
@@ -63,31 +61,6 @@ const F = 5 // Fighter class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 6th, 8th, 12th, 14th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(F, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(F, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 export const fighter: ClassAuthored = {
   id: CLASS_IDS.FIGHTER,
   label: 'Fighter',
@@ -504,22 +477,13 @@ export const fighter: ClassAuthored = {
           description:
             'When you roll a 1 or 2 on a damage die for an attack you make with a melee weapon that you are wielding with two hands, you can reroll the die and must use the new roll, even if the new roll is a 1 or a 2. The weapon must have the two-handed or versatile property for you to gain this benefit.',
           order: 3,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(F, 0x60, 0x84),
-              ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_FIGHTING_STYLE_GREAT_WEAPON_FIGHTING,
-              pathCode: PATH_CODE.ON_HIT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-                range: { id: classRowId(F, 0x69, 0x84), rangeKind: RANGE_KIND.SPECIAL },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'HOSTILE'
-                }
-              }
-            })
-          ]
+          grants: {
+            modifiers: [
+              greatWeaponFightingGrant(classRowId(F, 4, 13), (entry) =>
+                classRowId(F, 0x7a, 0x28 + entry)
+              )
+            ]
+          }
         },
         {
           id: classRowId(F, 4, 5),
@@ -725,8 +689,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 5, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 6),
@@ -749,8 +712,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 8),
@@ -770,8 +732,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 9, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(F, 3, 10),
@@ -839,10 +800,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 12, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(12, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 13),
@@ -854,10 +812,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 13, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 14),
@@ -877,10 +832,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 15, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 16),
@@ -892,10 +844,7 @@ export const fighter: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(F, 16, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(F, 3, 17),

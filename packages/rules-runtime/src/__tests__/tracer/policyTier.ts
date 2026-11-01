@@ -69,6 +69,7 @@ const tracerAbilityScoreAdapter: AbilityScoreCapabilityAdapter = {
   gameSystemId: TRACER_SYSTEM_ID,
   abilityModifier: (rating) => rating,
   defaultScore: 0,
+  defaultMaximumScore: Number.MAX_SAFE_INTEGER,
   abilityDefinitionIdByCode: TRACER_APPROACH_DEFINITION_IDS,
   abilityCode(abilityDefinitionId) {
     const code = TRACER_APPROACHES.find(

@@ -309,7 +309,7 @@ export const encounterActionChoiceDtoSchema = lazySchema(() =>
             cost: z.number().check(z.int()).check(z.positive()),
             targets: z.optional(
               z.strictObject({
-                outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+                outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
                 max: z.number().check(z.int()).check(z.gte(0))
               })
             )

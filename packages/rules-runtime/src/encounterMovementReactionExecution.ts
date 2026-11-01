@@ -1,4 +1,10 @@
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import {
+  targetSaveWindow,
+  type EncounterActionWindowAnswer,
+  type EncounterD20WindowResponse
+} from './encounterActionSaveWindow.js'
+import { encounterD20WindowSelection, settleEncounterD20Window } from './encounterD20Window.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import {
   advanceNativeActionGraphs,
@@ -75,6 +81,43 @@ function reactionAutoRoll(input: {
   }
 }
 
+/** The dice the mover holds for after its reaction save's d20 (D168, D203). */
+export function movementReactionSaveWindow({ prepared }: PreparedMovementReaction) {
+  return targetSaveWindow(
+    prepared.state.gameSystemId,
+    prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []
+  )
+}
+
+/** A d20 window's answer settles into the roll it froze; any other answer resumes as given. */
+async function settledWindowResume(
+  input: {
+    runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
+    random: (maximum: number) => number
+  },
+  resume: {
+    pending: ResumedNativeActionGraphs
+    resolution: EncounterEvidenceAnswer | EncounterD20WindowResponse
+  }
+): Promise<{
+  pending: ResumedNativeActionGraphs
+  resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+}> {
+  const { pending, resolution } = resume
+  if (resolution.kind !== 'D20_WINDOW_USE' && resolution.kind !== 'D20_WINDOW_DECLINE')
+    return { pending, resolution }
+  if (pending.pause?.kind !== 'D20_WINDOW')
+    throw new Error('The movement reaction holds no d20 window to answer.')
+  const settled = await settleEncounterD20Window({
+    runtime: input.runtime,
+    window: pending.pause.payload,
+    continuation: pending.continuation,
+    selection: encounterD20WindowSelection(resolution),
+    random: input.random
+  })
+  return { pending, resolution: { kind: 'D20_WINDOW', d20: settled.d20 } }
+}
+
 /** Runs or resumes sealed action phases; the enclosing movement owns publication. */
 export async function executeEncounterMovementReactionAction(input: {
   runtime: Parameters<typeof executeNativeActionGraphs>[0]['runtime']
@@ -83,18 +126,23 @@ export async function executeEncounterMovementReactionAction(input: {
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   random: NonNullable<Parameters<typeof executeNativeActionGraphs>[0]['random']>
-  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+  resume?: {
+    pending: ResumedNativeActionGraphs
+    resolution: EncounterEvidenceAnswer | EncounterD20WindowResponse
+  }
 }) {
+  const resume = input.resume && (await settledWindowResume(input, input.resume))
   const executionInput = {
     runtime: input.runtime,
     adapter: input.prepared.prepared.adapter,
     plan: input.prepared.executionPlan,
     occurrenceId: input.occurrenceId,
     autoRoll: reactionAutoRoll(input),
-    ...(input.resume ? { resume: input.resume } : {}),
+    ...(resume ? { resume } : {}),
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
-    random: input.random
+    random: input.random,
+    saveWindow: movementReactionSaveWindow(input.prepared)
   }
   const { attackSight } = input.prepared.prepared
   let result
@@ -134,8 +182,12 @@ export async function executeEncounterMovementReactionAction(input: {
         audit: phase.legendaryResistance,
         currentFeatureResource: nativeMovementResistanceResource(input.prepared, candidate)
       })
+      const answered = resume?.resolution
+      if (answered?.kind === 'D20_WINDOW')
+        throw new Error('The movement reaction OUTCOME holds no d20 window.')
       result = await continueNativeActionAfterTest({
         ...executionInput,
+        resume: resume && answered ? { pending: resume.pending, resolution: answered } : undefined,
         boundary,
         legendaryResistance: resistance.audit,
         effectivePath: resistance.effectivePath

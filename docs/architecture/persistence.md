@@ -382,7 +382,7 @@ store.
   single-state reader returns the oldest. The damage-save chain binds and verifies every held state, not the
   oldest (`bindEncounterConcentrationApplications`, `concentrationResponsePersistence`); only the movement
   chain still reads the oldest.
-  A maintained state's descriptor names its `provenance` (`ACTION` with the creating action and
+  A maintained state's descriptor records the `spellLevel` it was cast at when a spell started it (gates per-cast Concentration capacity, SPELLS-12.T2a) and names its `provenance` (`ACTION` with the creating action and
   occurrence, or `CARRIED` with the caster); `rules/maintainedProvenanceMigration:run` moved stored
   descriptors' top-level action ids into it. `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the
   checkpoint and the caster's own `END_CONCENTRATION`; `listCarriedActiveRuleEffects` is bounded by

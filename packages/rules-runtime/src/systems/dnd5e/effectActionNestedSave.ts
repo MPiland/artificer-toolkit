@@ -1,6 +1,10 @@
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
-import { type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import {
+  type CompiledDuration,
+  type CompiledEffectGroup
+} from '@artificer-toolkit/shared/compilers'
 import type { FailureMarginRiderAuthored } from '@artificer-toolkit/shared/authored'
 import {
   compareThresholdRuleOperation,
@@ -30,12 +34,13 @@ import {
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   nestedSaveGateNodeId
 } from './effectActionContracts.js'
-import { type FollowUpSaveOutcome } from './effectActionFollowUp.js'
+import { conditionDurationTurns, type FollowUpSaveOutcome } from './effectActionFollowUp.js'
 import {
   hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
   dnd5eTestMarginConditionProposalOperation
 } from './effectActionOperationRegistry.js'
+import { isTallyCount } from './effectActionRepeatSaveEvidence.js'
 import { timedBandConditions } from './effectActionBandConditions.js'
 import { gateNodeInputs } from './effectActionGates.js'
 import { boundedDiceTerm, parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
@@ -116,8 +121,17 @@ export function escalationCondition(
     : null
 }
 
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
+/** The turns a repeating save's held effect lasts: a tally waits for a count, a source-turn save one tick. */
+export function repeatSaveHeldTurns(input: {
+  save: FollowUpSaveOutcome
+  escalated: boolean
+  sourceTurn: boolean
+  duration: CompiledDuration | undefined
+}) {
+  if (input.escalated)
+    return input.save.attempts.kind === 'THRESHOLDS' ? MAX_ACTIVE_EFFECT_TURNS : 1
+  if (input.sourceTurn) return 1
+  return input.duration ? conditionDurationTurns(input.duration) : null
 }
 
 /** Whether a repeating save's timing and attempts are a shape the plan counts on the holder's turn. */
@@ -126,9 +140,7 @@ export function repeatCadenceSupported(save: FollowUpSaveOutcome, escalated: boo
     (save.timing === 'TARGET_TURN_END' || save.timing === 'ON_TRIGGERS_ONLY') &&
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) !== escalated
-      : !escalated &&
-        isTallyCount(save.attempts.successesToEnd) &&
-        isTallyCount(save.attempts.failuresToResolve))
+      : isTallyCount(save.attempts.successesToEnd) && isTallyCount(save.attempts.failuresToResolve))
   )
 }
 

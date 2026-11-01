@@ -886,6 +886,12 @@ const buildModifierGrantVariants = () =>
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
+      'DAMAGE_DIE_REROLL',
+      'SET_VALUE',
+      attackDomainParamDtoSchema,
+      z.object({ amount: z.number().check(z.int()).check(z.gte(1)) })
+    ),
+    buildModifierGrantVariant(
       'ATTACKS_AGAINST',
       'ROLL_INFLUENCE',
       attacksAgainstParamDtoSchema,
@@ -913,6 +919,12 @@ const buildModifierGrantVariants = () =>
       'HEALING_DEALT',
       'BONUS',
       healingDealtParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DEFEAT_TEMPORARY_HIT_POINTS',
+      'BONUS',
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
@@ -987,6 +999,12 @@ const buildModifierGrantVariants = () =>
       'ABILITY_SCORE',
       'SET_VALUE',
       abilityParamDtoSchema,
+      amountPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ABILITY_SCORE_MAXIMUM',
+      'SET_VALUE',
+      optionalAbilityParamDtoSchema,
       amountPayloadDtoSchema
     ),
     buildModifierGrantVariant(
@@ -1416,6 +1434,7 @@ function spellScopedOutsideSpellAttacks(value: {
     spellScoped &&
     !(
       value.valueDomainCode === 'RANGE' ||
+      value.valueDomainCode === 'CONCENTRATION_CAPACITY' ||
       ((value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
         attackDomain === 'SPELL')
     )
@@ -1441,7 +1460,7 @@ export const modifierGrantDtoSchema = lazySchema(() => {
           ctx.addIssue({
             code: 'custom',
             message:
-              'Spell-scoped modifiers are supported only for spell attack rolls, damage and ranges.',
+              'Spell-scoped modifiers are supported only for spell attack rolls, damage, ranges and Concentration capacity.',
             path: ['restrictions']
           })
         if (!value.modifierKind.includes('BONUS')) return

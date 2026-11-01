@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
+import { dnd5eAbilityScoreMaximum } from './abilityScoreMaximum.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   DND5E_ACTION_CONDITION_KINDS,
@@ -68,6 +69,7 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   'ENEMY_NEAR_TARGET',
   'TARGET_HAS_NOT_TAKEN_TURN',
   'HOLDER_IN_BRIGHT_LIGHT',
+  'HOLDER_CONCENTRATION_COUNT',
   'SOURCE_CREATURE_TYPE',
   'SOURCE_TRAIT'
 ])
@@ -145,7 +147,9 @@ export function evaluateDnd5e2014CharacterGrantFold(
       else if (modifier.modifierKind === 'PENALTY') score -= payload.amount
       else if (modifier.modifierKind === 'SET_VALUE') set = payload.amount
     }
-    return set === null ? score : set + score - base
+    return set === null
+      ? Math.min(score, dnd5eAbilityScoreMaximum(acc.modifiers, abilityId))
+      : set + score - base
   }
 
   const meetsProficiency = (condition: RestrictionCondition): boolean => {
@@ -266,6 +270,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ENEMY_NEAR_TARGET':
       case 'TARGET_HAS_NOT_TAKEN_TURN':
       case 'HOLDER_IN_BRIGHT_LIGHT':
+      case 'HOLDER_CONCENTRATION_COUNT':
       case 'CREATURE_TYPE':
       case 'SOURCE_CREATURE_TYPE':
       case 'SOURCE_TRAIT':

@@ -421,15 +421,24 @@ export function CampaignTabletopActionDrawer({
                 ...zoneChoices
               }
             : null
-          : targetActorId && (!choosesItem || chosenItemId)
+          : targetActorId && castModifier.extraTargetIds.length
             ? {
-                kind: 'ACTOR',
-                actorId: targetActorId,
+                kind: 'ACTORS',
+                actorIds: [targetActorId, ...castModifier.extraTargetIds],
                 ...castChoice,
-                ...itemChoice,
-                ...ammunitionChoice
+                scene: scene
+                  ? { sceneId: scene.id, expectedSceneVersion: scene.version, point: null }
+                  : null
               }
-            : null
+            : targetActorId && (!choosesItem || chosenItemId)
+              ? {
+                  kind: 'ACTOR',
+                  actorId: targetActorId,
+                  ...castChoice,
+                  ...itemChoice,
+                  ...ammunitionChoice
+                }
+              : null
   // One entry per attack: a versatile weapon's one- and two-hand actions share an attack key.
   const actionGroups = useMemo(() => {
     const groups = new Map<

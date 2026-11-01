@@ -298,7 +298,9 @@ export async function revertLastEncounterAction(
         : 'There is no action to undo.'
     )
   if (root.damageMirrored)
-    revertUnavailable("Undo can't restore damage a mirror passed on; adjust manually.")
+    revertUnavailable(
+      "Undo can't take back what a mirror or a defeat reward gave another creature; adjust manually."
+    )
   if (root.root.kind === 'CHECK') {
     requireCheckAnswerScan(root.root.checkReceipt.checkOccurrenceId)
     return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })
