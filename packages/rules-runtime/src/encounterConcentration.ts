@@ -168,6 +168,8 @@ export function createNativeConcentrationContext(input: {
     >
     damageTypes: readonly { id: string; label: string }[]
   }
+  /** How many Concentrations the target maintains when this save is rolled. */
+  heldCount: number
   parentOccurrenceId: string
   parentCommandFingerprint: string
   application: NativeConcentrationContext['application']
@@ -182,6 +184,8 @@ export function createNativeConcentrationContext(input: {
   const facts = link.saveFacts({
     appliedDamage: application.appliedAmount,
     targetActorId: application.targetActorId,
+    heldCount: input.heldCount,
+    spellLevel: current.maintained.descriptor.spellLevel ?? null,
     target: current.target
   })
   const { addedDice } = facts

@@ -1993,37 +1993,39 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
     ]
     const observed = { ...first.targetTransition.after, conditionIds: options.observedConditionIds }
     Object.assign(first, {
-      concentrationEnd: {
-        sourceCommandId: ids.commandTwo,
-        result: {
-          occurrenceId: ids.effectTwo,
-          applicationOutputs: {
-            kind: 'CONCENTRATION_END' as const,
-            schemaVersion: 1 as const,
+      concentrationEnds: [
+        {
+          sourceCommandId: ids.commandTwo,
+          result: {
             occurrenceId: ids.effectTwo,
-            parentOccurrenceId: ids.occurrence,
-            ownerActorId: ids.actor,
-            maintainedStateId,
-            reason: 'DEFEATED' as const,
-            cleanup: {
+            applicationOutputs: {
+              kind: 'CONCENTRATION_END' as const,
+              schemaVersion: 1 as const,
+              occurrenceId: ids.effectTwo,
+              parentOccurrenceId: ids.occurrence,
+              ownerActorId: ids.actor,
               maintainedStateId,
-              removedDependentEffectIds: [],
-              removedZoneIds: [],
-              characterOwnerTransitions: [
-                { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 }
-              ]
+              reason: 'DEFEATED' as const,
+              cleanup: {
+                maintainedStateId,
+                removedDependentEffectIds: [],
+                removedZoneIds: [],
+                characterOwnerTransitions: [
+                  { characterId: ids.character, beforeStreamVersion: 5, afterStreamVersion: 6 }
+                ]
+              }
             }
-          }
-        },
-        ownerTransitions: [
-          {
-            targetActorId: ids.actor,
-            characterId: ids.character,
-            before: observed,
-            after: observed
-          }
-        ]
-      }
+          },
+          ownerTransitions: [
+            {
+              targetActorId: ids.actor,
+              characterId: ids.character,
+              before: observed,
+              after: observed
+            }
+          ]
+        }
+      ]
     })
     second.candidate.target.streamVersion = 6
     second.targetTransition.before = observed
@@ -2070,9 +2072,9 @@ describe('Concentration ends in the spatial movement receipt timeline (D95)', ()
     const result = endedSpatialResult({ observedConditionIds: [], secondChanges: false })
     const end = (
       result.executions[0] as unknown as {
-        concentrationEnd: { ownerTransitions: { before: { currentHitPoints: number } }[] }
+        concentrationEnds: { ownerTransitions: { before: { currentHitPoints: number } }[] }[]
       }
-    ).concentrationEnd
+    ).concentrationEnds[0]!
     end.ownerTransitions[0]!.before.currentHitPoints = 3
     expect(accepts(result)).toBe(false)
   })
