@@ -2,6 +2,7 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { EncounterActionSourceInput } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import {
@@ -21,6 +22,23 @@ export async function readNativeLiveTurnMovedFeet(
   const captured = await capture({ kind: 'TURN_MOVED_FEET', actorId })
   if (captured.kind !== 'TURN_MOVED_FEET') throw new Error('Turn movement is unavailable.')
   return captured.feet
+}
+
+/** How many Concentrations an actor keeps now, read from the room's store. */
+export async function readNativeLiveHeldConcentrationCount(
+  capture: (
+    request: LiveSessionEncounterRulesRequest
+  ) => Promise<LiveSessionEncounterRulesResponse>,
+  gameSystemId: string,
+  actorId: string
+): Promise<number> {
+  const captured = await capture({
+    kind: 'MAINTENANCE_STATES',
+    actorId,
+    definitionId: requireInstalledConcentrationMaintenanceDefinitionId(gameSystemId)
+  })
+  if (captured.kind !== 'MAINTENANCE_STATES') throw new Error('Concentration is unavailable.')
+  return captured.states.length
 }
 
 /** An actor's latest voluntary move this turn (D164), read from the room's store. */

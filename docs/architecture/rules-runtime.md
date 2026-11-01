@@ -2135,7 +2135,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
   (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
   the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
-  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). A damage `RESISTANCE`, `IMMUNITY` or
+  `VULNERABILITY` grant restricted by a holder-state predicate is deferred the same way and joins `defenses` through
+  `withHolderStateDefenses` (SPELLS-12.T4). `HOLDER_CONCENTRATION_COUNT { min, max? }` holds while the holder keeps that many
+  Concentrations (`EncounterHolderState.heldConcentrationCount`, read from the maintained states by `readHeldConcentrationCount`,
+  and in the session worker from a `MAINTENANCE_STATES` capture): the double-Concentration ring's psychic vulnerability is an
+  ordinary modifier read where modifiers are read, so it ends with whichever Concentration ends and needs no timed grant.
+  Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true

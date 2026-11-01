@@ -2,6 +2,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { heldConcentrationVulnerabilityRing } from '@artificer-toolkit/rules-runtime/testing/heldConcentrationVulnerabilityRing'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/concentration.js'
 import {
@@ -18,7 +19,12 @@ import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { dependentEffectDefinition } from './movementRoomFixture.js'
-import { parseReceiptExecution, readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
+import {
+  parseReceiptExecution,
+  readCharacterHitPoints,
+  readRoomHistory,
+  type RoomHistory
+} from './roomHistoryReads.js'
 
 /**
  * SPELLS-12.T1 through the room: a worn item's authored Concentration capacity lets the Fighter
@@ -95,8 +101,13 @@ function wardFeature(seed: number, label: string): ClassFeature {
   }
 }
 
-/** A Feature that deals its user `amount` force damage: the damage a Concentration check answers. */
-function backlashFeature(seed: number, label: string, amount: number): ClassFeature {
+/** A Feature that deals its user `amount` damage: the damage a Concentration check answers. */
+function backlashFeature(
+  seed: number,
+  label: string,
+  amount: number,
+  damageTypeCode = 'FORCE'
+): ClassFeature {
   return {
     id: testUuid(seed),
     label,
@@ -129,8 +140,9 @@ function backlashFeature(seed: number, label: string, amount: number): ClassFeat
                 {
                   id: testUuid(seed + 5),
                   effectKind: 'DAMAGE',
-                  damageTypeId: srdSystemRecord.damageTypes!.find(({ code }) => code === 'FORCE')!
-                    .id,
+                  damageTypeId: srdSystemRecord.damageTypes!.find(
+                    ({ code }) => code === damageTypeCode
+                  )!.id,
                   valueKind: 'FIXED',
                   scalingKind: 'NONE',
                   amount
@@ -149,6 +161,7 @@ const secondWard = wardFeature(0xe200, 'Second Ward')
 const thirdWard = wardFeature(0xe300, 'Third Ward')
 const minorBacklash = backlashFeature(0xe400, 'Minor Backlash', 5)
 const fatalBacklash = backlashFeature(0xe500, 'Fatal Backlash', 500)
+const psychicBacklash = backlashFeature(0xe600, 'Psychic Backlash', 3, 'PSYCHIC')
 
 /** A worn item whose authored modifier adds one to how many Concentrations its holder keeps. */
 const capacityItem: EquipmentAuthored = {
@@ -175,7 +188,14 @@ function wardRoom(
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ],
-    characterClassFeatures: [firstWard, secondWard, thirdWard, minorBacklash, fatalBacklash],
+    characterClassFeatures: [
+      firstWard,
+      secondWard,
+      thirdWard,
+      minorBacklash,
+      fatalBacklash,
+      psychicBacklash
+    ],
     characterEquipment: equipment,
     characterAction: (action) => action.label.includes('First Ward')
   })
@@ -340,5 +360,64 @@ describe('Concentration saves per spell (SPELLS-12.T3a)', () => {
     expect(after.maintainedStates).toEqual([])
     expect(concentrationChecks(after)).toEqual([])
     expect(after.activeEffects.map((effect) => effect.maintainedEffectStateId)).toEqual([])
+  })
+})
+
+describe('Held-count gated effect (SPELLS-12.T4)', () => {
+  const twoMindsRing = heldConcentrationVulnerabilityRing({
+    number: 940,
+    label: 'Ring Of Two Minds',
+    damageTypeCode: 'PSYCHIC',
+    min: 2
+  })
+
+  it('doubles psychic damage only while the ring holder keeps two Concentrations', async () => {
+    // The first save fails and the second holds; the later save holds.
+    const room = await wardRoom([twoMindsRing], undefined, [0, 19, 19])
+    const hitPoints = () => readCharacterHitPoints(room.room.base.stub, FIGHTER_ID)
+    const lostBy = async () => {
+      const before = await hitPoints()
+      const hurt = await cast(room, 'Psychic Backlash', undefined, FIGHTER_ACTOR_ID)
+      expect(hurt.answer.type, JSON.stringify(hurt.answer)).toBe('COMMAND_COMMITTED')
+      return before - (await hitPoints())
+    }
+
+    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect(await heldStateIds(room)).toHaveLength(1)
+    const [first] = await heldStateIds(room)
+    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const [, second] = await heldStateIds(room)
+
+    expect(await lostBy()).toBe(6)
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(
+      concentrationChecks(after).map(({ application, outcome }) => ({
+        stateId: 'maintainedStateId' in application ? application.maintainedStateId : null,
+        outcome
+      }))
+    ).toEqual([
+      { stateId: first, outcome: 'SAVE_FAILURE' },
+      { stateId: second, outcome: 'SAVE_SUCCESS' }
+    ])
+    expect(after.maintainedStates.map((state) => state.id)).toEqual([second])
+
+    // One Concentration is left, so the ring no longer applies.
+    expect(await lostBy()).toBe(3)
+  })
+
+  it('keeps the vulnerability while a chosen replacement leaves two Concentrations held', async () => {
+    const room = await wardRoom([twoMindsRing])
+    const hitPoints = () => readCharacterHitPoints(room.room.base.stub, FIGHTER_ID)
+    expect((await cast(room, 'First Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    expect((await cast(room, 'Second Ward')).answer.type).toBe('COMMAND_COMMITTED')
+    const [first] = await heldStateIds(room)
+    const before = await hitPoints()
+    // A third ward replaces the first by choice: two are still held, so the ring still applies.
+    expect((await cast(room, 'Third Ward', first)).answer.type).toBe('COMMAND_COMMITTED')
+    expect(await heldStateIds(room)).toHaveLength(2)
+    expect((await cast(room, 'Psychic Backlash', undefined, FIGHTER_ACTOR_ID)).answer.type).toBe(
+      'COMMAND_COMMITTED'
+    )
+    expect(before - (await hitPoints())).toBe(6)
   })
 })

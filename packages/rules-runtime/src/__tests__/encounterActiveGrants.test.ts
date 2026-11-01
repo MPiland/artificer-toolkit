@@ -856,6 +856,7 @@ describe('active grants on a System that does not install their policy', () => {
         freeHand: true,
         turnMovement: { usedFeet: 0, speedFeet: 0 },
         activeAuthoredEffectIds: [],
+        heldConcentrationCount: 0,
         stowableHeldItemInstanceId: null
       })
     ).toThrow('The Game System does not provide ability-score policy.')
