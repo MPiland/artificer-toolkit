@@ -42,7 +42,7 @@ function spellRoom(equipment: readonly (typeof gatedItem)[]) {
     autoRoll: 'BOTH',
     actors: [
       characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     characterSpellcasting: {
       spells: [shieldOfFaith, bless, haste],

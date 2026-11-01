@@ -26,33 +26,32 @@ export function concentrationCapacityItem(input: {
       valueDomainCode: 'CONCENTRATION_CAPACITY' as const,
       domain: {},
       ...(input.maxSpellLevel !== undefined && {
+        // The spell-level limit joins, not replaces, the modifier's while-equipped requirement.
         restrictions: {
-          id: id(1),
-          groups: [
-            {
-              id: id(2),
-              order: 0,
-              contexts: [
-                {
-                  id: id(3),
-                  order: 0,
-                  subject: 'SPELL' as const,
-                  authoringModeKind: 'ALL' as const,
-                  conditions: [
-                    {
-                      id: id(4),
-                      order: 0,
-                      kind: 'PREDICATE' as const,
-                      constraint: 'INCLUDE' as const,
-                      predicateCode: 'SPELL_LEVEL' as const,
-                      min: 0,
-                      max: input.maxSpellLevel
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+          ...modifier.restrictions,
+          groups: modifier.restrictions.groups.map((group) => ({
+            ...group,
+            contexts: [
+              ...group.contexts,
+              {
+                id: id(3),
+                order: 1,
+                subject: 'SPELL' as const,
+                authoringModeKind: 'ALL' as const,
+                conditions: [
+                  {
+                    id: id(4),
+                    order: 0,
+                    kind: 'PREDICATE' as const,
+                    constraint: 'INCLUDE' as const,
+                    predicateCode: 'SPELL_LEVEL' as const,
+                    min: 0,
+                    max: input.maxSpellLevel
+                  }
+                ]
+              }
+            ]
+          }))
         }
       })
     }))
