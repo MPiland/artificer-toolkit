@@ -131,6 +131,12 @@ A source, schema, generated artifact, fixture, test, or configuration change inv
 the earliest affected stage. Repair locally and resume from that stage; do not repeat unrelated earlier
 proofs merely because a later check failed.
 
+## Review data
+
+`node scripts/seedReviewData.mjs [--name=<evidence-name>]` builds the data for the user's UI review on the local Docker backend (the single-constant guard in `scripts/convexSelfHosted.mjs`; it never reaches Convex Cloud). Run it after the final reset, deploy and seed. It starts the Session Worker, provisions four local-only review accounts, and creates three named review Campaigns through product commands: a Character party against SRD Creatures, a Shield reaction and Hold Person Concentration, and Fireball (point area) with Thunderwave (directed area). Each has members, a Scene with tokens and a played-through Encounter. The admin key is generated at run time and never printed; the log is `local-validation/review-data/<name>/seed.log`.
+
+It is idempotent. A Campaign with its final `Review data ready` Session is skipped, so a re-run after a reset rebuilds the same names with the same rolls. A Campaign without that Session is a failed earlier run: reset the backend and run again. The scenarios are data in `apps/apis/tests/developmentReviewDataScenarios.ts`; `apps/apis/convex/encounters/reviewData.test.ts` proves the build and the skip against the real room.
+
 ## Staging promotion
 
 After R08 and the local V15 portion are green, request authorization naming the exact Convex, web,
