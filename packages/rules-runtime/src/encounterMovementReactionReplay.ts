@@ -5,6 +5,7 @@ import {
 } from './encounterActionExecution.js'
 import {
   bindEncounterMovementReactionInterruption,
+  movementReactionSaveWindow,
   type executeEncounterMovementReactionAction
 } from './encounterMovementReactionExecution.js'
 import {
@@ -20,7 +21,8 @@ import {
   resolutionForRetainedEvidence,
   retainedD20Evidence,
   retainedIntegerEvidence,
-  retainedReceiptD20
+  retainedReceiptD20,
+  windowAnswerForRetainedEvidence
 } from './encounterActionRetainedEvidence.js'
 import {
   requireEncounterMovementMaintenanceCurrentness,
@@ -61,12 +63,12 @@ function requireActionEvidenceSnapshot(input: {
   return context.phase
 }
 
-/** The d20s a paused movement reaction's OUTCOME phase already rolled. */
-function snapshotTwoPhase(snapshot: ServerKernelRuleExecutionPendingSnapshotDto | undefined) {
+/** The d20s a paused movement reaction already rolled: its OUTCOME phase's, or the save a d20 window holds. */
+function snapshotRolledD20(snapshot: ServerKernelRuleExecutionPendingSnapshotDto | undefined) {
   const context = snapshot?.applicationContext
   return context?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && context.phase.kind === 'ACTION_EVIDENCE'
-    ? context.phase.twoPhase
-    : undefined
+    ? { twoPhase: context.phase.twoPhase, pause: context.phase.pause }
+    : {}
 }
 
 function sameContinuation(
@@ -93,6 +95,7 @@ function requirePendingMatch(input: {
     !same(input.actual.d20Policy, input.phase.d20Policy) ||
     !same(input.actual.d20Belief ?? null, input.phase.d20Belief ?? null) ||
     !same(input.actual.twoPhase, input.phase.twoPhase ?? null) ||
+    !same(input.actual.pause ?? null, input.phase.pause ?? null) ||
     !same(input.actual.phaseReceipts ?? null, input.snapshot.phaseReceipts ?? null)
   )
     throw new Error('The retained movement reaction pending evidence is stale.')
@@ -164,9 +167,10 @@ export async function replayEncounterMovementReactionAction(input: {
   if (receipt && !same(receipt.option, input.prepared.option))
     throw new Error('The retained movement reaction option is stale.')
   const integers = retainedIntegerEvidence({ snapshot, receipt })
-  const d20 = retainedD20Evidence({ twoPhase: snapshotTwoPhase(snapshot), receipt })
+  const d20 = retainedD20Evidence({ ...snapshotRolledD20(snapshot), receipt })
   const used = new Set<string>()
   const { attackSight } = input.prepared.prepared
+  const saveWindow = movementReactionSaveWindow(input.prepared)
   let result = await advanceNativeActionGraphs({
     runtime: input.runtime,
     adapter: input.prepared.prepared.adapter,
@@ -175,7 +179,8 @@ export async function replayEncounterMovementReactionAction(input: {
     autoRoll: { SOURCE: false, TARGET: false },
     binding: input.prepared.prepared.binding,
     afterTest: async () => undefined,
-    attackSight
+    attackSight,
+    saveWindow
   })
   for (let count = 0; result.kind === 'PENDING'; count++) {
     if (count >= RULE_GRAPH_LIMITS.NODES)
@@ -190,20 +195,22 @@ export async function replayEncounterMovementReactionAction(input: {
       if (
         [
           ...retainedIntegerEvidence(issuedEvidence).keys(),
-          ...retainedD20Evidence({ twoPhase: snapshotTwoPhase(input.issuedSnapshot) }).keys()
+          ...retainedD20Evidence(snapshotRolledD20(input.issuedSnapshot)).keys()
         ].some((requestId) => !used.has(requestId))
       )
         throw new Error('The retained movement reaction evidence has unused requests.')
       issuedChecked = true
     }
     if (snapshot && result.continuation.request.requestId === snapshot.request.requestId) break
-    const resolution = resolutionForRetainedEvidence({
-      gameSystemId: input.prepared.prepared.state.gameSystemId,
-      pending: result,
-      integers,
-      d20,
-      used
-    })
+    const resolution = result.pause
+      ? windowAnswerForRetainedEvidence({ pending: result, d20, used })
+      : resolutionForRetainedEvidence({
+          gameSystemId: input.prepared.prepared.state.gameSystemId,
+          pending: result,
+          integers,
+          d20,
+          used
+        })
     result = await advanceNativeActionGraphs({
       runtime: input.runtime,
       adapter: input.prepared.prepared.adapter,
@@ -213,6 +220,7 @@ export async function replayEncounterMovementReactionAction(input: {
       binding: input.prepared.prepared.binding,
       afterTest: async () => undefined,
       attackSight,
+      saveWindow,
       resume: { pending: result, resolution }
     })
   }
@@ -359,7 +367,7 @@ async function replayResistanceAction(
     }
   }
   const integers = retainedIntegerEvidence({ snapshot, receipt })
-  const d20 = retainedD20Evidence({ twoPhase: snapshotTwoPhase(snapshot), receipt })
+  const d20 = retainedD20Evidence({ ...snapshotRolledD20(snapshot), receipt })
   const used = new Set([boundary.d20.requestId])
   let result = await continueNativeActionAfterTest(source)
   for (let count = 0; result.kind === 'PENDING'; count++) {

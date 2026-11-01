@@ -49,6 +49,7 @@ import {
 } from './encounterMovementContinuation.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
+import type { EncounterD20WindowResponse } from './encounterActionSaveWindow.js'
 
 type Outcome = Exclude<SceneSpatialPreparation['outcome'], { kind: 'UNINTERRUPTED' }>
 type ReactionContext = Extract<
@@ -170,10 +171,12 @@ export async function evaluateEncounterMovementActionResponse<
       autoRoll: EncounterAutoRollByActorId
       resume?: {
         pending: Extract<ReactionExecution, { kind: 'PENDING' }>
-        resolution: Extract<
-          EncounterResponseAnswer,
-          { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
-        >
+        resolution:
+          | Extract<
+              EncounterResponseAnswer,
+              { kind: 'ENTER_DICE' | 'ENTER_INTEGER' | 'SYSTEM_ROLL' }
+            >
+          | EncounterD20WindowResponse
       }
     }): Promise<ReactionExecution>
     resumeResistance(input: {
@@ -278,7 +281,9 @@ export async function evaluateEncounterMovementActionResponse<
     if (
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
-      resolution.kind !== 'SYSTEM_ROLL'
+      resolution.kind !== 'SYSTEM_ROLL' &&
+      resolution.kind !== 'D20_WINDOW_USE' &&
+      resolution.kind !== 'D20_WINDOW_DECLINE'
     )
       throw new Error('Movement response does not match the issued action evidence.')
     resolutionCommands = appendEncounterMovementReactionActionEvidenceCommand({
@@ -454,7 +459,9 @@ export async function evaluateEncounterMovementActionResponse<
           ...(prior?.kind === 'PENDING' &&
           (resolution.kind === 'ENTER_DICE' ||
             resolution.kind === 'ENTER_INTEGER' ||
-            resolution.kind === 'SYSTEM_ROLL')
+            resolution.kind === 'SYSTEM_ROLL' ||
+            resolution.kind === 'D20_WINDOW_USE' ||
+            resolution.kind === 'D20_WINDOW_DECLINE')
             ? { resume: { pending: prior, resolution } }
             : {})
         })))
@@ -492,6 +499,7 @@ export async function evaluateEncounterMovementActionResponse<
           ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
           ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
+          ...(execution.pause?.kind === 'D20_WINDOW' ? { pause: execution.pause } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
         }),
         prepared.maintenance

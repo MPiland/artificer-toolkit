@@ -211,6 +211,7 @@ export async function prepareNativeLiveMovement(
               ...mechanics,
               attackDecoy,
               overridable: false,
+              saveWindow: true,
               // The reactor attacks from its token; the mover is the target at the contact point.
               loadAttackPerception: async ({ sourceFacts, targetFacts }) => {
                 const { reactorTokenId, contact } = reaction.option.candidate
