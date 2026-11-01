@@ -795,7 +795,9 @@ export async function actionRoom(config: ActionRoomConfig) {
       point: { x: number; y: number } | null = null,
       formId?: string,
       creatureId?: string,
-      choiceOptionId?: string
+      choiceOptionId?: string,
+      /** The cast modifier paid on the cast; its creatures are the cast's further targets. */
+      castModifierId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -817,7 +819,8 @@ export async function actionRoom(config: ActionRoomConfig) {
         },
         actionId,
         optionalCombatIntent: null,
-        sceneContext: null
+        sceneContext: null,
+        ...(castModifierId && { castModifierId })
       }
       return { command, answer: await send(command) }
     },

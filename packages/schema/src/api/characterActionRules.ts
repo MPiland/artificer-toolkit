@@ -588,7 +588,7 @@ export const characterActionCandidatesSchema = lazySchema(() =>
                 /** Creatures the paid modifier gives a save outcome on; the cast command names up to `max`. */
                 targets: z.optional(
                   z.strictObject({
-                    outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+                    outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
                     max: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
                   })
                 )

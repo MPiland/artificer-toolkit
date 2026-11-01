@@ -1,3 +1,4 @@
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type {
   ServerRuleExecutionContinuationDto,
@@ -8,7 +9,9 @@ import {
   type D20WindowPausePayloadDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
+import { encounterHeldSavingThrowDice } from './encounterActiveGrants.js'
 import { damageSaveRolledD20 } from './encounterConcentration.js'
 import {
   openEncounterD20WindowPause,
@@ -17,11 +20,31 @@ import {
 import type { SettledActionResponse } from './encounterD20Settlement.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
+/** A roller's answer to a d20 window, before it settles into the roll the window froze. */
+export type EncounterD20WindowResponse = Extract<
+  ResolveRuleOccurrenceInputDto['resolution'],
+  { kind: 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }
+>
+
 /** The d20 a TEST save's window settled, which resumes the save the window held. */
 export type EncounterActionWindowAnswer = {
   kind: 'D20_WINDOW'
   d20: D20WindowPausePayloadDto['rolled']['d20']
 }
+
+/** The dice the target of an action's save holds for after its d20 (D168), by the save's ability. */
+export type EncounterActionSaveWindow = {
+  heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[]
+}
+
+/** The dice the target of an action's TEST save holds for after its d20. */
+export const targetSaveWindow = (
+  gameSystemId: string,
+  targetEffects: readonly ActiveRuleEffectRecord[]
+): EncounterActionSaveWindow => ({
+  heldDice: (abilityDefinitionId) =>
+    encounterHeldSavingThrowDice(gameSystemId, targetEffects, abilityDefinitionId)
+})
 
 /**
  * The roll a settled window answers the save it held with. The window froze the roll against the
