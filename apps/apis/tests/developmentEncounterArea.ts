@@ -449,7 +449,7 @@ export async function verifyEncounterArea({
       )
       assert.ok(
         hitPoints(ended, hero.id) < hitPoints(after, hero.id),
-        'The Character failed its save against the breath.'
+        `The Character failed its save against the breath (${hitPoints(after, hero.id)} -> ${hitPoints(ended, hero.id)}: ${JSON.stringify(last.result.occurrence)}).`
       )
     }
   )
