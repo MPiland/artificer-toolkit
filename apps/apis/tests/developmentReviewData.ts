@@ -50,7 +50,8 @@ function initiativeResolution(
   encounterId: string,
   pending:
     | PendingOccurrence
-    | FunctionReturnType<typeof api.encounters.pendingReads.pendingRuleOccurrence>
+    | FunctionReturnType<typeof api.encounters.pendingReads.pendingRuleOccurrence>,
+  declaredAction: ReadonlyMap<string, string> = new Map()
 ): Resolution | null {
   switch (pending?.kind) {
     case 'INITIATIVE_EVIDENCE':
