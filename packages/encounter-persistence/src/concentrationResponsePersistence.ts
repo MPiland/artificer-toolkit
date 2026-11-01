@@ -193,7 +193,8 @@ export async function persistEncounterConcentrationResponse(
       checksumCanonicalJson(output.application) !==
         checksumCanonicalJson({
           ...context.application,
-          maintainedStateId: context.maintainedState.id
+          maintainedStateId: context.maintainedState.id,
+          castAt: context.maintainedState.createdAt
         }) ||
       execution.outputs.targetActorId !== context.application.targetActorId ||
       execution.outputs.appliedDamage !== context.application.appliedAmount ||
@@ -234,20 +235,21 @@ export async function persistEncounterConcentrationResponse(
   } else throw new Error('Live Session damage save result does not match its pending evidence.')
 
   const store = createActiveRuleEffectStore(ctx)
-  const slots = new Map<string, MaintainedSlot>()
+  const slots = new Map<string, readonly MaintainedSlot[]>()
   for (const actorId of new Set(
     admission.parentApplications
       .slice(admission.applicationIndex)
       .map((application) => application.targetActorId)
   )) {
-    const slot = await store.findMaintainedState({
+    const held = await store.findMaintainedStates({
       encounterId: state.id,
       ownerActorId: actorId,
       maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
         state.gameSystemId
       )
     })
-    if (slot && admission.actors.some((actor) => actor.id === actorId)) slots.set(actorId, slot)
+    if (held.length && admission.actors.some((actor) => actor.id === actorId))
+      slots.set(actorId, held)
   }
   const target = admission.actors.find((actor) => actor.id === context.application.targetActorId)
   if (
@@ -289,10 +291,13 @@ export async function persistEncounterConcentrationResponse(
       throw new Error('Live Session massive-damage save damage order changed.')
   }
   const remaining = [
-    ...admission.parentApplications.slice(admission.applicationIndex).flatMap((application) => {
-      const maintainedStateId = slots.get(application.targetActorId)?.id
-      return maintainedStateId ? [{ ...application, maintainedStateId }] : []
-    }),
+    ...admission.parentApplications.slice(admission.applicationIndex).flatMap((application) =>
+      (slots.get(application.targetActorId) ?? []).map(({ id, createdAt }) => ({
+        ...application,
+        maintainedStateId: id,
+        castAt: createdAt
+      }))
+    ),
     ...boundItems
   ]
     .sort(compareDamageSaveApplications)
@@ -302,12 +307,16 @@ export async function persistEncounterConcentrationResponse(
   let nextRemaining = remaining
   let slot: MaintainedSlot | null = null
   if (context.source === 'CONCENTRATION' && output.source === 'CONCENTRATION') {
-    slot = slots.get(context.application.targetActorId) ?? null
+    slot =
+      slots
+        .get(context.application.targetActorId)
+        ?.find(({ id }) => id === context.maintainedState.id) ?? null
     if (
       !slot ||
       checksumCanonicalJson(context.maintainedState) !==
         checksumCanonicalJson({
           id: slot.id,
+          createdAt: slot.createdAt,
           version: slot.version,
           maintenanceDefinitionId: slot.maintenanceDefinitionId,
           descriptorChecksum: slot.descriptorChecksum

@@ -76,21 +76,26 @@ export async function bindEncounterConcentrationApplications(
   applications: readonly ConcentrationDamageApplication[]
 ): Promise<ConcentrationMaintainedDamageApplicationDto[]> {
   const store = createActiveRuleEffectStore(ctx)
-  const bindings = new Map<string, string>()
-  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId))) {
-    const slot = await store.findMaintainedState({
-      encounterId: state.id,
-      ownerActorId: targetActorId,
-      maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
-        state.gameSystemId
-      )
-    })
-    if (slot) bindings.set(targetActorId, slot.id)
-  }
-  return applications.flatMap((application) => {
-    const maintainedStateId = bindings.get(application.targetActorId)
-    return maintainedStateId ? [{ ...application, maintainedStateId }] : []
-  })
+  const bindings = new Map<string, { id: string; createdAt: string }[]>()
+  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId)))
+    bindings.set(
+      targetActorId,
+      await store.findMaintainedStates({
+        encounterId: state.id,
+        ownerActorId: targetActorId,
+        maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+          state.gameSystemId
+        )
+      })
+    )
+  // One check per held Concentration, each application's checks in casting order.
+  return applications.flatMap((application) =>
+    (bindings.get(application.targetActorId) ?? []).map(({ id, createdAt }) => ({
+      ...application,
+      maintainedStateId: id,
+      castAt: createdAt
+    }))
+  )
 }
 
 /**
@@ -362,6 +367,7 @@ export async function persistEncounterConcentrationChildren(
       if (
         !slot ||
         slot.ownerActorId !== application.targetActorId ||
+        slot.createdAt !== application.castAt ||
         slot.maintenanceDefinitionId !==
           requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
       )
@@ -491,7 +497,8 @@ export async function persistEncounterConcentrationChildren(
         id: slot.id,
         version: slot.version,
         maintenanceDefinitionId: slot.maintenanceDefinitionId,
-        descriptorChecksum: slot.descriptorChecksum
+        descriptorChecksum: slot.descriptorChecksum,
+        createdAt: slot.createdAt
       }
     } else if (
       context.source === 'EFFECT_REPEAT_SAVE' &&

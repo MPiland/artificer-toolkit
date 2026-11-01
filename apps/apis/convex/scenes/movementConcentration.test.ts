@@ -654,7 +654,11 @@ it('keeps the Assisted Concentration child sealed under one movement root', asyn
   expect(await moverHitPoints()).toBe(damagedHitPoints)
   expect(departed.occurrences).toEqual(staged.occurrences)
   expect(departed.occurrences.map((occurrence) => occurrence.id)).not.toContain(
-    concentrationOccurrenceId(root.id, context.phase.concentration.application)
+    concentrationOccurrenceId(root.id, {
+      ...context.phase.concentration.application,
+      maintainedStateId: context.phase.concentration.maintainedState.id,
+      castAt: context.phase.concentration.maintainedState.createdAt
+    })
   )
   expect(departed.maintained).toEqual(staged.maintained)
   expect(departed.receiptLedgers).toEqual(staged.receiptLedgers)

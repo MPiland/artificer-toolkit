@@ -456,7 +456,11 @@ it('atomically resolves a failed native Concentration save, retains the private 
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
     sourceLabels: []
   })
-  const occurrenceId = concentrationOccurrenceId(parentOccurrenceId, application)
+  const occurrenceId = concentrationOccurrenceId(parentOccurrenceId, {
+    ...application,
+    maintainedStateId: slot.id,
+    castAt: slot.createdAt
+  })
   const started = await runtime.executeResolved({
     command: { definitionId: published.id, occurrenceId, facts: pending.facts },
     published

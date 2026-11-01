@@ -1564,7 +1564,10 @@ export async function planNativeLiveEncounterAction(
     applications: nativeConcentrationDamageApplications(damage, true),
     sourceLabels: nativeConcentrationDamageSourceLabels(damage, true),
     occurredAt,
-    settlement: retaliatedSettlement,
+    settlement: {
+      ...retaliatedSettlement,
+      replacedMaintainedStateId: settlement.maintenanceTransition?.priorState?.id ?? null
+    },
     capture,
     runtime: executionOptions.runtime,
     random: executionOptions.random,

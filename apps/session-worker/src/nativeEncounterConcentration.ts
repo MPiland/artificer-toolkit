@@ -48,6 +48,7 @@ import {
   compareDamageSaveApplications,
   damageSaveApplicationsAfterRelease,
   isMaintainedDamageApplication,
+  unboundDamageSaveApplication,
   type DamageSaveApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
@@ -122,7 +123,10 @@ export async function planNativeLiveConcentration(input: {
     | 'maintenanceOwners'
     | 'maintainedState'
     | 'createdEffects'
-  >
+  > & {
+    /** The held state the action's new Concentration replaced; it no longer counts as held. */
+    replacedMaintainedStateId?: string | null
+  }
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
   runtime: RulesRuntimeService
   random?: (maximum: number) => number
@@ -198,7 +202,7 @@ export async function planNativeLiveConcentration(input: {
     }
 
   const { capture } = input
-  const slots = new Map<string, EncounterMaintainedEffectStateRecord | null>()
+  const slots = new Map<string, EncounterMaintainedEffectStateRecord[]>()
   const definitions = new Map<
     string,
     Extract<LiveSessionEncounterRulesResponse, { kind: 'DEFINITION' }>['definition']
@@ -209,24 +213,27 @@ export async function planNativeLiveConcentration(input: {
   const maintenanceDefinitionId = requireInstalledConcentrationMaintenanceDefinitionId(
     state.gameSystemId
   )
-  async function slotFor(targetActorId: string) {
+  /** Every Concentration the actor holds after the parent action, in casting order. */
+  async function heldFor(targetActorId: string) {
     if (!slots.has(targetActorId)) {
+      const response = await capture({
+        kind: 'MAINTENANCE_STATES',
+        actorId: targetActorId,
+        definitionId: maintenanceDefinitionId
+      })
+      if (response.kind !== 'MAINTENANCE_STATES')
+        throw new Error('Concentration slot is unavailable.')
       const created = input.settlement.maintainedState
-      if (
-        created?.ownerActorId === targetActorId &&
-        created.maintenanceDefinitionId === maintenanceDefinitionId
+      const stored = response.states.filter(
+        ({ id }) => id !== input.settlement.replacedMaintainedStateId && id !== created?.id
       )
-        slots.set(targetActorId, created)
-      else {
-        const response = await capture({
-          kind: 'MAINTENANCE_SLOT',
-          actorId: targetActorId,
-          definitionId: maintenanceDefinitionId
-        })
-        if (response.kind !== 'MAINTENANCE_SLOT')
-          throw new Error('Concentration slot is unavailable.')
-        slots.set(targetActorId, response.state)
-      }
+      slots.set(
+        targetActorId,
+        created?.ownerActorId === targetActorId &&
+          created.maintenanceDefinitionId === maintenanceDefinitionId
+          ? [...stored, created]
+          : stored
+      )
     }
     return slots.get(targetActorId)!
   }
@@ -239,15 +246,21 @@ export async function planNativeLiveConcentration(input: {
     }
     return definitions.get(definitionId)!
   }
-  async function current(targetActorId: string) {
-    return prepareEncounterConcentrationState({
-      state,
-      targetActorId,
-      maintained: await slotFor(targetActorId),
-      loadTarget: () => projection.projectedTargets.get(targetActorId),
-      readDefinition,
-      readVocabulary
-    })
+  /** The actor's Concentrations as a check sees them, in casting order. */
+  async function currentStates(targetActorId: string) {
+    const loaded = await Promise.all(
+      (await heldFor(targetActorId)).map((maintained) =>
+        prepareEncounterConcentrationState({
+          state,
+          targetActorId,
+          maintained,
+          loadTarget: () => projection.projectedTargets.get(targetActorId),
+          readDefinition,
+          readVocabulary
+        })
+      )
+    )
+    return loaded.filter((entry) => entry !== null)
   }
   async function readVocabulary() {
     if (!vocabulary) {
@@ -274,6 +287,7 @@ export async function planNativeLiveConcentration(input: {
           encounterId: input.state.id,
           actorId: maintained.ownerActorId,
           definitionId: maintained.maintenanceDefinitionId,
+          stateId: maintained.id,
           capture
         })
     if (!slot.state || checksumCanonicalJson(slot.state) !== checksumCanonicalJson(maintained))
@@ -348,7 +362,10 @@ export async function planNativeLiveConcentration(input: {
       ...reconciled,
       maintenanceOwners: [...retainedOwners.values()]
     }
-    slots.set(maintained.ownerActorId, null)
+    slots.set(
+      maintained.ownerActorId,
+      (slots.get(maintained.ownerActorId) ?? []).filter(({ id }) => id !== maintained.id)
+    )
     return {
       maintainedStateId: slot.state.id,
       removedDependentEffectIds: slot.dependents.map((effect) => effect.id),
@@ -379,7 +396,7 @@ export async function planNativeLiveConcentration(input: {
     for (const target of heldTargets) {
       const actor = projection.actors.find((value) => value.id === target.actor.id)
       if (!actor) throw new Error('Concentration actor is unavailable.')
-      const maintained = await slotFor(actor.id)
+      const held = await heldFor(actor.id)
       const stateBound = stateBoundGrants(target.activeEffects)
       const sourcesGrants = [...projection.activeEffectsByActorId.values()].some((effects) =>
         sourceBoundGrants(effects).some(
@@ -387,7 +404,7 @@ export async function planNativeLiveConcentration(input: {
             definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId === actor.id
         )
       )
-      if (!maintained && !stateBound.length && !sourcesGrants) continue
+      if (!held.length && !stateBound.length && !sourcesGrants) continue
       const reason = await encounterConcentrationEndReason({
         actor,
         deadCharacterIds: deadCharacterIdsOfTargets([target]),
@@ -396,13 +413,15 @@ export async function planNativeLiveConcentration(input: {
         gameSystemId: state.gameSystemId,
         definitions: definitionSource
       })
-      if (reason && maintained)
-        concentrationEnds.push({
-          ownerActorId: actor.id,
-          maintainedStateId: maintained.id,
-          reason,
-          cleanup: await loseConcentration(maintained)
-        })
+      // Incapacitation or defeat ends every Concentration the holder keeps, with no check (D95).
+      if (reason)
+        for (const maintained of held)
+          concentrationEnds.push({
+            ownerActorId: actor.id,
+            maintainedStateId: maintained.id,
+            reason,
+            cleanup: await loseConcentration(maintained)
+          })
       sourceReasons.set(actor.id, reason)
       endedGrants.push(
         ...grantsEndedByHolderState(stateBound, {
@@ -433,13 +452,17 @@ export async function planNativeLiveConcentration(input: {
       nextState: state
     }
 
-  const bindings = new Map<string, string>()
+  const bindings = new Map<string, { id: string; createdAt: string }[]>()
   const selectedApplications = input.resume
     ? input.applications.slice(input.resume.applicationIndex)
     : input.applications
   for (const targetActorId of new Set(selectedApplications.map((entry) => entry.targetActorId))) {
-    const loaded = await current(targetActorId)
-    if (loaded) bindings.set(targetActorId, loaded.maintained.id)
+    const loaded = await currentStates(targetActorId)
+    if (loaded.length)
+      bindings.set(
+        targetActorId,
+        loaded.map(({ maintained }) => ({ id: maintained.id, createdAt: maintained.createdAt }))
+      )
   }
   // Who dealt the damage when its chain can hold effect repeat and massive-damage saves; a resumed
   // chain keeps its own.
@@ -485,7 +508,7 @@ export async function planNativeLiveConcentration(input: {
     ...concentrationSaveApplications({
       gameSystemId: state.gameSystemId,
       applications: selectedApplications,
-      maintainedStateIds: bindings,
+      maintainedStates: bindings,
       damagerActorId: repeatSaveDamager ?? null,
       dispositions
     }),
@@ -978,10 +1001,12 @@ export async function planNativeLiveConcentration(input: {
       if ((await settleMassiveDamageSave(item)) === 'PAUSED') break
       continue
     }
-    const { maintainedStateId, ...application } = item
-    const loaded = await current(application.targetActorId)
-    if (!loaded || loaded.maintained.id !== maintainedStateId)
-      throw new Error('The concentration state changed before its check.')
+    const application = unboundDamageSaveApplication(item)
+    const { maintainedStateId } = item
+    const loaded = (await currentStates(application.targetActorId)).find(
+      ({ maintained }) => maintained.id === maintainedStateId
+    )
+    if (!loaded) throw new Error('The concentration state changed before its check.')
     const unspent = { ...loaded, target: chainTarget(loaded.target) }
     const { context, facts } = createNativeConcentrationContext({
       gameSystemId: state.gameSystemId,
@@ -994,7 +1019,7 @@ export async function planNativeLiveConcentration(input: {
       sourceLabels: input.sourceLabels,
       repeatSaveDamagerActorId: chainHasEffects ? repeatSaveDamager : undefined
     })
-    const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, application)
+    const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, item)
     const resume = resumed === null ? input.resume : undefined
     const isResumed = resume !== undefined
     const started = isResumed

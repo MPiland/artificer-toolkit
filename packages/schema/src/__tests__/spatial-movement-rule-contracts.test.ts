@@ -764,7 +764,8 @@ function concentrationContext(input: {
       id: ids.effectTwo,
       version: 1,
       maintenanceDefinitionId: ids.entry,
-      descriptorChecksum: checksum('a')
+      descriptorChecksum: checksum('a'),
+      createdAt: '2026-01-01T00:00:00.000Z'
     },
     concentrationDefinition: { id: ids.effectTwo, checksum: checksum('e') },
     save: {

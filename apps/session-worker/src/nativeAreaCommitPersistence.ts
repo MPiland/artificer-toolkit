@@ -364,7 +364,8 @@ export async function settleAreaCommit(args: {
     settlement: {
       ...reconciled,
       maintainedState,
-      createdEffects: [...createdEffects.values()].flat()
+      createdEffects: [...createdEffects.values()].flat(),
+      replacedMaintainedStateId: replaced?.prior?.id ?? null
     },
     capture: input.capture,
     runtime: input.runtime,
