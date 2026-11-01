@@ -19,6 +19,7 @@ import { projectCharacterPreparationOptions } from './preparationOptions'
 import { loadCharacterSheetFacts } from './sheetFacts'
 import { projectCharacterSheetFacts } from './sheetPreparation'
 import {
+  cancelCharacterSheetPendingStore,
   characterSheetSection,
   readCharacterSheetFingerprint,
   readCharacterSheetStoreState,
@@ -60,7 +61,7 @@ export async function storeCharacterSheetSections(
   const characterId = facts.active.id
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
   if (pending) {
-    await ctx.scheduler.cancel(pending.scheduledId)
+    await cancelCharacterSheetPendingStore(ctx, pending)
     await ctx.db.delete('characterSheetPendingStores', pending._id)
   }
   const campaign = facts.sourceContext.context.sourceAccess.campaign
