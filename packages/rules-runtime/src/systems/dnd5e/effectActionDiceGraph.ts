@@ -44,7 +44,13 @@ export function diceGraphDefinition(input: {
     unsupported('Only direct D&D dice outcomes are currently specialized.')
   const outcome = input.entry.outcome
   const scalar = outcome.effectKind === 'SCALAR_REDUCTION'
-  if (!scalar && outcome.valueKind !== 'DICE') unsupported('D&D outcome is not dice-backed.')
+  // A fixed damage amount rolls the dice a grant adds to it (a die set on an unarmed strike).
+  if (
+    !scalar &&
+    outcome.valueKind !== 'DICE' &&
+    !(outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'FIXED')
+  )
+    unsupported('D&D outcome is not dice-backed.')
   const damageTypeId =
     outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null
   const prefix = input.nodePrefix ?? ''

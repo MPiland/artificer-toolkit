@@ -1248,6 +1248,21 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
     /** Attacks one Attack action makes; the highest Extra Attack source applies, they do not add. */
     attacksPerAttackAction: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
     concentrationCapacity: z._default(integerSchema.check(z.gte(1), z.lte(10)), 1),
+    /**
+     * Capacity bonuses that carry a deferred requirement (a spell-level limit): each counts for one cast
+     * only when the Concentration it starts, and every one it would keep, meets that requirement.
+     */
+    gatedConcentrationCapacity: z._default(
+      z
+        .array(
+          z.strictObject({
+            acceptedModifierIndex: integerSchema.check(z.gte(0)),
+            value: integerSchema
+          })
+        )
+        .check(z.maxLength(100)),
+      []
+    ),
     hitPointProgression: z
       .array(
         z.strictObject({

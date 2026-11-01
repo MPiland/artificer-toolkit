@@ -1,4 +1,5 @@
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -81,6 +82,8 @@ import {
   specializedTestOutcome,
   fixedHealAmount,
   healDiceConfiguration,
+  fixedAmountDiceConfiguration,
+  resolvedDiceMatchAuthored,
   positiveFixedAmount,
   isChosenAmountHeal,
   validateHealBonuses,
@@ -2499,6 +2502,8 @@ function exactDiceConfiguration(
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
+  if (outcome.valueKind === 'FIXED')
+    return fixedAmountDiceConfiguration(facts, outcomeId, optionalRider)
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
@@ -2527,18 +2532,7 @@ function exactDiceConfiguration(
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
-  const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).term
-    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
-  }
-  // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
-  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
-  if (
-    !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice)) &&
-    !(weaponDie && matchesAuthoredDice(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
-  )
+  if (!resolvedDiceMatchAuthored(resolved, authored, halfHitPointsDice, facts, optionalRider))
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
 }
@@ -3612,6 +3606,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   passiveDamageGrantPlan,
   standingEffectPlan,
+  concentrationCapacityForCast: dnd5eConcentrationCapacityForCast,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)

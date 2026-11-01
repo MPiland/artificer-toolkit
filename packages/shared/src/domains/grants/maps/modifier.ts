@@ -66,6 +66,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           {
             showIf: or([
               parent.field(['valueDomainCode']).eq('ABILITY_SCORE'),
+              parent.field(['valueDomainCode']).eq('ABILITY_SCORE_MAXIMUM'),
               parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
               parent.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
               // An attack roll's advantage or disadvantage may cover only attacks made with an ability.
@@ -1394,6 +1395,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
             local.field(['valueDomainCode']).eq('ABILITY_SCORE'),
+            local.field(['valueDomainCode']).eq('ABILITY_SCORE_MAXIMUM'),
             local.field(['valueDomainCode']).eq('SPEED'),
             local.field(['valueDomainCode']).eq('SENSE_RANGE'),
             local.field(['valueDomainCode']).eq('DAMAGE'),
