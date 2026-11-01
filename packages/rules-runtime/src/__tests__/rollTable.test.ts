@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { divineWord } from '@artificer-toolkit/source-data/srd/spells/divine-word.js'
+import { prismaticSpray } from '@artificer-toolkit/source-data/srd/spells/prismatic-spray.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import {
   SRD_ABILITIES,
@@ -194,8 +195,16 @@ function cast(
   {
     tableRoll,
     damageDie = 1,
-    dc = UNSAVEABLE_DC
-  }: { tableRoll: number; damageDie?: number; dc?: number | null }
+    dc = UNSAVEABLE_DC,
+    ability = CHARISMA,
+    tableDie = 6
+  }: {
+    tableRoll: number
+    damageDie?: number
+    dc?: number | null
+    ability?: string
+    tableDie?: number
+  }
 ) {
   const rolled: number[] = []
   return executeNativeActionGraphs({
@@ -216,7 +225,7 @@ function cast(
         attackDomain: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
-        save: dc === null ? null : { abilityDefinitionId: CHARISMA, dc },
+        save: dc === null ? null : { abilityDefinitionId: ability, dc },
         outcomes: []
       },
       sourceDerivedFacts: {},
@@ -224,7 +233,7 @@ function cast(
       targetDerivedFacts: {
         statBlock: { armorClass: 12 },
         savingThrowDefinitions: [
-          { abilityDefinitionId: CHARISMA, modifier: 0, rollMode: 'NORMAL', contributors: [] }
+          { abilityDefinitionId: ability, modifier: 0, rollMode: 'NORMAL', contributors: [] }
         ]
       },
       targetConditionIds: [],
@@ -238,7 +247,7 @@ function cast(
     random: (maxExclusive) => {
       rolled.push(maxExclusive)
       if (maxExclusive === 20) return 9
-      if (maxExclusive === 6) return tableRoll - 1
+      if (maxExclusive === tableDie) return tableRoll - 1
       return damageDie - 1
     }
   }).then((result) => ({ ...result, rolled }))
@@ -282,6 +291,34 @@ describe('roll table outcomes (ATTACK-16.T1a)', () => {
     expect((await cast(spell, { tableRoll: 5 })).applications).toEqual([])
     const first = await cast(spell, { tableRoll: 2 })
     expect(first.applications).toMatchObject([{ kind: 'CONDITION_APPLY', conditionId: BLINDED }])
+  })
+
+  it('rolls the dice that adjacent rows share once, within the graph node bound', async () => {
+    const types = SRD_DAMAGE_TYPES.slice(0, 4)
+    const heavy = (face: number): RowOutcome => ({
+      ...fireDice,
+      id: testUuid(0xa170 + face),
+      damageTypeId: types[face - 1]!.id,
+      diceConfig: '10d8'
+    })
+    // Four rows of 10d8 would need ~76 nodes if each rolled its own dice (the bound is 64).
+    const spell = tableSpell({
+      rows: [
+        row(1, [1, 1], [heavy(1)]),
+        row(2, [2, 2], [heavy(2)]),
+        row(3, [3, 3], [heavy(3)]),
+        row(4, [4, 4], [heavy(4)]),
+        row(5, [5, 6], [blinded])
+      ]
+    })
+    const hit = await cast(spell, { tableRoll: 3, damageDie: 2 })
+    expect(hit.applications).toMatchObject([
+      { kind: 'DAMAGE', requestedAmount: 20, damageTypeId: types[2]!.id }
+    ])
+    expect(hit.rolled).toEqual([20, 6, ...Array<number>(10).fill(8)])
+    const miss = await cast(spell, { tableRoll: 5, damageDie: 2 })
+    expect(miss.applications).toMatchObject([{ kind: 'CONDITION_APPLY', conditionId: BLINDED }])
+    expect(miss.rolled).toEqual([20, 6])
   })
 
   it('records the table die and every row gate in the OUTCOME trace', async () => {
@@ -410,6 +447,53 @@ const LASTING_ROWS = [
   row(2, [3, 4], [fixedFire]),
   row(3, [5, 6], [mockeryGrant], { duration: ONE_ROUND })
 ]
+
+describe('a table of alike damage rows (SPELLS-4.T2ps-a)', () => {
+  const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
+  // The authored spell with the rows its later tasks build (6-8) emptied: they owe nothing yet.
+  const spray: SpellAuthored = {
+    ...prismaticSpray,
+    effects: prismaticSpray.effects!.map((effect) => ({
+      ...effect,
+      paths: effect.paths.map((path) =>
+        path.selectionKind === 'ROLL_TABLE'
+          ? {
+              ...path,
+              rows: path.rows.map((tableRow) =>
+                tableRow.rollValue >= 6
+                  ? {
+                      id: tableRow.id,
+                      order: tableRow.order,
+                      rollValue: tableRow.rollValue,
+                      resolutionKind: 'RESULT' as const,
+                      resultBlock: {
+                        id: `${tableRow.id}__result`,
+                        resultKind: 'SINGLE' as const,
+                        outcomes: []
+                      }
+                    }
+                  : tableRow
+              )
+            }
+          : path
+      )
+    }))
+  }
+  const sprayCast = (tableRoll: number, dc: number) =>
+    cast(spray, { tableRoll, damageDie: 3, dc, ability: DEXTERITY, tableDie: 8 })
+
+  it('rolls the ten dice of the rolled colour once, and only those', async () => {
+    const result = await sprayCast(2, UNSAVEABLE_DC)
+    expect(result.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 30 }])
+    expect(result.rolled).toEqual([20, 8, ...Array<number>(10).fill(6)])
+  })
+
+  it('halves the damage of a creature that saves, and owes nothing for an emptied row', async () => {
+    const saved = await sprayCast(5, 1)
+    expect(saved.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 15 }])
+    expect((await sprayCast(6, 1)).applications).toEqual([])
+  })
+})
 
 describe('roll table rows that last (ATTACK-16.T1a2)', () => {
   const compilation = castCompilation(tableSpell({ rows: LASTING_ROWS }))

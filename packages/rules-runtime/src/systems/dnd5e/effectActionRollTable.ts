@@ -255,26 +255,51 @@ function rollTableGraphDefinition(
     conditionOrdinals.set(conditionId, ordinal)
     return ordinal
   }
+  const rowGate = (id: string, min: number, max: number) => ({
+    id,
+    operation: {
+      key: DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
+      contractVersion: dnd5eRollTableRowGateOperation.contractVersion
+    },
+    inputs: {
+      roll: roll.subtotal,
+      rowMin: { kind: 'LITERAL' as const, value: min },
+      rowMax: { kind: 'LITERAL' as const, value: max },
+      resultPath: { kind: 'LITERAL' as const, value: table.pathCode }
+    }
+  })
+  const graphedEntries = table.rows.map((row) =>
+    row.entries.filter((entry) => !isEmptyRow(entry) && entry.outcome.effectKind !== 'APPLY_GRANT')
+  )
+  // Adjacent rows that roll the same dice for the same multiplier share one set of dice, enabled
+  // across all their faces, so a table of alike damage rows stays within the graph's node bound.
+  const sharedDice = sharedDiceRuns(graphedEntries).map((run, index) => {
+    const prefix = `roll-table-shared-${index + 1}-`
+    const gate = rowGate(
+      `${prefix}gate`,
+      table.rows[run.rowIndexes[0] ?? 0]?.min ?? 0,
+      table.rows[run.rowIndexes[run.rowIndexes.length - 1] ?? 0]?.max ?? 0
+    )
+    const rolled = rolledDiceNodes(run.term, prefix, {
+      kind: 'NODE_OUTPUT',
+      nodeId: gate.id,
+      port: 'authorized'
+    })
+    const multiplied = multipliedDamage(`${prefix}multiplied`, rolled.subtotal, run.multiplier)
+    return {
+      at: run.at,
+      amount: multiplied.amount,
+      nodes: [gate, ...rolled.nodes, ...multiplied.nodes]
+    }
+  })
+  const sharedAt = (rowIndex: number, entryIndex: number) =>
+    sharedDice.find((run) => run.at.some((at) => at.row === rowIndex && at.entry === entryIndex))
   let largestRowDice = 0
   const rows = table.rows.map((row, rowIndex) => {
     const gateId = `roll-table-row-${rowIndex + 1}`
-    const gate = {
-      id: gateId,
-      operation: {
-        key: DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
-        contractVersion: dnd5eRollTableRowGateOperation.contractVersion
-      },
-      inputs: {
-        roll: roll.subtotal,
-        rowMin: { kind: 'LITERAL' as const, value: row.min },
-        rowMax: { kind: 'LITERAL' as const, value: row.max },
-        resultPath: { kind: 'LITERAL' as const, value: table.pathCode }
-      }
-    }
+    const gate = rowGate(gateId, row.min, row.max)
     let rowDice = 0
-    const graphed = row.entries.filter(
-      (entry) => !isEmptyRow(entry) && entry.outcome.effectKind !== 'APPLY_GRANT'
-    )
+    const graphed = graphedEntries[rowIndex] ?? []
     const outcomes = graphed.map((entry, index) => {
       const id = `${gateId}-${index + 1}`
       const { outcome } = entry
@@ -283,13 +308,11 @@ function rollTableGraphDefinition(
         if (outcome.scalingKind !== 'NONE' || outcome.bonuses?.length || dice.modifier !== 0)
           unsupported('D&D roll table row outcome is not supported: damage must be one plain roll.')
         rowDice += dice.term.count
-        const rolled = rolledDiceNodes(dice.term, `${id}-`, {
-          kind: 'NODE_OUTPUT',
-          nodeId: gateId,
-          port: 'authorized'
-        })
         const multiplier = damageMultiplier(outcome)
-        const multiplied = multipliedDamage(`${id}-multiplied`, rolled.subtotal, multiplier)
+        const shared = sharedAt(rowIndex, index)
+        const damage = shared
+          ? { amount: shared.amount, nodes: [] }
+          : rowDamageDice(id, gateId, dice.term, multiplier)
         const node = pathGatedProposalNode({
           id,
           pathCode: table.pathCode,
@@ -302,9 +325,9 @@ function rollTableGraphDefinition(
             multiplier
           },
           conditionImmuneFactKey: undefined,
-          amount: multiplied.amount
+          amount: damage.amount
         })
-        return { id, sourceEntryId: entry.id, nodes: [...rolled.nodes, ...multiplied.nodes, node] }
+        return { id, sourceEntryId: entry.id, nodes: [...damage.nodes, node] }
       }
       const bounded = rowOutcome(() => boundedOutcome(outcome, table.pathCode === 'ON_SAVE_FAIL'))
       if (
@@ -341,6 +364,7 @@ function rollTableGraphDefinition(
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
       ...roll.nodes,
+      ...sharedDice.flatMap(({ nodes }) => nodes),
       ...rows.flatMap(({ gate, outcomes }) => [gate, ...outcomes.flatMap(({ nodes }) => nodes)])
     ],
     outputs: { rollTableRoll: roll.subtotal },
@@ -349,6 +373,51 @@ function rollTableGraphDefinition(
       outcomes.map(({ id, sourceEntryId }) => ({ sourceEntryId, nodeId: id }))
     )
   }
+}
+
+/** A damage outcome's own dice, asked for only when its row's gate authorizes them. */
+function rowDamageDice(id: string, gateId: string, term: BoundedDiceTerm, multiplier: number) {
+  const rolled = rolledDiceNodes(term, `${id}-`, {
+    kind: 'NODE_OUTPUT',
+    nodeId: gateId,
+    port: 'authorized'
+  })
+  const multiplied = multipliedDamage(`${id}-multiplied`, rolled.subtotal, multiplier)
+  return { amount: multiplied.amount, nodes: [...rolled.nodes, ...multiplied.nodes] }
+}
+
+/**
+ * The runs of adjacent rows whose same-position damage outcomes roll the same dice for the same
+ * multiplier, each run longer than one row: those rows roll the dice once between them.
+ */
+function sharedDiceRuns(graphedEntries: readonly (readonly RowEntry[])[]) {
+  type Run = {
+    term: BoundedDiceTerm
+    multiplier: number
+    rowIndexes: number[]
+    at: { row: number; entry: number }[]
+  }
+  const open = new Map<string, Run & { lastRow: number }>()
+  const runs: Run[] = []
+  graphedEntries.forEach((entries, rowIndex) => {
+    entries.forEach((entry, entryIndex) => {
+      const { outcome } = entry
+      if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE') return
+      const multiplier = damageMultiplier(outcome)
+      const key = `${entryIndex}|${outcome.dice}|${multiplier}`
+      let run = open.get(key)
+      if (!run || run.lastRow !== rowIndex - 1) {
+        const { term } = rowOutcome(() => boundedDiceTerm(outcome.dice))
+        run = { term, multiplier, rowIndexes: [], at: [], lastRow: rowIndex }
+        open.set(key, run)
+        runs.push(run)
+      }
+      run.lastRow = rowIndex
+      run.rowIndexes.push(rowIndex)
+      run.at.push({ row: rowIndex, entry: entryIndex })
+    })
+  })
+  return runs.filter((run) => run.rowIndexes.length > 1)
 }
 
 /** Names a row outcome the path-gated registry refuses as the table's refusal. */
