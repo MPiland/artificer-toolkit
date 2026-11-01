@@ -5,6 +5,7 @@ import { makeFunctionReference } from 'convex/server'
 import {
   type EncounterCommandResultDto,
   type EncounterExecuteInput,
+  type PendingEncounterRuleOccurrenceSummaryDto,
   encounterGmProjectionDtoSchema,
   resolveEncounterActionInputDtoSchema
 } from '@artificer-toolkit/schema/api/encounters'
@@ -46,7 +47,10 @@ type PendingOccurrence = NonNullable<EncounterCommandResultDto['occurrence']>['p
  * The GM's answer to an initiative decision: the top score, the first tie choice, the first
  * declared option. Null for any other pending decision.
  */
-function initiativeResolution(encounterId: string, pending: PendingOccurrence): Resolution | null {
+function initiativeResolution(
+  encounterId: string,
+  pending: PendingOccurrence | PendingEncounterRuleOccurrenceSummaryDto
+): Resolution | null {
   switch (pending?.kind) {
     case 'INITIATIVE_EVIDENCE':
       return {
@@ -528,6 +532,7 @@ function stepPlayer({
       const pending =
         occurrence.pending ??
         (await gm.client.query(api.encounters.pendingReads.pendingRuleOccurrence, { encounterId }))
+      assert.ok(pending, 'A review action has no pending decision.')
       let resolution: Resolution
       let client: ReviewClient = gm.client
       if (pending?.kind === 'D20_EVIDENCE')
@@ -566,7 +571,7 @@ function stepPlayer({
         // A turn that wraps the round asks for the next round's initiative.
         const initiative = initiativeResolution(encounterId, pending)
         if (!initiative)
-          throw new Error(`A review action met an unexpected pending ${pending?.kind ?? 'none'}.`)
+          throw new Error(`A review action met an unexpected pending ${pending.kind}.`)
         resolution = initiative
       }
       current = await client.mutation(executeEncounterCommand, {
