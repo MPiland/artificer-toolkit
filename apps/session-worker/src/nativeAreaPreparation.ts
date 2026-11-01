@@ -3,6 +3,7 @@ import {
   type AreaActionTargetDto,
   ammunitionCommandChoice,
   castChoiceOptionId,
+  castChoice,
   healShareOf,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
@@ -466,6 +467,7 @@ async function readSummonBody(
       kind: 'CREATURE'
       creature: EncounterActorFormCreature
       creatureTypeId: string | null
+      count: number | null
       label: string
     }
   | null
@@ -473,7 +475,9 @@ async function readSummonBody(
   const { target } = input.command
   const pick = summonFormPick(
     placement,
-    target.kind === 'POINT' ? { formId: target.formId, creatureTypeId: target.creatureTypeId } : {}
+    target.kind === 'POINT'
+      ? { formId: target.formId, creatureTypeId: target.creatureTypeId, count: target.count }
+      : {}
   )
   if (pick && 'refusal' in pick) throw summonFormRefusal(pick.refusal)
   if (!pick)
@@ -485,6 +489,7 @@ async function readSummonBody(
     kind: 'CREATURE',
     creature: await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
     creatureTypeId: pick.creatureTypeId,
+    count: pick.count,
     label: pick.form.label
   }
 }
@@ -594,6 +599,7 @@ export async function prepareAreaTarget(
     token,
     sceneContext,
     prepared: await prepareCasterActionOnTarget(input, {
+      saveWindow: true,
       caster: base.caster,
       target: actor,
       movementTargets: base.movementTargets,
@@ -621,7 +627,12 @@ export function prepareCasterActionOnTarget(
   > & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actionId' | 'castModifierId' | 'spentUnits' | 'acceptedWieldConflict' | 'target'
+      | 'actionId'
+      | 'castModifierId'
+      | 'castModifierActorIds'
+      | 'spentUnits'
+      | 'acceptedWieldConflict'
+      | 'target'
     >
   },
   action: {
@@ -633,6 +644,8 @@ export function prepareCasterActionOnTarget(
     origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
     /** Runs this synthetic action of the caster in place of the command action (a forced-movement collision). */
     capability?: EncounterBasicActionCapabilityDescriptor
+    /** Shows the creature's save a d20 window when it holds dice for after it (D168); a sealed area save does. */
+    saveWindow?: boolean
   }
 ) {
   const { origin, sceneContext, capability } = action
@@ -642,8 +655,7 @@ export function prepareCasterActionOnTarget(
     target: action.target,
     actors: input.actors,
     actionId: capability?.actionId ?? input.command.actionId,
-    choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
-    castModifierId: capability ? undefined : input.command.castModifierId,
+    ...(capability ? {} : castChoice(input.command)),
     spentUnits: capability ? undefined : input.command.spentUnits,
     dividedAmount: capability ? undefined : healShareOf(input.command.target, action.target.id),
     ammunition: ammunitionCommandChoice(input.command.target),
@@ -653,6 +665,7 @@ export function prepareCasterActionOnTarget(
       handHolds: encounterSourceHandHolds(input.activeEffectsByActorId, action.caster.id)
     },
     overridable: true,
+    saveWindow: action.saveWindow,
     movementTargets: action.movementTargets,
     sceneContext,
     loadAttackPerception:

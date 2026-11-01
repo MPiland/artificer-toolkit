@@ -86,6 +86,8 @@ type AuthoringDefaultKind =
   | 'manifestCreatureFormFilter'
   | 'creatureFormFilterScaledCap'
   | 'creatureFormFilterScalingBreakpoint'
+  | 'resultBlockGateChallengeRatingCap'
+  | 'resultBlockGateChallengeRatingScalingBreakpoint'
   | 'manifestCamouflage'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
@@ -133,6 +135,8 @@ type AuthoringDefaultKind =
   | 'range'
   | 'slotCost'
   | 'reactionTrigger'
+  | 'castModifier'
+  | 'castModifierTargets'
   | 'resourceUse'
   | 'resultBlockGate'
   | 'scaling'
@@ -273,6 +277,10 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   creatureFormFilterScaledCap: ['creatureFormFilterScaledCap'],
   creatureFormFilterScalingBreakpoint: ['creatureFormFilterScalingBreakpoint'],
+  resultBlockGateChallengeRatingCap: ['resultBlockGateChallengeRatingCap'],
+  resultBlockGateChallengeRatingScalingBreakpoint: [
+    'resultBlockGateChallengeRatingScalingBreakpoint'
+  ],
   manifestCamouflage: ['manifestCamouflage'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
@@ -320,6 +328,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   range: ['range', 'senseRange'],
   slotCost: ['slotCost'],
   reactionTrigger: ['reactionTrigger'],
+  castModifier: ['castModifier'],
+  castModifierTargets: ['castModifierTargets'],
   resourceUse: ['resourceUse'],
   resultBlockGate: ['resultBlockGate'],
   scaling: [
@@ -328,7 +338,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
     'shapeMeasurementScaling',
     'targetCountScaling',
     'hitPointPoolScaling',
-    'creatureFormFilterScaling'
+    'creatureFormFilterScaling',
+    'resultBlockGateChallengeRatingScaling'
   ],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],
   rollTableRepeat: ['rollTableRepeat'],

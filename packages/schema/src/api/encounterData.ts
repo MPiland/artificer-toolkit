@@ -36,6 +36,7 @@ import {
 import {
   AUTHORED_LIMITS,
   MAX_ENCOUNTER_ACTORS,
+  MAX_GROUP_COUNT,
   authoredIdentifierSchema,
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
@@ -124,13 +125,15 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
  * (`actorOwnerChain`): whoever controls the owner controls the owned actor. `sourceEffectId` is the
  * active effect that created it (a summon spell); a pet or companion no effect created omits it.
  * `turnTiming` is when a summon authored to act apart from its owner's turn takes it (D200); absent
- * means on the owner's turn.
+ * means on the owner's turn. `count` is how many creatures a group token stands for (a multi-creature
+ * Conjure spell); absent means one. The Attack action makes one attack per creature in it.
  */
 export const encounterActorOwnerDtoSchema = lazySchema(() =>
   z.strictObject({
     ownerActorId: uuidSchema,
     sourceEffectId: z.optional(uuidSchema),
-    turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE']))
+    turnTiming: z.optional(z.enum(['AFTER_OWNER', 'OWN_INITIATIVE'])),
+    count: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT)))
   })
 )
 

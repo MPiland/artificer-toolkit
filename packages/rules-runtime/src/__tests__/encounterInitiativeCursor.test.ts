@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { stableActors } from '../encounterActorState.js'
 import {
   followedActorId,
+  initiativeActionOrder,
   readSideOrder,
   readTurnCursor,
   rollsInitiative,
@@ -299,5 +300,16 @@ describe('stableActors', () => {
     const actors = [actor(summonId, { ownerActorId: ACTOR_A }), ...ORDER.map((id) => actor(id))]
     const ordered = stableActors({ actors, round: state.round.round, initiativeRoundState: state })
     expect(ordered.map(({ id }) => id)).toEqual([ACTOR_A, summonId, ACTOR_B, ACTOR_C])
+  })
+})
+
+describe('initiativeActionOrder', () => {
+  it('orders actors by turn order, an owned actor right behind its owner, an unplaced one last', async () => {
+    const state = await roundAt([ACTOR_B, ACTOR_A], ACTOR_B, 'ENCOUNTER_START')
+    const summon = { id: crypto.randomUUID(), owner: { ownerActorId: ACTOR_B } }
+    const stray = { id: crypto.randomUUID() }
+    expect(initiativeActionOrder(state, [stray, { id: ACTOR_A }, summon, { id: ACTOR_B }])).toEqual(
+      [ACTOR_B, summon.id, ACTOR_A, stray.id]
+    )
   })
 })

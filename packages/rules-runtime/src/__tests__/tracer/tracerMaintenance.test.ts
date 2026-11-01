@@ -35,6 +35,8 @@ function stress(targetActorId: string, ordinal: number) {
   }
 }
 
+const STUNT_CAST_AT = '2026-01-01T00:00:00.000Z'
+
 describe('the tracer maintenance link on the neutral event table (RULES-2.T12b)', () => {
   it('breaks a held stunt when its holder is taken out, for the tracer reason', async () => {
     expect(await endReason(true)).toBe('DEFEATED')
@@ -48,11 +50,13 @@ describe('the tracer maintenance link on the neutral event table (RULES-2.T12b)'
     const owed = concentrationSaveApplications({
       gameSystemId: TRACER_SYSTEM_ID,
       applications: [stress(HOLDER_ID, 0), stress(BYSTANDER_ID, 1)],
-      maintainedStateIds: new Map([[HOLDER_ID, STUNT_STATE_ID]]),
+      maintainedStates: new Map([[HOLDER_ID, [{ id: STUNT_STATE_ID, createdAt: STUNT_CAST_AT }]]]),
       damagerActorId: null,
       dispositions: new Map()
     })
-    expect(owed).toEqual([{ ...stress(HOLDER_ID, 0), maintainedStateId: STUNT_STATE_ID }])
+    expect(owed).toEqual([
+      { ...stress(HOLDER_ID, 0), maintainedStateId: STUNT_STATE_ID, castAt: STUNT_CAST_AT }
+    ])
     expect(maintenanceLinkCapabilityRegistry.require(TRACER_SYSTEM_ID).saveDc(2)).toBe(12)
   })
 })

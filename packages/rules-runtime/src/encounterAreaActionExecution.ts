@@ -14,6 +14,7 @@ import {
   type PendingNativeActionGraphs,
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
+import type { EncounterActionWindowAnswer } from './encounterActionSaveWindow.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import { nextRollInt } from './random.js'
@@ -52,14 +53,17 @@ export type EncounterAreaTarget = {
   currentBinding?: NativeActionInput['binding']
   /** What the creature's save has of the origin's sight, when its roller is shown a belief of it. */
   attackSight?: NativeActionInput['attackSight']
+  /** The dice the creature holds for after its save's d20 (D168); its roll is windowed when it holds any. */
+  saveWindow?: NativeActionInput['saveWindow']
   autoRoll: EncounterActionAutoRoll
   /** The creature's Legendary Resistance on its current pool, asked for only once its save has failed. */
   discoverLegendaryResistance: () => Promise<EncounterLegendaryResistanceCandidate | null>
 }
 
 /**
- * One entry's roll: awaiting its roller, or answered and sealed. A failed save carries the
- * Legendary Resistance its creature may use, which must be decided before the area settles.
+ * One entry's roll: awaiting its roller, or answered and sealed. A roll a held die could still change
+ * stays pending, on the d20 window that shows it. A failed save carries the Legendary Resistance its
+ * creature may use, which must be decided before the area settles.
  */
 export type EncounterAreaTargetTest =
   | { actorId: string; occurrenceId: string; kind: 'PENDING'; pending: PendingNativeActionGraphs }
@@ -122,7 +126,10 @@ function requireDistinctEntries(targets: readonly EncounterAreaTarget[]) {
 async function testTarget(
   source: AreaActionSource,
   target: EncounterAreaTarget,
-  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
+  resume?: {
+    pending: ResumedNativeActionGraphs
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+  }
 ): Promise<EncounterAreaTargetTest> {
   const resistance: { candidate: EncounterLegendaryResistanceCandidate | null } = {
     candidate: null
@@ -132,6 +139,7 @@ async function testTarget(
     occurrenceId: target.occurrenceId,
     binding: target.binding,
     attackSight: target.attackSight,
+    saveWindow: target.saveWindow,
     autoRoll: target.autoRoll,
     // Runs after any completed TEST, whether it was answered or rolled for the creature.
     afterTest: async (execution) => {
@@ -171,7 +179,7 @@ export async function answerEncounterAreaTest(
   input: AreaActionSource & {
     target: EncounterAreaTarget
     tests: readonly EncounterAreaTargetTest[]
-    resolution: EncounterEvidenceAnswer
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
   }
 ): Promise<EncounterAreaTargetTest[]> {
   const current = input.tests.find((test) => test.occurrenceId === input.target.occurrenceId)

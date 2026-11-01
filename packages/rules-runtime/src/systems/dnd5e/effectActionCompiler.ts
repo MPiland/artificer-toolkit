@@ -38,12 +38,15 @@ import {
   resolveChosenCreaturesTargeting
 } from '../../encounterAreaAction.js'
 import {
+  challengeRatingGateCap,
+  challengeRatingGateOwed,
+  directGates,
   gateFacts,
   gateNodeInputs,
   isGated,
+  refuseDirectGates,
   refuseUnboundGate,
-  testPathGates,
-  type Dnd5eAuthoredGates
+  testPathGates
 } from './effectActionGates.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
@@ -161,7 +164,6 @@ import {
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
-  DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
@@ -241,6 +243,7 @@ import {
 } from './effectActionTargetPolicy.js'
 import {
   dnd5eEffectScalingFacts,
+  dnd5eAttackTargetFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
   type Dnd5eEffectScalingFacts
@@ -2569,6 +2572,8 @@ function fixedOutcomeGraphDefinition(input: {
   hitPointBand?: { above: number; atMost: number }
   /** The damage proposal node the outcome follows: it applies only if that damage reduced the target to 0. */
   reducedToZeroByNodeId?: string
+  /** The challenge rating cap the source's level reaches for the outcome's gate. */
+  challengeRatingCap?: number | undefined
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   const gates = testPathGates(input.entry, input.outcome.kind, input)
@@ -2868,6 +2873,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     entries.every(
       (entry) =>
         entryOwed(entry, input.action.compiledEffect.id, input.facts) &&
+        challengeRatingGateOwed(entry, input.facts) &&
         (!('hitPointTier' in entry) ||
           !entry.hitPointTier ||
           entry.hitPointTier.atMost === selectedTier)
@@ -2879,10 +2885,10 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry, input.facts)
+    const gate = 'gate' in entry ? entry.gate : undefined
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
-    const gate = 'gate' in entry ? entry.gate : undefined
     // The gate's damage outcome is exempt from it; every other outcome of the block follows that damage.
     const reducedToZeroByNodeId =
       gate?.kind === 'REDUCED_TO_ZERO_BY' && gate.damageOutcomeId !== entry.entryId
@@ -2939,6 +2945,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                 }
               : {}),
             ...(reducedToZeroByNodeId ? { reducedToZeroByNodeId } : {}),
+            challengeRatingCap: challengeRatingGateCap(gate, input.facts),
             conditionOrdinal: groups
               .slice(0, groupIndex + 1)
               .filter(
@@ -3162,12 +3169,6 @@ function compileDnd5eEffectAction({
   return publishedGraph(withRulings)
 }
 
-/** The gates the action's one direct entry authors on its outcome, when it authors any. */
-function directGates(action: Dnd5eCompiledEffectActionSource): Dnd5eAuthoredGates | undefined {
-  const entry = action.compiledEffect.entries[0]
-  return entry?.resolutionKind === 'DIRECT' && isGated(entry) ? entry : undefined
-}
-
 function compileEffectActionGraph(
   action: Dnd5eCompiledEffectActionSource
 ): ServerPublishedRuleDefinitionDto {
@@ -3186,21 +3187,16 @@ function compileEffectActionGraph(
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
   // A direct or test-path outcome honours a gate; every other plan refuses one rather than skip it.
-  const gates = directGates(action)
-  const refuseGate = () => {
-    if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
-  }
-  if (gates?.gate?.kind === 'REDUCED_TO_ZERO_BY')
-    unsupported('D&D reduced-to-0 gate follows a damage outcome of a test path.')
+  const gates = directGates(action.compiledEffect.entries[0])
   const composition = sequentialComposition(action)
   if (composition) {
-    refuseGate()
+    refuseDirectGates(gates)
     return compileSequentialComposition(action, composition)
   }
   const results = directResultSequence(action, holdsLastingEffect)
   if (results) return compileDirectResultSequence(results)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
-    refuseGate()
+    refuseDirectGates(gates)
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
   const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
@@ -3789,7 +3785,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
-      ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...gateFacts(published.definition, {
+        targetDamageTypesTaken,
+        targetChallengeRating: targetDerivedFacts.challengeRatingValue
+      }),
       ...saveDamageMultiplierFacts(published.definition, {
         abilityDefinitionId: action.save?.abilityDefinitionId,
         incomingDamage: targetDerivedFacts.incomingDamage
@@ -3994,9 +3993,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
-          ...(typeof targetDerivedFacts.creatureTypeId === 'string'
-            ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
-            : {}),
+          ...dnd5eAttackTargetFacts(targetDerivedFacts, currentHitPoints, maximumHitPoints),
           ...attackCircumstanceFacts,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical

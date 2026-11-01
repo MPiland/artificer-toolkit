@@ -49,6 +49,7 @@ import {
 } from './developmentCampaignCustody'
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { generateValidUsername } from './fixtures/generatedUsername'
+import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
 import type { CharacterListPage } from '@artificer-toolkit/schema/api/characterList'
 import type { CharacterDraftListPage } from '@artificer-toolkit/schema/api/characterDrafts'
 import type { DevelopmentCampaignInspection } from '@artificer-toolkit/schema/api/developmentCampaignLifecycle'
@@ -2808,7 +2809,13 @@ try {
     const { huntersMark } =
       await import('@artificer-toolkit/source-data/srd/spells/hunters-mark.js')
     const spellCharacter = playerBrowser
-      ? await createDevelopmentSpellCharacter(player.client, characterId, [shield, thunderwave])
+      ? await createDevelopmentSpellCharacter(
+          player.client,
+          characterId,
+          [shield, thunderwave],
+          undefined,
+          () => createCastModifierFeatures()
+        )
       : heatMetalBrowser
         ? await createDevelopmentSpellCharacter(
             player.client,

@@ -45,6 +45,20 @@ const resourceUseDtoShape = lazySchemaParts(() => ({
 
 const resourceUseDtoSchema = lazySchema(() => z.object(resourceUseDtoShape()))
 
+const castModifierDtoSchema = lazySchema(() =>
+  z.object({
+    ...resourceUseDtoShape(),
+    targets: z.optional(
+      z.object({
+        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+        base: z.number().check(z.int()).check(z.gte(0)),
+        abilityDefinitionId: z.optional(authoredIdentifierSchema),
+        minimum: z.optional(z.number().check(z.int()).check(z.gte(0)))
+      })
+    )
+  })
+)
+
 const optionalOnHitDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('SPELL_SLOT') }),
@@ -127,7 +141,7 @@ export const invocationDtoSchema: z.ZodMiniType<EffectInvocationAuthored> = lazy
       resourceUse: z.optional(z.never()),
       reactionTrigger: z.optional(z.never()),
       optionalOnHit: z.optional(optionalOnHitDtoSchema),
-      castModifier: z.optional(resourceUseDtoSchema),
+      castModifier: z.optional(castModifierDtoSchema),
       sparesCreatures: z.optional(sparesCreaturesDtoSchema),
       ridesFeatureId: z.optional(authoredIdentifierSchema),
       ridesSpellIds: z.optional(z.array(authoredIdentifierSchema))

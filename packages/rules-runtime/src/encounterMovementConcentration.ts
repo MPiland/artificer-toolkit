@@ -2,6 +2,7 @@ import { RULE_GRAPH_LIMITS, checksumRuleDocument } from '@artificer-toolkit/shar
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   requireMaintainedDamageApplications,
+  unboundDamageSaveApplication,
   type ConcentrationMaintainedDamageApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
@@ -246,13 +247,19 @@ export async function prepareEncounterMovementConcentration<
     )
       throw new Error('Movement Concentration damage evidence is stale.')
     remaining = [
-      { ...frozen.application, maintainedStateId: frozen.maintainedState.id },
+      {
+        ...frozen.application,
+        maintainedStateId: frozen.maintainedState.id,
+        castAt: frozen.maintainedState.createdAt
+      },
       ...requireMaintainedDamageApplications(frozen.remaining)
     ]
-    for (const { maintainedStateId: _stateId, ...application } of remaining)
+    for (const entry of remaining)
       if (
         !source.applications.some(
-          (value) => checksumRuleDocument(value) === checksumRuleDocument(application)
+          (value) =>
+            checksumRuleDocument(value) ===
+            checksumRuleDocument(unboundDamageSaveApplication(entry))
         )
       )
         throw new Error('Movement Concentration retained damage is unavailable.')
@@ -293,16 +300,19 @@ export async function prepareEncounterMovementConcentration<
       adoptEnd(ended, found.maintainedState.id)
       retainChildren()
     }
-    const maintainedStateIds = new Map<string, string>()
+    const maintainedStates = new Map<string, { id: string; createdAt: string }[]>()
     for (const { targetActorId } of source.applications) {
       const current = await callbacks.loadState(targetActorId, targets, projection)
-      if (current) maintainedStateIds.set(targetActorId, current.maintained.id)
+      if (current)
+        maintainedStates.set(targetActorId, [
+          { id: current.maintained.id, createdAt: current.maintained.createdAt }
+        ])
     }
     remaining.push(
       ...concentrationSaveApplications({
         gameSystemId: input.state.gameSystemId,
         applications: source.applications,
-        maintainedStateIds,
+        maintainedStates,
         damagerActorId: null,
         dispositions: new Map()
       })
@@ -311,7 +321,9 @@ export async function prepareEncounterMovementConcentration<
   const runtime = remaining.length ? await callbacks.runtime() : null
   let resume = input.resume
   while (remaining.length) {
-    const { maintainedStateId, ...application } = remaining[0]!
+    const bound = remaining[0]!
+    const { maintainedStateId } = bound
+    const application = unboundDamageSaveApplication(bound)
     remaining = remaining.slice(1)
     const current = await callbacks.loadState(application.targetActorId, targets, projection)
     if (!current || current.maintained.id !== maintainedStateId)
@@ -327,7 +339,7 @@ export async function prepareEncounterMovementConcentration<
       // Movement contacts carry no display name yet; their checks name only the damage.
       sourceLabels: []
     })
-    const occurrenceId = concentrationOccurrenceId(input.occurrenceId, application)
+    const occurrenceId = concentrationOccurrenceId(input.occurrenceId, bound)
     const started = await runtime!.executeResolved({
       command: { definitionId: current.published.id, occurrenceId, facts },
       published: current.published

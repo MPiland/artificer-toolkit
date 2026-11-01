@@ -600,7 +600,7 @@ describe("saving throws under the saver's conditions (D94)", () => {
     // The TEST boundary rebinds the facts and compares this checksum, so a dropped rule is stale.
     const dropped = bind({
       ...prepared.binding,
-      conditionOutcomeRules: { hitIsCritical: false, saveAutoFails: [] }
+      conditionOutcomeRules: { hitIsCritical: false, saveAutoFails: [], saveAutoSucceeds: [] }
     })
     expect(dropped[DND5E_TEST_OUTCOME_RULE_FACT_KEY]).toBe('NONE')
     expect(checksumRuleDocument(dropped)).not.toBe(test?.boundFactsChecksum)

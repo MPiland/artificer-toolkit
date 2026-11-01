@@ -228,7 +228,11 @@ export async function prepareMaintenanceReplacement(
     : []
   const actors = await readRunActors(ctx, input.state)
   const caster = actors.find((actor) => actor.id === input.command.actorId)
-  // D99: a Character's new Concentration also ends its carried-over grants held in the Run.
+  // D99: a Character's new Concentration also ends the carried-over grants held in the Run that
+  // the completed action's receipt names; whether it leaves room beside them was decided there.
+  const receiptCarriedIds = new Set(
+    input.transition.endedCarriedGrants.map((grant) => grant.activeEffectId)
+  )
   const carried =
     caster?.kind === 'CHARACTER'
       ? planConcentrationCarriedGrantEnds({
@@ -242,7 +246,7 @@ export async function prepareMaintenanceReplacement(
               )
             )
           ).flat()
-        })
+        }).filter((effect) => receiptCarriedIds.has(effect.id))
       : []
   // The completing checkpoint ends the caster's carried grants outside the Run from this record.
   const addedConcentrationCasterId =

@@ -671,6 +671,42 @@ function AreaSavesControls({
           />
         </Stack>
       ))}
+      {pending.windows.map((window) => (
+        <Stack
+          aria-label={labelOf(window.targetActorId)}
+          gap='xs'
+          key={window.requestId}
+          role='group'
+        >
+          <Text fw={600} size='sm'>
+            {labelOf(window.targetActorId)}: rolled {window.d20.selectedNatural}, total{' '}
+            {window.d20.total}
+          </Text>
+          {window.options.map((option) => (
+            <Button
+              disabled={disabled}
+              key={option.optionId}
+              onClick={() =>
+                onSubmit({
+                  kind: 'D20_WINDOW_USE',
+                  requestId: window.requestId,
+                  optionId: option.optionId
+                })
+              }
+            >
+              Add {option.label} ({option.sign === 'SUBTRACT' ? '-' : '+'}
+              {option.count}d{option.faces})
+            </Button>
+          ))}
+          <Button
+            disabled={disabled}
+            variant='default'
+            onClick={() => onSubmit({ kind: 'D20_WINDOW_DECLINE', requestId: window.requestId })}
+          >
+            Keep the roll
+          </Button>
+        </Stack>
+      ))}
       {pending.legendaryResistance.map((offer) => (
         <Stack gap='xs' key={offer.actorId}>
           <Text size='sm'>{labelOf(offer.actorId)} failed its save</Text>
@@ -703,7 +739,9 @@ function AreaSavesControls({
           </Group>
         </Stack>
       ))}
-      {pending.saves.length === 0 && pending.legendaryResistance.length === 0 ? (
+      {pending.saves.length === 0 &&
+      pending.windows.length === 0 &&
+      pending.legendaryResistance.length === 0 ? (
         <Text c='dimmed' size='sm'>
           Waiting for saves.
         </Text>

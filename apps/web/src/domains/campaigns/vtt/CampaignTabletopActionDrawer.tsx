@@ -44,14 +44,7 @@ import {
   EQUIPMENT_GRIP_REGISTRY,
   formatLengthMeasurement
 } from '@artificer-toolkit/shared/core'
-import {
-  authoredLengthInSceneCoordinates,
-  directedAreaSizeInSceneCoordinates,
-  pointAreaInSceneCoordinates,
-  type SpatialWallSide,
-  spatialTokensInsideArea,
-  wallAreaBoundsInSceneCoordinates
-} from '@artificer-toolkit/shared/vtt'
+import type { SpatialWallSide } from '@artificer-toolkit/shared/vtt'
 import { GmRollVisibilityToggle } from '#app/components/dice/GmRollVisibilityToggle'
 import { SummonPicks } from '#app/components/summonPicks/SummonPicks'
 import { summonPicks } from '#app/components/summonPicks/summonPicks.model'
@@ -63,6 +56,7 @@ import { useMaintainedReplacementChoice } from './useMaintainedReplacementChoice
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import {
   CampaignTabletopOptionalChoiceFields,
+  CampaignTabletopCastModifierInput,
   CampaignTabletopHealSharesInput,
   CampaignTabletopSpendInput
 } from './CampaignTabletopChoiceInputs'
@@ -75,12 +69,9 @@ import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileT
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { AREA_AIM_COPY, BAND_SIDES } from './campaignTabletopAimCopy'
 import { sparedCreatureLimit } from './sparedCreatureLimit'
-import {
-  aimedAreaShape,
-  type VttActionPreview,
-  type VttAreaAim,
-  type VttAreaSize
-} from './vttSceneRenderer.model'
+import { useCastModifierChoice } from './useCastModifierChoice'
+import type { VttActionPreview, VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
+import { useAimedArea } from './useAimedArea'
 import { effectOfferKey, isMoveEffectOffer } from './effectOffers.model'
 import { targetableEncounterActors, type VttTargetingRequest } from './vttTargeting.model'
 
@@ -203,6 +194,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
   const [pickedCreatureTypeId, setPickedCreatureTypeId] = useState<string | null>(null)
+  const [pickedCount, setPickedCount] = useState<number | null>(null)
   const [pickedBandSide, setPickedBandSide] = useState<SpatialWallSide | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
@@ -301,7 +293,7 @@ export function CampaignTabletopActionDrawer({
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
   const pointTarget = choiceTarget?.kind === 'POINT' ? choiceTarget : null
-  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId)
+  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId, pickedCount)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
@@ -336,6 +328,7 @@ export function CampaignTabletopActionDrawer({
   const ammunitionOptions = selectedAction?.ammunition ?? []
   const chosenSpend = selectedAction?.chosenSpend
   const spentUnits = chosenSpend && Math.min(pickedSpentUnits, chosenSpend.max)
+  const castModifier = useCastModifierChoice(selectedAction)
   const dividedHeal = selectedAction?.dividedHeal
   const healShareTargets = encounter.actors.filter((actor) => pickedActorIds.includes(actor.id))
   const healShares = healShareTargets.map(({ id }) => ({
@@ -380,92 +373,21 @@ export function CampaignTabletopActionDrawer({
   const offersOptionalRules = !namesNoCreature && !selectedAction?.delegateActorId
   const optionalRuleId = offersOptionalRules ? pickedOptionalRuleId : null
   const sceneTokens = scene?.tokens ?? NO_TOKENS
-  const sceneGrid = scene?.grid ?? null
   const sourceToken = sceneTokens.find((token) => actorIdByTokenId.get(token.id) === actingActorId)
   const sourceTokenId = sourceToken?.id ?? null
-  // A directed area starts on the caster's own token, so it cannot be drawn without one.
-  const areaSize = useMemo<VttAreaSize | null>(() => {
-    if (!sceneGrid) return null
-    if (drawnTarget) {
-      const bounds = wallAreaBoundsInSceneCoordinates(
-        drawnTarget.kind === 'WALL'
-          ? { kind: 'WALL', ...drawnTarget.area }
-          : { kind: 'RING', ...drawnTarget.area },
-        sceneGrid
-      )
-      const bandDistance =
-        drawnTarget.sideBand &&
-        authoredLengthInSceneCoordinates(drawnTarget.sideBand.distance, sceneGrid)
-      if (!bounds || bandDistance === null) return null
-      return {
-        kind: drawnTarget.kind,
-        ...bounds,
-        ...(bandDistance && bandSide ? { band: { distance: bandDistance, side: bandSide } } : {})
-      }
-    }
-    if (!areaTarget) return null
-    if (areaTarget.kind === 'POINT') return pointAreaInSceneCoordinates(areaTarget.area, sceneGrid)
-    return sourceTokenId ? directedAreaSizeInSceneCoordinates(areaTarget.area, sceneGrid) : null
-  }, [areaTarget, bandSide, drawnTarget, sceneGrid, sourceTokenId])
-  const tokensInArea = useMemo(() => {
-    const shape = areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
-    if (!areaAim || !shape) return []
-    const caught = spatialTokensInsideArea({
-      origin: areaAim.origin,
-      shape,
-      tokens: sceneTokens,
-      casterTokenId: sourceTokenId
-    })
-    const inside = new Set(caught)
-    return sceneTokens.filter((token) => inside.has(token.id)).map((token) => token.label)
-  }, [areaAim, areaSize, sceneTokens, sourceTokenId])
-  const drawnShape = drawnTarget && areaSize && areaAim ? aimedAreaShape(areaSize, areaAim) : null
-  const drawnCommandTarget: ResolveEncounterActionInputDto['target'] | null =
-    !scene || !areaAim || !drawnShape || (bandSides && !bandSide)
-      ? null
-      : drawnShape.kind === 'WALL'
-        ? {
-            kind: 'WALL',
-            sceneId: scene.id,
-            expectedSceneVersion: scene.version,
-            from: areaAim.origin,
-            to: drawnShape.to,
-            ...(bandSide === 'LEFT' || bandSide === 'RIGHT' ? { side: bandSide } : {}),
-            ...zoneChoices
-          }
-        : drawnShape.kind === 'RING'
-          ? {
-              kind: 'RING',
-              sceneId: scene.id,
-              expectedSceneVersion: scene.version,
-              center: areaAim.origin,
-              outerRadius: drawnShape.outerRadius,
-              ...(bandSide === 'INSIDE' || bandSide === 'OUTSIDE' ? { side: bandSide } : {}),
-              ...zoneChoices
-            }
-          : null
-  const areaCommandTarget: ResolveEncounterActionInputDto['target'] | null =
-    !areaTarget || !scene || !areaAim || !areaSize
-      ? null
-      : areaTarget.kind === 'POINT'
-        ? {
-            kind: 'POINT',
-            sceneId: scene.id,
-            expectedSceneVersion: scene.version,
-            point: areaAim.origin,
-            ...zoneChoices,
-            ...summonChoices
-          }
-        : areaAim.toward
-          ? {
-              kind: 'DIRECTED',
-              sceneId: scene.id,
-              expectedSceneVersion: scene.version,
-              origin: areaAim.origin,
-              toward: areaAim.toward,
-              ...sparedChoice
-            }
-          : null
+  const { areaSize, tokensInArea, drawnCommandTarget, areaCommandTarget } = useAimedArea({
+    scene,
+    sceneTokens,
+    sourceTokenId,
+    areaAim,
+    areaTarget,
+    drawnTarget,
+    bandSide,
+    needsBandSide: bandSides !== null,
+    zoneChoices,
+    sparedChoice,
+    summonChoices
+  })
   const actorsPoint = actorsTarget?.area ? (areaAim?.origin ?? null) : null
   const target: ResolveEncounterActionInputDto['target'] | null = actorsTarget
     ? pickedActorIds.length &&
@@ -875,6 +797,7 @@ export function CampaignTabletopActionDrawer({
         acknowledgedWarnings,
         ...(endedMaintainedStateId ? { endedMaintainedStateId } : {}),
         ...(spentUnits !== undefined ? { spentUnits } : {}),
+        ...castModifier.choice,
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
           ? {
@@ -1068,7 +991,11 @@ export function CampaignTabletopActionDrawer({
                   options={choiceTarget}
                   {...summonChoices}
                   disabled={selectionControlsDisabled}
-                  onFormChange={setPickedFormId}
+                  onCountChange={setPickedCount}
+                  onFormChange={(formId) => {
+                    setPickedFormId(formId)
+                    setPickedCount(null)
+                  }}
                   onCreatureTypeChange={setPickedCreatureTypeId}
                 />
               ) : null}
@@ -1163,6 +1090,13 @@ export function CampaignTabletopActionDrawer({
                   shares={pickedHealShares}
                   targets={healShareTargets}
                   onChange={setPickedHealShares}
+                />
+              ) : null}
+              {castModifier.modifiers.length ? (
+                <CampaignTabletopCastModifierInput
+                  actors={encounter.actors}
+                  cast={castModifier}
+                  disabled={selectionControlsDisabled}
                 />
               ) : null}
               {spareLimit !== undefined ? (

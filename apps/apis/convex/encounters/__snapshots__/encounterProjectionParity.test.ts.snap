@@ -232,6 +232,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
             "<uuid:27>": 12,
             "<uuid:28>": 6,
           },
+          "challengeRatingValue": 0.25,
           "checkTotals": {
             "<uuid:18>": 3,
             "<uuid:19>": 4,

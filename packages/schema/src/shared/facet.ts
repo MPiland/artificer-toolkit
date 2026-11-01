@@ -264,6 +264,11 @@ const predicatePayloadSchemas = lazySchemaParts(
       TARGET_HAS_NOT_TAKEN_TURN: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.TARGET_HAS_NOT_TAKEN_TURN)
       }),
+      TARGET_BELOW_MAXIMUM_HIT_POINTS: z.object({
+        predicateCode: z.literal(
+          predicateCodeSchema._zod.def.entries.TARGET_BELOW_MAXIMUM_HIT_POINTS
+        )
+      }),
       MOVED_TOWARD_TARGET: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MOVED_TOWARD_TARGET),
         minFeet: z.number().check(z.positive())

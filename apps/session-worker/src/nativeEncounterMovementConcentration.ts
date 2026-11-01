@@ -121,7 +121,8 @@ export function prepareNativeLiveMovementConcentration(
               id: slot.state.id,
               version: slot.state.version,
               maintenanceDefinitionId: slot.state.maintenanceDefinitionId,
-              descriptorChecksum: slot.state.descriptorChecksum
+              descriptorChecksum: slot.state.descriptorChecksum,
+              createdAt: slot.state.createdAt
             },
             reason
           }

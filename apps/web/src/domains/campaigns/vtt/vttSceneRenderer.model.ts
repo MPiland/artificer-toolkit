@@ -133,6 +133,7 @@ export interface VttTokenPresentation {
       | 'CONDITION'
       | 'COVER'
       | 'EFFECT'
+      | 'GROUP'
       | 'HEALTH'
       | 'INJURY'
       | 'LOOT'

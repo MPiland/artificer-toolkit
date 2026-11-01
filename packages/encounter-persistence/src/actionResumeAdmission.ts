@@ -16,6 +16,7 @@ import {
 } from './actionPending.js'
 import { areaActionPendingContext, readNativeAreaActionPending } from './actionAreaPending.js'
 import { nativeActionPendingResult } from './actionPendingResult.js'
+import { encounterAreaSaveAwaiting } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { readEncounterSettledAppRoll } from './evidenceRolls.js'
 import { isNativeActionOccurrence } from './occurrenceOwner.js'
@@ -184,7 +185,14 @@ export async function readNativeEncounterActionResponseAdmission(
     if (!offer || offer.decision) rejectDomain('DECISION_NOT_PENDING')
     if (answer.decision.kind === 'USE' && answer.decision.optionId !== offer.resistance.useOptionId)
       rejectDomain('VERSION_STALE', 'The Legendary Resistance option is stale.')
-  } else if (areaSave?.testedJson !== undefined) rejectDomain('DECISION_NOT_PENDING')
+  } else if (areaSave && encounterAreaSaveAwaiting(areaSave) === null)
+    rejectDomain('DECISION_NOT_PENDING')
+  else if (
+    areaSave &&
+    (encounterAreaSaveAwaiting(areaSave) === 'WINDOW') !==
+      (answer.kind === 'D20_WINDOW_USE' || answer.kind === 'D20_WINDOW_DECLINE')
+  )
+    rejectDomain('VERSION_STALE', 'The area save is not at this step.')
   else {
     // A single-target action holding a creature's Legendary Resistance or reaction offer takes only
     // its answer.

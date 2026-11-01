@@ -480,6 +480,14 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     }) {
       return readMaintainedStateByDefinition(ctx, input)
     },
+    /** Every state the owner holds for the definition, oldest first. */
+    async findMaintainedStates(input: {
+      encounterId: string
+      ownerActorId: string
+      maintenanceDefinitionId: string
+    }) {
+      return readMaintainedStatesByDefinition(ctx, input)
+    },
     async findMaintainedStateById(input: { encounterId: string; stateId: string }) {
       const encounterId = serverUuidIdentityDtoSchema.parse(input.encounterId)
       const stateId = serverUuidIdentityDtoSchema.parse(input.stateId)
