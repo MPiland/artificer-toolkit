@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
@@ -24,7 +23,6 @@ import {
   STARTING_EQUIPMENT_KIND,
   TRIGGER,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type ManualAdjudicationReason
 } from '@artificer-toolkit/shared'
@@ -42,7 +40,7 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions, gmRulingEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -74,19 +72,6 @@ function equipmentId(index: number): string {
 const D = 4 // Druid class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
-  return closedRuleEffect({
-    id: classRowId(D, 0x60, entry),
-    ruleKind,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    }
-  })
-}
 
 /** A passive class feature whose whole rule is a ruling the GM makes at the table. */
 function gmRulingClassEffect(
@@ -845,8 +830,7 @@ export const druid: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(D, 5, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(D, 3, 6),
@@ -866,8 +850,7 @@ export const druid: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(D, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(D, 3, 8),
@@ -887,8 +870,7 @@ export const druid: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(D, 9, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(D, 3, 10),
@@ -908,10 +890,7 @@ export const druid: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(D, 11, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(D, 3, 12),
@@ -947,10 +926,7 @@ export const druid: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(D, 14, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(D, 3, 15),

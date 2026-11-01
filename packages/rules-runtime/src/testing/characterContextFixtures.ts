@@ -28,6 +28,7 @@ import { resolveEquipmentAuthored } from '@artificer-toolkit/shared/subjects/com
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { unarmedStrike } from '@artificer-toolkit/source-data/srd/equipment/unarmed-strike.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -210,7 +211,7 @@ export function readyFighterFixture({
       RACE: [{ ...human, features: [] }],
       CLASS: [baseClass],
       BACKGROUND: [background],
-      EQUIPMENT: [club]
+      EQUIPMENT: [club, unarmedStrike]
     } satisfies Partial<Record<PublicationKind, readonly unknown[]>>
   }
 }

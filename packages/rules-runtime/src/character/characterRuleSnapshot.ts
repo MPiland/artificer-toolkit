@@ -261,6 +261,26 @@ function present(value: string | undefined): string | undefined {
   return value && value.length > 0 ? value : undefined
 }
 
+/**
+ * The natural weapon the System's `defaults.unarmedStrikeEquipmentId` names, outside the
+ * inventory; empty when the System names none or the item is not in the registry.
+ */
+export function characterNaturalWeapon(
+  registry: Pick<CharacterAssemblyRegistry, 'equipment' | 'system'>,
+  systemId: string
+): Pick<CharacterBuildSnapshot, 'naturalWeapon'> {
+  const definitionId = registry.system?.defaults?.unarmedStrikeEquipmentId
+  const compiledItem = definitionId ? registry.equipment[definitionId] : undefined
+  if (!definitionId || !compiledItem) return {}
+  return {
+    naturalWeapon: {
+      instanceId: `natural-weapon:${definitionId}`,
+      contentRef: { definitionId, binding: { kind: 'ACTIVE' }, systemId },
+      compiledItem
+    }
+  }
+}
+
 export function assembleCharacterRuleSnapshot(
   input: CharacterRuleSnapshotInput,
   sources?: ReturnType<typeof prepareCharacterRuleSources>
@@ -322,6 +342,7 @@ export function assembleCharacterRuleSnapshot(
       })),
     features: grantedFeatures,
     equipmentItems,
+    ...characterNaturalWeapon(registry, character.systemId),
     spellSources: assembleSpellSources(character),
     ...(classRitualSources.length > 0 ? { classRitualSources } : {}),
     companions: input.companions

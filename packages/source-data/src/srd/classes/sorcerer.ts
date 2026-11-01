@@ -676,10 +676,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 4),
@@ -901,10 +898,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 8),
@@ -925,10 +919,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 10),
@@ -949,10 +940,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 12),
@@ -981,10 +969,7 @@ export const sorcerer: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(S, 10, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(S, 4, 15),

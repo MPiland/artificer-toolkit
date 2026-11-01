@@ -127,7 +127,7 @@ export interface SystemSeedRecord {
   skills: SystemCheckSeedRecord[]
   passives: SystemPassiveSeedRecord[]
   initiativePolicy?: { defaultDefinitionId: string }
-  defaults?: { damageTypeId: string; conditionTypeId: string; movementTypeId: string }
+  defaults?: SystemAuthoredDto['defaults']
   cover?: SystemAuthoredDto['cover']
   zoneSpotPassiveDefinitionId?: string
 }

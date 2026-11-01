@@ -15178,7 +15178,8 @@
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204)."
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-4.T2ps-c",
@@ -15191,12 +15192,13 @@
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": [
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204)."
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-4.T2ps-d",
@@ -16340,7 +16342,7 @@
             {
               "id": "SPELLS-12.T2a",
               "text": "Authored per-use gate predicate for a second Concentration, limited by conditions.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1"
               ],
@@ -16353,8 +16355,7 @@
                   "SPELLS-12.T1"
                 ]
               },
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). From the T1 review: the replacement prompt ships in the action drawer, so confirm area casts reach it once a holder can keep more than one state. Split from T2. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). From the T1 review: the replacement prompt ships in the action drawer, so confirm area casts reach it once a holder can keep more than one state. Split from T2. Approved by the user on 2026-10-31 (D204). Merged in m590 (850142945)."
             },
             {
               "id": "SPELLS-12.T2a2",
@@ -16445,7 +16446,26 @@
                 ]
               },
               "text": "Held-count gated effect and journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-12.T4b",
+              "text": "Sheet Concentration picker: with two Concentrations held, the Sheet lists each one and ends the one the player picks. Adds a state id to END_CONCENTRATION, the per-state Sheet listing and UI, and the Convex path.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-12.3"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5,
+                "after": [
+                  "SPELLS-12.T4"
+                ]
+              },
+              "note": "Required by approved AC SPELLS-12.3 (also SPELLS-5.11 end-either-by-choice), so it is not new scope under D187."
             }
           ]
         },
@@ -18854,7 +18874,8 @@
                   "SPELLS-31.T4c1b4"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203)."
+              "note": "Approved by the user on 2026-10-31 (D203).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "status": "TODO",
@@ -19083,7 +19104,8 @@
                   "SPELLS-31.T4i"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203)."
+              "note": "Approved by the user on 2026-10-31 (D203).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4j",
@@ -19251,7 +19273,7 @@
             },
             {
               "id": "SPELLS-31.T4l2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19267,8 +19289,7 @@
                 ]
               },
               "text": "D203 scope: a generic Character Unarmed Strike, Martial Arts (without lowering a weapon die) and the Ki-Empowered Strikes room journey. Retaliation and Horde Breaker are GM rulings. Each built feature has an authoring-parity proof and each converted kind is deleted (D156).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m590 (850142945)."
             },
             {
               "id": "SPELLS-31.T4l2b",
@@ -19652,7 +19673,8 @@
                 ]
               },
               "text": "Twinned: a second target on a single-target cast, with a derived eligibility check. Parity proof; deletes its kind.",
-              "note": "Split from T5g. Approved by the user on 2026-10-30."
+              "note": "Split from T5g. Approved by the user on 2026-10-30.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T5h",
@@ -19874,7 +19896,7 @@
             {
               "id": "SPELLS-31.T5q-A",
               "text": "Ability score maximum as a generic value domain: one shared clamp, default 20 in the System adapter, ASI maximum and Primal Champion authored. Authoring-parity proof; deletes both kinds (D156).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19888,8 +19910,7 @@
                   "SPELLS-4.T2o"
                 ]
               },
-              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204). Merged in m590 (850142945)."
             },
             {
               "id": "SPELLS-31.T5q-B",
@@ -26733,7 +26754,8 @@
                   "PERF-3.T1",
                   "SPELLS-12.T4",
                   "SPELLS-12.T2b",
-                  "SPELLS-12.T3b"
+                  "SPELLS-12.T3b",
+                  "SPELLS-12.T4b"
                 ],
                 "finalSource": true
               },

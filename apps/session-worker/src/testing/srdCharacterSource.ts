@@ -19,6 +19,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { acolyte } from '@artificer-toolkit/source-data/srd/backgrounds/acolyte.js'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
+import { unarmedStrike } from '@artificer-toolkit/source-data/srd/equipment/unarmed-strike.js'
 import { elf } from '@artificer-toolkit/source-data/srd/races/elf.js'
 import { human } from '@artificer-toolkit/source-data/srd/races/human.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
@@ -175,7 +176,7 @@ function buildRoots(
       ? [{ subjectKind: 'CLASS' as const, document: structuredClone(characterSubclass) }]
       : []),
     { subjectKind: 'BACKGROUND' as const, document: background },
-    ...[club, ...extraEquipment].map((document) => ({
+    ...[club, unarmedStrike, ...extraEquipment].map((document) => ({
       subjectKind: 'EQUIPMENT' as const,
       document
     })),
