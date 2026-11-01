@@ -507,7 +507,7 @@ describe('a table row that petrifies after three failed saves (SPELLS-4.T2ps-b)'
   // Rows 7 and 8 are the later tasks'; row 6 is authored as it ships.
   it('plans row 6 on its own face as a restraint that repeats to a tally, with petrified at the end', () => {
     const spray = castCompilation(sprayWithRowsEmptiedFrom(7))
-    const plan = (spray.rollTableRowPlans ?? []).find(({ rollTableRow }) => rollTableRow.min === 6)
+    const plan = (spray.rollTableRowPlans ?? []).find(({ rollTableRow }) => rollTableRow?.min === 6)
     expect(plan).toMatchObject({
       rollTableRow: { min: 6, max: 6 },
       initialRemaining: MAX_ACTIVE_EFFECT_TURNS,
