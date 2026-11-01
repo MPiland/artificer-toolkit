@@ -1,4 +1,3 @@
-import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -230,7 +229,6 @@ import {
 } from './effectActionInterpretation.js'
 import {
   countRepeatSave,
-  isTallyCount,
   repeatedFollowUpSaveResultPath,
   repeatSaveAttemptAllowed,
   repeatSaveGated,
@@ -259,7 +257,10 @@ import {
   escalatingImmediateSave,
   immediateFollowUpSaveEntries,
   exactFailureMarginRider,
-  immediateFollowUpSaveGraphDefinition
+  immediateFollowUpSaveGraphDefinition,
+  repeatCadenceSupported,
+  repeatSaveHeldTurns,
+  sourceTurnStartSave
 } from './effectActionNestedSave.js'
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
@@ -1587,14 +1588,14 @@ function repeatingDirectFollowUpSavePlan(
       : null
   if (escalation && !(action.conditionDefinitionIds ?? []).includes(escalation.conditionId))
     return null
-  // A tally has no turn of its own to wait for: it lasts until a count is reached.
-  const initialRemaining = escalation
-    ? save.attempts.kind === 'THRESHOLDS'
-      ? MAX_ACTIVE_EFFECT_TURNS
-      : 1
-    : leadEntry.duration
-      ? conditionDurationTurns(leadEntry.duration)
-      : null
+  const sourceTurn =
+    lead.effectKind === 'CONDITION' && !leadEntry.duration ? sourceTurnStartSave(save) : null
+  const initialRemaining = repeatSaveHeldTurns({
+    save,
+    escalated: escalation !== null,
+    sourceTurn: sourceTurn !== null,
+    duration: leadEntry.duration
+  })
   const repeatSave = dnd5eRepeatSave({
     abilityDefinitionId: save.savingThrow.abilityDefinitionId,
     savingThrow: save.savingThrow,
@@ -1640,14 +1641,10 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
-    (save.attempts.kind === 'ONCE'
-      ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
-      : !isTallyCount(save.attempts.successesToEnd) ||
-        !isTallyCount(save.attempts.failuresToResolve)) ||
+    (!sourceTurn && !repeatCadenceSupported(save, escalation !== null)) ||
     !repeatSave ||
     save.onSuccess.kind !== 'END' ||
-    (escalation === null && save.onFailure.kind !== 'CONTINUE') ||
+    (escalation === null && !sourceTurn && save.onFailure.kind !== 'CONTINUE') ||
     (save.onDurationComplete !== undefined && save.onDurationComplete.kind !== 'END') ||
     (save.repeatAttemptGate && save.repeatRollInfluence)
   ) {
@@ -1660,6 +1657,7 @@ function repeatingDirectFollowUpSavePlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
     initialRemaining,
+    ...sourceTurn,
     ...contribution,
     // A held grant is made only on the save result it is authored on; held conditions are the graph's.
     ...(lead.effectKind !== 'CONDITION' &&
