@@ -220,7 +220,7 @@ export function rolledDiceNodes(
   const rerollNodes: RuleGraphDefinition['nodes'] =
     rerollAtOrBelow === undefined
       ? []
-      : diceNodes.flatMap((die, index) => {
+      : diceNodes.flatMap((die, index): RuleGraphDefinition['nodes'] => {
           const lowNodeId = `${prefix}die-${index + 1}-low`
           return [
             {
