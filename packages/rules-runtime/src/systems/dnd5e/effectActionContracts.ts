@@ -82,14 +82,13 @@ export function dnd5eSaveAutoFailConditionIds(
   ].sort()
 }
 
-/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
+/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94); a failure wins over a paid cast modifier's success. */
 export function dnd5eSaveOutcomeRule(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
   abilityDefinitionId: string
-): 'NONE' | 'SAVE_AUTO_FAIL' {
-  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
-    ? 'SAVE_AUTO_FAIL'
-    : 'NONE'
+): 'NONE' | 'SAVE_AUTO_FAIL' | 'SAVE_AUTO_SUCCESS' {
+  if (dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length) return 'SAVE_AUTO_FAIL'
+  return rules?.saveAutoSucceeds?.includes(abilityDefinitionId) ? 'SAVE_AUTO_SUCCESS' : 'NONE'
 }
 
 /** The lowest natural d20 that scores a critical hit with this attack: 20 unless a grant lowers it. */

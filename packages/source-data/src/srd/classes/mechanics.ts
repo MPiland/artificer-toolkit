@@ -20,6 +20,7 @@ import {
   type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
 import type {
+  CastModifierAuthored,
   EffectAuthored,
   FacetAuthored,
   ModifierGrantAuthored,
@@ -93,7 +94,7 @@ export function gmRulingEffect(input: {
   reasonCode: ManualAdjudicationReason
   resourceUse?: { chargeId: string; cost: number }
   /** A cost the caster may pay on casting a spell; makes the ruling a passive cast modifier, never an action. */
-  castModifier?: { chargeId: string; cost: number }
+  castModifier?: CastModifierAuthored
   /** Creatures the caster may leave out of an area spell they cast; makes the ruling a passive, never an action. */
   sparesCreatures?: SparesCreaturesAuthored
   /** The action the ruling takes; one with a resource cost and no action given is free. */

@@ -3,6 +3,7 @@ import {
   type AreaActionTargetDto,
   ammunitionCommandChoice,
   castChoiceOptionId,
+  castChoice,
   healShareOf,
   type ResolveEncounterActionInputDto,
   type ResolveEncounterActionTargetDto,
@@ -621,7 +622,12 @@ export function prepareCasterActionOnTarget(
   > & {
     command: Pick<
       ResolveEncounterActionInputDto,
-      'actionId' | 'castModifierId' | 'spentUnits' | 'acceptedWieldConflict' | 'target'
+      | 'actionId'
+      | 'castModifierId'
+      | 'castModifierActorIds'
+      | 'spentUnits'
+      | 'acceptedWieldConflict'
+      | 'target'
     >
   },
   action: {
@@ -642,8 +648,7 @@ export function prepareCasterActionOnTarget(
     target: action.target,
     actors: input.actors,
     actionId: capability?.actionId ?? input.command.actionId,
-    choiceOptionId: capability ? undefined : castChoiceOptionId(input.command.target),
-    castModifierId: capability ? undefined : input.command.castModifierId,
+    ...(capability ? {} : castChoice(input.command)),
     spentUnits: capability ? undefined : input.command.spentUnits,
     dividedAmount: capability ? undefined : healShareOf(input.command.target, action.target.id),
     ammunition: ammunitionCommandChoice(input.command.target),
