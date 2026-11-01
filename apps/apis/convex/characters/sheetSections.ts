@@ -8,6 +8,7 @@ import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
 } from '@artificer-toolkit/encounter-persistence/effectStore'
+import type { Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { CampaignInternalScope } from '../campaigns/authority'
 import { readCampaignCharacterState } from '../campaigns/characterState'
@@ -291,12 +292,24 @@ export function readCharacterSheetPendingStore(ctx: QueryCtx, characterId: strin
 }
 
 /**
+ * Cancels a queued derivation that has not started. One already running cannot be cancelled: it
+ * checks its token against the pending row instead (`store`).
+ */
+export async function cancelCharacterSheetPendingStore(
+  ctx: MutationCtx,
+  pending: { scheduledId: Id<'_scheduled_functions'> }
+) {
+  const job = await ctx.db.system.get(pending.scheduledId)
+  if (job?.state.kind === 'pending') await ctx.scheduler.cancel(pending.scheduledId)
+}
+
+/**
  * Queues the Sheet's derivation after a Character write; reads derive live until it lands. A newer
  * write cancels the pending derivation and queues its own, so a Character has one at a time.
  */
 export async function scheduleCharacterSheetSections(ctx: MutationCtx, characterId: string) {
   const pending = await readCharacterSheetPendingStore(ctx, characterId)
-  if (pending) await ctx.scheduler.cancel(pending.scheduledId)
+  if (pending) await cancelCharacterSheetPendingStore(ctx, pending)
   const token = crypto.randomUUID()
   const scheduledId = await ctx.scheduler.runAfter(CHARACTER_SHEET_STORE_DELAY_MS, storeReference, {
     characterId,

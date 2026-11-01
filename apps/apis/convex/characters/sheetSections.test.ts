@@ -15,7 +15,11 @@ import { api, internal } from '../_generated/api'
 import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { createPartyPlayer } from '../../tests/fixtures/partyPlayer'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
-import { characterSheetSection, readStoredCharacterSheetSection } from './sheetSections'
+import {
+  CHARACTER_SHEET_STORE_DELAY_MS,
+  characterSheetSection,
+  readStoredCharacterSheetSection
+} from './sheetSections'
 
 /**
  * A stored section read checks authority and the derivation's inputs (the System document is 34 KB
@@ -289,6 +293,39 @@ describe('Stored Character Sheet sections (ADR 0041)', () => {
     expect(
       await player.caller.query(api.characters.panels.get, { id: character.id, target: target! })
     ).toEqual(live.panel)
+  }, 60_000)
+
+  it('leaves a derivation that already started alone when a newer write queues its own', async () => {
+    const { t, player, character, visibility } = await setup()
+    const createNote = (expectedVersion: number, title: string) =>
+      player.caller.mutation(api.characters.sheetCommands.execute, {
+        id: character.id,
+        command: {
+          type: 'CREATE_NOTE',
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          title,
+          groupId: 'session-notes'
+        }
+      })
+    const first = await createNote(visibility.streamVersion, 'Session one')
+    // Start the queued derivation without letting it finish.
+    vi.advanceTimersByTime(CHARACTER_SHEET_STORE_DELAY_MS)
+    await vi.waitUntil(async () =>
+      t.run(async (ctx) =>
+        (await ctx.db.system.query('_scheduled_functions').collect()).some(
+          (row) => row.state.kind === 'inProgress'
+        )
+      )
+    )
+    await createNote(first.streamVersion, 'Session two')
+    // convex-test throws "Unexpected scheduled function state" if the running job was cancelled.
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(
+      (await t.run((ctx) => ctx.db.system.query('_scheduled_functions').collect())).map(
+        (row) => row.state.kind
+      )
+    ).not.toContain('canceled')
   }, 60_000)
 
   it("stores a Sheet command's sections in its own transaction, leaving no gap", async () => {
