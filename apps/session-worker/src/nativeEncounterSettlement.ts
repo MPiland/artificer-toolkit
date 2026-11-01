@@ -12,6 +12,7 @@ import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rule
 import type { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { effectsAfterEnding } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
 import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
   buildEncounterMaintenanceTransition,
@@ -138,8 +139,10 @@ export function planNativeLiveEncounterSettlement(input: {
     : null
   const owner = nativeEffectOwner(prepared.target, prepared.state.id)
   const removedIds = new Set(maintenance?.removed.map((effect) => effect.id))
-  const targetEffects = prepared.targetFacts.activeEffects.filter(
-    (effect) => !removedIds.has(effect.id)
+  const targetEffects = effectsAfterEnding(
+    prepared.targetFacts.activeEffects,
+    maintenance?.removed ?? [],
+    input.occurredAt
   )
   const createdEffects: ActiveRuleEffectRecord[] = []
   const create = (
