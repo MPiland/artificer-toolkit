@@ -641,7 +641,7 @@ describe('room burst cast by a Character who pays a cast modifier for its range 
     const special = structuredClone(emberBurst)
     special.id = testUuid(0x7d7)
     special.label = 'Odd Burst'
-    special.effects![0]!.range = { id: testUuid(0x7d8), rangeKind: 'SPECIAL' }
+    special.effects![0]!.invocation.range = { id: testUuid(0x7d8), rangeKind: 'SPECIAL' }
     const room = await reachRoom(special)
 
     const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
