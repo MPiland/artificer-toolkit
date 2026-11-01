@@ -269,6 +269,8 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ENEMY_NEAR_TARGET':
       case 'TARGET_HAS_NOT_TAKEN_TURN':
       case 'HOLDER_IN_BRIGHT_LIGHT':
+      case 'HELD_CONCENTRATION_COUNT':
+      case 'CONCENTRATION_DAMAGE_OVER':
       case 'CREATURE_TYPE':
       case 'SOURCE_CREATURE_TYPE':
       case 'SOURCE_TRAIT':

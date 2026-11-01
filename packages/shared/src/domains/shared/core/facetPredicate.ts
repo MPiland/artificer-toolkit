@@ -115,6 +115,19 @@ export type PredicatePayloadByCode = {
   HOLDER_IN_BRIGHT_LIGHT: {
     requiresDaylight: boolean
   }
+  /** The holder maintains this many Concentrations when a Concentration save is rolled, the one saved for included. */
+  HELD_CONCENTRATION_COUNT: {
+    min: number
+    max?: number
+  }
+  /**
+   * The damage behind a Concentration save exceeds `over` plus `perSpellLevel` times the level of
+   * the spell whose Concentration is saved for.
+   */
+  CONCENTRATION_DAMAGE_OVER: {
+    over: number
+    perSpellLevel: number
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -423,6 +436,22 @@ export const PREDICATE_REGISTRY = {
     label: 'Holder in Bright Light',
     description:
       'Requires the holder to stand in bright light on its Scene, or in daylight when the Scene must be lit by the sun.',
+    subjects: ['EQUIPMENT']
+  },
+
+  HELD_CONCENTRATION_COUNT: {
+    code: 'HELD_CONCENTRATION_COUNT',
+    label: 'Held Concentration Count',
+    description:
+      'Requires the holder to maintain a number of Concentrations within a range when a Concentration save is rolled.',
+    subjects: ['EQUIPMENT']
+  },
+
+  CONCENTRATION_DAMAGE_OVER: {
+    code: 'CONCENTRATION_DAMAGE_OVER',
+    label: 'Concentration Damage Over',
+    description:
+      'Requires the damage behind a Concentration save to exceed an amount plus an amount per level of the spell saved for.',
     subjects: ['EQUIPMENT']
   },
 

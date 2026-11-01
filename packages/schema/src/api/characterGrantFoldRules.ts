@@ -92,6 +92,13 @@ const restrictionConditionSchema = lazySchema(() =>
       /** The holder stands in bright light on its Scene, in daylight when `requiresDaylight` (Encounter state). */
       'HOLDER_IN_BRIGHT_LIGHT',
       /**
+       * Concentration-save conditions are evaluated against the save being rolled, never
+       * Character-wide: the holder maintains `min`..`max` Concentrations, and the damage behind the
+       * save exceeds `min` plus `perSpellLevel` per level of the spell saved for.
+       */
+      'HELD_CONCENTRATION_COUNT',
+      'CONCENTRATION_DAMAGE_OVER',
+      /**
        * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
        * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).
        */
@@ -146,7 +153,9 @@ const restrictionConditionSchema = lazySchema(() =>
     requiredProperties: z.array(codeSchema).check(z.maxLength(100)),
     sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED'])),
     /** Narrows `HOLDER_IN_BRIGHT_LIGHT` to a Scene lit by the sun; false for every other kind. */
-    requiresDaylight: z.boolean()
+    requiresDaylight: z.boolean(),
+    /** Per spell level of `CONCENTRATION_DAMAGE_OVER`'s threshold; 0 for every other kind. */
+    perSpellLevel: z.number()
   })
 )
 

@@ -646,6 +646,7 @@ function createFacetPredicateNodeMap(
               ])
             ]),
             predicateCode.eq('SPELL_LEVEL'),
+            predicateCode.eq('HELD_CONCENTRATION_COUNT'),
             predicateCode.eq('SAVING_THROW_DC'),
             predicateCode.eq('ARMOR_CLASS'),
             predicateCode.eq('CHARACTER_LEVEL'),
@@ -680,6 +681,7 @@ function createFacetPredicateNodeMap(
               ])
             ]),
             predicateCode.eq('SPELL_LEVEL'),
+            predicateCode.eq('HELD_CONCENTRATION_COUNT'),
             predicateCode.eq('SAVING_THROW_DC'),
             predicateCode.eq('ARMOR_CLASS'),
             predicateCode.eq('CHARACTER_LEVEL'),
@@ -1051,6 +1053,22 @@ function createFacetPredicateNodeMap(
           order: 3,
           showIf: predicateCode.eq('MOVED_TOWARD_TARGET'),
           requiredIf: predicateCode.eq('MOVED_TOWARD_TARGET')
+        })
+      )
+      .set(
+        'damageOver',
+        number(['over'], 'Damage Over', {
+          order: 3,
+          showIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER'),
+          requiredIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER')
+        })
+      )
+      .set(
+        'perSpellLevel',
+        number(['perSpellLevel'], 'Plus Per Spell Level', {
+          order: 4,
+          showIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER'),
+          requiredIf: predicateCode.eq('CONCENTRATION_DAMAGE_OVER')
         })
       )
       .set(

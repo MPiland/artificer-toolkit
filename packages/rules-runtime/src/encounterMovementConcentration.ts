@@ -147,22 +147,29 @@ export async function prepareEncounterMovementConcentration<
     resume?: { snapshot: ServerKernelRuleExecutionPendingSnapshotDto; resolution: DiceResolution }
   },
   callbacks: {
-    loadState(
+    /** Every Concentration state the actor holds after the preceding contact, in casting order. */
+    loadStates(
       targetActorId: string,
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
       projection?: TProjection
-    ): ReturnType<typeof prepareEncounterConcentrationState<MovementTarget<TCharacterFacts>>>
+    ): Promise<
+      Awaited<
+        ReturnType<typeof prepareEncounterConcentrationState<MovementTarget<TCharacterFacts>>>
+      >[]
+    >
     runtime(): Promise<RulesRuntimeService>
     random(max: number): number
-    /** The holder's slot when the contact left it defeated or unable to act (D95), else null. */
-    findEnd(
+    /** Every held state of a holder the contact defeated or left unable to act (D95); none otherwise. */
+    findEnds(
       actorId: string,
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
       projection?: TProjection
-    ): Promise<{
-      maintainedState: MovementMaintainedStateRef
-      reason: MovementConcentrationEndDto['result']['applicationOutputs']['reason']
-    } | null>
+    ): Promise<
+      {
+        maintainedState: MovementMaintainedStateRef
+        reason: MovementConcentrationEndDto['result']['applicationOutputs']['reason']
+      }[]
+    >
     projectEnd(
       end: { actorId: string; maintainedState: MovementMaintainedStateRef },
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
@@ -176,7 +183,7 @@ export async function prepareEncounterMovementConcentration<
   let projection = input.projection
   const settlements: MovementConcentrationSettlement[] = []
   const checks = [...(source.execution.concentrationChecks ?? [])]
-  let end = source.execution.concentrationEnd
+  const ends = [...(source.execution.concentrationEnds ?? [])]
   const phase = input.resume?.snapshot.applicationContext
   const frozen =
     phase?.kind === 'ENCOUNTER_MOVEMENT_REACTION' && phase.phase.kind === 'CONCENTRATION_EVIDENCE'
@@ -216,7 +223,7 @@ export async function prepareEncounterMovementConcentration<
   /** The source contact retains its end and checks beside its (unchanged) damage envelope. */
   const retainChildren = () => {
     const children = {
-      ...(end ? { concentrationEnd: end } : {}),
+      ...(ends.length ? { concentrationEnds: [...ends] } : {}),
       ...(checks.length ? { concentrationChecks: [...checks] } : {})
     }
     const completedSpatialExecutions = remainder.completedSpatialExecutions.map((entry) =>
@@ -267,19 +274,19 @@ export async function prepareEncounterMovementConcentration<
     // D95: a holder the contact defeated or left unable to act loses Concentration with no check,
     // so the checks below observe the lost slot and roll none for it.
     const found = source.holderActorId
-      ? await callbacks.findEnd(source.holderActorId, targets, projection)
-      : null
-    if (source.holderActorId && found) {
+      ? await callbacks.findEnds(source.holderActorId, targets, projection)
+      : []
+    for (const entry of found) {
       const ended = await callbacks.projectEnd(
-        { actorId: source.holderActorId, maintainedState: found.maintainedState },
+        { actorId: source.holderActorId!, maintainedState: entry.maintainedState },
         targets,
         projection
       )
       const occurrenceId = concentrationEndOccurrenceId(
         input.occurrenceId,
-        found.maintainedState.id
+        entry.maintainedState.id
       )
-      end = movementConcentrationEndDtoSchema.parse({
+      const end = movementConcentrationEndDtoSchema.parse({
         sourceCommandId: input.sourceCommandId,
         result: {
           occurrenceId,
@@ -289,24 +296,27 @@ export async function prepareEncounterMovementConcentration<
             occurrenceId,
             parentOccurrenceId: input.occurrenceId,
             ownerActorId: source.holderActorId,
-            maintainedStateId: found.maintainedState.id,
-            reason: found.reason,
+            maintainedStateId: entry.maintainedState.id,
+            reason: entry.reason,
             cleanup: ended.cleanup
           }
         },
         ownerTransitions: ended.ownerTransitions
       })
+      ends.push(end)
       settlements.push({ kind: 'END', execution: end })
-      adoptEnd(ended, found.maintainedState.id)
-      retainChildren()
+      adoptEnd(ended, entry.maintainedState.id)
     }
+    if (found.length) retainChildren()
     const maintainedStates = new Map<string, { id: string; createdAt: string }[]>()
     for (const { targetActorId } of source.applications) {
-      const current = await callbacks.loadState(targetActorId, targets, projection)
-      if (current)
-        maintainedStates.set(targetActorId, [
-          { id: current.maintained.id, createdAt: current.maintained.createdAt }
-        ])
+      if (maintainedStates.has(targetActorId)) continue
+      const held = await callbacks.loadStates(targetActorId, targets, projection)
+      if (held.length)
+        maintainedStates.set(
+          targetActorId,
+          held.map(({ maintained }) => ({ id: maintained.id, createdAt: maintained.createdAt }))
+        )
     }
     remaining.push(
       ...concentrationSaveApplications({
@@ -325,12 +335,13 @@ export async function prepareEncounterMovementConcentration<
     const { maintainedStateId } = bound
     const application = unboundDamageSaveApplication(bound)
     remaining = remaining.slice(1)
-    const current = await callbacks.loadState(application.targetActorId, targets, projection)
-    if (!current || current.maintained.id !== maintainedStateId)
-      throw new Error('The movement Concentration state changed before its check.')
+    const held = await callbacks.loadStates(application.targetActorId, targets, projection)
+    const current = held.find((entry) => entry.maintained.id === maintainedStateId)
+    if (!current) throw new Error('The movement Concentration state changed before its check.')
     const { context, facts } = createNativeConcentrationContext({
       gameSystemId: input.state.gameSystemId,
       current,
+      heldCount: held.length,
       parentOccurrenceId: input.occurrenceId,
       parentCommandFingerprint: remainder.root.commandFingerprint,
       application,
