@@ -18918,7 +18918,7 @@
             },
             {
               "id": "SPELLS-31.T4c2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18935,7 +18935,7 @@
                 ]
               },
               "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Merged in m593 (7b66730d5)."
             },
             {
               "id": "SPELLS-31.T4c2b",
@@ -19325,7 +19325,7 @@
                   "SPELLS-31.T4l2"
                 ]
               },
-              "note": "D206.",
+              "note": "D206. Reviewed 2026-11-01: option Effects stay in rider collection as gated FREE riders, because the GRANTED_ACTION_OPTION modifier is the generic relation; they are never ordinary riders.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
@@ -19734,7 +19734,7 @@
             {
               "id": "SPELLS-31.T5h-1",
               "text": "Cast parameter modifiers: a `parameters` discriminated union on CAST_MODIFIER, with server re-checked guards. Distant Spell through the RANGE variant; Overchannel is a GM ruling.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19748,8 +19748,7 @@
                   "SPELLS-31.T5g"
                 ]
               },
-              "note": "D206.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "D206. Merged in m593 (7b66730d5)."
             },
             {
               "id": "SPELLS-31.T5h-3",
@@ -27218,7 +27217,7 @@
           "tasks": [
             {
               "id": "PERF-4.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-4.4"
               ],
@@ -27230,8 +27229,7 @@
                 "finalSource": true
               },
               "text": "Measure at the cap: a real-code benchmark/test building a 1 Character + 99 Creature Run and timing the projection path that calls snapshotStatBlock (room projection and Convex projectionReads), asserting per-call cost against a budget derived from the PERF-1 targets (command p95 1 s, convergence 250 ms). Results recorded in docs/validation. If under budget, close 4.4 with the measurement as proof.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Ruling: a senses-only reader for `composeRoomSceneVision`, no cache, the 25 ms budget stays, and a docs/validation note carries the Blueprint numbers (D206).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Ruling: a senses-only reader for `composeRoomSceneVision`, no cache, the 25 ms budget stays, and a docs/validation note carries the Blueprint numbers (D206). Merged in m593 (7b66730d5)."
             },
             {
               "id": "PERF-4.T2",
@@ -27839,10 +27837,12 @@
           "acs": [
             {
               "text": "A plain-language guide with Player and GM sections explains every live-table flow an alpha tester meets: joining a Session, Scenes, tokens and movement, Manual versus Assisted Encounters, initiative, the turn stages (Recharge, death saves, start-of-turn effects), attacks, saves, spells and reactions, Public and Private GM rolls and their reveals, the auto-roll preference, and what can and cannot be undone.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-7.T1 (m593); see each task's proof."
+              ],
               "origin": [],
-              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs.",
+              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs. Closed 2026-11-01 by RELEASE-7.T1.",
               "id": "RELEASE-7.1"
             },
             {
@@ -27870,7 +27870,7 @@
           "tasks": [
             {
               "id": "RELEASE-7.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-7.1"
               ],
@@ -27882,8 +27882,7 @@
                 "finalSource": true
               },
               "text": "Draft the plain-language guide (new docs/guides/alpha-play-guide.md or similar) with Player and GM sections covering every live-table flow listed in AC .1: joining a Session, Scenes, tokens and movement, Manual vs Assisted Encounters, initiative, turn stages, attacks, saves, spells, reactions, Public/Private GM rolls and reveals, the auto-roll preference, and undo limits. Verify claims against code and tests, not memory; use product vocabulary from CONTEXT.md.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m593 (7b66730d5)."
             },
             {
               "id": "RELEASE-7.T2",
