@@ -286414,6 +286414,7 @@ export declare const api: {
             conditionTypeId: string;
             damageTypeId: string;
             movementTypeId: string;
+            unarmedStrikeEquipmentId?: string;
           };
           description?: string | null;
           heritages: Array<{

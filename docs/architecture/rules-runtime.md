@@ -2255,6 +2255,16 @@ Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVIN
 - **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
 
+### Character Unarmed Strike and weapon die grants (current, SPELLS-31.T4l2, D156)
+
+A System names its natural weapon with `defaults.unarmedStrikeEquipmentId`, an authored weapon Equipment item (the SRD's is `SRD_UNARMED_STRIKE_EQUIPMENT_ID`). `characterNaturalWeapon` (`characterRuleSnapshot.ts`) resolves it into `CharacterBuildSnapshot.naturalWeapon` and the rule facts read it beside `equipmentItems`; it is never written to `base.equipment`, so it stays out of the inventory, weight, attunement, hand and grip counts and Builder equipment choices. A System that leaves the default unset has no Unarmed Strike and no fallback. The item's attack, damage and ability modifiers are authored data (`unarmedStrikeEffect`, `unarmedStrikeAbilityModifiers`), so Martial Arts and Ki-Empowered Strikes reach it as grants on the `UNARMED` attack domain.
+
+Weapon damage resolution (`characterActionMechanics.ts`):
+
+- `withWeaponDie` keeps the larger of the item's die and a granted `WEAPON_DAMAGE_DIE` `SET_VALUE`, so a granted die never lowers a weapon's own die (a flat amount counts as a die of that size).
+- `OPTIONAL_ABILITY_MODIFIER_BONUS` contributions are alternatives to the weapon's ability: SOURCE-scoped ones and GLOBAL ones both count as alternatives, and the best applies. Other GLOBAL ability contributions still add.
+- The room compiler (`effectActionCompiler.ts`, `effectActionTestOutcomes.ts`) resolves fixed damage plus the ability modifier plus a granted die the same way, so the Character action and the room settle one expression.
+
 ### Granted-action offers (current, SPELLS-4.T2lb, D160)
 
 A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.

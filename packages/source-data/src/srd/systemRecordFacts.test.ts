@@ -1,8 +1,11 @@
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { describe, expect, it } from 'vitest'
+import { equipId } from './equipment/shared.js'
+import { unarmedStrike } from './equipment/unarmed-strike.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_PASSIVE_PERCEPTION_ID,
+  SRD_UNARMED_STRIKE_EQUIPMENT_ID,
   srdSystemRecord
 } from './vocabulary.js'
 
@@ -77,8 +80,14 @@ describe('SRD System record facts', () => {
     expect(system.defaults).toEqual({
       damageTypeId: byCode(system.damageTypes, 'FIRE')?.id,
       conditionTypeId: byCode(system.conditionTypes, 'POISONED')?.id,
-      movementTypeId: byCode(system.speeds, 'WALK')?.id
+      movementTypeId: byCode(system.speeds, 'WALK')?.id,
+      unarmedStrikeEquipmentId: SRD_UNARMED_STRIKE_EQUIPMENT_ID
     })
+  })
+
+  it('points the unarmed strike default at the authored natural weapon, Equipment 385', () => {
+    expect(system.defaults?.unarmedStrikeEquipmentId).toBe(equipId(385))
+    expect(unarmedStrike.id).toBe(equipId(385))
   })
 
   it('marks Exhaustion as the only levelled condition, up to level 6', () => {

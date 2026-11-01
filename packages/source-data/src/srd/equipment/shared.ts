@@ -48,6 +48,8 @@ import {
   thrownVersatileWeaponEffects as sharedThrownVersatileWeaponEffects,
   thrownWeaponAbilityModifiers as sharedThrownWeaponAbilityModifiers,
   thrownWeaponEffects as sharedThrownWeaponEffects,
+  unarmedStrikeAbilityModifiers as sharedUnarmedStrikeAbilityModifiers,
+  unarmedStrikeEffect as sharedUnarmedStrikeEffect,
   withOffHandAttack as sharedWithOffHandAttack,
   withOffHandDamage as sharedWithOffHandDamage
 } from '@artificer-toolkit/shared'
@@ -332,6 +334,16 @@ export function fixedMeleeWeaponEffect(
     order,
     bucket
   )
+}
+export function unarmedStrikeEffect(
+  equipmentId: string,
+  damageTypeCode: string,
+  amount: number
+): EquipmentEffectAuthored {
+  return sharedUnarmedStrikeEffect(srdChildId(equipmentId), damageTypeId(damageTypeCode), amount)
+}
+export function unarmedStrikeAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
+  return sharedUnarmedStrikeAbilityModifiers(srdChildId(equipmentId))
 }
 export function meleeWeaponAbilityModifiers(equipmentId: string): WeaponAbilityModifier[] {
   return sharedMeleeWeaponAbilityModifiers(srdChildId(equipmentId))

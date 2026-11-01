@@ -369,8 +369,10 @@ import { warhammerPlus3 } from './warhammer-plus-3.js'
 import { whipPlus1 } from './whip-plus-1.js'
 import { whipPlus2 } from './whip-plus-2.js'
 import { whipPlus3 } from './whip-plus-3.js'
+import { unarmedStrike } from './unarmed-strike.js'
 
 export const srdEquipment = [
+  unarmedStrike,
   club,
   dagger,
   greatclub,

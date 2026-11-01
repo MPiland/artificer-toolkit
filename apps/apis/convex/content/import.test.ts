@@ -115,7 +115,7 @@ describe('internal canonical source import', () => {
       cursor = result.isDone ? null : result.continueCursor
     } while (cursor !== null)
     expect(total).toBe(subjects.length)
-    expect(total).toBe(371)
+    expect(total).toBe(372)
   }, 120_000)
 
   it('stores a base Equipment compilation at import and replay restores it exactly', async () => {
