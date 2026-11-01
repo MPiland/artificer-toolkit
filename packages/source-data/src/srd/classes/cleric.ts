@@ -9,7 +9,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -30,9 +29,7 @@ import {
   STARTING_EQUIPMENT_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
@@ -40,7 +37,7 @@ import { creatureTypeId } from '../spells/shared.js'
 import { TURNED_INSTRUCTIONS } from './turned.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -66,32 +63,6 @@ function equipmentId(index: number): string {
 const C = 3 // Cleric class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(C, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(C, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 
 const divineInterventionCharge = {
   id: classRowId(C, 0x66, 11),
@@ -1037,8 +1008,7 @@ export const cleric: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(C, 5, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(5, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(C, 3, 6),
@@ -1066,8 +1036,7 @@ export const cleric: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(C, 8, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(C, 3, 9),
@@ -1087,10 +1056,7 @@ export const cleric: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(C, 10, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(C, 3, 11),
@@ -1121,10 +1087,7 @@ export const cleric: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(C, 13, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(C, 3, 14),
@@ -1136,10 +1099,7 @@ export const cleric: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(C, 14, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     }
   ]
 }

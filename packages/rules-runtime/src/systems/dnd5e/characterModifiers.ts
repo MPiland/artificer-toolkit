@@ -12,6 +12,7 @@ import {
   modifierLengthFeet
 } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
+import { dnd5eAbilityScoreMaximum } from './abilityScoreMaximum.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -162,13 +163,18 @@ export function evaluateDnd5eCharacterModifiers(
           : latest,
       undefined
     )
+    const increased =
+      (selected?.effective ?? ability.baseScore) +
+      groups
+        .filter((group) => group.modifierKind === 'BONUS' || group.modifierKind === 'PENALTY')
+        .reduce((sum, group) => sum + group.effective, 0)
     return {
       abilityId: ability.abilityId,
+      // A SET score is not an increase, so the maximum does not cap it.
       effective:
-        (selected?.effective ?? ability.baseScore) +
-        groups
-          .filter((group) => group.modifierKind === 'BONUS' || group.modifierKind === 'PENALTY')
-          .reduce((sum, group) => sum + group.effective, 0)
+        selected === undefined
+          ? Math.min(increased, dnd5eAbilityScoreMaximum(grantFold.modifiers, ability.abilityId))
+          : increased
     }
   })
   // A modifier naming the spellcasting ability (Shillelagh's) reads the Character's own; with none it

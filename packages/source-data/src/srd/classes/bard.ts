@@ -914,8 +914,7 @@ export const bard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(BD, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(BD, 3, 8),
@@ -1000,10 +999,7 @@ export const bard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(BD, 11, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(BD, 3, 12),
@@ -1068,10 +1064,7 @@ export const bard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(BD, 14, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(BD, 3, 15),
@@ -1100,10 +1093,7 @@ export const bard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(BD, 17, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(BD, 3, 18),
@@ -1124,10 +1114,7 @@ export const bard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(BD, 19, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(BD, 3, 20),

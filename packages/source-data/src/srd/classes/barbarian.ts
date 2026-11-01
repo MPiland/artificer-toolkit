@@ -4,7 +4,6 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
@@ -23,9 +22,7 @@ import {
   VALUE_DOMAIN_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type FacetAuthored,
   type ModifierGrantAuthored
@@ -44,7 +41,6 @@ import {
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   equippedCategoryRestriction,
   gmRulingEffect
 } from './mechanics.js'
@@ -85,34 +81,6 @@ const EXPLORERS_PACK_ID = equipmentId(186)
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD walk speed required.')
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>,
-  resourceChargeId?: string
-): EffectAuthored {
-  const range = { id: classRowId(B, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(B, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          ...(resourceChargeId ? { resourceUse: { chargeId: resourceChargeId, cost: 1 } } : {}),
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 
 /**
  * Danger Sense: advantage on Dexterity saves against effects the holder can see, lost while the
@@ -819,8 +787,7 @@ export const barbarian: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(B, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(B, 3, 8),
@@ -891,10 +858,7 @@ export const barbarian: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(B, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(B, 3, 12),
@@ -989,10 +953,7 @@ export const barbarian: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(B, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(B, 3, 16),
@@ -1037,10 +998,7 @@ export const barbarian: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(B, 10, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(18, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(B, 3, 19),
@@ -1061,19 +1019,13 @@ export const barbarian: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(B, 11, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(20, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(B, 3, 21),
       label: 'Primal Champion',
       description:
         'At 20th level, you embody the power of the wilds. Your Strength and Constitution scores increase by 4. Your maximum for those scores is now 24.',
-      effects: [
-        selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_BARBARIAN_PRIMAL_CHAMPION_MAXIMUM_24)
-      ],
       availableAtLevel: 20,
       order: 19,
       grants: {
@@ -1099,6 +1051,28 @@ export const barbarian: ClassAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { valueKind: 'FIXED', amount: 4 },
             order: 1
+          },
+          {
+            id: classRowId(B, 0x6a, 4),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM,
+            domain: { ability: ABILITY_CODE.STRENGTH },
+            modifierKind: MODIFIER_KIND.SET_VALUE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { amount: 24 },
+            order: 2
+          },
+          {
+            id: classRowId(B, 0x6a, 5),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM,
+            domain: { ability: ABILITY_CODE.CONSTITUTION },
+            modifierKind: MODIFIER_KIND.SET_VALUE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { amount: 24 },
+            order: 3
           }
         ]
       }

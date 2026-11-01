@@ -990,6 +990,12 @@ const buildModifierGrantVariants = () =>
       amountPayloadDtoSchema
     ),
     buildModifierGrantVariant(
+      'ABILITY_SCORE_MAXIMUM',
+      'SET_VALUE',
+      optionalAbilityParamDtoSchema,
+      amountPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
       'PROFICIENCY_BONUS',
       'BONUS',
       emptyDomainDtoSchema,
