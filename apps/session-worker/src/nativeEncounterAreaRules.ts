@@ -9,6 +9,9 @@ import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
@@ -34,6 +37,7 @@ import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/e
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   buildEncounterAreaPendingSnapshot,
+  encounterAreaSaveAwaiting,
   encounterAreaSettled,
   encounterChosenActorEntries,
   encounterChosenActorsChecksum,
@@ -42,7 +46,10 @@ import {
   holdEncounterAreaForcedMovement,
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
+  markEncounterAreaSaveRolled,
   markEncounterAreaSaveTested,
+  nextEncounterAreaWindowRequestId,
+  openEncounterAreaSaveWindow,
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
@@ -91,7 +98,8 @@ import {
   prepareStruckTarget,
   replayAreaTargetSave,
   revalidateAreaTarget,
-  revalidateStruckTarget
+  revalidateStruckTarget,
+  rollAreaTargetSave
 } from './nativeAreaRevalidation.js'
 import { completeAreaCommit } from './nativeAreaCommit.js'
 import { readNativeLiveCover } from './nativeLiveCover.js'
@@ -433,6 +441,7 @@ export async function sealReachSaves(
       prepared: reached[index]!.prepared,
       sealed: target
     })
+  snapshot = await openNextAreaSaveWindow(input, snapshot)
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
       ...input,
@@ -468,27 +477,106 @@ async function autoRollAreaSave(
     !input.requireAutoRoll(sealed.snapshot.applicationContext.rollerActorId)
   )
     return snapshot
-  const requestId = sealed.snapshot.request.requestId
-  const tested = await replayAreaTargetSave(
+  return recordAreaRoll(input, snapshot, areaOccurrenceId, entry, {
+    kind: 'AUTO_ROLL',
+    requestId: sealed.snapshot.request.requestId
+  })
+}
+
+/**
+ * Keeps one entry's roll in the pending area. A save settles with the Legendary Resistance its
+ * failure offers; one whose creature holds dice for after its d20 keeps the roll as the dice it
+ * rolled, to open its window with (D168), and replays it without rolling again. A rolled die is
+ * never rolled twice: an auto-roll is kept as its faces, and a settled window as its d20.
+ */
+async function recordAreaRoll(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  areaOccurrenceId: string,
+  entry: { actor: EncounterRunActorState; prepared: AreaPrepared; sealed: AreaTargetRecord },
+  resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+) {
+  const requestId = entry.sealed.snapshot.request.requestId
+  const result = await rollAreaTargetSave(
     input,
     { actor: entry.actor, target: entry },
-    sealed,
+    entry.sealed,
     areaOccurrenceId,
-    { kind: 'AUTO_ROLL', requestId }
+    resolution
   )
-  const rolled: EncounterEvidenceAnswer = {
-    kind: 'ENTER_DICE',
-    requestId,
-    rawFaces: tested.boundary.d20.rawFaces,
-    rollMode: tested.boundary.d20.rollMode
+  if (result.kind === 'PENDING') {
+    const held = result.pending.pause
+    if (held?.kind !== 'D20_WINDOW' || isD20RolledCheck(held.payload.rolled))
+      throw new Error('An area save must settle with its answer.')
+    const { rawFaces, rollMode } = held.payload.rolled.d20
+    const rolled: EncounterEvidenceAnswer = { kind: 'ENTER_DICE', requestId, rawFaces, rollMode }
+    return markEncounterAreaSaveRolled(snapshot, requestId, JSON.stringify(rolled))
   }
+  const kept: EncounterEvidenceAnswer | EncounterActionWindowAnswer =
+    resolution.kind === 'AUTO_ROLL'
+      ? {
+          kind: 'ENTER_DICE',
+          requestId,
+          rawFaces: result.boundary.d20.rawFaces,
+          rollMode: result.boundary.d20.rollMode
+        }
+      : resolution
   return markEncounterAreaSaveTested(
     snapshot,
     requestId,
-    JSON.stringify(rolled),
+    JSON.stringify(kept),
     offerEncounterAreaLegendaryResistance({
-      test: tested,
+      test: result,
       targetStateChecksum: checksumRuleDocument(entry.prepared.target)
+    })
+  )
+}
+
+/**
+ * Once every save is rolled, opens the d20 window of the rolled save whose creature acts earliest in
+ * the initiative order (D168), one window at a time; a settled window opens the next. The window
+ * replays the roll that was kept, so opening it rolls nothing.
+ */
+async function openNextAreaSaveWindow(
+  input: ReachPlanInput,
+  snapshot: ServerAggregateChoicePendingSnapshotDto
+) {
+  if (nextEncounterAreaWindowRequestId(snapshot, []) === null) return snapshot
+  const captured = await input.capture({ kind: 'INITIATIVE_ROUND' })
+  if (captured.kind !== 'INITIATIVE_ROUND') throw new Error('Turn initiative is unavailable.')
+  const requestId = nextEncounterAreaWindowRequestId(
+    snapshot,
+    captured.state ? initiativeActionOrder(captured.state, input.actors) : []
+  )
+  const context = snapshot.applicationContext
+  if (requestId === null || context.kind !== 'ENCOUNTER_AREA_ACTION') return snapshot
+  const sealed = context.targets.find((target) => target.snapshot.request.requestId === requestId)
+  if (
+    sealed?.rolledJson === undefined ||
+    sealed.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION'
+  )
+    throw new Error('The area save has no roll to open a window with.')
+  const rolled: EncounterEvidenceAnswer = JSON.parse(sealed.rolledJson)
+  const opened = await rollAreaTargetSave(
+    input,
+    await revalidateAreaTarget(input, context, sealed),
+    sealed,
+    snapshot.occurrenceId,
+    rolled
+  )
+  if (opened.kind !== 'PENDING') throw new Error('The area save has no d20 window to open.')
+  return openEncounterAreaSaveWindow(
+    snapshot,
+    requestId,
+    buildEncounterActionPendingSnapshot({
+      execution: opened.pending,
+      optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum,
+      commandJson: context.commandJson,
+      commandFingerprint: context.commandFingerprint,
+      initiatorUserId: context.initiatorUserId,
+      sourceActorId: context.casterActorId,
+      targetActorId: sealed.actorId,
+      currentnessChecksum: sealed.snapshot.applicationContext.currentnessChecksum
     })
   )
 }
@@ -501,7 +589,9 @@ async function autoRollAreaSave(
 export async function planNativeLiveEncounterAreaAnswer(
   input: ReachPlanInput & {
     response: ResolveRuleOccurrenceInputDto
-    resolution: EncounterEvidenceAnswer
+    /** The save the answer is for: its sealed roll, or the d20 window opened on it. */
+    requestId: string
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
   }
 ) {
@@ -510,12 +600,13 @@ export async function planNativeLiveEncounterAreaAnswer(
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
   const answered = context.targets.find(
-    (target) => target.snapshot.request.requestId === resolution.requestId
+    (target) => target.snapshot.request.requestId === input.requestId
   )
   const caught = context.targets.filter(({ collision }) => !collision)
   if (
     !answered ||
-    answered.testedJson !== undefined ||
+    encounterAreaSaveAwaiting(answered) !==
+      (resolution.kind === 'D20_WINDOW' ? 'WINDOW' : 'ROLL') ||
     answered.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
     answered.snapshot.occurrenceId !==
@@ -536,22 +627,15 @@ export async function planNativeLiveEncounterAreaAnswer(
   const revalidated = answered.collision
     ? await revalidateStruckTarget(input, context, answered, answered.collision)
     : await revalidateAreaTarget(input, context, answered)
-  const tested = await replayAreaTargetSave(
+  const snapshot = await openNextAreaSaveWindow(
     input,
-    revalidated,
-    answered,
-    areaSnapshot.occurrenceId,
-    resolution
-  )
-  const offer = offerEncounterAreaLegendaryResistance({
-    test: tested,
-    targetStateChecksum: checksumRuleDocument(revalidated.target.prepared.target)
-  })
-  const snapshot = markEncounterAreaSaveTested(
-    areaSnapshot,
-    resolution.requestId,
-    JSON.stringify(resolution),
-    offer
+    await recordAreaRoll(
+      input,
+      areaSnapshot,
+      areaSnapshot.occurrenceId,
+      { ...revalidated, prepared: revalidated.target.prepared, sealed: answered },
+      resolution
+    )
   )
   if (encounterAreaSettled(snapshot))
     return planNativeLiveEncounterAreaCommit({
@@ -613,7 +697,9 @@ export async function planNativeLiveEncounterAreaLegendaryResistance(
   const revalidated = decided.collision
     ? await revalidateStruckTarget(input, context, decided, decided.collision)
     : await revalidateAreaTarget(input, context, decided)
-  const resolution: EncounterEvidenceAnswer = JSON.parse(decided.testedJson)
+  const resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer = JSON.parse(
+    decided.testedJson
+  )
   const tested = await replayAreaTargetSave(
     input,
     revalidated,
@@ -888,7 +974,9 @@ export async function planNativeLiveEncounterAreaCommit(
     const replayed = []
     for (const entry of entries) {
       if (entry.sealed.testedJson === undefined) throw new Error('The area roll is unanswered.')
-      const resolution: EncounterEvidenceAnswer = JSON.parse(entry.sealed.testedJson)
+      const resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer = JSON.parse(
+        entry.sealed.testedJson
+      )
       replayed.push(
         await replayAreaTargetSave(input, entry, entry.sealed, areaOccurrenceId, resolution)
       )

@@ -23,11 +23,12 @@ const THIRD = '00000000-0000-4000-8000-0000000000a3'
 const scene = { sceneId: '00000000-0000-4000-8000-0000000000b1', sceneVersion: 4 }
 const area = { origin: { x: 50, y: 150 }, shape: { kind: 'RADIUS' as const, radius: 400 } }
 
-function context(targets: { actorId: string; testedJson?: string }[]) {
-  const sealed = targets.map(({ actorId, testedJson }, index) => ({
+function context(targets: { actorId: string; testedJson?: string; rolledJson?: string }[]) {
+  const sealed = targets.map(({ actorId, testedJson, rolledJson }, index) => ({
     actorId,
     token: token(`00000000-0000-4000-8000-0000000000c${index}`, 150 + index * 100),
-    ...(testedJson === undefined ? {} : { testedJson })
+    ...(testedJson === undefined ? {} : { testedJson }),
+    ...(rolledJson === undefined ? {} : { rolledJson })
   }))
   return {
     scene,
@@ -57,6 +58,11 @@ describe('removing a creature from a pending area', () => {
 
   it('refuses a creature whose save was already answered', () => {
     const before = context([{ actorId: FIRST, testedJson: '{}' }, { actorId: SECOND }])
+    expect(removeEncounterAreaTarget(before, FIRST)).toEqual({ kind: 'ANSWERED' })
+  })
+
+  it('refuses a creature whose roll is kept for its d20 window (D168)', () => {
+    const before = context([{ actorId: FIRST, rolledJson: '{}' }, { actorId: SECOND }])
     expect(removeEncounterAreaTarget(before, FIRST)).toEqual({ kind: 'ANSWERED' })
   })
 

@@ -2,7 +2,7 @@ import {
   pendingSnapshotContinuation,
   restoreEncounterActionPending
 } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { restoreHeldNativeActionCompletion } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { restoreHeldNativeActionCompletion } from '@artificer-toolkit/rules-runtime/encounterActionCompletion'
 import type { NativePauseHandler } from './nativePauseTypes.js'
 
 export const forcedMovementPause: NativePauseHandler<'FORCED_MOVEMENT'> = {

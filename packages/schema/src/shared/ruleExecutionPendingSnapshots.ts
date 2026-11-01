@@ -563,6 +563,11 @@ export type EncounterAreaActionPendingContextDto = {
     perceivedByCaster: boolean
     /** Set once the creature's own roller answered its save; the GM can no longer take it out. */
     testedJson?: string
+    /**
+     * The roll of a creature holding after-roll saving-throw dice, kept until its d20 window settles
+     * (D168); `testedJson` then holds the settled window. The windows open one at a time, in initiative order.
+     */
+    rolledJson?: string
     /** Set when the answered save failed and the creature has a Legendary Resistance to offer. */
     legendaryResistance?: EncounterAreaLegendaryResistanceDto
     /**
@@ -682,6 +687,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
+            rolledJson: z.optional(z.string()),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
              * Marks the save of a creature a forced mover struck (D159) rather than one the area caught:

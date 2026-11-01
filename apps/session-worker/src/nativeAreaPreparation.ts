@@ -595,6 +595,7 @@ export async function prepareAreaTarget(
     token,
     sceneContext,
     prepared: await prepareCasterActionOnTarget(input, {
+      saveWindow: true,
       caster: base.caster,
       target: actor,
       movementTargets: base.movementTargets,
@@ -639,6 +640,8 @@ export function prepareCasterActionOnTarget(
     origin?: { point: ScenePoint; sceneId: string; sceneVersion: number }
     /** Runs this synthetic action of the caster in place of the command action (a forced-movement collision). */
     capability?: EncounterBasicActionCapabilityDescriptor
+    /** Shows the creature's save a d20 window when it holds dice for after it (D168); a sealed area save does. */
+    saveWindow?: boolean
   }
 ) {
   const { origin, sceneContext, capability } = action
@@ -658,6 +661,7 @@ export function prepareCasterActionOnTarget(
       handHolds: encounterSourceHandHolds(input.activeEffectsByActorId, action.caster.id)
     },
     overridable: true,
+    saveWindow: action.saveWindow,
     movementTargets: action.movementTargets,
     sceneContext,
     loadAttackPerception:

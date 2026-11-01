@@ -1139,7 +1139,14 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     caught: [],
     saves: [],
     legendaryResistance: [],
-    allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
+    windows: [],
+    allowedResponses: [
+      'ENTER_DICE',
+      'SYSTEM_ROLL',
+      'D20_WINDOW_DECLINE',
+      'D20_WINDOW_USE',
+      'AREA_LEGENDARY_RESISTANCE'
+    ]
   }
   const gmArea = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...areaBase,

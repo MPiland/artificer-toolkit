@@ -158,3 +158,28 @@ export function validateInitiativeCursor(input: {
   )
     throw new Error('The current Encounter side does not match normalized initiative.')
 }
+
+/**
+ * The Run actors in the order they act: participants by turn order, each owned actor right behind the
+ * owner it follows (D190a). An actor with no place keeps its given order after them.
+ */
+export function initiativeActionOrder(
+  state: EncounterInitiativeRoundStateDto,
+  actors: readonly { id: string; owner?: ActorOwnerLink | null }[]
+) {
+  const placed = [...state.participants]
+    .sort((left, right) => (left.turnOrderOrdinal ?? -1) - (right.turnOrderOrdinal ?? -1))
+    .map(({ actorId }) => actorId)
+  const leadOf = (actor: (typeof actors)[number]) =>
+    placed.includes(actor.id)
+      ? actor.id
+      : followedActorId(actor, actors, (actorId) => placed.includes(actorId))
+  const places = new Map(
+    actors.map((actor) => {
+      const lead = leadOf(actor)
+      const rank = lead === null ? placed.length : placed.indexOf(lead)
+      return [actor.id, rank * 2 + (lead === actor.id || lead === null ? 0 : 1)] as const
+    })
+  )
+  return actors.map(({ id }) => id).sort((left, right) => places.get(left)! - places.get(right)!)
+}
