@@ -52,10 +52,10 @@ function modifierBonuses(
  * each either ungated or held only while the check adds no proficiency.
  */
 function abilityCheckBonuses(abilityId: string): NumericBonus[] {
-  return [{}, { ability: abilityId }].flatMap((scope) =>
-    [{}, { unproficientOnly: true }].flatMap((gate) =>
-      modifierBonuses('ABILITY_CHECK', { ...scope, ...gate }, false)
-    )
+  const scopes: Record<string, string>[] = [{}, { ability: abilityId }]
+  const gates: Record<string, boolean>[] = [{}, { unproficientOnly: true }]
+  return scopes.flatMap((scope) =>
+    gates.flatMap((gate) => modifierBonuses('ABILITY_CHECK', { ...scope, ...gate }, false))
   )
 }
 
