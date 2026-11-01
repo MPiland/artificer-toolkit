@@ -510,6 +510,18 @@ returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Mainta
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
 decides whether a mechanic uses it. Storage layout and limits are in [persistence](persistence.md).
 
+**Concentration capacity (current, SPELLS-12.T1).** A holder keeps a _set_ of maintained states per
+maintenance definition, up to `concentrationCapacity` (dnd5e `characterPolicy`: 1 plus the
+`CONCENTRATION_CAPACITY` `BONUS` modifiers that apply; a Creature holds 1). `chooseReplacedMaintainedState`
+(in `encounterActionMaintenance.ts`) decides what a new maintained effect replaces: below capacity nothing
+(the receipt's `maintainedEffectTransitionDto.priorState` is null); at capacity with one held, that state;
+with several held, the state the command's `endedMaintainedStateId` names, or else
+`MaintainedReplacementRequiredError`, which the Worker answers as a `MAINTAINED_REPLACEMENT_REQUIRED`
+domain rejection carrying the held states (`heldStates`, with the label of what each keeps alive) so the
+caster chooses before the spell takes effect. Persistence reads the prior from the receipt by id.
+Interim: damage-save chains and the other single-state consumers act on the oldest held state, and carried
+grants (D99) still end on any new Concentration.
+
 ## Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 
 `RESOLVE_ACTION` evaluates its overridable checks once, in the room planner (`nativeEncounterRules`),
@@ -2681,7 +2693,7 @@ rule (`choosesUnaffected`, no cap). Whether the spared creatures are ones the ca
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eActionRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` and `TARGET_BELOW_MAXIMUM_HIT_POINTS` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -2690,7 +2702,9 @@ the mode the rules derived from roll contributors. A hand-rolled advantage unloc
 derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that.
 A `CREATURE_TYPE` check reads the target's creature type from `dnd5e.target-creature-type`, which the attack
 TEST binds from the target's derived facts (a `CREATURE` context is `authoringModeKind: ALL` or `SELECTED` over
-`creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+`creatureTypeIds`). A `TARGET_BELOW_MAXIMUM_HIT_POINTS` check (also a `CREATURE` context) reads
+`dnd5e.target-below-maximum-hit-points`, which the attack TEST binds when the target's current hit points are
+below its maximum (Colossus Slayer). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
@@ -2848,8 +2862,8 @@ massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both re
 arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
 A relationship outcome is held on one bounded result path: an attack's `ON_HIT`/`ON_CRIT`, a contest's
 `ON_CHECK_SUCCESS`, a direct use's `ON_USE`, or (SPELLS-33.T6n4) a save action's `ON_SAVE_FAIL`. `relationshipPlan` gates
-the plan with `resultGate` on that path, so a target that makes the save is never held. The Whelm and the Gelatinous
-Cube's Engulf are the SRD cases. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
+the plan with `resultGate` on that path, so a target that makes the save is never held. The Water Elemental's Whelm is the SRD case (D202): a Self area over its own space, like the Whirlwind,
+whose failed save damages and holds the target. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
 still a GM ruling: the nested save's result path is not yet a gate.
 `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn

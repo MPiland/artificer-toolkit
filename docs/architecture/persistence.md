@@ -377,6 +377,8 @@ store.
   (SPELLS-5.11, D101). A carried grant relinked to its caster's reinstated Concentration (D151,
   SPELLS-5.12) stores the later Run as `sourceEncounterId` beside its `maintainedEffectStateId`, while its
   definition keeps the earlier Run's origin; `readCharacterEffect` accepts that pair only on a stamped row.
+  An actor may hold several states per maintenance definition (Concentration capacity, SPELLS-12.T1);
+  `readMaintainedStatesByDefinition` lists them oldest first and the single-state reader returns the oldest.
   A maintained state's descriptor names its `provenance` (`ACTION` with the creating action and
   occurrence, or `CARRIED` with the caster); `rules/maintainedProvenanceMigration:run` moved stored
   descriptors' top-level action ids into it. `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the

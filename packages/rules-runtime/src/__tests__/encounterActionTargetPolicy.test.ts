@@ -28,6 +28,10 @@ describe('an action’s reach, which a relationship seals (D152)', () => {
   const reachOf = (range: CompiledActionTargetPolicy['range']) =>
     encounterActionReachFeet({ range, targeting: null, shape: null, pathOverrides: [] })
 
+  it('is 5 feet for a Self action, whose area is the source’s own space (D202)', () => {
+    expect(reachOf({ id: 'range', rangeKind: 'SELF' })).toBe(5)
+  })
+
   it('is 5 feet for a Touch action and the normal range in feet for a distance', () => {
     expect(reachOf({ id: 'range', rangeKind: 'TOUCH' })).toBe(5)
     expect(reachOf({ id: 'range', rangeKind: 'DISTANCE', amount: 10, unit: 'FEET' })).toBe(10)
