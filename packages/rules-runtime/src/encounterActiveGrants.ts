@@ -973,15 +973,16 @@ export function encounterSourceSightSaveGrants(input: {
   )
 }
 
-/** The target's facts with the source-sight contributors that hold now merged into its saves of one ability. */
-export function withSourceSightSave(
+/** The target's facts with roll-mode contributors merged into its saves of one ability; unchanged without an ability or contributors. */
+export function withSaveContributors(
   gameSystemId: string,
   targetDerivedFacts: Readonly<Record<string, unknown>>,
-  abilityDefinitionId: string,
+  abilityDefinitionId: string | undefined,
   contributors: readonly EncounterRelationshipD20Contributor[]
 ): Readonly<Record<string, unknown>> {
   const { savingThrowDefinitions } = targetDerivedFacts
-  if (!Array.isArray(savingThrowDefinitions) || contributors.length === 0) return targetDerivedFacts
+  if (!abilityDefinitionId || !Array.isArray(savingThrowDefinitions) || contributors.length === 0)
+    return targetDerivedFacts
   return {
     ...targetDerivedFacts,
     savingThrowDefinitions: withSaveRowContributors(

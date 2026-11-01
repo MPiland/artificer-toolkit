@@ -63,6 +63,7 @@ import { useMaintainedReplacementChoice } from './useMaintainedReplacementChoice
 import { CampaignTabletopBasicActions } from './CampaignTabletopBasicActions'
 import {
   CampaignTabletopOptionalChoiceFields,
+  CampaignTabletopCastModifierInput,
   CampaignTabletopHealSharesInput,
   CampaignTabletopSpendInput
 } from './CampaignTabletopChoiceInputs'
@@ -75,6 +76,7 @@ import { CampaignTabletopProjectileTargets } from './CampaignTabletopProjectileT
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { AREA_AIM_COPY, BAND_SIDES } from './campaignTabletopAimCopy'
 import { sparedCreatureLimit } from './sparedCreatureLimit'
+import { useCastModifierChoice } from './useCastModifierChoice'
 import {
   aimedAreaShape,
   type VttActionPreview,
@@ -336,6 +338,7 @@ export function CampaignTabletopActionDrawer({
   const ammunitionOptions = selectedAction?.ammunition ?? []
   const chosenSpend = selectedAction?.chosenSpend
   const spentUnits = chosenSpend && Math.min(pickedSpentUnits, chosenSpend.max)
+  const castModifier = useCastModifierChoice(selectedAction)
   const dividedHeal = selectedAction?.dividedHeal
   const healShareTargets = encounter.actors.filter((actor) => pickedActorIds.includes(actor.id))
   const healShares = healShareTargets.map(({ id }) => ({
@@ -875,6 +878,7 @@ export function CampaignTabletopActionDrawer({
         acknowledgedWarnings,
         ...(endedMaintainedStateId ? { endedMaintainedStateId } : {}),
         ...(spentUnits !== undefined ? { spentUnits } : {}),
+        ...castModifier.choice,
         ...(isGm ? { visibility: gmRollVisibility } : {}),
         optionalCombatIntent: currentOptionalChoices
           ? {
@@ -1163,6 +1167,13 @@ export function CampaignTabletopActionDrawer({
                   shares={pickedHealShares}
                   targets={healShareTargets}
                   onChange={setPickedHealShares}
+                />
+              ) : null}
+              {castModifier.modifiers.length ? (
+                <CampaignTabletopCastModifierInput
+                  actors={encounter.actors}
+                  cast={castModifier}
+                  disabled={selectionControlsDisabled}
                 />
               ) : null}
               {spareLimit !== undefined ? (

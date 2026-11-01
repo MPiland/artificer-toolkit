@@ -31,7 +31,7 @@ import {
   sourceQualifierAdmits,
   encounterSavingThrowAfterRollDice,
   withSourceSaves,
-  withSourceSightSave
+  withSaveContributors
 } from './encounterActiveGrants.js'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
@@ -915,6 +915,11 @@ export async function prepareEncounterActionMechanics<
         })
   )
   const attackDecoy = attackKind === null ? null : (input.attackDecoy ?? null)
+  // What the target's save of the action's ability gains: the true sight of the one who sees it, and the cast modifier.
+  const saveContributors = [
+    ...(attackSight && attackKind === null ? attackSight.trueSight : []),
+    ...castModifierContributors
+  ]
   return {
     state,
     actor,
@@ -1030,18 +1035,11 @@ export async function prepareEncounterActionMechanics<
           ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
           : withSourceSaves(
               state.gameSystemId,
-              withSourceSightSave(
+              withSaveContributors(
                 state.gameSystemId,
-                attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
-                  ? withSourceSightSave(
-                      state.gameSystemId,
-                      targetFacts.targetDerivedFacts,
-                      compilerSource.savingThrowAbilityDefinitionId,
-                      attackSight.trueSight
-                    )
-                  : targetFacts.targetDerivedFacts,
-                compilerSource?.savingThrowAbilityDefinitionId ?? '',
-                castModifierContributors
+                targetFacts.targetDerivedFacts,
+                compilerSource?.savingThrowAbilityDefinitionId,
+                saveContributors
               ),
               targetFacts.sourceSaves,
               attackSource,
