@@ -797,8 +797,12 @@ function LegendaryActionControls({
     summonChoices: {}
   })
   useEffect(() => {
+    console.log('AIMDBG decision size set', areaSize !== null)
     onAreaSizeChange(areaSize)
-    return () => onAreaSizeChange(null)
+    return () => {
+      console.log('AIMDBG decision size clear')
+      onAreaSizeChange(null)
+    }
   }, [areaSize, onAreaSizeChange])
   // The aim belongs to this window: it leaves with it.
   useEffect(() => () => onAreaAimChange(null), [onAreaAimChange])

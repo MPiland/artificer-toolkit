@@ -697,8 +697,12 @@ export function CampaignTabletopActionDrawer({
   }
 
   useEffect(() => {
+    console.log('AIMDBG action size set', areaSize !== null)
     onAreaSizeChange(areaSize)
-    return () => onAreaSizeChange(null)
+    return () => {
+      console.log('AIMDBG action size clear')
+      onAreaSizeChange(null)
+    }
   }, [areaSize, onAreaSizeChange])
 
   // An area's target is its origin, which the stage draws as the area, so only a creature target is ringed.
