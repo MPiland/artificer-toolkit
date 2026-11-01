@@ -76,12 +76,12 @@ describe('Character Unarmed Strike (SPELLS-31.T4l2)', () => {
     const naturalId = snapshot.naturalWeapon?.instanceId
     expect(naturalId).toBeDefined()
 
-    const heldIds = buildCharacterHandRuleFacts(snapshot).handFacts.items.map(
-      (item) => item.itemInstanceId
-    )
-    const weighedIds = buildCharacterItemMechanicsRuleFacts(snapshot).itemMechanicsFacts.items.map(
-      (item) => item.itemInstanceId
-    )
+    const { handFacts } = buildCharacterHandRuleFacts(snapshot)
+    const { itemMechanicsFacts } = buildCharacterItemMechanicsRuleFacts(snapshot)
+    const heldIds = handFacts?.items.map((item) => item.itemInstanceId)
+    const weighedIds = itemMechanicsFacts?.items.map((item) => item.itemInstanceId)
+    expect(heldIds).toBeDefined()
+    expect(weighedIds).toBeDefined()
     expect(heldIds).not.toContain(naturalId)
     expect(weighedIds).not.toContain(naturalId)
     expect(unarmedRow(sheet)).toBeDefined()
