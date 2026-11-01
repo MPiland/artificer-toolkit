@@ -27,7 +27,11 @@ const unarmed = (character: ReturnType<typeof evaluateSrdCharacter>) =>
   itemAction(character, UNARMED, { attackKind: 'UNARMED' }).decision
 
 const melee = (character: ReturnType<typeof evaluateSrdCharacter>, label: string) =>
-  itemAction(character, label, { attackKind: 'MELEE', grip: 'ONE_HANDED' }).decision
+  itemAction(character, label, {
+    attackKind: 'MELEE',
+    grip: 'ONE_HANDED',
+    activation: 'ACTION'
+  }).decision
 
 const DEX_16 = { DEXTERITY: 16, STRENGTH: 10 }
 
