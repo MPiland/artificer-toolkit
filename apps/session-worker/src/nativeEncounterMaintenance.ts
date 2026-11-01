@@ -1,7 +1,11 @@
 import { prepareMaintainedEffectStateRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
-import { poolResourceConsumption } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
+import {
+  onHitSpellConsumption,
+  poolResourceConsumption
+} from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import type { EncounterOnHitCost } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   MaintainedReplacementRequiredError,
@@ -334,28 +338,43 @@ export async function prepareNativeLiveActionMaintenance(input: {
 }
 
 /**
- * The use a Concentration capacity bonus spent to make room for the cast's Concentration, as the
- * resource spend that settles with the cast; null when no bonus was needed.
+ * The resource or slot spend that settles with a Character action beyond its own cost: what the
+ * attacker's chosen on-hit rider is paid with, else the use a Concentration capacity bonus spent to
+ * make room for the cast's Concentration. Null when neither applies.
  */
-export function concentrationCapacityUseSpend(input: {
+export function settledCharacterActionSpend(input: {
   prepared: Pick<
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
     'source' | 'sourceFacts'
   >
+  chosenOnHit: EncounterOnHitCost | null
   maintenance: { capacityUse: { poolId: string } | null } | null
   automationMode: AutomationModeDto
 }) {
-  const use = input.maintenance?.capacityUse
-  const { source } = input.prepared
-  if (!use || source.kind !== 'CHARACTER_ACTION') return null
-  const { characterFacts } = input.prepared.sourceFacts
-  if (!characterFacts) throw new StaleCharacterActionError()
+  const { prepared, chosenOnHit } = input
+  const { source } = prepared
+  if (source.kind !== 'CHARACTER_ACTION') return null
+  if (chosenOnHit?.kind === 'SPELL_SLOT')
+    return {
+      spellConsumption: onHitSpellConsumption({
+        spellSlots: source.effectivePolicyOutput.spellSlots,
+        slotLevel: chosenOnHit.slotLevel,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion
+      })
+    }
+  const pool =
+    chosenOnHit ?? (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
+  if (!pool) return null
+  const { characterFacts } = prepared.sourceFacts
+  if (!characterFacts)
+    throw new StaleCharacterActionError('The selected Character action source is stale.')
   return {
     resourceConsumption: poolResourceConsumption({
       resources: source.effectivePolicyOutput.resources,
       resourceUsage: characterFacts.sheetState.resourceUsage,
-      poolId: use.poolId,
-      cost: 1,
+      poolId: pool.poolId,
+      cost: pool.cost,
       characterId: source.characterId,
       expectedStreamVersion: source.characterStreamVersion,
       automationMode: input.automationMode

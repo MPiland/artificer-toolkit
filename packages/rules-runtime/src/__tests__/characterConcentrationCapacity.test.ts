@@ -26,7 +26,8 @@ function wizardPolicy(items: readonly { label: string; equipped: boolean }[]) {
   return evaluateSrdCharacter({
     classes: [{ label: 'Wizard', level: 5 }],
     items,
-    extraEquipment: [firstItem, secondItem, gatedItem, usesItem]
+    extraEquipment: [firstItem, secondItem, gatedItem, usesItem],
+    resourceUsage: []
   }).output
 }
 
