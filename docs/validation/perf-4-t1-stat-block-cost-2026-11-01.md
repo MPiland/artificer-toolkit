@@ -14,18 +14,18 @@ mix that fits the Blueprint limit (below). Local, in-process `convex-test`; 20 w
 
 A pass over every Creature may take 10% of the target of the path that runs it.
 
-| Path | Caller | Budget per 99-Creature pass |
-|---|---|---|
-| Convergence | `composeRoomSceneVision` (token moves, scene commits, cache builds) | 25 ms |
-| Command | `projectNativeGm`, `splitRunActorState`, movement, cleaving | 100 ms |
+| Path        | Caller                                                              | Budget per 99-Creature pass |
+| ----------- | ------------------------------------------------------------------- | --------------------------- |
+| Convergence | `composeRoomSceneVision` (token moves, scene commits, cache builds) | 25 ms                       |
+| Command     | `projectNativeGm`, `splitRunActorState`, movement, cleaving         | 100 ms                      |
 
 ## Results
 
-| Measure | p50 | p95 | Budget |
-|---|---|---|---|
-| `snapshotStatBlock` pass (command paths) | 21.8–22.9 ms | 25.7–31.3 ms | 100 ms |
-| Scene vision senses pass, after the fix | 0.17 ms | 0.19–0.20 ms | 25 ms |
-| Convex `readEncounterSessionState` (GM) | 94–102 ms | 108–170 ms | 1000 ms |
+| Measure                                  | p50          | p95          | Budget  |
+| ---------------------------------------- | ------------ | ------------ | ------- |
+| `snapshotStatBlock` pass (command paths) | 21.8–22.9 ms | 25.7–31.3 ms | 100 ms  |
+| Scene vision senses pass, after the fix  | 0.17 ms      | 0.19–0.20 ms | 25 ms   |
+| Convex `readEncounterSessionState` (GM)  | 94–102 ms    | 108–170 ms   | 1000 ms |
 
 Before the fix the vision path ran `snapshotStatBlock` and discarded the armor class: pass p95
 28–34 ms, over the 25 ms budget, with p50 about 23–25 ms. Fix: `snapshotCreatureSenses` reads the
