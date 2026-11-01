@@ -1,4 +1,5 @@
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +11,7 @@ import {
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   CONSTITUTION,
+  PETRIFIED,
   plannedThresholdDefinition as plannedEffect,
   TARGET_ID
 } from '../testing/repeatSaveThresholdsFixture.js'
@@ -157,6 +159,71 @@ describe('repeat-save THRESHOLDS counts successes and failures across end-of-tur
       FAIL
     )
     expect(kept).toMatchObject({ terminal: false, saveTally: { successes: 2, failures: 1 } })
+  })
+})
+
+describe('a THRESHOLDS repeat save that escalates (SPELLS-4.T2ps-b)', () => {
+  const attempts = { successesToEnd: 3, failuresToResolve: 3, consecutive: false }
+  const plannedEscalating = () => plannedEffect(attempts, { escalates: true })
+
+  it('lasts until its tally settles, and names the escalated condition', async () => {
+    const definition = await plannedEscalating()
+    expect(definition.recurrence.saveThresholds).toEqual(attempts)
+    expect(definition.recurrence.expiration).toMatchObject({
+      kind: 'TICKS',
+      initialRemaining: MAX_ACTIVE_EFFECT_TURNS
+    })
+  })
+
+  it('counts a failure below the count without escalating', async () => {
+    const definition = await plannedEscalating()
+    const counted = await endOfTurn(
+      definition,
+      {
+        schemaVersion: 1,
+        remainingTicks: MAX_ACTIVE_EFFECT_TURNS,
+        saveTally: { successes: 2, failures: 1 }
+      },
+      FAIL
+    )
+    expect(counted).toMatchObject({ terminal: false, saveTally: { successes: 2, failures: 2 } })
+  })
+
+  it('leaves the escalated condition in place of the held one at the failure count', async () => {
+    const definition = await plannedEscalating()
+    const petrified = await endOfTurn(
+      definition,
+      {
+        schemaVersion: 1,
+        remainingTicks: MAX_ACTIVE_EFFECT_TURNS,
+        saveTally: { successes: 2, failures: 2 }
+      },
+      FAIL
+    )
+    expect(petrified).toMatchObject({
+      terminal: true,
+      applications: [
+        { kind: 'CONDITION_REMOVE', conditionId: STUNNED },
+        { kind: 'CONDITION_APPLY', conditionId: PETRIFIED }
+      ]
+    })
+  })
+
+  it('ends with the held condition released, and no escalation, at the success count', async () => {
+    const definition = await plannedEscalating()
+    const ended = await endOfTurn(
+      definition,
+      {
+        schemaVersion: 1,
+        remainingTicks: MAX_ACTIVE_EFFECT_TURNS,
+        saveTally: { successes: 2, failures: 2 }
+      },
+      PASS
+    )
+    expect(ended).toMatchObject({
+      terminal: true,
+      applications: [{ kind: 'CONDITION_REMOVE', conditionId: STUNNED }]
+    })
   })
 })
 

@@ -90,7 +90,7 @@ async function seeded(attempts: RepeatSaveAttempts, saveTally: ActiveEffectSaveT
   for (const actor of actors) await insertRunActor(ctx, actor)
   const owner = turnEffectOwner(goblin, ENCOUNTER_ID)
   const store = createActiveRuleEffectStore(ctx)
-  const planned = await plannedThresholdDefinition(attempts, GOBLIN_ID)
+  const planned = await plannedThresholdDefinition(attempts, { targetActorId: GOBLIN_ID })
   const effect = await store.create({
     id: testUuid(0x4a1),
     owner,

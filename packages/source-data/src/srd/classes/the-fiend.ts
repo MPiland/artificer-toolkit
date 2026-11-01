@@ -22,7 +22,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { ABILITY_CODE, SRD_DAMAGE_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -85,18 +85,32 @@ export const theFiend: ClassAuthored = {
         'Starting at 1st level, when you reduce a hostile creature to 0 hit points, you gain temporary hit points equal to your Charisma modifier + your warlock level (minimum of 1).',
       availableAtLevel: 1,
       order: 1,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(W, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(W, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(W, 11, 12),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DEFEAT_TEMPORARY_HIT_POINTS,
+            domain: {},
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'ABILITY_MODIFIER', ability: ABILITY_CODE.CHARISMA },
+            order: 0
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_DARK_ONES_BLESSING
-        })
-      ]
+          {
+            id: classRowId(W, 11, 13),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DEFEAT_TEMPORARY_HIT_POINTS,
+            domain: {},
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { valueKind: 'CLASS_LEVEL', classId: CLASS_IDS.WARLOCK, multiplier: 1 },
+            order: 1
+          }
+        ]
+      }
     },
     {
       id: classRowId(W, 11, 4),

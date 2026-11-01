@@ -1,5 +1,8 @@
 import { powerWordStun } from '@artificer-toolkit/source-data/srd/spells/power-word-stun.js'
-import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_CONDITION_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { SpellAuthored } from '@artificer-toolkit/shared'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
@@ -14,14 +17,20 @@ export const TARGET_ID = testUuid(0xe302)
 export const CONSTITUTION = SRD_ABILITIES.find(({ code }) => code === 'CONSTITUTION')!.id
 const SAVE_DC = 14
 
+export const PETRIFIED = SRD_CONDITION_TYPES.find(({ code }) => code === 'PETRIFIED')!.id
+
 export type RepeatSaveAttempts = {
   successesToEnd: number
   failuresToResolve: number
   consecutive: boolean
 }
 
-/** A Power Word Stun whose repeated save counts to thresholds, the shape Flesh to Stone uses. */
-function thresholdSpell(attempts: RepeatSaveAttempts): SpellAuthored {
+/**
+ * A Power Word Stun whose repeated save counts to thresholds. With `escalates` it has no duration of
+ * its own and a failed tally leaves the petrified condition in place of the held one (Prismatic
+ * Spray's sixth colour).
+ */
+function thresholdSpell(attempts: RepeatSaveAttempts, escalates: boolean): SpellAuthored {
   const [effect] = powerWordStun.effects ?? []
   const [path] = effect!.paths
   if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
@@ -37,9 +46,27 @@ function thresholdSpell(attempts: RepeatSaveAttempts): SpellAuthored {
             ...path,
             resultBlock: {
               ...block,
+              ...(escalates && { duration: undefined }),
               outcomes: block.outcomes.map((outcome) =>
                 outcome.effectKind === 'FOLLOW_UP_SAVE'
-                  ? { ...outcome, attempts: { kind: 'THRESHOLDS' as const, ...attempts } }
+                  ? {
+                      ...outcome,
+                      attempts: { kind: 'THRESHOLDS' as const, ...attempts },
+                      ...(escalates && {
+                        onFailure: {
+                          kind: 'OUTCOMES' as const,
+                          endCurrent: true,
+                          resultKind: 'SINGLE' as const,
+                          outcomes: [
+                            {
+                              id: testUuid(0xe308),
+                              effectKind: 'CONDITION' as const,
+                              conditionId: PETRIFIED
+                            }
+                          ]
+                        }
+                      })
+                    }
                   : outcome
               )
             }
@@ -50,8 +77,8 @@ function thresholdSpell(attempts: RepeatSaveAttempts): SpellAuthored {
   }
 }
 
-function compiled(attempts: RepeatSaveAttempts) {
-  const spell = thresholdSpell(attempts)
+function compiled(attempts: RepeatSaveAttempts, escalates: boolean) {
+  const spell = thresholdSpell(attempts, escalates)
   const { entry } = compiledTestSpellCast({
     spell,
     cast: {
@@ -74,9 +101,9 @@ function compiled(attempts: RepeatSaveAttempts) {
 /** The active-effect definition a cast of the threshold spell plans for `targetActorId`. */
 export async function plannedThresholdDefinition(
   attempts: RepeatSaveAttempts,
-  targetActorId = TARGET_ID
+  { targetActorId = TARGET_ID, escalates = false } = {}
 ) {
-  const { executionPlan, activeEffectPlan } = compiled(attempts)
+  const { executionPlan, activeEffectPlan } = compiled(attempts, escalates)
   if (executionPlan.kind !== 'SINGLE_GRAPH') throw new Error('Expected one graph.')
   const result = await executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({

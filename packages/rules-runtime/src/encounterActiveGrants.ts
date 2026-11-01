@@ -250,6 +250,8 @@ export type EncounterHolderState = {
   turnMovement: { usedFeet: number; speedFeet: number }
   /** The authored ids of the holder's live active effects, which HOLDER_ACTIVE_EFFECT reads. */
   activeAuthoredEffectIds: readonly string[]
+  /** How many Concentrations the holder keeps now, which HOLDER_CONCENTRATION_COUNT reads. */
+  heldConcentrationCount: number
   /**
    * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
    * first, never a shield, D152); null otherwise.
@@ -306,6 +308,14 @@ function holderConditionMatches(
     case 'HOLDER_ACTIVE_EFFECT': {
       const activeIds = holderState.activeAuthoredEffectIds
       return activeIds && condition.requiredIds.some((id) => activeIds.includes(id))
+    }
+    case 'HOLDER_CONCENTRATION_COUNT': {
+      const count = holderState.heldConcentrationCount
+      return (
+        count !== undefined &&
+        count >= (condition.min ?? 0) &&
+        (condition.max === null || count <= condition.max)
+      )
     }
     default:
       return isHolderStateKind(condition.kind)
@@ -410,7 +420,8 @@ function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean 
       (condition) =>
         isHolderStateKind(condition.kind) ||
         condition.kind === 'TURN_MOVEMENT' ||
-        condition.kind === 'HOLDER_ACTIVE_EFFECT'
+        condition.kind === 'HOLDER_ACTIVE_EFFECT' ||
+        condition.kind === 'HOLDER_CONCENTRATION_COUNT'
     )
   )
 }
@@ -824,6 +835,60 @@ export function hasFeatureHolderStateConditionImmunities(
       modifier.source.kind !== 'ACTIVE_EFFECT' &&
       hasHolderStateRestriction(modifier.deferredRequirements)
   )
+}
+
+type EncounterDefense = {
+  kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
+  damageTypeId: string
+  sourceEffectIds?: readonly string[]
+}
+
+/** A Character feature's damage defense, when its modifier is one that holder state decides. */
+function featureHolderStateDefenseModifiers(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+) {
+  return (grantFold?.modifiers ?? []).flatMap((modifier) => {
+    const kind = CREATURE_DEFENSE_KIND_BY_DOMAIN[modifier.valueDomainCode]
+    const { payload } = modifier
+    return kind &&
+      modifier.modifierKind === 'ADD_OPTION' &&
+      modifier.source.kind !== 'ACTIVE_EFFECT' &&
+      hasHolderStateRestriction(modifier.deferredRequirements) &&
+      payload !== undefined &&
+      'damageTypeId' in payload &&
+      !('bypassedBy' in payload && payload.bypassedBy?.length)
+      ? [{ kind, damageTypeId: payload.damageTypeId, restrictions: modifier.deferredRequirements }]
+      : []
+  })
+}
+
+/** Whether a Character's own features carry a damage defense its holder state decides (Ring of the Split Mind). */
+export function hasFeatureHolderStateDefenses(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return featureHolderStateDefenseModifiers(grantFold).length > 0
+}
+
+/**
+ * The holder's defenses with its features' holder-state defenses added while their restrictions
+ * hold now. The Character fold leaves those out, so this is their only path; a damage type the
+ * holder already has that defense kind for keeps its entry.
+ */
+export function withHolderStateDefenses(
+  defenses: readonly EncounterDefense[],
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null,
+  holderState: EncounterHolderState
+): EncounterDefense[] {
+  const held = new Set(defenses.map(({ kind, damageTypeId }) => `${kind}:${damageTypeId}`))
+  const added = featureHolderStateDefenseModifiers(grantFold).flatMap(
+    ({ kind, damageTypeId, restrictions }) => {
+      const key = `${kind}:${damageTypeId}`
+      if (held.has(key) || !holderStateRestrictionsHold(restrictions, holderState)) return []
+      held.add(key)
+      return [{ kind, damageTypeId }]
+    }
+  )
+  return added.length === 0 ? [...defenses] : [...defenses, ...added]
 }
 
 /** Whether a Character's own features carry an `ATTACKS_AGAINST` grant. */

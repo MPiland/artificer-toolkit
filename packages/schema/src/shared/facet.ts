@@ -401,6 +401,11 @@ const predicatePayloadSchemas = lazySchemaParts(
         maxFeet: z.optional(z.number()),
         maxSpeedFraction: z.optional(z.number())
       }),
+      HOLDER_CONCENTRATION_COUNT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_CONCENTRATION_COUNT),
+        min: z.number(),
+        max: z.optional(z.number())
+      }),
       HOLDER_ACTIVE_EFFECT: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_ACTIVE_EFFECT),
         effectIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)

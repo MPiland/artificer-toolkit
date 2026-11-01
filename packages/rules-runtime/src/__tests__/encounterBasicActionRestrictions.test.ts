@@ -122,7 +122,8 @@ const stateOf = (
     definitions: srdDefinitions,
     speedDefinitions: SRD_SPEEDS,
     runEffectsByActorId,
-    readTurnMovedFeet: async () => 0
+    readTurnMovedFeet: async () => 0,
+    readHeldConcentrationCount: async () => 0
   })
 
 type RelationshipModule = Extract<

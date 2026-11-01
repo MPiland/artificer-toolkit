@@ -95,6 +95,8 @@ export function dnd5eSaveOutcomeRule(
 export const DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY = 'dnd5e.attack-critical-threshold'
 /** The extra rolls of the attack's own damage die a critical hit adds (Brutal Critical); absent for none. */
 export const DND5E_CRITICAL_EXTRA_DICE_FACT_KEY = 'dnd5e.critical-extra-dice'
+/** The highest damage die face the attack's hit damage rerolls once (Great Weapon Fighting); absent for none. */
+export const DND5E_DAMAGE_DIE_REROLL_FACT_KEY = 'dnd5e.damage-die-reroll'
 export const DND5E_TARGET_STATE_CHECKSUM_FACT_KEY = 'dnd5e.target-state-checksum'
 export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-immune'
 /**
