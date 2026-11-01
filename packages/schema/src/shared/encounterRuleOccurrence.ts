@@ -438,6 +438,12 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .array(
             z.discriminatedUnion('kind', [
               z.strictObject({
+                kind: z.literal('FREE'),
+                optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+                riderId: uuidSchema,
+                riderLabel: z.string().check(z.minLength(1))
+              }),
+              z.strictObject({
                 kind: z.literal('SPELL_SLOT'),
                 optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
                 riderId: uuidSchema,

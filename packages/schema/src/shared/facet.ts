@@ -277,6 +277,11 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_IN_BRIGHT_LIGHT),
         requiresDaylight: z.boolean()
       }),
+      CONCENTRATION_DAMAGE_OVER: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CONCENTRATION_DAMAGE_OVER),
+        over: z.number(),
+        perSpellLevel: z.number()
+      }),
       EQUIPMENT_PROFICIENCY: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)

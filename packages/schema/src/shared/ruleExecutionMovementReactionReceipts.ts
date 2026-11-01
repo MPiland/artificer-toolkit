@@ -6,7 +6,7 @@ import { movementReactionChoiceOptionDtoSchema } from './reaction.js'
 import { serverRuleExecutionApplicationOutputsDtoSchema } from './ruleExecutionApplicationOutputs.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import {
-  movementConcentrationEndDtoSchema,
+  movementConcentrationEndsDtoSchema,
   movementConcentrationExecutionsDtoSchema
 } from './ruleExecutionMovementConcentration.js'
 import {
@@ -66,7 +66,7 @@ export const movementReactionActionExecutionDtoSchema = lazySchema(() =>
       .strictObject({
         ordinal: receiptOrdinal,
         sourceCommandId: uuid,
-        concentrationEnd: z.optional(movementConcentrationEndDtoSchema),
+        concentrationEnds: z.optional(movementConcentrationEndsDtoSchema),
         concentrationChecks: z.optional(movementConcentrationExecutionsDtoSchema),
         option: movementReactionChoiceOptionDtoSchema,
         allowance: z.strictObject({
