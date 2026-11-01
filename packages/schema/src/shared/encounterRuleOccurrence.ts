@@ -215,6 +215,26 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
     )
 )
 
+/** What a roller sees of a d20 they have rolled and may add a held die to (D168). */
+const d20WindowChoiceShape = () => ({
+  requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+  /** The kept face and the total the roll stands at before any die is added. */
+  d20: z.strictObject({
+    selectedNatural: z.number().check(z.int()),
+    total: z.number().check(z.int())
+  }),
+  options: z
+    .array(
+      z.strictObject({
+        optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+        label: triggerLabelSchema,
+        ...rolledDieShape()
+      })
+    )
+    .check(z.minLength(1))
+    .check(z.maxLength(MAX_D20_ADDED_DICE))
+})
+
 export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
   z
     .discriminatedUnion('kind', [
@@ -295,6 +315,19 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             )
             .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
           /**
+           * The d20 windows this viewer may answer (D168): a creature that rolled its save and holds
+           * dice for after it. Only one window is open at a time, for the creature acting earliest.
+           */
+          windows: z
+            .array(
+              z.strictObject({
+                actorId: uuidSchema,
+                targetActorId: uuidSchema,
+                ...d20WindowChoiceShape()
+              })
+            )
+            .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+          /**
            * The Legendary Resistance choices this viewer may answer, after a creature's failed save:
            * the GM's for every creature, otherwise the viewer's own creatures'. Nobody else, the caster
            * included, is told a choice exists.
@@ -311,6 +344,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           allowedResponses: z.tuple([
             z.literal('ENTER_DICE'),
             z.literal('SYSTEM_ROLL'),
+            z.literal('D20_WINDOW_DECLINE'),
+            z.literal('D20_WINDOW_USE'),
             z.literal('AREA_LEGENDARY_RESISTANCE')
           ])
         })
@@ -318,6 +353,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           z.superRefine((summary, context) => {
             if (
               summary.saves.length === 0 &&
+              summary.windows.length === 0 &&
               summary.legendaryResistance.length === 0 &&
               summary.caught.length === 0
             )
@@ -405,12 +441,14 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
                 kind: z.literal('SPELL_SLOT'),
                 optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
                 riderId: uuidSchema,
+                riderLabel: z.string().check(z.minLength(1)),
                 slotLevel: z.number().check(z.int()).check(z.positive())
               }),
               z.strictObject({
                 kind: z.literal('RESOURCE_POOL'),
                 optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
                 riderId: uuidSchema,
+                riderLabel: z.string().check(z.minLength(1)),
                 poolId: characterResourcePoolIdentitySchema,
                 cost: z.number().check(z.int()).check(z.positive())
               })
@@ -429,22 +467,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         rollerActorId: uuidSchema,
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
-        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
-        /** The kept face and the total the roll stands at before any die is added. */
-        d20: z.strictObject({
-          selectedNatural: z.number().check(z.int()),
-          total: z.number().check(z.int())
-        }),
-        options: z
-          .array(
-            z.strictObject({
-              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-              label: triggerLabelSchema,
-              ...rolledDieShape()
-            })
-          )
-          .check(z.minLength(1))
-          .check(z.maxLength(MAX_D20_ADDED_DICE)),
+        ...d20WindowChoiceShape(),
         allowedResponses: z.tuple([z.literal('D20_WINDOW_DECLINE'), z.literal('D20_WINDOW_USE')])
       }),
       /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */

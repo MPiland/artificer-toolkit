@@ -25,7 +25,7 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
-import { withSourceSightSave } from '../encounterActiveGrants.js'
+import { withSaveContributors } from '../encounterActiveGrants.js'
 import { withEncounterHolderDefense } from '../encounterHolderDefense.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
@@ -342,7 +342,7 @@ describe('basic action mechanics (Q11)', () => {
       }
     ])
     // Preparation merges the contributors it proves into the matching row alone.
-    const merged = withSourceSightSave(
+    const merged = withSaveContributors(
       SYSTEM_ID,
       defended.targetDerivedFacts,
       DEXTERITY_ID,
@@ -352,7 +352,7 @@ describe('basic action mechanics (Q11)', () => {
       { abilityDefinitionId: DEXTERITY_ID, rollMode: 'ADVANTAGE' },
       { abilityDefinitionId: WISDOM_ID, rollMode: 'NORMAL', contributors: [] }
     ])
-    expect(withSourceSightSave(SYSTEM_ID, defended.targetDerivedFacts, DEXTERITY_ID, [])).toBe(
+    expect(withSaveContributors(SYSTEM_ID, defended.targetDerivedFacts, DEXTERITY_ID, [])).toBe(
       defended.targetDerivedFacts
     )
   })

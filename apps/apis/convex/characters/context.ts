@@ -131,12 +131,13 @@ export async function loadCharacterRuleContext(
   referenced?: CharacterReferencedReads,
   referenceSpellIds: readonly string[] = [],
   /** A view's Spell catalogue: every visible Spell, or the Character's class lists (Sheet). */
-  spellCatalogue: 'complete' | 'classLists' = 'complete'
+  spellCatalogue: 'complete' | 'classLists' = 'complete',
+  /** The System and source access this transaction already read. */
+  ruleInputs: CharacterReferencedReads['ruleInputs'] = referenced?.ruleInputs
 ) {
-  const system = referenced?.ruleInputs?.system ?? (await requireSystem(ctx, character.systemId))
+  const system = ruleInputs?.system ?? (await requireSystem(ctx, character.systemId))
   const sources =
-    referenced?.ruleInputs?.sources ??
-    (await readCharacterSources(ctx, character, userId, authorityScope))
+    ruleInputs?.sources ?? (await readCharacterSources(ctx, character, userId, authorityScope))
   if (referenced) referenced.ruleInputs ??= { system, sources }
   const sourceIds = new Set(sources.sources.map((source) => source.id))
   const canReadSharedRoot = async (root: Doc<'authoredRoots'>) =>

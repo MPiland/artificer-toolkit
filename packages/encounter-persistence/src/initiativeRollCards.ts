@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { initiativeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -15,6 +16,42 @@ import { readAppCardedDice, turnSystemRollAnswers } from './appCardedDice.js'
 import { LOGGED_DICE } from './evidenceRolls.js'
 import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts } from './ports.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
+
+/** Posts the Initiative card of a summon that rolled its own initiative as the cast conjured it (D200). */
+export async function persistSummonInitiativeRollCard(
+  ctx: EncounterReadTransaction & {
+    readonly ports: Pick<EncounterWritePorts, 'insertTableRoll' | 'retainPrivateRoll'>
+  },
+  input: {
+    state: EncounterRunState
+    campaign: CampaignAuthority['campaign']
+    actor: EncounterRunActorState
+    roll: NonNullable<LiveSessionSummonedToken['initiativeRoll']>
+    occurrenceId: string
+    initiatorUserId: string
+    occurredAt: string
+  }
+): Promise<void> {
+  const system = await ctx.ports.requireSystem(input.state.gameSystemId)
+  const record = initiativeRollRecord({
+    id: ruleCheckRollId(`${input.occurrenceId}:initiative:${input.actor.id}`, 0),
+    expression: initiativeRollExpression(input.roll.sides, input.roll.modifier),
+    nextInt: () => input.roll.face - 1,
+    characterId: null,
+    rollerLabel: input.actor.label,
+    ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
+    createdAt: input.occurredAt
+  })
+  await recordRuleRollCard(ctx, {
+    campaign: input.campaign,
+    encounterId: input.state.id,
+    roller: input.actor,
+    initiatorUserId: input.initiatorUserId,
+    visibility: undefined,
+    clientNonce: record.id,
+    roll: record
+  })
+}
 
 /**
  * Posts one Initiative card per declared actor that settled dice, as a GM-rolled initiative does,

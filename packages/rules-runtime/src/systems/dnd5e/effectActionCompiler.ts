@@ -2,6 +2,7 @@ import {
   type ActiveEffectSaveTally,
   type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { dnd5eConcentrationCapacityForCast } from './concentrationCapacity.js'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
   serverPublishedRuleDefinitionDtoSchema,
@@ -16,11 +17,7 @@ import {
 } from '@artificer-toolkit/shared/compilers'
 import { abilityModifier } from './abilityModifier.js'
 import { recurringHealAmountFacts, spentHealAmountFacts } from './effectActionHealAmountFacts.js'
-import type {
-  ActorRelationshipAuthored,
-  OptionalOnHitAuthored,
-  FollowUpSaveRepeatTriggerAuthored
-} from '@artificer-toolkit/shared/authored'
+import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors,
@@ -33,7 +30,6 @@ import type {
   CharacterRuleActionSystemAdapter,
   CharacterRuleActionActiveEffectPlan
 } from '../../characterRuleActionSystemAdapter.js'
-import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
 import {
   chosenCreaturesAreaSupported,
@@ -42,12 +38,15 @@ import {
   resolveChosenCreaturesTargeting
 } from '../../encounterAreaAction.js'
 import {
+  challengeRatingGateCap,
+  challengeRatingGateOwed,
+  directGates,
   gateFacts,
   gateNodeInputs,
   isGated,
+  refuseDirectGates,
   refuseUnboundGate,
-  testPathGates,
-  type Dnd5eAuthoredGates
+  testPathGates
 } from './effectActionGates.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
@@ -86,6 +85,8 @@ import {
   specializedTestOutcome,
   fixedHealAmount,
   healDiceConfiguration,
+  fixedAmountDiceConfiguration,
+  resolvedDiceMatchAuthored,
   positiveFixedAmount,
   isChosenAmountHeal,
   validateHealBonuses,
@@ -93,6 +94,7 @@ import {
 } from './effectActionTestOutcomes.js'
 import {
   authoredAlike,
+  canonicalRepeatTriggers,
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
@@ -164,7 +166,6 @@ import {
   DND5E_SELECTED_OPTIONAL_RIDERS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
-  DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_ATTACK_ENEMY_PROXIMITY_FACT_KEY,
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
@@ -231,6 +232,7 @@ import {
 } from './effectActionInterpretation.js'
 import {
   repeatedFollowUpSaveResultPath,
+  isTallyCount,
   repeatSaveAttemptAllowed,
   repeatSaveGated
 } from './effectActionRepeatSaveEvidence.js'
@@ -243,6 +245,7 @@ import {
 } from './effectActionTargetPolicy.js'
 import {
   dnd5eEffectScalingFacts,
+  dnd5eAttackTargetFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
   type Dnd5eEffectScalingFacts
@@ -880,8 +883,8 @@ function repeatingImmediateFollowUpSavePlan(
 function immediateFollowUpSaveDuration(
   action: Dnd5eCompiledEffectActionSource
 ): CompiledDuration | undefined {
-  const firstEntry = action.compiledEffect.entries[0]
-  return firstEntry && 'duration' in firstEntry ? firstEntry.duration : undefined
+  const saveEntry = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry
+  return saveEntry && 'duration' in saveEntry ? saveEntry.duration : undefined
 }
 
 /**
@@ -924,19 +927,23 @@ function timedImmediateConditionPlan(
     condition?.effectKind !== 'CONDITION' ||
     !initialRemaining ||
     !knownConditionIds.includes(condition.conditionId) ||
-    !UUID.test(resolved.saveEntry.resultBlockId) ||
+    !UUID.test(resolved.saveEntry.entryId) ||
     band?.riders.some(
       ({ conditionContributions: [c] }) => !knownConditionIds.includes(c!.conditionId)
     ) ||
     rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
+  // "Until the end of your next turn" counts the source's turns (Stunning Strike).
+  const turnAnchor =
+    'lifecycle' in resolved.saveEntry ? resolved.saveEntry.lifecycle?.turnAnchor : undefined
   return {
     authoredEffectId: action.effectId,
-    compiledEntryId: resolved.saveEntry.resultBlockId,
+    compiledEntryId: resolved.saveEntry.entryId,
     frozenGraphNodeId: 'condition-duration',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: 'END_OF_TURN',
+    recurrenceStage: turnAnchor?.boundary ?? 'END_OF_TURN',
+    tickAnchor: planTickAnchor(turnAnchor),
     initialRemaining,
     conditionContributions: [
       {
@@ -1223,24 +1230,6 @@ export function incomingGateImmunityPlan(input: { wardId: string; duration: Comp
       })
     }
   }
-}
-
-/** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
-function canonicalRepeatTriggers(
-  triggers: readonly FollowUpSaveRepeatTriggerAuthored[]
-): ActiveEffectRepeatTrigger[] {
-  const keyed = new Map(
-    triggers.map(({ kind, by, damageTypeIds, rollInfluence }) => {
-      const trigger: ActiveEffectRepeatTrigger = {
-        event: kind,
-        by,
-        damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null,
-        rollInfluence: rollInfluence ?? null
-      }
-      return [JSON.stringify(trigger), trigger]
-    })
-  )
-  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
 /**
@@ -1692,10 +1681,6 @@ function repeatingDirectFollowUpSavePlan(
   }
 }
 
-function isTallyCount(count: number) {
-  return Number.isSafeInteger(count) && count >= 1 && count <= 255
-}
-
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
 function countRepeatSave(
   thresholds: ActiveEffectSaveThresholds,
@@ -1725,7 +1710,15 @@ function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSou
   // never be saved against again. A duration belongs to the repeating save's condition or to a
   // one-time save's condition (D62.2), which its own active effect times.
   const entries = action.compiledEffect.entries
-  const lifecycle = entries.some((entry) => 'lifecycle' in entry && entry.lifecycle)
+  // A turn anchor only counts the duration of a timed condition; any other lifecycle is not held here.
+  const lifecycle = entries.some(
+    (entry) =>
+      'lifecycle' in entry &&
+      entry.lifecycle &&
+      Object.values({ ...entry.lifecycle, turnAnchor: undefined }).some(
+        (value) => value !== undefined
+      )
+  )
   const timed = entries.some((entry) => 'duration' in entry && entry.duration)
   const repeats = save.attempts.repeatOnFailure === true || escalatingImmediateSave(save) !== null
   const bandOutcomes = [
@@ -2515,6 +2508,8 @@ function exactDiceConfiguration(
 ): string {
   const outcome = outcomes[0]
   if (!outcome) unsupported('D&D selected outcome has no authored dice value.')
+  if (outcome.valueKind === 'FIXED')
+    return fixedAmountDiceConfiguration(facts, outcomeId, optionalRider)
   if (outcome.valueKind !== 'DICE') unsupported('D&D outcome is not a supported dice value.')
   let authored: string
   if (outcome.scalingKind === 'NONE' && typeof outcome.dice === 'string') {
@@ -2543,18 +2538,7 @@ function exactDiceConfiguration(
       unsupported('D&D resolved damage expression is unavailable.')
     return authored
   }
-  const resolvedTerm = parseBoundedDiceConfiguration(resolved).term
-  const matchesAuthoredDice = (dice: string) => {
-    const authoredTerm = parseBoundedDiceConfiguration(dice).term
-    return authoredTerm.count === resolvedTerm.count && authoredTerm.die === resolvedTerm.die
-  }
-  // A weapon die a grant set (Shillelagh's d8) replaces the authored die of the weapon's own damage.
-  const weaponDie = optionalRider ? undefined : facts.weaponDamageDieFaces
-  if (
-    !matchesAuthoredDice(authored) &&
-    !(halfHitPointsDice && matchesAuthoredDice(halfHitPointsDice)) &&
-    !(weaponDie && matchesAuthoredDice(authored.replace(/^(\d+)d\d+/, `$1d${weaponDie}`)))
-  )
+  if (!resolvedDiceMatchAuthored(resolved, authored, halfHitPointsDice, facts, optionalRider))
     unsupported('D&D resolved damage expression does not match the authored dice.')
   return resolved
 }
@@ -2581,6 +2565,8 @@ function fixedOutcomeGraphDefinition(input: {
   hitPointBand?: { above: number; atMost: number }
   /** The damage proposal node the outcome follows: it applies only if that damage reduced the target to 0. */
   reducedToZeroByNodeId?: string
+  /** The challenge rating cap the source's level reaches for the outcome's gate. */
+  challengeRatingCap?: number | undefined
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
   const gates = testPathGates(input.entry, input.outcome.kind, input)
@@ -2880,6 +2866,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     entries.every(
       (entry) =>
         entryOwed(entry, input.action.compiledEffect.id, input.facts) &&
+        challengeRatingGateOwed(entry, input.facts) &&
         (!('hitPointTier' in entry) ||
           !entry.hitPointTier ||
           entry.hitPointTier.atMost === selectedTier)
@@ -2891,10 +2878,10 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry, input.facts)
+    const gate = 'gate' in entry ? entry.gate : undefined
     // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
     testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
-    const gate = 'gate' in entry ? entry.gate : undefined
     // The gate's damage outcome is exempt from it; every other outcome of the block follows that damage.
     const reducedToZeroByNodeId =
       gate?.kind === 'REDUCED_TO_ZERO_BY' && gate.damageOutcomeId !== entry.entryId
@@ -2951,6 +2938,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
                 }
               : {}),
             ...(reducedToZeroByNodeId ? { reducedToZeroByNodeId } : {}),
+            challengeRatingCap: challengeRatingGateCap(gate, input.facts),
             conditionOrdinal: groups
               .slice(0, groupIndex + 1)
               .filter(
@@ -3174,12 +3162,6 @@ function compileDnd5eEffectAction({
   return publishedGraph(withRulings)
 }
 
-/** The gates the action's one direct entry authors on its outcome, when it authors any. */
-function directGates(action: Dnd5eCompiledEffectActionSource): Dnd5eAuthoredGates | undefined {
-  const entry = action.compiledEffect.entries[0]
-  return entry?.resolutionKind === 'DIRECT' && isGated(entry) ? entry : undefined
-}
-
 function compileEffectActionGraph(
   action: Dnd5eCompiledEffectActionSource
 ): ServerPublishedRuleDefinitionDto {
@@ -3198,21 +3180,16 @@ function compileEffectActionGraph(
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
   // A direct or test-path outcome honours a gate; every other plan refuses one rather than skip it.
-  const gates = directGates(action)
-  const refuseGate = () => {
-    if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
-  }
-  if (gates?.gate?.kind === 'REDUCED_TO_ZERO_BY')
-    unsupported('D&D reduced-to-0 gate follows a damage outcome of a test path.')
+  const gates = directGates(action.compiledEffect.entries[0])
   const composition = sequentialComposition(action)
   if (composition) {
-    refuseGate()
+    refuseDirectGates(gates)
     return compileSequentialComposition(action, composition)
   }
   const results = directResultSequence(action, holdsLastingEffect)
   if (results) return compileDirectResultSequence(results)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
-    refuseGate()
+    refuseDirectGates(gates)
     return compileDnd5eEffectActionTestTemplate({ action }).published
   }
   const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
@@ -3542,13 +3519,15 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       outcomes: testOutcomeTemplateIdentities(source)
     }
   },
-  optionalOnHitRiders: ({ compilerSource }) => {
-    const riders = new Map<string, OptionalOnHitAuthored>()
-    for (const entry of dndSourceFromCompilerSource(compilerSource).compiledEffect.entries)
-      if ('optionalRider' in entry && entry.optionalRider)
-        riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
-    return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
-  },
+  optionalOnHitRiders: ({ compilerSource }) => [
+    ...new Map(
+      dndSourceFromCompilerSource(compilerSource).compiledEffect.entries.flatMap((entry) =>
+        'optionalRider' in entry && entry.optionalRider
+          ? [[entry.optionalRider.riderId, entry.optionalRider] as const]
+          : []
+      )
+    ).values()
+  ],
   outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
@@ -3624,6 +3603,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   passiveDamageGrantPlan,
   standingEffectPlan,
+  concentrationCapacityForCast: dnd5eConcentrationCapacityForCast,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)
@@ -3798,7 +3778,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       }),
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
-      ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...gateFacts(published.definition, {
+        targetDamageTypesTaken,
+        targetChallengeRating: targetDerivedFacts.challengeRatingValue
+      }),
       ...saveDamageMultiplierFacts(published.definition, {
         abilityDefinitionId: action.save?.abilityDefinitionId,
         incomingDamage: targetDerivedFacts.incomingDamage
@@ -3874,12 +3857,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         (node) => node.id === 'nested-save-test'
       )
       const dcBinding = nestedSaveTest?.inputs.threshold
-      const dc =
-        dcBinding?.kind === 'LITERAL' &&
-        typeof dcBinding.value === 'number' &&
-        Number.isSafeInteger(dcBinding.value)
-          ? dcBinding.value
-          : null
+      // A derived DC (ability modifier + proficiency) is settled on the action; a fixed one is in the graph.
+      const dcValue =
+        dcBinding?.kind === 'FACT'
+          ? action.save?.dc
+          : dcBinding?.kind === 'LITERAL'
+            ? dcBinding.value
+            : undefined
+      const dc = typeof dcValue === 'number' && Number.isSafeInteger(dcValue) ? dcValue : null
       if (!nestedSaveNode || !nestedSaveTest || dc === null)
         throw new Dnd5eEffectActionCompilerError('D&D nested save graph is invalid.')
       const savingThrowDefinitions = targetDerivedFacts.savingThrowDefinitions
@@ -4001,9 +3986,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : {}),
           [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
           [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
-          ...(typeof targetDerivedFacts.creatureTypeId === 'string'
-            ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
-            : {}),
+          ...dnd5eAttackTargetFacts(targetDerivedFacts, currentHitPoints, maximumHitPoints),
           ...attackCircumstanceFacts,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: conditionOutcomeRules?.hitIsCritical

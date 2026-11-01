@@ -239,6 +239,20 @@ export function castChoiceOptionId(target: ResolveEncounterActionTargetDto): str
   return 'choiceOptionId' in target ? target.choiceOptionId : undefined
 }
 
+/** What the caster chose at cast, as the action preparation takes it: the option, the cast modifier and the creatures it names. */
+export function castChoice(
+  command: Pick<
+    ResolveEncounterActionInputDto,
+    'target' | 'castModifierId' | 'castModifierActorIds'
+  >
+) {
+  return {
+    choiceOptionId: castChoiceOptionId(command.target),
+    castModifierId: command.castModifierId,
+    castModifierActorIds: command.castModifierActorIds
+  }
+}
+
 /** The hit points the caster gives one chosen creature of a divided pool; undefined when the command divides none. */
 export function healShareOf(
   target: ResolveEncounterActionTargetDto,
@@ -296,8 +310,12 @@ export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
     target: resolveEncounterActionTargetDtoSchema,
     /** The cost the caster pays on a spell cast: a `castModifiers` entry the action's candidate offers. */
     castModifierId: z.optional(uuidSchema),
+    /** The creatures the paid modifier's outcome applies to, up to the `targets.max` its candidate offers. */
+    castModifierActorIds: z.optional(z.array(uuidSchema).check(z.maxLength(50))),
     /** The units the caster spends from the action's pool, for an action that heals per unit spent. */
     spentUnits: z.optional(z.number().check(z.int(), z.positive())),
+    /** The held maintained effect the caster ends to make room, when a new one finds them at capacity. */
+    endedMaintainedStateId: z.optional(uuidSchema),
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
      * The current actor that commands this attack (DELEGATED_ATTACK): it forgoes one attack of its

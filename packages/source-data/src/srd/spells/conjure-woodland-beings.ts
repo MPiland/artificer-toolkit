@@ -16,8 +16,16 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const woodlandForms = [
+  [CREATURE_IDS.BLINK_DOG, 'Blink Dog', 8],
+  [CREATURE_IDS.DRYAD, 'Dryad', 2],
+  [CREATURE_IDS.SATYR, 'Satyr', 4],
+  [CREATURE_IDS.SEA_HAG, 'Sea Hag', 1],
+  [CREATURE_IDS.SPRITE, 'Sprite', 8]
+] as const
 export const conjureWoodlandBeings: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONJURE_WOODLAND_BEINGS,
@@ -73,7 +81,10 @@ export const conjureWoodlandBeings: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONJURE_WOODLAND_BEINGS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                // The group acts on one shared turn of its own (D200).
+                turnTiming: 'OWN_INITIATIVE',
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_WOODLAND_BEINGS, woodlandForms)
               }
             ]
           }

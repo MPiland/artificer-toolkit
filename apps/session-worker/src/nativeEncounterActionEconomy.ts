@@ -15,6 +15,7 @@ import type { GrantedAttackCharge } from '@artificer-toolkit/rules-runtime/encou
 import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { encounterActorGrantModifiers } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
+import { encounterActorCannotAttack } from '@artificer-toolkit/rules-runtime/encounterActorBody'
 import { encounterAttackDelegated } from '@artificer-toolkit/rules-runtime/encounterDelegatedAttack'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
@@ -71,6 +72,9 @@ export async function evaluateNativeLiveActionEconomy(input: {
   } | null
 }) {
   const { prepared } = input
+  // A summon that cannot attack still has its own turn (D200); only its owner's delegated attack resolves.
+  if (prepared.makesAttackRoll && !input.delegation && encounterActorCannotAttack(prepared.actor))
+    rejectDomain('SOURCE_REQUIREMENTS_NOT_MET', 'This creature cannot attack on its own.')
   const invocation =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts.invocation

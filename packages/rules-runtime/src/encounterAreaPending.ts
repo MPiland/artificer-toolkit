@@ -95,6 +95,7 @@ export function encounterAreaCaughtChecksum(input: {
 export function removeEncounterAreaTarget<
   Target extends Pick<AreaContext['targets'][number], 'actorId' | 'token' | 'collision'> & {
     testedJson?: string
+    rolledJson?: string
   }
 >(
   context: Pick<AreaContext, 'scene' | 'area' | 'removedActorIds'> & {
@@ -112,7 +113,8 @@ export function removeEncounterAreaTarget<
   const isRemoved = (target: Target) => target.actorId === actorId && target.collision === undefined
   const removed = context.targets.filter(isRemoved)
   if (removed.length === 0) return { kind: 'NOT_CAUGHT' }
-  if (removed.some((target) => target.testedJson !== undefined)) return { kind: 'ANSWERED' }
+  if (removed.some((target) => target.testedJson !== undefined || target.rolledJson !== undefined))
+    return { kind: 'ANSWERED' }
   const targets = context.targets.filter((target) => !isRemoved(target))
   return {
     kind: 'REMOVED',
@@ -171,6 +173,110 @@ export function encounterAreaSettled(snapshot: ServerAggregateChoicePendingSnaps
 const targetSettled = (target: AreaTarget) =>
   target.testedJson !== undefined &&
   (target.legendaryResistance === undefined || target.legendaryResistance.decision !== undefined)
+
+type SaveProgress = Pick<AreaTarget, 'rolledJson' | 'testedJson' | 'snapshot'>
+
+/** Whether a creature's roll is kept, waiting on its d20 window to settle (D168). */
+const awaitingWindow = (target: SaveProgress) =>
+  target.rolledJson !== undefined && target.testedJson === undefined
+
+/** Whether the window of a creature whose roll is kept is the one open now. */
+const windowOpen = (target: SaveProgress) =>
+  awaitingWindow(target) &&
+  target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
+  target.snapshot.applicationContext.pause?.kind === 'D20_WINDOW'
+
+/** Whether a creature has been neither rolled nor settled: its roller still owes the save. */
+const awaitingRoll = (target: SaveProgress) =>
+  target.rolledJson === undefined && target.testedJson === undefined
+
+/**
+ * What a creature's save waits on from its roller: its roll, the choice at its open d20 window, or
+ * nothing (settled, or rolled and waiting its turn at the window).
+ */
+export const encounterAreaSaveAwaiting = (target: SaveProgress) =>
+  awaitingRoll(target) ? 'ROLL' : windowOpen(target) ? 'WINDOW' : null
+
+/**
+ * The save whose d20 window opens next, or null: windows open one at a time, once every save is
+ * rolled, for the creature acting earliest in `order` (the first of a creature named twice). A
+ * creature outside `order` opens after those inside it.
+ */
+export function nextEncounterAreaWindowRequestId(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  order: readonly string[]
+) {
+  const { targets } = requireAreaContext(snapshot)
+  if (targets.some((target) => awaitingRoll(target) || windowOpen(target))) return null
+  const rank = (target: AreaTarget) => {
+    const index = order.indexOf(target.actorId)
+    return index < 0 ? order.length : index
+  }
+  const next = targets
+    .filter(awaitingWindow)
+    .reduce<AreaTarget | null>(
+      (earliest, target) => (earliest && rank(earliest) <= rank(target) ? earliest : target),
+      null
+    )
+  return next?.snapshot.request.requestId ?? null
+}
+
+/**
+ * Records that the roller of the save with `requestId` rolled, and holds dice that may still change
+ * the roll after it. The roll is kept to open its d20 window with; the save is not settled.
+ */
+export function markEncounterAreaSaveRolled(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  rolledJson: string
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const rolled = applicationContext.targets.find(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  if (!rolled || !awaitingRoll(rolled)) throw new Error('This area save is not awaiting a roll.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target) =>
+        target === rolled ? { ...target, rolledJson } : target
+      )
+    }
+  })
+}
+
+/**
+ * Opens the d20 window of the rolled save with `requestId`: the save is paused on `window`, which
+ * freezes the roll that was kept. No other window is open.
+ */
+export function openEncounterAreaSaveWindow(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  requestId: string,
+  window: AreaTarget['snapshot']
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const rolled = applicationContext.targets.find(
+    (target) => target.snapshot.request.requestId === requestId
+  )
+  if (
+    !rolled ||
+    !awaitingWindow(rolled) ||
+    applicationContext.targets.some(windowOpen) ||
+    window.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
+    window.applicationContext.pause?.kind !== 'D20_WINDOW'
+  )
+    throw new Error('This area save has no d20 window to open.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      targets: applicationContext.targets.map((target) =>
+        target === rolled ? { ...target, snapshot: window } : target
+      )
+    }
+  })
+}
 
 /**
  * Records that the roller of the save with `requestId` answered it, keeping the answer to settle

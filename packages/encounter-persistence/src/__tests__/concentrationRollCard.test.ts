@@ -46,7 +46,8 @@ const checkOutput = concentrationCheckApplicationOutputDtoSchema.parse({
     targetActorId: ACTOR_ID,
     appliedAmount: 4,
     damageTypeId: null,
-    maintainedStateId: STATE_ID
+    maintainedStateId: STATE_ID,
+    castAt: '2026-01-01T00:00:00.000Z'
   },
   trigger: { sourceLabel: 'Bite', damageTypeLabel: null, dc: 10 },
   outcome: 'SAVE_SUCCESS',

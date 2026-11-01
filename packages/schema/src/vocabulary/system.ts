@@ -58,7 +58,13 @@ const systemDefaultsDtoSchema = lazySchema(() =>
   z.strictObject({
     damageTypeId: z.string(),
     conditionTypeId: z.string(),
-    movementTypeId: z.string()
+    movementTypeId: z.string(),
+    /**
+     * The natural-weapon Equipment item every Character of the System attacks with unarmed. It is
+     * not a stored definition of this document, so it is not checked here; absent, the System
+     * gives its Characters no unarmed strike.
+     */
+    unarmedStrikeEquipmentId: z.optional(postgresUuidSchema)
   })
 )
 

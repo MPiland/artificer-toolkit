@@ -5,6 +5,7 @@ import type {
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 
 import { abilityModifier } from './abilityModifier.js'
+import { dnd5eAbilityScoreMaximum } from './abilityScoreMaximum.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -212,13 +213,19 @@ export function evaluateDnd5eCharacterDerivedStats(
   const calculatedProficiencyBonus = proficiencyBonus(input.totalLevel)
   const abilities = baseFacts.abilities.map((record) => {
     const resolvedBonuses = resolveDnd5eCharacterAbilityBonuses(record, grantFold, modifierGroups)
+    const appliedBonuses = resolvedBonuses.filter((bonus) => bonus.state === 'APPLIED')
+    const increasedScore =
+      record.baseScore + appliedBonuses.reduce((total, bonus) => total + bonus.value, 0)
+    // A SET score (a belt) and a manual override are not increases, so the maximum does not cap them.
     const effectiveScore =
-      record.scoreOverride === null
-        ? record.baseScore +
-          resolvedBonuses
-            .filter((bonus) => bonus.state === 'APPLIED')
-            .reduce((total, bonus) => total + bonus.value, 0)
-        : record.scoreOverride.value
+      record.scoreOverride !== null
+        ? record.scoreOverride.value
+        : appliedBonuses.some((bonus) => bonus.operation === 'SET')
+          ? increasedScore
+          : Math.min(
+              increasedScore,
+              dnd5eAbilityScoreMaximum(grantFold.modifiers, record.abilityId)
+            )
     const effectiveModifier = abilityModifier(effectiveScore)
     return {
       abilityId: record.abilityId,

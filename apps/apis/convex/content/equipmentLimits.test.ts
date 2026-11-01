@@ -27,13 +27,13 @@ it('runs the full-SRD public 500-visible-option capacity journey and restores al
     []
   )
   expect(await t.action(internal.content.seed.seed, {})).toMatchObject({
-    subjects: 1057
+    subjects: 1058
   })
   expect(
     await first.caller.query(api.content.equipmentOptions.list, {
       systemId: club.systemId
     })
-  ).toHaveLength(371)
+  ).toHaveLength(372)
   await t.run((ctx) =>
     ctx.db.insert('accountEntitlements', {
       userId: first.userId,
@@ -61,9 +61,9 @@ it('runs the full-SRD public 500-visible-option capacity journey and restores al
   expect(retriedCommittedDeletion).toBe(true)
   await t.run(async (ctx) => {
     expect(await ctx.db.query('authoredDrafts').collect()).toHaveLength(0)
-    expect(await ctx.db.query('authoredRoots').collect()).toHaveLength(1057)
-    expect(await ctx.db.query('authoredVersions').collect()).toHaveLength(1057)
-    expect(await ctx.db.query('authoredRouteIds').collect()).toHaveLength(1057)
+    expect(await ctx.db.query('authoredRoots').collect()).toHaveLength(1058)
+    expect(await ctx.db.query('authoredVersions').collect()).toHaveLength(1058)
+    expect(await ctx.db.query('authoredRouteIds').collect()).toHaveLength(1058)
   })
 }, 240_000)
 

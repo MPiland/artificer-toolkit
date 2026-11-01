@@ -36,6 +36,7 @@ const circumstances = (
   rollMode,
   enemyProximity: nearestFeet === undefined ? null : { nearestFeet },
   targetCreatureTypeId: null,
+  targetBelowMaximumHitPoints: false,
   moveToward: null,
   attackItemBindingEffectIds: []
 })
@@ -60,7 +61,7 @@ describe('the SRD Rogue’s Sneak Attack, authored from core options', () => {
       expect(effectReadsTurnUses(effect)).toBe(true)
       expect(effectReadsEnemyProximity(effect)).toBe(true)
     }
-    const riders = collectOnHitRiders([melee, ranged], feature.id)
+    const riders = collectOnHitRiders([melee, ranged], feature.id, feature.label)
     expect(riders.map((rider) => rider.triggerCode)).toEqual([
       'MELEE_WEAPON_ATTACK',
       'RANGED_WEAPON_ATTACK'

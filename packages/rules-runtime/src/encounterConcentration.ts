@@ -190,7 +190,8 @@ export function createNativeConcentrationContext(input: {
     id: current.maintained.id,
     version: current.maintained.version,
     maintenanceDefinitionId: current.maintained.maintenanceDefinitionId,
-    descriptorChecksum: current.maintained.descriptorChecksum
+    descriptorChecksum: current.maintained.descriptorChecksum,
+    createdAt: current.maintained.createdAt
   }
   const context = encounterConcentrationDamageCheckPendingContextDtoSchema.parse({
     kind: 'ENCOUNTER_DAMAGE_SAVE_CHECK',
@@ -232,7 +233,11 @@ export function createNativeConcentrationContext(input: {
       contributorChecksum: facts.contributorChecksum,
       ...saveAddedDice,
       maintainedState,
-      finalizedDamageApplication: { ...application, maintainedStateId: maintainedState.id },
+      finalizedDamageApplication: {
+        ...application,
+        maintainedStateId: maintainedState.id,
+        castAt: maintainedState.createdAt
+      },
       finalizedDamageEnvelopeChecksum: input.finalizedDamageEnvelopeChecksum
     }),
     remaining: input.remaining
@@ -241,23 +246,23 @@ export function createNativeConcentrationContext(input: {
 }
 
 /**
- * The Concentration checks a finalized damage envelope owes: one per application whose holder
- * holds a maintenance link (`maintainedStateIds`, by holder) and whose damage meets the System's
- * save hook in the event table.
+ * The Concentration checks a finalized damage envelope owes: one per held Concentration (a holder's
+ * `maintainedStates`) for each application whose damage meets the System's save hook in the event
+ * table.
  */
 export function concentrationSaveApplications<
   Application extends ConcentrationDamageApplicationDto
 >(input: {
   gameSystemId: string
   applications: readonly Application[]
-  maintainedStateIds: ReadonlyMap<string, string>
+  maintainedStates: ReadonlyMap<string, readonly { id: string; createdAt: string }[]>
   damagerActorId: string | null
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
 }) {
   const { hooks } = maintenanceLinkCapabilityRegistry.require(input.gameSystemId)
   return input.applications.flatMap((application) => {
-    const maintainedStateId = input.maintainedStateIds.get(application.targetActorId)
-    if (!maintainedStateId) return []
+    const held = input.maintainedStates.get(application.targetActorId) ?? []
+    if (held.length === 0) return []
     const { maintenanceSave } = discoverEncounterEventHooks({
       maintenanceHooks: hooks,
       events: [
@@ -270,7 +275,13 @@ export function concentrationSaveApplications<
         }
       ]
     })
-    return maintenanceSave ? [{ ...application, maintainedStateId }] : []
+    return maintenanceSave
+      ? held.map(({ id, createdAt }) => ({
+          ...application,
+          maintainedStateId: id,
+          castAt: createdAt
+        }))
+      : []
   })
 }
 
@@ -532,7 +543,11 @@ export function completeNativeConcentrationResult(input: {
     savingThrowAbilityDefinitionId: context.save.savingThrowAbilityDefinitionId,
     systemVocabularySnapshot: context.systemVocabularySnapshot,
     targetCharacter: context.targetCharacter,
-    application: { ...context.application, maintainedStateId: context.maintainedState.id },
+    application: {
+      ...context.application,
+      maintainedStateId: context.maintainedState.id,
+      castAt: context.maintainedState.createdAt
+    },
     trigger: context.trigger,
     outcome: failed ? 'SAVE_FAILURE' : 'SAVE_SUCCESS',
     d20: damageSaveD20Record({

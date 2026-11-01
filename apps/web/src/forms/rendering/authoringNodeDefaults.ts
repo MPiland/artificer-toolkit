@@ -53,6 +53,7 @@ import type {
 } from '@artificer-toolkit/shared/core'
 import type {
   ActorRelationshipAuthored,
+  CastModifierAuthored,
   ApplyGrantAuthored,
   ActorRelationshipModuleAuthored,
   CastingTimeAuthored,
@@ -154,6 +155,9 @@ type ScalingGrantAuthored = FeatGrantAuthored | SenseGrantAuthored | SpellGrantA
 type AreaContentsTargeting = Extract<TargetingAuthored, { selectionKind: 'AREA_CONTENTS' }>
 type DurationScalingBreakpoint = BreakpointOf<
   Extract<DurationAuthored, { amount: number }>['scaling']
+>
+type ChallengeRatingGateScaling = NonNullable<
+  Extract<ResultBlockGateAuthored, { kind: 'TARGET_CHALLENGE_RATING_AT_MOST' }>['scaling']
 >
 type DistanceRangeDto = Extract<RangeDto, { rangeKind: 'DISTANCE' }>
 type OutcomeBreakpoint =
@@ -576,6 +580,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         order,
         value: { maxChallengeRatingId: '' }
       } satisfies BreakpointOf<ManifestCreatureFormFilterAuthored['scaling']>
+    case 'resultBlockGateChallengeRatingCap':
+      return { maxChallengeRating: 0 } satisfies BreakpointOf<ChallengeRatingGateScaling>['value']
+    case 'resultBlockGateChallengeRatingScalingBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: { maxChallengeRating: 0 }
+      } satisfies BreakpointOf<ChallengeRatingGateScaling>
     case 'manifestDestructionCriterion':
       return {
         id: crypto.randomUUID(),
@@ -841,6 +854,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'SPELL_SLOT' } satisfies OptionalOnHitAuthored
     case 'sparesCreatures':
       return { base: 1 } satisfies SparesCreaturesAuthored
+    case 'castModifier':
+      return { chargeId: '', cost: 1 } satisfies CastModifierAuthored
+    case 'castModifierTargets':
+      return { outcome: 'SAVE_AUTO_SUCCESS', base: 1 } satisfies NonNullable<
+        CastModifierAuthored['targets']
+      >
     case 'resourceUse':
       return { chargeId: '', cost: 1 } satisfies ResourceUseAuthored
     case 'featureOptionActionReference':

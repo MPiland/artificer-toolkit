@@ -32,6 +32,7 @@ const SLASHING = srdDamageTypeId('SLASHING')
 const smiteAt = (slotLevel: number): EncounterOnHitCandidate => ({
   kind: 'SPELL_SLOT',
   riderId: OPTIONAL_SMITE_EFFECT_ID,
+  riderLabel: 'Optional Smite',
   slotLevel
 })
 
@@ -96,8 +97,8 @@ describe('a hit is held for the attacker to add an optional on-hit rider (D123)'
         payload: {
           reaction: null,
           options: [
-            { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 1 },
-            { riderId: OPTIONAL_SMITE_EFFECT_ID, slotLevel: 2 }
+            { riderId: OPTIONAL_SMITE_EFFECT_ID, riderLabel: 'Optional Smite', slotLevel: 1 },
+            { riderId: OPTIONAL_SMITE_EFFECT_ID, riderLabel: 'Optional Smite', slotLevel: 2 }
           ]
         }
       }
@@ -202,7 +203,7 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
       })
 
     expect(riders('Longsword', { attackKind: 'MELEE', grip: 'ONE_HANDED' })).toEqual([
-      { riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }
+      { riderId: OPTIONAL_SMITE_EFFECT_ID, label: 'Optional Smite', cost: { kind: 'SPELL_SLOT' } }
     ])
     expect(riders('Shortbow', { attackKind: 'RANGED' })).toEqual([])
   })
@@ -226,14 +227,26 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
     expect(onHitSlotChoices(spellSlots).map(({ level }) => level)).toEqual([1, 2])
     expect(
       onHitCandidates({
-        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }],
+        riders: [
+          {
+            riderId: OPTIONAL_SMITE_EFFECT_ID,
+            label: 'Optional Smite',
+            cost: { kind: 'SPELL_SLOT' }
+          }
+        ],
         spellSlots,
         resources: []
       })
     ).toEqual([smiteAt(1), smiteAt(2)])
     expect(
       onHitCandidates({
-        riders: [{ riderId: OPTIONAL_SMITE_EFFECT_ID, cost: { kind: 'SPELL_SLOT' } }],
+        riders: [
+          {
+            riderId: OPTIONAL_SMITE_EFFECT_ID,
+            label: 'Optional Smite',
+            cost: { kind: 'SPELL_SLOT' }
+          }
+        ],
         resources: [],
         spellSlots: {
           ...spellSlots,
@@ -279,6 +292,7 @@ const POOL_ID = 'CLASS:monk:charge-1'
 const poolStrikeAt = (cost: number, poolId = POOL_ID): EncounterOnHitCandidate => ({
   kind: 'RESOURCE_POOL',
   riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+  riderLabel: 'Optional Pool Strike',
   poolId,
   cost
 })
@@ -312,6 +326,7 @@ const poolResource = (
 })
 const poolRider = (cost: number) => ({
   riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+  label: 'Optional Pool Strike',
   cost: { kind: 'RESOURCE_POOL' as const, chargeId: OPTIONAL_POOL_STRIKE_CHARGE_ID, cost }
 })
 const emptySlots = {
@@ -368,6 +383,7 @@ describe('an optional on-hit rider paid from a resource pool (SPELLS-31.T5r-a, D
             {
               kind: 'RESOURCE_POOL',
               riderId: OPTIONAL_POOL_STRIKE_EFFECT_ID,
+              riderLabel: 'Optional Pool Strike',
               poolId: POOL_ID,
               cost: 2
             }

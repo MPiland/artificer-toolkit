@@ -27,6 +27,8 @@ import {
   buildEncounterSummon,
   formSummonStats
 } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import { rollSummonInitiative } from '@artificer-toolkit/rules-runtime/encounterSummonInitiative'
+import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { resolveSpellSummonStatBlock } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
@@ -362,7 +364,8 @@ export async function settleAreaCommit(args: {
     settlement: {
       ...reconciled,
       maintainedState,
-      createdEffects: [...createdEffects.values()].flat()
+      createdEffects: [...createdEffects.values()].flat(),
+      replacedMaintainedStateId: replaced?.prior?.id ?? null
     },
     capture: input.capture,
     runtime: input.runtime,
@@ -377,7 +380,7 @@ export async function settleAreaCommit(args: {
       : null
   const formCreature = summon?.body.kind === 'CREATURE' ? summon.body : null
   const summonLabel = summon?.placement.label ?? formCreature?.label ?? sourceLabel
-  const summonedTokens =
+  const conjured =
     summon && casterTarget
       ? [
           buildEncounterSummon({
@@ -404,6 +407,19 @@ export async function settleAreaCommit(args: {
           })
         ]
       : []
+  // A summon authored to roll its own initiative rolls as it arrives (D200); the cast never waits.
+  const summonedTokens = await Promise.all(
+    conjured.map(async (token) => {
+      const initiativeRoll = await rollSummonInitiative({
+        state,
+        actor: token.actor,
+        runtime: input.runtime,
+        occurrenceId: areaOccurrenceId,
+        integerSource: ({ min, max }) => min + (input.random ?? nextRollInt)(max - min + 1)
+      })
+      return initiativeRoll ? { ...token, initiativeRoll } : token
+    })
+  )
   const nextFacts = buildEncounterActorRuleFacts({
     actors: [...concentration.actors, ...summonedTokens.map(({ actor }) => actor)]
   })

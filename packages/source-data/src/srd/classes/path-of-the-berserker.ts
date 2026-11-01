@@ -3,7 +3,6 @@ import {
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   GRANT_KIND,
@@ -23,7 +22,7 @@ import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import { RAGE_EFFECT_ID } from './barbarian.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -315,25 +314,18 @@ export const pathOfTheBerserker: ClassAuthored = {
       availableAtLevel: 14,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(B, 20, 4),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            range: {
-              id: classRowId(B, 21, 4),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(B, 20, 4),
+            range: classRowId(B, 21, 4),
+            path: classRowId(B, 0xa4, 4),
+            result: classRowId(B, 0xa4, 5),
+            outcome: classRowId(B, 0xa4, 6)
           },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_RETALIATION
+          label: 'Retaliation',
+          instructions:
+            'When a creature within 5 feet of you damages you, you can use your reaction to make a melee weapon attack against that creature. Make the attack by hand; the GM confirms the creature was within 5 feet.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     }

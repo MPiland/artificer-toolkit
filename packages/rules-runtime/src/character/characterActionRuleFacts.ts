@@ -723,7 +723,9 @@ export function buildCharacterActionRuleFacts(params: {
     const folded = grantFoldFacts.features[index]
     if (!folded) continue
     if (definition && folded.definition) {
-      onHitRiders.push(...collectOnHitRiders(definition.effects, feature.featureId))
+      onHitRiders.push(
+        ...collectOnHitRiders(definition.effects, feature.featureId, definition.label)
+      )
       castModifiers.push(...collectCastModifiers(definition.effects, definition.label ?? ''))
       sparesCreatures.push(...collectSparesCreatures(definition.effects))
       featureActions.push({
@@ -742,7 +744,9 @@ export function buildCharacterActionRuleFacts(params: {
           candidate.mechanicSource.definitionId === option.id
       )
       if (!source) continue
-      onHitRiders.push(...collectOnHitRiders(option.effects, option.id))
+      onHitRiders.push(
+        ...collectOnHitRiders(option.effects, option.id, option.label || definition?.label)
+      )
       castModifiers.push(...collectCastModifiers(option.effects, option.label ?? ''))
       sparesCreatures.push(...collectSparesCreatures(option.effects))
       featureActions.push({
@@ -754,7 +758,11 @@ export function buildCharacterActionRuleFacts(params: {
     }
     if (feature.source.kind === 'FEAT' && folded.featDefinition) {
       onHitRiders.push(
-        ...collectOnHitRiders(registry.feats[feature.source.featId]?.effects, feature.source.featId)
+        ...collectOnHitRiders(
+          registry.feats[feature.source.featId]?.effects,
+          feature.source.featId,
+          registry.feats[feature.source.featId]?.label
+        )
       )
       castModifiers.push(
         ...collectCastModifiers(
@@ -774,7 +782,13 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  const items = snapshot.equipmentItems.flatMap((item, itemIndex) => {
+  const heldItems = [
+    ...snapshot.equipmentItems.map((item) => ({ item, equipped: Boolean(item.equippedState) })),
+    ...(snapshot.naturalWeapon
+      ? [{ item: { ...snapshot.naturalWeapon, attuned: false }, equipped: true }]
+      : [])
+  ]
+  const items = heldItems.flatMap(({ item, equipped }, itemIndex) => {
     const folded = grantFoldFacts.equipmentItems[itemIndex]
     if (!folded) return []
     const rootRequirements = sourceStateRequirements(folded.restrictions)
@@ -784,7 +798,7 @@ export function buildCharacterActionRuleFacts(params: {
       parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
       category: item.compiledItem.category ?? null,
       properties: [...(item.compiledItem.properties ?? [])],
-      equipped: Boolean(item.equippedState),
+      equipped,
       attuned: item.attuned,
       requiresAttunement: folded.requiresAttunement,
       consumedOnUse: item.compiledItem.attributes?.includes('CONSUMED_ON_USE') ?? false,

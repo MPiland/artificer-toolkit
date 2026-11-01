@@ -608,6 +608,7 @@ export async function readRoomEncounterTurnCapture(
     response = { kind: 'DEFINITION', definition }
   } else if (
     request.kind === 'MAINTENANCE_SLOT' ||
+    request.kind === 'MAINTENANCE_STATES' ||
     request.kind === 'MAINTENANCE_DEPENDENTS' ||
     request.kind === 'MAINTENANCE_OWNER' ||
     request.kind === 'MAINTENANCE_OWNER_EFFECTS'

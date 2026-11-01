@@ -1,3 +1,5 @@
+import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import type { FollowUpSaveRepeatTriggerAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { UUID, unsupported, type Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
@@ -94,4 +96,22 @@ export function authoredAlike(
       maintenanceDefinitionId: entry.maintenanceDefinitionId
     })
   )
+}
+
+/** The repeat triggers an authored follow-up save lists, deduplicated and in one canonical order. */
+export function canonicalRepeatTriggers(
+  triggers: readonly FollowUpSaveRepeatTriggerAuthored[]
+): ActiveEffectRepeatTrigger[] {
+  const keyed = new Map(
+    triggers.map(({ kind, by, damageTypeIds, rollInfluence }) => {
+      const trigger: ActiveEffectRepeatTrigger = {
+        event: kind,
+        by,
+        damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null,
+        rollInfluence: rollInfluence ?? null
+      }
+      return [JSON.stringify(trigger), trigger]
+    })
+  )
+  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }

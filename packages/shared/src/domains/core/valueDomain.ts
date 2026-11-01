@@ -46,6 +46,7 @@ export const VALUE_DOMAIN_CODE = {
   INITIATIVE: 'INITIATIVE',
   ABILITY_CHECK: 'ABILITY_CHECK',
   ABILITY_SCORE: 'ABILITY_SCORE',
+  ABILITY_SCORE_MAXIMUM: 'ABILITY_SCORE_MAXIMUM',
   SKILL_MODIFIER: 'SKILL_MODIFIER',
   PROFICIENCY_BONUS: 'PROFICIENCY_BONUS',
   MOVEMENT_MODE: 'MOVEMENT_MODE',
@@ -59,6 +60,7 @@ export const VALUE_DOMAIN_CODE = {
   BONUS_ACTION_COUNT: 'BONUS_ACTION_COUNT',
   REACTION_COUNT: 'REACTION_COUNT',
   ATTACKS_PER_ATTACK_ACTION: 'ATTACKS_PER_ATTACK_ACTION',
+  CONCENTRATION_CAPACITY: 'CONCENTRATION_CAPACITY',
   DAMAGE_RESISTANCE: 'DAMAGE_RESISTANCE',
   DAMAGE_IMMUNITY: 'DAMAGE_IMMUNITY',
   DAMAGE_VULNERABILITY: 'DAMAGE_VULNERABILITY',
@@ -265,6 +267,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: 'An ability score value.'
   },
 
+  [VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM]: {
+    code: VALUE_DOMAIN_CODE.ABILITY_SCORE_MAXIMUM,
+    label: 'Ability Score Maximum',
+    description:
+      "The ceiling an ability score can reach from increases. The highest ceiling granted wins over the System's default."
+  },
+
   [VALUE_DOMAIN_CODE.SPEED]: {
     code: VALUE_DOMAIN_CODE.SPEED,
     label: 'Speed',
@@ -407,6 +416,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
     label: 'Attacks Per Attack Action',
     description: 'How many attacks the Attack action makes.'
+  },
+
+  [VALUE_DOMAIN_CODE.CONCENTRATION_CAPACITY]: {
+    code: VALUE_DOMAIN_CODE.CONCENTRATION_CAPACITY,
+    label: 'Concentration Capacity',
+    description: 'How many Concentration effects the holder can maintain at once.'
   },
 
   [VALUE_DOMAIN_CODE.CONDITION]: {
@@ -594,6 +609,9 @@ export type ValueDomainParamByCode = {
 
   ABILITY_SCORE: { ability: string }
 
+  // Omitting the ability raises the ceiling for every ability.
+  ABILITY_SCORE_MAXIMUM: { ability?: string }
+
   /* ──────────────────────────────────────────────
    * MOVEMENT & SENSES
    * ────────────────────────────────────────────── */
@@ -647,6 +665,7 @@ export type ValueDomainParamByCode = {
   BONUS_ACTION_COUNT: EmptyObject
   REACTION_COUNT: EmptyObject
   ATTACKS_PER_ATTACK_ACTION: EmptyObject
+  CONCENTRATION_CAPACITY: EmptyObject
 
   /* ──────────────────────────────────────────────
    * CHARGES / RESOURCES

@@ -209,17 +209,30 @@ export async function prepareMaintenanceReplacement(
     throw new Error('Created maintained effect state does not match the completed action.')
 
   const store = createActiveRuleEffectStore(ctx)
-  const prior = await store.findMaintainedState({
-    encounterId: input.state.id,
-    ownerActorId: input.command.actorId,
-    maintenanceDefinitionId: created.maintenanceDefinitionId
-  })
+  // The receipt names the held state this cast ends; none when the holder had room (SPELLS-12).
+  const prior = input.transition.priorState
+    ? await store.findMaintainedStateById({
+        encounterId: input.state.id,
+        stateId: input.transition.priorState.id
+      })
+    : null
+  if (
+    input.transition.priorState &&
+    (!prior ||
+      prior.ownerActorId !== input.command.actorId ||
+      prior.maintenanceDefinitionId !== created.maintenanceDefinitionId)
+  )
+    throw new Error('Replaced maintained effect state does not match the completed action.')
   const dependents = prior
     ? await store.listDependentEffects({ encounterId: input.state.id, stateId: prior.id })
     : []
   const actors = await readRunActors(ctx, input.state)
   const caster = actors.find((actor) => actor.id === input.command.actorId)
-  // D99: a Character's new Concentration also ends its carried-over grants held in the Run.
+  // D99: a Character's new Concentration also ends the carried-over grants held in the Run that
+  // the completed action's receipt names; whether it leaves room beside them was decided there.
+  const receiptCarriedIds = new Set(
+    input.transition.endedCarriedGrants.map((grant) => grant.activeEffectId)
+  )
   const carried =
     caster?.kind === 'CHARACTER'
       ? planConcentrationCarriedGrantEnds({
@@ -233,7 +246,7 @@ export async function prepareMaintenanceReplacement(
               )
             )
           ).flat()
-        })
+        }).filter((effect) => receiptCarriedIds.has(effect.id))
       : []
   // The completing checkpoint ends the caster's carried grants outside the Run from this record.
   const addedConcentrationCasterId =
@@ -452,10 +465,9 @@ export async function persistEncounterActionEffects(
   const store = createActiveRuleEffectStore(ctx)
   if (supplied && !input.maintenance) {
     // One creature of an area whose first creature already created the state its effect depends on.
-    const existing = await store.findMaintainedState({
+    const existing = await store.findMaintainedStateById({
       encounterId: input.state.id,
-      ownerActorId: input.command.actorId,
-      maintenanceDefinitionId: supplied.maintenanceDefinitionId
+      stateId: supplied.id
     })
     if (
       !existing ||

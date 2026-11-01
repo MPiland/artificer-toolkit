@@ -293,6 +293,41 @@ describe('CampaignTabletopActionDrawer rule warnings', () => {
     expect(second!.commandId).not.toBe(first!.commandId)
   })
 
+  it('asks which held effect ends and resends the action with the pick (SPELLS-12.T1)', async () => {
+    const user = userEvent.setup()
+    const heldStates = [
+      { id: '11111111-1111-4111-8111-111111111111', label: 'First Ward' },
+      { id: '22222222-2222-4222-8222-222222222222', label: null }
+    ]
+    const onResolve = vi
+      .fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      .mockImplementationOnce(async (command) => {
+        throw new LiveSessionCommandRejectedError({
+          code: 'DOMAIN_REJECTED',
+          commandId: command.commandId,
+          currentSequence: 3,
+          message: 'Choose which maintained effect ends to make room for this one.',
+          reason: 'MAINTAINED_REPLACEMENT_REQUIRED',
+          warnings: null,
+          heldStates
+        })
+      })
+      .mockResolvedValue(resolved)
+    renderDrawer(onResolve)
+
+    await chooseActionAndTarget(user)
+    const confirmation = await screen.findByRole('alert')
+    const confirm = within(confirmation).getByRole('button', { name: 'End it and cast' })
+    expect(confirm).toBeDisabled()
+    expect(within(confirmation).getByRole('radio', { name: 'Concentration 2' })).toBeVisible()
+
+    await user.click(within(confirmation).getByRole('radio', { name: 'First Ward' }))
+    await user.click(confirm)
+    expect(onResolve).toHaveBeenCalledTimes(2)
+    expect(onResolve.mock.calls[0]![0]).not.toHaveProperty('endedMaintainedStateId')
+    expect(onResolve.mock.calls[1]![0]).toMatchObject({ endedMaintainedStateId: heldStates[0]!.id })
+  })
+
   it('offers a versatile attack once, with a grip control that picks its action (D57)', async () => {
     const user = userEvent.setup()
     const onResolve = vi
@@ -2236,6 +2271,87 @@ describe('CampaignTabletopActionDrawer directed area (SPELLS-13)', () => {
         })
       })
     )
+  })
+
+  describe('a cost the caster may pay on the cast (SPELLS-31.T5g2)', () => {
+    const MODIFIER_ID = '00000000-0000-4000-8000-0000000000a1'
+    const burst = (castModifiers: NonNullable<EncounterActionChoiceDto['castModifiers']>) =>
+      validatedChoice({
+        ...breath,
+        id: 'creature-wolf:burst',
+        label: 'Burst',
+        target: {
+          kind: 'CASTER_CENTERED' as const,
+          area: { kind: 'RADIUS' as const, radius: { amount: 10, unit: 'FEET' as const } }
+        },
+        castModifiers
+      })
+
+    it('sends the cost the caster pays and the creatures it names, up to what the cost allows', async () => {
+      const user = userEvent.setup()
+      const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      const named = tabletopGmEncounter.actors.find(
+        (actor) => actor.id !== tabletopGmEncounter.currentActorId
+      )
+      if (!named) throw new Error('The fixture needs a second creature.')
+      renderDrawer(onResolve, {
+        choices: [
+          burst([
+            {
+              id: MODIFIER_ID,
+              label: 'Careful',
+              cost: 1,
+              targets: { outcome: 'SAVE_AUTO_SUCCESS', max: 1 }
+            }
+          ])
+        ],
+        actorIdByTokenId
+      })
+      await chooseBreath(user)
+
+      await user.click(screen.getByRole('combobox', { name: 'Pay a cost' }))
+      await user.click(screen.getByRole('option', { name: 'Careful (costs 1)' }))
+      await user.click(screen.getByRole('combobox', { name: 'Creatures it affects' }))
+      await user.click(screen.getByRole('option', { name: named.label }))
+      await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+      expect(onResolve).toHaveBeenCalledWith(
+        expect.objectContaining({ castModifierId: MODIFIER_ID, castModifierActorIds: [named.id] })
+      )
+    })
+
+    it('sends no cost until the caster picks one', async () => {
+      const user = userEvent.setup()
+      const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      renderDrawer(onResolve, {
+        choices: [burst([{ id: MODIFIER_ID, label: 'Quiet', cost: 2 }])],
+        actorIdByTokenId
+      })
+      await chooseBreath(user)
+
+      await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+      expect(onResolve.mock.calls[0]?.[0]).not.toHaveProperty('castModifierId')
+    })
+
+    it('names no creatures for a cost that shapes no one', async () => {
+      const user = userEvent.setup()
+      const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+      renderDrawer(onResolve, {
+        choices: [burst([{ id: MODIFIER_ID, label: 'Quiet', cost: 2 }])],
+        actorIdByTokenId
+      })
+      await chooseBreath(user)
+
+      await user.click(screen.getByRole('combobox', { name: 'Pay a cost' }))
+      await user.click(screen.getByRole('option', { name: 'Quiet (costs 2)' }))
+      await user.click(screen.getByRole('button', { name: 'Resolve action' }))
+
+      expect(screen.queryByText('Creatures it affects')).not.toBeInTheDocument()
+      const paid = onResolve.mock.calls[0]?.[0]
+      expect(paid).toHaveProperty('castModifierId', MODIFIER_ID)
+      expect(paid).not.toHaveProperty('castModifierActorIds')
+    })
   })
 
   it('offers no designation for an area that does not place a zone with the choice', async () => {

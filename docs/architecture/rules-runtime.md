@@ -510,6 +510,39 @@ returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Mainta
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
 decides whether a mechanic uses it. Storage layout and limits are in [persistence](persistence.md).
 
+**Concentration capacity (current, SPELLS-12.T1).** A holder keeps a _set_ of maintained states per
+maintenance definition, up to `concentrationCapacity` (dnd5e `characterPolicy`: 1 plus the
+`CONCENTRATION_CAPACITY` `BONUS` modifiers that apply; a Creature holds 1). `chooseReplacedMaintainedState`
+(in `encounterActionMaintenance.ts`) decides what a new maintained effect replaces: below capacity nothing
+(the receipt's `maintainedEffectTransitionDto.priorState` is null); at capacity with one held, that state;
+with several held, the state the command's `endedMaintainedStateId` names, or else
+`MaintainedReplacementRequiredError`, which the Worker answers as a `MAINTAINED_REPLACEMENT_REQUIRED`
+domain rejection carrying the held states (`heldStates`, with the label of what each keeps alive) so the
+caster chooses before the spell takes effect. Persistence reads the prior from the receipt by id.
+Carried grants (D99) are one more Concentration of the caster's: they end when the new one replaces a
+state or leaves no room beside them (`held + 1 >= capacity`), and the receipt's `endedCarriedGrants` is the
+one list persistence settles.
+
+**Per-cast capacity (current, SPELLS-12.T2a).** A `CONCENTRATION_CAPACITY` `BONUS` carrying `deferredRequirements`
+is not in the stat; the policy lists it in `gatedConcentrationCapacity` (by `acceptedModifierIndex`). For one cast,
+the System adapter's `concentrationCapacityForCast` adds each gated bonus whose requirement groups hold for the new
+spell _and_ every held spell, so the holder keeps another Concentration only for a cast the item allows.
+`SPELL_LEVEL` here is the cast level (`preparedSpellCastLevel`); a held spell is checked by level alone, read from
+the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
+satisfies a level requirement). A Creature stays at 1.
+
+**Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
+save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
+each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
+ordinal, save source, then `castAt`, then state id (`compareDamageSaveApplications`), so a holder's saves
+run in casting order. The pending context pins the answered state's `createdAt`, persistence re-derives
+`remaining` from every held state and checksums it against the context, and a failed save ends only its own
+state, its dependents and the later entries bound to it. `concentrationOccurrenceId` names the state, so
+two saves for one damage get distinct child occurrences. Incapacitation or defeat (D95) ends every state
+the holder keeps, each as its own `CONCENTRATION_END`, with no save. The movement chain still binds one
+state per holder (`MAINTENANCE_SLOT`, the oldest); a movement contact on a holder with several
+Concentrations is a documented residual.
+
 ## Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 
 `RESOLVE_ACTION` evaluates its overridable checks once, in the room planner (`nativeEncounterRules`),
@@ -541,6 +574,30 @@ behind its owner, with the owner's score and side, in every settled round by `an
 anchored reinforcement insert, so it keeps that place across rounds. Target: the owner's player running the turn and the
 prompt belong to SPELLS-35.T5 to T7.
 Ending an `OWN_INITIATIVE` summon (SPELLS-35.T3b) removes its initiative place and records the round's state; see the Encounter persistence guide's summon removal. `summonEndAdvanceCommandId` (`encounterSystemTrigger.ts`) keys the system `ADVANCE_TURN` that ends the turn of one whose carrier ended while it acted.
+
+**Group summons (D200, SPELLS-35.T7; current).** A multi-creature Conjure (Conjure Animals, Conjure Minor Elementals,
+Conjure Woodland Beings) authors one `SUMMON` form per System Creature of the offered type with a challenge rating of 2
+or lower. A form's `maxTargets` is how many of it one cast conjures at the lowest slot (1 for challenge rating 2, 2 for 1,
+4 for 1/2, 8 for 1/4 or lower), compiled onto `summonPlacement.forms[].maxTargets` (1 to `MAX_GROUP_COUNT`, 32).
+The caster picks `count` with the form (`summonPicksShape`); `summonFormPick` refuses a count on a form with
+`maxTargets` 1 or above its maximum, and `summonPickOptions` offers `maxCount` only on a form conjured in groups. The
+cast creates one actor and one token, so the group has one initiative entry and one shared turn
+(`turnTiming: OWN_INITIATIVE`). `buildEncounterSummon` stores the count on `owner.count` (`encounterActorOwnerDtoSchema`,
+absent for a single creature); the Sheet records it on the summon's `form.count`. The group's Attack action holds one
+attack per creature: `applyEncounterAttackActionTransition` multiplies the actor's attacks per Attack action by
+`owner.count` and chunks them into slots of at most `MAX_ATTACK_SLOT_COUNT`, in that one place, so the Worker and
+Convex read the same total. The GM sets the count after the cast with `UPDATE_ACTOR.groupCount` (1 to 32, either
+direction, so an upcast raises it); only an actor that has a count takes it. That edit is a GM edit and is not
+undoable; undoing an attack returns its slot and leaves the count alone. The token shows a `GROUP` status badge
+("N creatures") read from the actor's `owner.count`. A group at 0 is the existing token removal, not a count.
+The group's hit point pool is one creature's hit points times its count: `buildEncounterSummon` and the Sheet's
+`buildSheetSpellSummon` both size it with `groupHitPointPool` (8 wolves of 11 hit points start at 88), so the Run actor and
+the Sheet's record of the summon agree. The token leaves at 0 through the existing summon removal; one hit does not
+remove it, and area damage hits the pool once. `UPDATE_ACTOR.groupCount` goes through `groupCountChange`: lowering
+leaves hit points alone (the GM lowers it after damage already took them), and raising adds one creature's hit points
+(read from its snapshot, since the maximum no longer divides by the count once lowered) per added creature to both current and maximum. The count never changes by itself.
+Known limit: an upcast does not raise the picked count by itself, and the cast offers no count above a form's
+lowest-slot maximum; the GM raises it. Separate tokens per creature are a future enhancement.
 
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
@@ -1572,6 +1629,8 @@ die is recorded on the rolled die as `spentEffectId`, so the commit ends the eff
 window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
 spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
 
+**d20 window on the area save (SPELLS-31.T4c1b4, current).** A caught creature whose `ENCOUNTER_AREA_ACTION` save is sealed with `saveWindow` (per-target `ENCOUNTER_ACTION` snapshot) and who holds `AFTER_ROLL` saving-throw dice keeps its roll as `rolledJson` (ENTER_DICE faces; an auto-roll is stored the same way) instead of settling it. Once every save is rolled, `nextEncounterAreaWindowRequestId` picks the rolled holder acting earliest (`initiativeActionOrder`: turn order, owned actors behind their owner) and `openEncounterAreaSaveWindow` swaps that target's snapshot for its `D20_WINDOW` snapshot, one window at a time; the settled `{kind:'D20_WINDOW', d20}` answer is stored in `testedJson`, so the commit replays the faces and never re-rolls. `encounterAreaSaveAwaiting` says whether a target waits on a `ROLL` or a `WINDOW`; the `AREA_SAVES` summary projects `windows` beside `saves`. The commit ends spent dice through `windowSpentEffects`. Struck collision saves (D159) are never windowed; zone and forced-movement saves stay system-rolled (D170); the movement-reaction save is T4c1b4b.
+
 **D168 window on the Sheet roll path (SPELLS-31.T4c1c, current).** `carriedTestDice` returns `afterRollOffers` beside `addedDice` and `spent`; `createRollRecord` stores them on the roll record and `withAfterRollDie` / `withoutAfterRollOffers` amend it. The apps layer (`rollDocuments.ts`) owns authorization and the holder-effect end; no pause object exists, since a Sheet roll is a single mutation. Only the latest retained roll can take a die.
 
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
@@ -2204,6 +2263,16 @@ Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVIN
 - **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
 
+### Character Unarmed Strike and weapon die grants (current, SPELLS-31.T4l2, D156)
+
+A System names its natural weapon with `defaults.unarmedStrikeEquipmentId`, an authored weapon Equipment item (the SRD's is `SRD_UNARMED_STRIKE_EQUIPMENT_ID`). `characterNaturalWeapon` (`characterRuleSnapshot.ts`) resolves it into `CharacterBuildSnapshot.naturalWeapon` and the rule facts read it beside `equipmentItems`; it is never written to `base.equipment`, so it stays out of the inventory, weight, attunement, hand and grip counts and Builder equipment choices. A System that leaves the default unset has no Unarmed Strike and no fallback. The item's attack, damage and ability modifiers are authored data (`unarmedStrikeEffect`, `unarmedStrikeAbilityModifiers`), so Martial Arts and Ki-Empowered Strikes reach it as grants on the `UNARMED` attack domain.
+
+Weapon damage resolution (`characterActionMechanics.ts`):
+
+- `withWeaponDie` keeps the larger of the item's die and a granted `WEAPON_DAMAGE_DIE` `SET_VALUE`, so a granted die never lowers a weapon's own die (a flat amount counts as a die of that size).
+- `OPTIONAL_ABILITY_MODIFIER_BONUS` contributions are alternatives to the weapon's ability: SOURCE-scoped ones and GLOBAL ones both count as alternatives, and the best applies. Other GLOBAL ability contributions still add.
+- The room compiler (`effectActionCompiler.ts`, `effectActionTestOutcomes.ts`) resolves fixed damage plus the ability modifier plus a granted die the same way, so the Character action and the room settle one expression.
+
 ### Granted-action offers (current, SPELLS-4.T2lb, D160)
 
 A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
@@ -2244,9 +2313,17 @@ measures from the delegate's token and offers no optional rules. The room stays 
 A `SUMMON` manifest may author `cannotAttack` (SPELLS-34.T4; the SRD familiar does). It compiles onto
 `summonPlacement.cannotAttack`, and `buildEncounterSummon` keeps it in the actor's `body`, on a form summon too;
 `encounterActorCannotAttack` is its one reader. Such an actor offers no attack as a reaction
-(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon never acts
-by itself (D190a: the owner is the command actor), so its own attack is refused `NOT_CURRENT_ACTOR` and the flag needs
-no turn gate; a delegation is its owner's attack and still resolves.
+(`encounterReactorCandidates`) and no opportunity attack (`buildEncounterMovementReactionFacts`). A summon with its own
+turn (`turnTiming`, D200) is the current actor on it, so the room refuses its own attack roll there
+(`SOURCE_REQUIREMENTS_NOT_MET`, `nativeEncounterRules`) while a delegation is its owner's attack and still resolves
+(SPELLS-35.T5).
+
+**Own initiative at the cast (current, SPELLS-35.T5, D200).** A summon authored `OWN_INITIATIVE` rolls its initiative as it
+is conjured into an ACTIVE Run: `rollSummonInitiative` runs the Run's pinned `ACTOR_ROLL` policy graph in `AUTO_ROLL`
+through the one initiative score path, whatever the Run's evidence mode, and the cast never pauses on it. The roll
+(`initiativeRoll` on the summoned token) seats the actor through `insertReinforcementInitiative` by score and posts its
+Initiative card. Cast into a PREPARED Run it rolls nothing: it joins the start cohort. A summon the policy cannot score
+by one automatic `1dN` (a manual Run, a non-`ACTOR_ROLL` procedure) is seated behind its owner. A stat-block summon (a `CUSTOM` actor with an owner) is bound by the D&D initiative adapter with the Dexterity modifier of the stat block its cast resolved (0 when it names none); a GM-made custom actor still rolls by hand. A summon's turn comes from its authored `turnTiming` alone, never from what it can attack with.
 
 ### Summon placement (current compile only, SPELLS-4.T2v2a2a)
 
@@ -2639,7 +2716,11 @@ any `REACTION` pause has resolved, the attacker's riders it can still pay for ho
 `ON_HIT` pause (`ON_HIT_CHOICE` summary, the attacker's controller answers per D19). Option 0 is a decline; each other option pins
 a rider and the way it is paid: a slot level (`SPELL_SLOT`) or a resource pool and its cost (`RESOURCE_POOL`, authored as
 `optionalOnHit: { kind: 'RESOURCE_POOL', chargeId, cost }`, offered only while exactly one resolved pool carries
-`chargeId` and holds `cost`). The use option id hashes the hit and the way of paying, so a changed pool or cost is stale. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
+`chargeId` and holds `cost`). Each option also carries `riderLabel`, the name of the Feature, option or feat that grants the rider, which
+`collectOnHitRiders` takes from its owner when the rider is collected (nothing is authored for it), so the decision drawer can tell two on-hit
+options apart and title them by name and cost. The use option id hashes the hit, the way of paying and that label, so a changed pool, cost or
+label is stale. A rider that calls a follow-up save (Stunning Strike) joins the hit's result block like a Feature-scoped rider; a derived-DC
+save is supported there, with the DC a FACT bound from the holder. Answering rebuilds the OUTCOME under the chosen binding (`onHitOutcomeBinding`); the slot
 spend (or, for a pool, the `resourceConsumption` that `spendCharacterResource` also builds for an action's own
 `resourceUse`) rides in the attack's own character-mechanics batch with a spell-less receipt (`spellId` and `candidateId`
 are null together), so GM undo restores it. Nothing names a feature: the SRD Divine Smite and Improved Divine
@@ -2655,8 +2736,18 @@ holds the cost, and never on a cast a pool already pays for. `RESOLVE_ACTION.cas
 refuses an id the candidate did not offer, and `prepareNativeCharacterActionState` spends it through `spendCharacterResource` into the
 cast's `resourceConsumption`, so it persists and reverts with the cast (and honours Manual play and the Assisted "Do it anyway"
 shortfall like any pool spend). The client reads the offers as `castModifiers` on the action choice. The modifier changes nothing
-else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect. Careful,
-Heightened and Twinned need per-target picks and a save-mode seam and are follow-on tasks.
+else about the cast: what it does beyond the spend (Subtle Spell's missing components) stays a GM ruling on the Effect.
+
+**Cast modifier targets (SPELLS-31.T5g2, current).** A `castModifier` may also author `targets: { outcome, base, abilityDefinitionId?, minimum? }`:
+`SAVE_AUTO_SUCCESS` (Careful Spell: the named creature's save succeeds unrolled, so the success path, half damage included, still applies)
+or `SAVE_DISADVANTAGE` (Heightened Spell: disadvantage on the named creature's first save against the cast). The candidate's
+`castModifiers[].targets` is `{ outcome, max }`, where `max = max(minimum, base + the holder's modifier in abilityDefinitionId)`
+(`castModifierTargetCap`; `minimum` defaults to 1 when an ability is added). `RESOLVE_ACTION.castModifierActorIds` names the creatures;
+`prepareEncounterActionMechanics` refuses more than `max` (or any without a `targets` modifier) and, for each target named, adds a rules-owned
+`CAST_MODIFIER` disadvantage contributor to the save of the effect's ability, or lists that ability in
+`conditionOutcomeRules.saveAutoSucceeds` (the existing `SAVE_AUTO_SUCCESS` test-outcome rule). A condition that fails the save unrolled
+wins over a paid success. The command is sealed in the area pending context, so each creature's outcome is fixed at cast. Gap: the roll
+card does not annotate an auto-succeeded save. Twinned stays a follow-on task.
 
 **Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
 Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed
@@ -2669,7 +2760,7 @@ rule (`choosesUnaffected`, no cap). Whether the spared creatures are ones the ca
 conditions) that gates whether its result is owed. The compiler copies it onto each entry. Two stages settle it:
 `buildCharacterActionRuleFacts` resolves the weapon checks (`EQUIPMENT` contexts: `EQUIPMENT_PROPERTY`, item
 identity, through the same `dnd5eActionRequirementsMet` the Rage restrictions use) against the attacking item and
-leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
+leaves only circumstance checks, `ATTACK_ROLL_MODE`, `ENEMY_NEAR_TARGET`, `MOVED_TOWARD_TARGET`, `BOUND_BY_EFFECT` and (against a `CREATURE` context) `CREATURE_TYPE` and `TARGET_BELOW_MAXIMUM_HIT_POINTS` (`reduceEffectRestrictions`, `systems/dnd5e/attackRestrictions`); an entry
 that can never be owed is dropped, one whose group has nothing left to decide is unrestricted. The attack's roll
 mode is known only after the d20, so `specializeDnd5eEffectActionOutcomeBody` filters the remaining
 restricted groups then (`attackRestrictionsMet`). It reads the mode the TEST d20 was settled in (D124): the
@@ -2678,7 +2769,9 @@ the mode the rules derived from roll contributors. A hand-rolled advantage unloc
 derived advantage forgoes it, and a sight-governed d20 (D100) settles in the true mode, so the check follows that.
 A `CREATURE_TYPE` check reads the target's creature type from `dnd5e.target-creature-type`, which the attack
 TEST binds from the target's derived facts (a `CREATURE` context is `authoringModeKind: ALL` or `SELECTED` over
-`creatureTypeIds`). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
+`creatureTypeIds`). A `TARGET_BELOW_MAXIMUM_HIT_POINTS` check (also a `CREATURE` context) reads
+`dnd5e.target-below-maximum-hit-points`, which the attack TEST binds when the target's current hit points are
+below its maximum (Colossus Slayer). The sealed OUTCOME template checksum hashes the authored groups, restricted or not,
 so it is the same whichever the roll owes; the published graph is what differs. Only `EQUIPMENT`- and `CREATURE`-context
 checks are evaluated; any other subject fails its group. A path whose every group is restricted away
 produces no OUTCOME graph, which the phase resolver rejects for a template that exists (see Deferred
@@ -2836,8 +2929,8 @@ massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both re
 arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
 A relationship outcome is held on one bounded result path: an attack's `ON_HIT`/`ON_CRIT`, a contest's
 `ON_CHECK_SUCCESS`, a direct use's `ON_USE`, or (SPELLS-33.T6n4) a save action's `ON_SAVE_FAIL`. `relationshipPlan` gates
-the plan with `resultGate` on that path, so a target that makes the save is never held. The Whelm and the Gelatinous
-Cube's Engulf are the SRD cases. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
+the plan with `resultGate` on that path, so a target that makes the save is never held. The Water Elemental's Whelm is the SRD case (D202): a Self area over its own space, like the Whirlwind,
+whose failed save damages and holds the target. A hold behind a nested follow-up save on an attack hit (the Purple Worm's swallow) is
 still a GM ruling: the nested save's result path is not yet a gate.
 `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn

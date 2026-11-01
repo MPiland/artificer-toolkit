@@ -5,8 +5,10 @@ import { type EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { encounterActionCurrentnessChecksum } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { encounterAreaLegendaryResistanceAudits } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import { discoverEncounterLegendaryResistanceCandidate } from '@artificer-toolkit/rules-runtime/encounterLegendaryResistanceDiscovery'
+import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
 import { answerEncounterAreaTest } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import { collisionStruckCapability } from '@artificer-toolkit/rules-runtime/encounterForcedMovementCollision'
+import { targetSaveWindow } from './nativeActionSaveWindow.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { refuseActionOutsideItsWindow } from './nativeEncounterActionInputs.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
@@ -98,6 +100,7 @@ export async function revalidateAreaTarget(
     prepared: target.prepared,
     activeEffectsByActorId: input.activeEffectsByActorId,
     capture,
+    endedMaintainedStateId: command.endedMaintainedStateId,
     loadCarriedHolder: async (carrier) =>
       base.movementTargets.get(carrier.id) ?? input.loadTarget(carrier)
   })
@@ -190,13 +193,17 @@ export async function revalidateStruckTarget(
   return { actor, target: { prepared } }
 }
 
-/** Runs one entry's sealed roll with its answer: a creature's own save, or the caster's roll for a ray. */
-export async function replayAreaTargetSave(
+/**
+ * Runs one entry's sealed roll with its answer: a creature's own save, or the caster's roll for a ray.
+ * A save whose creature holds dice for after its d20 stays pending on the window that shows its roll
+ * (D168), except a struck creature's (D159), which is not windowed.
+ */
+export async function rollAreaTargetSave(
   input: ReachPlanInput,
   { actor, target }: { actor: EncounterRunActorState; target: { prepared: AreaPrepared } },
   sealed: AreaTargetRecord,
   areaOccurrenceId: string,
-  resolution: EncounterEvidenceAnswer
+  resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
 ) {
   const [tested] = await answerEncounterAreaTest({
     runtime: input.runtime,
@@ -209,6 +216,12 @@ export async function replayAreaTargetSave(
       occurrenceId: sealed.snapshot.occurrenceId,
       binding: target.prepared.binding,
       attackSight: target.prepared.attackSight,
+      saveWindow: sealed.collision
+        ? undefined
+        : targetSaveWindow(
+            input.state.gameSystemId,
+            input.activeEffectsByActorId.get(actor.id) ?? []
+          ),
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     },
@@ -225,7 +238,14 @@ export async function replayAreaTargetSave(
     ],
     resolution
   })
-  if (tested?.kind !== 'TESTED') throw new Error('An area save must settle with its answer.')
+  if (!tested) throw new Error('An area save must settle with its answer.')
+  return tested
+}
+
+/** Replays one entry's roll that must have settled: its answer, or the d20 its window settled. */
+export async function replayAreaTargetSave(...args: Parameters<typeof rollAreaTargetSave>) {
+  const tested = await rollAreaTargetSave(...args)
+  if (tested.kind !== 'TESTED') throw new Error('An area save must settle with its answer.')
   return tested
 }
 

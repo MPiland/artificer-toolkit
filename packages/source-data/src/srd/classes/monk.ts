@@ -7,12 +7,13 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
+  DURATION_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
+  FOLLOW_UP_SAVE_TIMING,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
@@ -27,9 +28,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type ModifierGrantAuthored
 } from '@artificer-toolkit/shared'
@@ -38,6 +37,7 @@ import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { CLASS_IDS } from '../ids.js'
 import {
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_CURRENCIES,
   SRD_DAMAGE_TYPES,
   SRD_SKILLS,
@@ -49,7 +49,6 @@ import {
   abilityScoreImprovementOptions,
   ARTISAN_TOOL_EQUIPMENT_INDEXES,
   attacksPerAttackActionGrant,
-  closedRuleEffect,
   equippedCategoryRestriction,
   evasionGrant,
   gmRulingEffect,
@@ -81,32 +80,6 @@ function equipmentId(index: number): string {
 const M = 6 // Monk class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(M, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(M, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 
 const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
 if (!walkSpeedId) throw new Error('SRD walk speed required.')
@@ -176,6 +149,137 @@ const unarmoredMovementModifiers: ModifierGrantAuthored[] = [
   }
 })
 
+/**
+ * Martial Arts applies while "unarmed or wielding only monk weapons" and wearing no armor or shield.
+ * The attacking item stands for the first clause: a simple melee weapon without the two-handed or
+ * heavy property (the unarmed strike is one), or a shortsword. Uses ids `classRowId(M, bucket, 0..16)`.
+ */
+function martialArtsRestriction(
+  bucket: number,
+  levels?: { min: number; max?: number | undefined } | undefined
+): NonNullable<ModifierGrantAuthored['restrictions']> {
+  const id = (entry: number) => classRowId(M, bucket, entry)
+  const character = (base: number) => ({
+    id: id(base),
+    order: 0,
+    subject: 'CHARACTER' as const,
+    conditions: [
+      ...[EQUIPMENT_CATEGORY_CODE.ARMOR, EQUIPMENT_CATEGORY_CODE.SHIELD].map((category, index) => ({
+        id: id(base + 1 + index),
+        order: index,
+        kind: 'PREDICATE' as const,
+        constraint: 'EXCLUDE' as const,
+        predicateCode: 'EQUIPMENT_EQUIPPED' as const,
+        authoringModeKind: 'ALL' as const,
+        category
+      })),
+      ...(levels
+        ? [
+            {
+              id: id(base + 3),
+              order: 2,
+              kind: 'PREDICATE' as const,
+              constraint: 'INCLUDE' as const,
+              predicateCode: 'CLASS_LEVEL' as const,
+              classIds: [CLASS_IDS.MONK],
+              min: levels.min,
+              ...(levels.max === undefined ? {} : { max: levels.max })
+            }
+          ]
+        : [])
+    ]
+  })
+  const property = (
+    entry: number,
+    order: number,
+    constraint: 'INCLUDE' | 'EXCLUDE',
+    code: (typeof EQUIPMENT_PROPERTY_CODE)[keyof typeof EQUIPMENT_PROPERTY_CODE]
+  ) => ({
+    id: id(entry),
+    order,
+    kind: 'PREDICATE' as const,
+    constraint,
+    predicateCode: 'EQUIPMENT_PROPERTY' as const,
+    authoringModeKind: 'SELECTED' as const,
+    properties: [code]
+  })
+  return {
+    id: id(0),
+    groups: [
+      {
+        id: id(1),
+        order: 0,
+        contexts: [
+          character(2),
+          {
+            id: id(6),
+            order: 1,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'ALL',
+            conditions: [
+              property(7, 0, 'INCLUDE', EQUIPMENT_PROPERTY_CODE.MELEE),
+              property(8, 1, 'INCLUDE', EQUIPMENT_PROPERTY_CODE.SIMPLE),
+              property(9, 2, 'EXCLUDE', EQUIPMENT_PROPERTY_CODE.TWO_HANDED),
+              property(10, 3, 'EXCLUDE', EQUIPMENT_PROPERTY_CODE.HEAVY)
+            ]
+          }
+        ]
+      },
+      {
+        id: id(11),
+        order: 1,
+        contexts: [
+          character(12),
+          {
+            id: id(16),
+            order: 1,
+            subject: 'EQUIPMENT',
+            authoringModeKind: 'SELECTED',
+            equipmentIds: [equipmentId(28)]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
+ * Martial Arts: Dexterity may replace Strength on the attack and damage of a monk weapon or unarmed
+ * strike, and the Monk table's die (d4, d6, d8, d10 from levels 1, 5, 11, 17) replaces a lower weapon
+ * die or flat amount. Grants use bucket 0xb8; each grant's restriction uses bucket 0xb0 + its entry - 1.
+ */
+const martialArtsModifiers: ModifierGrantAuthored[] = [
+  ...[VALUE_DOMAIN_CODE.ATTACK_ROLL, VALUE_DOMAIN_CODE.DAMAGE].flatMap((valueDomainCode) =>
+    [ATTACK_DOMAIN_CODE.MELEE, ATTACK_DOMAIN_CODE.UNARMED].map((attackDomain) => ({
+      valueDomainCode,
+      domain: { attackDomain },
+      modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
+      payload: { abilities: [ABILITY_CODE.DEXTERITY] },
+      levels: undefined
+    }))
+  ),
+  ...[
+    { faces: 4, min: 1, max: 4 },
+    { faces: 6, min: 5, max: 10 },
+    { faces: 8, min: 11, max: 16 },
+    { faces: 10, min: 17, max: undefined }
+  ].map(({ faces, ...levels }) => ({
+    valueDomainCode: VALUE_DOMAIN_CODE.WEAPON_DAMAGE_DIE,
+    domain: {},
+    modifierKind: MODIFIER_KIND.SET_VALUE,
+    payload: { amount: faces },
+    levels
+  }))
+].map(({ levels, ...grant }, index) => ({
+  ...grant,
+  id: classRowId(M, 0xb8, index + 1),
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+  order: index,
+  restrictions: martialArtsRestriction(0xb0 + index, levels)
+}))
+
 // Ki resource charge — resets on short or long rest
 const kiCharge = {
   id: classRowId(M, 1, 1),
@@ -186,13 +290,14 @@ const kiCharge = {
 }
 
 /**
- * A ki discipline: a Bonus Action that spends 1 ki point and offers its actions until the end of
- * the turn (Flurry of Blows, Patient Defense, Step of the Wind). Uses ids `classRowId(M, 0xa0..0xa6,
- * discipline)`.
+ * A Bonus Action that offers its actions until the end of the turn: a ki discipline (Flurry of
+ * Blows, Patient Defense, Step of the Wind) spends 1 ki point; Martial Arts' bonus strike is free.
+ * Uses ids `classRowId(M, 0xa0..0xa5, entry)`.
  */
-function kiDisciplineEffect(
+function bonusActionOfferEffect(
   discipline: number,
-  grantedAction: NonNullable<PathLifecycleAuthored['grantedActions']>[number]
+  grantedAction: NonNullable<PathLifecycleAuthored['grantedActions']>[number],
+  costsKi: boolean
 ): EffectAuthored {
   return {
     id: classRowId(M, 0xa0, discipline),
@@ -203,7 +308,7 @@ function kiDisciplineEffect(
       activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
       range: { id: classRowId(M, 0xa1, discipline), rangeKind: RANGE_KIND.SELF },
       targeting: { selectionKind: 'SELF' },
-      resourceUse: { chargeId: kiCharge.id, cost: 1 }
+      ...(costsKi ? { resourceUse: { chargeId: kiCharge.id, cost: 1 } } : {})
     },
     paths: [
       {
@@ -520,48 +625,33 @@ export const monk: ClassAuthored = {
         "At 1st level, your practice of martial arts gives you mastery of combat styles that use unarmed strikes and monk weapons, which are shortswords and any simple melee weapons that don't have the two-handed or heavy property. You gain the following benefits while you are unarmed or wielding only monk weapons and you aren't wearing armor or wielding a shield: * You can use Dexterity instead of Strength for the attack and damage rolls of your unarmed strikes and monk weapons. * You can roll a d4 in place of the normal damage of your unarmed strike or monk weapon. This die changes as you gain monk levels, as shown in the Martial Arts column of the Monk table. * When you use the Attack action with an unarmed strike or a monk weapon on your turn, you can make one unarmed strike as a bonus action. For example, if you take the Attack action and attack with a quarterstaff, you can also make an unarmed strike as a bonus action, assuming you haven't already taken a bonus action this turn. Certain monasteries use specialized forms of the monk weapons. For example, you might use a club that is two lengths of wood connected by a short chain (called a nunchaku) or a sickle with a shorter, straighter blade (called a kama). Whatever name you use for a monk weapon, you can use the game statistics provided for the weapon.",
       availableAtLevel: 1,
       order: 1,
+      grants: { modifiers: martialArtsModifiers },
       effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 2),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_MARTIAL_ARTS,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(M, 0x69, 2), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(M, 0x70, 2),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_MARTIAL_ARTS,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.UNARMED_ATTACK,
-            range: { id: classRowId(M, 0x71, 2), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(M, 0x72, 2),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_MARTIAL_ARTS,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(M, 0x73, 2), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
+        bonusActionOfferEffect(
+          7,
+          {
+            activation: ACTIVATION_CODE.FREE,
+            usesPerTurn: 1,
+            actionDefinitionIds: [],
+            weaponAttack: true
+          },
+          false
+        ),
+        // The engine neither ties the bonus strike to the Attack action nor limits it to an unarmed
+        // strike, and tests "wielding only monk weapons" on the attacking item alone, so those
+        // clauses are a GM ruling.
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0xb9, 1),
+            range: classRowId(M, 0xb9, 2),
+            path: classRowId(M, 0xb9, 3),
+            result: classRowId(M, 0xb9, 4),
+            outcome: classRowId(M, 0xb9, 5)
+          },
+          label: 'Martial Arts',
+          instructions:
+            'The bonus action unarmed strike follows an Attack action in which you attacked with an unarmed strike or a monk weapon, and the strike is unarmed. The Martial Arts benefits apply only while you are unarmed or wielding only monk weapons. The GM applies these limits.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     },
@@ -574,24 +664,36 @@ export const monk: ClassAuthored = {
       order: 2,
       effects: [
         // Flurry of Blows
-        kiDisciplineEffect(1, {
-          activation: ACTIVATION_CODE.FREE,
-          usesPerTurn: 2,
-          actionDefinitionIds: [],
-          weaponAttack: true
-        }),
+        bonusActionOfferEffect(
+          1,
+          {
+            activation: ACTIVATION_CODE.FREE,
+            usesPerTurn: 2,
+            actionDefinitionIds: [],
+            weaponAttack: true
+          },
+          true
+        ),
         // Patient Defense
-        kiDisciplineEffect(2, {
-          activation: ACTIVATION_CODE.FREE,
-          usesPerTurn: 1,
-          actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DODGE]
-        }),
+        bonusActionOfferEffect(
+          2,
+          {
+            activation: ACTIVATION_CODE.FREE,
+            usesPerTurn: 1,
+            actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DODGE]
+          },
+          true
+        ),
         // Step of the Wind
-        kiDisciplineEffect(3, {
-          activation: ACTIVATION_CODE.FREE,
-          usesPerTurn: 1,
-          actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH, SRD_BASIC_ACTION_IDS.DISENGAGE]
-        }),
+        bonusActionOfferEffect(
+          3,
+          {
+            activation: ACTIVATION_CODE.FREE,
+            usesPerTurn: 1,
+            actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH, SRD_BASIC_ACTION_IDS.DISENGAGE]
+          },
+          true
+        ),
         // The engine neither ties Flurry of Blows to the Attack action nor limits it to unarmed
         // strikes, and has no jump distance to double, so those clauses are a GM ruling.
         gmRulingEffect({
@@ -680,8 +782,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 7, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)]
+      )
     },
     {
       id: classRowId(M, 3, 8),
@@ -727,10 +828,9 @@ export const monk: ClassAuthored = {
       availableAtLevel: 5,
       order: 9,
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(M, 0x60, 10),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_STUNNING_STRIKE,
-          pathCode: PATH_CODE.ON_HIT,
+          order: 0,
           invocation: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
@@ -738,9 +838,66 @@ export const monk: ClassAuthored = {
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
               dispositionKind: 'HOSTILE'
+            },
+            optionalOnHit: { kind: 'RESOURCE_POOL', chargeId: kiCharge.id, cost: 1 }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x80, 10),
+              order: 1,
+              pathCode: PATH_CODE.ON_HIT,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x81, 10),
+                resultKind: 'SINGLE',
+                // "Stunned until the end of your next turn" counts the monk's turns.
+                duration: {
+                  id: classRowId(M, 0x83, 10),
+                  durationKind: DURATION_KIND.ROUND,
+                  amount: 1
+                },
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x82, 10),
+                    effectKind: EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: classRowId(M, 0x84, 10),
+                      dcMethod: 'DERIVED_DC',
+                      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 8,
+                      bonuses: [
+                        {
+                          id: classRowId(M, 0x85, 40),
+                          bonusKind: 'ABILITY_MODIFIER',
+                          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
+                        },
+                        { id: classRowId(M, 0x85, 41), bonusKind: 'PROFICIENCY_BONUS' }
+                      ]
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: false,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: classRowId(M, 0x6c, 10),
+                          effectKind: EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('STUNNED')
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
             }
-          }
-        })
+          ]
+        }
       ]
     },
     {
@@ -843,10 +1000,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 15, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 16),
@@ -945,10 +1099,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 19, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 20),
@@ -1023,10 +1174,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 23, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 24),
@@ -1110,10 +1258,7 @@ export const monk: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (optionEntry) => classRowId(M, 26, optionEntry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(26, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(M, 3, 27),

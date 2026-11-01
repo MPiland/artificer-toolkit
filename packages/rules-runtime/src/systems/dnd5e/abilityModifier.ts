@@ -28,6 +28,7 @@ export const dnd5eAbilityScoreCapabilityAdapter: AbilityScoreCapabilityAdapter =
   gameSystemId: DND5E_SYSTEM_ID,
   abilityModifier,
   defaultScore: 10,
+  defaultMaximumScore: 20,
   abilityDefinitionIdByCode: DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   abilityCode: dnd5eAbilityCode
 }

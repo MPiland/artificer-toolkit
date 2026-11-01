@@ -1,5 +1,6 @@
-import { Group } from '@mantine/core'
+import { Group, NumberInput } from '@mantine/core'
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
+import { MAX_GROUP_COUNT } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   encounterActorDispositionDtoSchema,
   MAX_ENCOUNTER_ACTOR_CONTROLLERS,
@@ -23,12 +24,15 @@ export function EncounterActorControlFields({
 }: {
   actor: Pick<
     EncounterPlayerProjectionDto['actors'][number],
-    'controllerUserIds' | 'disposition' | 'kind' | 'label' | 'sourceId'
+    'controllerUserIds' | 'disposition' | 'kind' | 'label' | 'owner' | 'sourceId'
   >
   disabled: boolean
   memberships: CampaignDetailDto['memberships']
   onChange: (
-    update: { controllerUserIds: string[] } | { disposition: EncounterActorDispositionDto }
+    update:
+      | { controllerUserIds: string[] }
+      | { disposition: EncounterActorDispositionDto }
+      | { groupCount: number }
   ) => void
 }) {
   const players = memberships.filter((membership) => membership.role === 'PLAYER')
@@ -69,6 +73,27 @@ export function EncounterActorControlFields({
           value && onChange({ disposition: encounterActorDispositionDtoSchema.parse(value) })
         }
       />
+      {actor.owner?.count === undefined ? null : (
+        <NumberInput
+          key={actor.owner.count}
+          aria-label={`${actor.label} creatures in the group`}
+          allowDecimal={false}
+          clampBehavior='strict'
+          defaultValue={actor.owner.count}
+          disabled={disabled}
+          label='Creatures in the group'
+          max={MAX_GROUP_COUNT}
+          min={1}
+          onBlur={(event) => {
+            const count = Number(event.currentTarget.value)
+            if (Number.isInteger(count) && count >= 1 && count !== actor.owner?.count)
+              onChange({ groupCount: count })
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur()
+          }}
+        />
+      )}
     </Group>
   )
 }

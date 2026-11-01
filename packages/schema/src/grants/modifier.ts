@@ -990,6 +990,12 @@ const buildModifierGrantVariants = () =>
       amountPayloadDtoSchema
     ),
     buildModifierGrantVariant(
+      'ABILITY_SCORE_MAXIMUM',
+      'SET_VALUE',
+      optionalAbilityParamDtoSchema,
+      amountPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
       'PROFICIENCY_BONUS',
       'BONUS',
       emptyDomainDtoSchema,
@@ -1227,6 +1233,12 @@ const buildModifierGrantVariants = () =>
       z.object({ amount: z.number() })
     ),
     buildModifierGrantVariant(
+      'CONCENTRATION_CAPACITY',
+      'BONUS',
+      emptyDomainDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
       'CHARGE_LIMIT',
       'MODIFY_CHARGE_LIMIT',
       emptyDomainDtoSchema,
@@ -1410,6 +1422,7 @@ function spellScopedOutsideSpellAttacks(value: {
     spellScoped &&
     !(
       value.valueDomainCode === 'RANGE' ||
+      value.valueDomainCode === 'CONCENTRATION_CAPACITY' ||
       ((value.valueDomainCode === 'ATTACK_ROLL' || value.valueDomainCode === 'DAMAGE') &&
         attackDomain === 'SPELL')
     )
@@ -1435,7 +1448,7 @@ export const modifierGrantDtoSchema = lazySchema(() => {
           ctx.addIssue({
             code: 'custom',
             message:
-              'Spell-scoped modifiers are supported only for spell attack rolls, damage and ranges.',
+              'Spell-scoped modifiers are supported only for spell attack rolls, damage, ranges and Concentration capacity.',
             path: ['restrictions']
           })
         if (!value.modifierKind.includes('BONUS')) return

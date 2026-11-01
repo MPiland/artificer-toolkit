@@ -45,6 +45,7 @@ const circumstances = (
   rollMode,
   enemyProximity,
   targetCreatureTypeId,
+  targetBelowMaximumHitPoints: false,
   moveToward,
   attackItemBindingEffectIds
 })
@@ -605,7 +606,7 @@ describe('damage-type checks of reduced restrictions', () => {
     return reduceEffectRestrictions(
       mergeOnHitRiders(
         weapon,
-        collectOnHitRiders([restrictedEffect(gate)], testUuid(0xe30)),
+        collectOnHitRiders([restrictedEffect(gate)], testUuid(0xe30), 'Rider'),
         testUuid(0xe31)
       ),
       longsword

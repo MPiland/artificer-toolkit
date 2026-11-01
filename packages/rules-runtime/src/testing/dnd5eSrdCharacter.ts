@@ -39,7 +39,10 @@ import { compileCharacterGrantFoldRuleFacts } from '../character/characterGrantF
 import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
 import { buildCharacterMovementRuleFacts } from '../character/characterMovementRuleFacts.js'
 import { buildCharacterResourceRuleFacts } from '../character/characterResourceRuleFacts.js'
-import { prepareCharacterRuleSources } from '../character/characterRuleSnapshot.js'
+import {
+  characterNaturalWeapon,
+  prepareCharacterRuleSources
+} from '../character/characterRuleSnapshot.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
 
@@ -285,7 +288,8 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
       }),
       ...(input.features ?? [])
     ],
-    equipmentItems: items
+    equipmentItems: items,
+    ...characterNaturalWeapon(registry, SRD.classes[0]!.systemId)
   }
   const grantFoldFacts = compileCharacterGrantFoldRuleFacts({ snapshot, registry })
   const resourceFacts =
@@ -312,6 +316,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
   })
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
+    abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
     grantFoldFacts,
     totalLevel,
     derivedBaseFacts: buildCharacterDerivedRuleFacts(snapshot, registry),
@@ -358,8 +363,11 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     ),
     itemInstanceId: (label) => {
       const index = (input.items ?? []).findIndex((item) => item.label === label)
-      if (index < 0) throw new Error(`SRD fixture item "${label}" is missing.`)
-      return `item-${index}`
+      if (index >= 0) return `item-${index}`
+      const { naturalWeapon } = snapshot
+      if (naturalWeapon?.contentRef.definitionId === srdByLabel(SRD.equipment, label).id)
+        return naturalWeapon.instanceId
+      throw new Error(`SRD fixture item "${label}" is missing.`)
     }
   }
 }

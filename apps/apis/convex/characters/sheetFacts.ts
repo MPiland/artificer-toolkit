@@ -4,6 +4,9 @@ import {
   listActiveRuleEffects,
   listCarriedActiveRuleEffects
 } from '@artificer-toolkit/encounter-persistence/effectStore'
+import { readSystem } from '../content/systemDocuments'
+import { deriveOnce } from '@artificer-toolkit/encounter-persistence/transactionReads'
+import type { CharacterSheetFingerprintReads } from './sheetSections'
 import { loadCharacterSheetInputs, type CharacterSheetSourceContext } from './sheetInputs'
 import type { CharacterRecordRow, CharacterRow } from './stateDocuments'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
@@ -21,7 +24,9 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
   authorityScope?: import('../campaigns/authority').CampaignInternalScope,
   /** The row this transaction just wrote, evaluated without reading it back. */
   written?: TRow,
-  referenceSpellIds: readonly string[] = []
+  referenceSpellIds: readonly string[] = [],
+  /** What a fingerprint read in this transaction already loaded. */
+  reads?: Partial<CharacterSheetFingerprintReads>
 ) {
   const loaded = await loadCharacterSheetInputs(
     ctx,
@@ -32,7 +37,10 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     catalogScope,
     authorityScope,
     written,
-    referenceSpellIds
+    referenceSpellIds,
+    reads?.system && reads.sources
+      ? { system: deriveOnce(reads.system, readSystem), sources: reads.sources }
+      : undefined
   )
   if (!loaded) return null
   const evaluated = await prepareCharacterSheetFromContext({
@@ -44,19 +52,22 @@ export async function loadCharacterSheetFacts<TRow extends CharacterRecordRow = 
     referenceSpellIds,
     builderPreparation: loaded.sourceContext.builderPreparation
   })
+  const reader = { db: createConvexEncounterStoreReader(ctx) }
+  const activeEffects =
+    reads?.activeEffects ??
+    (await listActiveRuleEffects(
+      reader,
+      { kind: 'CHARACTER', characterId: loaded.active.id },
+      { ownerVerified: true }
+    ))
+  const carriedEffects =
+    reads?.carriedEffects ?? (await listCarriedActiveRuleEffects(reader, loaded.active.id))
   return {
     ...loaded,
     ...evaluated,
     // The Character row was just loaded or written in this transaction.
-    activeEffects: await listActiveRuleEffects(
-      { db: createConvexEncounterStoreReader(ctx) },
-      { kind: 'CHARACTER', characterId: loaded.active.id },
-      { ownerVerified: true }
-    ),
-    concentrationEffects: await listCarriedActiveRuleEffects(
-      { db: createConvexEncounterStoreReader(ctx) },
-      loaded.active.id
-    ).then((carried) => (carried.length === 0 ? null : carried)),
+    activeEffects,
+    concentrationEffects: carriedEffects.length === 0 ? null : carriedEffects,
     sourceContext: {
       ...loaded.sourceContext,
       sourcePreparation: evaluated.prepared.sourcePreparation,

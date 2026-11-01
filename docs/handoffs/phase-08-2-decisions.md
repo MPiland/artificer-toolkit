@@ -1956,3 +1956,24 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **SPELLS-12 is built before PERF-1.** This replaces the 2026-10-30 deferral.
 - **Bless on Sheet rolls** needs no work: attack and save rolls already carry target-independent dice, and a die against one creature (Hunter's Mark) waits for the room.
 - **Destroy Undead is automated with a CR gate** on Turn Undead's failed-save block (SPELLS-31.T4m2). The Destroy Undead row stays description-only.
+
+### D203: SPELLS-31 seam rulings from T4l2, T4c1b4 and T4i (user decisions, 2026-10-31)
+
+- **Unarmed Strike is built for every Character** (SPELLS-31.T4l2), with Martial Arts and the Ki-Empowered journey. Character attacks came only from wielded weapons before this.
+- **Open Hand Technique is built** as its own task (T4l2b). **Horde Breaker is a GM ruling:** the player makes the extra attack by hand.
+- **Save windows cover area saves (T4c1b4) and movement reaction saves (T4c1b4b).** Zone and forced-movement saves stay system-rolled, so D170 stands.
+- **Dark One's Blessing is built** on a generic killer-side trigger (T4i2).
+
+### D204: Double Concentration ring, Prismatic Spray, Conjure groups (user decisions, 2026-10-31)
+
+- **The double Concentration ring is built without its reaction prompt.** SPELLS-12 splits into T2a gate, T2b uses, T3a saves and T3b advantage and disadvantage, about +8. A reaction cast of a Concentration spell at capacity with two held is refused, and the player can end one first.
+- **Prismatic Spray keeps its always-built ruling** and splits into T2ps-a to T2ps-d, about +7. T2ps-b also unblocks Flesh to Stone, and T2ps-c also unblocks Prismatic Wall.
+- **T30 may read `node_modules/convex-test/dist`** with Read and Grep only.
+- **SPELLS-31.T5q is built and splits** into T5q-A ability maximum and T5q-B check bonuses, about +7.
+- **Orchestrator ruling on SPELLS-35.T7:** `owner.count` is optional on the Run actor owner, absence means 1, and `UPDATE_ACTOR.groupCount` lets the GM set 1..32 in either direction. The multiplier lives in one attack-slot derivation. Upcast multipliers are not applied at cast: the GM raises the count afterward.
+
+### D205: Conjure group token hit points (user decisions, 2026-10-31)
+
+- **A group token's hit points are one creature's hit points times the count.** Eight wolves of 11 HP are one 88 HP pool. Area damage hits the pool once, and the token leaves at 0 through the existing summon removal.
+- **Changing the count:** lowering it leaves hit points alone. Raising it adds one creature's hit points per added creature to current and maximum. The count never changes by itself.
+- **Orchestrator rulings:** a Multiattack creature in a group makes one attack per creature (D200), a Monk holding a one-handed non-monk weapon keeps Martial Arts, and Sheet Extras show no group count. All three are deferred edge cases.

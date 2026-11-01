@@ -15,9 +15,10 @@ import {
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { effectiveHitPointMaximum } from './character/activeEffectGrantTotals.js'
 import { encounterGrantsEnabledDomain } from './encounterActiveGrants.js'
-import { SpellcastingLockedError } from './encounterErrors.js'
+import { MaintainedReplacementRequiredError, SpellcastingLockedError } from './encounterErrors.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planConcentrationCarriedGrantEnds } from './encounterGrantLifetimes.js'
+import { preparedSpellCastLevel } from './encounterPreparedSpellCast.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
 import {
   temporaryHitPointsAfterEffectsEnd,
@@ -25,17 +26,65 @@ import {
   withCharacterTemporaryHitPoints
 } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
+/**
+ * The held state a new maintained effect replaces. The holder keeps up to `capacity` at once: below
+ * it the new effect is added and nothing ends; at it, the only held state is replaced, or the
+ * caster's choice among several (SPELLS-12). A stale choice asks again rather than failing.
+ */
+export function chooseReplacedMaintainedState<TState extends { id: string }>(input: {
+  definitionId: string
+  held: readonly TState[]
+  capacity: number
+  chosenStateId?: string | undefined
+}): TState | null {
+  const { definitionId, held, capacity, chosenStateId } = input
+  if (held.length < capacity) return null
+  // A pick that no longer names a held state (it ended while the prompt was open) is ignored.
+  const chosen = held.find((state) => state.id === chosenStateId)
+  if (chosen) return chosen
+  const [only] = held
+  if (held.length === 1 && only) return only
+  throw new MaintainedReplacementRequiredError(
+    definitionId,
+    held.map((state) => state.id)
+  )
+}
+
+type PreparedMechanics = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
+
+function characterConcentrationCapacity(
+  source: Extract<PreparedMechanics['source'], { kind: 'CHARACTER_ACTION' }>,
+  adapter: PreparedMechanics['adapter'],
+  cast: { spellLevel: number | null; held: readonly EncounterMaintainedEffectStateRecord[] }
+) {
+  const { effectivePolicyOutput } = source
+  const owner = source.candidate.mechanicsOwner
+  return (
+    adapter.concentrationCapacityForCast?.({
+      policyOutput: effectivePolicyOutput,
+      newSpell: { id: owner.kind === 'SPELL' ? owner.id : '', level: cast.spellLevel },
+      heldSpellLevels: cast.held.map((state) => state.descriptor.spellLevel ?? null)
+    }) ?? effectivePolicyOutput.concentrationCapacity
+  )
+}
+
 /** Selects and validates current maintenance before the caller consumes action evidence. */
 export async function prepareEncounterActionMaintenance<TOwners extends object>(input: {
-  prepared: Pick<
-    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
-    'state' | 'actor' | 'plan' | 'source' | 'adapter'
-  >
+  prepared: Pick<PreparedMechanics, 'state' | 'actor' | 'plan' | 'source' | 'adapter'> &
+    Partial<Pick<PreparedMechanics, 'characterActionState'>>
   /** The acting actor's active effects; a `SPELLCASTING_LOCK` grant among them bars a new Concentration. */
   activeEffects: readonly ActiveRuleEffectRecord[]
   readDefinition: (definitionId: string) => Promise<ReusableDefinitionCurrentDto | null>
-  readSlot: (definitionId: string) => Promise<{
-    state: EncounterMaintainedEffectStateRecord | null
+  /** The held state the caster chose to end at capacity; required when several are held. */
+  chosenStateId?: string | undefined
+  /** The acting actor's held states for the definition, oldest first. */
+  readHeldStates: (definitionId: string) => Promise<EncounterMaintainedEffectStateRecord[]>
+  /** One held state and the effects that depend on it. */
+  readSlot: (
+    definitionId: string,
+    stateId: string
+  ) => Promise<{
+    state: EncounterMaintainedEffectStateRecord
     dependents: ActiveRuleEffectRecord[]
   }>
   /** D99: the Run Characters' (or stored Characters') carried grants; omitted where not covered. */
@@ -97,24 +146,48 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     publishedPolicy.emptyDependentPolicy !== policy.emptyDependentPolicy
   )
     throw new Error('The active-effect maintenance policy does not match its published definition.')
-  const slot = await input.readSlot(policy.definitionId)
+  const held = await input.readHeldStates(policy.definitionId)
+  const spellLevel = preparedSpellCastLevel({
+    source: prepared.source,
+    characterActionState: prepared.characterActionState ?? null
+  })
+  // A Character holds as many as its stat allows, more for a cast its gated bonuses cover; a
+  // Creature holds one.
+  const capacity =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? characterConcentrationCapacity(prepared.source, prepared.adapter, { spellLevel, held })
+      : 1
+  const replaced = chooseReplacedMaintainedState({
+    definitionId: policy.definitionId,
+    held,
+    capacity,
+    chosenStateId: input.chosenStateId
+  })
+  const slot = replaced
+    ? await input.readSlot(policy.definitionId, replaced.id)
+    : { state: null, dependents: [] }
   const prior = slot.state
   const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
+  // Carried grants (D99) are one Concentration of the caster's own not yet in the Run's states, so
+  // they end when the new one leaves no room beside it (or replaces another).
+  const carriedEffects = casterCharacterId && input.readCarried ? await input.readCarried() : []
   const carried = planConcentrationCarriedGrantEnds({
     casterCharacterId: casterCharacterId ?? '',
-    effects: casterCharacterId && input.readCarried ? await input.readCarried() : []
+    effects: carriedEffects
   })
+  const carriedEnds = replaced || held.length + 1 >= capacity ? carried : []
   const byOwnerOrder = (left: ActiveRuleEffectRecord, right: ActiveRuleEffectRecord) => {
     const key = (effect: ActiveRuleEffectRecord) =>
       `${effect.owner.kind === 'CHARACTER' ? `0:${effect.owner.characterId}` : `1:${effect.owner.targetActorId}`}:${effect.createdOrdinal.toString().padStart(10, '0')}:${effect.id}`
     return key(left).localeCompare(key(right))
   }
-  const removed = [...slot.dependents, ...carried].sort(byOwnerOrder)
-  const sortedCarried = [...carried].sort(byOwnerOrder)
+  const removed = [...slot.dependents, ...carriedEnds].sort(byOwnerOrder)
+  const sortedCarried = [...carriedEnds].sort(byOwnerOrder)
   return {
     policy,
     definitionChecksum: definition.checksum,
     prior,
+    spellLevel,
     removed,
     carried: sortedCarried,
     ...(await input.readOwners(removed, sortedCarried))

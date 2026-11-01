@@ -377,7 +377,12 @@ store.
   (SPELLS-5.11, D101). A carried grant relinked to its caster's reinstated Concentration (D151,
   SPELLS-5.12) stores the later Run as `sourceEncounterId` beside its `maintainedEffectStateId`, while its
   definition keeps the earlier Run's origin; `readCharacterEffect` accepts that pair only on a stamped row.
-  A maintained state's descriptor names its `provenance` (`ACTION` with the creating action and
+  An actor may hold several states per maintenance definition (Concentration capacity, SPELLS-12.T1);
+  `readMaintainedStatesByDefinition` (the store's `findMaintainedStates`) lists them oldest first and the
+  single-state reader returns the oldest. The damage-save chain binds and verifies every held state, not the
+  oldest (`bindEncounterConcentrationApplications`, `concentrationResponsePersistence`); only the movement
+  chain still reads the oldest.
+  A maintained state's descriptor records the `spellLevel` it was cast at when a spell started it (gates per-cast Concentration capacity, SPELLS-12.T2a) and names its `provenance` (`ACTION` with the creating action and
   occurrence, or `CARRIED` with the caster); `rules/maintainedProvenanceMigration:run` moved stored
   descriptors' top-level action ids into it. `endCarriedGrantsOfConcentratingCasters` is the one ending path for both the
   checkpoint and the caster's own `END_CONCENTRATION`; `listCarriedActiveRuleEffects` is bounded by
@@ -510,6 +515,12 @@ side, the place behind it, and `ACTED` or `READY` by whether that place is at or
 `RESOLVE_ACTION` records the resulting round state as the nullable `initiativeStateJson` and `initiativeStateChecksum`
 pair, validated like the `SUMMONS_ENDED` one, so `REVERT_LAST_ACTION` restores it through `removeConjuredActors`. Each
 later round is seated by `anchorOwnedActors` in rules-runtime.
+Current (SPELLS-35.T5, D200): an `OWN_INITIATIVE` summon cast into an ACTIVE Run carries the roll `rollSummonInitiative` made
+(`initiativeRoll` on the summoned token). `persistEncounterAreaCommit` passes its score (`face + modifier`) to
+`insertReinforcementInitiative` without an anchor, so the participant row is sorted in by score, and posts the Initiative
+roll card (`persistSummonInitiativeRollCard`) once the Run actor is stored. With no roll (a manual Run or an unscorable
+policy) it is anchored behind its owner as an `AFTER_OWNER` summon is. The same `initiativeStateJson` receipt restores the
+round on `REVERT_LAST_ACTION`; the roll card stays in the conversation like any other roll.
 
 ## Scene storage
 

@@ -80,7 +80,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'MOVEMENT_PASSAGE_CHOICE') return 'Passage choice'
   if (kind === 'LEGENDARY_RESISTANCE_CHOICE') return 'Legendary Resistance'
   if (kind === 'REACTION_CHOICE') return 'Reaction available'
-  if (kind === 'ON_HIT_CHOICE') return 'Add on-hit damage'
+  if (kind === 'ON_HIT_CHOICE') return 'Add an on-hit effect'
   if (kind === 'ATTACK_RETARGET_CHOICE') return 'Choose a new target'
   if (kind === 'FORCED_MOVEMENT_DESTINATION') return 'Forced movement'
   if (kind === 'LEGENDARY_ACTION_CHOICE') return 'Legendary Action'
@@ -92,6 +92,24 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'CONTEST_CHECK') return 'Contest check'
   if (kind === 'D20_WINDOW') return 'Add a die to the roll?'
   return 'Initiative order required'
+}
+
+type OnHitChoice = Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'ON_HIT_CHOICE' }>
+
+/** "Stunning Strike?" when one rider is offered; riders told apart by name need the generic title. */
+export function onHitChoiceTitle(options: OnHitChoice['options']): string {
+  const labels = new Set(options.map(({ riderLabel }) => riderLabel))
+  const [only] = labels
+  return only && labels.size === 1 ? `${only}?` : 'Add an on-hit effect'
+}
+
+/** "Stunning Strike: spend 1 from a resource pool": the rider and what it costs. */
+export function onHitOptionLabel(option: OnHitChoice['options'][number]): string {
+  return `${option.riderLabel}: ${
+    option.kind === 'SPELL_SLOT'
+      ? `spend a level ${option.slotLevel} slot`
+      : `spend ${option.cost} from a resource pool`
+  }`
 }
 
 /** Names who a prompted roll is for and, when a rule raised it, why. */

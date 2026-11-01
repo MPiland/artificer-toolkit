@@ -584,7 +584,14 @@ export const characterActionCandidatesSchema = lazySchema(() =>
                 label: stringSchema.check(z.trim()).check(z.maxLength(500)),
                 chargeId: identitySchema,
                 cost: integerSchema.check(z.gte(1)).check(z.lte(2_147_483_647)),
-                poolId: characterResourcePoolIdentitySchema
+                poolId: characterResourcePoolIdentitySchema,
+                /** Creatures the paid modifier gives a save outcome on; the cast command names up to `max`. */
+                targets: z.optional(
+                  z.strictObject({
+                    outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+                    max: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
+                  })
+                )
               })
             )
             .check(z.maxLength(50))

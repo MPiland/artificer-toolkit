@@ -37,7 +37,11 @@ export type ConcentrationDamageApplicationDto = z.infer<
 >
 
 export const concentrationMaintainedDamageApplicationDtoSchema = lazySchema(() =>
-  z.extend(concentrationDamageApplicationDtoSchema, { maintainedStateId: ruleExecutionUuidSchema })
+  z.extend(concentrationDamageApplicationDtoSchema, {
+    maintainedStateId: ruleExecutionUuidSchema,
+    /** When the Concentration began (its state's `createdAt`): a holder's checks run in casting order. */
+    castAt: z.iso.datetime()
+  })
 )
 
 export type ConcentrationMaintainedDamageApplicationDto = z.infer<
@@ -79,6 +83,7 @@ export type DamageSaveSource = (typeof DAMAGE_SAVE_SOURCES)[number]
 /** A damage application that may name what it checks; a bare one is the check being settled. */
 export type DamageSaveBindable = ConcentrationDamageApplicationDto & {
   maintainedStateId?: string
+  castAt?: string
   activeEffectId?: string
   optionalCombatDefinitionId?: string
 }
@@ -118,9 +123,10 @@ export function damageSaveApplicationsAfterRelease(
 export function unboundDamageSaveApplication(
   entry: DamageSaveApplicationDto
 ): ConcentrationDamageApplicationDto {
-  const { maintainedStateId, activeEffectId, optionalCombatDefinitionId, ...damage } =
+  const { maintainedStateId, castAt, activeEffectId, optionalCombatDefinitionId, ...damage } =
     entry as DamageSaveBindable
   void maintainedStateId
+  void castAt
   void activeEffectId
   void optionalCombatDefinitionId
   return damage
@@ -148,8 +154,9 @@ export function compareConcentrationDamageApplications(
 }
 
 /**
- * Chain order: damage order, then the save source (`DAMAGE_SAVE_SOURCES`), then the bound id. A
- * bare application (the check being settled) sorts before its own bound twins.
+ * Chain order: damage order, then the save source (`DAMAGE_SAVE_SOURCES`), then the bound id; a
+ * holder's Concentration checks run in casting order (`castAt`) before the id breaks a tie. A bare
+ * application (the check being settled) sorts before its own bound twins.
  */
 export function compareDamageSaveApplications(
   left: DamageSaveBindable,
@@ -159,7 +166,9 @@ export function compareDamageSaveApplications(
   if (byDamage !== 0) return byDamage
   const key = (value: DamageSaveBindable) => {
     const binding = damageSaveBinding(value)
-    return binding ? `${DAMAGE_SAVE_SOURCES.indexOf(binding.source)}:${binding.id}` : ''
+    return binding
+      ? `${DAMAGE_SAVE_SOURCES.indexOf(binding.source)}:${value.castAt ?? ''}:${binding.id}`
+      : ''
   }
   const leftKey = key(left)
   const rightKey = key(right)
