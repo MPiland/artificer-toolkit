@@ -25558,11 +25558,11 @@
         {
           "id": "RELIABILITY-21",
           "title": "Browser journey product bugs pass in CI",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [
             ".github/workflows/browser-journeys.yml"
           ],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "wsjf": {
             "bv": 5,
@@ -25775,10 +25775,12 @@
             {
               "id": "RELIABILITY-21.20",
               "text": "A Sheet derivation trusts publication and System documents whose stored checksum it verifies instead of re-parsing them on every write; schema validation of those documents happens once, at publish and seed, and a tampered or stale document is still refused by its checksum.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-21.T25 (m572), RELIABILITY-21.T25b (m586), RELIABILITY-21.T30 (m596); see each task's proof."
+              ],
               "origin": [],
-              "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI)."
+              "note": "Approved by the user on 2026-10-29. Option B from the T16 timing packet (local profile: ~20 of ~72 ms per derivation; ~150 ms on CI). Closed 2026-11-01 by RELIABILITY-21.T25, RELIABILITY-21.T25b, RELIABILITY-21.T30."
             },
             {
               "id": "RELIABILITY-21.21",
@@ -26259,7 +26261,7 @@
             },
             {
               "id": "RELIABILITY-21.T30",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-21.20"
               ],
@@ -26270,8 +26272,7 @@
                 "size": 2
               },
               "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
-              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one. Fix merged in m592 (1d9d29081), but CI labelled sheetSections.test.ts ALREADY-PASSING against the base, so it stays open until a regression test fails before the fix.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one. Fix merged in m592 (1d9d29081), but CI labelled sheetSections.test.ts ALREADY-PASSING against the base, so it stays open until a regression test fails before the fix. Merged in m596 (e961f5d60); red proof on ci/reliability-21-t30-red."
             }
           ]
         }
