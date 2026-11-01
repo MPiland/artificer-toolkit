@@ -30,7 +30,7 @@ import {
 import { projectEncounterActionTarget } from '@artificer-toolkit/rules-runtime/encounterActionProjection'
 import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { prepareNativeLiveMaintainedState } from './nativeEncounterMaintenance.js'
-import { windowSpentEffects } from './nativeActionSaveWindow.js'
+import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { counterConsumptionsOf } from './nativeEncounterCastReaction.js'
 import type { AreaPlanBase, AreaPrepared } from './nativeAreaPreparation.js'
 import type {

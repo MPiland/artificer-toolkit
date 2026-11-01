@@ -7,13 +7,16 @@ import type {
   ServerRuleExecutionD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { z } from 'zod'
 
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
 import { requireDerivedD20Mode } from './encounterD20ModeValidation.js'
 import { isEncounterSightGovernedD20 } from './encounterAttackBelief.js'
+import { spendEncounterD20WindowDie } from './encounterD20Window.js'
 import { type EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import type { EncounterActionWindowAnswer } from './encounterActionSaveWindow.js'
 
 /** A settled action's retained evidence: its phases, terminal execution and application dice. */
 type RetainedActionReceipt = {
@@ -31,6 +34,7 @@ type RetainedD20Evidence = Pick<
   | 'rawFaces'
   | 'selectedNatural'
   | 'modeAdjustment'
+  | 'addedDice'
 >
 
 function same(left: unknown, right: unknown) {
@@ -75,9 +79,15 @@ export function retainedReceiptD20(receipt: RetainedActionReceipt | undefined) {
 /** Every d20 an action already rolled, by request, from its paused OUTCOME phase and its receipt. */
 export function retainedD20Evidence(input: {
   twoPhase?: z.infer<typeof directActionTwoPhaseDtoSchema> | null
+  /** The pause the action waits on; a d20 window holds the save it follows as rolled. */
+  pause?: PendingNativeActionGraphs['pause']
   receipt?: RetainedActionReceipt
 }) {
   const pending = input.twoPhase
+  const windowed =
+    input.pause?.kind === 'D20_WINDOW' && !isD20RolledCheck(input.pause.payload.rolled)
+      ? input.pause.payload.rolled.d20
+      : null
   const retained = retainedReceiptD20(input.receipt)
   const evidence = [
     ...(pending?.phase === 'OUTCOME'
@@ -91,6 +101,9 @@ export function retainedD20Evidence(input: {
             selectedNatural: pending.testRollEvidence.selectedNatural,
             ...(pending.testRollEvidence.modeAdjustment
               ? { modeAdjustment: pending.testRollEvidence.modeAdjustment }
+              : {}),
+            ...(pending.testRollEvidence.addedDice
+              ? { addedDice: pending.testRollEvidence.addedDice }
               : {})
           }
         ]
@@ -98,6 +111,7 @@ export function retainedD20Evidence(input: {
     ...(pending?.phase === 'OUTCOME' && pending.nestedOutcomeD20Evidence
       ? [pending.nestedOutcomeD20Evidence]
       : []),
+    ...(windowed ? [windowed] : []),
     ...(retained.d20 ? [retained.d20] : []),
     ...(retained.nestedD20 ? [retained.nestedD20] : [])
   ]
@@ -172,4 +186,33 @@ export function resolutionForRetainedEvidence(input: {
     throw new Error('The retained action integer evidence is stale.')
   input.used.add(request.requestId)
   return { kind: 'ENTER_INTEGER', requestId: request.requestId, value }
+}
+
+/**
+ * Answers a paused d20 window with the die its save already spent: the retained save evidence holds
+ * the added die and its faces, so a window whose save spent none was declined. Nothing rolls again.
+ */
+export function windowAnswerForRetainedEvidence(input: {
+  pending: PendingNativeActionGraphs
+  d20: ReadonlyMap<string, RetainedD20Evidence>
+  used: Set<string>
+}): EncounterActionWindowAnswer {
+  const window = input.pending.pause?.kind === 'D20_WINDOW' ? input.pending.pause.payload : null
+  if (!window || isD20RolledCheck(window.rolled))
+    throw new Error('The retained action window evidence is stale.')
+  const { d20 } = window.rolled
+  const retained = input.d20.get(d20.requestId)
+  const dice = retained?.addedDice ?? []
+  const held = d20.addedDice ?? []
+  const spent = dice.at(held.length)
+  if (!retained || dice.length > held.length + 1 || !same(dice.slice(0, held.length), held))
+    throw new Error('The retained action window evidence is stale.')
+  input.used.add(d20.requestId)
+  if (!spent) return { kind: 'D20_WINDOW', d20 }
+  const option = window.offer.options.find(({ effectId }) => effectId === spent.spentEffectId)
+  if (!option) throw new Error('The retained action window die was not offered.')
+  const answered = spendEncounterD20WindowDie(d20, option, spent.rolledFaces)
+  if (!same(answered.addedDice, dice))
+    throw new Error('The retained action window evidence is stale.')
+  return { kind: 'D20_WINDOW', d20: answered }
 }

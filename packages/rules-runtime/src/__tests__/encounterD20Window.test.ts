@@ -5,7 +5,8 @@ import {
   chosenEncounterD20WindowOption,
   encounterD20WindowOptions,
   encounterD20WindowSelectedIndex,
-  encounterD20WindowSelection
+  encounterD20WindowSelection,
+  spendEncounterD20WindowDie
 } from '../encounterD20Window.js'
 
 const CHECKSUM = 'a'.repeat(64)
@@ -70,5 +71,25 @@ describe('the roll a damage save freezes at its d20 window', () => {
     const frozen = damageSaveRolledD20({ requestId: 'request', save, roll })
     expect(frozen).toMatchObject({ selectedNatural: 17, total: 19, rawFaces: [4, 17] })
     expect(damageSaveWindowRoll(frozen)).toEqual(roll)
+  })
+})
+
+describe('the held die a window spends on a rolled save', () => {
+  const option = offer.options[0]!
+  const frozen = damageSaveRolledD20({
+    requestId: 'request',
+    save: { rollMode: 'NORMAL', modifier: 2, contributors: [], contributorChecksum: CHECKSUM },
+    roll: { rawFaces: [9], rollMode: 'NORMAL', keep: 'FIRST', natural: 9, addedDice: [] }
+  })
+
+  it('adds the rolled die to the total and names the effect that held it', () => {
+    const spent = spendEncounterD20WindowDie(frozen, option, [3])
+    expect(spent.addedDice?.map(({ spentEffectId }) => spentEffectId)).toEqual([option.effectId])
+    expect(spent.total).toBe(frozen.total + 3)
+  })
+
+  it('refuses faces the die cannot roll', () => {
+    expect(() => spendEncounterD20WindowDie(frozen, option, [5])).toThrow('within its size')
+    expect(() => spendEncounterD20WindowDie(frozen, option, [])).toThrow('within its size')
   })
 })
