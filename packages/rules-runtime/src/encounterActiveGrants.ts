@@ -977,7 +977,7 @@ export function encounterSourceSightSaveGrants(input: {
 export function withSaveContributors(
   gameSystemId: string,
   targetDerivedFacts: Readonly<Record<string, unknown>>,
-  abilityDefinitionId: string | undefined,
+  abilityDefinitionId: string | null | undefined,
   contributors: readonly EncounterRelationshipD20Contributor[]
 ): Readonly<Record<string, unknown>> {
   const { savingThrowDefinitions } = targetDerivedFacts
