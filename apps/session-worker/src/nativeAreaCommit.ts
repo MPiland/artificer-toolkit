@@ -371,7 +371,6 @@ export async function completeAreaCommit(args: {
     reactionEffects,
     formCreature,
     maintenance,
-    removedIds,
     holdingZone,
     dispositions,
     consumedGrants,
