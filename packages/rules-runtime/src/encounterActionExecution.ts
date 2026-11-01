@@ -412,6 +412,8 @@ export async function prepareNativeActionTest(
     attackSight?: EncounterPreparedAttackSight | null
     /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
     saveWindow?: EncounterActionSaveWindow
+    /** The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. */
+    windowDice?: readonly D20RolledAddedDieDto[]
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
@@ -552,12 +554,14 @@ export async function prepareNativeActionTest(
       )
       if (window) return window
     } else mayAddDice = true
+    const windowDice = input.windowDice ?? []
+    if (windowDice.length > 0) mayAddDice = true
     continuation = heldContinuation
     faces = response.faces
     rollMode = response.rollMode
     keep = response.keep
     modeAdjustment = response.modeAdjustment
-    addedDice = response.addedDice
+    addedDice = [...response.addedDice, ...windowDice]
     result = await resumeEncounterD20({
       continuation,
       natural: response.value,
@@ -674,7 +678,13 @@ export async function reconstructNativeActionTest(
     execution?: ServerCompletedRuleExecutionDto
     d20: Pick<
       ServerRuleExecutionD20EvidenceDto,
-      'requestId' | 'rawFaces' | 'rollMode' | 'keep' | 'selectedNatural' | 'modeAdjustment'
+      | 'requestId'
+      | 'rawFaces'
+      | 'rollMode'
+      | 'keep'
+      | 'selectedNatural'
+      | 'modeAdjustment'
+      | 'addedDice'
     >
   }
 ) {
@@ -695,6 +705,7 @@ export async function reconstructNativeActionTest(
     throw new Error('The retained TEST request is stale.')
   const boundary = await prepareNativeActionTest({
     ...source,
+    windowDice: (input.d20.addedDice ?? []).filter(({ spentEffectId }) => spentEffectId),
     resume: {
       pending,
       resolution: {
