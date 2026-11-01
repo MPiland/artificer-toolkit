@@ -1,82 +1,19 @@
 import { expect, it } from 'vitest'
 import { encounterGmProjectionDtoSchema } from '@artificer-toolkit/schema/api/encounters'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
-import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
+import { createActorCapRun } from '../../tests/fixtures/encounterActorCap'
 import {
-  SRD_ACTION_ALLOWANCE_DEFINITION_ID,
-  SRD_RULE_STATE_DEFINITIONS
-} from '@artificer-toolkit/source-data/srd/ruleState.js'
-import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
-import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
-import { srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
-import { createEncounterInitiativeDefinitions } from '../../tests/fixtures/encounterInitiative'
-import {
-  attachRoomWorker,
   executeInRoom,
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
-import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
-import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
-import { api, internal } from '../_generated/api'
-import { createEncounterRun } from '../encounters/runs'
-import { withSceneVisionTracking } from '../lib/mutations'
 
 useLocalRoomWorker()
 
 // Initiative evidence, its order and every refresh list hold one entry per actor, so a Run at the
 // actor cap must start and turn, not only a Run within the rule graph's node limit.
 it('starts and advances a turn in a Run at the actor cap through the room', async () => {
-  const base = await setupCharacterRun()
-  await attachRoomWorker(base.t)
-  // The GM rolls every Creature and the player their Character without a prompt.
-  for (const userId of [base.owner.userId, base.player.userId])
-    await setAutoRollDice(base.t, userId, true)
-  const initiative = createEncounterInitiativeDefinitions([
-    { procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' }
-  ])
-  await base.t.mutation(internal.content.import.importDefinitions, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: [
-      ...SRD_RULE_STATE_DEFINITIONS.filter(
-        (definition) => definition.id === SRD_ACTION_ALLOWANCE_DEFINITION_ID
-      ),
-      ...initiative.definitions
-    ]
-  })
-  await importSeededSubjects(base.t, {
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    subjects: [importedSubject({ ...wolf, subjectKind: 'CREATURE', document: wolf })]
-  })
-  const settings = await base.owner.caller.query(api.campaigns.playSettings.get, {
-    campaignId: base.campaign.id
-  })
-  const { version, updatedAt: _updatedAt, ...settingFields } = settings
-  await base.owner.caller.mutation(api.campaigns.playSettings.save, {
-    ...settingFields,
-    expectedVersion: version,
-    automationMode: 'ASSISTED',
-    initiativePolicyDefinitionId: initiative.policyIds[0]!,
-    initiativeTieDefinitionId: null
-  })
-  // The party's Character fills the last seat.
-  const blueprint = await base.owner.caller.mutation(api.encounters.blueprints.create, {
-    gameSystemId: base.campaign.gameSystemId,
-    name: 'Actor cap',
-    commandId: crypto.randomUUID(),
-    enemies: Array.from({ length: MAX_ENCOUNTER_ACTORS - 1 }, () => ({
-      kind: 'CREATURE' as const,
-      sourceId: wolf.id
-    }))
-  })
-  const reads = createDatabaseIoTotals()
-  const prepared = await base.owner.caller.run((ctx) =>
-    createEncounterRun(
-      // Counted beneath the trigger layer, so actor-insert trigger reads count too.
-      withSceneVisionTracking({ ...ctx, db: countDatabaseIo(ctx.db, reads) }),
-      { campaignId: base.campaign.id, blueprintId: blueprint.id, commandId: crypto.randomUUID() }
-    )
-  )
+  const { base, prepared, reads } = await createActorCapRun()
   expect(prepared.actors).toHaveLength(MAX_ENCOUNTER_ACTORS)
   // Creating a Run at the cap read 20.3 MB (over the 16 MiB transaction limit) when every actor
   // insert's trigger re-read the whole Run (b75d8a908); keep it far inside the limit.
