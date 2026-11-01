@@ -82,14 +82,13 @@ export function dnd5eSaveAutoFailConditionIds(
   ].sort()
 }
 
-/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94). */
+/** A target's save outcome rule: its conditions fail saves of these abilities unrolled (D94); a failure wins over a paid cast modifier's success. */
 export function dnd5eSaveOutcomeRule(
   rules: CharacterRuleActionConditionOutcomeRules | null | undefined,
   abilityDefinitionId: string
-): 'NONE' | 'SAVE_AUTO_FAIL' {
-  return dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length
-    ? 'SAVE_AUTO_FAIL'
-    : 'NONE'
+): 'NONE' | 'SAVE_AUTO_FAIL' | 'SAVE_AUTO_SUCCESS' {
+  if (dnd5eSaveAutoFailConditionIds(rules, abilityDefinitionId).length) return 'SAVE_AUTO_FAIL'
+  return rules?.saveAutoSucceeds?.includes(abilityDefinitionId) ? 'SAVE_AUTO_SUCCESS' : 'NONE'
 }
 
 /** The lowest natural d20 that scores a critical hit with this attack: 20 unless a grant lowers it. */
@@ -104,6 +103,13 @@ export const DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY = 'dnd5e.target-condition-im
  * a tiered save selects its tier by it when the outcome is specialized.
  */
 export const DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY = 'dnd5e.target-current-hit-points'
+/**
+ * The target's challenge rating (a creature's, as the number the System vocabulary records) when
+ * the action resolves. A challenge rating gate reads it; a target with none carries
+ * {@link NO_CHALLENGE_RATING}, which no authored cap admits.
+ */
+export const DND5E_TARGET_CHALLENGE_RATING_FACT_KEY = 'dnd5e.target-challenge-rating'
+export const NO_CHALLENGE_RATING = Number.MAX_SAFE_INTEGER
 /**
  * The ids of the damage types the target took since its last turn began, as sorted JSON text. A
  * damage-type suppression gate reads it, and only a graph that binds it carries it in its facts.

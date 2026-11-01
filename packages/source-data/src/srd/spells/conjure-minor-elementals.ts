@@ -16,8 +16,18 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { CLASS_IDS, CREATURE_IDS, SPELL_IDS } from '../ids.js'
+import { conjuredCreatureForms } from './conjuredCreatureForms.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const elementalForms = [
+  [CREATURE_IDS.AZER, 'Azer', 1],
+  [CREATURE_IDS.DUST_MEPHIT, 'Dust Mephit', 4],
+  [CREATURE_IDS.GARGOYLE, 'Gargoyle', 1],
+  [CREATURE_IDS.ICE_MEPHIT, 'Ice Mephit', 4],
+  [CREATURE_IDS.MAGMA_MEPHIT, 'Magma Mephit', 4],
+  [CREATURE_IDS.MAGMIN, 'Magmin', 4],
+  [CREATURE_IDS.STEAM_MEPHIT, 'Steam Mephit', 8]
+] as const
 export const conjureMinorElementals: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.CONJURE_MINOR_ELEMENTALS,
@@ -72,7 +82,10 @@ export const conjureMinorElementals: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.CONJURE_MINOR_ELEMENTALS, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.CREATURE
+                manifestKind: MANIFEST_KIND.SUMMON,
+                // The group acts on one shared turn of its own (D200).
+                turnTiming: 'OWN_INITIATIVE',
+                forms: conjuredCreatureForms(SPELL_IDS.CONJURE_MINOR_ELEMENTALS, elementalForms)
               }
             ]
           }

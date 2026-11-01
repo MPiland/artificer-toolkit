@@ -35,6 +35,7 @@ export function CharacterSheetSpellPanelContent({
   const canReset = panel.editable && panel.allowedCommands.includes('RESET_ADJUSTMENTS')
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedCreatureTypeId, setPickedCreatureTypeId] = useState<string | null>(null)
+  const [pickedCount, setPickedCount] = useState<number | null>(null)
   const summonOptions = panel.legalCastModes.find((mode) => mode.summonForms ?? mode.creatureTypes)
 
   return (
@@ -62,9 +63,13 @@ export function CharacterSheetSpellPanelContent({
           {summonOptions ? (
             <SummonPicks
               options={summonOptions}
-              {...summonPicks(summonOptions, pickedFormId, pickedCreatureTypeId)}
+              {...summonPicks(summonOptions, pickedFormId, pickedCreatureTypeId, pickedCount)}
               disabled={pending || !canCast}
-              onFormChange={setPickedFormId}
+              onCountChange={setPickedCount}
+              onFormChange={(formId) => {
+                setPickedFormId(formId)
+                setPickedCount(null)
+              }}
               onCreatureTypeChange={setPickedCreatureTypeId}
             />
           ) : null}
@@ -89,7 +94,7 @@ export function CharacterSheetSpellPanelContent({
                     spellId: panel.spellId,
                     sourceId: panel.source.sourceInstanceId,
                     ...(mode.slotKey ? { slotKey: mode.slotKey } : {}),
-                    ...summonPicks(mode, pickedFormId, pickedCreatureTypeId)
+                    ...summonPicks(mode, pickedFormId, pickedCreatureTypeId, pickedCount)
                   })
                 }
               >

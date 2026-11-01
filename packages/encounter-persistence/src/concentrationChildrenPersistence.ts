@@ -76,21 +76,26 @@ export async function bindEncounterConcentrationApplications(
   applications: readonly ConcentrationDamageApplication[]
 ): Promise<ConcentrationMaintainedDamageApplicationDto[]> {
   const store = createActiveRuleEffectStore(ctx)
-  const bindings = new Map<string, string>()
-  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId))) {
-    const slot = await store.findMaintainedState({
-      encounterId: state.id,
-      ownerActorId: targetActorId,
-      maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
-        state.gameSystemId
-      )
-    })
-    if (slot) bindings.set(targetActorId, slot.id)
-  }
-  return applications.flatMap((application) => {
-    const maintainedStateId = bindings.get(application.targetActorId)
-    return maintainedStateId ? [{ ...application, maintainedStateId }] : []
-  })
+  const bindings = new Map<string, { id: string; createdAt: string }[]>()
+  for (const targetActorId of new Set(applications.map((entry) => entry.targetActorId)))
+    bindings.set(
+      targetActorId,
+      await store.findMaintainedStates({
+        encounterId: state.id,
+        ownerActorId: targetActorId,
+        maintenanceDefinitionId: requireInstalledConcentrationMaintenanceDefinitionId(
+          state.gameSystemId
+        )
+      })
+    )
+  // One check per held Concentration, each application's checks in casting order.
+  return applications.flatMap((application) =>
+    (bindings.get(application.targetActorId) ?? []).map(({ id, createdAt }) => ({
+      ...application,
+      maintainedStateId: id,
+      castAt: createdAt
+    }))
+  )
 }
 
 /**
@@ -160,7 +165,7 @@ export async function persistEncounterConcentrationChildren(
     slot: NonNullable<Awaited<ReturnType<typeof store.findMaintainedStateById>>>
     holder: EncounterRunActorState
   }[] = []
-  let previousOwnerId: string | null = null
+  let previous: { ownerActorId: string; castKey: string } | null = null
   for (const end of args.concentrationEnds) {
     const slot = await store.findMaintainedStateById({
       encounterId: state.id,
@@ -169,7 +174,6 @@ export async function persistEncounterConcentrationChildren(
     const holder = actors.find((actor) => actor.id === end.ownerActorId)
     if (
       state.automationMode === 'MANUAL' ||
-      (previousOwnerId !== null && end.ownerActorId.localeCompare(previousOwnerId) <= 0) ||
       !slot ||
       slot.ownerActorId !== end.ownerActorId ||
       slot.maintenanceDefinitionId !==
@@ -179,7 +183,12 @@ export async function persistEncounterConcentrationChildren(
         end.reason
     )
       throw new Error('Live Session concentration end is unexpected.')
-    previousOwnerId = end.ownerActorId
+    // Holders ascend by id; one holder's states end in casting order (`createdAt`, then id).
+    const castKey = `${slot.createdAt}:${slot.id}`
+    const owners = previous ? end.ownerActorId.localeCompare(previous.ownerActorId) : 1
+    if (owners < 0 || (owners === 0 && castKey <= previous!.castKey))
+      throw new Error('Live Session concentration end is unexpected.')
+    previous = { ownerActorId: end.ownerActorId, castKey }
     ends.push({ end, slot, holder })
   }
   // The saving-throw dice (D156) the settled checks spend from their holders, by the same rule an
@@ -362,6 +371,7 @@ export async function persistEncounterConcentrationChildren(
       if (
         !slot ||
         slot.ownerActorId !== application.targetActorId ||
+        slot.createdAt !== application.castAt ||
         slot.maintenanceDefinitionId !==
           requireInstalledConcentrationMaintenanceDefinitionId(state.gameSystemId)
       )
@@ -491,7 +501,8 @@ export async function persistEncounterConcentrationChildren(
         id: slot.id,
         version: slot.version,
         maintenanceDefinitionId: slot.maintenanceDefinitionId,
-        descriptorChecksum: slot.descriptorChecksum
+        descriptorChecksum: slot.descriptorChecksum,
+        createdAt: slot.createdAt
       }
     } else if (
       context.source === 'EFFECT_REPEAT_SAVE' &&

@@ -306,7 +306,7 @@ export function encounterActionChoiceTarget(
    */
   summon?: {
     feet: number | null
-    forms?: readonly { id: string; label: string }[]
+    forms?: readonly { id: string; label: string; maxCount?: number }[]
     creatureTypes?: readonly { id: string; label: string }[]
   } | null
 ): EncounterActionChoiceDto['target'] {
@@ -315,7 +315,13 @@ export function encounterActionChoiceTarget(
       kind: 'POINT',
       area: { kind: 'CUBE', edgeLength: { amount: summon.feet, unit: 'FEET' } },
       ...(summon.forms?.length
-        ? { summonForms: summon.forms.map(({ id, label }) => ({ id, label })) }
+        ? {
+            summonForms: summon.forms.map(({ id, label, maxCount }) => ({
+              id,
+              label,
+              ...(maxCount ? { maxCount } : {})
+            }))
+          }
         : {}),
       ...(summon.creatureTypes?.length
         ? { creatureTypes: summon.creatureTypes.map(({ id, label }) => ({ id, label })) }

@@ -705,6 +705,8 @@ export type CharacterRuleActionSaveAutoFail = {
 export type CharacterRuleActionConditionOutcomeRules = {
   hitIsCritical: boolean
   saveAutoFails: readonly CharacterRuleActionSaveAutoFail[]
+  /** Abilities whose save the target passes unrolled, by a cast modifier the caster paid (Careful Spell). */
+  saveAutoSucceeds?: readonly string[]
 }
 
 export interface CharacterRuleActionSystemAdapter {

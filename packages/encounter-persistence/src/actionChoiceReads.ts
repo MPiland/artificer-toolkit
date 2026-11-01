@@ -438,11 +438,14 @@ export async function readEncounterActionChoices(
           ...ammunitionChoices(candidate?.equipment, facts.character.state.equipment.inventory),
           ...(candidate?.castModifiers
             ? {
-                castModifiers: candidate.castModifiers.map(({ modifierId, label, cost }) => ({
-                  id: modifierId,
-                  label,
-                  cost
-                }))
+                castModifiers: candidate.castModifiers.map(
+                  ({ modifierId, label, cost, targets }) => ({
+                    id: modifierId,
+                    label,
+                    cost,
+                    ...(targets && { targets })
+                  })
+                )
               }
             : {}),
           chosenSpend: candidate ? chosenSpendChoice(candidate, policyOutput.resources) : undefined,

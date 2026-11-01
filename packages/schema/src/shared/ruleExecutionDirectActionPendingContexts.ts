@@ -706,7 +706,8 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
         id: uuidSchema,
         version: integerSchema.check(z.gte(0)),
         maintenanceDefinitionId: uuidSchema,
-        descriptorChecksum: checksumSchema
+        descriptorChecksum: checksumSchema,
+        createdAt: z.iso.datetime()
       }),
       concentrationDefinition: z.strictObject({
         id: uuidSchema,

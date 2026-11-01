@@ -1,6 +1,7 @@
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { characterConsequencesDtoSchema } from '../shared/consequenceRolls.js'
+import { MAX_GROUP_COUNT } from '../shared/authoredLimits.js'
 import { hitPointMaximumFractionDtoSchema } from '../shared/hitPointMaximumFraction.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
@@ -166,7 +167,11 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
         form: z.optional(
           z.object({
             creatureId: postgresUuidSchema,
-            creatureTypeId: z.optional(postgresUuidSchema)
+            creatureTypeId: z.optional(postgresUuidSchema),
+            /** How many creatures the summon stands for, when the form is conjured in groups. */
+            count: z.optional(
+              z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT))
+            )
           })
         ),
         untimed: z.optional(z.literal(true)),

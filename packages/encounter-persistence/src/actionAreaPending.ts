@@ -26,7 +26,10 @@ import {
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
   holdEncounterAreaCollisionSaves,
+  encounterAreaSaveAwaiting,
+  markEncounterAreaSaveRolled,
   markEncounterAreaSaveTested,
+  openEncounterAreaSaveWindow,
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import {
@@ -96,6 +99,7 @@ function areaTargets(context: EncounterAreaActionPendingContextDto) {
       snapshot: target.snapshot,
       context: inner,
       testedJson: target.testedJson,
+      rolledJson: target.rolledJson,
       legendaryResistance: target.legendaryResistance,
       collision: target.collision
     }
@@ -308,30 +312,66 @@ function withOpenedHold(
 
 /**
  * Verifies the area snapshot a save answer stores: it is the stored area with exactly the answered
- * creature's save marked tested, with the Legendary Resistance it offered and not yet decided, and
- * nothing else changed but the push pick it may open.
+ * creature's save marked tested (or, for a roll a held die could still change, rolled), with the
+ * Legendary Resistance it offered and not yet decided, and nothing else changed but the d20 window
+ * it may open on the next rolled save and the push pick it may open.
  */
 export function requireAreaActionAnswer(input: {
   stored: ServerRuleExecutionPendingSnapshotDto
   next: ServerRuleExecutionPendingSnapshotDto
   requestId: string
 }) {
-  const answered = areaActionPendingContext(input.next)?.targets.find(
-    (target) => target.snapshot.request.requestId === input.requestId
-  )
+  const stored = areaActionPendingContext(input.stored)
+  const next = areaActionPendingContext(input.next)
+  // An answer that opens the next d20 window swaps that save's snapshot, so the answered creature is
+  // found by its place in the stored area.
+  const answered =
+    next?.targets[
+      stored?.targets.findIndex(
+        (target) => target.snapshot.request.requestId === input.requestId
+      ) ?? -1
+    ]
   if (
-    answered?.testedJson === undefined ||
+    !stored ||
+    !next ||
+    !answered ||
     answered.legendaryResistance?.decision !== undefined ||
-    input.stored.snapshotKind !== 'AGGREGATE_CHOICE' ||
+    input.stored.snapshotKind !== 'AGGREGATE_CHOICE'
+  )
+    throw new Error('Live Session pending area answer mismatch.')
+  const settled =
+    answered.testedJson !== undefined
+      ? markEncounterAreaSaveTested(
+          input.stored,
+          input.requestId,
+          answered.testedJson,
+          answered.legendaryResistance
+        )
+      : answered.rolledJson !== undefined
+        ? markEncounterAreaSaveRolled(input.stored, input.requestId, answered.rolledJson)
+        : null
+  const settledTargets = settled && areaActionPendingContext(settled)?.targets
+  const opened = settledTargets
+    ? next.targets.findIndex(
+        (target, index) =>
+          settledTargets[index] !== undefined &&
+          checksumCanonicalJson(target.snapshot) !==
+            checksumCanonicalJson(settledTargets[index].snapshot)
+      )
+    : -1
+  if (
+    !settled ||
+    !settledTargets ||
     checksumCanonicalJson(input.next) !==
       checksumCanonicalJson(
         withOpenedHold(
-          markEncounterAreaSaveTested(
-            input.stored,
-            input.requestId,
-            answered.testedJson,
-            answered.legendaryResistance
-          ),
+          opened < 0
+            ? settled
+            : openEncounterAreaSaveWindow(
+                settled,
+                settledTargets[opened]!.snapshot.request.requestId,
+                next.targets[opened]!.snapshot
+              ),
           input.next
         )
       )
@@ -468,20 +508,40 @@ export function projectNativeAreaActionPending(
         ]
       : []
   )
-  const saves = pending.targets.flatMap((target) => {
-    if (target.testedJson !== undefined) return []
+  // A save waits on its roll, or, once rolled, on the d20 window the earliest creature has open.
+  const answerable = pending.targets.flatMap((target) => {
+    const awaiting = encounterAreaSaveAwaiting(target)
     const rollerActorId = target.context.rollerActorId
-    if (!answers(rollerActorId)) return []
-    const summary = projectNativeActionPending(
-      occurrence,
-      { snapshot: target.snapshot, context: target.context },
-      viewer.isOwner,
-      reasons
-    )
-    if (summary.kind !== 'D20_EVIDENCE') throw new Error('Stored area save evidence is invalid.')
-    return [{ actorId: rollerActorId, targetActorId: target.actorId, request: summary.request }]
+    if (!awaiting || !answers(rollerActorId)) return []
+    return [
+      {
+        awaiting,
+        actorId: rollerActorId,
+        targetActorId: target.actorId,
+        summary: projectNativeActionPending(
+          occurrence,
+          { snapshot: target.snapshot, context: target.context },
+          viewer.isOwner,
+          reasons
+        )
+      }
+    ]
   })
-  return saves.length === 0 && legendaryResistance.length === 0 && caught.length === 0
+  const saves = answerable.flatMap(({ awaiting, actorId, targetActorId, summary }) => {
+    if (awaiting !== 'ROLL') return []
+    if (summary.kind !== 'D20_EVIDENCE') throw new Error('Stored area save evidence is invalid.')
+    return [{ actorId, targetActorId, request: summary.request }]
+  })
+  const windows = answerable.flatMap(({ awaiting, actorId, targetActorId, summary }) => {
+    if (awaiting !== 'WINDOW') return []
+    if (summary.kind !== 'D20_WINDOW') throw new Error('Stored area save window is invalid.')
+    const { requestId, d20, options } = summary
+    return [{ actorId, targetActorId, requestId, d20, options }]
+  })
+  return saves.length === 0 &&
+    windows.length === 0 &&
+    legendaryResistance.length === 0 &&
+    caught.length === 0
     ? null
     : {
         kind: 'AREA_SAVES',
@@ -495,7 +555,14 @@ export function projectNativeAreaActionPending(
         caughtChecksum: viewer.isOwner ? pending.context.caughtChecksum : null,
         caught,
         saves,
+        windows,
         legendaryResistance,
-        allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL', 'AREA_LEGENDARY_RESISTANCE']
+        allowedResponses: [
+          'ENTER_DICE',
+          'SYSTEM_ROLL',
+          'D20_WINDOW_DECLINE',
+          'D20_WINDOW_USE',
+          'AREA_LEGENDARY_RESISTANCE'
+        ]
       }
 }

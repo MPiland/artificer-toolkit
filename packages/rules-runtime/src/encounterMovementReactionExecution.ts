@@ -1,10 +1,12 @@
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'
 import {
   advanceNativeActionGraphs,
   executeNativeActionGraphs,
   prepareNativeActionTest,
   continueNativeActionAfterTest,
-  type EncounterActionAutoRoll
+  type EncounterActionAutoRoll,
+  type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
 import {
   resolveNativeMovementLegendaryResistance,
@@ -81,7 +83,7 @@ export async function executeEncounterMovementReactionAction(input: {
   prepared: PreparedMovementReaction
   discoverResistance: DiscoverResistance
   random: NonNullable<Parameters<typeof executeNativeActionGraphs>[0]['random']>
-  resume?: Parameters<typeof prepareNativeActionTest>[0]['resume']
+  resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
 }) {
   const executionInput = {
     runtime: input.runtime,

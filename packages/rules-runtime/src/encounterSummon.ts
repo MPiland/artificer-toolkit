@@ -11,7 +11,7 @@ import { summonBody } from './encounterActorBody.js'
 import type { EncounterActorFormCreature } from './encounterActorForm.js'
 import { snapshotStatBlock } from './encounterProjection.js'
 import type { FormSummonStats } from './spellSummonStatBlock.js'
-import { summonHitPoints } from './summonHitPoints.js'
+import { groupHitPointPool, summonHitPoints } from './summonHitPoints.js'
 
 /**
  * The stat values a form summon lists, read from the System Creature the caster chose. It lives on
@@ -52,7 +52,13 @@ export function formSummonStats(
 export function buildEncounterSummon(input: {
   summon:
     | { kind: 'STAT_BLOCK'; statBlock: SummonStatBlockDto }
-    | { kind: 'CREATURE'; creature: EncounterActorFormCreature; creatureTypeId: string | null }
+    | {
+        kind: 'CREATURE'
+        creature: EncounterActorFormCreature
+        creatureTypeId: string | null
+        /** How many creatures the one token stands for; null for a single creature. */
+        count: number | null
+      }
   /**
    * The values a spell cast resolved for the creature (`resolveSpellSummonStatBlock`); null when no
    * spell made it, and no Sheet lists it.
@@ -96,7 +102,11 @@ export function buildEncounterSummon(input: {
           label
         })
       : creatureSummonBody(summon.creature, summon.creatureTypeId)
-  const { maxHitPoints } = body
+  // A group token holds the pool of every creature it stands for (D200).
+  const maxHitPoints = groupHitPointPool(
+    body.maxHitPoints,
+    summon.kind === 'CREATURE' ? summon.count : null
+  )
   const statBlock = summon.kind === 'STAT_BLOCK' ? summon.statBlock : { occupiesSpace: true }
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
@@ -123,7 +133,12 @@ export function buildEncounterSummon(input: {
     gmNotes: null,
     initiative: null,
     manualOrder: null,
-    owner: { ownerActorId: caster.id, sourceEffectId, ...(turnTiming ? { turnTiming } : {}) },
+    owner: {
+      ownerActorId: caster.id,
+      sourceEffectId,
+      ...(turnTiming ? { turnTiming } : {}),
+      ...(summon.kind === 'CREATURE' && summon.count ? { count: summon.count } : {})
+    },
     snapshot: {
       ...body.snapshot,
       ...(cannotAttack ? { body: summonBody(statBlock, true) } : {}),

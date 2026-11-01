@@ -1,5 +1,6 @@
 import type {
   ActivationAuthored,
+  CastModifierAuthored,
   EffectInvocationKind,
   EffectInvocationAuthored,
   OptionalOnHitAuthored,
@@ -62,6 +63,78 @@ const RESOURCE_USE_NODE_MAP = resourceUse.define('resourceUse', ({ map, nodes })
   map
     .set('chargeId', text(['chargeId'], 'Charge ID', { requiredIf: true }))
     .set('cost', number(['cost'], 'Cost', { constraints: { minimum: 1 }, requiredIf: true }))
+})
+
+const CAST_MODIFIER_OUTCOME_OPTIONS: {
+  code: NonNullable<CastModifierAuthored['targets']>['outcome']
+  label: string
+}[] = [
+  { code: 'SAVE_AUTO_SUCCESS', label: 'Their save succeeds' },
+  { code: 'SAVE_DISADVANTAGE', label: 'Their save has disadvantage' }
+]
+
+const castModifierTargets = buildNodeMap<NonNullable<CastModifierAuthored['targets']>>()
+
+const CAST_MODIFIER_TARGETS_NODE_MAP = castModifierTargets.define(
+  'castModifierTargets',
+  ({ map, nodes, data }) => {
+    const { selectSingle, number } = nodes
+    const { table } = data
+
+    map
+      .set(
+        'outcome',
+        selectSingle(
+          ['outcome'],
+          'Outcome for the creatures you name',
+          { kind: 'INLINE_OPTIONS', options: CAST_MODIFIER_OUTCOME_OPTIONS },
+          { order: 1, requiredIf: true }
+        )
+      )
+      .set(
+        'base',
+        number(['base'], 'Creatures named', {
+          order: 2,
+          constraints: { minimum: 0 },
+          requiredIf: true
+        })
+      )
+      .set(
+        'abilityDefinitionId',
+        selectSingle(
+          ['abilityDefinitionId'],
+          'Plus the modifier of',
+          {
+            kind: 'DATA',
+            relationship: table('ability_definitions', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { order: 3 }
+        )
+      )
+      .set('minimum', number(['minimum'], 'At least', { order: 4, constraints: { minimum: 0 } }))
+  }
+)
+
+const castModifier = buildNodeMap<CastModifierAuthored>()
+
+const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes }) => {
+  const { text, number, groupObject } = nodes
+
+  map
+    .set('chargeId', text(['chargeId'], 'Charge ID', { order: 1, requiredIf: true }))
+    .set(
+      'cost',
+      number(['cost'], 'Cost', { order: 2, constraints: { minimum: 1 }, requiredIf: true })
+    )
+    .set(
+      'targets',
+      groupObject(['targets'], 'Creatures it affects', () => CAST_MODIFIER_TARGETS_NODE_MAP, {
+        presentation: 'inline',
+        order: 3
+      })
+    )
 })
 
 const OPTIONAL_ON_HIT_KIND_OPTIONS: { code: OptionalOnHitAuthored['kind']; label: string }[] = [
@@ -420,7 +493,7 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
       )
       .set(
         'castModifier',
-        groupObject(['castModifier'], 'Cast Modifier Cost', () => RESOURCE_USE_NODE_MAP, {
+        groupObject(['castModifier'], 'Cast Modifier', () => CAST_MODIFIER_NODE_MAP, {
           presentation: 'inline',
           order: 7,
           showIf: local.field(['kind']).eq('PASSIVE')

@@ -1,8 +1,9 @@
-import { NumberInput, Select } from '@mantine/core'
+import { MultiSelect, NumberInput, Select } from '@mantine/core'
 import type {
   EncounterActionChoiceDto,
   EncounterOptionalActionChoicesDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
+import type { CastModifierChoice } from './useCastModifierChoice'
 
 /** One select per field the chosen optional rule asks the user to fill. */
 export function CampaignTabletopOptionalChoiceFields({
@@ -34,6 +35,48 @@ export function CampaignTabletopOptionalChoiceFields({
       }
     />
   ))
+}
+
+/** The cost the caster may pay on this cast and, when it shapes who the cast affects, the creatures it names. */
+export function CampaignTabletopCastModifierInput({
+  cast,
+  actors,
+  disabled
+}: {
+  cast: CastModifierChoice
+  actors: { id: string; label: string }[]
+  disabled: boolean
+}) {
+  return (
+    <>
+      <Select
+        clearable
+        comboboxProps={{ withinPortal: false }}
+        data={cast.modifiers.map((modifier) => ({
+          label: `${modifier.label} (costs ${modifier.cost})`,
+          value: modifier.id
+        }))}
+        disabled={disabled}
+        label='Pay a cost'
+        placeholder='None'
+        value={cast.modifier?.id ?? null}
+        onChange={cast.pickModifier}
+      />
+      {cast.modifier?.targets ? (
+        <MultiSelect
+          comboboxProps={{ withinPortal: false }}
+          data={actors.map((actor) => ({ label: actor.label, value: actor.id }))}
+          description={`Up to ${cast.modifier.targets.max}.`}
+          disabled={disabled}
+          label='Creatures it affects'
+          maxValues={cast.modifier.targets.max}
+          searchable
+          value={cast.actorIds}
+          onChange={cast.pickActors}
+        />
+      ) : null}
+    </>
+  )
 }
 
 /** How many units to spend from the action's pool, between one and what the pool covers. */

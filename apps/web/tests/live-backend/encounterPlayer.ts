@@ -199,6 +199,16 @@ export async function verifyEncounterPlayerBrowser(
           path: input.evidenceDirectory + '/player-thunderwave-aimed.png',
           fullPage: true
         })
+        // The Character pays the cast modifier's cost and names the Wolf as the creature it affects.
+        await page.getByRole('combobox', { name: 'Pay a cost' }).click()
+        await page.getByRole('option', { name: /\(costs 1\)$/ }).click()
+        await page.getByRole('combobox', { name: 'Creatures it affects' }).click()
+        await page.getByRole('option', { name: input.wolf.label, exact: true }).click()
+        await page.screenshot({
+          caret: 'initial',
+          path: input.evidenceDirectory + '/player-thunderwave-cast-modifier.png',
+          fullPage: true
+        })
         const step = await resolveAction()
         await expect(
           page.getByText('Action paused for a required decision.', { exact: true })
@@ -218,7 +228,9 @@ export async function verifyEncounterPlayerBrowser(
       assertDeathSaveSettled: async () => {
         stage = 'verify the rolled death save leaves no pending decision'
         await expect(decisionDrawer).toBeHidden()
-        await expect(page.getByRole('button', { name: 'Open pending decision', exact: true })).toBeHidden()
+        await expect(
+          page.getByRole('button', { name: 'Open pending decision', exact: true })
+        ).toBeHidden()
       },
       assertDeathSaveOffered: async () => {
         stage = 'verify the death save is offered'

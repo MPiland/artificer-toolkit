@@ -199,6 +199,7 @@ export async function verifyEncounterPlayer({
   )
   if (!wolf || !hero) throw new Error('Player journey actors are absent from the Run.')
   const wolfId = wolf.id
+  let wolfSaveRollMode: string | undefined
   if (run.currentActorId !== hero.id)
     run = encounterGmProjectionDtoSchema.parse(
       (
@@ -450,6 +451,8 @@ export async function verifyEncounterPlayer({
       const cast = await controls.castThunderwaveFromMap()
       assert.equal(cast.command.actorId, hero.id)
       assert.equal(cast.command.target.kind, 'DIRECTED')
+      assert.ok(cast.command.castModifierId, 'The drawer sends the cost the player paid.')
+      assert.deepEqual(cast.command.castModifierActorIds, [wolf.id])
       const saves = pendingOf(cast.result, 'AREA_SAVES')
       assert.deepEqual(saves.caught, [wolf.label])
       // A 1 fails the Wolf's save; the area's damage is rolled once for the cast, with no further roll.
@@ -457,6 +460,11 @@ export async function verifyEncounterPlayer({
       const thundered = await answerOwnerDice(cast.result, 1)
       assert.equal(thundered.occurrence?.status, 'COMPLETE')
       assert.ok((await readRun()).wolfHitPoints < beforeThunder, 'Thunderwave hurt the Wolf.')
+      assert.equal(
+        wolfSaveRollMode,
+        'DISADVANTAGE',
+        'The paid cost gave the named Wolf disadvantage.'
+      )
       await controls.endTurn()
       assert.equal((await readRun()).currentActorId, wolf.id)
 
@@ -526,6 +534,7 @@ export async function verifyEncounterPlayer({
             ? ownerView.saves.find((entry) => entry.actorId === wolfId)
             : undefined
         if (!save) return current
+        wolfSaveRollMode = save.request.rollMode
         resolution = {
           kind: 'ENTER_DICE',
           requestId: save.request.requestId,
