@@ -915,6 +915,12 @@ const buildModifierGrantVariants = () =>
       healingDealtParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
+    buildModifierGrantVariant(
+      'DEFEAT_TEMPORARY_HIT_POINTS',
+      'BONUS',
+      emptyDomainDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'ATTACK_DECOYS',

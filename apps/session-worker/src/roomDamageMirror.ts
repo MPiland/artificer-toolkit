@@ -13,8 +13,14 @@ import {
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
-/** Marks the Run's latest action root, so its undo is refused: it can't give a source its mirrored damage back. */
-async function markMirroredRoot(ctx: EncounterCharacterWriteTransaction, encounterId: string) {
+/**
+ * Marks the Run's latest action root, so its undo is refused: it can't take back what a post-settlement
+ * step gave another actor (a source's mirrored damage, a killer's defeat reward).
+ */
+export async function markMirroredRoot(
+  ctx: EncounterCharacterWriteTransaction,
+  encounterId: string
+) {
   const recent = await ctx.db
     .query('encounterRunCommands')
     .withIndex('by_encounterId_version', (query) => query.eq('encounterId', encounterId))

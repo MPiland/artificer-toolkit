@@ -1949,6 +1949,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `domainKey`) adds the cast level. A cantrip, a non-spell action and temporary hit points get nothing. The bonus is the caster's, so it is
   resolved with the cast and not per target.
 
+- **Defeat temporary hit points (SPELLS-31.T4i2, D156/D203).** A `DEFEAT_TEMPORARY_HIT_POINTS` `BONUS` modifier gives its holder temporary hit
+  points when the holder's own action reduces a hostile creature to 0 hit points (Dark One's Blessing: Charisma modifier + warlock level, at
+  least 1). `encounterDefeatReward.ts` holds the pure pieces: `reducedToZeroHitPoints` reads a receipt (never mirrored damage),
+  `defeatTemporaryHitPoints` folds the holder's `modifierGroups` and `defeatRewardMechanicsBatch` builds one `TEMPORARY_HIT_POINTS`
+  application that keeps the higher pool (phase `DEFEAT_REWARD`). No Convex function executes Encounter commands, so the room is the single
+  settlement path and covers spell and weapon damage alike: `applyRoomEncounterMechanicsBatch` takes the root action's `damagerActorId` (the
+  action's actor, or a Cleaving response's source), `collectDefeatReward` records a hostile defeat, and `settleDefeatRewards` gives the killer
+  its reward fresh, as a post-settlement step beside `settleDamageMirrors` (`settleFollowUps` in `roomEncounterCommands.ts`);
+  `RoomEncounterStore.transact` fails a command that collected a reward it never settled. A reward that landed marks the root `damageMirrored`,
+  so undo of it is a typed refusal. Turn and zone damage have no damager and reward nothing.
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a

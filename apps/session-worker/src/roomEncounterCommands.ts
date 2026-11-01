@@ -40,6 +40,7 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { settleDamageMirrors } from './roomDamageMirror.js'
+import { settleDefeatRewards } from './roomDefeatReward.js'
 import { recordRoomZoneSightings } from './roomZoneSightings.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
 import {
@@ -373,8 +374,8 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
-  const settleMirrors = () =>
-    settleDamageMirrors({
+  const settleFollowUps = async () => {
+    const settlement = {
       ctx: context,
       store,
       transaction,
@@ -385,8 +386,11 @@ export async function executeRoomEncounterCommand(input: {
       observed,
       encounterId: currentRun.id,
       random: input.random
-    })
-  const mirroredDamage = await settleMirrors()
+    }
+    const mirrored = await settleDamageMirrors(settlement)
+    return (await settleDefeatRewards(settlement)) || mirrored
+  }
+  const mirroredDamage = await settleFollowUps()
   const raisedHpZeroEffects =
     currentRun.status === 'ACTIVE' && input.turnExecution
       ? await raiseRoomHpZeroEffects({
@@ -447,7 +451,7 @@ export async function executeRoomEncounterCommand(input: {
       outOfPlayBefore
     }))
   // What the raised roots dealt to a mirror's holder reaches its source too.
-  const mirroredRaisedDamage = await settleMirrors()
+  const mirroredRaisedDamage = await settleFollowUps()
   // After every effect the command and its raised roots ended, so a carrier that ended takes its creature.
   const sweepSummons = () =>
     endRoomOrphanedSummons({
