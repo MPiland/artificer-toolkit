@@ -46,7 +46,7 @@ export function offerableOnHitRiders<
 >(
   riders: readonly TRider[],
   openOfferEffectIds: readonly string[],
-  settled: object | undefined
+  settled: object | null | undefined
 ): TRider[] {
   const paid = {
     SPELL_SLOT: !!settled && 'spellConsumption' in settled && !!settled.spellConsumption,
