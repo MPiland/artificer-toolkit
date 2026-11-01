@@ -5,21 +5,16 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   PROFICIENCY_KIND,
-  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TRIGGER,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { srdSpells } from '../spells/index.js'
@@ -31,7 +26,7 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect, selfActionEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions, selfActionEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -58,19 +53,6 @@ const WZ = 12 // Wizard class index
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
-  return closedRuleEffect({
-    id: classRowId(WZ, 0x60, entry),
-    ruleKind,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(WZ, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    }
-  })
-}
 
 function wizardSpellIdsAtLevel(level: number): string[] {
   return srdSpells
@@ -674,10 +656,7 @@ export const wizard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(WZ, 4, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(WZ, 3, 5),
@@ -698,10 +677,7 @@ export const wizard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(WZ, 5, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(WZ, 3, 7),
@@ -722,10 +698,7 @@ export const wizard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(WZ, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(WZ, 3, 9),
@@ -746,10 +719,7 @@ export const wizard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(WZ, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(WZ, 3, 11),
@@ -800,10 +770,7 @@ export const wizard: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(WZ, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(WZ, 3, 13),

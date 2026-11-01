@@ -523,6 +523,14 @@ Carried grants (D99) are one more Concentration of the caster's: they end when t
 state or leaves no room beside them (`held + 1 >= capacity`), and the receipt's `endedCarriedGrants` is the
 one list persistence settles.
 
+**Per-cast capacity (current, SPELLS-12.T2a).** A `CONCENTRATION_CAPACITY` `BONUS` carrying `deferredRequirements`
+is not in the stat; the policy lists it in `gatedConcentrationCapacity` (by `acceptedModifierIndex`). For one cast,
+the System adapter's `concentrationCapacityForCast` adds each gated bonus whose requirement groups hold for the new
+spell _and_ every held spell, so the holder keeps another Concentration only for a cast the item allows.
+`SPELL_LEVEL` here is the cast level (`preparedSpellCastLevel`); a held spell is checked by level alone, read from
+the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
+satisfies a level requirement). A Creature stays at 1.
+
 **Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
 save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
 each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
@@ -2260,6 +2268,16 @@ Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVIN
 - **Same-effect selector (SPELLS-31.T5k):** an authored `SAME_EFFECT` selector (`{ kind: 'SAME_EFFECT' }`, no fields) matches the effects the outcome's own Effect made earlier, so a new use replaces the old one. `normalizeCharacterActionMechanicFacts` resolves it at compile time to `{ kind: 'SAME_EFFECT', effectId }` (the owning Effect's id), and `endEffectsCandidates` matches `definition.authoredEffectId`. Fiendish Resilience is authored from it: a free, once-between-rests action on its user that picks a damage type (a cast pick on a `SELF` target, whose choice target carries `choiceOptions`), ends its earlier grant and grants the resistance `UNTIL_DISPELLED`. `modifierGrantEntryPlan` holds an `UNTIL_DISPELLED` grant with no counted turns and no recurrence until an `END_EFFECTS` or the GM ends it. It matches the same Effect from any origin, and it runs only in the live room (the Sheet has no out-of-Encounter feature-action command). Proofs: `featureChoiceRulingsAuthoringParity.test.ts`, `encounterEndedEffectRelease.test.ts` and `apps/session-worker/test/nativeRoomFiendishResilience.test.ts`.
 - **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
+
+### Character Unarmed Strike and weapon die grants (current, SPELLS-31.T4l2, D156)
+
+A System names its natural weapon with `defaults.unarmedStrikeEquipmentId`, an authored weapon Equipment item (the SRD's is `SRD_UNARMED_STRIKE_EQUIPMENT_ID`). `characterNaturalWeapon` (`characterRuleSnapshot.ts`) resolves it into `CharacterBuildSnapshot.naturalWeapon` and the rule facts read it beside `equipmentItems`; it is never written to `base.equipment`, so it stays out of the inventory, weight, attunement, hand and grip counts and Builder equipment choices. A System that leaves the default unset has no Unarmed Strike and no fallback. The item's attack, damage and ability modifiers are authored data (`unarmedStrikeEffect`, `unarmedStrikeAbilityModifiers`), so Martial Arts and Ki-Empowered Strikes reach it as grants on the `UNARMED` attack domain.
+
+Weapon damage resolution (`characterActionMechanics.ts`):
+
+- `withWeaponDie` keeps the larger of the item's die and a granted `WEAPON_DAMAGE_DIE` `SET_VALUE`, so a granted die never lowers a weapon's own die (a flat amount counts as a die of that size).
+- `OPTIONAL_ABILITY_MODIFIER_BONUS` contributions are alternatives to the weapon's ability: SOURCE-scoped ones and GLOBAL ones both count as alternatives, and the best applies. Other GLOBAL ability contributions still add.
+- The room compiler (`effectActionCompiler.ts`, `effectActionTestOutcomes.ts`) resolves fixed damage plus the ability modifier plus a granted die the same way, so the Character action and the room settle one expression.
 
 ### Granted-action offers (current, SPELLS-4.T2lb, D160)
 

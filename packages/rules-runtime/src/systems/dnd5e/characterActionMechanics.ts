@@ -284,9 +284,37 @@ export function dnd5eAttackBonusTotal(
 }
 
 /**
+ * The ability modifiers an attack chooses between: the attacking item's own and any bound to it
+ * (SOURCE scope), and an optional ability modifier a Character-wide grant offers in place of them
+ * (Martial Arts' Dexterity "instead of Strength").
+ */
+function alternativeAbilityContributions(
+  modifierGroups: CharacterActionModelInput['modifierGroups'],
+  attackDomain: string,
+  valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
+  attackAbility: string | null
+): ModifierContribution[] {
+  const optional = attackModifierContributions(
+    modifierGroups,
+    attackDomain,
+    valueDomainCode,
+    ['OPTIONAL_ABILITY_MODIFIER_BONUS'],
+    attackAbility
+  )
+  return attackModifierContributions(
+    modifierGroups,
+    attackDomain,
+    valueDomainCode,
+    ABILITY_MODIFIER_KINDS,
+    attackAbility
+  ).filter((contribution) => contribution.scope === 'SOURCE' || optional.includes(contribution))
+}
+
+/**
  * The attack's ability is the one its highest applied ability modifier adds (finesse picks the better).
- * Only the attacking item's own modifiers name it; a Character-wide ability bonus from another source
- * adds to the roll without changing which ability the attack uses.
+ * Only the attacking item's own modifiers and the alternatives offered in their place name it; a
+ * Character-wide ability bonus from another source adds to the roll without changing which ability
+ * the attack uses.
  */
 function usedAttackAbility(
   input: CharacterActionModelInput,
@@ -294,17 +322,10 @@ function usedAttackAbility(
   target: Dnd5eModifierTarget
 ): string | null {
   return (
-    attackModifierContributions(
-      input.modifierGroups,
-      attackDomain,
-      'ATTACK_ROLL',
-      ABILITY_MODIFIER_KINDS
-    )
+    alternativeAbilityContributions(input.modifierGroups, attackDomain, 'ATTACK_ROLL', null)
       .filter(
         (contribution) =>
-          contribution.state === 'APPLIED' &&
-          contribution.scope === 'SOURCE' &&
-          dnd5eModifierApplies(contribution, target)
+          contribution.state === 'APPLIED' && dnd5eModifierApplies(contribution, target)
       )
       .reduce<ModifierContribution | null>(
         (best, contribution) =>
@@ -381,15 +402,26 @@ export function resolveDnd5eActionMechanic(
       .reduce((sum, contribution) => sum + contribution.value, 0)
   const numericKinds = ['BONUS', 'PENALTY', ...ABILITY_MODIFIER_KINDS]
   /**
-   * An attack adds one ability modifier of its own: the attacking item's and any bound to it
-   * (Shillelagh's spellcasting ability "instead of Strength") are alternatives, so only the one the
-   * attack uses counts. A Character-wide ability bonus from another source adds on top.
+   * An attack adds one ability modifier of its own: the attacking item's, any bound to it
+   * (Shillelagh's spellcasting ability "instead of Strength") and an optional one a Character-wide
+   * grant offers (Martial Arts' Dexterity) are alternatives, so only the one the attack uses counts.
+   * A Character-wide ability bonus from another source adds on top.
    */
   const abilityTotal = (valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE'): number => {
     const contributions = applicable(valueDomainCode, ABILITY_MODIFIER_KINDS).filter(
       (contribution) => contribution.state === 'APPLIED'
     )
-    const own = contributions.filter((contribution) => contribution.scope === 'SOURCE')
+    const alternatives = new Set(
+      attackDomain === null
+        ? []
+        : alternativeAbilityContributions(
+            input.modifierGroups,
+            attackDomain,
+            valueDomainCode,
+            target.attackAbility
+          )
+    )
+    const own = contributions.filter((contribution) => alternatives.has(contribution))
     const used =
       own.find((contribution) => contribution.ability === target.attackAbility) ??
       own.reduce<ModifierContribution | null>(
@@ -398,7 +430,7 @@ export function resolveDnd5eActionMechanic(
         null
       )
     return (
-      appliedTotal(contributions.filter((contribution) => contribution.scope !== 'SOURCE')) +
+      appliedTotal(contributions.filter((contribution) => !alternatives.has(contribution))) +
       (used?.value ?? 0)
     )
   }
@@ -516,7 +548,10 @@ export function resolveDnd5eActionMechanic(
               ) === outcome
           )
           .reduce((sum, contribution) => sum + contribution.value, 0)
-  /** A weapon attack's damage die can be replaced (Shillelagh's d8); the largest one applies. */
+  /**
+   * A weapon attack's damage die can be replaced (Shillelagh's d8, Martial Arts); the largest granted
+   * die applies, and it only replaces a weapon die or flat amount it exceeds, never lowers one.
+   */
   const weaponDieFaces =
     attackKind === null || isDnd5eSpellAttackKind(attackKind)
       ? null
@@ -531,10 +566,14 @@ export function resolveDnd5eActionMechanic(
             (largest, contribution) => Math.max(largest ?? 0, contribution.value),
             null
           )
-  const withWeaponDie = (value: number | string | null): number | string | null =>
-    weaponDieFaces === null || typeof value !== 'string'
-      ? value
-      : value.replace(/^(\d+)d\d+$/, `$1d${weaponDieFaces}`)
+  const withWeaponDie = (value: number | string | null): number | string | null => {
+    if (weaponDieFaces === null) return value
+    if (typeof value === 'number') return weaponDieFaces > value ? `1d${weaponDieFaces}` : value
+    if (typeof value !== 'string') return value
+    return value.replace(/^(\d+)d(\d+)$/, (dice, count: string, faces: string) =>
+      weaponDieFaces > Number(faces) ? `${count}d${weaponDieFaces}` : dice
+    )
+  }
   const resolveSave = (): ResolvedMechanic['save'] => {
     const savingThrow = invocation.savingThrow
     if (savingThrow === null) return null

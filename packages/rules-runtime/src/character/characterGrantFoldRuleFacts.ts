@@ -174,7 +174,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
     }
   })
 
-  const { equipment, equipmentItems } = buildGrantFoldEquipmentFacts({
+  const { equipment, equipmentItems: carriedItems } = buildGrantFoldEquipmentFacts({
     items: snapshot.equipmentItems.map((item) => ({
       instanceId: item.instanceId,
       equipmentId: item.contentRef.definitionId,
@@ -185,6 +185,24 @@ export function compileCharacterGrantFoldRuleFacts(params: {
     snapshot,
     normalizeProficiencyTarget
   })
+  // The natural weapon follows the carried items (their indexes stay aligned with the snapshot) and
+  // stays out of `base.equipment`, so no "weapon equipped" rule reads it.
+  const naturalWeaponItems = snapshot.naturalWeapon
+    ? buildGrantFoldEquipmentFacts({
+        items: [
+          {
+            instanceId: snapshot.naturalWeapon.instanceId,
+            equipmentId: snapshot.naturalWeapon.contentRef.definitionId,
+            compiledItem: snapshot.naturalWeapon.compiledItem,
+            equipped: true,
+            attuned: false
+          }
+        ],
+        snapshot,
+        normalizeProficiencyTarget
+      }).equipmentItems
+    : []
+  const equipmentItems = [...carriedItems, ...naturalWeaponItems]
 
   const heritageRaceId = snapshot.subraceId ?? snapshot.raceId
   return {

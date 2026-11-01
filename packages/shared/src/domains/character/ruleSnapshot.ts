@@ -84,6 +84,15 @@ export interface CharacterBuildSnapshot {
     degradation?: number
     compiledItem: CompiledEquipment | CompiledEquipmentVariant
   }>
+  /**
+   * The System's natural weapon (its unarmed strike), held by every Character. It acts through the
+   * weapon path but is no inventory item: it has no weight, hands, attunement or Builder choice.
+   */
+  naturalWeapon?: {
+    instanceId: string
+    contentRef: ContentRef
+    compiledItem: CompiledEquipment | CompiledEquipmentVariant
+  }
   adjustments?: CharacterMechanicalAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
   spellSources?: CharacterSpellSourceRef[]

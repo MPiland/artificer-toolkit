@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Defeat rewards outside the action path (SPELLS-31.T4i2):** Dark One's Blessing gives its temporary hit points for kills from the holder's own actions and Cleaving. A kill from a movement reaction, a basic action, a contest, or a zone on a turn gives none. The GM adds them by hand.
 - **Multiattack on a group token (D205):** a group makes one attack per creature, so four black bears make four attacks rather than eight.
 - **Monk holding a one-handed non-monk weapon (D205):** a Monk attacking with a monk weapon while also holding, say, a Longsword keeps Martial Arts, though the rules take it away. Fixing it needs a new predicate.
 - **Group count on Sheet Extras (D205):** the Sheet's Extras show no group count. The count shows on the token.

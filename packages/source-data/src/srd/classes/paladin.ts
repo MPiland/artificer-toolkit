@@ -30,9 +30,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type FacetAuthored,
   type ShapeAuthored,
@@ -83,32 +81,6 @@ const P = 7 // Paladin class index
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(P, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(P, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
 
 /** A paladin aura's reach (D155): 10 feet, growing to 30 feet at paladin level 18. */
 function paladinAuraShape(group: number, entry: number): ShapeAuthored {
@@ -1167,10 +1139,7 @@ export const paladin: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(P, 5, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(40, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(P, 3, 9),
@@ -1265,10 +1234,7 @@ export const paladin: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(P, 6, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(41, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(P, 3, 13),
@@ -1314,10 +1280,7 @@ export const paladin: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(P, 7, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(42, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(P, 3, 16),
@@ -1394,10 +1357,7 @@ export const paladin: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(P, 8, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(43, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     },
     {
       id: classRowId(P, 3, 19),
@@ -1418,10 +1378,7 @@ export const paladin: ClassAuthored = {
       options: abilityScoreImprovementOptions(
         (entry) => classRowId(P, 9, entry),
         abilityScoreImprovementDescription
-      ),
-      effects: [
-        selfClassRuleEffect(44, CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20)
-      ]
+      )
     }
   ]
 }

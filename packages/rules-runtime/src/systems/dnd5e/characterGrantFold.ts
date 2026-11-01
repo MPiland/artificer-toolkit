@@ -8,6 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
+import { dnd5eAbilityScoreMaximum } from './abilityScoreMaximum.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   DND5E_ACTION_CONDITION_KINDS,
@@ -146,7 +147,9 @@ export function evaluateDnd5e2014CharacterGrantFold(
       else if (modifier.modifierKind === 'PENALTY') score -= payload.amount
       else if (modifier.modifierKind === 'SET_VALUE') set = payload.amount
     }
-    return set === null ? score : set + score - base
+    return set === null
+      ? Math.min(score, dnd5eAbilityScoreMaximum(acc.modifiers, abilityId))
+      : set + score - base
   }
 
   const meetsProficiency = (condition: RestrictionCondition): boolean => {

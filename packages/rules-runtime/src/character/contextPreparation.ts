@@ -278,8 +278,14 @@ export function collectCharacterReferencedSpellIds(
   ])
 }
 
-/** Shared by source batching and context assembly so their required roots cannot diverge. */
-function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
+/**
+ * Shared by source batching and context assembly so their required roots cannot diverge.
+ * `naturalWeaponId` is read for rules only; the Builder's referenced catalogue never lists it.
+ */
+function collectCharacterRuleSourceSelections(
+  character: CharacterAuthored,
+  naturalWeaponId?: string
+) {
   const selected = new Map<string, Set<SubjectKind>>()
   function select(kind: SubjectKind, ids: readonly (string | undefined)[]) {
     for (const id of ids) {
@@ -302,7 +308,8 @@ function collectCharacterRuleSourceSelections(character: CharacterAuthored) {
       .flatMap((decision) => decision?.groups ?? [])
       .flatMap((group) => group.selections ?? [])
       .map((selection) => selection.equipmentId),
-    ...chosenIds
+    ...chosenIds,
+    naturalWeaponId
   ])
   select('FEAT', [
     ...character.intent.featureAcquisitions.flatMap((row) =>
@@ -368,7 +375,10 @@ export async function prepareCharacterRuleContext(
     | undefined,
   readers: CharacterRuleContextReaders
 ) {
-  const selected = collectCharacterRuleSourceSelections(character)
+  const selected = collectCharacterRuleSourceSelections(
+    character,
+    system.defaults?.unarmedStrikeEquipmentId
+  )
 
   const read: CharacterRulePublication[] = []
   const races: CompiledRace[] = []
@@ -959,7 +969,10 @@ export async function prepareActiveCharacterBuilderContext<
       races: catalogSources.races,
       classes: [...classes.values()],
       backgrounds: catalogSources.backgrounds,
-      equipment: registry.equipment.map(toCharacterBuilderEquipmentCatalogRecord).sort(byLabel),
+      equipment: registry.equipment
+        .filter(({ id }) => id !== registry.system.defaults?.unarmedStrikeEquipmentId)
+        .map(toCharacterBuilderEquipmentCatalogRecord)
+        .sort(byLabel),
       feats: (registry.feats ?? []).map(({ id, label }) => ({ id, label })).sort(byLabel),
       spells: toSpellCatalogRecords(context)
     })

@@ -154,6 +154,19 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAb
   )
   return modifiers
 }
+/** An unarmed strike adds Strength to its attack and damage rolls. */
+export function unarmedStrikeAbilityModifiers(childId: EquipmentChildId): WeaponAbilityModifier[] {
+  return [VALUE_DOMAIN_CODE.ATTACK_ROLL, VALUE_DOMAIN_CODE.DAMAGE].map((valueDomainCode, index) =>
+    fixedAbilityWeaponModifier(
+      childId,
+      0x300,
+      index + 1,
+      valueDomainCode,
+      ATTACK_DOMAIN_CODE.UNARMED,
+      'STRENGTH'
+    )
+  )
+}
 export function rangedWeaponAbilityModifiers(
   childId: EquipmentChildId,
   ability: string = 'DEXTERITY'
@@ -702,6 +715,19 @@ export function fixedMeleeWeaponEffect(
       }
     },
     paths: [fixedDamagePath(childId, bucket + 2, damageTypeId, amount)]
+  }
+}
+/** A natural weapon's unarmed strike: a melee reach attack with no grip, for a fixed amount. */
+export function unarmedStrikeEffect(
+  childId: EquipmentChildId,
+  damageTypeId: string,
+  amount: number
+): EquipmentEffectAuthored {
+  const melee = fixedMeleeWeaponEffect(childId, damageTypeId, amount, EQUIPMENT_GRIP.ONE_HANDED)
+  return {
+    ...melee,
+    grip: null,
+    invocation: { ...melee.invocation, triggerCode: TRIGGER.UNARMED_ATTACK }
   }
 }
 /** Pure melee weapon (e.g. mace, flail, morningstar). */

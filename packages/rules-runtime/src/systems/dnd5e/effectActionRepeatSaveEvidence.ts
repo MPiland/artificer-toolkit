@@ -159,3 +159,7 @@ export function repeatedFollowUpSaveResultPath(input: {
   }
   return expected
 }
+
+export function isTallyCount(count: number) {
+  return Number.isSafeInteger(count) && count >= 1 && count <= 255
+}

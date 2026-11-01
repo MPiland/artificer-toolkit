@@ -34,7 +34,7 @@ These rows override the audit tables below wherever the two disagree.
 - **SPELLS-31.T5rb:** build Hurl Through Hell, because there is no manual remove-from-play tool.
 - **SPELLS-33.T4w:** Animate Trees and Children of the Night are description-only; the GM adds the creatures with REINFORCE. Build Animate Chains and Create Specter.
 - **Kept automated although they qualify:** Turn the Unholy (SPELLS-31.T4m) and Primal Champion (SPELLS-31.T5q). They share pieces that are built anyway.
-- **Confirmed description-only:** the Heroes' Feast rider (SPELLS-4.T2n3), Retaliation (SPELLS-31.T4l2) and Overchannel (SPELLS-31.T5h).
+- **Confirmed description-only:** the Heroes' Feast rider (SPELLS-4.T2n3), Retaliation (SPELLS-31.T4l2; Horde Breaker joined it as a GM ruling) and Overchannel (SPELLS-31.T5h).
 
 ## Audit table: SPELLS-4, SPELLS-8, SPELLS-27, SPELLS-30, SPELLS-32
 
