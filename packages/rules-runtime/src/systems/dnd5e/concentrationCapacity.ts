@@ -46,7 +46,8 @@ export function evaluateDnd5eConcentrationCapacity(
         .reduce((sum, bonus) => sum + bonus.value, 0),
     gatedConcentrationCapacity: bonuses
       .filter(
-        (bonus) => bonus.applicability.deferredRequirements.length > 0 || bonus.chargeId !== undefined
+        (bonus) =>
+          bonus.applicability.deferredRequirements.length > 0 || bonus.chargeId !== undefined
       )
       .map(({ acceptedModifierIndex, value, chargeId }) => ({
         acceptedModifierIndex,
@@ -84,16 +85,16 @@ export function dnd5eConcentrationCapacityForCast(input: {
   }))
   const applying = policyOutput.gatedConcentrationCapacity.filter((bonus) =>
     targets.every((target) =>
-      dnd5eModifierApplies(
-        dnd5eFoldedModifierApplicability(policyOutput.grantFold, bonus),
-        target
-      )
+      dnd5eModifierApplies(dnd5eFoldedModifierApplicability(policyOutput.grantFold, bonus), target)
     )
   )
   const capacity =
     policyOutput.concentrationCapacity +
-    applying.filter(({ chargeId }) => chargeId === undefined).reduce((sum, { value }) => sum + value, 0)
-  if (!input.usesAvailable || input.heldSpellLevels.length < capacity) return { capacity, use: null }
+    applying
+      .filter(({ chargeId }) => chargeId === undefined)
+      .reduce((sum, { value }) => sum + value, 0)
+  if (!input.usesAvailable || input.heldSpellLevels.length < capacity)
+    return { capacity, use: null }
   for (const { chargeId, value } of applying) {
     if (chargeId === undefined) continue
     const pool = affordablePoolFor(policyOutput.resources, { chargeId, cost: 1 })
