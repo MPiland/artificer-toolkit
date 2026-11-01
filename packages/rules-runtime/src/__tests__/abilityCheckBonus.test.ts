@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
-import { skillId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
+import { SRD_SKILLS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -42,8 +42,10 @@ const champion = () =>
     features: [remarkableAthlete]
   }).output.derivedStats
 
-const skillTotal = (stats: ReturnType<typeof bard>, code: string) =>
-  stats.skills.find((skill) => skill.skillId === skillId(code))?.total.effective
+const skillTotal = (stats: ReturnType<typeof bard>, code: string) => {
+  const id = SRD_SKILLS.find((skill) => skill.code === code)?.id
+  return stats.skills.find((skill) => skill.skillId === id)?.total.effective
+}
 
 const checkOf = (stats: ReturnType<typeof bard>, code: string) =>
   stats.abilities.find((ability) => ability.abilityId === code)?.check.effective
