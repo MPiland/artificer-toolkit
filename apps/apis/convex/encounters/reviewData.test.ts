@@ -5,7 +5,6 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { components, internal } from '../_generated/api'
 import { readySheetFixture } from '../../tests/fixtures/readyCharacter'
 import { createPartyUser } from '../../tests/fixtures/partyPlayer'
-import { awaitCampaignCheckpoint } from '../../tests/developmentCheckpoint'
 import { seedReviewData, type ReviewAccount } from '../../tests/developmentReviewData'
 import {
   REVIEW_GM,
@@ -14,6 +13,7 @@ import {
 } from '../../tests/developmentReviewDataScenarios'
 import {
   attachRoomWorker,
+  checkpointRoom,
   roomDevelopmentClient,
   roomErrorLogs,
   seedRoomContentSnapshots,
@@ -38,13 +38,11 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   await t.action(internal.content.seed.seed, {})
   await attachRoomWorker(t)
   const accounts: ReviewAccount[] = []
-  let gmCaller: Parameters<typeof roomDevelopmentClient>[0] = null
   for (const [index, spec] of [REVIEW_GM, ...REVIEW_PLAYERS].entries()) {
     const user = await createPartyUser(t, {
       username: spec.username,
       email: `draft_review00000${index}@example.invalid`
     })
-    if (index === 0) gmCaller = user.caller
     accounts.push({
       client: roomDevelopmentClient(user.caller),
       userId: user.userId,
@@ -62,8 +60,9 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     gm,
     players,
     buildSnapshots: seedRoomContentSnapshots,
-    checkpoint: (campaignId: string) =>
-      awaitCampaignCheckpoint(roomDevelopmentClient(gmCaller), campaignId),
+    checkpoint: async (campaignId: string) => {
+      await checkpointRoom(campaignId)
+    },
     log: (message: string) => console.log(message)
   }
   const counts = () =>
