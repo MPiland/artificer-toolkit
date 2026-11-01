@@ -11,7 +11,6 @@ import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterPro
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { createActorCapRun } from '../../tests/fixtures/encounterActorCap'
-import { srdWolf } from '../../tests/fixtures/srdCreatures'
 import { useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { requireCampaignAuthority } from '../campaigns/authority'
 import { encounterReadTransaction } from '../encounters/encounterReadPorts'
@@ -34,15 +33,15 @@ const CALL_BUDGET_MS = PASS_BUDGET_MS / CREATURES
 const PASSES = 20
 
 /**
- * A Blueprint's snapshots share one payload limit, so the cap Run repeats a few Creatures: wolves
- * (natural armor alone) and Creatures whose computed armor class reads an equipment loadout.
+ * The three smallest SRD Creatures that wear equipment: a Blueprint stores one full snapshot per
+ * enemy under one payload limit (about 10.6 KB each at 99 enemies), and these keep the all-armored
+ * Run at the cap inside it (10.2 KB on average).
  */
-const ARMORED_AND_PLAIN_CREATURES = [
-  srdWolf,
-  ...srdCreatureRecords
-    .filter((creature) => (creature.equipmentLoadout ?? []).length > 0)
-    .slice(0, 1)
-]
+const ARMORED_CREATURES = ['Hill Giant', 'Grimlock', 'Ogre Zombie'].map((label) => {
+  const creature = srdCreatureRecords.find((candidate) => candidate.label === label)
+  if (!creature?.equipmentLoadout?.length) throw new Error(`${label} no longer wears equipment.`)
+  return creature
+})
 
 const percentile = (sorted: readonly number[], p: number) =>
   sorted[Math.min(sorted.length - 1, Math.ceil(p * sorted.length) - 1)]!
@@ -50,7 +49,7 @@ const percentile = (sorted: readonly number[], p: number) =>
 // PERF-4.4: snapshotStatBlock recomputes armor class on every call. The Run is 1 Character and 99
 // Creatures; the Convex read path and the room's projection both call it per Creature.
 it('computes the stat blocks of a Run at the actor cap within the PERF-1 targets', async () => {
-  const { base, prepared } = await createActorCapRun(ARMORED_AND_PLAIN_CREATURES)
+  const { base, prepared } = await createActorCapRun(ARMORED_CREATURES)
   await base.t.run((ctx) => activateFixtureRun(ctx, prepared.id))
 
   const measured = await base.owner.caller.run(async (ctx) => {
