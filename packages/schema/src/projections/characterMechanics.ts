@@ -216,6 +216,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     ),
     /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
     saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
+    /** Set on a repeat save at its anchor's turn start: the turn-effect kernel counts it, not the grant tick planner. */
+    countedByTurnEffects: z.optional(z.literal(true)),
+    /** The authored GM rulings a failed repeat save proposes beside the save. */
+    failureRulingIds: z.optional(z.array(serverUuidIdentityDtoSchema).check(z.minLength(1))),
     /**
      * Set on a plan whose outcome is authored on a test's result path: the effect is made only when
      * the action's test resolved to one of these paths, which the System lists (a hit's outcome: a hit
