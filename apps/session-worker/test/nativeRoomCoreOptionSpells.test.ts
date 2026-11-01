@@ -743,7 +743,7 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
     const room = await actionRoom({
       rolls: [18],
       fallbackRoll: 0,
-      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      actors: [casterActor(), srdCreatureActor({ id: OGRE_ID, creature: ogre })],
       characterPlay: { classLevel: 5 },
       characterSpellcasting: { spells: [spell], prepared: [spell.id] },
       characterAction: (action) => action.label.startsWith(spell.label)
@@ -1501,6 +1501,8 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
     throw new Error('Conjure Animals must offer a group form and a single form.')
   const FEY = creatureTypeId('FEY')
   const GROUP_POINT = { x: 150, y: 250 }
+  /** Sturdy enough to survive every bite the journey makes. */
+  const OGRE_ID = testUuid(0xa36)
   const groupRoom = () =>
     actionRoom({
       autoRoll: 'BOTH',
@@ -1533,7 +1535,7 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
     }
   }
   const biteOnce = (room: ActionRoom, groupId: string, biteId: string) =>
-    room.startAction(WOLF_ID, RANGE, null, null, biteId, groupId)
+    room.startAction(OGRE_ID, RANGE, null, null, biteId, groupId)
   const setCount = async (room: ActionRoom, actorId: string, groupCount: number) =>
     room.send({
       type: 'UPDATE_ACTOR',
@@ -1623,7 +1625,7 @@ describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
     })
     expect((await setCount(room, group.actor.id, 8)).type).toBe('COMMAND_COMMITTED')
     expect((await conjured(room))[0]?.actor.owner?.count).toBe(8)
-    expect((await setCount(room, WOLF_ID, 2)).type).toBe('COMMAND_REJECTED')
+    expect((await setCount(room, OGRE_ID, 2)).type).toBe('COMMAND_REJECTED')
 
     // The largest group (an upcast raised by the GM) holds one attack per creature, past the ten a
     // single attack slot counts.
