@@ -44,7 +44,7 @@ function hitDiceGraph(input: SrdCharacterInput) {
   if (executionPlan.kind !== 'TEST_OUTCOME') throw new Error('The strike must roll a test.')
   const { facts } = dnd5eCharacterRuleActionSystemAdapter.bindFacts({
     actionMechanic: decision.mechanic,
-    published: executionPlan.test,
+    published: executionPlan.test.published,
     sourceDerivedFacts: {},
     targetActorId: TARGET_ID,
     targetDerivedFacts: {},
