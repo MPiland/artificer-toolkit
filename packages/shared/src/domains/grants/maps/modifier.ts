@@ -48,7 +48,7 @@ const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, selectMulti, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle, text } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
