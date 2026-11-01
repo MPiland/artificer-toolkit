@@ -241,6 +241,36 @@ function createFacetPredicateNodeMap(
     const { and, or, not } = logic
     const local = cond.local()
     const predicateCode = local.field(['predicateCode'])
+    const amountShowIf = or([
+      and([
+        predicateCode.eq('RANGE'),
+        or([
+          and([
+            local.field(['rangeKind']).contains(['DISTANCE']),
+            local.field(['authoringModeKind']).eq('SELECTED')
+          ]),
+          local.field(['authoringModeKind']).eq('ALL')
+        ])
+      ]),
+      and([
+        predicateCode.eq('DURATION'),
+        or([
+          and([
+            not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
+            local.field(['authoringModeKind']).eq('SELECTED')
+          ]),
+          local.field(['authoringModeKind']).eq('ALL')
+        ])
+      ]),
+      predicateCode.eq('SPELL_LEVEL'),
+      predicateCode.eq('HELD_CONCENTRATION_COUNT'),
+      predicateCode.eq('SAVING_THROW_DC'),
+      predicateCode.eq('ARMOR_CLASS'),
+      predicateCode.eq('CHARACTER_LEVEL'),
+      predicateCode.eq('CLASS_LEVEL'),
+      predicateCode.eq('ABILITY_SCORE'),
+      predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
+    ])
     const owner =
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(3)
     const selection =
@@ -624,71 +654,13 @@ function createFacetPredicateNodeMap(
         number(['min'], 'Min Amount', {
           order: 3,
           requiredIf: true,
-          showIf: or([
-            and([
-              predicateCode.eq('RANGE'),
-              or([
-                and([
-                  local.field(['rangeKind']).contains(['DISTANCE']),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            and([
-              predicateCode.eq('DURATION'),
-              or([
-                and([
-                  not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            predicateCode.eq('SPELL_LEVEL'),
-            predicateCode.eq('HELD_CONCENTRATION_COUNT'),
-            predicateCode.eq('SAVING_THROW_DC'),
-            predicateCode.eq('ARMOR_CLASS'),
-            predicateCode.eq('CHARACTER_LEVEL'),
-            predicateCode.eq('CLASS_LEVEL'),
-            predicateCode.eq('ABILITY_SCORE'),
-            predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
-          ])
+          showIf: amountShowIf
         })
       )
       .set(
         'max',
         number(['max'], 'Max Amount', {
-          showIf: or([
-            and([
-              predicateCode.eq('RANGE'),
-              or([
-                and([
-                  local.field(['rangeKind']).contains(['DISTANCE']),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            and([
-              predicateCode.eq('DURATION'),
-              or([
-                and([
-                  not(local.field(['durationKind']).onlyValues(['INSTANTANEOUS'])),
-                  local.field(['authoringModeKind']).eq('SELECTED')
-                ]),
-                local.field(['authoringModeKind']).eq('ALL')
-              ])
-            ]),
-            predicateCode.eq('SPELL_LEVEL'),
-            predicateCode.eq('HELD_CONCENTRATION_COUNT'),
-            predicateCode.eq('SAVING_THROW_DC'),
-            predicateCode.eq('ARMOR_CLASS'),
-            predicateCode.eq('CHARACTER_LEVEL'),
-            predicateCode.eq('CLASS_LEVEL'),
-            predicateCode.eq('ABILITY_SCORE'),
-            predicateCode.eq('SAVING_THROW_ABILITY_BONUS')
-          ])
+          showIf: amountShowIf
         })
       )
       .set(
