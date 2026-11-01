@@ -292,17 +292,16 @@ export async function verifyEncounterAreaBrowser(
         const centerOf = (label: string) => {
           const at = input.map.points[label]
           if (!at) throw new Error('Area fixture position is missing for ' + label + '.')
-          // Tokens are 50 px square.
-          return { x: at.x + 25, y: at.y + 25 }
+          return at
         }
         const casterCenter = centerOf(input.casterLabel)
         const towardCenter = centerOf(toward)
-        // The cone starts on the caster's edge nearest the press, so press just outside that edge,
-        // on the side facing the target.
+        // The cone starts on the caster's edge nearest the press, so press just outside the 50 px
+        // token, on the side facing the target.
         const reach = Math.hypot(towardCenter.x - casterCenter.x, towardCenter.y - casterCenter.y)
         const from = onPage({
-          x: casterCenter.x + ((towardCenter.x - casterCenter.x) / reach) * 32,
-          y: casterCenter.y + ((towardCenter.y - casterCenter.y) / reach) * 32
+          x: casterCenter.x + ((towardCenter.x - casterCenter.x) / reach) * 40,
+          y: casterCenter.y + ((towardCenter.y - casterCenter.y) / reach) * 40
         })
         const to = onPage(towardCenter)
         await ownerPage.mouse.move(from.x, from.y)
