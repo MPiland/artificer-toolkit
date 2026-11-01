@@ -63,7 +63,6 @@ export function useAimedArea({
   const sceneGrid = scene?.grid ?? null
   // A directed area starts on the caster's own token, so it cannot be drawn without one.
   const areaSize = useMemo<VttAreaSize | null>(() => {
-    console.log('AIMDBG size', JSON.stringify({ sceneGrid, areaTarget, sourceTokenId, drawnTarget }))
     if (!sceneGrid) return null
     if (drawnTarget) {
       const bounds = wallAreaBoundsInSceneCoordinates(

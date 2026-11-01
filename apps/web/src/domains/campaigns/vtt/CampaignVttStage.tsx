@@ -691,7 +691,6 @@ export function CampaignVttStage({
       ? [...actorIdByTokenId].find(([, actorId]) => actorId === drawerDecision.ownerActorId)?.[0]
       : undefined
   const aimCasterTokenId = actionPreview?.sourceTokenId ?? legendaryOwnerTokenId ?? null
-  console.log('AIMDBG stage', JSON.stringify({ aimingArea, hasSize: areaSize !== null, aimCasterTokenId }))
   const rendererAreaAim = useMemo(
     () =>
       aimingArea && areaSize

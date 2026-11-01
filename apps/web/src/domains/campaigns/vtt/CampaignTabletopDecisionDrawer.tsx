@@ -212,12 +212,16 @@ export function CampaignTabletopDecisionDrawer({
       </Tooltip>
       <Drawer
         closeButtonProps={{ 'aria-label': 'Close pending decision' }}
-        // Aiming hides the drawer to free the map; the chosen option and aim return with it.
-        keepMounted={aim.aiming}
-        opened={opened && !aim.aiming}
+        // Aiming hides the drawer to free the map without unmounting it, so the chosen option and
+        // aim return with it.
+        closeOnEscape={!aim.aiming}
+        lockScroll={!aim.aiming}
+        opened={opened}
         position='right'
         size='min(30rem, 100vw)'
+        styles={aim.aiming ? { root: { display: 'none' } } : undefined}
         title='Pending decision'
+        trapFocus={!aim.aiming}
         zIndex={410}
         onClose={() => {
           close()
@@ -783,7 +787,6 @@ function LegendaryActionControls({
   const target = targetIds.length === 1 ? (targetIds[0] ?? null) : targetActorId
   const { areaAim, onAreaAimChange, onAreaSizeChange } = aim
   const area = option?.area ?? null
-  console.log('AIMDBG legendary', JSON.stringify({ optionId, found: option !== null, area, aiming: aim.aiming, ids: pending.options.map((o) => o.optionId) }))
   const { areaSize, tokensInArea } = useAimedArea({
     scene: aim.scene,
     sceneTokens: aim.scene?.tokens ?? NO_SCENE_TOKENS,
@@ -798,12 +801,8 @@ function LegendaryActionControls({
     summonChoices: {}
   })
   useEffect(() => {
-    console.log('AIMDBG decision size set', areaSize !== null)
     onAreaSizeChange(areaSize)
-    return () => {
-      console.log('AIMDBG decision size clear')
-      onAreaSizeChange(null)
-    }
+    return () => onAreaSizeChange(null)
   }, [areaSize, onAreaSizeChange])
   // The aim belongs to this window: it leaves with it.
   useEffect(() => () => onAreaAimChange(null), [onAreaAimChange])
@@ -822,12 +821,10 @@ function LegendaryActionControls({
           value: entry.optionId,
           label: `${entry.label} · ${entry.featureCost === 1 ? '1 action' : `${entry.featureCost} actions`}`
         }))}
-        allowDeselect={false}
         disabled={disabled}
         label='Legendary Action'
         value={optionId}
         onChange={(value) => {
-          console.log('AIMDBG select', JSON.stringify(value))
           setOptionId(value)
           setTargetActorId(null)
           onAreaAimChange(null)

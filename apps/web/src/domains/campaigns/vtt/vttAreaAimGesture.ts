@@ -63,7 +63,6 @@ export function createVttAreaAimGesture(
   return {
     press(point) {
       const aim = aiming()
-      console.log('AIMDBG press', JSON.stringify({ point, aim }))
       if (!aim) return false
       if ('squares' in aim) {
         const square = pickedSquare(aim.squares, point)
@@ -75,7 +74,6 @@ export function createVttAreaAimGesture(
     release(point) {
       if (!pressedAt) return false
       const aimed = aimAt(point)
-      console.log('AIMDBG release', JSON.stringify({ point, pressedAt, aimed }))
       pressedAt = null
       if (aimed?.toward) callbacks.onDirection?.({ origin: aimed.origin, toward: aimed.toward })
       return true

@@ -271,10 +271,6 @@ export async function verifyEncounterAreaBrowser(
       },
       breathe: async (optionLabel, toward, caught) => {
         stage = 'aim the Legendary breath'
-        const aimLogs: string[] = []
-        ownerPage.on('console', (message) => {
-          if (message.text().startsWith('AIMDBG')) aimLogs.push(message.text())
-        })
         const drawer = decisionDrawer(ownerPage)
         await drawer.getByRole('combobox', { name: 'Legendary Action', exact: true }).click()
         await ownerPage.getByRole('option', { name: new RegExp('^' + optionLabel) }).click()
@@ -318,7 +314,7 @@ export async function verifyEncounterAreaBrowser(
         await ownerPage.screenshot({
           path: input.evidenceDirectory + '/area-owner-breath-released.png'
         })
-        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to, aimLogs })).toBeVisible()
+        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to })).toBeVisible()
         const inArea = drawer.getByText(/^In the area:/)
         await expect(inArea).toBeVisible()
         for (const label of caught) await expect(inArea).toContainText(label)
