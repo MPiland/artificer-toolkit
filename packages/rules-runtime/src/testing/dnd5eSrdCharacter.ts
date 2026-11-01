@@ -63,6 +63,19 @@ export function srdByLabel<T extends { readonly label: string }>(
 
 const racesById = new Map<string, RaceAuthored>(SRD.races.map((race) => [race.id, race]))
 
+/** The SRD vocabulary slice that saving-throw and skill projection read. */
+export const vocabulary = {
+  document: {
+    abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })),
+    skills: SRD_SKILLS.map(({ id, code, label, governingAbilityDefinitionId }) => ({
+      id,
+      code,
+      label,
+      governingAbilityDefinitionId
+    }))
+  }
+} as Pick<SystemVocabularySnapshot, 'document'>
+
 /** The rule registry over the SRD and any further authored equipment and Features, resolved as publication does. */
 function registryWith(
   extraEquipment: readonly EquipmentAuthored[],
@@ -91,24 +104,12 @@ function registryWith(
         defaults: srdSystemRecord.defaults
       }
     },
-    catalog: { spells: [] }
+    catalog: { spells: [] },
+    vocabularySnapshot: vocabulary as SystemVocabularySnapshot
   }).registry
 }
 
 export const srdRegistry = registryWith([], [])
-
-/** The SRD vocabulary slice that saving-throw and skill projection read. */
-export const vocabulary = {
-  document: {
-    abilities: SRD_ABILITIES.map(({ id, code, label }) => ({ id, code, label })),
-    skills: SRD_SKILLS.map(({ id, code, label, governingAbilityDefinitionId }) => ({
-      id,
-      code,
-      label,
-      governingAbilityDefinitionId
-    }))
-  }
-} as Pick<SystemVocabularySnapshot, 'document'>
 
 /** A class, subclass, race or subrace feature acquisition, with any selected options. */
 export function srdFeature(input: {
