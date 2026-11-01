@@ -304,6 +304,10 @@ export async function verifyEncounterAreaBrowser(
           y: casterCenter.y + ((towardCenter.y - casterCenter.y) / reach) * 40
         })
         const to = onPage(towardCenter)
+        const aimLogs: string[] = []
+        ownerPage.on('console', (message) => {
+          if (message.text().startsWith('AIMDBG')) aimLogs.push(message.text())
+        })
         await ownerPage.mouse.move(from.x, from.y)
         await ownerPage.mouse.down()
         await ownerPage.mouse.move(to.x, to.y, { steps: 8 })
@@ -314,7 +318,7 @@ export async function verifyEncounterAreaBrowser(
         await ownerPage.screenshot({
           path: input.evidenceDirectory + '/area-owner-breath-released.png'
         })
-        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to })).toBeVisible()
+        await expect(drawer, JSON.stringify({ bounds, zoomText, scale, from, to, aimLogs })).toBeVisible()
         const inArea = drawer.getByText(/^In the area:/)
         await expect(inArea).toBeVisible()
         for (const label of caught) await expect(inArea).toContainText(label)
