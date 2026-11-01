@@ -777,11 +777,6 @@ function LegendaryActionControls({
 }) {
   const [optionId, setOptionId] = useState<string | null>(null)
   const [targetActorId, setTargetActorId] = useState<string | null>(null)
-  console.log('AIMDBG render', JSON.stringify({ optionId, aiming: aim.aiming, options: pending.options.map((o) => o.optionId) }))
-  useEffect(() => {
-    console.log('AIMDBG mount')
-    return () => console.log('AIMDBG unmount')
-  }, [])
   const option = pending.options.find((entry) => entry.optionId === optionId) ?? null
   const targetIds = option?.targetActorIds ?? []
   // A self action has exactly one target: its user.
@@ -822,10 +817,12 @@ function LegendaryActionControls({
           value: entry.optionId,
           label: `${entry.label} · ${entry.featureCost === 1 ? '1 action' : `${entry.featureCost} actions`}`
         }))}
+        allowDeselect={false}
         disabled={disabled}
         label='Legendary Action'
         value={optionId}
         onChange={(value) => {
+          console.log('AIMDBG select', JSON.stringify(value))
           setOptionId(value)
           setTargetActorId(null)
           onAreaAimChange(null)
