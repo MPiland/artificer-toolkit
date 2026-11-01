@@ -15,6 +15,7 @@ import {
 import {
   attachRoomWorker,
   roomDevelopmentClient,
+  roomErrorLogs,
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -72,7 +73,11 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     }))
   const names = REVIEW_SCENARIOS.map((scenario) => scenario.campaign)
 
-  const first = await seedReviewData(context)
+  const first = await seedReviewData(context).catch((error: unknown) => {
+    throw new Error(`${String(error)}
+${roomErrorLogs().join('
+')}`)
+  })
   const built = await counts()
   const second = await seedReviewData(context)
 
