@@ -38,6 +38,8 @@ import { creatureTypeId, damageTypeId } from '@artificer-toolkit/source-data/srd
 import { findFamiliar } from '@artificer-toolkit/source-data/srd/spells/find-familiar.js'
 import { applyCreatureAttackRolls } from '@artificer-toolkit/source-data/srd/creatures/attack-rolls.js'
 import { cat } from '@artificer-toolkit/source-data/srd/creatures/cat.js'
+import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { conjureAnimals } from '@artificer-toolkit/source-data/srd/spells/conjure-animals.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
@@ -832,7 +834,7 @@ async function setSummonHitPoints(room: ActionRoom, actorId: string, currentHitP
 async function castSummon(
   room: ActionRoom,
   point: { x: number; y: number },
-  picks: { formId?: string; creatureTypeId?: string } = {}
+  picks: { formId?: string; creatureTypeId?: string; count?: number } = {}
 ) {
   const cast = await room.startAreaCommand({ kind: 'POINT', point, ...picks })
   expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
@@ -1475,6 +1477,161 @@ describe('room Find Familiar (SPELLS-34.T3a)', () => {
     })
     expect(answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(answer)).toContain('takes no creature form')
+  }, 120000)
+})
+
+/**
+ * SPELLS-35.T7 (D200): a multi-creature Conjure makes one group token for the creature and count the
+ * caster picked, with one shared turn. The GM lowers the count as the group takes losses, and the
+ * group makes one attack per surviving creature.
+ */
+describe('room multi-creature Conjure (SPELLS-35.T7)', () => {
+  const forms = (() => {
+    const outcome = conjureAnimals.effects
+      ?.flatMap((effect) => effect.paths)
+      .flatMap((path) => (path.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []))
+      .find(
+        (candidate) => candidate.effectKind === 'MANIFEST' && candidate.manifestKind === 'SUMMON'
+      )
+    return outcome?.effectKind === 'MANIFEST' ? (outcome.forms ?? []) : []
+  })()
+  const wolfForm = forms.find((form) => form.creatureId === CREATURE_IDS.WOLF)
+  const singleForm = forms.find((form) => form.maxTargets === 1)
+  if (!wolfForm || !singleForm)
+    throw new Error('Conjure Animals must offer a group form and a single form.')
+  const FEY = creatureTypeId('FEY')
+  const GROUP_POINT = { x: 150, y: 250 }
+  const groupRoom = () =>
+    actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [18, ...Array.from({ length: 30 }, (_, index) => (index % 2 === 0 ? 14 : 1))],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [conjureAnimals], prepared: [conjureAnimals.id] },
+      characterAction: (action) => action.label.startsWith(conjureAnimals.label),
+      formCreatures: [applyCreatureAttackRolls(wolf)],
+      initiativePolicy: initiativePolicySnapshot({
+        procedure: 'ACTOR_ROLL',
+        cadence: 'ENCOUNTER_START'
+      })
+    })
+  /** Advances to the group's turn and returns its Bite and a read of the attack action it has open. */
+  async function groupTurn(room: ActionRoom, groupId: string) {
+    for (let turn = 0; turn < 8; turn += 1) {
+      if ((await initiativeOrder(room)).state.currentActorId === groupId) break
+      await room.advanceTurn()
+    }
+    expect((await initiativeOrder(room)).state.currentActorId).toBe(groupId)
+    const biteAction = (await room.actionChoices(groupId)).actions.find(
+      ({ label }) => label === 'Bite'
+    )
+    if (!biteAction) throw new Error('The group offers no Bite.')
+    return {
+      biteAction,
+      open: async () => (await room.actionChoices(groupId)).openAttackAction
+    }
+  }
+  const biteOnce = (room: ActionRoom, groupId: string, biteId: string) =>
+    room.startAction(WOLF_ID, RANGE, null, null, biteId, groupId)
+  const setCount = async (room: ActionRoom, actorId: string, groupCount: number) =>
+    room.send({
+      type: 'UPDATE_ACTOR',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId,
+      groupCount
+    })
+
+  it('creates one token and one initiative entry at the picked count, and attacks once per creature as the GM lowers it', async () => {
+    const room = await groupRoom()
+    const group = await castSummon(room, GROUP_POINT, {
+      formId: wolfForm.id,
+      creatureTypeId: FEY,
+      count: 3
+    })
+    expect(group.actor).toMatchObject({
+      sourceId: CREATURE_IDS.WOLF,
+      owner: { ownerActorId: CHARACTER_ACTOR_ID, count: 3, turnTiming: 'OWN_INITIATIVE' }
+    })
+    expect(await conjured(room)).toHaveLength(1)
+    expect(
+      (await initiativeOrder(room)).participants.filter(({ actorId }) => actorId === group.actor.id)
+    ).toHaveLength(1)
+
+    // Three creatures make three attacks on the group's one turn, and no fourth.
+    const turn = await groupTurn(room, group.actor.id)
+    for (const made of [1, 2, 3]) {
+      const attack = await biteOnce(room, group.actor.id, turn.biteAction.id)
+      expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+      expect(await turn.open()).toMatchObject({ made, total: 3 })
+    }
+    expect((await biteOnce(room, group.actor.id, turn.biteAction.id)).answer.type).toBe(
+      'COMMAND_REJECTED'
+    )
+
+    // The GM records a loss; the group then makes two attacks on its next turn.
+    await room.advanceTurn()
+    const lowered = await setCount(room, group.actor.id, 2)
+    expect(lowered.type, JSON.stringify(lowered)).toBe('COMMAND_COMMITTED')
+    expect((await conjured(room))[0]?.actor.owner?.count).toBe(2)
+    const next = await groupTurn(room, group.actor.id)
+    for (const made of [1, 2]) {
+      const attack = await biteOnce(room, group.actor.id, next.biteAction.id)
+      expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+      expect(await next.open()).toMatchObject({ made, total: 2 })
+    }
+    expect((await biteOnce(room, group.actor.id, next.biteAction.id)).answer.type).toBe(
+      'COMMAND_REJECTED'
+    )
+
+    // Undoing the last attack returns its slot and leaves the count alone.
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await next.open()).toMatchObject({ made: 1, total: 2 })
+    expect((await conjured(room))[0]?.actor.owner?.count).toBe(2)
+  }, 120000)
+
+  it('lets the GM raise the count, and refuses a count on a single form, above a form’s maximum, or on a non-group actor', async () => {
+    const room = await groupRoom()
+    const refusedWith = async (picks: { formId: string; count: number }) => {
+      const { answer } = await room.startAreaCommand({
+        kind: 'POINT',
+        point: GROUP_POINT,
+        creatureTypeId: FEY,
+        ...picks
+      })
+      expect(answer.type).toBe('COMMAND_REJECTED')
+      return JSON.stringify(answer)
+    }
+    expect(await refusedWith({ formId: singleForm.id, count: 2 })).toContain(
+      'conjured one at a time'
+    )
+    expect(await refusedWith({ formId: wolfForm.id, count: 9 })).toContain('conjured 8 at most')
+    expect(await conjured(room)).toEqual([])
+
+    const group = await castSummon(room, GROUP_POINT, {
+      formId: wolfForm.id,
+      creatureTypeId: FEY,
+      count: 1
+    })
+    expect((await setCount(room, group.actor.id, 8)).type).toBe('COMMAND_COMMITTED')
+    expect((await conjured(room))[0]?.actor.owner?.count).toBe(8)
+    expect((await setCount(room, WOLF_ID, 2)).type).toBe('COMMAND_REJECTED')
+
+    // The largest group (an upcast raised by the GM) holds one attack per creature, past the ten a
+    // single attack slot counts.
+    expect((await setCount(room, group.actor.id, 32)).type).toBe('COMMAND_COMMITTED')
+    const turn = await groupTurn(room, group.actor.id)
+    const attack = await biteOnce(room, group.actor.id, turn.biteAction.id)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    expect(await turn.open()).toMatchObject({ made: 1, total: 32 })
   }, 120000)
 })
 

@@ -203,6 +203,7 @@ export function CampaignTabletopActionDrawer({
   const [pickedFormId, setPickedFormId] = useState<string | null>(null)
   const [pickedFormCreatureId, setPickedFormCreatureId] = useState<string | null>(null)
   const [pickedCreatureTypeId, setPickedCreatureTypeId] = useState<string | null>(null)
+  const [pickedCount, setPickedCount] = useState<number | null>(null)
   const [pickedBandSide, setPickedBandSide] = useState<SpatialWallSide | null>(null)
   const [pickedOptionalRuleId, setOptionalRuleId] = useState<string | null>(null)
   const [optionalChoices, setOptionalChoices] = useState<{
@@ -301,7 +302,7 @@ export function CampaignTabletopActionDrawer({
     maxTargets: chosenForm?.maxTargets ?? choiceActorsTarget.maxTargets
   }
   const pointTarget = choiceTarget?.kind === 'POINT' ? choiceTarget : null
-  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId)
+  const summonChoices = summonPicks(pointTarget, pickedFormId, pickedCreatureTypeId, pickedCount)
   // A cast that picks one of several zones (D140, D154) or what it does to its targets (D148) sends
   // the chosen one; the first is preselected. A zone option is then aimed as its own target asks.
   const zoneOptions = choiceTarget?.kind === 'ZONE_OPTIONS' ? choiceTarget.options : undefined
@@ -1068,7 +1069,11 @@ export function CampaignTabletopActionDrawer({
                   options={choiceTarget}
                   {...summonChoices}
                   disabled={selectionControlsDisabled}
-                  onFormChange={setPickedFormId}
+                  onCountChange={setPickedCount}
+                  onFormChange={(formId) => {
+                    setPickedFormId(formId)
+                    setPickedCount(null)
+                  }}
                   onCreatureTypeChange={setPickedCreatureTypeId}
                 />
               ) : null}

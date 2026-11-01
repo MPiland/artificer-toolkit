@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SummonStatBlockDto } from '@artificer-toolkit/schema/effects/manifest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterActorBody, encounterActorCannotAttack } from '../encounterActorBody.js'
+import type { EncounterActorFormCreature } from '../encounterActorForm.js'
 import { buildEncounterSummon } from '../encounterSummon.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 
@@ -79,6 +80,38 @@ describe('buildEncounterSummon', () => {
       ownerActorId: caster.id,
       sourceEffectId: CARRIER_ID,
       turnTiming: 'OWN_INITIATIVE'
+    })
+  })
+
+  it('records how many creatures a group summon stands for on its owner link (SPELLS-35.T7)', () => {
+    const { actor } = buildEncounterSummon({
+      summon: {
+        kind: 'CREATURE',
+        creature: {
+          sourceId: crypto.randomUUID(),
+          sourceRevision: 1,
+          systemId: caster.systemId,
+          maxHitPoints: 11,
+          snapshot: { kind: 'CREATURE', payload: {} }
+        } as unknown as EncounterActorFormCreature,
+        creatureTypeId: null,
+        count: 4
+      },
+      spellSummon: null,
+      turnTiming: 'OWN_INITIATIVE',
+      caster,
+      casterHitPointMaximum: 40,
+      label: 'Wolf',
+      sourceEffectId: CARRIER_ID,
+      point: { x: 250, y: 150 },
+      edgeLength: 100,
+      occurredAt: NOW
+    })
+    expect(actor.owner).toEqual({
+      ownerActorId: caster.id,
+      sourceEffectId: CARRIER_ID,
+      turnTiming: 'OWN_INITIATIVE',
+      count: 4
     })
   })
 

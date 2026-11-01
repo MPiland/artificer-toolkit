@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
+import { MAX_ENCOUNTER_ACTORS, MAX_GROUP_COUNT } from '../shared/authoredLimits.js'
 import {
   encounterActorControllerUserIdsDtoSchema,
   encounterActorDispositionDtoSchema,
@@ -163,6 +163,11 @@ export const updateEncounterActorInputDtoSchema = lazySchema(() =>
     returnToInitiative: z.optional(z.literal(true)),
     /** GM-only: ends a grant (D99) this Creature or custom actor holds; a Character's ends on its Sheet. */
     endActiveEffectId: z.optional(uuidSchema),
+    /**
+     * GM-only: sets how many creatures a group token stands for, 1 to the group maximum, lowered as
+     * the group takes losses or raised for an upcast. Only an owned group actor takes it.
+     */
+    groupCount: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_GROUP_COUNT))),
     /** GM-only: ends the Concentration this Creature or custom actor maintains; a Character's ends on its Sheet. */
     endConcentration: z.optional(z.literal(true)),
     characterCommand: z.optional(characterSheetCommandInputDtoSchema)

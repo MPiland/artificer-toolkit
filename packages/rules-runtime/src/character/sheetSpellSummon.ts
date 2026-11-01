@@ -97,7 +97,8 @@ export function buildSheetSpellSummon(input: {
             creatureId: form.pick.form.creatureId,
             ...(form.pick.creatureTypeId === null
               ? {}
-              : { creatureTypeId: form.pick.creatureTypeId })
+              : { creatureTypeId: form.pick.creatureTypeId }),
+            ...(form.pick.count === null ? {} : { count: form.pick.count })
           }
         }
       : {}),

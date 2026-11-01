@@ -554,6 +554,24 @@ anchored reinforcement insert, so it keeps that place across rounds. Target: the
 prompt belong to SPELLS-35.T5 to T7.
 Ending an `OWN_INITIATIVE` summon (SPELLS-35.T3b) removes its initiative place and records the round's state; see the Encounter persistence guide's summon removal. `summonEndAdvanceCommandId` (`encounterSystemTrigger.ts`) keys the system `ADVANCE_TURN` that ends the turn of one whose carrier ended while it acted.
 
+**Group summons (D200, SPELLS-35.T7; current).** A multi-creature Conjure (Conjure Animals, Conjure Minor Elementals,
+Conjure Woodland Beings) authors one `SUMMON` form per System Creature of the offered type with a challenge rating of 2
+or lower. A form's `maxTargets` is how many of it one cast conjures at the lowest slot (1 for challenge rating 2, 2 for 1,
+4 for 1/2, 8 for 1/4 or lower), compiled onto `summonPlacement.forms[].maxTargets` (1 to `MAX_GROUP_COUNT`, 32).
+The caster picks `count` with the form (`summonPicksShape`); `summonFormPick` refuses a count on a form with
+`maxTargets` 1 or above its maximum, and `summonPickOptions` offers `maxCount` only on a form conjured in groups. The
+cast creates one actor and one token, so the group has one initiative entry and one shared turn
+(`turnTiming: OWN_INITIATIVE`). `buildEncounterSummon` stores the count on `owner.count` (`encounterActorOwnerDtoSchema`,
+absent for a single creature); the Sheet records it on the summon's `form.count`. The group's Attack action holds one
+attack per creature: `applyEncounterAttackActionTransition` multiplies the actor's attacks per Attack action by
+`owner.count` and chunks them into slots of at most `MAX_ATTACK_SLOT_COUNT`, in that one place, so the Worker and
+Convex read the same total. The GM sets the count after the cast with `UPDATE_ACTOR.groupCount` (1 to 32, either
+direction, so an upcast raises it); only an actor that has a count takes it. That edit is a GM edit and is not
+undoable; undoing an attack returns its slot and leaves the count alone. The token shows a `GROUP` status badge
+("N creatures") read from the actor's `owner.count`. A group at 0 is the existing token removal, not a count.
+Known limit: an upcast does not raise the picked count by itself, and the cast offers no count above a form's
+lowest-slot maximum; the GM raises it. Separate tokens per creature are a future enhancement.
+
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
 attack roll (`makesAttackRoll`, a required policy input) or the authored single-target `self` field is `WARN`

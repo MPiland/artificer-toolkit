@@ -52,7 +52,13 @@ export function formSummonStats(
 export function buildEncounterSummon(input: {
   summon:
     | { kind: 'STAT_BLOCK'; statBlock: SummonStatBlockDto }
-    | { kind: 'CREATURE'; creature: EncounterActorFormCreature; creatureTypeId: string | null }
+    | {
+        kind: 'CREATURE'
+        creature: EncounterActorFormCreature
+        creatureTypeId: string | null
+        /** How many creatures the one token stands for; null for a single creature. */
+        count: number | null
+      }
   /**
    * The values a spell cast resolved for the creature (`resolveSpellSummonStatBlock`); null when no
    * spell made it, and no Sheet lists it.
@@ -123,7 +129,12 @@ export function buildEncounterSummon(input: {
     gmNotes: null,
     initiative: null,
     manualOrder: null,
-    owner: { ownerActorId: caster.id, sourceEffectId, ...(turnTiming ? { turnTiming } : {}) },
+    owner: {
+      ownerActorId: caster.id,
+      sourceEffectId,
+      ...(turnTiming ? { turnTiming } : {}),
+      ...(summon.kind === 'CREATURE' && summon.count ? { count: summon.count } : {})
+    },
     snapshot: {
       ...body.snapshot,
       ...(cannotAttack ? { body: summonBody(statBlock, true) } : {}),

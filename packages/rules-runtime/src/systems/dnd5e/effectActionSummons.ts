@@ -1,4 +1,5 @@
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import { MAX_GROUP_COUNT } from '@artificer-toolkit/schema/shared/authoredLimits'
 import type { CharacterRuleActionSummonPlacementPlan } from '../../characterRuleActionSystemAdapter.js'
 import {
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
@@ -17,7 +18,7 @@ import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
  * until it falls or is dismissed; only a timed one may hold offers. A second ON_USE entry may be an
  * empty APPLY_GRANT of the same duration whose effect offers the carrier holds. Null for any other
  * action. A summon that authors anything the plan does not carry (behaviors, neither or both of a
- * stat block and forms, a form of more than one creature, a third entry) is refused rather than
+ * stat block and forms, a form of more creatures than a group token holds, a third entry) is refused rather than
  * partly honored.
  */
 export function compileDnd5eSummonPlacement(
@@ -52,7 +53,11 @@ export function compileDnd5eSummonPlacement(
   if (
     forms.some(
       ({ id, creatureId, maxTargets }) =>
-        maxTargets !== 1 || !UUID.test(id) || !UUID.test(creatureId)
+        !Number.isInteger(maxTargets) ||
+        maxTargets < 1 ||
+        maxTargets > MAX_GROUP_COUNT ||
+        !UUID.test(id) ||
+        !UUID.test(creatureId)
     ) ||
     creatureTypeIds.some((id) => !UUID.test(id))
   )
@@ -90,7 +95,7 @@ export function compileDnd5eSummonPlacement(
         ...identity,
         forms: [...forms]
           .sort((left, right) => left.order - right.order)
-          .map(({ id, label, creatureId }) => ({ id, label, creatureId })),
+          .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
         creatureTypeIds: [...new Set(creatureTypeIds)].sort()
       }
   if (carrierEntry) {

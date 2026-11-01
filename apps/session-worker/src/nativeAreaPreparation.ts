@@ -466,6 +466,7 @@ async function readSummonBody(
       kind: 'CREATURE'
       creature: EncounterActorFormCreature
       creatureTypeId: string | null
+      count: number | null
       label: string
     }
   | null
@@ -473,7 +474,9 @@ async function readSummonBody(
   const { target } = input.command
   const pick = summonFormPick(
     placement,
-    target.kind === 'POINT' ? { formId: target.formId, creatureTypeId: target.creatureTypeId } : {}
+    target.kind === 'POINT'
+      ? { formId: target.formId, creatureTypeId: target.creatureTypeId, count: target.count }
+      : {}
   )
   if (pick && 'refusal' in pick) throw summonFormRefusal(pick.refusal)
   if (!pick)
@@ -485,6 +488,7 @@ async function readSummonBody(
     kind: 'CREATURE',
     creature: await input.readFormCreature(input.state.gameSystemId, pick.form.creatureId),
     creatureTypeId: pick.creatureTypeId,
+    count: pick.count,
     label: pick.form.label
   }
 }

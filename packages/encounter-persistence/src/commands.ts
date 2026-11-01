@@ -424,6 +424,12 @@ async function recordEncounterToolCommand(
       actor.kind === 'CHARACTER'
     )
       throw new Error("A Character's grant is ended through its Sheet command.")
+    if (
+      input.type === 'UPDATE_ACTOR' &&
+      input.groupCount !== undefined &&
+      actor.owner?.count === undefined
+    )
+      throw new Error('Only a summoned group has a creature count.')
     if (input.type === 'UPDATE_ACTOR' && input.endConcentration && actor.kind === 'CHARACTER')
       throw new Error("A Character's Concentration is ended through its Sheet command.")
     if (input.type === 'UPDATE_ACTOR' && input.characterCommand !== undefined) {
@@ -504,6 +510,9 @@ async function recordEncounterToolCommand(
             ...(input.reveal === undefined ? {} : { reveal: input.reveal }),
             ...(input.returnToInitiative ? { absence: null } : {}),
             ...(input.sideId === undefined ? {} : { sideId: input.sideId }),
+            ...(input.groupCount === undefined || !actor.owner
+              ? {}
+              : { owner: { ...actor.owner, count: input.groupCount } }),
             updatedAt
           }
     )

@@ -76,35 +76,50 @@ export function resolveSpellSummonStatBlock(input: {
   }
 }
 
-/** A summon cast's checked pick of one of its forms, and of a Creature Type when it offers some. */
+/**
+ * A summon cast's checked pick of one of its forms, of a Creature Type when it offers some, and of
+ * how many creatures a group form conjures (null for a form of one).
+ */
 export interface SummonFormPick {
   form: Extract<CompiledActionSummonPlacement, { forms: unknown }>['forms'][number]
   creatureTypeId: string | null
+  count: number | null
 }
 
 /**
  * The form and Creature Type a summon cast picked, checked against what its plan offers, the same
  * in the room and on the Sheet: a summon of a chosen form needs one of its forms, and one of its
- * Creature Types when it offers any; no other cast takes either pick. Null for a cast that picks
- * neither, and the refusal for a pick its plan does not offer.
+ * Creature Types when it offers any; only a form that may be a group (`maxTargets` above one) takes
+ * a count, from 1 to that most, and no other cast takes any pick. Null for a cast that picks none,
+ * and the refusal for a pick its plan does not offer.
  */
 export function summonFormPick(
   placement: CompiledActionSummonPlacement | null,
-  picks: { formId?: string; creatureTypeId?: string }
+  picks: { formId?: string; creatureTypeId?: string; count?: number }
 ): SummonFormPick | { refusal: string } | null {
   if (!placement || 'statBlock' in placement)
-    return picks.formId === undefined && picks.creatureTypeId === undefined
+    return picks.formId === undefined &&
+      picks.creatureTypeId === undefined &&
+      picks.count === undefined
       ? null
       : { refusal: 'This action takes no creature form.' }
   const form = placement.forms.find(({ id }) => id === picks.formId)
   if (!form) return { refusal: 'This summon needs one of its creature forms.' }
-  const { creatureTypeId } = picks
+  const { creatureTypeId, count } = picks
+  if (count !== undefined && (form.maxTargets === 1 || count > form.maxTargets))
+    return {
+      refusal:
+        form.maxTargets === 1
+          ? 'This creature form is conjured one at a time.'
+          : `This creature form is conjured ${form.maxTargets} at most.`
+    }
+  const picked = { form, count: count ?? null }
   if (!placement.creatureTypeIds.length)
     return creatureTypeId === undefined
-      ? { form, creatureTypeId: null }
+      ? { ...picked, creatureTypeId: null }
       : { refusal: "This summon keeps its form's creature type." }
   return creatureTypeId !== undefined && placement.creatureTypeIds.includes(creatureTypeId)
-    ? { form, creatureTypeId }
+    ? { ...picked, creatureTypeId }
     : { refusal: 'Pick one of the creature types this summon offers.' }
 }
 
@@ -116,7 +131,7 @@ export function summonPickOptions(
   placement: CompiledActionSummonPlacement,
   systemCreatureTypes: readonly { id: string; label: string }[]
 ): {
-  summonForms?: { id: string; label: string }[]
+  summonForms?: { id: string; label: string; maxCount?: number }[]
   creatureTypes?: { id: string; label: string }[]
 } {
   if ('statBlock' in placement) return {}
@@ -127,7 +142,11 @@ export function summonPickOptions(
   if (creatureTypes.length !== offered.size)
     throw new Error('A summon offers a Creature Type its System does not define.')
   return {
-    summonForms: placement.forms.map(({ id, label }) => ({ id, label })),
+    summonForms: placement.forms.map(({ id, label, maxTargets }) => ({
+      id,
+      label,
+      ...(maxTargets > 1 ? { maxCount: maxTargets } : {})
+    })),
     ...(creatureTypes.length ? { creatureTypes } : {})
   }
 }

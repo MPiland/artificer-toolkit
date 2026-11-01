@@ -9,6 +9,9 @@ export { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORED_LIMITS }
 
 export const MAX_ENCOUNTER_ACTORS = AUTHORED_LIMITS.nestedCollectionItems
 
+/** Most creatures one group token may stand for: Conjure Animals at a 9th-level slot (8 x 4). */
+export const MAX_GROUP_COUNT = 32
+
 /** The reactions one pause offers: a few reaction spells, a scaling one (Absorb Elements) at up to nine slot levels each. */
 export const MAX_ENCOUNTER_REACTION_OPTIONS = 36
 
