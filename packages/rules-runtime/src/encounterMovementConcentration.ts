@@ -153,8 +153,10 @@ export async function prepareEncounterMovementConcentration<
       targets: ReadonlyMap<string, MovementTarget<TCharacterFacts>>,
       projection?: TProjection
     ): Promise<
-      Awaited<
-        ReturnType<typeof prepareEncounterConcentrationState<MovementTarget<TCharacterFacts>>>
+      NonNullable<
+        Awaited<
+          ReturnType<typeof prepareEncounterConcentrationState<MovementTarget<TCharacterFacts>>>
+        >
       >[]
     >
     runtime(): Promise<RulesRuntimeService>
