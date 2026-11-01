@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
-import type {
-  EquipmentAuthored,
-  FeatureAuthored
-} from '@artificer-toolkit/shared/subjects/authored'
+import type { EquipmentAuthored, FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import {
   equipId,
