@@ -242,7 +242,7 @@ function createFacetPredicateNodeMap(
     const local = cond.local()
     const predicateCode = local.field(['predicateCode'])
     /** Predicates whose Min and Max amounts are plain numbers. */
-    const numericPredicates = [
+    const numericCodes = [
       'SPELL_LEVEL',
       'SAVING_THROW_DC',
       'ARMOR_CLASS',
@@ -251,7 +251,8 @@ function createFacetPredicateNodeMap(
       'CLASS_LEVEL',
       'ABILITY_SCORE',
       'SAVING_THROW_ABILITY_BONUS'
-    ].map((code) => predicateCode.eq(code))
+    ] as const
+    const numericPredicates = numericCodes.map((code) => predicateCode.eq(code))
     const owner =
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(3)
     const selection =
