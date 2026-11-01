@@ -12,6 +12,7 @@ import {
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
+  MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -776,7 +777,32 @@ export const sorcerer: ClassAuthored = {
           label: 'Distant Spell',
           description:
             'When you cast a spell that has a range of 5 feet or greater, you can spend 1 sorcery point to double the range of the spell. When you cast a spell that has a range of touch, you can spend 1 sorcery point to make the range of the spell 30 feet.',
-          effects: [selfClassRuleEffect(21, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_DISTANT)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 21),
+                range: classRowId(S, 0x69, 21),
+                path: classRowId(S, 0x80, 21),
+                result: classRowId(S, 0x81, 21),
+                outcome: classRowId(S, 0x82, 21)
+              },
+              label: 'Distant Spell',
+              instructions:
+                'The spell has twice its range, and a Touch spell has a range of 30 feet. The sorcery point is spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 1,
+                parameters: [
+                  {
+                    parameter: 'RANGE',
+                    multiplier: 2,
+                    touchDistance: { amount: 30, unit: MEASUREMENT_UNIT_CODE.FEET }
+                  }
+                ]
+              }
+            })
+          ],
           order: 1
         },
         {

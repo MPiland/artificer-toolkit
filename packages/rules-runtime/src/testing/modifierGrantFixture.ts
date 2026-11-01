@@ -157,6 +157,8 @@ export function plannedModifierGrant(input: {
   spellCastLevel?: number
   /** Keeps the effect's own authored id, for a grant another feature binds to (`HOLDER_ACTIVE_EFFECT`). */
   keepAuthoredEffectId?: boolean
+  /** The granter's class levels at the apply, for a die that grows with them (Bardic Inspiration). */
+  sourceClassLevels?: Readonly<Record<string, number>>
 }) {
   const authored = input.effect ?? antitoxinVial.effects?.[0]
   if (!authored) throw new Error('The SRD Antitoxin has no effect.')
@@ -245,7 +247,8 @@ export function plannedModifierGrant(input: {
         }
       : null,
     applications: [],
-    spellCastLevel: input.spellCastLevel
+    spellCastLevel: input.spellCastLevel,
+    ...(input.sourceClassLevels && { sourceClassLevels: input.sourceClassLevels })
   })
   if (!recurringEffect) throw new Error('No grant effect was planned.')
   return recurringEffect
