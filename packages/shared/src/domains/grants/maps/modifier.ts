@@ -50,7 +50,7 @@ const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
   'modifierGrantDomain',
   ({ map, nodes, cond, data, logic }) => {
-    const { selectSingle, selectMulti, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle, text } = nodes
     const parent = cond.parent<ModifierGrantUnion>()
     const { and, or } = logic
     const { table } = data
@@ -225,6 +225,12 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         'addsSpellLevel',
         toggle(['addsSpellLevel'], 'Also Adds The Spell’s Cast Level', {
           showIf: parent.field(['valueDomainCode']).eq('HEALING_DEALT')
+        })
+      )
+      .set(
+        'usesChargeId',
+        text(['usesChargeId'], 'Charge ID Of The Uses', {
+          showIf: parent.field(['valueDomainCode']).eq('CONCENTRATION_CAPACITY')
         })
       )
       .set(
@@ -1476,7 +1482,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('SENSE_RANGE'),
             local.field(['valueDomainCode']).eq('DAMAGE'),
             local.field(['valueDomainCode']).eq('SPELL_SLOT_COUNT'),
-            local.field(['valueDomainCode']).eq('HEALING_DEALT')
+            local.field(['valueDomainCode']).eq('HEALING_DEALT'),
+            local.field(['valueDomainCode']).eq('CONCENTRATION_CAPACITY')
           ])
           // Note: CONDITION_IMMUNITY uses payload conditionTypeId only — no domain params needed
         })

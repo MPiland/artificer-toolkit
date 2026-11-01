@@ -105,6 +105,13 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   tickAnchor?: 'HOLDER' | 'SOURCE'
   /**
+   * A repeat save at the start of the anchor's turn is rolled, counted and ended by the turn-effect
+   * kernel even when the anchor is the source, which the grant tick planner would otherwise count.
+   */
+  countedByTurnEffects?: true
+  /** The GM rulings a failed repeat save proposes beside the save, as authored outcome ids. */
+  failureRulingIds?: readonly string[]
+  /**
    * The source-bound conditions this effect owns together (Hypnotic Pattern: charmed and
    * incapacitated). The aggregate records each pre-existing baseline when it creates the
    * active-effect row; adapters do not infer condition ownership from labels or later mutable state.
@@ -767,16 +774,18 @@ export interface CharacterRuleActionSystemAdapter {
   }): CharacterRuleActionSummonPlacementPlan | null
   /**
    * The Concentrations a Character keeps while casting this spell: the System's capacity stat plus
-   * any gated bonus the new spell and every held one meet. Omitted: the stat alone.
+   * any gated bonus the new spell and every held one meet, and the pool a bonus with uses spends
+   * to make room when `usesAvailable`. Omitted: the stat alone.
    */
   concentrationCapacityForCast?(input: {
     policyOutput: Pick<
       CharacterRulePolicyOutput,
-      'grantFold' | 'concentrationCapacity' | 'gatedConcentrationCapacity'
+      'grantFold' | 'concentrationCapacity' | 'gatedConcentrationCapacity' | 'resources'
     >
     newSpell: { id: string; level: number | null }
     heldSpellLevels: readonly (number | null)[]
-  }): number
+    usesAvailable: boolean
+  }): { capacity: number; use: { poolId: string; chargeId: string } | null }
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

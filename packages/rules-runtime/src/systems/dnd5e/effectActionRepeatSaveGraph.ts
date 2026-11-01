@@ -17,6 +17,7 @@ import {
   UUID,
   type Dnd5eCompiledEffectActionSource
 } from './effectActionContracts.js'
+import { pathGatedProposalNode } from './effectActionOutcomeNodes.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { repeatSaveGated } from './effectActionRepeatSaveEvidence.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
@@ -36,6 +37,17 @@ export function repeatFollowUpSavePublishedGraph(input: {
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
   const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
+  // A failed save proposes the GM rulings its follow-up authors, each bound to its authored outcome.
+  const rulings = (input.plan.failureRulingIds ?? []).map((entryId, index) => ({
+    entryId,
+    node: pathGatedProposalNode({
+      id: `manual_adjudication-${index + 1}`,
+      pathCode: 'ON_SAVE_FAIL',
+      testNodeId: input.plan.frozenGraphNodeId,
+      outcome: { kind: 'MANUAL_ADJUDICATION' },
+      conditionImmuneFactKey: undefined
+    })
+  }))
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -85,7 +97,8 @@ export function repeatFollowUpSavePublishedGraph(input: {
           },
           outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
-      }
+      },
+      ...rulings.map(({ node }) => node)
     ],
     outputs: {
       targetActorId: {
@@ -118,7 +131,8 @@ export function repeatFollowUpSavePublishedGraph(input: {
       {
         sourceEntryId: input.plan.compiledEntryId,
         nodeId: input.plan.frozenGraphNodeId
-      }
+      },
+      ...rulings.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
     ]
   }
   return publishedGraph(definition)
