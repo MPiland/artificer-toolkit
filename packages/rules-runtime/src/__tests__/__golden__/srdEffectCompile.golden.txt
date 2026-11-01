@@ -40,12 +40,10 @@
 00000000-0000-0000-c004-600f00000000 CHARACTER:classes Archdruid | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-031500000000 CHARACTER:classes Second Wind | SINGLE_GRAPH 6ecb6e54cabb8202fe27e7a39f870ee8c285f55f752fafc17c7f9044e3334e21 nodes=3 outputs=2
 00000000-0000-0000-c005-140200000000 CHARACTER:classes Remarkable Athlete | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c005-140400000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c005-140500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-140800000000 CHARACTER:classes Survivor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-600300000000 CHARACTER:classes Action Surge | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c005-600a00000000 CHARACTER:classes Indomitable | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000000-0000-0000-c005-608400000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c005-608500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-0b1500000000 CHARACTER:classes Wholeness of Body | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
 00000000-0000-0000-c006-140100000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -77,7 +75,6 @@
 00000000-0000-0000-c007-600d00000000 CHARACTER:classes Aura of Courage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-600e00000000 CHARACTER:classes Improved Divine Smite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-601000000000 CHARACTER:classes Cleansing Touch | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
-00000000-0000-0000-c007-601600000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-601700000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-606200000000 CHARACTER:classes Lay on Hands | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
 00000000-0000-0000-c008-140100000000 CHARACTER:classes Colossus Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.

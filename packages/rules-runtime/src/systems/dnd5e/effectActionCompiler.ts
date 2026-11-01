@@ -253,11 +253,7 @@ import {
 } from './effectActionScalingFacts.js'
 
 import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
-import {
-  isAttackHitDamage,
-  isCriticalHitDamage,
-  withDamageAddedDice
-} from './effectActionDamageAddedDice.js'
+import { hitDamageDiceChanges, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
   escalationCondition,
@@ -2548,26 +2544,6 @@ function exactDiceConfiguration(
   return resolved
 }
 
-/** A critical hit's dice change for an entry: doubled, plus the attack's extra dice (D158). */
-function criticalHitDice(
-  selectedPath: SpecializedPath,
-  entry: CompiledEffectGroup['entries'][number],
-  facts: Dnd5eEffectScalingFacts
-): { extraDice: number } | undefined {
-  return isCriticalHitDamage(selectedPath, entry)
-    ? { extraDice: facts.criticalExtraDice ?? 0 }
-    : undefined
-}
-
-/** The die faces an attack's hit damage rerolls once, from the attack's damage die reroll grants. */
-function damageDieRerollAtOrBelow(
-  selectedPath: SpecializedPath,
-  entry: CompiledEffectGroup['entries'][number],
-  facts: Dnd5eEffectScalingFacts
-): number | undefined {
-  return isAttackHitDamage(selectedPath, entry) ? facts.damageRerollAtOrBelow : undefined
-}
-
 function fixedOutcomeGraphDefinition(input: {
   action: Dnd5eCompiledEffectActionSource
   entry: CompiledEffectGroup['entries'][number]
@@ -2817,12 +2793,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         action: input.action,
         entry: primaryDamageEntry,
         diceConfig: primaryDiceConfiguration,
-        critical: criticalHitDice(input.selectedPath, primaryDamageEntry, input.facts),
-        rerollAtOrBelow: damageDieRerollAtOrBelow(
-          input.selectedPath,
-          primaryDamageEntry,
-          input.facts
-        ),
+        ...hitDamageDiceChanges(input.selectedPath, primaryDamageEntry, input.facts),
         ...nodePrefix
       })
     })
@@ -2936,8 +2907,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
               : outcome.kind === 'DICE_SCALAR_REDUCTION'
                 ? outcome.diceConfig
                 : compiledDiceConfiguration(entry),
-          critical: criticalHitDice(input.selectedPath, entry, input.facts),
-          rerollAtOrBelow: damageDieRerollAtOrBelow(input.selectedPath, entry, input.facts),
+          ...hitDamageDiceChanges(input.selectedPath, entry, input.facts),
           ...(outcome.kind === 'DICE_HEAL'
             ? { modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY }
             : {}),

@@ -22,7 +22,11 @@ import {
   multipliedDamage,
   rolledDiceNodes
 } from './effectActionOutcomeNodes.js'
-import { boundedDiceTerm, type BoundedDiceTerm } from './effectActionScalingFacts.js'
+import {
+  boundedDiceTerm,
+  type BoundedDiceTerm,
+  type Dnd5eEffectScalingFacts
+} from './effectActionScalingFacts.js'
 
 /**
  * A critical hit rolls every damage die of the attack's hit damage twice and adds the modifier
@@ -88,6 +92,25 @@ function addedDamageDieGraphDefinition(input: {
       amount: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'amount' },
       damageTypeId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'damageTypeId' }
     }
+  }
+}
+
+/**
+ * The dice changes an attack's hit damage takes: a critical hit's doubling plus the attack's extra
+ * dice (D158), and the one reroll of low dice its damage die reroll grants allow.
+ */
+export function hitDamageDiceChanges(
+  selectedPath: SpecializedPath,
+  entry: CompiledEffectGroup['entries'][number],
+  facts: Dnd5eEffectScalingFacts
+): { critical?: { extraDice: number }; rerollAtOrBelow?: number } {
+  return {
+    ...(isCriticalHitDamage(selectedPath, entry)
+      ? { critical: { extraDice: facts.criticalExtraDice ?? 0 } }
+      : {}),
+    ...(isAttackHitDamage(selectedPath, entry) && facts.damageRerollAtOrBelow !== undefined
+      ? { rerollAtOrBelow: facts.damageRerollAtOrBelow }
+      : {})
   }
 }
 
