@@ -37,6 +37,7 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
   const { t } = await readySheetFixture()
   register(t)
   registerRetrier(t, 'r2/actionRetrier')
+  await attachRoomWorker(t)
   const accounts: ReviewAccount[] = []
   let gmCaller: Parameters<typeof roomDevelopmentClient>[0] = null
   for (const [index, spec] of [REVIEW_GM, ...REVIEW_PLAYERS].entries()) {
@@ -52,7 +53,6 @@ it('builds the review Campaigns once and skips every finished one on a re-run', 
     })
   }
   const [gm, ...players] = accounts as [ReviewAccount, ...ReviewAccount[]]
-  await attachRoomWorker(t)
   await importSeededSubjects(t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [wolf, goblin].map((creature) => {
