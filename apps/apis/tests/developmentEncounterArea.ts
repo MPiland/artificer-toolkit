@@ -134,6 +134,19 @@ export async function verifyEncounterArea({
     initiativeTieDefinitionId: null
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
+  // The Character survives both breaths whatever the dice roll: 5d8 twice is at most 80.
+  const sheet = await player.query(api.characters.sheet.get, { id: characterId })
+  assert.ok(sheet)
+  await player.mutation(api.characters.sheetCommands.execute, {
+    id: characterId,
+    command: {
+      type: 'SET_HIT_POINTS',
+      commandId: crypto.randomUUID(),
+      expectedVersion: sheet.meta.streamVersion,
+      current: 100,
+      maxOverride: 100
+    }
+  })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Area from a point fixture',
