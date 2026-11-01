@@ -176,6 +176,8 @@ type AuthoringDefaultKind =
   | 'hitPointPoolScalingBreakpoint'
   | 'targeting'
   | 'damageDieCastLevelScaling'
+  | 'rolledDieFacesScaling'
+  | 'rolledDieFacesScalingLevel'
   | 'damageLevelScalingEntry'
   | 'endEffectsSelector'
   | 'weight'
@@ -375,6 +377,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   targetRequirement: ['targetRequirement'],
   targeting: ['targeting'],
   damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
+  rolledDieFacesScaling: ['rolledDieFacesScaling'],
+  rolledDieFacesScalingLevel: ['rolledDieFacesScalingLevel'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
   endEffectsSelector: ['endEffectsSelector'],
   weight: ['weight']
