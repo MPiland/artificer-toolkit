@@ -1,15 +1,19 @@
+import { runInDurableObject } from 'cloudflare:test'
 import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { concentrationCapacityItem } from '@artificer-toolkit/rules-runtime/testing/concentrationCapacityItem'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
 import { shieldOfFaith } from '@artificer-toolkit/source-data/srd/spells/shield-of-faith.js'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
@@ -17,6 +21,8 @@ import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
+ * SPELLS-12.T2b: a capacity bonus authored with uses makes room for a second Concentration by
+ * spending one use of its item's charge, once per cast that needs the room.
  * SPELLS-12.T2a through the room: a worn item whose authored capacity bonus is limited to spells of
  * 1st level or lower lets its holder keep a second Concentration only when the new spell and the
  * held one are both within that limit; otherwise a new Concentration replaces the old one.
@@ -38,6 +44,13 @@ const gatedItem = concentrationCapacityItem({
   maxSpellLevel: 1
 })
 
+const limitedItem = concentrationCapacityItem({
+  number: 931,
+  label: 'Limited Capacity Item',
+  bonus: 1,
+  uses: 1
+})
+
 function spellRoom(equipment: readonly (typeof gatedItem)[]) {
   return actionRoom({
     autoRoll: 'BOTH',
@@ -49,8 +62,8 @@ function spellRoom(equipment: readonly (typeof gatedItem)[]) {
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     ],
     characterSpellcasting: {
-      spells: [shieldOfFaith, heroism, fly],
-      prepared: [shieldOfFaith.id, heroism.id, fly.id]
+      spells: [shieldOfFaith, heroism, fly, haste],
+      prepared: [shieldOfFaith.id, heroism.id, fly.id, haste.id]
     },
     characterEquipment: equipment,
     characterAction: (action) => action.label.startsWith(shieldOfFaith.label)
@@ -112,10 +125,46 @@ describe('Concentration capacity gated by spell level (SPELLS-12.T2a)', () => {
     expect(held[0]?.descriptor.spellLevel).toBe(1)
   })
 
+  it('replaces a held Haste, which leaves its lethargy, with a new Concentration', async () => {
+    const room = await spellRoom([gatedItem])
+    await cast(room, 'Haste (3rd level)')
+    await cast(room, 'Fly (3rd level)')
+    const held = await heldStates(room)
+    expect(held).toHaveLength(1)
+    expect(held[0]?.descriptor.spellLevel).toBe(3)
+  })
+
   it('replaces the held Concentration without the item', async () => {
     const room = await spellRoom([])
     await cast(room, 'Shield of Faith (1st level)')
     await cast(room, 'Heroism (1st level)')
     expect(await heldStates(room)).toHaveLength(1)
+  })
+})
+
+/** The uses the room's Character has recorded across every Sheet resource. */
+const usesSpent = (room: SpellRoom) =>
+  runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CASTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return (readCharacterPlay(row).resourceUsage ?? []).reduce((sum, { used }) => sum + used, 0)
+  })
+
+describe('Concentration capacity with limited uses (SPELLS-12.T2b)', () => {
+  it('spends nothing for the first Concentration', async () => {
+    const room = await spellRoom([limitedItem])
+    await cast(room, 'Shield of Faith (1st level)')
+    expect(await heldStates(room)).toHaveLength(1)
+    expect(await usesSpent(room)).toBe(0)
+  })
+
+  it('keeps a second Concentration and spends one use of the item for it', async () => {
+    const room = await spellRoom([limitedItem])
+    await cast(room, 'Shield of Faith (1st level)')
+    await cast(room, 'Heroism (1st level)')
+    expect(await heldStates(room)).toHaveLength(2)
+    expect(await usesSpent(room)).toBe(1)
   })
 })

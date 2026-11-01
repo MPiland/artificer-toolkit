@@ -5,7 +5,13 @@ import { sorceryPointsCharge } from '@artificer-toolkit/source-data/srd/classes/
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { castModifierTargetCap, sparedCreatureCap } from '../character/characterCastModifiers.js'
+import {
+  aimsAtOneCreature,
+  castModifierCostAtLevel,
+  castModifierRange,
+  castModifierTargetCap,
+  sparedCreatureCap
+} from '../character/characterCastModifiers.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 
@@ -36,6 +42,19 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
         cost: { chargeId: sorceryPointsCharge.id, cost: 1 }
       }
     ])
+  })
+
+  it('projects Twinned Spell as one further target for the spell level in sorcery points', () => {
+    const [twinned] = sorcerer(['Twinned Spell']).castModifiers
+    expect(twinned?.cost).toEqual({
+      chargeId: sorceryPointsCharge.id,
+      cost: 1,
+      perSpellLevel: true,
+      targets: { outcome: 'EXTRA_TARGET', base: 1 }
+    })
+    expect(castModifierCostAtLevel(twinned!.cost, 3)).toBe(3)
+    expect(castModifierCostAtLevel(twinned!.cost, 0)).toBe(1)
+    expect(castModifierCostAtLevel({ chargeId: 'c', cost: 2 }, 5)).toBe(2)
   })
 
   it('projects none for an option the Character did not choose', () => {
@@ -81,6 +100,76 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
     })
     expect(character.castModifiers).toEqual([
       { modifierId: testUuid(0xc03), label: 'Quiet Casting', cost: { chargeId, cost: 1 } }
+    ])
+  })
+})
+
+describe('the spells that can take a further target (SPELLS-31.T5g3)', () => {
+  const range = (rangeKind: string) => ({ id: 'range', rangeKind })
+  const invocation = (overrides: Record<string, unknown>) =>
+    ({ range: range('DISTANCE'), ...overrides }) as Parameters<typeof aimsAtOneCreature>[0]
+
+  it('accepts one creature at range, with or without an authored single target', () => {
+    expect(aimsAtOneCreature(invocation({}))).toBe(true)
+    expect(aimsAtOneCreature(invocation({ targeting: { selectionKind: 'SINGLE_TARGET' } }))).toBe(
+      true
+    )
+  })
+
+  it('refuses a list of creatures, an area, a Self range and Self targeting', () => {
+    expect(
+      aimsAtOneCreature(invocation({ targeting: { selectionKind: 'CHOSEN_CREATURES' } }))
+    ).toBe(false)
+    expect(aimsAtOneCreature(invocation({ shape: { shapeKind: 'SPHERE' } }))).toBe(false)
+    expect(aimsAtOneCreature(invocation({ range: range('SELF') }))).toBe(false)
+    expect(aimsAtOneCreature(invocation({ targeting: { selectionKind: 'SELF' } }))).toBe(false)
+  })
+
+  /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
+  it('projects the same further target from a homebrew feature authored with the core option', () => {
+    const chargeId = testUuid(0xc31)
+    const cost = {
+      chargeId,
+      cost: 1,
+      perSpellLevel: true,
+      targets: { outcome: 'EXTRA_TARGET' as const, base: 2 }
+    }
+    const homebrew: FeatureAuthored = {
+      id: testUuid(0xc32),
+      label: 'Echoing Cast',
+      description: 'Pay per spell level to reach further creatures.',
+      availableAtLevel: 1,
+      order: 1,
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: testUuid(0xc33),
+            range: testUuid(0xc34),
+            path: testUuid(0xc35),
+            result: testUuid(0xc36),
+            outcome: testUuid(0xc37)
+          },
+          label: 'Echoing Cast',
+          instructions: 'The spell also targets the named creatures.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          castModifier: cost
+        })
+      ]
+    }
+    const character = evaluateSrdCharacter({
+      classes: [{ label: 'Fighter', level: 1 }],
+      extraFeatures: [homebrew],
+      features: [
+        {
+          acquisitionId: 'acquired:echoing-cast',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: srdByLabel(SRD.classes, 'Fighter').id, classLevel: 1 },
+          timing: { kind: 'IMMEDIATE' }
+        }
+      ]
+    })
+    expect(character.castModifiers).toEqual([
+      { modifierId: testUuid(0xc33), label: 'Echoing Cast', cost }
     ])
   })
 })
@@ -243,4 +332,42 @@ describe('the creatures a paid cast modifier names (SPELLS-31.T5g2)', () => {
     ])
     expect(castModifierTargetCap(targets, () => 3)).toBe(5)
   })
+})
+
+describe('the range a paid cast modifier gives a cast (SPELLS-31.T5h)', () => {
+  const double = [
+    {
+      parameter: 'RANGE' as const,
+      multiplier: 2,
+      touchDistance: { amount: 30, unit: 'FEET' as const }
+    }
+  ]
+
+  it('multiplies a distance, its long range too', () => {
+    expect(
+      castModifierRange(double, {
+        id: 'r',
+        rangeKind: 'DISTANCE',
+        amount: 80,
+        longAmount: 320,
+        unit: 'FEET'
+      })
+    ).toEqual({ id: 'r', rangeKind: 'DISTANCE', amount: 160, longAmount: 640, unit: 'FEET' })
+  })
+
+  it('turns Touch into the authored distance', () => {
+    expect(castModifierRange(double, { id: 'r', rangeKind: 'TOUCH' })).toEqual({
+      id: 'r',
+      rangeKind: 'DISTANCE',
+      amount: 30,
+      unit: 'FEET'
+    })
+  })
+
+  it.each(['SELF', 'SIGHT', 'SPECIAL', 'UNLIMITED'] as const)(
+    'does not fit a %s range',
+    (rangeKind) => {
+      expect(castModifierRange(double, { id: 'r', rangeKind })).toBeNull()
+    }
+  )
 })

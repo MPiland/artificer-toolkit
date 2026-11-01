@@ -15165,7 +15165,7 @@
             {
               "id": "SPELLS-4.T2ps-b",
               "text": "Thresholds escalation on the row-scoped repeat-save plan (row 6, 3 successes or 3 failures to petrified), which also unblocks Flesh to Stone.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15178,13 +15178,12 @@
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-4.T2ps-c",
               "text": "Runtime for the SOURCE_NEXT_TURN_START save (row 7), which also unblocks Prismatic Wall.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15197,8 +15196,7 @@
                   "SPELLS-4.T2ps-a"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling. Merged in m594 (8b6104a3e)."
             },
             {
               "id": "SPELLS-4.T2ps-d",
@@ -16293,10 +16291,12 @@
           "acs": [
             {
               "text": "An authored rule (on an item, Feature or other source) lets its holder keep a second Concentration when starting a new one, limited by authored conditions (such as a maximum spell level for both spells) and authored uses with a recovery (such as once per dawn); without it, or with no uses left, a new Concentration replaces the old one as today.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-12.T1 (m587), SPELLS-12.T2a (m590), SPELLS-12.T2a2 (m592), SPELLS-12.T2b (m594); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Design (user, 2026-10-09: generic, not built around the ring): Concentration capacity becomes a System stat (dnd5e default 1) held as a set of maintained states per actor; a capacity modifier joins the existing modifier pipeline from any source (equipped/attuned item, Feature, grant) with the existing predicates (WHILE_SOURCE_EQUIPPED etc.); the per-use gate is an authored predicate over the new and held spells (spell level) and the uses ride the existing limited-use/recovery model. No ring-specific code or kinds. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting).",
+              "note": "Registered 2026-10-09 from the user's homebrew Ring of the Split Mind (very rare, attuned by a spellcaster): concentrating on a spell of 3rd level or lower, the wearer can cast a second 3rd-level-or-lower Concentration spell without losing the first, once per dawn. Design (user, 2026-10-09: generic, not built around the ring): Concentration capacity becomes a System stat (dnd5e default 1) held as a set of maintained states per actor; a capacity modifier joins the existing modifier pipeline from any source (equipped/attuned item, Feature, grant) with the existing predicates (WHILE_SOURCE_EQUIPPED etc.); the per-use gate is an authored predicate over the new and held spells (spell level) and the uses ride the existing limited-use/recovery model. No ring-specific code or kinds. After SPELLS-5.7, SPELLS-5.11 and SPELLS-8 (spell level comes from casting). Closed 2026-11-01 by SPELLS-12.T1, SPELLS-12.T2a, SPELLS-12.T2a2, SPELLS-12.T2b.",
               "id": "SPELLS-12.1"
             },
             {
@@ -16360,7 +16360,7 @@
             {
               "id": "SPELLS-12.T2a2",
               "text": "Bug: replacing a held Haste with a new Concentration spell fails with \"Created action effect changed before settlement\" (`packages/encounter-persistence/src/actionEffectPersistence.ts`). Red-first test using Haste, plus the fix.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1"
               ],
@@ -16373,12 +16373,12 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Found by T2a's journey, which swapped to Fly to avoid it. It may predate T2a. A bug, so allowed under D187."
+              "note": "Found by T2a's journey, which swapped to Fly to avoid it. It may predate T2a. A bug, so allowed under D187. Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-12.T2b",
               "text": "Limited uses with recovery on the second Concentration rule.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.1"
               ],
@@ -16391,7 +16391,7 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Split from T2. Approved by the user on 2026-10-31 (D204)."
+              "note": "Split from T2. Approved by the user on 2026-10-31 (D204). Merged in m594 (8b6104a3e)."
             },
             {
               "id": "SPELLS-12.T3a",
@@ -16428,11 +16428,12 @@
                   "SPELLS-12.T2a"
                 ]
               },
-              "note": "Split from T3. Approved by the user on 2026-10-31 (D204). From the T3a report: the movement chain still binds one state per holder, the oldest. AC SPELLS-12.2 asks for one save per spell, so this task makes movement damage save per held spell too."
+              "note": "Split from T3. Approved by the user on 2026-10-31 (D204). From the T3a report: the movement chain still binds one state per holder, the oldest. AC SPELLS-12.2 asks for one save per spell, so this task makes movement damage save per held spell too.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-12.T4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.3"
               ],
@@ -16446,8 +16447,7 @@
                 ]
               },
               "text": "Held-count gated effect and journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). D202: built before PERF-1 (user 2026-10-31). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-12.T4b",
@@ -16675,13 +16675,14 @@
                 "bv": 3,
                 "tc": 2,
                 "rr": 1,
-                "size": 5,
+                "size": 8,
                 "after": [
                   "SPELLS-15.T1"
                 ]
               },
               "text": "In-turn area execution with save pause and Worker/web journey.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Size 8 accepted: the web `LegendaryActionControls` aim is needed for the AC and reuses the stage `areaAim` (D206).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -18861,7 +18862,7 @@
             {
               "id": "SPELLS-31.T4c1b4b",
               "text": "Save window on movement reaction saves, its own pending family (D203). Zone and forced-movement saves stay system-rolled (D170).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18874,8 +18875,7 @@
                   "SPELLS-31.T4c1b4"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Approved by the user on 2026-10-31 (D203). Merged in m591 (43b5e04cb)."
             },
             {
               "status": "TODO",
@@ -18918,7 +18918,7 @@
             },
             {
               "id": "SPELLS-31.T4c2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18934,7 +18934,26 @@
                   "SPELLS-31.T4c1a2"
                 ]
               },
-              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls."
+              "text": "D168 dice scaled by the granting creature (split 2026-10-20): a grant die face references the granting creature's scaling value, resolved at apply time and frozen. Converts Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save), with a parity proof, a homebrew variant and the kind deleted. Includes the result window on attack rolls.",
+              "note": "Merged in m593 (7b66730d5)."
+            },
+            {
+              "id": "SPELLS-31.T4c2b",
+              "text": "Bardic Inspiration on attack rolls: an attack-roll window that opens only when the attacker holds an eligible die.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4c2"
+                ]
+              },
+              "note": "Split from T4c2 (D206). Size is provisional until the T4c2 session reports the seam."
             },
             {
               "id": "SPELLS-31.T4c3",
@@ -19091,7 +19110,7 @@
             {
               "id": "SPELLS-31.T4i2",
               "text": "Dark One's Blessing on a generic killer-side trigger: the holder reduces a creature to 0 HP, covering spell and weapon damage in both the Worker and Convex settlement paths. Authoring-parity proof; deletes its kind (D156).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19104,8 +19123,7 @@
                   "SPELLS-31.T4i"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Approved by the user on 2026-10-31 (D203). Merged in m592 (1d9d29081)."
             },
             {
               "id": "SPELLS-31.T4j",
@@ -19292,8 +19310,8 @@
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m590 (850142945)."
             },
             {
-              "id": "SPELLS-31.T4l2b",
-              "text": "Open Hand Technique: a free optional on-hit rider scoped to Flurry-granted attacks, with the prone and push saves and reaction denial, all generic. Authoring-parity proof; deletes its kind (D156).",
+              "id": "SPELLS-31.T4l2b-1",
+              "text": "Granted action options: `GRANTED_ACTION_OPTION` domain with `{ optionEffectId }` naming a sibling Effect, standing options read at attack time by the held offer, the offer resolved before prepare, optional-rider hand-off, tests. An Effect named by the domain is excluded from on-hit riders.",
               "status": "TODO",
               "closes": [
                 "SPELLS-31.1"
@@ -19307,7 +19325,26 @@
                   "SPELLS-31.T4l2"
                 ]
               },
-              "note": "Approved by the user on 2026-10-31 (D203)."
+              "note": "D206. Reviewed 2026-11-01: option Effects stay in rider collection as gated FREE riders, because the GRANTED_ACTION_OPTION modifier is the generic relation; they are never ordinary riders.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-31.T4l2b-2",
+              "text": "Open Hand Technique authored on the granted action options, with parity proof and the closed rule kind deleted.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4l2b-1"
+                ]
+              },
+              "note": "D206. A strike counts as a Flurry strike while an unspent offer is held; the out-of-order case is a deferred edge case."
             },
             {
               "id": "SPELLS-31.T4m",
@@ -19522,7 +19559,7 @@
             },
             {
               "id": "SPELLS-31.T5e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19536,7 +19573,26 @@
                   "SPELLS-31.T5g"
                 ]
               },
-              "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Merged in m592 (1d9d29081)."
+            },
+            {
+              "id": "SPELLS-31.T5e2",
+              "text": "Empowered Spell as a trigger: the window opens only when the caster holds an after-damage-roll reroll option and can pay; other casts are unchanged. Reuses the T4c1b window, covers area damage, one shared window per damage roll, and the caster answers once.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T5e"
+                ]
+              },
+              "note": "User approved (D206)."
             },
             {
               "id": "SPELLS-31.T5f1",
@@ -19658,7 +19714,7 @@
               "note": "Split from T5g. Approved by the user on 2026-10-30. From the review: the Action Drawer had no way to pick a CAST_MODIFIER, so this task also ships the drawer control with a creature picker capped at targets.max. Merged in m589 (708822d29)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19673,12 +19729,12 @@
                 ]
               },
               "text": "Twinned: a second target on a single-target cast, with a derived eligibility check. Parity proof; deletes its kind.",
-              "note": "Split from T5g. Approved by the user on 2026-10-30.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T5g. Approved by the user on 2026-10-30. Merged in m591 (43b5e04cb)."
             },
             {
-              "id": "SPELLS-31.T5h",
-              "status": "TODO",
+              "id": "SPELLS-31.T5h-1",
+              "text": "Cast parameter modifiers: a `parameters` discriminated union on CAST_MODIFIER, with server re-checked guards. Distant Spell through the RANGE variant; Overchannel is a GM ruling.",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19692,8 +19748,43 @@
                   "SPELLS-31.T5g"
                 ]
               },
-              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D206. Merged in m593 (7b66730d5)."
+            },
+            {
+              "id": "SPELLS-31.T5h-3",
+              "text": "Quickened Spell on the cast parameters, with the generic bonus-action-spell limit for all spells: after a bonus-action spell only a 1-action cantrip, a bonus-action spell refused after an action-cast non-cantrip, reaction spells unaffected.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T5h-1"
+                ]
+              },
+              "note": "User approved the limit (D206)."
+            },
+            {
+              "id": "SPELLS-31.T5h-2",
+              "text": "Extended Spell: a cast modifier on the feature that doubles the initial duration at `baseRemaining` (`encounterActionEffectPlans.ts`), after the summon check, capped at 24 hours, offered only for timed spells of 1 minute or more. Trace zones first and report if more than a small addition.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T5h-3"
+                ]
+              },
+              "note": "D206."
             },
             {
               "id": "SPELLS-31.T5i",
@@ -19928,7 +20019,8 @@
                   "SPELLS-31.T5q-A"
                 ]
               },
-              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204)."
+              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T5ra",
@@ -26178,7 +26270,7 @@
                 "size": 2
               },
               "text": "Bug: root-cause and fix the unhandled convex-test invariant \"Unexpected scheduled function state ... canceled\", which fails a Convex shard after every test in it passes. Seen in content/authoredDeletion.test.ts (m580), a suite 2/4 file (T5i4) and characterRolls.test.ts (T4c1c). No retries or swallowed errors. Prove with a repeat run or a red-first test.",
-              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one.",
+              "note": "Registered by the orchestrator on 2026-10-31 as a bug: three hits in two days, each costing a rerun. Filed against the open RELIABILITY-21 AC because a task must close one. Fix merged in m592 (1d9d29081), but CI labelled sheetSections.test.ts ALREADY-PASSING against the base, so it stays open until a regression test fails before the fix.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
@@ -26755,12 +26847,17 @@
                   "SPELLS-12.T4",
                   "SPELLS-12.T2b",
                   "SPELLS-12.T3b",
-                  "SPELLS-12.T4b"
+                  "SPELLS-12.T4b",
+                  "SPELLS-31.T5e2",
+                  "SPELLS-31.T4c2b",
+                  "SPELLS-31.T5h-2",
+                  "SPELLS-31.T4l2b-2",
+                  "PERF-4.T2"
                 ],
                 "finalSource": true
               },
               "text": "Final-source run: on the final phase source run yarn validate:pre-staging:local (heavy lane, local Docker Convex only, via withValidationLock), record the result and source identity in docs/validation, and attach the workload as the PBI journey (cutoverConcurrency.test.ts plus the v15-workload proof, with a short ruling that the pre-staging proof counts as the journey because it drives the real 6-browser flow). Phase-end only; cannot be done earlier without a rerun later.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Before the run: local Docker has an empty JWKS, so each token verification self-fetches keys (up to 40% of compute in CI reload windows, RELIABILITY-21.T26). Pin keys locally as managed deployments do, or the baseline is distorted. Investigate account-deletion-browser 1 s timeouts and the profile-browser miss during this run. Investigate before the baseline: m580 BJ shard 2 (run 41180399328) logged 32 1 s timeouts in three minutes while its proofs still passed: 23 campaigns/characterSheet:basics, 7 characters/sheetSlices:get, 2 sheetSectionDerivation:store. The other shards logged 1 between them. contentShares:list also timed out on the first attempt of shard 3. Decide whether this is one slow runner or a real read cost. m582 BJ shard 3 (run 41213074745) failed profile-browser, then publication-class-browser on one 1 s timeout in authoring/nodeRuntime:resolve, then passed on the second rerun, with no related code changed. Include this read in the slow-runner vs real-cost decision. m583 BJ shard 3 (run 41219588195) failed campaign-custody-browser on seven different queries timing out at 1 s in the same second, then passed on rerun; all four slices passed that proof alone. Same stall pattern as m580 and m582. D202: set the budget for characters/sheetSectionDerivation:store here (the 700 ms goal is dropped); split it into two chained mutations only if the measured numbers require it. Agenda: the vtt-browser ephemeral p95 failed three times on the m591 batch (7 proofs in one shard, 388 and 301 ms against 150) and passed in an isolated dispatch on the same SHA, so separate shard load from read cost. The limit stays. Agenda: held-effect-browser failed on the m592 batch because the test clicks Open actions while the drawer reopens after a map pick; the test fix goes with SPELLS-12.T2b."
             }
           ],
           "internalReason": "Latency measurement of the frozen local workload; no user flow."
@@ -27120,7 +27217,7 @@
           "tasks": [
             {
               "id": "PERF-4.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-4.4"
               ],
@@ -27132,7 +27229,26 @@
                 "finalSource": true
               },
               "text": "Measure at the cap: a real-code benchmark/test building a 1 Character + 99 Creature Run and timing the projection path that calls snapshotStatBlock (room projection and Convex projectionReads), asserting per-call cost against a budget derived from the PERF-1 targets (command p95 1 s, convergence 250 ms). Results recorded in docs/validation. If under budget, close 4.4 with the measurement as proof.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Ruling: a senses-only reader for `composeRoomSceneVision`, no cache, the 25 ms budget stays, and a docs/validation note carries the Blueprint numbers (D206). Merged in m593 (7b66730d5)."
+            },
+            {
+              "id": "PERF-4.T2",
+              "text": "Bug: `buildEncounterBlueprintEnemies` stores one full snapshot per enemy against the 1,048,576-byte mutation payload limit, so 139 of 317 SRD types cannot reach 99 enemies and 16 Duergar fail at 66.8 KB each. Store one snapshot per distinct source. Red-first test.",
+              "status": "TODO",
+              "closes": [
+                "PERF-4.4"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 5,
+                "size": 3,
+                "finalSource": true,
+                "after": [
+                  "PERF-4.T1"
+                ]
+              },
+              "note": "Found by PERF-4.T1. A bug, so allowed under D187."
             }
           ]
         }
@@ -27714,17 +27830,19 @@
         {
           "id": "RELEASE-7",
           "title": "Alpha testers have a play guide for the live table",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
           "acs": [
             {
               "text": "A plain-language guide with Player and GM sections explains every live-table flow an alpha tester meets: joining a Session, Scenes, tokens and movement, Manual versus Assisted Encounters, initiative, the turn stages (Recharge, death saves, start-of-turn effects), attacks, saves, spells and reactions, Public and Private GM rolls and their reveals, the auto-roll preference, and what can and cannot be undone.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-7.T1 (m593); see each task's proof."
+              ],
               "origin": [],
-              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs.",
+              "note": "Written once the VTT behavior freezes before alpha, so it describes shipped behavior rather than plans. Source each rule from phase-08-2-decisions.md and the ADRs. Closed 2026-11-01 by RELEASE-7.T1.",
               "id": "RELEASE-7.1"
             },
             {
@@ -27752,7 +27870,7 @@
           "tasks": [
             {
               "id": "RELEASE-7.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-7.1"
               ],
@@ -27764,7 +27882,7 @@
                 "finalSource": true
               },
               "text": "Draft the plain-language guide (new docs/guides/alpha-play-guide.md or similar) with Player and GM sections covering every live-table flow listed in AC .1: joining a Session, Scenes, tokens and movement, Manual vs Assisted Encounters, initiative, turn stages, attacks, saves, spells, reactions, Public/Private GM rolls and reveals, the auto-roll preference, and undo limits. Verify claims against code and tests, not memory; use product vocabulary from CONTEXT.md.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m593 (7b66730d5)."
             },
             {
               "id": "RELEASE-7.T2",
@@ -27803,14 +27921,14 @@
                 "finalSource": true
               },
               "text": "Release-candidate walkthrough: step through each guide statement on the review data from RELEASE-8 in the running build (Browser pane against local web), correct mismatches, record the checked build identity. Agent drives the browser; owner's judgment on tone is optional.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Recheck the guide's \"Still in progress\" block: Twinned, Distant, once-per-dawn uses and other items merged after RELEASE-7.T1 was drafted."
             }
           ]
         },
         {
           "id": "RELEASE-8",
           "title": "Review data for the owner's UI review",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -27857,7 +27975,8 @@
                 "finalSource": true
               },
               "text": "Write the re-runnable review-data script (new scripts/ entry plus a thin Convex-backed driver reusing live-backend helpers): through product commands only it creates named review Campaigns with members, Scenes with tokens, and Encounters covering a Character party, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards; target pinned to the local Docker backend through scripts/convexSelfHosted.mjs; idempotent: re-running after a reset rebuilds identical data (deterministic names and rolls). Tests prove idempotence against real code (convex-test or local-container integration), with a red proof.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-8.T2",

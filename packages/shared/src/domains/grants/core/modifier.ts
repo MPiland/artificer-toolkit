@@ -290,6 +290,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   CRITICAL_EXTRA_DICE: [MODIFIER_KIND.BONUS],
 
+  DAMAGE_DIE_REROLL: [MODIFIER_KIND.SET_VALUE],
+
   OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
   FREE_OPPORTUNITY_REACTION: [MODIFIER_KIND.ENABLE],
@@ -314,6 +316,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   HEALING_RECEIVED: [MODIFIER_KIND.ENABLE],
 
   HEALING_DEALT: [MODIFIER_KIND.BONUS],
+
+  DEFEAT_TEMPORARY_HIT_POINTS: [MODIFIER_KIND.BONUS],
 
   SKILL_MODIFIER: [MODIFIER_KIND.BONUS, MODIFIER_KIND.PENALTY, MODIFIER_KIND.ROLL_INFLUENCE],
 
@@ -599,9 +603,21 @@ export const ROLLED_DIE_TIMING_OPTIONS: readonly CoreMeta<RolledDieTiming>[] = [
  */
 export type ModifierRolledDieAuthored = {
   count: number
+  /** The die's size; for a `facesScaling` die, the size below every row. */
   faces: (typeof ROLLED_DIE_FACES)[number]
   sign: RolledDieSign
   timing?: RolledDieTiming
+  facesScaling?: ModifierRolledDieFacesScaling
+}
+
+/**
+ * A die whose size rises with the granting creature's level in a class (D168, Bardic Inspiration's
+ * d6 to d12). Applying the grant picks the row the granter's level reaches and freezes it into
+ * `faces`, so the stored grant never carries this field.
+ */
+export type ModifierRolledDieFacesScaling = {
+  classId: string
+  levels: { level: number; faces: (typeof ROLLED_DIE_FACES)[number] }[]
 }
 
 /** Who deals the damage a rolled damage die joins: the holder, or the effect's source to the holder. */

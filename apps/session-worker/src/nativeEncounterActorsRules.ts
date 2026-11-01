@@ -66,6 +66,15 @@ export async function planNativeLiveEncounterActorsAction(
   const { actorIds, scene: sceneRequest } = command.target
   if (cap.maxTargets !== undefined && actorIds.length > cap.maxTargets)
     throw refusal(`This action takes at most ${cap.maxTargets} creatures.`)
+  // A paid extra target is a further creature, so the list fills the cap it widened to.
+  const paidExtraTargets =
+    sourced.source.kind === 'CHARACTER_ACTION' &&
+    sourced.source.candidate.castModifiers?.some(
+      ({ modifierId, targets }) =>
+        modifierId === command.castModifierId && targets?.outcome === 'EXTRA_TARGET'
+    )
+  if (paidExtraTargets && actorIds.length !== cap.maxTargets)
+    throw refusal(`Name ${cap.maxTargets} creatures to pay for the further target.`)
   // Each entry of a projectile list is one projectile; any other action names each creature once.
   const allowRepeatedTargets =
     targeting?.selectionKind === 'CHOSEN_CREATURES' && targeting.allowRepeatedTargets === true

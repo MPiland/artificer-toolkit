@@ -3668,6 +3668,39 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     ])
   })
 
+  describe('changing the cast itself (SPELLS-31.T5h)', () => {
+    const rangeModifier = {
+      ...modifier,
+      cost: {
+        ...modifier.cost,
+        parameters: [
+          {
+            parameter: 'RANGE' as const,
+            multiplier: 2,
+            touchDistance: { amount: 30, unit: 'FEET' as const }
+          }
+        ]
+      }
+    }
+    const offeredFor = (spellCast: ReturnType<typeof candidate>) =>
+      build([spellCast], {
+        castModifiers: [rangeModifier],
+        policyOutput: {
+          ...policyFor([spellCast], authoredById),
+          resources: [pool(0)]
+        }
+      }).candidates[0]?.castModifiers
+
+    it('offers a modifier that changes the range with its parameters, on a spell with a distance', () => {
+      expect(offeredFor(cast)?.[0]?.parameters).toEqual(rangeModifier.cost.parameters)
+    })
+
+    it('offers it on a Touch spell and not on a Self spell', () => {
+      expect(offeredFor(candidate(INVISIBILITY, 2))).toHaveLength(1)
+      expect(offeredFor(candidate(PROTECTION_FROM_ENERGY_ON_SELF, 3))).toBeUndefined()
+    })
+  })
+
   describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
     const charisma = character.output.derivedStats.abilities.find(
       ({ abilityId }) =>
@@ -3718,6 +3751,59 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
 
     it('offers no targets for a modifier that authors none', () => {
       expect(offered([pool(0)]).candidates[0]?.castModifiers?.[0]).not.toHaveProperty('targets')
+    })
+  })
+
+  describe('adding a target to a spell that aims at one creature (SPELLS-31.T5g3)', () => {
+    const twin = {
+      ...modifier,
+      cost: {
+        chargeId: CHARGE_ID,
+        cost: 1,
+        perSpellLevel: true,
+        targets: { outcome: 'EXTRA_TARGET' as const, base: 1 }
+      }
+    }
+    const RAY_OF_FROST = spell('Ray of Frost')
+    const documents = new Map([
+      ...authoredById,
+      ...[RAY_OF_FROST, spell('Scorching Ray'), spell('Magic Missile')].map(
+        (entry) => [entry.id, entry] as const
+      )
+    ])
+    const offeredFor = (spellAuthored: SpellAuthored, level: number, remaining = 5) => {
+      const twinnable = candidate(spellAuthored, level)
+      return build([twinnable], {
+        castModifiers: [twin],
+        spellsById: compiledById(documents),
+        policyOutput: {
+          ...policyFor([twinnable], documents),
+          resources: [pool(0, remaining)]
+        }
+      }).candidates[0]?.castModifiers?.[0]
+    }
+
+    it('charges the spell level, and 1 for a cantrip, and offers one further target', () => {
+      expect(offeredFor(HOLD_PERSON, 2)).toMatchObject({
+        cost: 2,
+        targets: { outcome: 'EXTRA_TARGET', max: 1 }
+      })
+      expect(offeredFor(HOLD_PERSON, 4)?.cost).toBe(4)
+      expect(offeredFor(RAY_OF_FROST, 0)?.cost).toBe(1)
+    })
+
+    it('offers nothing when the pool cannot pay the level', () => {
+      expect(offeredFor(HOLD_PERSON, 4, 3)).toBeUndefined()
+    })
+
+    it('offers nothing for a spell that already reaches several creatures or an area', () => {
+      expect(offeredFor(spell('Scorching Ray'), 2)).toBeUndefined()
+      expect(offeredFor(spell('Magic Missile'), 1)).toBeUndefined()
+      expect(offeredFor(FIREBALL, 3)).toBeUndefined()
+    })
+
+    it('offers nothing for a spell with a range of Self', () => {
+      expect(offeredFor(PROTECTION_FROM_ENERGY_ON_SELF, 3)).toBeUndefined()
     })
   })
 

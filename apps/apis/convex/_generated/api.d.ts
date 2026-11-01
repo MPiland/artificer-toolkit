@@ -23613,12 +23613,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -33397,12 +33409,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -43131,12 +43154,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -52953,12 +52987,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -62737,12 +62783,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -72471,12 +72528,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -82302,12 +82370,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -92086,12 +92166,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -101820,12 +101911,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -111642,12 +111744,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -121426,12 +121540,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -131160,12 +131285,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -141017,12 +141153,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -150801,12 +150949,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -160535,12 +160694,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -170357,12 +170527,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -180141,12 +180323,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -189875,12 +190068,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -199698,12 +199902,23 @@ export declare const api: {
                               castModifier?: {
                                 chargeId: string;
                                 cost: number;
+                                parameters?: Array<{
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }>;
+                                perSpellLevel?: boolean;
                                 targets?: {
                                   abilityDefinitionId?: string;
                                   base: number;
                                   minimum?: number;
                                   outcome:
-                                    "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                    | "SAVE_AUTO_SUCCESS"
+                                    | "SAVE_DISADVANTAGE"
+                                    | "EXTRA_TARGET";
                                 };
                               };
                               kind: "PASSIVE";
@@ -209433,11 +209648,23 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          parameters?: Array<{
+                            multiplier: number;
+                            parameter: "RANGE";
+                            touchDistance: {
+                              amount: number;
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          }>;
+                          perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
                             base: number;
                             minimum?: number;
-                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            outcome:
+                              | "SAVE_AUTO_SUCCESS"
+                              | "SAVE_DISADVANTAGE"
+                              | "EXTRA_TARGET";
                           };
                         };
                         kind: "PASSIVE";
@@ -219035,11 +219262,23 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          parameters?: Array<{
+                            multiplier: number;
+                            parameter: "RANGE";
+                            touchDistance: {
+                              amount: number;
+                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                            };
+                          }>;
+                          perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
                             base: number;
                             minimum?: number;
-                            outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                            outcome:
+                              | "SAVE_AUTO_SUCCESS"
+                              | "SAVE_DISADVANTAGE"
+                              | "EXTRA_TARGET";
                           };
                         };
                         kind: "PASSIVE";
@@ -228740,12 +228979,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -238524,12 +238775,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -248258,12 +248520,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -258080,12 +258353,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  parameters?: Array<{
+                                    multiplier: number;
+                                    parameter: "RANGE";
+                                    touchDistance: {
+                                      amount: number;
+                                      unit:
+                                        "INCHES" | "FEET" | "YARDS" | "MILES";
+                                    };
+                                  }>;
+                                  perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
                                     base: number;
                                     minimum?: number;
                                     outcome:
-                                      "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                      | "SAVE_AUTO_SUCCESS"
+                                      | "SAVE_DISADVANTAGE"
+                                      | "EXTRA_TARGET";
                                   };
                                 };
                                 kind: "PASSIVE";
@@ -267864,12 +268149,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -277598,12 +277894,23 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            parameters?: Array<{
+                              multiplier: number;
+                              parameter: "RANGE";
+                              touchDistance: {
+                                amount: number;
+                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                              };
+                            }>;
+                            perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
                               base: number;
                               minimum?: number;
                               outcome:
-                                "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                                | "SAVE_AUTO_SUCCESS"
+                                | "SAVE_DISADVANTAGE"
+                                | "EXTRA_TARGET";
                             };
                           };
                           kind: "PASSIVE";
@@ -287064,7 +287371,8 @@ export declare const api: {
               label: string;
               targets?: {
                 max: number;
-                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                outcome:
+                  "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE" | "EXTRA_TARGET";
               };
             }>;
             chosenSpend?: { max: number; unitCost: number };
@@ -288851,7 +289159,8 @@ export declare const api: {
               label: string;
               targets?: {
                 max: number;
-                outcome: "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE";
+                outcome:
+                  "SAVE_AUTO_SUCCESS" | "SAVE_DISADVANTAGE" | "EXTRA_TARGET";
               };
             }>;
             chosenSpend?: { max: number; unitCost: number };

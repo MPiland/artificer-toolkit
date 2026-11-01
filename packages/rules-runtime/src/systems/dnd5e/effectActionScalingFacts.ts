@@ -19,6 +19,7 @@ import {
   DND5E_ATTACK_ITEM_BINDINGS_FACT_KEY,
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
+  DND5E_DAMAGE_DIE_REROLL_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
   DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
@@ -54,6 +55,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   damageAddedDice?: readonly DamageAddedDieDto[]
   incomingDamageReductions?: IncomingDamageReductionsDto
   criticalExtraDice?: number
+  damageRerollAtOrBelow?: number
   /** By how much the completed saving throw fell short of its DC. */
   saveFailedBy?: number
   /** The target's current hit points, which select the hit-point tier of a tiered result. */
@@ -121,6 +123,7 @@ export function dnd5eEffectScalingFacts(input: {
       facts[DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY]
     ),
     criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
+    damageRerollAtOrBelow: positiveInteger(facts[DND5E_DAMAGE_DIE_REROLL_FACT_KEY]),
     saveFailedBy: typeof dc === 'number' && typeof total === 'number' ? dc - total : undefined,
     resolvedDamageExpressions: Object.fromEntries(
       Object.entries(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).flatMap(([path, key]) => {

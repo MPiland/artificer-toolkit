@@ -100,6 +100,10 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Capacity use on a spell-slot on-hit rider (SPELLS-12.T2b):** a SPELL_SLOT on-hit rider can skip the capacity use. Rare; correct by hand.
+- **Open Hand push distance (SPELLS-31.T4l2b):** the push is exactly 15 ft where the rules say up to 15 ft. The GM moves the token back if the Monk wants less.
+- **Granted action option ids in authoring (SPELLS-31.T4l2b):** `GRANTED_ACTION_OPTION` asks for Effect ids as text. A homebrew author would be better served by a picker.
+- **Open Hand on a normal attack after early Flurry (D206):** a Monk who uses Flurry before finishing the Attack action gets the Open Hand choice on the remaining normal attack, because a strike counts as a Flurry strike while an offer is held. The table decides. A "Flurry strike" pick on the attack command would enforce it, at about +2 size.
 - **Defeat rewards outside the action path (SPELLS-31.T4i2):** Dark One's Blessing gives its temporary hit points for kills from the holder's own actions and Cleaving. A kill from a movement reaction, a basic action, a contest, or a zone on a turn gives none. The GM adds them by hand.
 - **Multiattack on a group token (D205):** a group makes one attack per creature, so four black bears make four attacks rather than eight.
 - **Monk holding a one-handed non-monk weapon (D205):** a Monk attacking with a monk weapon while also holding, say, a Longsword keeps Martial Arts, though the rules take it away. Fixing it needs a new predicate.

@@ -329,6 +329,7 @@ export function retainEncounterMovementReactionActionEvidence(input: {
     MovementReactionPendingContext['phase'],
     { kind: 'ACTION_EVIDENCE' }
   >['twoPhase']
+  pause?: Extract<MovementReactionPendingContext['phase'], { kind: 'ACTION_EVIDENCE' }>['pause']
   phaseReceipts?: ServerKernelRuleExecutionPendingSnapshotDto['phaseReceipts']
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   const legendaryResistance =
@@ -401,7 +402,8 @@ export function retainEncounterMovementReactionActionEvidence(input: {
         d20Policy: input.d20Policy,
         ...(input.d20Belief ? { d20Belief: input.d20Belief } : {}),
         ...(input.heldD20 ? { heldD20: input.heldD20 } : {}),
-        ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {})
+        ...(input.twoPhase !== undefined ? { twoPhase: input.twoPhase } : {}),
+        ...(input.pause ? { pause: input.pause } : {})
       }
     }
   })

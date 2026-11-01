@@ -113,7 +113,9 @@ import type {
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { castModifierRange } from './character/characterCastModifiers.js'
 import { damageTypeIdsTaken } from './encounterDamageTypesSinceTurnStart.js'
+import { encounterActionTargetKind } from './encounterAreaAction.js'
 import {
   encounterStowedItemInstanceId,
   evaluateEncounterCharacterActionWieldConflict,
@@ -197,6 +199,8 @@ export async function prepareEncounterActionSource<
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   /** The option the caster picked of an action that offers a pick at cast (D140, D148). */
   choiceOptionId?: string
+  /** The `castModifiers` entry of the cast candidate the caster pays; its parameters change the range, and one that adds targets widens a single-target policy to a list. */
+  castModifierId?: string
   /**
    * A read of the action's test alone, before any pick: every option shares it (options that test
    * differently compile MANUAL), so the top-level option serves and no pick is asked for.
@@ -313,16 +317,64 @@ export async function prepareEncounterActionSource<
           )
         )
   const adapter = characterRuleActionSystemAdapterRegistry.require(state.gameSystemId)
-  const targetPolicy =
+  const authoredPolicy =
     source.kind === 'CHARACTER_ACTION'
       ? source.entry.targetPolicy
       : buildCompiledActionTargetPolicy(source.capability)
-  if (!targetPolicy) throw new Error('The selected Character action target policy is stale.')
+  if (!authoredPolicy) throw new Error('The selected Character action target policy is stale.')
+  // The cast modifier is resolved here so every flow that reads the policy, the area flow included,
+  // sees the cast as the paid modifier changes it.
+  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  const castModifier =
+    input.castModifierId === undefined || source.kind !== 'CHARACTER_ACTION'
+      ? null
+      : (source.candidate.castModifiers?.find(
+          ({ modifierId }) => modifierId === input.castModifierId
+        ) ?? null)
+  if (input.castModifierId !== undefined && !castModifier)
+    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  // A paid modifier that adds targets turns the one creature a spell aims at into a list of up to
+  // that many; each creature of the list still meets the single target's own requirements.
+  const extraTargets = castModifier?.targets
+  const creatureTargeting = authoredPolicy.targeting
+  const targetPolicy =
+    extraTargets?.outcome === 'EXTRA_TARGET' &&
+    (!creatureTargeting || creatureTargeting.selectionKind === 'SINGLE_TARGET')
+      ? {
+          ...authoredPolicy,
+          targeting: {
+            selectionKind: 'CHOSEN_CREATURES' as const,
+            ...(creatureTargeting?.dispositionKind && {
+              dispositionKind: creatureTargeting.dispositionKind
+            }),
+            maxTargets: 1 + extraTargets.max,
+            ...(creatureTargeting?.allowedCreatureTypeIds && {
+              allowedCreatureTypeIds: creatureTargeting.allowedCreatureTypeIds
+            }),
+            ...(creatureTargeting?.excludedCreatureTypeIds && {
+              excludedCreatureTypeIds: creatureTargeting.excludedCreatureTypeIds
+            })
+          }
+        }
+      : authoredPolicy
   const plan =
     source.kind === 'CHARACTER_ACTION'
       ? source.entry.compilation.executionPlan
       : compileEncounterFeatureActionPlan(adapter, source.capability)
-  return { source, adapter, targetPolicy, plan }
+  const range = castModifier?.parameters
+    ? castModifierRange(castModifier.parameters, targetPolicy.range)
+    : targetPolicy.range
+  if (!range)
+    throw new EncounterValidationError('The selected cast modifier does not fit this spell.')
+  return {
+    source,
+    adapter,
+    targetPolicy: range === targetPolicy.range ? targetPolicy : { ...targetPolicy, range },
+    creatureTargeting,
+    plan,
+    castModifier
+  }
 }
 
 /** Prepares current source, target, and resource facts without persistence access. */
@@ -492,19 +544,21 @@ export async function prepareEncounterActionMechanics<
     inSourceSight(currentSourceFacts),
     inSourceSight(currentTargetFacts)
   ])
-  const { source, adapter, targetPolicy, plan } = await prepareEncounterActionSource({
-    state,
-    actor,
-    actionId,
-    sourceFacts,
-    loadSource: input.loadSource,
-    choiceOptionId: input.choiceOptionId,
-    readsSharedTest: input.readsSharedTest,
-    // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
-    // first authored option of a pick it cannot ask for.
-    firstOptionByDefault: !input.overridable
-  })
-  const { targeting } = targetPolicy
+  const { source, adapter, targetPolicy, creatureTargeting, plan, castModifier } =
+    await prepareEncounterActionSource({
+      state,
+      actor,
+      actionId,
+      sourceFacts,
+      loadSource: input.loadSource,
+      choiceOptionId: input.choiceOptionId,
+      castModifierId: input.castModifierId,
+      readsSharedTest: input.readsSharedTest,
+      // Only RESOLVE_ACTION prompts (it reports overridable warnings); every other flow runs the
+      // first authored option of a pick it cannot ask for.
+      firstOptionByDefault: !input.overridable
+    })
+  const targeting = creatureTargeting
   if (
     targeting?.selectionKind === 'SINGLE_TARGET' &&
     targeting.heldBySource &&
@@ -530,16 +584,12 @@ export async function prepareEncounterActionMechanics<
             ).actual
         : undefined
     })
-  if (input.castModifierId !== undefined && source.kind !== 'CHARACTER_ACTION')
-    throw new EncounterValidationError('The selected cast modifier is not offered.')
-  const castModifier =
-    input.castModifierId === undefined || source.kind !== 'CHARACTER_ACTION'
-      ? null
-      : (source.candidate.castModifiers?.find(
-          ({ modifierId }) => modifierId === input.castModifierId
-        ) ?? null)
-  if (input.castModifierId !== undefined && !castModifier)
-    throw new EncounterValidationError('The selected cast modifier is not offered.')
+  // A paid extra target is named in the target list; a single-creature cast cannot carry it.
+  if (
+    castModifier?.targets?.outcome === 'EXTRA_TARGET' &&
+    encounterActionTargetKind(targetPolicy) !== 'ACTORS'
+  )
+    throw new EncounterValidationError('Name the further target of the cast modifier.')
   const castModifierActorIds = input.castModifierActorIds ?? []
   if (castModifierActorIds.length > (castModifier?.targets?.max ?? 0))
     throw new EncounterValidationError(

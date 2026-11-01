@@ -147,6 +147,8 @@ function activeRolledDieGrants(
         continue
       if (payload === undefined || !('count' in payload) || 'incomingDamageKind' in payload)
         throw new Error('An active rolled-die grant must carry its dice.')
+      if ('facesScaling' in payload)
+        throw new Error('An active rolled-die grant must have its die size settled when applied.')
       if (('timing' in payload && payload.timing === 'AFTER_ROLL') !== (timing === 'AFTER_ROLL'))
         continue
       dice.set(modifier.grantId, {

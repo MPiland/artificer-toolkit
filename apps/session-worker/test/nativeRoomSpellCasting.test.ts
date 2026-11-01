@@ -3,6 +3,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -569,6 +570,189 @@ describe('room burst cast by a Character who pays a cast modifier for its target
     const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
       id: CAREFUL_ID,
       actorIds: CAUGHT_IDS
+    })
+    expect(answer.type).toBe('COMMAND_REJECTED')
+  }, 120000)
+})
+
+describe('room single-target spell cast by a Character who pays for a further target (SPELLS-31.T5g3)', () => {
+  const POOL_ID = testUuid(0x7a0)
+  const MODIFIER_ID = testUuid(0x7a2)
+  const [FIRST_ID, SECOND_ID] = CAUGHT_IDS as [string, string]
+  const humanoidWolf = {
+    ...plainWolf,
+    creatureTypeId: SRD_CREATURE_TYPES.find(({ code }) => code === 'HUMANOID')!.id
+  }
+
+  /** One pool and one option paying the spell's level from it; neither names a feature of the System. */
+  const furtherTargetFeature: ClassFeature = {
+    id: testUuid(0x7a1),
+    label: 'Echoing Craft',
+    description: 'Pay the spell level in uses to reach a further creature.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: MODIFIER_ID,
+          range: testUuid(0x7a3),
+          path: testUuid(0x7a4),
+          result: testUuid(0x7a5),
+          outcome: testUuid(0x7a6)
+        },
+        label: 'Echoing casting',
+        instructions: 'The spell also targets a further creature.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 1,
+          perSpellLevel: true,
+          targets: { outcome: 'EXTRA_TARGET', base: 1 }
+        }
+      })
+    ]
+  }
+
+  const holdPersonRoom = () =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...[FIRST_ID, SECOND_ID].map((id) => srdCreatureActor({ id, creature: humanoidWolf }))
+      ],
+      characterSpellcasting: { spells: [holdPerson], prepared: [holdPerson.id] },
+      characterClassFeatures: [furtherTargetFeature],
+      characterAction: (action) => action.label === 'Hold Person (2nd level)'
+    })
+
+  // No Scene places the tokens, so the range is never measured.
+  const RANGE_WARNING: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
+
+  it('casts at both creatures and spends the spell level from the pool', async () => {
+    const room = await holdPersonRoom()
+
+    const { answer } = await room.startActorsAction(
+      [FIRST_ID, SECOND_ID],
+      RANGE_WARNING,
+      false,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      MODIFIER_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const decision = await readPendingActionDecision(room.room.base.stub)
+    if (decision?.pending.kind !== 'AREA_SAVES') throw new Error('Expected the saves.')
+    expect(decision.pending.saves.map(({ actorId }) => actorId).sort()).toEqual(
+      [FIRST_ID, SECOND_ID].sort()
+    )
+    await answerAllSaves(room)
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.resourceConsumption).toMatchObject({ chargeId: POOL_ID, cost: 2 })
+  }, 120000)
+
+  it('refuses naming only one creature when the further target is paid for', async () => {
+    const room = await holdPersonRoom()
+
+    const { answer } = await room.startActorsAction(
+      [FIRST_ID],
+      RANGE_WARNING,
+      false,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      MODIFIER_ID
+    )
+    expect(answer.type).toBe('COMMAND_REJECTED')
+  }, 120000)
+
+  it('refuses naming two creatures without paying for the further target', async () => {
+    const room = await holdPersonRoom()
+
+    const { answer } = await room.startActorsAction([FIRST_ID, SECOND_ID], RANGE_WARNING, false)
+    expect(answer.type).toBe('COMMAND_REJECTED')
+  }, 120000)
+})
+
+describe('room burst cast by a Character who pays a cast modifier for its range (SPELLS-31.T5h)', () => {
+  const POOL_ID = testUuid(0x7d0)
+  const FAR_REACH_ID = testUuid(0x7d2)
+  const reachFeature: ClassFeature = {
+    id: testUuid(0x7d1),
+    label: 'Spell Reach',
+    description: 'Pay a use to double how far a spell reaches.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: FAR_REACH_ID,
+          range: testUuid(0x7d3),
+          path: testUuid(0x7d4),
+          result: testUuid(0x7d5),
+          outcome: testUuid(0x7d6)
+        },
+        label: 'Far reach',
+        instructions: 'The spell reaches twice as far.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 1,
+          parameters: [
+            { parameter: 'RANGE', multiplier: 2, touchDistance: { amount: 30, unit: 'FEET' } }
+          ]
+        }
+      })
+    ]
+  }
+
+  const reachRoom = (spell: SpellAuthored) =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterClassFeatures: [reachFeature],
+      characterAction: (action) => action.label === `${spell.label} (1st level)`
+    })
+
+  it('casts a spell that has a distance, paying the pool', async () => {
+    const room = await reachRoom(emberBurst)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: FAR_REACH_ID,
+      actorIds: []
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+    const { roots } = areaReceipts(await readRoomHistory(room.room.base.stub))
+    expect(roots[0]?.outputs.resourceConsumption).toBeTruthy()
+  }, 120000)
+
+  it('refuses an option the cast is not offered', async () => {
+    const room = await reachRoom(emberBurst)
+
+    const { answer } = await room.startAreaAction({ x: 50, y: 150 }, [], 'GM', undefined, {
+      id: testUuid(0x7d9),
+      actorIds: []
     })
     expect(answer.type).toBe('COMMAND_REJECTED')
   }, 120000)

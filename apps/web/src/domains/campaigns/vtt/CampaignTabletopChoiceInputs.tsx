@@ -68,7 +68,11 @@ export function CampaignTabletopCastModifierInput({
           data={actors.map((actor) => ({ label: actor.label, value: actor.id }))}
           description={`Up to ${cast.modifier.targets.max}.`}
           disabled={disabled}
-          label='Creatures it affects'
+          label={
+            cast.modifier.targets.outcome === 'EXTRA_TARGET'
+              ? 'Further targets'
+              : 'Creatures it affects'
+          }
           maxValues={cast.modifier.targets.max}
           searchable
           value={cast.actorIds}

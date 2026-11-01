@@ -152,6 +152,13 @@ const spellLevelParamDtoSchema = lazySchema(() =>
   })
 )
 
+/** The pool of uses a Concentration capacity bonus spends one of each time it makes room. */
+const concentrationCapacityParamDtoSchema = lazySchema(() =>
+  z.object({
+    usesChargeId: z.optional(authoredIdentifierSchema)
+  })
+)
+
 const modifierScalarValueDtoSchema = lazySchema(() =>
   z.discriminatedUnion('valueKind', [
     z.object({
@@ -454,7 +461,24 @@ export const rollInfluencePayloadDtoSchema = lazySchema(() =>
  * `AFTER_ROLL` die is offered in the roll's window once the d20 is seen, never rolled with it.
  */
 export const rolledDiePayloadDtoSchema = lazySchema(() =>
-  z.strictObject({ ...rolledDieShape(), timing: z.optional(z.literal('AFTER_ROLL')) })
+  z.strictObject({
+    ...rolledDieShape(),
+    timing: z.optional(z.literal('AFTER_ROLL')),
+    facesScaling: z.optional(
+      z.strictObject({
+        classId: authoredIdentifierSchema,
+        levels: z
+          .array(
+            z.strictObject({
+              level: z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)),
+              faces: z.literal(ROLLED_DIE_FACES)
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(20))
+      })
+    )
+  })
 )
 
 const damageTypePayloadDtoSchema = lazySchema(() =>
@@ -626,7 +650,8 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...senseParamDtoSchema.shape,
       ...spellLevelParamDtoSchema.shape,
       ...healingDealtParamDtoSchema.shape,
-      ...grantedActionOptionParamDtoSchema.shape
+      ...grantedActionOptionParamDtoSchema.shape,
+      ...concentrationCapacityParamDtoSchema.shape
     })
   )
 )
@@ -905,6 +930,12 @@ const buildModifierGrantVariants = () =>
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
+      'DAMAGE_DIE_REROLL',
+      'SET_VALUE',
+      attackDomainParamDtoSchema,
+      z.object({ amount: z.number().check(z.int()).check(z.gte(1)) })
+    ),
+    buildModifierGrantVariant(
       'ATTACKS_AGAINST',
       'ROLL_INFLUENCE',
       attacksAgainstParamDtoSchema,
@@ -932,6 +963,12 @@ const buildModifierGrantVariants = () =>
       'HEALING_DEALT',
       'BONUS',
       healingDealtParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'DEFEAT_TEMPORARY_HIT_POINTS',
+      'BONUS',
+      emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
@@ -1260,7 +1297,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'CONCENTRATION_CAPACITY',
       'BONUS',
-      emptyDomainDtoSchema,
+      concentrationCapacityParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(

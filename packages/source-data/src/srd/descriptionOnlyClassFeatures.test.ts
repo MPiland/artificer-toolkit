@@ -71,6 +71,24 @@ const DESCRIPTION_ONLY_FEATURES: ReadonlyArray<{
   },
   { owner: 'Champion', feature: 'Dueling', kind: 'CHAMPION_DUELING', resolvedBy: 'grant' },
   {
+    owner: 'Fighter',
+    feature: 'Great Weapon Fighting',
+    kind: 'FIGHTER_FIGHTING_STYLE_GREAT_WEAPON_FIGHTING',
+    resolvedBy: 'grant'
+  },
+  {
+    owner: 'Champion',
+    feature: 'Great Weapon Fighting',
+    kind: 'CHAMPION_GREAT_WEAPON_FIGHTING',
+    resolvedBy: 'grant'
+  },
+  {
+    owner: 'Paladin',
+    feature: 'Great Weapon Fighting',
+    kind: 'PALADIN_FIGHTING_STYLE_GREAT_WEAPON',
+    resolvedBy: 'grant'
+  },
+  {
     owner: 'Paladin',
     feature: 'Dueling',
     kind: 'PALADIN_FIGHTING_STYLE_DUELING',

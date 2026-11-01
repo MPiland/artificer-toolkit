@@ -26,6 +26,7 @@ import { damageTypeFilterDtoSchema, reactionTriggerBindingDtoSchema } from '../s
 import { targetingDtoSchema } from './targeting.js'
 import {
   authoredIdentifierSchema,
+  authoredLengthSchema,
   authoredNestedCollectionSchema
 } from '../shared/authoredLimits.js'
 
@@ -45,12 +46,24 @@ const resourceUseDtoShape = lazySchemaParts(() => ({
 
 const resourceUseDtoSchema = lazySchema(() => z.object(resourceUseDtoShape()))
 
+export const castModifierParameterDtoSchema = lazySchema(() =>
+  z.discriminatedUnion('parameter', [
+    z.strictObject({
+      parameter: z.literal('RANGE'),
+      multiplier: z.number().check(z.int()).check(z.gte(2)),
+      touchDistance: authoredLengthSchema
+    })
+  ])
+)
+
 const castModifierDtoSchema = lazySchema(() =>
   z.object({
     ...resourceUseDtoShape(),
+    parameters: z.optional(z.array(castModifierParameterDtoSchema).check(z.maxLength(8))),
+    perSpellLevel: z.optional(z.boolean()),
     targets: z.optional(
       z.object({
-        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE']),
+        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
         base: z.number().check(z.int()).check(z.gte(0)),
         abilityDefinitionId: z.optional(authoredIdentifierSchema),
         minimum: z.optional(z.number().check(z.int()).check(z.gte(0)))

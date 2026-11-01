@@ -3,7 +3,9 @@ import { z, lazySchema } from '../zod.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 
 import { MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import { encounterPauseVariants } from './encounterPause.js'
 import { movementReactionTimelineDtoSchema } from './reaction.js'
+import { isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
 import { spatialMovementExecutionDtoSchema } from './ruleExecutionEffectEvidence.js'
 import { MAX_SPATIAL_CANDIDATES } from './spatialFacts.js'
 import { encounterActionHeldD20DtoSchema } from './encounterActionPending.js'
@@ -162,7 +164,9 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       d20Belief: z.optional(serverRuleExecutionD20BeliefDtoSchema),
       /** The d20 a roller already entered while the server waits for one more to settle the true mode. */
       heldD20: z.optional(encounterActionHeldD20DtoSchema),
-      twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema)))
+      twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema))),
+      /** The mover's save a d20 window holds for a die the mover keeps for after the roll (D168, D203). */
+      pause: z.optional(encounterPauseVariants().D20_WINDOW)
     }),
     z.strictObject({
       kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),
@@ -264,6 +268,19 @@ export const movementReactionPendingContextDtoSchema = lazySchema(() =>
               message: 'Reaction action evidence must retain one exact issued choice option.'
             })
         }
+        if (
+          value.phase.kind === 'ACTION_EVIDENCE' &&
+          value.phase.pause &&
+          (value.phase.d20Policy !== null ||
+            !!value.phase.heldD20 ||
+            !value.phase.twoPhase ||
+            isD20RolledCheck(value.phase.pause.payload.rolled))
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['phase', 'pause'],
+            message: 'A d20 window belongs to a reaction save held for the roller who holds a die.'
+          })
         if (value.phase.kind === 'CONCENTRATION_EVIDENCE') {
           const execution =
             value.phase.damageSource.kind === 'SPATIAL'

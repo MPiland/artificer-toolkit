@@ -32,7 +32,6 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
@@ -82,7 +81,7 @@ import {
 import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
-  readNativeLiveTurnMovedFeet,
+  nativeLiveHolderStateReads,
   readNativeWeaponAttackOffer
 } from './nativeTurnUses.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
@@ -96,15 +95,16 @@ import {
   planEndEffectsChecks,
   reactionCastEnded
 } from './nativeEndEffects.js'
-import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
+import {
+  prepareNativeLiveActionMaintenance,
+  settledCharacterActionSpend
+} from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import {
   offerableOnHitRiders,
-  onHitCandidates,
-  onHitResourceConsumption,
-  onHitSpellConsumption
+  onHitCandidates
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
@@ -181,11 +181,9 @@ import { rangeDtoSchema } from '@artificer-toolkit/schema/shared/range'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { prepareEncounterBasicActionContest } from '@artificer-toolkit/rules-runtime/encounterBasicActionContest'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
-import {
-  settledActionSaveWindow,
-  targetSaveWindow,
-  windowSpentEffects
-} from './nativeActionSaveWindow.js'
+import { settledActionSaveWindow } from './nativeActionSaveWindow.js'
+import { targetSaveWindow } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
@@ -631,7 +629,7 @@ export async function planNativeLiveEncounterAction(
       definitions,
       speedDefinitions: system.speeds,
       runEffectsByActorId: activeEffectsByActorId,
-      readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, prepared.actor.id)
+      ...nativeLiveHolderStateReads(capture, state.gameSystemId, prepared.actor.id)
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
@@ -843,6 +841,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     capture,
     endedMaintainedStateId: command.endedMaintainedStateId,
+    allowCapacityUses: true,
     loadCarriedHolder: async (actor) => movementTargets.get(actor.id) ?? loadTarget(actor)
   })
   // Only an attack roll uses the attacker's one-roll grants (Vicious Mockery's disadvantage, Help);
@@ -1136,7 +1135,9 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION' && attackPlan.kind === 'TEST_OUTCOME'
       ? onHitCandidates({
           riders: offerableOnHitRiders(
-            prepared.adapter.optionalOnHitRiders({ compilerSource: attackPlan.compilerSource }),
+            prepared.adapter
+              .optionalOnHitRiders({ compilerSource: attackPlan.compilerSource })
+              .filter(({ cost }) => cost.kind !== 'RESOURCE_POOL' || !maintenance?.capacityUse),
             weaponAttackOffer.openEffectIds,
             prepared.characterActionState
           ),
@@ -1214,39 +1215,19 @@ export async function planNativeLiveEncounterAction(
   const chosenOnHit =
     settled?.onHit?.audit.option ??
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
-  const onHitSpend = (() => {
-    if (!chosenOnHit || chosenOnHit.kind === 'FREE' || prepared.source.kind !== 'CHARACTER_ACTION')
-      return null
-    const { source } = prepared
-    if (chosenOnHit.kind === 'SPELL_SLOT')
-      return {
-        spellConsumption: onHitSpellConsumption({
-          spellSlots: source.effectivePolicyOutput.spellSlots,
-          slotLevel: chosenOnHit.slotLevel,
-          characterId: source.characterId,
-          expectedStreamVersion: source.characterStreamVersion
-        })
-      }
-    const { characterFacts } = prepared.sourceFacts
-    if (!characterFacts)
-      throw new StaleCharacterActionError('The selected Character action source is stale.')
-    return {
-      resourceConsumption: onHitResourceConsumption({
-        resources: source.effectivePolicyOutput.resources,
-        resourceUsage: characterFacts.sheetState.resourceUsage,
-        poolId: chosenOnHit.poolId,
-        cost: chosenOnHit.cost,
-        characterId: source.characterId,
-        expectedStreamVersion: source.characterStreamVersion,
-        automationMode: state.automationMode
-      })
-    }
-  })()
+  // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
+  // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
+  const settledSpend = settledCharacterActionSpend({
+    prepared,
+    chosenOnHit,
+    maintenance,
+    automationMode: state.automationMode
+  })
   const settledPrepared =
-    onHitSpend && prepared.characterActionState
+    settledSpend && prepared.characterActionState
       ? {
           ...prepared,
-          characterActionState: { ...prepared.characterActionState, ...onHitSpend }
+          characterActionState: { ...prepared.characterActionState, ...settledSpend }
         }
       : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({

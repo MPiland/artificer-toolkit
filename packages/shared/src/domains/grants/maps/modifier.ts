@@ -36,6 +36,7 @@ type ModifierDomain = ModifierGrantUnion['domain']
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
+type RolledDieFacesScaling = NonNullable<AllUnionFields<ModifierPayload>['facesScaling']>
 type AttackDecoys = Extract<ModifierPayload, { thresholds: unknown[] }>
 type AttackDecoyArmorClass = NonNullable<AttackDecoys['armorClass']>
 type AttackDecoyThreshold = NonNullable<AttackDecoys['thresholds']>[number]
@@ -132,6 +133,7 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
               parent.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
               parent.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
               parent.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
+              parent.field(['valueDomainCode']).eq('DAMAGE_DIE_REROLL'),
               parent.field(['valueDomainCode']).eq('DAMAGE')
             ])
           }
@@ -213,6 +215,12 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         'addsSpellLevel',
         toggle(['addsSpellLevel'], 'Also Adds The Spell’s Cast Level', {
           showIf: parent.field(['valueDomainCode']).eq('HEALING_DEALT')
+        })
+      )
+      .set(
+        'usesChargeId',
+        text(['usesChargeId'], 'Charge ID Of The Uses', {
+          showIf: parent.field(['valueDomainCode']).eq('CONCENTRATION_CAPACITY')
         })
       )
       .set(
@@ -323,6 +331,51 @@ const MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP = attackDecoyThreshold.define(
       .set(
         'minimumRoll',
         number(['minimumRoll'], 'Minimum d20 Roll', { constraints: { minimum: 1, maximum: 21 } })
+      )
+  }
+)
+
+const rolledDieFacesScalingLevel = buildNodeMap<RolledDieFacesScaling['levels'][number]>()
+
+const ROLLED_DIE_FACES_SCALING_LEVEL_NODE_MAP = rolledDieFacesScalingLevel.define(
+  'rolledDieFacesScalingLevel',
+  ({ map, nodes }) => {
+    const { number } = nodes
+
+    map
+      .set(
+        'level',
+        number(['level'], 'From Class Level', { constraints: { minimum: 1, maximum: 20 } })
+      )
+      .set(
+        'faces',
+        number(['faces'], 'Die Faces', {
+          constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) }
+        })
+      )
+  }
+)
+
+const rolledDieFacesScaling = buildNodeMap<RolledDieFacesScaling>()
+
+const ROLLED_DIE_FACES_SCALING_NODE_MAP = rolledDieFacesScaling.define(
+  'rolledDieFacesScaling',
+  ({ map, nodes, data }) => {
+    const { selectSingle, groupArray } = nodes
+
+    map
+      .set(
+        'classId',
+        selectSingle(['classId'], 'Granter Class', {
+          kind: 'DATA',
+          relationship: data.table('classes', { selectColumns: ['id', 'label'] })
+        })
+      )
+      .set(
+        'levels',
+        groupArray(['levels'], 'Larger Die From', () => ROLLED_DIE_FACES_SCALING_LEVEL_NODE_MAP, {
+          presentation: 'table'
+        })
       )
   }
 )
@@ -610,6 +663,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           'Joins The Roll',
           { kind: 'INLINE_OPTIONS', options: ROLLED_DIE_TIMING_OPTIONS },
           { showIf: and([isRolledDie, not(isDamageDie)]) }
+        )
+      )
+      .set(
+        'facesScaling',
+        groupObject(
+          ['facesScaling'],
+          'Die Grows With Granter Level',
+          () => ROLLED_DIE_FACES_SCALING_NODE_MAP,
+          { presentation: 'inline', showIf: and([isRolledDie, not(isDamageDie)]) }
         )
       )
       .set(
@@ -1412,6 +1474,7 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('ATTACK_TRAIT'),
             local.field(['valueDomainCode']).eq('CRITICAL_HIT_THRESHOLD'),
             local.field(['valueDomainCode']).eq('CRITICAL_EXTRA_DICE'),
+            local.field(['valueDomainCode']).eq('DAMAGE_DIE_REROLL'),
             local.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             local.field(['valueDomainCode']).eq('SAVING_THROW_MODIFIER'),
             local.field(['valueDomainCode']).eq('SKILL_MODIFIER'),
@@ -1421,7 +1484,8 @@ export const MODIFIER_GRANT_NODE_MAP = modifierGrant.define(
             local.field(['valueDomainCode']).eq('SENSE_RANGE'),
             local.field(['valueDomainCode']).eq('DAMAGE'),
             local.field(['valueDomainCode']).eq('SPELL_SLOT_COUNT'),
-            local.field(['valueDomainCode']).eq('HEALING_DEALT')
+            local.field(['valueDomainCode']).eq('HEALING_DEALT'),
+            local.field(['valueDomainCode']).eq('CONCENTRATION_CAPACITY')
           ])
           // Note: CONDITION_IMMUNITY uses payload conditionTypeId only — no domain params needed
         })

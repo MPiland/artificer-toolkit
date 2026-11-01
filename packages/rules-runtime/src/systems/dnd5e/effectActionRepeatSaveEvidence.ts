@@ -1,4 +1,5 @@
 import type {
+  ActiveEffectSaveTally,
   ActiveEffectSaveThresholds,
   ActiveRuleEffectLifecycleDto
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
@@ -18,6 +19,7 @@ import {
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   Dnd5eEffectActionCompilerError
 } from './effectActionContracts.js'
+import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 import { repeatSaveConditionIds } from './effectActionEvidenceChecks.js'
 import { isDnd5eTestOutcomeRule, dnd5eTestResultPath } from './effectActionOperationRegistry.js'
 
@@ -79,13 +81,25 @@ export function repeatedFollowUpSaveResultPath(input: {
   const attemptAllowed = gated
     ? input.execution.evidence.facts[DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY]
     : true
+  // A source-turn follow-up save may add GM rulings, each gated on its failure; nothing else may follow.
+  const rulingNodes = input.graph.nodes.slice(3)
+  const rulingOperationKey = dnd5eOutcomeDefinition('MANUAL_ADJUDICATION').pathGatedOperationKey
+  const rulingNodeIds = new Set(rulingNodes.map(({ id }) => id))
   if (
-    input.graph.nodes.length !== 3 ||
+    input.graph.nodes.length < 3 ||
+    !rulingNodes.every(
+      (node) =>
+        /^manual_adjudication-\d+$/.test(node.id) &&
+        node.operation.key === rulingOperationKey &&
+        node.inputs.authoredPath?.kind === 'LITERAL' &&
+        node.inputs.authoredPath.value === 'ON_SAVE_FAIL'
+    ) ||
+    input.execution.evidence.trace.length < 3 ||
+    !input.execution.evidence.trace.slice(3).every(({ nodeId }) => rulingNodeIds.has(nodeId)) ||
     input.graph.nodes[0]?.id !== d20NodeId ||
     input.graph.nodes[0]?.operation.key !== d20OperationKey ||
     input.graph.nodes[2]?.id !== input.definition.frozenGraphNodeId ||
     input.graph.nodes[2]?.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
-    input.execution.evidence.trace.length !== 3 ||
     d20Trace?.nodeId !== d20NodeId ||
     d20Trace.operation.key !== d20OperationKey ||
     d20Trace.inputs.min !== 1 ||
@@ -162,4 +176,29 @@ export function repeatedFollowUpSaveResultPath(input: {
 
 export function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
+}
+
+/** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
+export function countRepeatSave(
+  thresholds: ActiveEffectSaveThresholds,
+  before: ActiveEffectSaveTally | undefined,
+  path: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+): ActiveEffectSaveTally {
+  const { successes, failures } = before ?? { successes: 0, failures: 0 }
+  return path === 'ON_SAVE_SUCCESS'
+    ? { successes: successes + 1, failures: thresholds.consecutive ? 0 : failures }
+    : { successes: thresholds.consecutive ? 0 : successes, failures: failures + 1 }
+}
+
+/** Whether the tally has reached the successes that end the effect, or the failures that escalate it. */
+export function tallyEnds(
+  thresholds: ActiveEffectSaveThresholds,
+  tally: ActiveEffectSaveTally | undefined,
+  escalates: boolean
+) {
+  return (
+    tally !== undefined &&
+    (tally.successes >= thresholds.successesToEnd ||
+      (escalates && tally.failures >= thresholds.failuresToResolve))
+  )
 }

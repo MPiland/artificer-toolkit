@@ -531,6 +531,17 @@ spell _and_ every held spell, so the holder keeps another Concentration only for
 the maintained-state descriptor's optional `spellLevel` (absent when no spell cast started the state, which never
 satisfies a level requirement). A Creature stays at 1.
 
+**Capacity with limited uses (current, SPELLS-12.T2b).** A `CONCENTRATION_CAPACITY` `BONUS` whose domain names a
+`usesChargeId` (the item's or feature's authored charge, so its recovery is the existing `resetKind`) is also listed in
+`gatedConcentrationCapacity`, with its `chargeId`, and is left out of the stat. `concentrationCapacityForCast` counts
+it only when the holder already keeps the capacity everything else gives and `affordablePoolFor` finds a resolved pool
+with a use left: the result's `use` names that pool. The Worker then settles the spend through the cast's one
+`resourceConsumption` slot (`settledCharacterActionSpend`, as the on-hit pool rider does), so a cast that already
+spends a pool or a slot-modifier, and the on-hit rider beside it, never take the room: that cast replaces as before.
+The holder may instead name a held state to end (`endedMaintainedStateId`), which spends nothing. Casts the
+Worker does not settle (`allowCapacityUses` unset: area, reaction and movement paths) never spend a use, so they
+replace. Automation `MANUAL` checks the pool but writes no spend.
+
 **Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
 save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
 each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
@@ -1629,9 +1640,13 @@ die is recorded on the rolled die as `spentEffectId`, so the commit ends the eff
 window without a `trigger`. Saves governed by sight skip the window (deferred edge). The nested OUTCOME save, area, movement-reaction and
 spatial saves are T4c1b3/T4c1b4; folding the Legendary Resistance pause into the window is T4c1b5.
 
-**d20 window on the area save (SPELLS-31.T4c1b4, current).** A caught creature whose `ENCOUNTER_AREA_ACTION` save is sealed with `saveWindow` (per-target `ENCOUNTER_ACTION` snapshot) and who holds `AFTER_ROLL` saving-throw dice keeps its roll as `rolledJson` (ENTER_DICE faces; an auto-roll is stored the same way) instead of settling it. Once every save is rolled, `nextEncounterAreaWindowRequestId` picks the rolled holder acting earliest (`initiativeActionOrder`: turn order, owned actors behind their owner) and `openEncounterAreaSaveWindow` swaps that target's snapshot for its `D20_WINDOW` snapshot, one window at a time; the settled `{kind:'D20_WINDOW', d20}` answer is stored in `testedJson`, so the commit replays the faces and never re-rolls. `encounterAreaSaveAwaiting` says whether a target waits on a `ROLL` or a `WINDOW`; the `AREA_SAVES` summary projects `windows` beside `saves`. The commit ends spent dice through `windowSpentEffects`. Struck collision saves (D159) are never windowed; zone and forced-movement saves stay system-rolled (D170); the movement-reaction save is T4c1b4b.
+**d20 window on the area save (SPELLS-31.T4c1b4, current).** A caught creature whose `ENCOUNTER_AREA_ACTION` save is sealed with `saveWindow` (per-target `ENCOUNTER_ACTION` snapshot) and who holds `AFTER_ROLL` saving-throw dice keeps its roll as `rolledJson` (ENTER_DICE faces; an auto-roll is stored the same way) instead of settling it. Once every save is rolled, `nextEncounterAreaWindowRequestId` picks the rolled holder acting earliest (`initiativeActionOrder`: turn order, owned actors behind their owner) and `openEncounterAreaSaveWindow` swaps that target's snapshot for its `D20_WINDOW` snapshot, one window at a time; the settled `{kind:'D20_WINDOW', d20}` answer is stored in `testedJson`, so the commit replays the faces and never re-rolls. `encounterAreaSaveAwaiting` says whether a target waits on a `ROLL` or a `WINDOW`; the `AREA_SAVES` summary projects `windows` beside `saves`. The commit ends spent dice through `windowSpentEffects`. Struck collision saves (D159) are never windowed; zone and forced-movement saves stay system-rolled (D170); the movement-reaction save is T4c1b4b (below).
+
+**d20 window on the movement-reaction save (SPELLS-31.T4c1b4b, current).** The mover rolls the save a reaction makes it take (ADR 0034 decision 3), so when it holds `AFTER_ROLL` saving-throw dice the reaction's TEST save pauses in a `D20_WINDOW`. The reaction mechanics are prepared with `saveWindow`, so the save graph allows for the held die, and `movementReactionSaveWindow` hands the mover's dice to `advanceNativeActionGraphs`. The pause is retained on the `ACTION_EVIDENCE` phase (`phase.pause`, valid only with `d20Policy: null` and a TEST `twoPhase`) and projects as the mover's `D20_WINDOW` pending; `D20_WINDOW_USE`/`D20_WINDOW_DECLINE` are movement-reaction evidence commands whose `requestId` is the sealed window request. `executeEncounterMovementReactionAction` settles the answer (`settleEncounterD20Window`) into `{kind:'D20_WINDOW', d20}` and resumes the TEST; the replay path reads the retained save d20 off the snapshot's pause (`retainedD20Evidence({pause})`) and re-answers a window from the retained receipt's `addedDice` (`windowAnswerForRetainedEvidence`). The reaction effect plan ends the spent die with the reaction (`windowSpentEffects`). Legendary Resistance after a window-spent save is T4c1b5.
 
 **D168 window on the Sheet roll path (SPELLS-31.T4c1c, current).** `carriedTestDice` returns `afterRollOffers` beside `addedDice` and `spent`; `createRollRecord` stores them on the roll record and `withAfterRollDie` / `withoutAfterRollOffers` amend it. The apps layer (`rollDocuments.ts`) owns authorization and the holder-effect end; no pause object exists, since a Sheet roll is a single mutation. Only the latest retained roll can take a die.
+
+**Scaled rolled die (SPELLS-31.T4c2, current).** An `ADD_BONUS_DIE` payload may carry `facesScaling: { classId, levels: [{ level, faces }] }`, a die that grows with the granting creature's level in one class (Bardic Inspiration's d6 to d12). `prepareRecurringActiveEffect` settles it when the grant is applied (`bindFacesScaling`, beside `bindTriggerDamageTypes`): `faces` becomes the row `selectScalingRow` picks for `sourceClassLevels[classId]` (the base `faces` when the granter has no level in that class or none is reached) and the field is dropped, so the stored grant is a plain `{ count, faces, sign, timing }` and a later level-up changes nothing. `activeRolledDieGrants` throws on a stored payload that still carries `facesScaling`. Nothing names a feature: the SRD Bardic Inspiration is a bonus-action `ACTION` effect (`resourceUse` its charge, 60 ft, one creature other than the user, 10 minutes) whose two `AFTER_ROLL` grants (ability check, saving throw) spend through the existing D168 windows; the `CLASS_BARD_BARDIC_INSPIRATION` closed rule is deleted. **Gap:** attack rolls have no D168 window yet (the follow-up growth task); Bardic Inspiration adds an `ATTACK_ROLL` grant of the same shape when it lands, and until then the SRD text's attack-roll use is not offered.
 
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
@@ -1947,6 +1962,17 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   `domainKey`) adds the cast level. A cantrip, a non-spell action and temporary hit points get nothing. The bonus is the caster's, so it is
   resolved with the cast and not per target.
 
+- **Defeat temporary hit points (SPELLS-31.T4i2, D156/D203).** A `DEFEAT_TEMPORARY_HIT_POINTS` `BONUS` modifier gives its holder temporary hit
+  points when the holder's own action reduces a hostile creature to 0 hit points (Dark One's Blessing: Charisma modifier + warlock level, at
+  least 1). `encounterDefeatReward.ts` holds the pure pieces: `reducedToZeroHitPoints` reads a receipt (never mirrored damage),
+  `defeatTemporaryHitPoints` folds the holder's `modifierGroups` and `defeatRewardMechanicsBatch` builds one `TEMPORARY_HIT_POINTS`
+  application that keeps the higher pool (phase `DEFEAT_REWARD`). No Convex function executes Encounter commands, so the room is the single
+  settlement path and covers spell and weapon damage alike: `applyRoomEncounterMechanicsBatch` takes the root action's `damagerActorId` (the
+  action's actor, or a Cleaving response's source), `collectDefeatReward` records a hostile defeat, and `settleDefeatRewards` gives the killer
+  its reward fresh, as a post-settlement step beside `settleDamageMirrors` (`settleFollowUps` in `roomEncounterCommands.ts`);
+  `RoomEncounterStore.transact` fails a command that collected a reward it never settled. A reward that landed marks the root `damageMirrored`,
+  so undo of it is a typed refusal. Turn and zone damage have no damager and reward nothing.
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a
@@ -2143,7 +2169,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
   (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
   the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
-  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). A damage `RESISTANCE`, `IMMUNITY` or
+  `VULNERABILITY` grant restricted by a holder-state predicate is deferred the same way and joins `defenses` through
+  `withHolderStateDefenses` (SPELLS-12.T4). `HOLDER_CONCENTRATION_COUNT { min, max? }` holds while the holder keeps that many
+  Concentrations (`EncounterHolderState.heldConcentrationCount`, read from the maintained states by `readHeldConcentrationCount`,
+  and in the session worker from a `MAINTENANCE_STATES` capture): the double-Concentration ring's psychic vulnerability is an
+  ordinary modifier read where modifiers are read, so it ends with whichever Concentration ends and needs no timed grant.
+  Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true
@@ -2748,7 +2780,19 @@ or `SAVE_DISADVANTAGE` (Heightened Spell: disadvantage on the named creature's f
 `CAST_MODIFIER` disadvantage contributor to the save of the effect's ability, or lists that ability in
 `conditionOutcomeRules.saveAutoSucceeds` (the existing `SAVE_AUTO_SUCCESS` test-outcome rule). A condition that fails the save unrolled
 wins over a paid success. The command is sealed in the area pending context, so each creature's outcome is fixed at cast. Gap: the roll
-card does not annotate an auto-succeeded save. Twinned stays a follow-on task.
+card does not annotate an auto-succeeded save.
+
+**Cast modifier further targets (SPELLS-31.T5g3, current).** `targets.outcome: 'EXTRA_TARGET'` (Twinned Spell) adds `base` creatures to a
+spell that aims at one creature: `aimsAtOneCreature` (no shape, range not Self, targeting absent or SINGLE_TARGET) gates the offer in
+`buildCharacterSpellCastActions`, so a list, area or Self spell never offers it. A modifier's `perSpellLevel` multiplies its `cost` by the cast
+level (`castModifierCostAtLevel`, minimum 1 for a cantrip). The seam is `prepareEncounterActionSource`: given the chosen `castModifierId` it
+derives a `targetPolicy` whose targeting is `CHOSEN_CREATURES` with `maxTargets = 1 + max`, so the cast runs through the existing `ACTORS`
+path (`planNativeLiveEncounterActorsAction`) with each creature still held to the spell's single-target requirements (`creatureTargeting`).
+The client sends the primary and further creatures as `target.kind: 'ACTORS'` without `castModifierActorIds`; the room refuses fewer creatures
+than paid for. Twinned Spell is authored from core options only (`gmRulingEffect` + `castModifier`), and the `CLASS_SORCERER_METAMAGIC_TWINNED`
+closed kind is deleted.
+
+**Cast modifier parameters (SPELLS-31.T5h, current).** A `castModifier` may author `parameters`, a discriminated union on `parameter` (schema `castModifierParameterDtoSchema`) that changes the cast itself. Only `RANGE` ships: `{ multiplier >= 2, touchDistance }`. `castModifierRange` (rules-runtime `characterCastModifiers.ts`) is the one rule: a DISTANCE range multiplies `amount` and `longAmount`, TOUCH becomes a DISTANCE of `touchDistance`, and any other kind (SELF, SIGHT, SPECIAL, UNLIMITED) returns null. The offer filters on it (a spell it cannot change is not offered the modifier) and echoes the parameters on `castModifiers[]`. `prepareEncounterActionSource` resolves `castModifierId` for both the single-target and the area paths: an id not in the candidate's offers, or one whose range returns null, throws `EncounterValidationError`, and otherwise the returned `targetPolicy.range` is the replaced range. Distant Spell is authored this way. Duration (Extended) and activation (Quickened) parameters are deferred (T5h-2, T5h-3); their closed rule kinds remain until then.
 
 **Sparing creatures (SPELLS-16, current).** A passive Effect's authorable `sparesCreatures` (`base`, `plusSpellLevel`, `magicSchoolIds`; the
 Evocation wizard's Sculpt Spells is `1 + spell level` for evocation spells) gives a cast candidate `sparesCreatures: { max }`, summed
@@ -3586,3 +3630,5 @@ ownership and frozen acceptance. Implementers decide ordinary internal details. 
 is in the repository root `AGENTS.md`.
 
 **Critical hit rules (SPELLS-31.T5d, D158).** Two modifier domains change an attack's critical hits: `CRITICAL_HIT_THRESHOLD` (`CAP_VALUE`, the lowest natural d20 that crits, default 20, lowest source wins) and `CRITICAL_EXTRA_DICE` (`BONUS`, extra rolls of the attack's own damage die, so a crit rolls `2n + k`). Both carry an `attackDomain`; Improved and Superior Critical grant the first for melee, ranged and unarmed attacks, Brutal Critical grants the second for melee at Barbarian levels 9, 13 and 17. A Character reads accepted grants (`dnd5eAttackCriticalRules`), a Creature reads its held effects (`activeAttackCriticalRules`); Encounter prep passes the result as the `attackCriticalRules` source fact. The attack test operation (contract version 4) takes a required `criticalThreshold`, and commit-time verification checks it against the evidence fact. A roll at or above it is `ON_CRIT` whatever the target's AC; a natural 1 always misses. Added damage dice (D156) still only double.
+
+**Damage die rerolls (SPELLS-31.T5e).** A third modifier domain, `DAMAGE_DIE_REROLL` (`SET_VALUE`, `attackDomain`, payload `amount`), names the highest face an attack's own hit damage dice roll once more (Great Weapon Fighting: 2, melee, restricted to a two-handed grip). It is authored data, so a homebrew variant is another amount, not a code path. `attackCriticalRules` carries it as the optional `damageRerollAtOrBelow` (the highest amount wins); Encounter prep passes it in the same source fact and the compiler emits `dnd5e.damage-die-reroll`. For the attack's ON_HIT or ON_CRIT hit damage, `rolledDiceNodes` then adds per die a `number.at-or-below-threshold` check, a second dice evidence node enabled by that check and a `number.select` that keeps the new roll, so the reroll is automatic, never a choice, and the original and the new die are both in the trace and on the roll card. Added dice (D156), authored ON_CRIT riders and save damage keep their dice. Empowered Spell is not built on this domain (a cast-time choice with a resource cost).
