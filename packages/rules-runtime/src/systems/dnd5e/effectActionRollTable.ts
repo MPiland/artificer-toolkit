@@ -317,9 +317,7 @@ function rollTableGraphDefinition(
       table.rows[run.rowIndexes[run.rowIndexes.length - 1] ?? 0]?.max ?? 0
     )
     const rolled = rolledDiceNodes(run.term, prefix, {
-      kind: 'NODE_OUTPUT',
-      nodeId: gate.id,
-      port: 'authorized'
+      enabled: { kind: 'NODE_OUTPUT', nodeId: gate.id, port: 'authorized' }
     })
     const multiplied = multipliedDamage(`${prefix}multiplied`, rolled.subtotal, run.multiplier)
     return {
@@ -414,9 +412,7 @@ function rollTableGraphDefinition(
 /** A damage outcome's own dice, asked for only when its row's gate authorizes them. */
 function rowDamageDice(id: string, gateId: string, term: BoundedDiceTerm, multiplier: number) {
   const rolled = rolledDiceNodes(term, `${id}-`, {
-    kind: 'NODE_OUTPUT',
-    nodeId: gateId,
-    port: 'authorized'
+    enabled: { kind: 'NODE_OUTPUT', nodeId: gateId, port: 'authorized' }
   })
   const multiplied = multipliedDamage(`${id}-multiplied`, rolled.subtotal, multiplier)
   return { amount: multiplied.amount, nodes: [...rolled.nodes, ...multiplied.nodes] }

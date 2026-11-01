@@ -82,9 +82,7 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceOutcome, saves
   const totalNodeId = `${prefix}total`
   const { term, modifier } = boundedDiceTerm(outcome.diceConfig)
   const dice = rolledDiceNodes(term, prefix, {
-    kind: 'NODE_OUTPUT',
-    nodeId: enabledNodeId,
-    port: 'authorized'
+    enabled: { kind: 'NODE_OUTPUT', nodeId: enabledNodeId, port: 'authorized' }
   })
   const totalNodes =
     modifier === 0

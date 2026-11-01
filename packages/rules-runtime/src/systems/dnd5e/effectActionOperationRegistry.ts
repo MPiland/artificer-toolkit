@@ -7,6 +7,8 @@ import {
   RULE_VALUE_KIND,
   addNumbersRuleOperation,
   addedDiceTotalEvidenceRuleOperation,
+  atOrBelowThresholdRuleOperation,
+  selectNumberRuleOperation,
   type GameSystemRuleCapabilityContract,
   type ProposalRuleOperationContract,
   type PureRuleOperationContract,
@@ -89,6 +91,7 @@ import {
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
+  DND5E_DAMAGE_DIE_REROLL_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_CHALLENGE_RATING_FACT_KEY,
@@ -1335,6 +1338,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_TEST_OUTCOME_RULE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     { key: DND5E_CRITICAL_EXTRA_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
+    { key: DND5E_DAMAGE_DIE_REROLL_FACT_KEY, valueKind: RULE_VALUE_KIND.NUMBER },
     {
       key: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
       valueKind: RULE_VALUE_KIND.TEXT
@@ -1419,6 +1423,8 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     'evidence.optional-integer-range',
     addedDiceTotalEvidenceRuleOperation.key,
     addNumbersRuleOperation.key,
+    atOrBelowThresholdRuleOperation.key,
+    selectNumberRuleOperation.key,
     REACTION_CHOICE_OPERATION_KEY,
     DND5E_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
