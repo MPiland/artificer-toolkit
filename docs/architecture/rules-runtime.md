@@ -519,8 +519,21 @@ with several held, the state the command's `endedMaintainedStateId` names, or el
 `MaintainedReplacementRequiredError`, which the Worker answers as a `MAINTAINED_REPLACEMENT_REQUIRED`
 domain rejection carrying the held states (`heldStates`, with the label of what each keeps alive) so the
 caster chooses before the spell takes effect. Persistence reads the prior from the receipt by id.
-Interim: damage-save chains and the other single-state consumers act on the oldest held state, and carried
-grants (D99) still end on any new Concentration.
+Carried grants (D99) are one more Concentration of the caster's: they end when the new one replaces a
+state or leaves no room beside them (`held + 1 >= capacity`), and the receipt's `endedCarriedGrants` is the
+one list persistence settles.
+
+**Concentration saves per spell (current, SPELLS-12.T3a, D95).** Damage owes a holder one Concentration
+save for each state it holds. `concentrationSaveApplications` emits one bound chain entry per held state;
+each carries `maintainedStateId` and `castAt` (the state's `createdAt`), and the chain orders them by damage
+ordinal, save source, then `castAt`, then state id (`compareDamageSaveApplications`), so a holder's saves
+run in casting order. The pending context pins the answered state's `createdAt`, persistence re-derives
+`remaining` from every held state and checksums it against the context, and a failed save ends only its own
+state, its dependents and the later entries bound to it. `concentrationOccurrenceId` names the state, so
+two saves for one damage get distinct child occurrences. Incapacitation or defeat (D95) ends every state
+the holder keeps, each as its own `CONCENTRATION_END`, with no save. The movement chain still binds one
+state per holder (`MAINTENANCE_SLOT`, the oldest); a movement contact on a holder with several
+Concentrations is a documented residual.
 
 ## Assisted soft enforcement and GM undo (current, ADR 0034 decision 2)
 

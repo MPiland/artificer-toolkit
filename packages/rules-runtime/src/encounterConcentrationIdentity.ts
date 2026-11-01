@@ -9,8 +9,9 @@ import {
 // Retains the established deterministic child/command identity from the prior backend.
 const concentrationNamespace = 'd4b06f4e-c014-49b6-8e39-3a2c790f8d57'
 /**
- * One damage-triggered save child per application, holder and source; an effect's repeat save and a
- * massive-damage save also name what they check, so each offering effect or rule gets its own child.
+ * One damage-triggered save child per application, holder and source; a Concentration check, an
+ * effect's repeat save and a massive-damage save also name what they check, so each held state,
+ * offering effect or rule gets its own child. A bare application (movement, one state) names none.
  */
 export function concentrationOccurrenceId(
   parentOccurrenceId: string,
@@ -19,9 +20,9 @@ export function concentrationOccurrenceId(
   const base = `${parentOccurrenceId}:${application.ordinal}:${application.sourceNodeId}:${application.sourceOperationKey}:${application.targetActorId}`
   const binding = damageSaveBinding(application)
   const suffix =
-    binding === null || binding.source === 'CONCENTRATION'
+    binding === null
       ? 'concentration-damage-check'
-      : `${binding.id}:${binding.source === 'EFFECT_REPEAT_SAVE' ? 'effect-repeat-save' : 'massive-damage-save'}`
+      : `${binding.id}:${binding.source === 'CONCENTRATION' ? 'concentration-damage-check' : binding.source === 'EFFECT_REPEAT_SAVE' ? 'effect-repeat-save' : 'massive-damage-save'}`
   return uuidv5(`${base}:${suffix}`, concentrationNamespace)
 }
 /**
@@ -33,7 +34,7 @@ export function damageSaveContextBoundApplication(
     | {
         source: 'CONCENTRATION'
         application: ConcentrationDamageApplicationDto
-        maintainedState: { id: string }
+        maintainedState: { id: string; createdAt: string }
       }
     | {
         source: 'EFFECT_REPEAT_SAVE'
@@ -48,7 +49,11 @@ export function damageSaveContextBoundApplication(
 ): DamageSaveApplicationDto {
   switch (context.source) {
     case 'CONCENTRATION':
-      return { ...context.application, maintainedStateId: context.maintainedState.id }
+      return {
+        ...context.application,
+        maintainedStateId: context.maintainedState.id,
+        castAt: context.maintainedState.createdAt
+      }
     case 'EFFECT_REPEAT_SAVE':
       return { ...context.application, activeEffectId: context.activeEffect.id }
     case 'MASSIVE_DAMAGE':
