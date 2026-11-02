@@ -174,13 +174,15 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
  * action tiered on hit points carries one plan per tier; the target's current hit points pick it.
  * An action whose result is a roll table carries one plan per row that holds an effect; the
  * table's roll, an output of the settled execution, picks it. Read before the execution settles
- * (`outputs` omitted), a row plan cannot be picked.
+ * (`outputs` omitted), the roll is not known and every row plan is a candidate. A table that rolls
+ * itself again lands in more than one row, so a target can hold the plans of every row it landed in
+ * (`rollTableLanded`).
  */
-export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
+export function encounterActiveEffectPlans<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
   published: CompleteExecution['published'],
   outputs?: CompleteExecution['execution']['outputs']
-) {
+): readonly CharacterRuleActionActiveEffectPlan[] {
   const plans: readonly CharacterRuleActionActiveEffectPlan[] =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? [
@@ -192,13 +194,12 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
           published
         }) ?? [])
   if (plans.some((plan) => plan.rollTableRow)) {
-    if (!outputs) throw new Error('Encounter action roll-table plans need the settled roll.')
-    const roll = outputs.rollTableRoll
-    return (
-      plans.find(
-        ({ rollTableRow: row }) =>
-          row && typeof roll === 'number' && roll >= row.min && roll <= row.max
-      ) ?? null
+    if (!outputs) return plans
+    const { rollTableLanded, rollTableRoll } = outputs
+    const faces =
+      typeof rollTableLanded === 'string' ? rollTableLanded.split(',').map(Number) : [rollTableRoll]
+    return plans.filter(({ rollTableRow: row }) =>
+      faces.some((face) => row && typeof face === 'number' && face >= row.min && face <= row.max)
     )
   }
   const tiers =
@@ -208,12 +209,15 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   if (tiers.length > 0) {
     const target = prepared.movementTargets.get(prepared.target.id)
     if (!target) throw new Error('Encounter action effect target is stale.')
-    return selectHitPointTierPlan(tiers, plans, target.state.current)
+    const tiered = selectHitPointTierPlan(tiers, plans, target.state.current)
+    return tiered ? [tiered] : []
   }
-  if (prepared.source.kind === 'CHARACTER_ACTION')
-    return prepared.source.entry.compilation.activeEffectPlan
+  if (prepared.source.kind === 'CHARACTER_ACTION') {
+    const { activeEffectPlan } = prepared.source.entry.compilation
+    return activeEffectPlan ? [activeEffectPlan] : []
+  }
   if (plans.length > 1) throw new Error('Encounter action selected multiple active-effect plans.')
-  return plans[0] ?? null
+  return plans
 }
 
 /** A Creature snapshot's size, else null. */
@@ -245,9 +249,7 @@ export function encounterActorEffectiveSize(
     : null
 }
 
-export function prepareNativeActionEffectsPlan<
-  TCharacterFacts extends CharacterActionMovementFacts
->(input: {
+type NativeActionEffectsInput<TCharacterFacts extends CharacterActionMovementFacts> = {
   prepared: PreparedMechanics<TCharacterFacts>
   /** The settled graph run; a contest win supplies its own d20 and no applications. */
   execution: Pick<CompleteExecution, 'published' | 'execution' | 'd20' | 'applications'>
@@ -273,13 +275,56 @@ export function prepareNativeActionEffectsPlan<
     record: Parameters<typeof planSpatialHeldCondition>[0]['zone']
     maintenance: CompiledActionZonePlacement['maintenance']
   }
-}) {
-  const { prepared, execution } = input
-  const plan: CharacterRuleActionActiveEffectPlan | null = encounterActiveEffectPlan(
-    prepared,
-    execution.published,
-    execution.execution.outputs
+}
+
+/**
+ * The effects one outcome leaves on its target. A roll table that landed in several rows (a ray
+ * struck the target twice) holds one plan per row: each plan makes its own effect from the same
+ * settled cast, and the effects beyond the first ride beside it as riders, unlinked, since the rows
+ * share nothing (a row's plan carries no rider of its own, and its effect ends on its own terms).
+ */
+export function prepareNativeActionEffectsPlan<
+  TCharacterFacts extends CharacterActionMovementFacts
+>(input: NativeActionEffectsInput<TCharacterFacts>) {
+  const plans = encounterActiveEffectPlans(
+    input.prepared,
+    input.execution.published,
+    input.execution.execution.outputs
   )
+  const [first = null, ...rest] = plans
+  const lead = prepareNativeActionEffectsForPlan(input, first)
+  if (rest.length === 0) return lead
+  const all = [lead, ...rest.map((plan) => prepareNativeActionEffectsForPlan(input, plan))]
+  const leadIndex = Math.max(
+    0,
+    all.findIndex(({ recurringEffect }) => recurringEffect)
+  )
+  const primary = all[leadIndex]!
+  const beside = all.flatMap((effects, index) => {
+    if (effects.riderEffects.some(Boolean))
+      throw new Error('A roll-table row plan carries no riders.')
+    return index !== leadIndex && effects.recurringEffect ? [effects.recurringEffect] : []
+  })
+  const recurringEffect = primary.recurringEffect
+  return {
+    ...primary,
+    riderEffects: beside,
+    hitPointMaximumRaise: createdHitPointMaximumRaise(
+      [primary.stateEffect, recurringEffect, ...beside].flatMap((effect) =>
+        effect ? [effect] : []
+      )
+    ),
+    relationshipConditionApplications: all.flatMap(
+      ({ relationshipConditionApplications }) => relationshipConditionApplications
+    )
+  }
+}
+
+function prepareNativeActionEffectsForPlan<TCharacterFacts extends CharacterActionMovementFacts>(
+  input: NativeActionEffectsInput<TCharacterFacts>,
+  plan: CharacterRuleActionActiveEffectPlan | null
+) {
+  const { prepared, execution } = input
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))
     throw new Error('Encounter action effect target is stale.')

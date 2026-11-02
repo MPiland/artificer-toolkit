@@ -544,7 +544,14 @@ function rollTableGraphDefinition(
       rollTableRoll:
         repeat && firstFace !== undefined
           ? { kind: 'LITERAL' as const, value: firstFace }
-          : roll.subtotal
+          : roll.subtotal,
+      // A repeat table lands in every row its rolls reached; each row's plan is held beside the others.
+      ...(repeat && {
+        rollTableLanded: {
+          kind: 'LITERAL' as const,
+          value: gated.map(({ face }) => face).join(',')
+        }
+      })
     },
     // Each outcome binds to its own compiled entry: a row's outcomes share the row's entryId, and
     // a row that two rolls landed in binds once.

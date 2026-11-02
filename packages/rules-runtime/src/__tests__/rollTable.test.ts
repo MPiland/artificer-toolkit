@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type { CreatureAuthored, SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { divineWord } from '@artificer-toolkit/source-data/srd/spells/divine-word.js'
 import { prismaticSpray } from '@artificer-toolkit/source-data/srd/spells/prismatic-spray.js'
@@ -12,6 +12,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { MAX_ACTIVE_EFFECT_TURNS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
+import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
@@ -22,8 +23,14 @@ import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
 } from '../testing/characterActionDescriptor.js'
-import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { compiledTestSpellCast } from '../testing/plannedTimedCondition.js'
+import {
+  prepareCreatureAction,
+  settleCreatureAction,
+  srdAbilityId
+} from './encounterCreatureAction.js'
 
 /**
  * ATTACK-16.T1a: an authored ROLL_TABLE path runs in its OUTCOME phase. The table die is rolled
@@ -736,7 +743,7 @@ describe('a roll table row that rolls the table again (SPELLS-4.T2ps-d1)', () =>
 
   describe('on Prismatic Spray', () => {
     const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
-    // Rows 6 and 7 last, which waits on SPELLS-4.T2ps-d2; they owe nothing here.
+    // Rows 6 and 7 are emptied: this block proves the rerolled rays alone.
     const spray = sprayWithRowsEmptied((order) => order === 6 || order === 7)
     const sprayCast = (dc: number) =>
       cast(spray, {
@@ -766,6 +773,119 @@ describe('a roll table row that rolls the table again (SPELLS-4.T2ps-d1)', () =>
         { kind: 'DAMAGE', requestedAmount: 15 }
       ])
       expect(saved.rolled).toEqual(rolledDice)
+    })
+  })
+})
+
+describe('a target struck by two rows that last (SPELLS-4.T2ps-d2)', () => {
+  const FEATURE_ID = testUuid(0xa1a0)
+  const SOURCE_ID = testUuid(0xa1a1)
+  const HOLDER_ID = testUuid(0xa1a2)
+  const ROWS = [
+    row(1, [1, 2], [blinded], { duration: ONE_ROUND }),
+    row(2, [3, 4], [deafened], { duration: ONE_ROUND }),
+    row(3, [5, 5], [fixedFire]),
+    repeatRow(6, 2, [6])
+  ]
+  /** An ogre whose feature is the spell's one Effect, a Wisdom save or the spell's own. */
+  function tableOgre(spell: SpellAuthored, save?: { baseDc: number }): CreatureAuthored {
+    const ogre = srdByLabel(SRD.creatures, 'Ogre')
+    const [effect] = spell.effects!
+    return {
+      ...ogre,
+      features: [
+        ...ogre.features,
+        {
+          id: FEATURE_ID,
+          label: 'Prism Ray',
+          description: 'Homebrew table feature.',
+          order: 99,
+          effects: [
+            {
+              ...effect!,
+              invocation: save
+                ? {
+                    ...effect!.invocation,
+                    savingThrow: {
+                      id: testUuid(0xa1a3),
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: srdAbilityId('WISDOM'),
+                      baseDc: save.baseDc
+                    }
+                  }
+                : effect!.invocation
+            }
+          ]
+        }
+      ]
+    }
+  }
+  /** The ray at an Ogre whose save d20 and table dice take the 0-based faces given, in order. */
+  async function ray(
+    rolls: readonly number[],
+    spell = tableSpell({ rows: ROWS }),
+    save: { baseDc: number } | undefined = { baseDc: UNSAVEABLE_DC }
+  ) {
+    const prepared = await prepareCreatureAction({
+      actor: srdCreatureActor({ id: SOURCE_ID, creature: tableOgre(spell, save) }),
+      target: srdCreatureActor({ id: HOLDER_ID, creature: srdByLabel(SRD.creatures, 'Ogre') }),
+      featureId: FEATURE_ID,
+      overridable: true
+    })
+    const { execution } = await settleCreatureAction({ prepared, rolls })
+    return prepareNativeActionEffectsPlan({
+      prepared,
+      execution,
+      occurrenceId: testUuid(0xa1a4),
+      commandId: testUuid(0xa1a5),
+      activeEffectsByActorId: new Map()
+    })
+  }
+  const heldConditions = (effects: Awaited<ReturnType<typeof ray>>) =>
+    [effects.recurringEffect, ...effects.riderEffects].flatMap((effect) =>
+      effect
+        ? effect.definition.stateContributions.flatMap((contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' ? [contribution.conditionId] : []
+          )
+        : []
+    )
+
+  it('holds the effect of each row the rolls landed on, side by side', async () => {
+    // Save fails; the die lands on 6; its two extra rays land on faces 1 and 3.
+    const effects = await ray([0, 5, 0, 2])
+    expect(heldConditions(effects)).toEqual([BLINDED, DEAFENED])
+    expect(effects.riderEffects).toHaveLength(1)
+  })
+
+  it('holds one effect when both rays land on the same row', async () => {
+    const effects = await ray([0, 5, 0, 1])
+    expect(heldConditions(effects)).toEqual([BLINDED])
+    expect(effects.riderEffects).toEqual([])
+  })
+
+  it('holds the row that lasts beside a row that damages', async () => {
+    const effects = await ray([0, 5, 2, 4])
+    expect(heldConditions(effects)).toEqual([DEAFENED])
+  })
+
+  it('holds the one effect of a die that lands on a row, rolling no rays', async () => {
+    const effects = await ray([0, 3])
+    expect(heldConditions(effects)).toEqual([DEAFENED])
+  })
+
+  describe('on Prismatic Spray', () => {
+    it('plans indigo and violet on their own faces, so the authored spell compiles', () => {
+      const plans = castCompilation(prismaticSpray).rollTableRowPlans ?? []
+      expect(plans.map((plan) => plan.rollTableRow)).toEqual([
+        { min: 6, max: 6 },
+        { min: 7, max: 7 }
+      ])
+    })
+
+    it('holds the restraint and the blindness of a target both rays struck', async () => {
+      // The save fails (a natural 1); the die lands on 8; its rays land on 6 and 7.
+      const effects = await ray([0, 7, 5, 6], prismaticSpray, undefined)
+      expect(heldConditions(effects)).toEqual([RESTRAINED, BLINDED])
     })
   })
 })

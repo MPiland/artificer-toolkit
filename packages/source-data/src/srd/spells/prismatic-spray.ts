@@ -183,7 +183,7 @@ export const prismaticSpray: SpellAuthored = {
               rollValue: 7,
               resolutionKind: 'RESULT' as const,
               resultBlock: {
-                id: `${spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x220, 7)}__result`,
+                id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x221, 7),
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
