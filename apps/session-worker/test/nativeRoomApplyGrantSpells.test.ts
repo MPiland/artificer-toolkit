@@ -318,16 +318,19 @@ describe('a spell cast with its duration lengthened (SPELLS-31.T5h-2)', () => {
 
   it('holds the grant for twice the authored 10 minutes when the cast pays for it', async () => {
     const plain = await lengthenRoom()
-    const unpaid = await plain.startActorsAction([WOLF_ID], RANGE_UNCHECKED)
+    const unpaid = await plain.startAction(WOLF_ID, RANGE_UNCHECKED)
     expect(unpaid.answer.type, JSON.stringify(unpaid.answer)).toBe('COMMAND_COMMITTED')
     const [authored] = await wolfRemainingTicks(plain)
 
     const room = await lengthenRoom()
-    const { answer } = await room.startActorsAction(
-      [WOLF_ID],
+    const { answer } = await room.startAction(
+      WOLF_ID,
       RANGE_UNCHECKED,
-      true,
       null,
+      null,
+      undefined,
+      undefined,
+      undefined,
       undefined,
       undefined,
       undefined,

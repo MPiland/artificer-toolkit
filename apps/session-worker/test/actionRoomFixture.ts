@@ -655,7 +655,9 @@ export async function actionRoom(config: ActionRoomConfig) {
       choiceOptionId?: string,
       boundItemInstanceId?: string,
       ammunitionItemInstanceId?: string,
-      endedMaintainedStateId?: string
+      endedMaintainedStateId?: string,
+      /** The cast modifier paid on the cast. */
+      castModifierId?: string
     ) {
       const command: ResolveEncounterActionInputDto = {
         type: 'RESOLVE_ACTION',
@@ -666,6 +668,7 @@ export async function actionRoom(config: ActionRoomConfig) {
         expectedVersion: await version(),
         actorId,
         ...(endedMaintainedStateId && { endedMaintainedStateId }),
+        ...(castModifierId && { castModifierId }),
         target: {
           kind: 'ACTOR',
           actorId: targetActorId,
