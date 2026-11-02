@@ -39,7 +39,7 @@ Proves a GM can create, run, copy, archive and delete a Campaign, bring players 
 
 - **Covers:** CAMPAIGN-2.3, CAMPAIGN-2.4, CAMPAIGN-2.5
 - **Accounts:** GM, P1, P2
-- **Preconditions:** The second copy from UAT-CAMPAIGN-1 (called the sandbox Campaign from here on). Never use a Review Campaign: leaving or removal would break the review data. P1 needs a Character that is in no Campaign (Aria and Ember are already in review Campaigns, and a Character can be in only one Campaign): use "UAT Dara" from UAT-BUILDER-1, or build a quick one. Inviting uses the in-app invitation list; email is not readable locally (gap G1). Ownership transfer to P1 needs P1's Free plan to be able to host another Campaign: if it cannot, step 12 is refused with a plan message (that is the refusal half of CAMPAIGN-2.4) and steps 13-15 are BLOCKED.
+- **Preconditions:** The second copy from UAT-CAMPAIGN-1 (called the sandbox Campaign from here on). Never use a Review Campaign: leaving or removal would break the review data. P1 needs a Character that is in no Campaign (Aria and Ember are already in review Campaigns, and a Character can be in only one Campaign): use "UAT Dara" from UAT-BUILDER-1, or build a quick one. Inviting uses the in-app invitation list; an invitation email can be read as [Reading local email](README.md#reading-local-email) describes. Ownership transfer to P1 needs P1's Free plan to be able to host another Campaign: if it cannot, step 12 is refused with a plan message (that is the refusal half of CAMPAIGN-2.4) and steps 13-15 are BLOCKED.
 
 **Steps**
 
@@ -157,7 +157,7 @@ Proves a GM can create, run, copy, archive and delete a Campaign, bring players 
 
 - **Covers:** CAMPAIGN-6.1, CAMPAIGN-6.2, CAMPAIGN-6.3
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Review: Party in the Field for steps 1-5; the sandbox Campaign from UAT-CAMPAIGN-2 (P1 a member) and the archived original from UAT-CAMPAIGN-1 for steps 6-8. P1 leaves only the sandbox Campaign, never a review Campaign. Email delivery cannot be read (gap G1); check the in-app notification only.
+- **Preconditions:** Review: Party in the Field for steps 1-5; the sandbox Campaign from UAT-CAMPAIGN-2 (P1 a member) and the archived original from UAT-CAMPAIGN-1 for steps 6-8. P1 leaves only the sandbox Campaign, never a review Campaign. Check the in-app notification; announcement emails are checked in [SOCIAL](SOCIAL.md).
 
 **Steps**
 

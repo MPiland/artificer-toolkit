@@ -1,6 +1,6 @@
-// Runs `convex run <function>` against the local Docker Convex backend. The admin key is generated
-// inside the container for this run and reaches the CLI only as an argument; it is never printed or
-// written.
+// Runs `convex run <function> [args JSON]` against the local Docker Convex backend. The admin key is
+// generated inside the container for this run and reaches the CLI only as an argument; it is never
+// printed or written.
 import { spawnSync } from 'node:child_process'
 import {
   assertConvexInstance,
@@ -11,8 +11,8 @@ import {
   yarnSpawn
 } from '../../../scripts/convexSelfHosted.mjs'
 
-const functionName = process.argv[2]
-if (!functionName) throw new Error('Usage: convexRunLocal.mjs <module:function>')
+const [functionName, functionArgs] = process.argv.slice(2)
+if (!functionName) throw new Error('Usage: convexRunLocal.mjs <module:function> [args JSON]')
 
 await assertConvexInstance(localConvex.url, localConvex.instance)
 const [executable, args] = yarnSpawn([
@@ -20,6 +20,7 @@ const [executable, args] = yarnSpawn([
   'convex',
   'run',
   functionName,
+  ...(functionArgs === undefined ? [] : [functionArgs]),
   ...convexCliArguments(localConvex.url, generateAdminKey(localConvex.container))
 ])
 const run = spawnSync(executable, args, {

@@ -113,7 +113,8 @@ flowchart LR
     `local-session-worker.log` and `local-web-app.log` in the manifest folder.
   - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action
     start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
-    (container-only) from the Convex container and leaves them running. The local deployment must
+    (container-only; it keeps the newest 50 messages, which `-Action mail` copies to
+    `local-validation/local-email/`) from the Convex container and leaves them running. The local deployment must
     set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
     [API README](../../apps/apis/README.md).
     The local deployment must also set `LIVE_SESSION_WORKER_URL=http://host.docker.internal:8787` (the container reaches the host Worker only through that name, never `127.0.0.1`), and the evidence folder name must stay short: the Worker's durable-object state path exceeds the Windows path limit in a worktree otherwise and the Session room upgrade fails with a 500.
