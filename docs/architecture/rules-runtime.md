@@ -245,6 +245,11 @@ admissions changed:
   delegates it to the area coordinator as its own rule-raised root (SPELLS-33.T4l3, SPELLS-15.T1, D197;
   `delegatedLegendaryOption`, `raiseRoomDelegatedLegendaryAction`). An aimed option carries its `area`, the answer
   carries the `aim`, and the Run marker keeps it for the root's target and admission.
+  The area root is an ordinary area command, so its save window pauses the turn through the save-window machinery
+  (T4c1b) with no second pause path: the die-holder's D20 window and the area's saves each leave the continuation
+  pending, and the next turn begins only after the last is answered (SPELLS-15.T2). The Decision drawer aims the cone
+  or point on the map (`LegendaryAreaAim`, owned by `CampaignVttStage`), hides itself while aiming and sends the aim
+  with the Legendary answer.
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
   is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
   of one.

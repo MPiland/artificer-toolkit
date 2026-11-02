@@ -31,6 +31,9 @@ export type EncounterAreaBrowserFixture = {
   caughtLabels: { ally: string; enemy: string; hero: string }
   /** Creatures the area must not catch. */
   outsideLabels: string[]
+  /** The caster's label and every token's map position by label, so the browser can aim on the map. */
+  casterLabel: string
+  map: { width: number; height: number; points: Record<string, { x: number; y: number }> }
 }
 
 export type EncounterAreaBrowserControls = {
@@ -50,6 +53,16 @@ export type EncounterAreaBrowserControls = {
     face: number
   ) => Promise<{ command: ResolveRuleOccurrenceInputDto; result: EncounterCommandResultDto }>
   assertHistory: (entry: { issuerLines: string[]; gmLines: string[] }) => Promise<void>
+  /** The GM ends the current turn from the turn order, which offers the caster's Legendary window. */
+  endTurn: () => Promise<void>
+  /** Chooses the Legendary option, aims its cone on the map toward the target and answers the window. */
+  breathe: (
+    optionLabel: string,
+    toward: string,
+    caught: string[]
+  ) => Promise<{ command: ResolveRuleOccurrenceInputDto; result: EncounterCommandResultDto }>
+  /** The GM sees every caught creature's save; the player sees their own Character's. */
+  assertBreathSaves: (caught: string[], playerOwn: string) => Promise<void>
 }
 
 export type EncounterAreaBrowserRunner = (
@@ -121,6 +134,19 @@ export async function verifyEncounterArea({
     initiativeTieDefinitionId: null
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
+  // The Character survives both breaths whatever the dice roll: 5d8 twice is at most 80.
+  const sheet = await player.query(api.characters.sheet.get, { id: characterId })
+  assert.ok(sheet)
+  await player.mutation(api.characters.sheetCommands.execute, {
+    id: characterId,
+    command: {
+      type: 'SET_HIT_POINTS',
+      commandId: crypto.randomUUID(),
+      expectedVersion: sheet.meta.streamVersion,
+      current: 100,
+      maxOverride: 100
+    }
+  })
   const blueprint = await owner.mutation(api.encounters.blueprints.create, {
     gameSystemId: campaign.gameSystemId,
     name: 'Area from a point fixture',
@@ -325,7 +351,13 @@ export async function verifyEncounterArea({
       sessionNumber: session.sessionNumber,
       actionLabel: choice.sourceLabel ? `${choice.label} · ${choice.sourceLabel}` : choice.label,
       caughtLabels: { ally: ally.label, enemy: enemy.label, hero: hero.label },
-      outsideLabels: [caster.label, far.label]
+      outsideLabels: [caster.label, far.label],
+      casterLabel: caster.label,
+      map: {
+        width: 1200,
+        height: 600,
+        points: Object.fromEntries(placed.map((entry) => [entry.label, { x: entry.x, y: entry.y }]))
+      }
     },
     async (controls) => {
       // 1. The GM aims at a point on the map and resolves; the area catches the three creatures in it.
@@ -386,6 +418,52 @@ export async function verifyEncounterArea({
       assert.ok(entry.gmLines.some((line) => line.includes(ally.label)))
       assert.ok(entry.issuerLines.some((line) => line.includes(enemy.label)))
       await controls.assertHistory({ issuerLines: entry.issuerLines, gmLines: entry.gmLines })
+
+      // 6. SPELLS-15: the turn ends, the caster's Legendary window offers the breath, the GM aims its
+      // cone on the map, and the turn holds until the cone's saves are answered.
+      await owner.mutation(executeEncounterCommand, {
+        command: {
+          type: 'SET_CURRENT_ACTOR',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion: after.version,
+          actorId: enemy.id
+        }
+      })
+      await checkpoint()
+      await controls.endTurn()
+      const caughtByBreath = [ally.label, enemy.label, hero.label]
+      const breathed = await controls.breathe('Wing Attack', hero.label, caughtByBreath)
+      const resolution = breathed.command.resolution
+      assert.equal(resolution.kind, 'LEGENDARY_OPTION')
+      assert.equal(
+        resolution.kind === 'LEGENDARY_OPTION' ? resolution.aim?.kind : null,
+        'DIRECTED',
+        'The window is answered with the aimed cone.'
+      )
+      await controls.assertBreathSaves(caughtByBreath, hero.label)
+      await checkpoint()
+      const midTurn = encounterGmProjectionDtoSchema.parse(
+        await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
+      )
+      assert.equal(midTurn.currentActorId, enemy.id, 'The turn holds while the breath saves wait.')
+      await controls.answerSave('PLAYER', hero.label, 1)
+      await controls.answerSave('OWNER', ally.label, 1)
+      const last = await controls.answerSave('OWNER', enemy.label, 20)
+      assert.equal(last.result.occurrence?.status, 'COMPLETE')
+      await checkpoint()
+      const ended = encounterGmProjectionDtoSchema.parse(
+        await owner.query(api.encounters.projectionReads.get, { encounterId: run.id })
+      )
+      assert.notEqual(
+        ended.currentActorId,
+        enemy.id,
+        'The next turn begins once the saves resolve.'
+      )
+      assert.ok(
+        hitPoints(ended, hero.id) < hitPoints(after, hero.id),
+        `The Character failed its save against the breath (${hitPoints(before, hero.id)} -> ${hitPoints(after, hero.id)} -> ${hitPoints(ended, hero.id)}: ${JSON.stringify(last.result.occurrence)}).`
+      )
     }
   )
   console.log('Native area from a point journey passed.')
