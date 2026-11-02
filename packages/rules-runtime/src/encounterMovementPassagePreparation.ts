@@ -88,7 +88,7 @@ function characterAbilityCheck(
   )?.code
   if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
   return {
-    modifier: policy.derivedStats.abilities.find((entry) => entry.abilityId === code)?.modifier
+    modifier: policy.derivedStats.abilities.find((entry) => entry.abilityId === code)?.check
       .effective,
     evidence: policy.rollContributorEvidence.abilityChecks[code],
     rollMode: policy.rollModes.abilityChecks[code]

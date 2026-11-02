@@ -1,4 +1,3 @@
-import type { ModifierGrantAuthored } from '#authored'
 import {
   ATTACK_DOMAIN_OPTIONS,
   ATTACK_OCCASION_OPTIONS,
@@ -13,6 +12,7 @@ import {
   MODIFIER_KIND_OPTIONS,
   MODIFIER_SCOPE_OPTIONS,
   MAX_ROLLED_DIE_COUNT,
+  MODIFIER_ROUNDING_OPTIONS,
   MODIFIER_VALUE_SOURCE_OPTIONS,
   RANGE_OPTIONS,
   ROLLED_DIE_FACES,
@@ -22,25 +22,24 @@ import {
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
-import {
-  MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP,
-  MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP,
-  MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP,
-  ROLLED_DIE_FACES_SCALING_NODE_MAP,
-  DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP,
-  INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP,
-  DAMAGE_INTERCEPTION_SAVE_NODE_MAP,
-  DAMAGE_INTERCEPTION_EXCLUDES_NODE_MAP
-} from './modifierPayloadParts.js'
 import { OUTCOME_BONUS_NODE_MAP } from '../../effects/maps/outcomeBonus.js'
 import { EFFECT_ID_NODE_MAP } from '../../shared/maps/effectId.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
-import type { AllUnionFields } from 'type-fest'
+import {
+  DAMAGE_DIE_CAST_LEVEL_SCALING_NODE_MAP,
+  DAMAGE_INTERCEPTION_EXCLUDES_NODE_MAP,
+  DAMAGE_INTERCEPTION_SAVE_NODE_MAP,
+  INCOMING_GATE_SUCCESS_IMMUNITY_NODE_MAP,
+  MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP,
+  MODIFIER_ATTACK_DECOY_THRESHOLD_NODE_MAP,
+  MODIFIER_CHARGE_LIMIT_LEVEL_NODE_MAP,
+  ROLLED_DIE_FACES_SCALING_NODE_MAP,
+  type ModifierGrantUnion,
+  type ModifierPayload
+} from './modifierPayloadParts.js'
 
-type ModifierGrantUnion = AllUnionFields<ModifierGrantAuthored>
-type ModifierPayload = NonNullable<ModifierGrantUnion['payload']>
 type ModifierDomain = ModifierGrantUnion['domain']
 const modifierGrantDomain = buildNodeMap<ModifierDomain>()
 
@@ -197,6 +196,15 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           showIf: and([
             parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
             parent.field(['modifierKind']).eq('MINIMUM_ROLL')
+          ])
+        })
+      )
+      .set(
+        'unproficientOnly',
+        toggle(['unproficientOnly'], 'Only Checks Adding No Proficiency', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
+            parent.field(['modifierKind']).eq('BONUS')
           ])
         })
       )
@@ -421,6 +429,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             parent.field(['modifierKind']).eq('MODIFY_CHARGE_LIMIT')
           ])
         })
+      )
+      .set(
+        'rounding',
+        selectSingle(
+          ['rounding'],
+          'Rounding',
+          { kind: 'INLINE_OPTIONS', options: MODIFIER_ROUNDING_OPTIONS },
+          { showIf: and([isBonus, local.field(['valueKind']).eq('PROFICIENCY_BONUS')]) }
+        )
       )
       .set(
         'subtractLevels',

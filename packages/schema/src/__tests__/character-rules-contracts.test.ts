@@ -168,6 +168,7 @@ describe('Character rule contracts', () => {
             abilityId: 'STR',
             baseScore: 16,
             bonuses: [],
+            checkBonuses: [],
             scoreOverride: null
           }
         ],
@@ -541,6 +542,12 @@ describe('Character rule contracts', () => {
               override: null
             },
             modifier: {
+              base: 3,
+              effective: 3,
+              contributions: [],
+              override: null
+            },
+            check: {
               base: 3,
               effective: 3,
               contributions: [],

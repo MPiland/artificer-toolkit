@@ -15,7 +15,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { ABILITY_CODE, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import {
   attackingItemPropertyRestriction,
   closedRuleEffect,
@@ -62,18 +62,25 @@ export const championMartialArchetype: ClassAuthored = {
         "Starting at 7th level, you can add half your proficiency bonus (round up) to any Strength, Dexterity, or Constitution check you make that doesn't already use your proficiency bonus. In addition, when you make a running long jump, the distance you can cover increases by a number of feet equal to your Strength modifier.",
       availableAtLevel: 7,
       order: 1,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(F, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(F, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_CHAMPION_REMARKABLE_ATHLETE
-        })
-      ]
+      grants: {
+        modifiers: [ABILITY_CODE.STRENGTH, ABILITY_CODE.DEXTERITY, ABILITY_CODE.CONSTITUTION].map(
+          (ability, index) => ({
+            id: classRowId(F, 0x8c, index + 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+            domain: { ability, unproficientOnly: true as const },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              valueKind: 'PROFICIENCY_BONUS' as const,
+              multiplier: 0.5,
+              rounding: 'UP' as const
+            },
+            order: index
+          })
+        )
+      }
     },
     {
       id: classRowId(F, 11, 3),

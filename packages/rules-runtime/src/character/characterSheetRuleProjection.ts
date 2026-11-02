@@ -66,6 +66,8 @@ export interface CharacterRuleDerivedStats {
   abilityScores: Record<string, number>
   /** Ability code -> modifier value, e.g. STR 16 -> 3 */
   abilityModifiers: Record<string, number>
+  /** Ability code -> modifier of a plain check on it, i.e. the modifier plus ability-check bonuses */
+  abilityCheckModifiers: Record<string, number>
   /** Ability code -> total saving throw bonus */
   savingThrows: Record<string, number>
   /** Skill id -> total skill check bonus */
@@ -88,6 +90,7 @@ export interface CharacterRuleCalculationBreakdowns {
   proficiencyBonus: CharacterCalculation<number>
   abilityScores: Record<string, CharacterCalculation<number>>
   abilityModifiers: Record<string, CharacterCalculation<number>>
+  abilityCheckModifiers: Record<string, CharacterCalculation<number>>
   savingThrowProficiencyLevels: Record<string, CharacterCalculation<CharacterProficiencyLevel>>
   savingThrows: Record<string, CharacterCalculation<number>>
   skillGoverningAbilities: Record<string, CharacterCalculation<string>>

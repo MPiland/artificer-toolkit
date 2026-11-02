@@ -4,8 +4,8 @@ import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
 import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 
-type ModifierGrantUnion = AllUnionFields<ModifierGrantAuthored>
-type ModifierPayload = NonNullable<ModifierGrantUnion['payload']>
+export type ModifierGrantUnion = AllUnionFields<ModifierGrantAuthored>
+export type ModifierPayload = NonNullable<ModifierGrantUnion['payload']>
 type ChargeLimitLevel = NonNullable<
   Extract<ModifierPayload, { levels: unknown[] }>['levels']
 >[number]
