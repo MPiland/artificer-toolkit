@@ -65,7 +65,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - The result is broadcast to each recipient through the existing privacy projection: hidden actors, GM-only rolls and redactions (D62, Q14).
    - Receipts keep commands idempotent on retry.
 3. **Checkpoints to Convex.**
-   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than N after the first unsent change, N = 30 s since REL-5 (Amendments 1, 4, 13 and 17).
+   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than N after the first unsent change, N = 30 s since REL-5 (Amendments 1, 4, 13 and 17). _Superseded by D90 (Amendment 25): the room saves only at save points; N is retired._
    - **Fencing:** a checkpoint is one idempotent Convex mutation carrying the room's authority epoch and sequence. Convex accepts only a newer sequence under the current authority, so the existing authority fencing is reused.
    - **Contents:** the checkpoint writes the Run, the actors, Character play state, timeline entries and receipts that Convex's own features need, such as history, the Sheet outside play and audits.
 4. **Durability.**
@@ -102,6 +102,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
 - Steady-state combat commands need no Convex round trips, so latency is bounded by room CPU (tens of milliseconds), not two HTTP calls.
 - Convex reads for live play drop from about 1 MB per command to checkpoint and input-reload traffic,
   with checkpoints at most 120 seconds after the first unsent change, plus round/lifecycle boundaries.
+  _Superseded by D90: checkpoints only at save points (Amendment 25)._
 - Subscriber re-runs during play disappear.
 - The capture bundle, fenced commit, write-ahead journal and resolve route for Encounter commands are deleted, along with their per-command checksum verification (D52, D64 and much of D27).
 
@@ -172,7 +173,7 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
       headers remain per command and point into the checksummed ledger; they preserve replay,
       duplicate-command checks, public UUIDs and timeline pagination without repeating history payloads.
     - Tied-initiative and other occurrence updates write only the changed occurrence fields.
-13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event (superseded: Amendment 17, N = 30 s since REL-5). This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
+13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event (superseded: Amendment 17, N = 30 s since REL-5). This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12. N is retired (Amendment 25).
 14. **Authorization lease: 240 s (2N; 60 s since REL-5, renewed as Amendment 18 states),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
     - A lost eviction is the only case the lease covers. To keep that rare, eviction delivery retries with backoff until it is acknowledged or the room releases, instead of giving up after 5 attempts.
     - The worst-case exposure after a failed eviction is therefore one lease.
