@@ -765,3 +765,13 @@ Test-only carry-over from T2lb2c. Adds the `heat-metal-browser` local proof (`--
 - Deleted: the `GUARDIAN_OF_FAITH`, `ANTIPATHY_SYMPATHY` and `CONTINGENCY` closed rule kinds.
 - Proof: `sourceZoneAuthoringParity.test.ts` (Guardian of Faith as authored and as a homebrew variant); `manualBesideSpellAuthoringParity.test.ts` (Antipathy/Sympathy, Contingency); room `nativeRoomHazardZoneSpells.test.ts` "the SRD Guardian of Faith zone".
 - Deferred pieces: [future-enhancements.md](../roadmap/future-enhancements.md#deferred-rules-pieces-d187a-2026-10-23) "Zone and aura miscellany".
+
+## T2ps-d3 (AC SPELLS-4.1, D204, D208): Prismatic Spray on an area, authoring parity
+
+- Room journey (CI proof: the Worker suite file `apps/session-worker/test/nativeRoomPrismaticSpray.test.ts` in the Tests workflow; not a browser journey): a Character casts the SRD Prismatic Spray as a cone at three Wolves, with a fourth outside it. The lead reads every row plan (`leadActiveEffectPlans`). One Wolf's d8 lands on 8 and its two rays on indigo and violet, so it holds Restrained and Blinded; one saves (its ray lands on indigo, which does nothing on a save) and is unchanged; one is Blinded by violet; the far Wolf is untouched.
+- Refusals of the authored spell, lifted (see [rules-runtime.md](../architecture/rules-runtime.md), "On an area"):
+  - `prepareNativeActionTest` (`packages/rules-runtime/src/encounterActionExecution.ts`) rejected the table dice after a resumed save's d20 ("requested unsupported evidence"); only a TEST with no sealed d20 pauses there now.
+  - The area settle replayed each kept save answer and rolled its TEST table dice again, so every Wolf landed on a fresh face. The area target record now keeps them (`testDice`, `ruleExecutionPendingSnapshots.ts`), written by `recordAreaRoll` via `encounterAreaTestDice` and replayed by request id in `rollAreaTargetSave`.
+  - `interpretDirect` (`effectActionInterpretation.ts`) refused a repeat table OUTCOME that landed only on a row that owes nothing ("must contain an application proposal"); it now settles as owing nothing. Regression: `rollTable.test.ts` "owes nothing for a creature that saves when its die lands on a row that does nothing".
+  - The area commit contract (`liveSessionEncounterAction.ts`) allowed one created effect per target; it is now bounded by `MAX_ACTIVE_RULE_EFFECTS_PER_OWNER`.
+- Authoring parity: `packages/authoring/src/nodeRuntime/prismaticSprayAuthoringParity.test.ts` (the SRD spell authored from core options publishes the source's result; a homebrew variant shows the table, repeat and merged-row options are generic).

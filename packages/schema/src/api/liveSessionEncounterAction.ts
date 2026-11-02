@@ -458,7 +458,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   targets: {
     actorId: string
     execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
-    /** The lasting effect the action left on this creature, if any. */
+    /** The lasting effects the action left on this creature: one per roll table row its rays landed in. */
     createdEffects: z.infer<typeof activeRuleEffectRecordSchema>[]
   }[]
   /**
@@ -498,7 +498,9 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
           z.strictObject({
             actorId: postgresUuidSchema,
             execution: storedRuleExecutionResultDtoSchema,
-            createdEffects: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1))
+            createdEffects: z
+              .array(activeRuleEffectRecordSchema)
+              .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
           })
         )
         .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

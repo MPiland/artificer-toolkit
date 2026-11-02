@@ -345,7 +345,8 @@ export function requireAreaActionAnswer(input: {
           input.stored,
           input.requestId,
           answered.testedJson,
-          answered.legendaryResistance
+          answered.legendaryResistance,
+          answered.testDice
         )
       : answered.rolledJson !== undefined
         ? markEncounterAreaSaveRolled(input.stored, input.requestId, answered.rolledJson)

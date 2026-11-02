@@ -29,6 +29,7 @@ import {
 import {
   absentEncounterActorIds,
   catchEncounterAreaActorIds,
+  encounterAreaTestDice,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
 } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
@@ -528,7 +529,8 @@ async function recordAreaRoll(
     offerEncounterAreaLegendaryResistance({
       test: result,
       targetStateChecksum: checksumRuleDocument(entry.prepared.target)
-    })
+    }),
+    encounterAreaTestDice(result.boundary)
   )
 }
 

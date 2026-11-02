@@ -224,6 +224,8 @@ export async function rollAreaTargetSave(
             input.state.gameSystemId,
             input.activeEffectsByActorId.get(actor.id) ?? []
           ),
+      // A kept answer replays the dice its TEST rolled after the d20; a first answer rolls them.
+      testDice: sealed.testedJson === undefined ? undefined : (sealed.testDice ?? []),
       autoRoll: { SOURCE: false, TARGET: false },
       discoverLegendaryResistance: discoverNativeLegendaryResistance(input, target.prepared)
     },
