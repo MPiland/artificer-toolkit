@@ -100,6 +100,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Spell picker and the turn casting limit (SPELLS-31.T5h-3):** the picker does not preview the limit. The caster sees the overridable warning when they cast.
+- **Hand-rolled table dice on TEST phases (SPELLS-4.T2ps-d1):** table dice in a TEST phase stay System-rolled (D170 style). Letting a player roll them by hand is a later option.
 - **Held die on a sight-governed attack (SPELLS-31.T4c2b):** an attack against an unseen or hidden target skips the after-roll window, as sight-governed saves do. The die stays unspent.
 - **Capacity use on a spell-slot on-hit rider (SPELLS-12.T2b):** a SPELL_SLOT on-hit rider can skip the capacity use. Rare; correct by hand.
 - **Open Hand push distance (SPELLS-31.T4l2b):** the push is exactly 15 ft where the rules say up to 15 ft. The GM moves the token back if the Monk wants less.

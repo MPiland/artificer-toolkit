@@ -19016,7 +19016,7 @@
             {
               "id": "SPELLS-31.T4c2c",
               "text": "Bardic Inspiration on Sheet attack rolls: the Sheet offers an eligible held die after an attack roll and spends it through the roll record.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19029,7 +19029,7 @@
                   "SPELLS-31.T4c2b"
                 ]
               },
-              "note": "Split from T4c2b on seam trace (D206 split rule)."
+              "note": "Split from T4c2b on seam trace (D206 split rule). Merged in m602 (615ce20ae)."
             },
             {
               "id": "SPELLS-31.T4c3a",
@@ -19884,7 +19884,7 @@
             {
               "id": "SPELLS-31.T5h-3",
               "text": "Quickened Spell on the cast parameters, with the generic bonus-action-spell limit for all spells: after a bonus-action spell only a 1-action cantrip, a bonus-action spell refused after an action-cast non-cantrip, reaction spells unaffected.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19897,7 +19897,7 @@
                   "SPELLS-31.T5h-1"
                 ]
               },
-              "note": "User approved the limit (D206)."
+              "note": "User approved the limit (D206). Merged in m602 (615ce20ae)."
             },
             {
               "id": "SPELLS-31.T5h-2",
