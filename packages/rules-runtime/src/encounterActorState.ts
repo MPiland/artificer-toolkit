@@ -6,6 +6,10 @@ import {
   encounterAttackActionStateDtoSchema,
   type EncounterAttackActionStateDto
 } from '@artificer-toolkit/schema/projections/encounterAttackAction'
+import {
+  encounterSpellCastingStateDtoSchema,
+  type EncounterSpellCastingStateDto
+} from '@artificer-toolkit/schema/projections/encounterSpellCasting'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { RuleCapabilityRefreshBoundaryDto } from '@artificer-toolkit/schema/shared/ruleState'
 
@@ -201,6 +205,23 @@ export function withEncounterAttackActionState(
 ): Record<string, unknown> {
   const { attackAction: _previous, ...resources } = isRecord(actor.resources) ? actor.resources : {}
   return state === null ? resources : { ...resources, attackAction: state }
+}
+
+/** The spell-casting record the actor last wrote, even when a later turn has made it stale. */
+export function encounterSpellCastingState(
+  actor: Pick<ActorRead, 'resources'>
+): EncounterSpellCastingStateDto | null {
+  const resources = isRecord(actor.resources) ? actor.resources : null
+  const stored = resources?.spellCasting
+  return stored === undefined ? null : encounterSpellCastingStateDtoSchema.parse(stored)
+}
+
+export function withEncounterSpellCastingState(
+  actor: Pick<ActorRead, 'resources'>,
+  state: EncounterSpellCastingStateDto | null
+): Record<string, unknown> {
+  const { spellCasting: _previous, ...resources } = isRecord(actor.resources) ? actor.resources : {}
+  return state === null ? resources : { ...resources, spellCasting: state }
 }
 
 /** The Run's actors in turn order; each owned actor follows its owner, on whose turn it acts (D190a). */

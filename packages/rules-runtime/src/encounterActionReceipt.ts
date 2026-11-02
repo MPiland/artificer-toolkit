@@ -34,7 +34,8 @@ export function actionEconomyReceipt(consumption: EncounterActionEconomyConsumpt
         definitionChecksum: consumption.definitionChecksum,
         maximum: consumption.maximum,
         beforeUsed: consumption.beforeUsed,
-        afterUsed: consumption.afterUsed
+        afterUsed: consumption.afterUsed,
+        ...(consumption.spellCasting && { spellCasting: consumption.spellCasting })
       }
     : null
 }

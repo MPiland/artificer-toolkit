@@ -853,7 +853,26 @@ export const sorcerer: ClassAuthored = {
           label: 'Quickened Spell',
           description:
             'When you cast a spell that has a casting time of 1 action, you can spend 2 sorcery points to change the casting time to 1 bonus action for this casting.',
-          effects: [selfClassRuleEffect(25, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_QUICKENED)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 25),
+                range: classRowId(S, 0x69, 25),
+                path: classRowId(S, 0x80, 25),
+                result: classRowId(S, 0x81, 25),
+                outcome: classRowId(S, 0x82, 25)
+              },
+              label: 'Quickened Spell',
+              instructions:
+                'The spell is cast with a bonus action instead of an action. The sorcery points are spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 2,
+                parameters: [{ parameter: 'ACTIVATION', activation: 'BONUS_ACTION' }]
+              }
+            })
+          ],
           order: 5
         },
         {

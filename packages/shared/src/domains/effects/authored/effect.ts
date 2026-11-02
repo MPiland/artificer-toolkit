@@ -44,12 +44,16 @@ export type OptionalOnHitAuthored =
 /**
  * `RANGE` multiplies the cast's distance range by `multiplier`; a Touch range becomes
  * `touchDistance`. It fits a spell whose range is a distance or Touch, never Self or Unlimited.
+ * `ACTIVATION` casts the spell with `activation` instead of its one action; it fits only a spell
+ * that takes exactly one Action.
  */
-export type CastModifierParameterAuthored = {
-  parameter: 'RANGE'
-  multiplier: number // int, at least 2
-  touchDistance: { amount: number; unit: LengthUnitCode }
-}
+export type CastModifierParameterAuthored =
+  | {
+      parameter: 'RANGE'
+      multiplier: number // int, at least 2
+      touchDistance: { amount: number; unit: LengthUnitCode }
+    }
+  | { parameter: 'ACTIVATION'; activation: 'BONUS_ACTION' }
 
 /**
  * A cost the holder may pay on casting a spell. With `targets`, the caster also names creatures the

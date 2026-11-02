@@ -41,8 +41,8 @@ function find(nodes: Node[] | undefined, label: string): Node | undefined {
   return undefined
 }
 
-function parametersOf(record: ClassAuthored) {
-  const invocation = find(record.features, 'Distant Spell')?.effects?.[0]?.invocation
+function parametersOf(record: ClassAuthored, label = 'Distant Spell') {
+  const invocation = find(record.features, label)?.effects?.[0]?.invocation
   const castModifier = invocation && 'castModifier' in invocation ? invocation.castModifier : null
   return castModifier && typeof castModifier === 'object' && 'parameters' in castModifier
     ? (castModifier.parameters as Record<string, unknown>[] | undefined)
@@ -70,6 +70,16 @@ describe('cast modifier parameters through the class node map (SPELLS-31.T5h)', 
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+
+  it('keeps the SRD Quickened Spell exactly as authored, with no closed rule (SPELLS-31.T5h-3)', async () => {
+    expect(parametersOf(sorcerer, 'Quickened Spell')).toEqual([
+      { parameter: 'ACTIVATION', activation: 'BONUS_ACTION' }
+    ])
+    expect(JSON.stringify(find(sorcerer.features, 'Quickened Spell'))).not.toContain('CLOSED_RULE')
+    const result = await normalize(sorcerer)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(sorcerer.features)
   })
 
   it('clears a parameter the System does not offer', async () => {

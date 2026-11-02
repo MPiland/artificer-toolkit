@@ -128,8 +128,10 @@ const castModifierParameter = buildNodeMap<CastModifierParameterAuthored>()
 
 const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
   'castModifierParameter',
-  ({ map, nodes }) => {
+  ({ map, nodes, cond }) => {
     const { selectSingle, number, groupObject } = nodes
+    const isRange = cond.local().field(['parameter']).eq('RANGE')
+    const isActivation = cond.local().field(['parameter']).eq('ACTIVATION')
 
     map
       .set(
@@ -137,7 +139,13 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
         selectSingle(
           ['parameter'],
           'Changes',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'RANGE', label: 'The spell’s range' }] },
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'RANGE', label: 'The spell’s range' },
+              { code: 'ACTIVATION', label: 'What the spell takes to cast' }
+            ]
+          },
           { order: 1, requiredIf: true }
         )
       )
@@ -146,7 +154,9 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
         number(['multiplier'], 'Range multiplied by', {
           order: 2,
           constraints: { minimum: 2 },
-          requiredIf: true
+          requiredIf: isRange,
+          showIf: isRange,
+          hiddenBehavior: 'CLEAR'
         })
       )
       .set(
@@ -154,8 +164,24 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
         groupObject(['touchDistance'], 'A Touch range becomes', () => MEASUREMENT_NODE_MAP, {
           presentation: 'inline',
           order: 3,
-          requiredIf: true
+          requiredIf: isRange,
+          showIf: isRange,
+          hiddenBehavior: 'CLEAR'
         })
+      )
+      .set(
+        'activation',
+        selectSingle(
+          ['activation'],
+          'Cast as',
+          { kind: 'INLINE_OPTIONS', options: [{ code: 'BONUS_ACTION', label: 'A Bonus Action' }] },
+          {
+            order: 4,
+            requiredIf: isActivation,
+            showIf: isActivation,
+            hiddenBehavior: 'CLEAR'
+          }
+        )
       )
   }
 )
