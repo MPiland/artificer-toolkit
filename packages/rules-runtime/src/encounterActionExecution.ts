@@ -312,7 +312,10 @@ export async function prepareNativeActionTest(
     attackSight?: EncounterPreparedAttackSight | null
     /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
     saveWindow?: EncounterActionSaveWindow
-    /** The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. */
+    /**
+     * The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. Its
+     * windows settled, so a held die nobody spent adds 0 to the roll.
+     */
     windowDice?: readonly D20RolledAddedDieDto[]
     /**
      * The dice this TEST rolled after its d20 when it was first answered, replayed by request when a
@@ -490,14 +493,13 @@ export async function prepareNativeActionTest(
       )
       if (window) return window
     }
-    const windowDice = input.windowDice ?? []
-    if (windowDice.length > 0) mayAddDice = true
+    if (input.windowDice) mayAddDice = true
     continuation = heldContinuation
     faces = response.faces
     rollMode = response.rollMode
     keep = response.keep
     modeAdjustment = response.modeAdjustment
-    addedDice = [...response.addedDice, ...windowDice]
+    addedDice = [...response.addedDice, ...(input.windowDice ?? [])]
     result = await resumeEncounterD20({
       continuation,
       natural: response.value,

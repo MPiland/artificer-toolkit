@@ -12,6 +12,7 @@ import {
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
 import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
@@ -21,6 +22,7 @@ import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   readActorHitPoints,
+  readPendingActionContext,
   readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
@@ -217,6 +219,57 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await targetHitPoints(room)).toBe(hitPoints)
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('rebuilds the declined roll when the bitten Heckler then casts Shield', async () => {
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
+        characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
+      ],
+      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+      characterClassFeatures: [heckleFeature()],
+      characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+    })
+    const started = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext())
+    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+    const attack = await room.pendingDecision()
+    if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack prompt.')
+    const { request } = attack.pending
+    const context = await readPendingActionContext(room.room.base.stub)
+    if (context.kind !== 'ENCOUNTER_ACTION' || !context.d20Policy)
+      throw new Error('Expected a pending attack d20.')
+    // The Bite hits by 1, so Heckle's d4 could make it miss.
+    const face = context.d20Policy.dc + 1 - context.d20Policy.modifier
+    expect(
+      (
+        await room.resolve(attack, {
+          kind: 'ENTER_DICE',
+          requestId: request.requestId,
+          rawFaces: [face],
+          rollMode: request.rollMode
+        })
+      ).type
+    ).toBe('COMMAND_COMMITTED')
+    const window = await room.pendingDecision()
+    if (window.pending.kind !== 'D20_WINDOW')
+      throw new Error(`Expected the d20 window, got ${window.pending.kind}.`)
+    const declined = await room.resolve(window, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: window.pending.requestId
+    })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    const offered = await room.pendingDecision()
+    if (offered.pending.kind !== 'REACTION_CHOICE')
+      throw new Error(`Expected the Shield choice, got ${offered.pending.kind}.`)
+    const shielded = await room.resolve(offered, {
+      kind: 'OPTION',
+      optionId: offered.pending.options[0]!.optionId
+    })
+    expect(shielded.type, JSON.stringify(shielded)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    // Shield, not the declined Heckle, spent the reaction.
     expect(await reactionUsed(room)).toBe(1)
   })
 })
