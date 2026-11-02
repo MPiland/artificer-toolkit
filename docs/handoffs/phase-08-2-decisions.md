@@ -1989,3 +1989,11 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **SPELLS-15.T2** is size 8, because the AC needs the legendary action aim.
 - **PERF-4.T1:** `composeRoomSceneVision` gets a senses-only reader, no cache, and the 25 ms budget stays.
 - **Open Hand Technique (T4l2b):** `GRANTED_ACTION_OPTION` with `{ optionEffectId }` names a sibling Effect that holds the outcomes in the ordinary grammar, read at attack time by the held offer. A strike counts as a Flurry strike while an unspent offer is held, with no pick on the attack command.
+
+## D207 (2026-11-01): timed reaction offers, Cutting Words and window rulings
+
+- **Timed reactions (user):** amends D26/D115. A reaction offer counts down for the Campaign's reaction time, default 5 seconds, GM-set from 3 to 15, then declines itself. Enter takes the first option and Esc declines, outside text fields; phones get large buttons. A player the player or GM marks AFK auto-declines without a pause. The GM can still answer or cancel at once.
+- **Cutting Words (user):** the offer comes after the attack d20 and before the result is shown, only to a creature that has its reaction and can pay. Attack rolls only; ability checks and damage rolls stay a GM ruling.
+- **Legendary Resistance:** T4c1b5 is not a fold, replacing the D198 wording. It stays a separate pause after a failed save.
+- **Sight-governed attacks:** skip the held-die window, as sight-governed saves do; the die stays unspent.
+- **T5h-3:** the bonus-action-spell limit reads a new turn-scoped `resources.spellCasting` record.

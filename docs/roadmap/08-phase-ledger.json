@@ -18620,6 +18620,17 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits). T4k2d1 proofs (m459): packages/rules-runtime/src/__tests__/standingEffects.test.ts, apps/session-worker/test/nativeRoomStandingEffect.test.ts, apps/apis/convex/characters/sheetRestStandingEffect.test.ts, packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts, apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx; closes with T4k2d2. Closed 2026-10-24 by SPELLS-31.T4k2d1, SPELLS-31.T4k2d2."
+            },
+            {
+              "id": "SPELLS-31.3",
+              "text": "A reaction offer counts down on the reactor's screen for the Campaign's reaction time (default 5 seconds, 3 to 15, GM-set) and declines itself at zero. The reactor can answer with Enter (first option) or Esc (decline) outside a text field, or with large buttons, and a player marked AFK by themselves or the GM auto-declines at once without pausing the table.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User approved 2026-11-01 (D207).",
+              "journeys": [
+                "player-browser"
+              ]
             }
           ],
           "tasks": [
@@ -18994,14 +19005,32 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 8,
                 "after": [
                   "SPELLS-31.T4c1a",
                   "SPELLS-31.T4c1b"
                 ]
               },
-              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
+              "text": "Cutting Words on attack rolls (D207): after the attack d20 and before its result is shown, a creature other than the roller is offered a held subtract die only when it has its reaction, can pay and meets the range, sight, hearing and charm-immunity restrictions. Converts Cutting Words with a parity proof and a homebrew variant, and deletes the kind. Ability checks and damage rolls stay a GM ruling.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. 2026-10-29 ruling (option A on T4c1p): T4c3 builds the parent-class charge payment (paying with Bardic Inspiration) together with Cutting Words."
+            },
+            {
+              "id": "SPELLS-31.T4r",
+              "text": "Timed reaction offers for every reaction pause: the Campaign reaction time setting with a server-side deadline, auto-decline, Enter and Esc, large buttons, and an AFK toggle the player or GM can set. The GM can still answer or cancel at once.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.3"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-31.T4c3"
+                ]
+              },
+              "note": "User approved (D207). Amends D26/D115: a reaction pause no longer waits without limit."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -26880,7 +26909,8 @@
                   "SPELLS-31.T4c2b",
                   "SPELLS-31.T5h-2",
                   "SPELLS-31.T4l2b-2",
-                  "PERF-4.T2"
+                  "PERF-4.T2",
+                  "SPELLS-31.T4r"
                 ],
                 "finalSource": true
               },
