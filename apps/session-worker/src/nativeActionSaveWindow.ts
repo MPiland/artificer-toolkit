@@ -13,7 +13,7 @@ export async function settledActionSaveWindow(
   options: { runtime: RulesRuntimeService; random?: (maxExclusive: number) => number }
 ) {
   if (pauseAnswer?.kind === 'EVIDENCE') return pauseAnswer.answer
-  if (pauseAnswer?.kind !== 'D20_WINDOW') return null
+  if (pauseAnswer?.kind !== 'ROLL_WINDOW') return null
   const { offer, continuation, selection } = pauseAnswer.answer
   const settled = await settleEncounterD20Window({
     runtime: options.runtime,
@@ -22,5 +22,5 @@ export async function settledActionSaveWindow(
     selection,
     random: options.random ?? nextRollInt
   })
-  return { kind: 'D20_WINDOW' as const, d20: settled.d20 }
+  return { kind: 'ROLL_WINDOW' as const, d20: settled.d20 }
 }

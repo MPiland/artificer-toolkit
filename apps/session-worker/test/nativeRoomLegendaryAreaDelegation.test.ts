@@ -288,7 +288,7 @@ describe('a room ADVANCE_TURN that delegates a Legendary area option (SPELLS-33.
         occurrenceId: held.occurrence.id,
         expectedOccurrenceVersion: held.occurrence.version,
         correlationId: null,
-        resolution: { kind: 'D20_WINDOW_DECLINE', requestId: window.requestId }
+        resolution: { kind: 'ROLL_WINDOW_DECLINE', requestId: window.requestId }
       }
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')

@@ -26,15 +26,15 @@ import type { EncounterReadTransaction } from './ports.js'
 
 const answersWindow = <TResolution extends { kind: string }>(
   resolution: TResolution
-): resolution is Extract<TResolution, { kind: 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }> =>
-  resolution.kind === 'D20_WINDOW_USE' || resolution.kind === 'D20_WINDOW_DECLINE'
+): resolution is Extract<TResolution, { kind: 'ROLL_WINDOW_USE' | 'ROLL_WINDOW_DECLINE' }> =>
+  resolution.kind === 'ROLL_WINDOW_USE' || resolution.kind === 'ROLL_WINDOW_DECLINE'
 
 /** The answers a concentration save takes: its d20, or the decision on its d20 window. */
 const answersConcentration = (
   resolution: EncounterResponseAnswer
 ): resolution is Extract<
   EncounterResponseAnswer,
-  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' | 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }
+  { kind: 'ENTER_DICE' | 'SYSTEM_ROLL' | 'ROLL_WINDOW_USE' | 'ROLL_WINDOW_DECLINE' }
 > =>
   resolution.kind === 'ENTER_DICE' || resolution.kind === 'SYSTEM_ROLL' || answersWindow(resolution)
 

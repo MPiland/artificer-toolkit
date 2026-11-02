@@ -193,7 +193,7 @@ export async function persistEncounterActionPending(
         // A creature offered the chance to counter the cast is the roller of that decision.
         pause?.kind !== 'CAST_REACTION' &&
         // A reactor asked whether to change the attack roll decides its own d20 window (D207).
-        (pause?.kind !== 'D20_WINDOW' ||
+        (pause?.kind !== 'ROLL_WINDOW' ||
           d20WindowReactorActorId(pause.payload) !== snapshot.applicationContext.rollerActorId ||
           !actors.some(({ id }) => id === d20WindowReactorActorId(pause.payload)))) ||
       // The save a ward owes is asked of the one who attacks it.

@@ -39,7 +39,7 @@ export type EncounterPauseDto =
   | { kind: 'ATTACK_RETARGET'; payload: EncounterAttackRetargetOfferDto }
   | { kind: 'ON_HIT'; payload: EncounterOnHitOfferDto }
   | { kind: 'FORCED_MOVEMENT'; payload: EncounterForcedMovementOfferDto }
-  | { kind: 'D20_WINDOW'; payload: D20WindowPausePayloadDto }
+  | { kind: 'ROLL_WINDOW'; payload: D20WindowPausePayloadDto }
 
 /** The pauses an Encounter action holds: its TEST save's d20 window, and every choice it offers. */
 export type EncounterActionPauseDto = EncounterPauseDto
@@ -69,7 +69,7 @@ export const encounterPauseVariants = lazySchemaParts(() => ({
   ATTACK_RETARGET: pauseVariant('ATTACK_RETARGET', encounterAttackRetargetOfferDtoSchema),
   ON_HIT: pauseVariant('ON_HIT', encounterOnHitOfferDtoSchema),
   FORCED_MOVEMENT: pauseVariant('FORCED_MOVEMENT', encounterForcedMovementOfferDtoSchema),
-  D20_WINDOW: pauseVariant('D20_WINDOW', d20WindowPausePayloadDtoSchema)
+  ROLL_WINDOW: pauseVariant('ROLL_WINDOW', d20WindowPausePayloadDtoSchema)
 }))
 
 // Explicitly typed so the pending-context declaration stays within the compiler's size limit (TS7056).
@@ -84,7 +84,7 @@ export const encounterActionPauseDtoSchema: z.ZodMiniType<EncounterActionPauseDt
       variants.ATTACK_RETARGET,
       variants.ON_HIT,
       variants.FORCED_MOVEMENT,
-      variants.D20_WINDOW
+      variants.ROLL_WINDOW
     ])
   }
 )

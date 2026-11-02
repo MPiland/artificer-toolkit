@@ -75,9 +75,9 @@ describe('single-target action save: window, then Legendary Resistance', () => {
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const window = await target.pendingDecision()
-    if (window.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (window.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     const used = await target.resolve(window, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: window.pending.requestId,
       optionId: window.pending.options[0]!.optionId,
       faces: [1]
@@ -179,7 +179,7 @@ describe('area save: window, then Legendary Resistance', () => {
     expect(window.pending.windows.map(({ targetActorId }) => targetActorId)).toEqual([TARGET_ID])
     const used = await target.send(
       target.resolveCommand(window.decision, {
-        kind: 'D20_WINDOW_USE',
+        kind: 'ROLL_WINDOW_USE',
         requestId: window.pending.windows[0]!.requestId,
         optionId: window.pending.windows[0]!.options[0]!.optionId,
         faces: [1]
@@ -260,14 +260,14 @@ describe('movement-reaction save: window, then Legendary Resistance', () => {
     if (
       window?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
       window.context.phase.kind !== 'ACTION_EVIDENCE' ||
-      window.context.phase.pause?.kind !== 'D20_WINDOW'
+      window.context.phase.pause?.kind !== 'ROLL_WINDOW'
     )
       throw new Error('Expected the mover to hold a d20 window on the reaction save.')
     const { pause } = window.context.phase
     const shown = await mover.pendingFor(false)
-    if (shown?.kind !== 'D20_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
+    if (shown?.kind !== 'ROLL_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
     const used = await mover.respond({
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: pause.payload.offer.options[0]!.optionId,
       faces: [1]

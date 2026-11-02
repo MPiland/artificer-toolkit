@@ -593,13 +593,13 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
         position: spatialPointDtoSchema
       }),
       /** The roller lets a held die go unused after seeing the d20. */
-      z.strictObject({ kind: z.literal('D20_WINDOW_DECLINE'), requestId: requestIdSchema }),
+      z.strictObject({ kind: z.literal('ROLL_WINDOW_DECLINE'), requestId: requestIdSchema }),
       /**
        * The roller adds a held die the window offered. `faces` are the die's entered faces; absent,
        * the server rolls it.
        */
       z.strictObject({
-        kind: z.literal('D20_WINDOW_USE'),
+        kind: z.literal('ROLL_WINDOW_USE'),
         requestId: requestIdSchema,
         optionId: checksumSchema,
         faces: z.optional(d20AddedFacesDtoSchema)

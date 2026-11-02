@@ -46,7 +46,7 @@ export type NativeForcedMovementAnswer = {
 
 /** A d20 window answered: the roll it froze, the choice that held it, and the die spent or declined. */
 export type NativeD20WindowAnswer = {
-  offer: EncounterPausePayload<'D20_WINDOW'>
+  offer: EncounterPausePayload<'ROLL_WINDOW'>
   continuation: ReturnType<typeof pendingSnapshotContinuation>
   selection: EncounterD20WindowSelection
 }
@@ -54,7 +54,7 @@ export type NativeD20WindowAnswer = {
 /** The answer a response carries: its own evidence when nothing is paused, else the paused kind's. */
 export type NativePauseAnswer =
   | { kind: 'EVIDENCE'; answer: EncounterEvidenceAnswer }
-  | { kind: 'D20_WINDOW'; answer: NativeD20WindowAnswer }
+  | { kind: 'ROLL_WINDOW'; answer: NativeD20WindowAnswer }
   | { kind: 'LEGENDARY_RESISTANCE'; answer: NativeSealedChoiceAnswer<'LEGENDARY_RESISTANCE'> }
   | { kind: 'REACTION'; answer: NativeSealedChoiceAnswer<'REACTION'> }
   | { kind: 'CAST_REACTION'; answer: NativeCastReactionAnswer }

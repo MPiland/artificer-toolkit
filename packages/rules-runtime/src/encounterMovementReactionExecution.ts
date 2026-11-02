@@ -105,9 +105,9 @@ async function settledWindowResume(
   resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
 }> {
   const { pending, resolution } = resume
-  if (resolution.kind !== 'D20_WINDOW_USE' && resolution.kind !== 'D20_WINDOW_DECLINE')
+  if (resolution.kind !== 'ROLL_WINDOW_USE' && resolution.kind !== 'ROLL_WINDOW_DECLINE')
     return { pending, resolution }
-  if (pending.pause?.kind !== 'D20_WINDOW')
+  if (pending.pause?.kind !== 'ROLL_WINDOW')
     throw new Error('The movement reaction holds no d20 window to answer.')
   const settled = await settleEncounterD20Window({
     runtime: input.runtime,
@@ -116,7 +116,7 @@ async function settledWindowResume(
     selection: encounterD20WindowSelection(resolution),
     random: input.random
   })
-  return { pending, resolution: { kind: 'D20_WINDOW', d20: settled.d20 } }
+  return { pending, resolution: { kind: 'ROLL_WINDOW', d20: settled.d20 } }
 }
 
 /** Runs or resumes sealed action phases; the enclosing movement owns publication. */
@@ -184,7 +184,7 @@ export async function executeEncounterMovementReactionAction(input: {
         currentFeatureResource: nativeMovementResistanceResource(input.prepared, candidate)
       })
       const answered = resume?.resolution
-      if (answered?.kind === 'D20_WINDOW')
+      if (answered?.kind === 'ROLL_WINDOW')
         throw new Error('The movement reaction OUTCOME holds no d20 window.')
       result = await continueNativeActionAfterTest({
         ...executionInput,

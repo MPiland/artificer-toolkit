@@ -296,7 +296,7 @@ export type PendingNativeActionGraphs = {
    */
   pause?: Extract<
     EncounterActionPauseDto,
-    { kind: 'D20_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
+    { kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
   >
 }
 
@@ -427,7 +427,7 @@ export async function prepareNativeActionTest(
       throw new Error('The native action TEST policy is stale.')
     const { resolution } = input.resume
     const sight =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? null
         : sightGovernedStageD20({
             attackSight,
@@ -435,7 +435,7 @@ export async function prepareNativeActionTest(
             stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
           })
     const response =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? windowedSaveResponse({ continuation: heldContinuation, policy, d20: resolution.d20 })
         : actionResponse({
             gameSystemId: current.published.gameSystemId,
@@ -460,7 +460,7 @@ export async function prepareNativeActionTest(
         ...(pending.d20Belief ? { d20Belief: pending.d20Belief } : {}),
         heldD20: heldStageD20(response.heldFace, sight)
       }
-    if (resolution.kind !== 'D20_WINDOW') {
+    if (resolution.kind !== 'ROLL_WINDOW') {
       const window = await windowRolledSave(pending.continuation, policy, {
         response,
         appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
@@ -468,7 +468,7 @@ export async function prepareNativeActionTest(
       if (window) return window
     } else {
       mayAddDice = true
-      if (pending.pause?.kind !== 'D20_WINDOW')
+      if (pending.pause?.kind !== 'ROLL_WINDOW')
         throw new Error('The native action TEST evidence is stale.')
       // The next reactor, if any, is asked about the roll as the window just answered settled it.
       const window = await windowRolledSave(heldContinuation, policy, {
@@ -1025,15 +1025,15 @@ export async function advanceNativeActionGraphs(input: {
       d20Belief: EncounterAttackD20Belief | null
       heldD20: EncounterActionHeldD20Dto | null
     },
-    /** The window a `D20_WINDOW` answer settled; the next reactor, if any, is asked after it. */
+    /** The window a `ROLL_WINDOW` answer settled; the next reactor, if any, is asked after it. */
     previousWindow: D20WindowPausePayloadDto | null = null
   ) {
     const sight =
-      policy !== null && isStageD20(policy) && resolution.kind !== 'D20_WINDOW'
+      policy !== null && isStageD20(policy) && resolution.kind !== 'ROLL_WINDOW'
         ? sightGovernedStageD20({ attackSight, policy, stored })
         : null
     const response =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? windowedSaveResponse({ continuation, policy, d20: resolution.d20 })
         : actionResponse({
             gameSystemId: published.gameSystemId,
@@ -1055,14 +1055,14 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    if (resolution.kind === 'D20_WINDOW' && !previousWindow)
+    if (resolution.kind === 'ROLL_WINDOW' && !previousWindow)
       throw new Error('The action TEST evidence is stale.')
     const next =
       policy && phase !== 'SINGLE'
         ? await nextActionWindowDice({
             saveWindow: input.saveWindow,
             policy,
-            previous: resolution.kind === 'D20_WINDOW' ? previousWindow : null
+            previous: resolution.kind === 'ROLL_WINDOW' ? previousWindow : null
           })
         : null
     // A d20 that a die could still change is shown to its next decider before the save resolves:
@@ -1076,7 +1076,7 @@ export async function advanceNativeActionGraphs(input: {
           gameSystemId: published.gameSystemId,
           dice: opening.dice,
           answeredReactorActorIds: opening.answeredReactorActorIds,
-          ...(resolution.kind === 'D20_WINDOW' && previousWindow
+          ...(resolution.kind === 'ROLL_WINDOW' && previousWindow
             ? { previous: previousWindow, d20: resolution.d20 }
             : {
                 continuation,
@@ -1098,7 +1098,7 @@ export async function advanceNativeActionGraphs(input: {
       continuation,
       natural: response.value,
       addedDice: response.addedDice,
-      mayAddDice: resolution.kind === 'D20_WINDOW' || (next?.dice.length ?? 0) > 0,
+      mayAddDice: resolution.kind === 'ROLL_WINDOW' || (next?.dice.length ?? 0) > 0,
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
@@ -1290,7 +1290,7 @@ export async function advanceNativeActionGraphs(input: {
       policy,
       resolution,
       { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null },
-      pending.pause?.kind === 'D20_WINDOW' ? pending.pause.payload : null
+      pending.pause?.kind === 'ROLL_WINDOW' ? pending.pause.payload : null
     )
     if ('kind' in answered) return answered
     result = answered

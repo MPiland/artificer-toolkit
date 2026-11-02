@@ -408,7 +408,7 @@ action's push. A fixed-DC check action whose success runs an outcome (D173), mad
 commits through the basic action commit input, which names its `source` (`BASIC_ACTION` or `CREATURE_FEATURE`) and a
 feature's `featureResourceConsumption` receipt, with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
 `forcedMovements`) and records one `CHECK_ACTION` output with the same `TARGET_OUTCOME` or `NONE` `stateTransition`.
-A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `D20_WINDOW`), then a success's
+A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `ROLL_WINDOW`), then a success's
 outcome dice on an `ACTION_OUTCOME_EVIDENCE` summary answered with `ENTER_INTEGER` or `SYSTEM_ROLL`. The room commits
 each pause with `LiveSessionEncounterCheckPauseCommitInput` (the next snapshot, and `window.spentEffect` after a d20
 window's answer) and the settled check with the basic action response commit input.
@@ -559,7 +559,7 @@ sequenceDiagram
   Host->>Host: derive the next command's exact conflict keys
 ```
 
-A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `D20_WINDOW_USE` or `D20_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused.
+A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `ROLL_WINDOW_USE` or `ROLL_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused.
 
 `RESOLVE_RULE_OCCURRENCE` fails closed unless exactly one binding matches its Encounter and occurrence. A spatial resolution claims the Encounter, the exact bound Scene, and the Encounter's bound Characters; a non-spatial resolution does not claim a Scene merely because the Encounter has one. A command result adds, replaces, or clears the cached binding immediately. A persisted replay whose pause changed no aggregate version must still reconcile that binding; when a full authoritative refresh ran, the refreshed snapshot wins. Any replay refresh must cover both the replay's changed roots and every root already represented in the coordinator, so recovery cannot drop or regress unrelated state.
 

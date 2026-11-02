@@ -33,7 +33,7 @@ export function restoreEncounterActionPending(
   // A held cast, ward or retarget pauses before the graphs run, so the graphs resume none of them.
   const { pause } = context
   const graphPause =
-    pause?.kind === 'D20_WINDOW' ||
+    pause?.kind === 'ROLL_WINDOW' ||
     pause?.kind === 'LEGENDARY_RESISTANCE' ||
     pause?.kind === 'REACTION' ||
     pause?.kind === 'ON_HIT' ||
@@ -81,7 +81,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       initiatorUserId: input.initiatorUserId,
       // A reactor's d20 window is answered by the reactor, not the roller (D207).
       rollerActorId:
-        (execution.pause?.kind === 'D20_WINDOW' &&
+        (execution.pause?.kind === 'ROLL_WINDOW' &&
           d20WindowReactorActorId(execution.pause.payload)) ||
         (execution.roller === 'SOURCE' ? input.sourceActorId : input.targetActorId),
       currentnessChecksum: input.currentnessChecksum,

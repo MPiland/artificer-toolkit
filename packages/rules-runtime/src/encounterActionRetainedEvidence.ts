@@ -88,7 +88,7 @@ export function retainedD20Evidence(input: {
 }) {
   const pending = input.twoPhase
   const windowed =
-    input.pause?.kind === 'D20_WINDOW' && !isD20RolledCheck(input.pause.payload.rolled)
+    input.pause?.kind === 'ROLL_WINDOW' && !isD20RolledCheck(input.pause.payload.rolled)
       ? input.pause.payload.rolled.d20
       : null
   const retained = retainedReceiptD20(input.receipt)
@@ -201,7 +201,7 @@ export function windowAnswerForRetainedEvidence(input: {
   d20: ReadonlyMap<string, RetainedD20Evidence>
   used: Set<string>
 }): EncounterActionWindowAnswer {
-  const window = input.pending.pause?.kind === 'D20_WINDOW' ? input.pending.pause.payload : null
+  const window = input.pending.pause?.kind === 'ROLL_WINDOW' ? input.pending.pause.payload : null
   if (!window || isD20RolledCheck(window.rolled))
     throw new Error('The retained action window evidence is stale.')
   const { d20 } = window.rolled
@@ -219,9 +219,9 @@ export function windowAnswerForRetainedEvidence(input: {
         ? offered.reaction.selectionChecksum === spent.spentReaction?.selectionChecksum
         : offered.effectId === spent.spentEffectId
     )
-  if (!spent || !option) return { kind: 'D20_WINDOW', d20 }
+  if (!spent || !option) return { kind: 'ROLL_WINDOW', d20 }
   const answered = spendEncounterD20WindowDie(d20, option, spent.rolledFaces)
   if (!same(answered.addedDice, dice.slice(0, held.length + 1)))
     throw new Error('The retained action window evidence is stale.')
-  return { kind: 'D20_WINDOW', d20: answered }
+  return { kind: 'ROLL_WINDOW', d20: answered }
 }

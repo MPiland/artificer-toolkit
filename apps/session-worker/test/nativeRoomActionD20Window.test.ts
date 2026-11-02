@@ -57,7 +57,7 @@ async function openWindow(room: Room) {
   })
   expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
   const decision = await room.pendingDecision()
-  if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+  if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
   return { decision, pending: decision.pending }
 }
 
@@ -98,7 +98,7 @@ describe('room d20 window on a single-target action save', () => {
     const room = await heldDieRoom()
     const { decision, pending } = await openWindow(room)
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [4]
@@ -123,7 +123,7 @@ describe('room d20 window on a single-target action save', () => {
     const room = await heldDieRoom()
     const { decision, pending } = await openWindow(room)
     const declined = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
@@ -143,13 +143,13 @@ describe('room d20 window on a single-target action save', () => {
     })
     expect(dice.type).toBe('COMMAND_REJECTED')
     const stale = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: 'f'.repeat(64),
       faces: [4]
     })
     expect(stale.type).toBe('COMMAND_REJECTED')
-    expect((await room.pendingDecision()).pending.kind).toBe('D20_WINDOW')
+    expect((await room.pendingDecision()).pending.kind).toBe('ROLL_WINDOW')
   })
 
   it('opens the window when the app rolls the save itself', async () => {
@@ -171,6 +171,6 @@ describe('room d20 window on a single-target action save', () => {
       })
     })
     expect((await room.startAction(TARGET_ID)).answer.type).toBe('COMMAND_COMMITTED')
-    expect((await room.pendingDecision()).pending.kind).toBe('D20_WINDOW')
+    expect((await room.pendingDecision()).pending.kind).toBe('ROLL_WINDOW')
   })
 })

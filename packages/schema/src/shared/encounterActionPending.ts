@@ -209,7 +209,7 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                   'A forced-movement destination belongs to a settled action held for its source.'
                 )
               break
-            case 'D20_WINDOW': {
+            case 'ROLL_WINDOW': {
               const reactor = d20WindowReactorActorId(pause.payload)
               if (holdsActionD20 || !value.twoPhase || isD20RolledCheck(pause.payload.rolled))
                 issue(

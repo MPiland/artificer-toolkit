@@ -385,7 +385,7 @@ export function CampaignTabletopDecisionDrawer({
                 Decline
               </Button>
             </Stack>
-          ) : pending.kind === 'D20_WINDOW' ? (
+          ) : pending.kind === 'ROLL_WINDOW' ? (
             <Stack gap='xs'>
               <Text size='sm'>
                 {rollPromptText(
@@ -401,7 +401,7 @@ export function CampaignTabletopDecisionDrawer({
                   key={option.optionId}
                   onClick={() =>
                     void resolve({
-                      kind: 'D20_WINDOW_USE',
+                      kind: 'ROLL_WINDOW_USE',
                       requestId: pending.requestId,
                       optionId: option.optionId
                     })
@@ -415,7 +415,7 @@ export function CampaignTabletopDecisionDrawer({
                 disabled={disabled}
                 variant='default'
                 onClick={() =>
-                  void resolve({ kind: 'D20_WINDOW_DECLINE', requestId: pending.requestId })
+                  void resolve({ kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId })
                 }
               >
                 Keep the roll
@@ -703,7 +703,7 @@ function AreaSavesControls({
               key={option.optionId}
               onClick={() =>
                 onSubmit({
-                  kind: 'D20_WINDOW_USE',
+                  kind: 'ROLL_WINDOW_USE',
                   requestId: window.requestId,
                   optionId: option.optionId
                 })
@@ -716,7 +716,7 @@ function AreaSavesControls({
           <Button
             disabled={disabled}
             variant='default'
-            onClick={() => onSubmit({ kind: 'D20_WINDOW_DECLINE', requestId: window.requestId })}
+            onClick={() => onSubmit({ kind: 'ROLL_WINDOW_DECLINE', requestId: window.requestId })}
           >
             Keep the roll
           </Button>

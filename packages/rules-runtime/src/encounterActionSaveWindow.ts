@@ -26,12 +26,12 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 /** A roller's answer to a d20 window, before it settles into the roll the window froze. */
 export type EncounterD20WindowResponse = Extract<
   ResolveRuleOccurrenceInputDto['resolution'],
-  { kind: 'D20_WINDOW_USE' | 'D20_WINDOW_DECLINE' }
+  { kind: 'ROLL_WINDOW_USE' | 'ROLL_WINDOW_DECLINE' }
 >
 
 /** The d20 a TEST save's window settled, which resumes the save the window held. */
 export type EncounterActionWindowAnswer = {
-  kind: 'D20_WINDOW'
+  kind: 'ROLL_WINDOW'
   d20: D20WindowPausePayloadDto['rolled']['d20']
 }
 
@@ -129,8 +129,8 @@ export function heldWindowedSave(
   pause: EncounterActionPauseDto | undefined,
   resolution: { kind: string }
 ) {
-  const held = pause?.kind === 'D20_WINDOW' ? pause.payload.rolled : null
-  if ((resolution.kind === 'D20_WINDOW') !== (held !== null) || (held && isD20RolledCheck(held)))
+  const held = pause?.kind === 'ROLL_WINDOW' ? pause.payload.rolled : null
+  if ((resolution.kind === 'ROLL_WINDOW') !== (held !== null) || (held && isD20RolledCheck(held)))
     throw new Error('The action TEST evidence is stale.')
   return held
 }
@@ -193,6 +193,6 @@ export async function openActionSaveWindow(
   })
   return {
     continuation: window.continuation,
-    pause: { kind: 'D20_WINDOW' as const, payload: window.payload }
+    pause: { kind: 'ROLL_WINDOW' as const, payload: window.payload }
   }
 }

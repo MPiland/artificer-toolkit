@@ -344,8 +344,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           allowedResponses: z.tuple([
             z.literal('ENTER_DICE'),
             z.literal('SYSTEM_ROLL'),
-            z.literal('D20_WINDOW_DECLINE'),
-            z.literal('D20_WINDOW_USE'),
+            z.literal('ROLL_WINDOW_DECLINE'),
+            z.literal('ROLL_WINDOW_USE'),
             z.literal('AREA_LEGENDARY_RESISTANCE')
           ])
         })
@@ -466,7 +466,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
       }),
       /** A d20 the roller has seen, with the dice it holds for after the roll: it may add one or let them go. */
       z.strictObject({
-        kind: z.literal('D20_WINDOW'),
+        kind: z.literal('ROLL_WINDOW'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
@@ -474,7 +474,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         ...d20WindowChoiceShape(),
-        allowedResponses: z.tuple([z.literal('D20_WINDOW_DECLINE'), z.literal('D20_WINDOW_USE')])
+        allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
       }),
       /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */
       z.strictObject({

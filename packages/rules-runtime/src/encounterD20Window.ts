@@ -76,9 +76,9 @@ export type EncounterD20WindowSelection =
 export function encounterD20WindowSelection(
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ): EncounterD20WindowSelection {
-  if (resolution.kind === 'D20_WINDOW_USE')
+  if (resolution.kind === 'ROLL_WINDOW_USE')
     return { kind: 'USE', optionId: resolution.optionId, faces: resolution.faces }
-  if (resolution.kind === 'D20_WINDOW_DECLINE') return { kind: 'DECLINE' }
+  if (resolution.kind === 'ROLL_WINDOW_DECLINE') return { kind: 'DECLINE' }
   throw new EncounterValidationError('The d20 window takes a use or a decline.')
 }
 
@@ -197,7 +197,7 @@ export async function openEncounterD20Window(input: {
     commandId: input.command.commandId,
     commandFingerprint: input.command.commandFingerprint,
     source: input.source,
-    pause: { kind: 'D20_WINDOW', payload }
+    pause: { kind: 'ROLL_WINDOW', payload }
   })
   return {
     context,
