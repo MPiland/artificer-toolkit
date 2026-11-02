@@ -498,7 +498,7 @@ export async function evaluateEncounterMovementActionResponse<
           selectedOptionId,
           // A reactor asked whether to change the attack roll decides its own d20 window (D207).
           rollerActorId:
-            (execution.pause?.kind === 'D20_WINDOW' &&
+            (execution.pause?.kind === 'ROLL_WINDOW' &&
               d20WindowReactorActorId(execution.pause.payload)) ||
             (execution.roller === 'SOURCE'
               ? option.candidate.reactorActorId

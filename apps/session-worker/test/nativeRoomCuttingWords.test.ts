@@ -191,7 +191,7 @@ async function biteTheReactor(reactor: 'HECKLER' | 'LORE_BARD') {
     ).type
   ).toBe('COMMAND_COMMITTED')
   const window = await room.pendingDecision()
-  if (window.pending.kind !== 'D20_WINDOW')
+  if (window.pending.kind !== 'ROLL_WINDOW')
     throw new Error(`Expected the d20 window, got ${window.pending.kind}.`)
   return { room, window, pending: window.pending }
 }
@@ -288,7 +288,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   it('rebuilds the declined roll when the bitten Heckler then casts Shield', async () => {
     const { room, window, pending } = await biteTheReactor('HECKLER')
     const declined = await room.resolve(window, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
@@ -308,7 +308,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   it('offers no Shield once Heckle spent the reaction on the same roll', async () => {
     const { room, window, pending } = await biteTheReactor('HECKLER')
     const heckled = await room.resolve(window, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [1]
@@ -322,7 +322,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   it('lets the bitten Lore Bard spend inspiration on the roll against itself, with the Bite', async () => {
     const { room, window, pending } = await biteTheReactor('LORE_BARD')
     const used = await room.resolve(window, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]

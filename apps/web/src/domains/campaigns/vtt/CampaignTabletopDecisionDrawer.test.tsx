@@ -214,7 +214,7 @@ const retargetPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema
 
 /** A reactor's d20 window on another creature's attack roll (D207). */
 const reactorWindowPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
-  kind: 'D20_WINDOW',
+  kind: 'ROLL_WINDOW',
   occurrenceId,
   occurrenceVersion: 7,
   encounterVersion: tabletopGmEncounter.version,
@@ -225,7 +225,7 @@ const reactorWindowPending = validated(pendingEncounterRuleOccurrenceSummaryDtoS
   options: [
     { optionId: 'f'.repeat(64), label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT' }
   ],
-  allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+  allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
 })
 
 function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
@@ -1507,7 +1507,7 @@ describe('CampaignTabletopDecisionDrawer reactor d20 window', () => {
     await user.click(screen.getByRole('button', { name: 'Use Cutting Words (-1d6)' }))
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
-        resolution: { kind: 'D20_WINDOW_USE', requestId: 'attack-roll', optionId: 'f'.repeat(64) }
+        resolution: { kind: 'ROLL_WINDOW_USE', requestId: 'attack-roll', optionId: 'f'.repeat(64) }
       })
     )
   })
@@ -1521,7 +1521,7 @@ describe('CampaignTabletopDecisionDrawer reactor d20 window', () => {
     await user.click(screen.getByRole('button', { name: 'Decline' }))
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({
-        resolution: { kind: 'D20_WINDOW_DECLINE', requestId: 'attack-roll' }
+        resolution: { kind: 'ROLL_WINDOW_DECLINE', requestId: 'attack-roll' }
       })
     )
   })

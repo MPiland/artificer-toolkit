@@ -264,7 +264,7 @@ export function CampaignTabletopDecisionDrawer({
                     ? 'Death save'
                     : pending.kind === 'ON_HIT_CHOICE'
                       ? onHitChoiceTitle(pending.options)
-                      : pending.kind === 'D20_WINDOW' && pending.attackerActorId
+                      : pending.kind === 'ROLL_WINDOW' && pending.attackerActorId
                         ? decisionTitle('REACTION_CHOICE')
                         : decisionTitle(pending.kind)}
             </Text>

@@ -444,7 +444,7 @@ export async function verifyEncounterPlayer({
       // 2. The Wolf bites (owner stand-in). Its d20 opens the player's Heckle window before the result
       // (D207); the player declines it, then spends their reaction on Shield, with no GM step.
       const bitten = await wolfBites(9)
-      const biteWindow = pendingOf(bitten, 'D20_WINDOW')
+      const biteWindow = pendingOf(bitten, 'ROLL_WINDOW')
       assert.equal(biteWindow.rollerActorId, hero.id)
       assert.equal(biteWindow.attackerActorId, wolf.id)
       const declined = await controls.answerRollWindow(null)
@@ -483,7 +483,7 @@ export async function verifyEncounterPlayer({
       // 4. The Wolf bites again (owner stand-in). The player Heckles the roll, which the server rolls and
       // which spends the reaction Shield needs; a 1d4 off a natural 15 still hits, so the Character
       // drops to 0.
-      pendingOf(await wolfBites(15), 'D20_WINDOW')
+      pendingOf(await wolfBites(15), 'ROLL_WINDOW')
       const heckled = await controls.answerRollWindow('Heckle')
       const felled = await answerOwnerDice(heckled.result, 15)
       assert.equal(

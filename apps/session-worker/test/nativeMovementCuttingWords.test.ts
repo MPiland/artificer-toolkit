@@ -120,7 +120,7 @@ async function provokeAttack(room: Room) {
 async function openWindow(room: Room) {
   await provokeAttack(room)
   const shown = await room.pendingFor(false)
-  if (shown?.kind !== 'D20_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
+  if (shown?.kind !== 'ROLL_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
   return shown
 }
 
@@ -172,7 +172,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
 
     const used = await room.respond({
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
       faces: [5]
@@ -193,7 +193,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     expect(shown).toMatchObject({ rollerActorId: MOVER_ID, attackerActorId: WOLF_ID })
 
     const used = await room.respond({
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
       faces: [5]
@@ -209,7 +209,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
   it('leaves the roll and spends nothing when the Bard declines', async () => {
     const room = await walkRoom({ bard: 'BYSTANDER' })
     const shown = await openWindow(room)
-    const declined = await room.respond({ kind: 'D20_WINDOW_DECLINE', requestId: shown.requestId })
+    const declined = await room.respond({ kind: 'ROLL_WINDOW_DECLINE', requestId: shown.requestId })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
     expect(await room.pending()).toBeNull()
     const d20 = await settledAttack(room, declined.commandId)
@@ -223,7 +223,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     const shown = await openWindow(room)
     expect(shown).toMatchObject({ rollerActorId: BARD_ACTOR_ID, attackerActorId: WOLF_ID })
     const used = await room.respond({
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: shown.options[0]!.optionId,
       faces: [5]
@@ -266,7 +266,7 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     async ({ bardPlay, bardAt }) => {
       const room = await walkRoom({ bard: 'BYSTANDER', bardPlay, ...(bardAt ? { bardAt } : {}) })
       await provokeAttack(room)
-      expect((await room.pendingFor(true))?.kind).not.toBe('D20_WINDOW')
+      expect((await room.pendingFor(true))?.kind).not.toBe('ROLL_WINDOW')
       expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
     },
     120_000
