@@ -1,3 +1,4 @@
+import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import {
   collegeOfLore,
   cuttingWordsReaction
@@ -11,7 +12,7 @@ import { testUuid } from './dnd5eSrdEncounter.js'
  * attack roll, otherwise authored as the SRD Cutting Words is. Its authored ids come from `newId`;
  * by default they are fixed test ids.
  */
-export function heckleFeature(newId?: () => string) {
+export function heckleFeature(newId?: () => string): FeatureAuthored {
   let next = 0x7d0
   const id = newId ?? (() => testUuid(next++))
   if (cuttingWordsReaction.invocation.kind !== 'ACTION')
