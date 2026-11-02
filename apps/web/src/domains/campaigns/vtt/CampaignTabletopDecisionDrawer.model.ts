@@ -1,3 +1,6 @@
+import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
+
 import {
   contestCheckD20Request,
   type PendingEncounterRuleOccurrenceSummaryDto
@@ -11,6 +14,32 @@ import {
   concentrationTriggerText,
   deathSavePromptText
 } from '../ruleCheckCopy'
+
+/** A decision shown away from the stage map has no scene to aim on. */
+export const NO_AREA_AIM: LegendaryAreaAim = {
+  scene: null,
+  sourceTokenId: null,
+  areaAim: null,
+  aiming: false,
+  onAreaAimChange: () => undefined,
+  onAreaSizeChange: () => undefined,
+  onPickAreaOrigin: () => undefined
+}
+
+export const NO_SCENE_TOKENS: CampaignSceneStateDto['tokens'] = []
+
+/** What a Legendary option needs to have its area aimed on the stage map. */
+export type LegendaryAreaAim = {
+  scene: CampaignSceneStateDto | null
+  /** The token the owner's directed area starts on. */
+  sourceTokenId: string | null
+  areaAim: VttAreaAim | null
+  /** The stage is waiting for the aim, so the drawer steps aside. */
+  aiming: boolean
+  onAreaAimChange: (aim: VttAreaAim | null) => void
+  onAreaSizeChange: (size: VttAreaSize | null) => void
+  onPickAreaOrigin: () => void
+}
 
 export type InitiativeDeclarationAdjudicationValues = Partial<
   Record<InitiativeDeclarationAdjudicationFieldDto['key'], string | string[] | number | null>

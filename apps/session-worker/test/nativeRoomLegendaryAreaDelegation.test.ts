@@ -11,18 +11,21 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { ancientRedDragon } from '@artificer-toolkit/source-data/srd/creatures/ancient-red-dragon.js'
+import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { readLegendaryChoice, respondToLegendaryChoice } from './legendaryRoomReads.js'
+import { heldSaveDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
 import {
   parseReceiptExecution,
   readActorConditionIds,
   readActorHitPoints,
+  readPendingActionDecision,
   readRoomHistory
 } from './roomHistoryReads.js'
 
@@ -89,7 +92,10 @@ const breath: CreatureAuthored = {
 }
 
 /** The near Wolf ends its turn 5 ft from the dragon; the far Wolf, 65 ft off, is next. */
-function wingRoom(creature: CreatureAuthored = dragon) {
+function wingRoom(
+  creature: CreatureAuthored = dragon,
+  seed?: Parameters<typeof movementRoom>[0]['seed']
+) {
   return movementRoom({
     actors: [
       srdCreatureActor({ id: NEAR_WOLF_ID, creature: plainWolf }),
@@ -103,7 +109,8 @@ function wingRoom(creature: CreatureAuthored = dragon) {
       [DRAGON_ID]: { x: 150, y: 150 }
     },
     autoRoll: 'GAME_MASTER',
-    fallbackRoll: 1
+    fallbackRoll: 1,
+    seed
   })
 }
 
@@ -225,6 +232,72 @@ describe('a room ADVANCE_TURN that delegates a Legendary area option (SPELLS-33.
       ({ commandId }) => commandId === systemTriggerCommandId(advanceId, DRAGON_ID, cone!.actionId)
     )
     expect(root?.commandType).toBe('RESOLVE_ACTION')
+    const state = readRunState(after.runs[0]!)
+    expect(state.currentActorId).toBe(FAR_WOLF_ID)
+    expect(state.delegatedLegendaryAction).toBeUndefined()
+  }, 120000)
+
+  it('pauses the delegated root on a save window of a Wolf holding a die, then begins the next turn once it is answered (SPELLS-15)', async () => {
+    const room = await wingRoom(
+      dragon,
+      seedModifierGrant({
+        sourceActorId: DRAGON_ID,
+        holderActorId: NEAR_WOLF_ID,
+        lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
+        effect: heldSaveDieEffect(),
+        sourceLabel: resistance.label
+      })
+    )
+    const before = await readRoomHistory(room.base.stub)
+    const advanceId = crypto.randomUUID()
+    const advanced = await room.send(advanceId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId: advanceId,
+        expectedVersion: before.runs[0]!.version
+      }
+    })
+    expect(advanced.type, JSON.stringify(advanced)).toBe('COMMAND_COMMITTED')
+    const choice = await readLegendaryChoice(room.base.stub)
+    const { answer } = await respondToLegendaryChoice(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: choice!.options[0]!.optionId,
+      targetActorId: DRAGON_ID
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+
+    // The Wing Attack's save is rolled, and the holder's window pauses the root before the damage.
+    const held = await readPendingActionDecision(room.base.stub)
+    if (held?.pending.kind !== 'AREA_SAVES') throw new Error('Expected the area saves.')
+    expect(held.pending.windows.map(({ targetActorId }) => targetActorId)).toEqual([NEAR_WOLF_ID])
+    const paused = await readRoomHistory(room.base.stub)
+    expect(readActorHitPoints(paused, NEAR_WOLF_ID)).toBe(readActorHitPoints(before, NEAR_WOLF_ID))
+    expect(readRunState(paused.runs[0]!).currentActorId).not.toBe(FAR_WOLF_ID)
+
+    const window = held.pending.windows[0]!
+    const declinedId = crypto.randomUUID()
+    const declined = await room.send(declinedId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        encounterId: room.encounterId,
+        commandId: declinedId,
+        expectedVersion: held.encounterVersion,
+        occurrenceId: held.occurrence.id,
+        expectedOccurrenceVersion: held.occurrence.version,
+        correlationId: null,
+        resolution: { kind: 'D20_WINDOW_DECLINE', requestId: window.requestId }
+      }
+    })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+
+    const after = await readRoomHistory(room.base.stub)
+    expect(await readPendingActionDecision(room.base.stub)).toBeNull()
+    expect(readActorHitPoints(after, NEAR_WOLF_ID)).toBeLessThan(
+      readActorHitPoints(before, NEAR_WOLF_ID)
+    )
     const state = readRunState(after.runs[0]!)
     expect(state.currentActorId).toBe(FAR_WOLF_ID)
     expect(state.delegatedLegendaryAction).toBeUndefined()
