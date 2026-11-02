@@ -1006,7 +1006,7 @@ describe('room burst whose caster pays to reroll its shared damage roll (SPELLS-
     expect(window.dice).toHaveLength(2)
     expect(window.dice.every(({ faces }) => faces === 4)).toBe(true)
     expect(window.options).toEqual([
-      { optionId: expect.any(String), label: 'Rerolled casting', cost: 1, maxDice: 1 }
+      { optionId: expect.any(String), label: 'Spell Craft', cost: 1, maxDice: 1 }
     ])
     expect(await hitPoints(room)).toEqual(before)
   }, 120000)

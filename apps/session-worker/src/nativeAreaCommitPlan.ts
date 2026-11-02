@@ -80,6 +80,8 @@ export async function planAreaOutcomes(args: {
   input: AreaPlanBase
   command: ResolveEncounterActionInputDto
   caster: EncounterRunActorState
+  /** The cast's lead, holding every spend the cast settled (D208). */
+  lead: AreaPrepared
   occurredAt: string
   areaOccurrenceId: string
   kept: readonly { actor: EncounterRunActorState; target: { prepared: AreaPrepared } }[]
@@ -112,6 +114,7 @@ export async function planAreaOutcomes(args: {
     input,
     command,
     caster,
+    lead,
     occurredAt,
     areaOccurrenceId,
     kept,
@@ -290,7 +293,10 @@ export async function planAreaOutcomes(args: {
       recurringEffect && formCreature ? actorFormEntry(recurringEffect, formCreature) : undefined
     const mechanics = planNativeEncounterActionMechanics(
       {
-        prepared,
+        // The caster's own outcome pays what the cast settled, a damage reroll included (D208).
+        prepared: carriesSpend
+          ? { ...prepared, characterActionState: lead.characterActionState }
+          : prepared,
         encounterId: state.id,
         expectedEncounterVersion: state.version,
         occurrenceId,
