@@ -285,7 +285,9 @@ type NativeActionEffectsInput<TCharacterFacts extends CharacterActionMovementFac
  */
 export function prepareNativeActionEffectsPlan<
   TCharacterFacts extends CharacterActionMovementFacts
->(input: NativeActionEffectsInput<TCharacterFacts>) {
+>(
+  input: NativeActionEffectsInput<TCharacterFacts>
+): ReturnType<typeof prepareNativeActionEffectsForPlan<TCharacterFacts>> {
   const plans = encounterActiveEffectPlans(
     input.prepared,
     input.execution.published,

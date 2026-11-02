@@ -791,6 +791,10 @@ describe('a target struck by two rows that last (SPELLS-4.T2ps-d2)', () => {
   function tableOgre(spell: SpellAuthored, save?: { baseDc: number }): CreatureAuthored {
     const ogre = srdByLabel(SRD.creatures, 'Ogre')
     const [effect] = spell.effects!
+    const invocation = effect!.invocation as Extract<
+      SpellEffect['invocation'],
+      { triggerCode: 'SAVING_THROW' }
+    >
     return {
       ...ogre,
       features: [
@@ -805,7 +809,7 @@ describe('a target struck by two rows that last (SPELLS-4.T2ps-d2)', () => {
               ...effect!,
               invocation: save
                 ? {
-                    ...effect!.invocation,
+                    ...invocation,
                     savingThrow: {
                       id: testUuid(0xa1a3),
                       dcMethod: 'FIXED_DC' as const,
@@ -813,7 +817,7 @@ describe('a target struck by two rows that last (SPELLS-4.T2ps-d2)', () => {
                       baseDc: save.baseDc
                     }
                   }
-                : effect!.invocation
+                : invocation
             }
           ]
         }
