@@ -452,6 +452,7 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   | 'turnUses'
   | 'spentUseGrants'
   | 'reactionSpellConsumption'
+  | 'windowReactions'
 > & {
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   targets: {
