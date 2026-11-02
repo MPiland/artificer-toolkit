@@ -10,6 +10,7 @@ import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/en
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
@@ -190,7 +191,11 @@ export async function persistEncounterActionPending(
       (snapshot.applicationContext.rollerActorId !== admission.input.actorId &&
         snapshot.applicationContext.rollerActorId !== target.actorId &&
         // A creature offered the chance to counter the cast is the roller of that decision.
-        pause?.kind !== 'CAST_REACTION') ||
+        pause?.kind !== 'CAST_REACTION' &&
+        // A reactor asked whether to change the attack roll decides its own d20 window (D207).
+        (pause?.kind !== 'D20_WINDOW' ||
+          d20WindowReactorActorId(pause.payload) !== snapshot.applicationContext.rollerActorId ||
+          !actors.some(({ id }) => id === d20WindowReactorActorId(pause.payload)))) ||
       // The save a ward owes is asked of the one who attacks it.
       (pause?.kind === 'INCOMING_GATE' &&
         (pause.payload.holderActorId !== target.actorId ||

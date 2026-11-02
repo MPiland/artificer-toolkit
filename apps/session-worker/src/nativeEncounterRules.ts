@@ -28,10 +28,6 @@ import {
   type EncounterActionSourceRequest
 } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
-import {
-  deadCharacterIdsOfTargets,
-  isEncounterActorDefeated
-} from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
 import { DOMAIN_REJECTION_MESSAGES } from '@artificer-toolkit/schema/api/domainRejections'
 import {
@@ -44,8 +40,6 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { settledCountedUseSpend } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
-import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
@@ -59,16 +53,7 @@ import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
-import {
-  encounterActionSuppressedWarning,
-  evaluateEncounterActionRuleWarnings,
-  overridesActionEconomy,
-  RULE_WARNINGS_MESSAGE
-} from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import {
-  encounterConditionFleeSources,
-  encounterFleeActionWarnings
-} from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
+import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   prepareNativeLiveMovementTarget,
   readNativeLiveActorsAndEffects,
@@ -78,7 +63,10 @@ import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
-import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
+import {
+  nativeLiveAttackSceneLoaders,
+  readNativeActionAreaScene
+} from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
   nativeLiveHolderStateReads,
@@ -106,6 +94,12 @@ import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/char
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import {
+  discoverNativeRollReactions,
+  nextNativeRollReactionDice,
+  planNativeWindowReactions,
+  type NativeRollReaction
+} from './nativeEncounterRollReaction.js'
 import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
@@ -153,7 +147,10 @@ import {
   refuseActionOutsideItsWindow,
   interpretForcedMovements,
   refuseUnmetActionRestrictions,
-  refuseUnmetItemActionRequirements
+  refuseImmuneTarget,
+  refuseUnmetItemActionRequirements,
+  targetNotPermitted,
+  targetRuleOverrides
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
 import {
@@ -183,14 +180,6 @@ import { targetSaveWindow } from '@artificer-toolkit/rules-runtime/encounterActi
 import { windowSpentEffects } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-
-const TARGET_NOT_PERMITTED_MESSAGE = 'The selected action does not permit this target.'
-const targetNotPermitted = () =>
-  new LiveSessionDomainRejectionError(422, {
-    code: 'DOMAIN_REJECTED',
-    reason: 'TARGET_UNAVAILABLE',
-    message: TARGET_NOT_PERMITTED_MESSAGE
-  })
 
 /** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
@@ -529,10 +518,12 @@ export async function planNativeLiveEncounterAction(
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: EncounterAttackDecoy | null
+    attackDecoy: EncounterAttackDecoy | null,
+    rollReactions: readonly NativeRollReaction[]
   ) =>
     prepareEncounterActionMechanics({
       attackDecoy,
+      windowReactionDice: rollReactions.map(({ die }) => die),
       state,
       actor: actors.find((actor) => actor.id === command.actorId)!,
       target: actors.find((actor) => actor.id === targetActorId)!,
@@ -584,40 +575,44 @@ export async function planNativeLiveEncounterAction(
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
-  const prepared = await prepareAttackBehindDecoys({
+  const unwindowed = await prepareAttackBehindDecoys({
     occurrenceId,
     effects: activeEffectsByActorId.get(targetActorId) ?? [],
     system,
-    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy, [])
   })
+  // The creatures that may roll a die against the attack roll by a reaction (D207); their dice join
+  // the windows the roll opens, so the attack is prepared again with them. Range is read from the
+  // Scene, so an attack made without one offers no such reaction.
+  const actionSceneRef = command.sceneContext
+  const rollReactions =
+    unwindowed.makesAttackRoll && actionSceneRef
+      ? await discoverNativeRollReactions({
+          state,
+          actors,
+          system,
+          roller: unwindowed.actor,
+          movementTargets,
+          loadTarget,
+          definitions,
+          scene: { actorId: command.actorId, ref: actionSceneRef, context: sceneContext },
+          actionSources,
+          capture
+        })
+      : []
+  const prepared =
+    rollReactions.length > 0
+      ? await prepareAttackAs(movementTargets, unwindowed.attackDecoy, rollReactions)
+      : unwindowed
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS') throw targetNotPermitted()
   refuseActionOutsideItsWindow(prepared, command)
-  // A target immune to this source's use of the action (D156) is refused outright.
-  const immunityLabel = encounterSourceImmunityLabel({
-    source: prepared.source,
-    holderEffects: activeEffectsByActorId.get(prepared.target.id) ?? []
-  })
-  if (immunityLabel !== null)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: `Immune to ${immunityLabel}`
-    })
   const actorTarget = movementTargets.get(prepared.actor.id)
   if (!actorTarget) throw new Error('Encounter rules input binding mismatch.')
-  if (
-    encounterSpellSchoolImmunity({
-      source: prepared.source,
-      sourceFacts: actorTarget,
-      target: prepared.targetFacts
-    })
-  )
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: 'Immune to spells of this school'
-    })
+  refuseImmuneTarget(prepared, {
+    targetEffects: activeEffectsByActorId.get(prepared.target.id) ?? [],
+    sourceFacts: actorTarget
+  })
   await refuseUnmetActionRestrictions(
     { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
     {
@@ -676,62 +671,15 @@ export async function planNativeLiveEncounterAction(
       : prepared.source.capability.mechanicFacts
   const heldOnTarget = activeEffectsByActorId.get(prepared.target.id) ?? []
   const endPlan = planEndEffects(mechanicFacts.outcomes, heldOnTarget, command.target, prepared)
-  const fleeWarnings = encounterFleeActionWarnings({
-    sourceActorIds: encounterConditionFleeSources(actorTarget),
-    activationCode,
-    dash: mechanicFacts.outcomes.some(
-      (outcome) =>
-        outcome.kind === 'EFFECT' &&
-        outcome.effectKind === 'MOVEMENT_RULE' &&
-        outcome.ruleKind === 'ADD_SPEED_TO_MOVEMENT'
-    )
+  const ruleOverrides = targetRuleOverrides({
+    prepared,
+    command,
+    evaluation: { activationCode, economy, suppressed },
+    endWarnings: endPlan.warnings,
+    scene: { sceneContext, facing: encounterFacingRule(state) },
+    gameSystemId: state.gameSystemId,
+    movementTargets
   })
-  const ruleWarnings = evaluateEncounterActionRuleWarnings({
-    preparedWarnings: [
-      ...prepared.ruleWarnings,
-      ...fleeWarnings,
-      ...endPlan.warnings,
-      ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
-    ],
-    target: {
-      actor: prepared.actor,
-      target: prepared.target,
-      targetPolicy: prepared.targetPolicy,
-      makesAttackRoll: prepared.makesAttackRoll,
-      sceneContext,
-      facing: encounterFacingRule(state)
-    },
-    targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
-    sizes: {
-      gameSystemId: state.gameSystemId,
-      actor: encounterActorEffectiveSize(actorTarget),
-      target: targetMovement ? encounterActorEffectiveSize(targetMovement) : null
-    },
-    targetDefeated: isEncounterActorDefeated(
-      prepared.target,
-      deadCharacterIdsOfTargets(movementTargets.values())
-    ),
-    targetPreconditions: {
-      declared: prepared.adapter.outcomeTargetPreconditions({
-        effectKinds: mechanicFacts.outcomes.flatMap((o) =>
-          o.kind === 'EFFECT' && !o.onRollTableRow ? [o.effectKind] : []
-        )
-      }),
-      target: targetMovement
-    },
-    actionEconomy: economy,
-    activationCode,
-    acknowledged: command.acknowledgedWarnings
-  })
-  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET') throw targetNotPermitted()
-  // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
-  if (ruleWarnings.kind === 'UNACKNOWLEDGED')
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'RULE_WARNINGS',
-      message: RULE_WARNINGS_MESSAGE,
-      warnings: ruleWarnings.warnings
-    })
   const actionEconomy = economy?.consumption ?? null
   if (mechanicFacts.invocation.triggerCode === 'CHECK') {
     const source = checkActionSource(prepared)
@@ -811,7 +759,7 @@ export async function planNativeLiveEncounterAction(
       actor,
       actorEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
       target,
-      overrides: ruleWarnings.overrides,
+      overrides: ruleOverrides,
       actionEconomy,
       autoRoll: requireAutoRoll(prepared.actor.id)
         ? (executionOptions.random ?? nextRollInt)
@@ -975,7 +923,7 @@ export async function planNativeLiveEncounterAction(
     prepared,
     actionEconomy,
     attackAction,
-    ruleOverrides: ruleWarnings.overrides,
+    ruleOverrides: ruleOverrides,
     maintenance,
     sceneContext,
     currentnessChecksum,
@@ -1029,7 +977,7 @@ export async function planNativeLiveEncounterAction(
         prepared,
         sourceEffects: activeEffectsByActorId.get(prepared.actor.id) ?? [],
         actionEconomy,
-        ruleOverrides: ruleWarnings.overrides,
+        ruleOverrides: ruleOverrides,
         occurrenceId,
         occurrenceVersion,
         commandId: command.commandId,
@@ -1055,20 +1003,8 @@ export async function planNativeLiveEncounterAction(
     chosenActorIds: null,
     reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
-    readScene: command.sceneContext
-      ? async () => {
-          const castScene = await capture({
-            kind: 'ACTION_AREA_SCENE',
-            command: {
-              actorId: command.actorId,
-              sceneId: command.sceneContext!.sceneId,
-              expectedSceneVersion: command.sceneContext!.expectedSceneVersion
-            }
-          })
-          if (castScene.kind !== 'ACTION_AREA_SCENE')
-            throw new Error('Action Scene context is unavailable.')
-          return castScene.context
-        }
+    readScene: actionSceneRef
+      ? () => readNativeActionAreaScene(capture, command.actorId, actionSceneRef)
       : null,
     occurrenceId,
     occurredAt,
@@ -1084,7 +1020,7 @@ export async function planNativeLiveEncounterAction(
   })
   const cast = await castPause.advance({
     actionEconomy,
-    ruleOverrides: ruleWarnings.overrides,
+    ruleOverrides: ruleOverrides,
     occurrenceVersion
   })
   if (cast.kind !== 'NONE') return { ...preflight(), ...cast }
@@ -1119,7 +1055,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     // The answered attack keeps the decoy it was rolled against.
     prepareAttack: (reactedTargets: typeof movementTargets) =>
-      prepareAttackAs(reactedTargets, prepared.attackDecoy),
+      prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
     loadTarget,
     targetStateChecksum,
     binding: prepared.binding
@@ -1170,7 +1106,17 @@ export async function planNativeLiveEncounterAction(
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
-      saveWindow: targetSaveWindow(state.gameSystemId, heldOnTarget, prepared.attackWindowDice),
+      // A creature that already spent its reaction on a counter to this cast has none left to roll.
+      saveWindow: targetSaveWindow(
+        state.gameSystemId,
+        heldOnTarget,
+        prepared.attackWindowDice,
+        async (answeredReactorActorIds) =>
+          nextNativeRollReactionDice(rollReactions, [
+            ...answeredReactorActorIds,
+            ...failedCounters.map(({ reaction }) => reaction.reactorActorId)
+          ])
+      ),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) =>
@@ -1263,8 +1209,24 @@ export async function planNativeLiveEncounterAction(
   const failedTarget = failedSpends.find(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
-  const failedTargetEconomy = failedTarget?.economy ?? null
-  const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
+  // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
+  // the target's rides its own mechanics, like a failed counter.
+  const windowReactions = planNativeWindowReactions({
+    reactions: rollReactions,
+    execution,
+    state,
+    occurrenceId,
+    commandId: command.commandId,
+    occurredAt,
+    userId: initial.expectedUserId
+  })
+  const windowTarget = windowReactions.find(
+    ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
+  )
+  const spentTargetEconomy = failedTarget?.economy ?? windowTarget?.economy ?? null
+  const targetReactorSpend = Boolean(
+    failedTarget?.spellConsumption || windowTarget?.resourceConsumption
+  )
   const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1398,7 +1360,7 @@ export async function planNativeLiveEncounterAction(
           preparedEffects.recurringEffect !== null ||
           preparedEffects.riderEffects.some(Boolean) ||
           reactionUse !== null ||
-          targetFailedCounterSpend ||
+          targetReactorSpend ||
           damageEnded.grants.length > 0 ||
           gateImmunityGrant !== null)
     },
@@ -1414,7 +1376,7 @@ export async function planNativeLiveEncounterAction(
           resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
         })
       : actor
-    const spentReaction = reactionUse?.economy ?? failedTargetEconomy
+    const spentReaction = reactionUse?.economy ?? spentTargetEconomy
     return spentReaction
       ? consumeEncounterActionEconomy({
           actor: charged,
@@ -1466,7 +1428,7 @@ export async function planNativeLiveEncounterAction(
       ...(gateImmunityGrant ? [gateImmunityGrant] : [])
     ],
     actionEconomy,
-    actionEconomyOverridden: overridesActionEconomy(ruleWarnings.overrides),
+    actionEconomyOverridden: overridesActionEconomy(ruleOverrides),
     attackAction: settledAttackAction,
     delegation: settledDelegation,
     maintenance,
@@ -1572,7 +1534,7 @@ export async function planNativeLiveEncounterAction(
         activeEffectTransitions: settlement.reactionActiveEffectTransitions
       }
     },
-    targetFailedCounterSpend,
+    targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
     grantEffectTransitions: settlement.grantEffectTransitions
   })
@@ -1633,6 +1595,7 @@ export async function planNativeLiveEncounterAction(
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,
     failedSpends,
+    windowReactions,
     forcedMovements,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.

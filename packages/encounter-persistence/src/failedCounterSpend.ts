@@ -1,4 +1,7 @@
-import type { LiveSessionFailedCounter } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type {
+  LiveSessionFailedCounter,
+  LiveSessionWindowReaction
+} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -10,44 +13,86 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterWriteContext } from './store.js'
 
 /**
- * Checks each counter that failed against a cast: its reactor is a Character of the run, named once, and
- * the slot it spends is the one its receipt recorded. The cast's own source may counter a counter cast
- * against it, never its own cast. Returns what each reactor's mechanics apply.
+ * Checks each reaction another creature spends with the action: a counter that failed against a cast,
+ * or a reaction rolled against the attack roll (D207). Its reactor is a Character of the run, named
+ * once, and the slot or charge it spends is the one its receipt recorded. The cast's own source may
+ * counter a counter cast against it, never its own cast, and never reacts to its own attack roll.
+ * Returns what each reactor's mechanics apply.
  */
 export function failedCounterSpends(input: {
   failedCounters: readonly LiveSessionFailedCounter[]
+  windowReactions?: readonly LiveSessionWindowReaction[]
   actors: readonly EncounterRunActorState[]
   source: EncounterRunActorState
 }) {
   const seen = new Set<string>()
-  return input.failedCounters.map((failed) => {
-    const { reaction } = failed.receipt
+  const reactorOf = (
+    reaction: { reactorActorId: string; characterId: string | null },
+    ownAction: boolean
+  ) => {
     const reactor = input.actors.find((actor) => actor.id === reaction.reactorActorId)
     if (
       reactor?.kind !== 'CHARACTER' ||
-      (reactor.id === input.source.id && failed.receipt.againstActorId === input.source.id) ||
+      ownAction ||
       reactor.sourceId !== reaction.characterId ||
       seen.has(reactor.id)
     )
       throw new Error('Live Session failed counter scope mismatch.')
     seen.add(reactor.id)
-    return {
-      failed,
-      reactor,
-      ...sourceSpendMutation({
-        source: reactor,
-        command: { acceptedWieldConflict: null },
-        resource: null,
-        item: null,
-        spell: failed.spellConsumption,
-        receipts: {
-          resourceConsumption: null,
-          sourceItemConsumption: null,
-          spellCastConsumption: failed.receipt.spellCastConsumption
-        }
-      })
-    }
-  })
+    return reactor
+  }
+  const spend = (
+    reactor: EncounterRunActorState,
+    request: Pick<Parameters<typeof sourceSpendMutation>[0], 'resource' | 'spell' | 'receipts'>
+  ) =>
+    sourceSpendMutation({
+      source: reactor,
+      command: { acceptedWieldConflict: null },
+      item: null,
+      ...request
+    })
+  return [
+    ...input.failedCounters.map((failed) => {
+      const { reaction } = failed.receipt
+      const reactor = reactorOf(
+        reaction,
+        reaction.reactorActorId === input.source.id &&
+          failed.receipt.againstActorId === input.source.id
+      )
+      return {
+        failed,
+        reactor,
+        check: failed.receipt.check,
+        ...spend(reactor, {
+          resource: null,
+          spell: failed.spellConsumption,
+          receipts: {
+            resourceConsumption: null,
+            sourceItemConsumption: null,
+            spellCastConsumption: failed.receipt.spellCastConsumption
+          }
+        })
+      }
+    }),
+    ...(input.windowReactions ?? []).map((failed) => {
+      const { reaction } = failed.receipt
+      const reactor = reactorOf(reaction, reaction.reactorActorId === input.source.id)
+      return {
+        failed,
+        reactor,
+        check: null,
+        ...spend(reactor, {
+          resource: failed.resourceConsumption,
+          spell: null,
+          receipts: {
+            resourceConsumption: failed.receipt.resourceConsumption,
+            sourceItemConsumption: null,
+            spellCastConsumption: null
+          }
+        })
+      }
+    })
+  ]
 }
 
 export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]

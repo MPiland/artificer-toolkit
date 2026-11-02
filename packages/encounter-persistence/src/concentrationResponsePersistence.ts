@@ -28,7 +28,7 @@ import {
 import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
-  chosenEncounterD20WindowOption,
+  chosenEncounterD20WindowHeldOption,
   damageSaveWindowCommand,
   damageSaveWindowResume,
   encounterD20WindowSelectedIndex,
@@ -156,7 +156,7 @@ export async function persistEncounterConcentrationResponse(
   if (window) {
     const offered = window.context.pause.payload
     const selection = encounterD20WindowSelection(resolution)
-    const option = chosenEncounterD20WindowOption(offered, selection)
+    const option = chosenEncounterD20WindowHeldOption(offered, selection)
     const { rolled } = offered
     if (!('continuation' in rolled)) throw new Error('The concentration window is unavailable.')
     const frozenDice = rolled.d20.addedDice ?? []

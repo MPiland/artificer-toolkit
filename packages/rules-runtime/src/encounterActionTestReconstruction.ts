@@ -4,7 +4,8 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { prepareNativeActionTest, type NativeActionBaseInput } from './encounterActionExecution.js'
+import { prepareNativeActionTest } from './encounterActionExecution.js'
+import type { NativeActionBaseInput } from './encounterActionTestBoundary.js'
 
 /**
  * Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again.
@@ -46,7 +47,9 @@ export async function reconstructNativeActionTest(
     throw new Error('The retained TEST request is stale.')
   const boundary = await prepareNativeActionTest({
     ...source,
-    windowDice: (input.d20.addedDice ?? []).filter(({ spentEffectId }) => spentEffectId),
+    windowDice: (input.d20.addedDice ?? []).filter(
+      ({ spentEffectId, spentReaction }) => spentEffectId || spentReaction
+    ),
     resume: {
       pending,
       resolution: {

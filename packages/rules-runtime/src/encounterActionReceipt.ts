@@ -2,7 +2,9 @@ import type { EncounterMaintainedEffectStateRecord } from '@artificer-toolkit/sc
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import {
   encounterFailedCounterReceiptDtoSchema,
+  encounterWindowReactionReceiptDtoSchema,
   type EncounterCastReactionPinDto,
+  type EncounterRollReactionPinDto,
   type EncounterCounterCheckEvidenceDto,
   type EncounterFailedCounterDto,
   type EncounterGatedActionApplicationOutputDto
@@ -76,8 +78,8 @@ export function buildEncounterActionStoredExecution(input: {
       >['activeEffectTransitions']
     } | null
   } | null
-  /** The target also failed a counter against this cast, so its slot spend rides in this batch (D127). */
-  targetFailedCounterSpend?: boolean
+  /** The target also spent a reaction another way (a failed counter, D127, or a die against the attack roll, D207), so its spend rides in this batch. */
+  targetReactorSpend?: boolean
   /** The effects of reactions the target used on being chosen as this cast's target, which land with its outcome. */
   reactionEffectTransitions?: ReturnType<
     typeof projectNativeActionEffectTransitions
@@ -189,7 +191,7 @@ export function buildEncounterActionStoredExecution(input: {
             ),
             stateEffectTransitions,
             reaction: reactionReceipt((transition) => characterEffectReceipt(transition, null)),
-            targetFailedCounterSpend: input.targetFailedCounterSpend ?? false,
+            targetReactorSpend: input.targetReactorSpend ?? false,
             ...(input.maintenanceTransition
               ? { maintenanceTransition: input.maintenanceTransition }
               : {}),
@@ -456,6 +458,23 @@ export function buildEncounterFailedCounterReceipt(input: {
     // A failed counter does not yet end its reactor's cast-ended effects (future-enhancements: Deferred edge cases).
     applications: [],
     characterStreamVersion: input.characterStreamVersion,
+    actionEconomyTransition: actionEconomyReceipt(input.economy)
+  })
+}
+
+/** What a reactor spends for the die it rolled against the attack roll (D207): its reaction and the charge it costs. */
+export function buildEncounterWindowReactionReceipt(input: {
+  reaction: EncounterRollReactionPinDto
+  spend: Pick<
+    ReturnType<typeof planNativeEncounterAreaSourceSpend>,
+    'resourceReceipt' | 'sourceCharacterStreamVersion'
+  >
+  economy: EncounterActionEconomyConsumption
+}) {
+  return encounterWindowReactionReceiptDtoSchema.parse({
+    reaction: input.reaction,
+    resourceConsumption: input.spend.resourceReceipt,
+    characterStreamVersion: input.spend.sourceCharacterStreamVersion,
     actionEconomyTransition: actionEconomyReceipt(input.economy)
   })
 }

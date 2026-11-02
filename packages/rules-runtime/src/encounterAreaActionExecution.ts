@@ -10,10 +10,10 @@ import type { CharacterHitPointOutcomeApplication } from './characterRuleActionS
 import {
   continueNativeActionAfterTest,
   prepareNativeActionTest,
-  type EncounterActionAutoRoll,
   type PendingNativeActionGraphs,
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
+import type { EncounterActionAutoRoll } from './encounterActionRequest.js'
 import type { EncounterActionWindowAnswer } from './encounterActionSaveWindow.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import type { EncounterLegendaryResistanceCandidate } from './encounterLegendaryResistanceDiscovery.js'

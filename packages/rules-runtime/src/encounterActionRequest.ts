@@ -15,6 +15,9 @@ export type NativeTwoPhase = z.infer<typeof directActionTwoPhaseDtoSchema>
 /** Whose roll a paused action request is: the acting source's or its target's (a save). */
 export type EncounterActionRoller = 'SOURCE' | 'TARGET'
 
+/** Each roller's "Auto-roll my dice" preference; a roller who auto-rolls is never prompted. */
+export type EncounterActionAutoRoll = Readonly<Record<EncounterActionRoller, boolean>>
+
 /** Refuses a stored continuation that no longer matches its occurrence, graph or bound facts. */
 export function requireActionContinuation(input: {
   continuation: ServerRuleExecutionContinuationDto

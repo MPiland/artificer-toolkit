@@ -2,6 +2,7 @@ import { heldConditionIds } from './encounterInnateConditions.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { AttackOccasionCode } from '@artificer-toolkit/shared/core'
+import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type {
@@ -521,6 +522,11 @@ export async function prepareEncounterActionMechanics<
    * dice then widen the save graph's allowed added dice. Only the single-target RESOLVE_ACTION asks.
    */
   saveWindow?: boolean
+  /**
+   * The dice other creatures may roll against this attack roll by their reactions (D207), offered in
+   * its d20 window after the attacker's own held dice; they widen the attack graph's allowed added dice.
+   */
+  windowReactionDice?: readonly D20AddedDieDto[]
   loadRelationshipFacts: (input: {
     state: EncounterRunState
     actors: readonly EncounterRunActorState[]
@@ -1004,6 +1010,13 @@ export async function prepareEncounterActionMechanics<
     input.saveWindow && attackDomain !== null
       ? activeAfterRollAttackRollDice(sourceFacts.activeEffects, attackDomain, attackAbility)
       : []
+  // Every die the attack's window may add after its d20: the attacker's own, then its reactors'.
+  const afterRollDice =
+    input.saveWindow && attackDomain !== null
+      ? [...attackWindowDice, ...(input.windowReactionDice ?? [])].map(
+          ({ label, count, faces, sign }) => ({ label, count, faces, sign })
+        )
+      : []
   return {
     state,
     actor,
@@ -1044,17 +1057,8 @@ export async function prepareEncounterActionMechanics<
         ...(attackItemBindingEffectIds.length > 0 ? { attackItemBindingEffectIds } : {}),
         ...(attackSuppressedInfluences.length > 0 ? { attackSuppressedInfluences } : {}),
         attackAddedDice: encounterAttackAddedDice(sourceFacts.activeEffects, attackAbility),
-        ...(attackWindowDice.length > 0 && attackDomain !== null
-          ? {
-              attackAfterRollDice: {
-                [attackDomain]: attackWindowDice.map(({ label, count, faces, sign }) => ({
-                  label,
-                  count,
-                  faces,
-                  sign
-                }))
-              }
-            }
+        ...(afterRollDice.length > 0 && attackDomain !== null
+          ? { attackAfterRollDice: { [attackDomain]: afterRollDice } }
           : {}),
         // The dice active grants add to, or take from, this source's damage to this target (D156).
         damageAddedDice: activeDamageDice({

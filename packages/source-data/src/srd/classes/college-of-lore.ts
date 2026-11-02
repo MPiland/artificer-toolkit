@@ -4,7 +4,6 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
@@ -27,7 +26,7 @@ import { SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import { BARDIC_INSPIRATION_CHARGE_ID, bardicInspirationDie } from './bard.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -45,8 +44,8 @@ function skillId(code: string): string {
 }
 
 /**
- * Cutting Words as an attack-roll reaction (D207). Not yet attached to the feature below: the
- * closed rule keeps it playable until the room lets a non-roller answer the d20 window (T4c3b).
+ * Cutting Words as an attack-roll reaction (D207): another creature's attack roll opens a d20 window
+ * its holder answers. Ability checks and damage rolls stay a GM ruling.
  */
 export const cuttingWordsReaction: EffectAuthored = {
   id: classRowId(BD, 20, 1),
@@ -157,27 +156,7 @@ export const collegeOfLore: ClassAuthored = {
         "Also at 3rd level, you learn how to use your wit to distract, confuse, and otherwise sap the confidence and competence of others. When a creature that you can see within 60 feet of you makes an attack roll, an ability check, or a damage roll, you can use your reaction to expend one of your uses of Bardic Inspiration, rolling a Bardic Inspiration die and subtracting the number rolled from the creature's roll. You can choose to use this feature after the creature makes its roll, but before the GM determines whether the attack roll or ability check succeeds or fails, or before the creature deals its damage. The creature is immune if it can't hear you or if it's immune to being charmed.",
       availableAtLevel: 3,
       order: 1,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(BD, 20, 1),
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            range: {
-              id: classRowId(BD, 21, 1),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 60,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_COLLEGE_OF_LORE_CUTTING_WORDS
-        })
-      ]
+      effects: [cuttingWordsReaction]
     },
     {
       id: classRowId(BD, 11, 3),

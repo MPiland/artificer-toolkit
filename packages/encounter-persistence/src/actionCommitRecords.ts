@@ -144,6 +144,7 @@ export async function recordActionRoot(
           | 'issuerLines'
           | 'gmLines'
           | 'failedCounters'
+          | 'windowReactions'
           | 'idleTurnMarkChanges'
           | 'clearedDamageTypes'
           | 'forcedMovements'

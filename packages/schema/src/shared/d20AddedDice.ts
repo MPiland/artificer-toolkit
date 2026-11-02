@@ -1,5 +1,5 @@
 import { z, lazySchema } from '../zod.js'
-import { ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
+import { ruleExecutionChecksumSchema, ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
 
 import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
 
@@ -64,6 +64,16 @@ export const d20RolledAddedDieDtoSchema = lazySchema(() =>
       ...addedDieShape(),
       /** The effect whose held die a d20 window spent on this roll (D168); its commit ends the effect. */
       spentEffectId: z.optional(ruleExecutionUuidSchema),
+      /**
+       * The reaction another creature used to roll this die against the roll (D207): its reactor and
+       * the selection its window pinned. The action's terminal commit spends that reaction and its charge.
+       */
+      spentReaction: z.optional(
+        z.strictObject({
+          reactorActorId: ruleExecutionUuidSchema,
+          selectionChecksum: ruleExecutionChecksumSchema
+        })
+      ),
       rolledFaces: z
         .array(z.number().check(z.int()).check(z.gte(1)))
         .check(z.minLength(1))
@@ -79,6 +89,12 @@ export const d20RolledAddedDieDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['rolledFaces'],
             message: 'An added die records one face per die, each within its size.'
+          })
+        if (die.spentEffectId && die.spentReaction)
+          context.addIssue({
+            code: 'custom',
+            path: ['spentReaction'],
+            message: 'A window die is spent from a held effect or a reaction, not both.'
           })
       })
     )
