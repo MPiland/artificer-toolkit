@@ -4,7 +4,9 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { gmRulingEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
@@ -19,6 +21,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
@@ -71,6 +74,14 @@ function casterRoom(
 }
 
 type CasterRoom = Awaited<ReturnType<typeof casterRoom>>
+
+/** The Wolf's held effects, with the turns each has left. */
+async function wolfRemainingTicks(room: CasterRoom) {
+  const { activeEffects } = await readRoomHistory(room.room.base.stub)
+  return activeEffects
+    .filter(({ targetActorId }) => targetActorId === WOLF_ID)
+    .map(({ lifecycle }) => lifecycle.remainingTicks)
+}
 
 /** The Character's current hit points as its room play state holds them. */
 const characterHitPoints = (room: CasterRoom) =>
@@ -249,4 +260,84 @@ describe('SRD APPLY_GRANT spells cast in an Encounter (SPELLS-8.3)', () => {
     },
     120000
   )
+})
+
+describe('a spell cast with its duration lengthened (SPELLS-31.T5h-2)', () => {
+  const POOL_ID = testUuid(0xa90)
+  const LENGTHEN_ID = testUuid(0xa92)
+  const lengthenFeature: ClassFeature = {
+    id: testUuid(0xa91),
+    label: 'Lengthened Casting',
+    description: 'Pay a use to double how long a spell lasts.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: LENGTHEN_ID,
+          range: testUuid(0xa93),
+          path: testUuid(0xa94),
+          result: testUuid(0xa95),
+          outcome: testUuid(0xa96)
+        },
+        label: 'Lengthened casting',
+        instructions: 'The spell lasts twice as long.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 1,
+          parameters: [
+            { parameter: 'DURATION', multiplier: 2, minimumMinutes: 1, maximumHours: 24 }
+          ]
+        }
+      })
+    ]
+  }
+
+  const lengthenRoom = () =>
+    actionRoom({
+      actors: [
+        {
+          ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+        },
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf, disposition: 'FRIENDLY' })
+      ],
+      characterSpellcasting: { spells: [shieldOfFaith], prepared: [shieldOfFaith.id] },
+      characterClassFeatures: [lengthenFeature],
+      characterAction: (action) => action.label === 'Shield of Faith (1st level)'
+    })
+
+  it('holds the grant for twice the authored 10 minutes when the cast pays for it', async () => {
+    const plain = await lengthenRoom()
+    const unpaid = await plain.startAction(WOLF_ID, RANGE_UNCHECKED)
+    expect(unpaid.answer.type, JSON.stringify(unpaid.answer)).toBe('COMMAND_COMMITTED')
+    const [authored] = await wolfRemainingTicks(plain)
+
+    const room = await lengthenRoom()
+    const { answer } = await room.startAction(
+      WOLF_ID,
+      RANGE_UNCHECKED,
+      null,
+      null,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      LENGTHEN_ID
+    )
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(authored).toBeGreaterThan(0)
+    expect(await wolfRemainingTicks(room)).toEqual([authored! * 2])
+  }, 120000)
 })

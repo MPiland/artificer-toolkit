@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/shared/authored'
 import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import { ROUNDS_PER_CAMPAIGN_MINUTE } from '../campaignClock.js'
 
 /** A cost a Character may pay on casting a spell, authored as a passive Effect's `castModifier`. */
 export type CastModifierSource = {
@@ -106,6 +107,42 @@ export function castModifierActivation(
     changed = { code: parameter.activation, amount: 1 }
   }
   return changed
+}
+
+/**
+ * The turns an effect lasts at cast once a paid modifier's parameters change it: `DURATION`
+ * multiplies a timed duration of at least `minimumMinutes`, capped at `maximumHours`, and leaves
+ * any other (a shorter rider, an untimed effect) as it was. The effect plan applies it, and the
+ * offer filter asks `castModifierExtendsDuration` over the spell's own durations.
+ */
+export function castModifierDuration(
+  parameters: readonly CastModifierParameterAuthored[],
+  turns: number | null
+): number | null {
+  let changed = turns
+  for (const parameter of parameters) {
+    if (parameter.parameter !== 'DURATION' || changed === null) continue
+    if (changed < parameter.minimumMinutes * ROUNDS_PER_CAMPAIGN_MINUTE) continue
+    changed = Math.max(
+      changed,
+      Math.min(
+        changed * parameter.multiplier,
+        parameter.maximumHours * 60 * ROUNDS_PER_CAMPAIGN_MINUTE
+      )
+    )
+  }
+  return changed
+}
+
+/** Whether a paid modifier's `DURATION` parameters lengthen at least one of the spell's timed effects. */
+export function castModifierExtendsDuration(
+  parameters: readonly CastModifierParameterAuthored[],
+  turnsByEffect: readonly (number | null)[]
+): boolean {
+  return (
+    !parameters.some(({ parameter }) => parameter === 'DURATION') ||
+    turnsByEffect.some((turns) => castModifierDuration(parameters, turns) !== turns)
+  )
 }
 
 /** Creatures a Character may spare from an area spell it casts, authored as a passive Effect's `sparesCreatures`. */

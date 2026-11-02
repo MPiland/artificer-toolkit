@@ -1021,6 +1021,7 @@ export async function prepareEncounterActionMechanics<
     /** The decoy the attack was rolled against, for the settlement to destroy when it hit. */
     attackDecoy,
     plan,
+    castModifier,
     characterActionState,
     acceptedWieldConflict,
     weaponDraw,

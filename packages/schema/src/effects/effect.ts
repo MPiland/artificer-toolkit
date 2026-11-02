@@ -53,7 +53,13 @@ export const castModifierParameterDtoSchema = lazySchema(() =>
       multiplier: z.number().check(z.int()).check(z.gte(2)),
       touchDistance: authoredLengthSchema
     }),
-    z.strictObject({ parameter: z.literal('ACTIVATION'), activation: z.literal('BONUS_ACTION') })
+    z.strictObject({ parameter: z.literal('ACTIVATION'), activation: z.literal('BONUS_ACTION') }),
+    z.strictObject({
+      parameter: z.literal('DURATION'),
+      multiplier: z.number().check(z.int()).check(z.gte(2)),
+      minimumMinutes: z.number().check(z.int()).check(z.gte(1)),
+      maximumHours: z.number().check(z.int()).check(z.gte(1))
+    })
   ])
 )
 
