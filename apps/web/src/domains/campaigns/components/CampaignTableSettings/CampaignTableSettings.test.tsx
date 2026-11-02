@@ -45,6 +45,7 @@ function settingsAtVersion(version: number, normalCadenceDays: number) {
     trackAmmunition: false,
     zoneNoticing: 'GM_PROMPT',
     automaticCover: true,
+    reactionSeconds: 5,
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null,
     optionalCombatRuleDefinitionIds: [],

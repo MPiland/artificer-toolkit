@@ -18,6 +18,7 @@ import { z } from 'zod'
 
 import type { RoomStorage } from './roomEncounterStore.js'
 import { ROOM_LIMITS } from './roomLimits.js'
+import type { Admission, RoomCommandIssuer } from './roomSocket.js'
 
 /**
  * Each Encounter-bound token and whether a player controls its bound actor. Bound tokens follow
@@ -89,6 +90,19 @@ export function admitsRoomMember(
       member.userId === admission.userId &&
       member.role === admission.role &&
       member.membershipEpoch === admission.membershipEpoch
+  )
+}
+
+/** The room's own command always commits; a member's only while its admission is live and current. */
+export function admitsRoomIssuer(
+  host: { liveAdmission(socket: WebSocket): Admission | null },
+  authorization: LiveSessionRoomAuthorization,
+  issuer: RoomCommandIssuer
+): boolean {
+  return (
+    issuer.socket === null ||
+    (host.liveAdmission(issuer.socket)?.generation === issuer.admission.generation &&
+      admitsRoomMember(authorization, issuer.admission))
   )
 }
 

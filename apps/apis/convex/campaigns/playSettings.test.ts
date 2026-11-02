@@ -263,6 +263,7 @@ describe('native Campaign play settings', () => {
       trackAmmunition: true,
       zoneNoticing: 'SEARCH_ONLY',
       automaticCover: false,
+      reactionSeconds: 12,
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -273,6 +274,7 @@ describe('native Campaign play settings', () => {
       trackAmmunition: true,
       zoneNoticing: 'SEARCH_ONLY',
       automaticCover: false,
+      reactionSeconds: 12,
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -314,19 +316,22 @@ describe('native Campaign play settings', () => {
       automationMode: 'ASSISTED',
       trackAmmunition: false,
       zoneNoticing: 'GM_PROMPT',
-      automaticCover: true
+      automaticCover: true,
+      reactionSeconds: 5
     })
     expect(await read()).toMatchObject({
       automationMode: 'ASSISTED',
       trackAmmunition: false,
       zoneNoticing: 'GM_PROMPT',
-      automaticCover: true
+      automaticCover: true,
+      reactionSeconds: 5
     })
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
       trackAmmunition: true,
       zoneNoticing: 'SEARCH_ONLY',
-      automaticCover: false
+      automaticCover: false,
+      reactionSeconds: 12
     })
     await t.run(async (ctx) => {
       const graph = await ctx.db
@@ -680,6 +685,11 @@ describe('native Campaign play settings', () => {
         automationMode: 'AUTOMATIC'
       })
     ).rejects.toThrow()
+    // The GM sets the reaction time from 3 to 15 whole seconds (D207).
+    for (const reactionSeconds of [2, 16, 4.5])
+      await expect(
+        owner.caller.mutation(save, { ...input(settings), expectedVersion: 1, reactionSeconds })
+      ).rejects.toThrow()
     expect(await stored(t)).toEqual(after)
   })
 

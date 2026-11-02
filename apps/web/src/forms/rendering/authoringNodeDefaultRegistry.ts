@@ -138,6 +138,7 @@ type AuthoringDefaultKind =
   | 'castModifier'
   | 'castModifierParameter'
   | 'castModifierTargets'
+  | 'castModifierDamageRerolls'
   | 'resourceUse'
   | 'resultBlockGate'
   | 'scaling'
@@ -334,6 +335,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   castModifier: ['castModifier'],
   castModifierParameter: ['castModifierParameter'],
   castModifierTargets: ['castModifierTargets'],
+  castModifierDamageRerolls: ['castModifierDamageRerolls'],
   resourceUse: ['resourceUse'],
   resultBlockGate: ['resultBlockGate'],
   scaling: [

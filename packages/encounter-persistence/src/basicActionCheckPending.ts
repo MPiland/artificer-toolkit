@@ -285,7 +285,7 @@ export function projectNativeD20WindowPending(
   const { rolled, offer } = context.pause.payload
   const { selectedNatural, total } = rolled.d20
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
-    kind: 'D20_WINDOW',
+    kind: 'ROLL_WINDOW',
     occurrenceId: occurrence.id,
     occurrenceVersion: occurrence.version,
     encounterVersion: occurrence.expectedEncounterVersion,
@@ -300,6 +300,6 @@ export function projectNativeD20WindowPending(
       faces,
       sign
     })),
-    allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+    allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
   })
 }

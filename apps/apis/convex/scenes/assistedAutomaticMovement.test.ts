@@ -95,10 +95,11 @@ it.each(['PROMPT', 'AUTO_ROLL'] as const)(
       options: [expect.objectContaining({ actionSourceKind: 'ENCOUNTER_FEATURE' })]
     })
     expect(choice.choice.options).toHaveLength(1)
-    // The decision is addressed to the reactor's controller (the GM), not the mover's token player.
+    // The decision is addressed to the reactor's controller (the GM), not the mover's token player,
+    // and the read carries the offer's deadline (D207).
     expect(
       await value.owner.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
-    ).toEqual(choice)
+    ).toEqual({ ...choice, answerBy: expect.any(String) })
     expect(
       await value.player.caller.query(pendingRuleOccurrence, { encounterId: base.run.id })
     ).toBeNull()

@@ -34,7 +34,7 @@ const takesD20Evidence = ({ kind }: ResolveRuleOccurrenceInputDto['resolution'])
   kind === 'ENTER_DICE' || kind === 'SYSTEM_ROLL'
 
 const takesD20WindowDecision = ({ kind }: ResolveRuleOccurrenceInputDto['resolution']) =>
-  kind === 'D20_WINDOW_DECLINE' || kind === 'D20_WINDOW_USE'
+  kind === 'ROLL_WINDOW_DECLINE' || kind === 'ROLL_WINDOW_USE'
 
 type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto

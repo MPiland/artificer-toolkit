@@ -9358,6 +9358,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"
@@ -9424,6 +9425,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"
@@ -9451,6 +9453,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"
@@ -23717,6 +23720,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -33594,6 +33602,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -43417,6 +43430,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -53328,6 +53346,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -63205,6 +63228,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -73028,6 +73056,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -82948,6 +82981,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -92825,6 +92863,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -102648,6 +102691,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -112559,6 +112607,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -122436,6 +122489,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -132259,6 +132317,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -142205,6 +142268,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -152082,6 +152150,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -161905,6 +161978,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -171816,6 +171894,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -181693,6 +181776,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -191516,6 +191604,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -201428,6 +201521,11 @@ export declare const api: {
                               castModifier?: {
                                 chargeId: string;
                                 cost: number;
+                                damageRerolls?: {
+                                  abilityDefinitionId?: string;
+                                  base: number;
+                                  minimum?: number;
+                                };
                                 parameters?: Array<
                                   | {
                                       multiplier: number;
@@ -211253,6 +211351,11 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          damageRerolls?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                          };
                           parameters?: Array<
                             | {
                                 multiplier: number;
@@ -220945,6 +221048,11 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
+                          damageRerolls?: {
+                            abilityDefinitionId?: string;
+                            base: number;
+                            minimum?: number;
+                          };
                           parameters?: Array<
                             | {
                                 multiplier: number;
@@ -230740,6 +230848,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -240617,6 +240730,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -250440,6 +250558,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -260351,6 +260474,11 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
+                                  damageRerolls?: {
+                                    abilityDefinitionId?: string;
+                                    base: number;
+                                    minimum?: number;
+                                  };
                                   parameters?: Array<
                                     | {
                                         multiplier: number;
@@ -270228,6 +270356,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -280051,6 +280184,11 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
+                            damageRerolls?: {
+                              abilityDefinitionId?: string;
+                              base: number;
+                              minimum?: number;
+                            };
                             parameters?: Array<
                               | {
                                   multiplier: number;
@@ -293630,6 +293768,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -293680,6 +293819,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -293809,6 +293949,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               }
             | null;
           halfSpeedFields: Array<{
@@ -293933,8 +294074,8 @@ export declare const api: {
                 allowedResponses: Array<
                   | "ENTER_DICE"
                   | "SYSTEM_ROLL"
-                  | "D20_WINDOW_DECLINE"
-                  | "D20_WINDOW_USE"
+                  | "ROLL_WINDOW_DECLINE"
+                  | "ROLL_WINDOW_USE"
                   | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
@@ -293998,6 +294139,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 choice: {
                   options: Array<{
                     actionId: string;
@@ -294024,6 +294166,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
@@ -294064,11 +294207,12 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
+                answerBy?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
-                kind: "D20_WINDOW";
+                kind: "ROLL_WINDOW";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{
@@ -294106,6 +294250,28 @@ export declare const api: {
                       dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
+              }
+            | {
+                allowedResponses: Array<
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
+                >;
+                dice: Array<{
+                  faces: number;
+                  requestId: string;
+                  value: number;
+                }>;
+                encounterVersion: number;
+                kind: "DAMAGE_ROLL_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  cost: number;
+                  label: string;
+                  maxDice: number;
+                  optionId: string;
+                }>;
+                requestId: string;
+                rollerActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -294898,8 +295064,8 @@ export declare const api: {
                   allowedResponses: Array<
                     | "ENTER_DICE"
                     | "SYSTEM_ROLL"
-                    | "D20_WINDOW_DECLINE"
-                    | "D20_WINDOW_USE"
+                    | "ROLL_WINDOW_DECLINE"
+                    | "ROLL_WINDOW_USE"
                     | "AREA_LEGENDARY_RESISTANCE"
                   >;
                   casterActorId: string | null;
@@ -294966,6 +295132,7 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
+                  answerBy?: string;
                   choice: {
                     options: Array<{
                       actionId: string;
@@ -294993,6 +295160,7 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
+                  answerBy?: string;
                   encounterVersion: number;
                   kind: "REACTION_CHOICE";
                   occurrenceId: string;
@@ -295033,11 +295201,12 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<
-                    "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                    "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                   >;
+                  answerBy?: string;
                   d20: { selectedNatural: number; total: number };
                   encounterVersion: number;
-                  kind: "D20_WINDOW";
+                  kind: "ROLL_WINDOW";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
@@ -295079,6 +295248,28 @@ export declare const api: {
                         dc: number | null;
                         kind: "BASIC_ACTION_CHECK";
                       };
+                }
+              | {
+                  allowedResponses: Array<
+                    "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
+                  >;
+                  dice: Array<{
+                    faces: number;
+                    requestId: string;
+                    value: number;
+                  }>;
+                  encounterVersion: number;
+                  kind: "DAMAGE_ROLL_WINDOW";
+                  occurrenceId: string;
+                  occurrenceVersion: number;
+                  options: Array<{
+                    cost: number;
+                    label: string;
+                    maxDice: number;
+                    optionId: string;
+                  }>;
+                  requestId: string;
+                  rollerActorId: string;
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -295930,6 +296121,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -295980,6 +296172,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -296109,6 +296302,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               };
           roll: {
             afterRollOffers?: Array<{
@@ -296540,8 +296734,8 @@ export declare const api: {
             allowedResponses: Array<
               | "ENTER_DICE"
               | "SYSTEM_ROLL"
-              | "D20_WINDOW_DECLINE"
-              | "D20_WINDOW_USE"
+              | "ROLL_WINDOW_DECLINE"
+              | "ROLL_WINDOW_USE"
               | "AREA_LEGENDARY_RESISTANCE"
             >;
             casterActorId: string | null;
@@ -296602,6 +296796,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
+            answerBy?: string;
             choice: {
               options: Array<{
                 actionId: string;
@@ -296628,6 +296823,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
+            answerBy?: string;
             encounterVersion: number;
             kind: "REACTION_CHOICE";
             occurrenceId: string;
@@ -296667,10 +296863,11 @@ export declare const api: {
             >;
           }
         | {
-            allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            allowedResponses: Array<"ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE">;
+            answerBy?: string;
             d20: { selectedNatural: number; total: number };
             encounterVersion: number;
-            kind: "D20_WINDOW";
+            kind: "ROLL_WINDOW";
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<{
@@ -296708,6 +296905,22 @@ export declare const api: {
                   dc: number | null;
                   kind: "BASIC_ACTION_CHECK";
                 };
+          }
+        | {
+            allowedResponses: Array<"ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE">;
+            dice: Array<{ faces: number; requestId: string; value: number }>;
+            encounterVersion: number;
+            kind: "DAMAGE_ROLL_WINDOW";
+            occurrenceId: string;
+            occurrenceVersion: number;
+            options: Array<{
+              cost: number;
+              label: string;
+              maxDice: number;
+              optionId: string;
+            }>;
+            requestId: string;
+            rollerActorId: string;
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -297495,6 +297708,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
+            afkUserIds?: Array<string>;
             automaticCover?: boolean;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
@@ -297544,6 +297758,7 @@ export declare const api: {
                 | "MORALE";
               label: string;
             }>;
+            reactionSeconds?: number;
             reminders?: Array<{
               actorId: string | null;
               id: string;
@@ -297673,6 +297888,7 @@ export declare const api: {
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
+            viewerAfk?: boolean;
           }
       >;
       list: FunctionReference<
@@ -297933,6 +298149,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -297983,6 +298200,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -298112,6 +298330,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               };
           pending:
             | {
@@ -298195,8 +298414,8 @@ export declare const api: {
                 allowedResponses: Array<
                   | "ENTER_DICE"
                   | "SYSTEM_ROLL"
-                  | "D20_WINDOW_DECLINE"
-                  | "D20_WINDOW_USE"
+                  | "ROLL_WINDOW_DECLINE"
+                  | "ROLL_WINDOW_USE"
                   | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
@@ -298260,6 +298479,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 choice: {
                   options: Array<{
                     actionId: string;
@@ -298286,6 +298506,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
@@ -298326,11 +298547,12 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
+                answerBy?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
-                kind: "D20_WINDOW";
+                kind: "ROLL_WINDOW";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{
@@ -298368,6 +298590,28 @@ export declare const api: {
                       dc: number | null;
                       kind: "BASIC_ACTION_CHECK";
                     };
+              }
+            | {
+                allowedResponses: Array<
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
+                >;
+                dice: Array<{
+                  faces: number;
+                  requestId: string;
+                  value: number;
+                }>;
+                encounterVersion: number;
+                kind: "DAMAGE_ROLL_WINDOW";
+                occurrenceId: string;
+                occurrenceVersion: number;
+                options: Array<{
+                  cost: number;
+                  label: string;
+                  maxDice: number;
+                  optionId: string;
+                }>;
+                requestId: string;
+                rollerActorId: string;
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
@@ -299212,6 +299456,7 @@ export declare const api: {
             systemId: string | null;
             tempHitPoints: number;
           }>;
+          afkUserIds?: Array<string>;
           automaticCover?: boolean;
           automationMode: "ASSISTED" | "MANUAL";
           blueprintChecksum: string;
@@ -299261,6 +299506,7 @@ export declare const api: {
               | "MORALE";
             label: string;
           }>;
+          reactionSeconds?: number;
           reminders?: Array<{
             actorId: string | null;
             id: string;

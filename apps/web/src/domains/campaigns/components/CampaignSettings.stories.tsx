@@ -55,6 +55,7 @@ const playSettings = campaignPlaySettingsDtoSchema.parse({
   trackAmmunition: false,
   zoneNoticing: 'GM_PROMPT',
   automaticCover: true,
+  reactionSeconds: 5,
   initiativePolicyDefinitionId: initiativePolicyId,
   initiativeTieDefinitionId: initiativeTieId,
   optionalCombatRuleDefinitionIds: [optionalRuleId],

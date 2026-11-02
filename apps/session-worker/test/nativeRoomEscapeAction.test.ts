@@ -462,7 +462,7 @@ describe('a die the holder holds for after the d20, in the Escape room (SPELLS-3
     expect(opened.type, JSON.stringify(opened)).toBe('COMMAND_COMMITTED')
     expect((await escapeState(room)).outputs).toEqual([])
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     return { decision, pending: decision.pending }
   }
 
@@ -477,7 +477,7 @@ describe('a die the holder holds for after the d20, in the Escape room (SPELLS-3
     expect((await escapeState(room)).effectIds).toHaveLength(2)
 
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -506,7 +506,7 @@ describe('a die the holder holds for after the d20, in the Escape room (SPELLS-3
     const room = await escapeRoom({ autoRoll: false, heldDie: heldDieEffect() })
     const { decision, pending } = await openWindow(room)
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
@@ -522,7 +522,7 @@ describe('a die the holder holds for after the d20, in the Escape room (SPELLS-3
     // A natural 2 is 6; the d4 of 3 makes 9, still short of DC 13.
     const { decision, pending } = await openWindow(room, 2)
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -547,7 +547,7 @@ describe('a die the holder holds for after the d20, in the Escape room (SPELLS-3
     const { decision, pending } = await openWindow(room)
     expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [1, 1]

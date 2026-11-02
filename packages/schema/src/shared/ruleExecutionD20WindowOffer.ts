@@ -74,7 +74,7 @@ export function d20WindowUseOptionId(input: {
   effectId: string
   grantId: string
 }): string {
-  return checksumRuleDocument({ kind: 'D20_WINDOW_USE', ...input })
+  return checksumRuleDocument({ kind: 'ROLL_WINDOW_USE', ...input })
 }
 
 /** The id of the option that uses one reaction against the roll, sealed to the roll like a held die's. */

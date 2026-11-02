@@ -1,6 +1,11 @@
 import { z, lazySchema } from '../zod.js'
 
-import { automationModeDtoSchema, zoneNoticingModeDtoSchema } from './campaignSettings.js'
+import {
+  automationModeDtoSchema,
+  DEFAULT_REACTION_SECONDS,
+  reactionSecondsSchema,
+  zoneNoticingModeDtoSchema
+} from './campaignSettings.js'
 import { featureReferenceDtoSchema } from '../features/reference.js'
 import {
   creatureQualifiedDamageDefenseDtoSchema,
@@ -314,6 +319,8 @@ export const encounterPlayerProjectionDtoSchema = lazySchema(() =>
     facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
     /** The Facing rule's arcs, which the tabletop draws around a token; null when the rule is off. */
     facingArcs: z._default(z.nullable(facingArcTableDtoSchema), null),
+    /** The viewer is away: their reaction offers decline at once (D207). */
+    viewerAfk: z._default(z.boolean(), false),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),
@@ -340,6 +347,10 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
     /** Frozen from the Campaign at Run start: cover is worked out from the Scene for attacks and area saves. */
     automaticCover: z._default(z.boolean(), true),
+    /** Frozen from the Campaign at Run start: how long a reaction offer counts down (D207). */
+    reactionSeconds: z._default(reactionSecondsSchema, DEFAULT_REACTION_SECONDS),
+    /** The members marked AFK, by themselves or the GM: their reaction offers decline at once (D207). */
+    afkUserIds: z._default(z.array(uuidSchema).check(z.maxLength(100)), []),
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
     healthDisplayDefault: healthDisplayLevelDtoSchema,
     initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),

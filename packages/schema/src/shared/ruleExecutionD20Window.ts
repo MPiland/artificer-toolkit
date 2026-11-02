@@ -44,7 +44,7 @@ export const encounterD20WindowPendingContextDtoSchema = lazySchema(() =>
     commandId: uuidSchema,
     commandFingerprint: checksumSchema,
     source: d20WindowSourceDtoSchema,
-    pause: encounterPauseVariants().D20_WINDOW
+    pause: encounterPauseVariants().ROLL_WINDOW
   })
 )
 

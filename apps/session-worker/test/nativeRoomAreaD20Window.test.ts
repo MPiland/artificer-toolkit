@@ -93,7 +93,7 @@ describe('area saves with held after-the-roll dice (SPELLS-31.T4c1b4)', () => {
 
     const used = await room.send(
       room.resolveCommand(first.decision, {
-        kind: 'D20_WINDOW_USE',
+        kind: 'ROLL_WINDOW_USE',
         requestId: first.pending.windows[0]!.requestId,
         optionId: first.pending.windows[0]!.options[0]!.optionId,
         faces: [4]
@@ -105,7 +105,7 @@ describe('area saves with held after-the-roll dice (SPELLS-31.T4c1b4)', () => {
     expect(second.pending.windows.map(({ targetActorId }) => targetActorId)).toEqual([SECOND_ID])
     const declined = await room.send(
       room.resolveCommand(second.decision, {
-        kind: 'D20_WINDOW_DECLINE',
+        kind: 'ROLL_WINDOW_DECLINE',
         requestId: second.pending.windows[0]!.requestId
       })
     )

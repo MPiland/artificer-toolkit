@@ -10,8 +10,10 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import type { EncounterDamageRerollAnswer } from '@artificer-toolkit/rules-runtime/encounterDamageRollWindow'
 import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
@@ -507,7 +509,11 @@ async function recordAreaRoll(
   )
   if (result.kind === 'PENDING') {
     const held = result.pending.pause
-    if (held?.kind !== 'D20_WINDOW' || isD20RolledCheck(held.payload.rolled))
+    if (
+      held?.kind !== 'ROLL_WINDOW' ||
+      isDamageRollWindow(held.payload) ||
+      isD20RolledCheck(held.payload.rolled)
+    )
       throw new Error('An area save must settle with its answer.')
     const { rawFaces, rollMode } = held.payload.rolled.d20
     const rolled: EncounterEvidenceAnswer = { kind: 'ENTER_DICE', requestId, rawFaces, rollMode }
@@ -593,11 +599,13 @@ export async function planNativeLiveEncounterAreaAnswer(
     response: ResolveRuleOccurrenceInputDto
     /** The save the answer is for: its sealed roll, or the d20 window opened on it. */
     requestId: string
-    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer | EncounterDamageRerollAnswer
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
   }
 ) {
   const { command, actors, areaSnapshot, resolution } = input
+  if (resolution.kind === 'DAMAGE_REROLL')
+    throw new Error('An area action opens no damage roll window.')
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
@@ -608,7 +616,7 @@ export async function planNativeLiveEncounterAreaAnswer(
   if (
     !answered ||
     encounterAreaSaveAwaiting(answered) !==
-      (resolution.kind === 'D20_WINDOW' ? 'WINDOW' : 'ROLL') ||
+      (resolution.kind === 'ROLL_WINDOW' ? 'WINDOW' : 'ROLL') ||
     answered.snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
     areaSnapshot.occurrenceId !== input.response.occurrenceId ||
     answered.snapshot.occurrenceId !==

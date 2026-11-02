@@ -62,8 +62,8 @@ const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
   allowedResponses: [
     'ENTER_DICE',
     'SYSTEM_ROLL',
-    'D20_WINDOW_DECLINE',
-    'D20_WINDOW_USE',
+    'ROLL_WINDOW_DECLINE',
+    'ROLL_WINDOW_USE',
     'AREA_LEGENDARY_RESISTANCE'
   ]
 })

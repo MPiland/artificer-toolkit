@@ -333,6 +333,14 @@ export const setEncounterHealthDisplayDefaultInputDtoSchema = lazySchema(() =>
     level: healthDisplayLevelDtoSchema
   })
 )
+/** A member marks themselves AFK, or the GM marks any member: their reaction offers decline at once (D207). */
+export const setEncounterAfkInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('SET_AFK'),
+    userId: uuidSchema,
+    afk: z.boolean()
+  })
+)
 export const completeEncounterInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('COMPLETE')
@@ -360,6 +368,7 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     removeEncounterReminderInputDtoSchema,
     rollEncounterEnemyActionInputDtoSchema,
     setEncounterHealthDisplayDefaultInputDtoSchema,
+    setEncounterAfkInputDtoSchema,
     completeEncounterInputDtoSchema,
     resolveEncounterActionInputDtoSchema,
     escapeRelationshipInputDtoSchema,

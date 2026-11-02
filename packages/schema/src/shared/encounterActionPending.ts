@@ -9,6 +9,7 @@ import {
   serverRuleExecutionD20PolicyDtoSchema
 } from './ruleExecutionEvidence.js'
 import { d20WindowReactorActorId, isD20RolledCheck } from './ruleExecutionD20WindowOffer.js'
+import { isDamageRollWindow } from './ruleExecutionDamageRollWindow.js'
 import { validateEncounterOnHitOption } from './ruleExecutionOnHitChoice.js'
 import {
   encounterFailedCounterDtoSchema,
@@ -209,7 +210,13 @@ export const encounterActionPendingContextDtoSchema = lazySchema(() =>
                   'A forced-movement destination belongs to a settled action held for its source.'
                 )
               break
-            case 'D20_WINDOW': {
+            case 'ROLL_WINDOW': {
+              // A damage roll's window follows a SINGLE or OUTCOME phase that rolled with no d20 held (D208).
+              if (isDamageRollWindow(pause.payload)) {
+                if (holdsActionD20 || test)
+                  issue('A damage roll window belongs to a settled phase held for its caster.')
+                break
+              }
               const reactor = d20WindowReactorActorId(pause.payload)
               if (holdsActionD20 || !value.twoPhase || isD20RolledCheck(pause.payload.rolled))
                 issue(

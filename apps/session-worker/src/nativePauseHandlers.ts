@@ -19,7 +19,7 @@ import type {
  * to the pause union fails to compile until it has a handler.
  */
 const nativePauseHandlers = {
-  D20_WINDOW: d20WindowPause,
+  ROLL_WINDOW: d20WindowPause,
   LEGENDARY_RESISTANCE: legendaryResistancePause,
   REACTION: reactionPause,
   CAST_REACTION: castReactionPause,

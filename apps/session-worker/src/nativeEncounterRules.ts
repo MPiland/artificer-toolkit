@@ -84,6 +84,7 @@ import {
   reactionCastEnded
 } from './nativeEndEffects.js'
 import {
+  payableCharacterDamageRerolls,
   prepareNativeLiveActionMaintenance,
   settledCharacterActionSpend
 } from './nativeEncounterMaintenance.js'
@@ -832,6 +833,7 @@ export async function planNativeLiveEncounterAction(
       : null
   const actionSource = {
     runtime: executionOptions.runtime,
+    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
     random: executionOptions.random,
     adapter: prepared.adapter,
     plan: prepared.plan,
@@ -1156,19 +1158,13 @@ export async function planNativeLiveEncounterAction(
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
   // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
-  const settledSpend = settledCharacterActionSpend({
+  const settledPrepared = settledCharacterActionSpend({
     prepared,
     chosenOnHit,
+    damageReroll: resolved?.kind === 'DAMAGE_REROLL' ? resolved.option : null,
     maintenance,
     automationMode: state.automationMode
   })
-  const settledPrepared =
-    settledSpend && prepared.characterActionState
-      ? {
-          ...prepared,
-          characterActionState: { ...prepared.characterActionState, ...settledSpend }
-        }
-      : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({
     prepared,
     execution,
