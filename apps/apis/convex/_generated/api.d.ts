@@ -23613,15 +23613,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -33409,14 +33418,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -43154,14 +43169,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -52987,15 +53008,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -62783,14 +62813,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -72528,14 +72564,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -82370,15 +82412,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -92166,14 +92217,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -101911,14 +101968,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -111744,15 +111807,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -121540,14 +121612,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -131285,14 +131363,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -141153,15 +141237,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -150949,14 +151042,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -160694,14 +160793,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -170527,15 +170632,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -180323,14 +180437,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -190068,14 +190188,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -199902,14 +200028,21 @@ export declare const api: {
                               castModifier?: {
                                 chargeId: string;
                                 cost: number;
-                                parameters?: Array<{
-                                  multiplier: number;
-                                  parameter: "RANGE";
-                                  touchDistance: {
-                                    amount: number;
-                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                                  };
-                                }>;
+                                parameters?: Array<
+                                  | {
+                                      multiplier: number;
+                                      parameter: "RANGE";
+                                      touchDistance: {
+                                        amount: number;
+                                        unit:
+                                          "INCHES" | "FEET" | "YARDS" | "MILES";
+                                      };
+                                    }
+                                  | {
+                                      activation: "BONUS_ACTION";
+                                      parameter: "ACTIVATION";
+                                    }
+                                >;
                                 perSpellLevel?: boolean;
                                 targets?: {
                                   abilityDefinitionId?: string;
@@ -209648,14 +209781,20 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
-                          parameters?: Array<{
-                            multiplier: number;
-                            parameter: "RANGE";
-                            touchDistance: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
+                          parameters?: Array<
+                            | {
+                                multiplier: number;
+                                parameter: "RANGE";
+                                touchDistance: {
+                                  amount: number;
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                              }
+                            | {
+                                activation: "BONUS_ACTION";
+                                parameter: "ACTIVATION";
+                              }
+                          >;
                           perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
@@ -219262,14 +219401,20 @@ export declare const api: {
                         castModifier?: {
                           chargeId: string;
                           cost: number;
-                          parameters?: Array<{
-                            multiplier: number;
-                            parameter: "RANGE";
-                            touchDistance: {
-                              amount: number;
-                              unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                            };
-                          }>;
+                          parameters?: Array<
+                            | {
+                                multiplier: number;
+                                parameter: "RANGE";
+                                touchDistance: {
+                                  amount: number;
+                                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                };
+                              }
+                            | {
+                                activation: "BONUS_ACTION";
+                                parameter: "ACTIVATION";
+                              }
+                          >;
                           perSpellLevel?: boolean;
                           targets?: {
                             abilityDefinitionId?: string;
@@ -228979,15 +229124,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -238775,14 +238929,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -248520,14 +248680,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -258353,15 +258519,24 @@ export declare const api: {
                                 castModifier?: {
                                   chargeId: string;
                                   cost: number;
-                                  parameters?: Array<{
-                                    multiplier: number;
-                                    parameter: "RANGE";
-                                    touchDistance: {
-                                      amount: number;
-                                      unit:
-                                        "INCHES" | "FEET" | "YARDS" | "MILES";
-                                    };
-                                  }>;
+                                  parameters?: Array<
+                                    | {
+                                        multiplier: number;
+                                        parameter: "RANGE";
+                                        touchDistance: {
+                                          amount: number;
+                                          unit:
+                                            | "INCHES"
+                                            | "FEET"
+                                            | "YARDS"
+                                            | "MILES";
+                                        };
+                                      }
+                                    | {
+                                        activation: "BONUS_ACTION";
+                                        parameter: "ACTIVATION";
+                                      }
+                                  >;
                                   perSpellLevel?: boolean;
                                   targets?: {
                                     abilityDefinitionId?: string;
@@ -268149,14 +268324,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
@@ -277894,14 +278075,20 @@ export declare const api: {
                           castModifier?: {
                             chargeId: string;
                             cost: number;
-                            parameters?: Array<{
-                              multiplier: number;
-                              parameter: "RANGE";
-                              touchDistance: {
-                                amount: number;
-                                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
-                              };
-                            }>;
+                            parameters?: Array<
+                              | {
+                                  multiplier: number;
+                                  parameter: "RANGE";
+                                  touchDistance: {
+                                    amount: number;
+                                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                                  };
+                                }
+                              | {
+                                  activation: "BONUS_ACTION";
+                                  parameter: "ACTIVATION";
+                                }
+                            >;
                             perSpellLevel?: boolean;
                             targets?: {
                               abilityDefinitionId?: string;
