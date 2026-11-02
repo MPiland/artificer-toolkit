@@ -84,11 +84,11 @@ const TARGET_REQUIREMENT_NODE_MAP: NodeMap<TargetRequirementAuthored> = targetRe
     const local = cond.local()
     const { table } = data
     const holdsCondition = local.field(['kind']).eq('HAS_CONDITION')
-    const needsConditions = logic.or(
+    const needsConditions = logic.or([
       holdsCondition,
       local.field(['kind']).eq('LACKS_CONDITION'),
       local.field(['kind']).eq('NOT_IMMUNE_TO_CONDITION')
-    )
+    ])
     const needsSight = local.field(['kind']).eq('SIGHT')
 
     map
