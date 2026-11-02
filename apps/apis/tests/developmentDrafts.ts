@@ -50,6 +50,7 @@ import {
 import type { createEncounterLifecyclePolicyFixture } from './fixtures/encounterInitiative'
 import { generateValidUsername } from './fixtures/generatedUsername'
 import { createCastModifierFeatures } from './fixtures/encounterCastModifier'
+import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
 import { createConcentrationCapacityFeatures } from './fixtures/encounterConcentrationCapacity'
 import type { CharacterListPage } from '@artificer-toolkit/schema/api/characterList'
 import type { CharacterDraftListPage } from '@artificer-toolkit/schema/api/characterDrafts'
@@ -2823,7 +2824,7 @@ try {
           characterId,
           [shield, thunderwave],
           undefined,
-          () => createCastModifierFeatures()
+          () => [...createCastModifierFeatures(), heckleFeature(() => crypto.randomUUID())]
         )
       : heatMetalBrowser
         ? await createDevelopmentSpellCharacter(

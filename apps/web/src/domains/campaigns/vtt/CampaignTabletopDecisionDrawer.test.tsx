@@ -212,6 +212,22 @@ const retargetPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema
   allowedResponses: ['DECLINE', 'OPTION']
 })
 
+/** A reactor's d20 window on another creature's attack roll (D207). */
+const reactorWindowPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+  kind: 'D20_WINDOW',
+  occurrenceId,
+  occurrenceVersion: 7,
+  encounterVersion: tabletopGmEncounter.version,
+  rollerActorId: tabletopGmEncounter.actors[0]!.id,
+  attackerActorId: tabletopGmEncounter.actors[1]!.id,
+  requestId: 'attack-roll',
+  d20: { selectedNatural: 10, total: 14 },
+  options: [
+    { optionId: 'f'.repeat(64), label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT' }
+  ],
+  allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+})
+
 function resolved(occurrenceVersion = 3): EncounterCommandResultDto {
   return validated(encounterCommandResultDtoSchema)({
     projection: tabletopGmEncounter,
@@ -1362,5 +1378,57 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     expect(screen.getByText('Waiting for saves.')).toBeVisible()
     expect(screen.queryByRole('group')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Submit roll' })).not.toBeInTheDocument()
+  })
+})
+
+describe('CampaignTabletopDecisionDrawer reactor d20 window', () => {
+  function renderReactorWindow(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve']
+  ) {
+    renderWithAppProviders(
+      <CampaignTabletopDecisionDrawer
+        skipped={null}
+        canVoid={false}
+        connected
+        encounter={tabletopGmEncounter}
+        latestRoll={null}
+        pending={reactorWindowPending}
+        submitting={false}
+        onResolve={onResolve}
+      />
+    )
+  }
+
+  it("offers the reaction on the attacker's roll, before its result, and spends it", async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderReactorWindow(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    expect(screen.getByText('Reaction available')).toBeVisible()
+    expect(
+      screen.getByText(`${tabletopGmEncounter.actors[1]!.label} rolled 10, total 14`)
+    ).toBeVisible()
+    expect(screen.queryByText(/\bhits?\b|\bmiss(es)?\b/i)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Use Cutting Words (-1d6)' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'D20_WINDOW_USE', requestId: 'attack-roll', optionId: 'f'.repeat(64) }
+      })
+    )
+  })
+
+  it('spends nothing on a decline', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderReactorWindow(onResolve)
+
+    await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
+    await user.click(screen.getByRole('button', { name: 'Decline' }))
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolution: { kind: 'D20_WINDOW_DECLINE', requestId: 'attack-roll' }
+      })
+    )
   })
 })

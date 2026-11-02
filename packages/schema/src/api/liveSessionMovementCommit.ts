@@ -7,7 +7,10 @@ import { voidRuleOccurrenceInputDtoSchema } from './encounterRuleCommands.js'
 import { sceneSpatialPreparationSchema } from '../projections/sceneSpatialPreparation.js'
 import { encounterActorRuleOutputSchema } from './encounterActorRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
-import { liveSessionCharacterResourceConsumptionSchema } from './liveSessionEncounterAction.js'
+import {
+  liveSessionCharacterResourceConsumptionSchema,
+  liveSessionWindowReactionsSchema
+} from './liveSessionEncounterAction.js'
 import { liveSessionEncounterMaintenanceOwnerRequestSchema } from './liveSessionEncounterRules.js'
 import {
   MAX_ACTIVE_RULE_EFFECTS_PER_OWNER,
@@ -62,7 +65,9 @@ export const liveSessionMovementSettlementSchema = lazySchema(() =>
       /** A decoy of the mover the attack struck without it being the last: the commit spends one use of its effect. */
       spentUseGrants: z.array(activeRuleEffectRecordSchema).check(z.maxLength(1)),
       /** The once-per-turn uses the reaction attack spent from the reactor's turn record (D119). */
-      turnUses: encounterTurnUseKeysSchema
+      turnUses: encounterTurnUseKeysSchema,
+      /** The reactions other creatures rolled against the reaction attack's d20 and what each costs (D207). */
+      windowReactions: liveSessionWindowReactionsSchema
     }),
     z.strictObject({
       kind: z.literal('CONCENTRATION'),

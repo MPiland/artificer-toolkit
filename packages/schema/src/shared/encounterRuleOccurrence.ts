@@ -471,6 +471,11 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
         rollerActorId: uuidSchema,
+        /**
+         * The attacker whose roll a reactor's die would change (D207); then `rollerActorId` is the
+         * reactor who decides. Absent when the roller decides on its own held dice.
+         */
+        attackerActorId: z.optional(uuidSchema),
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         ...d20WindowChoiceShape(),

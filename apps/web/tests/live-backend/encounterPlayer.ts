@@ -178,6 +178,26 @@ export async function verifyEncounterPlayerBrowser(
           decisionDrawer.getByRole('button', { name: 'Use reaction', exact: true }).click()
         )
       },
+      answerRollWindow: async (reaction) => {
+        stage = reaction ? 'use ' + reaction + ' on the roll' : 'decline the roll window'
+        await openDecision()
+        await expect(decisionDrawer.getByText('Reaction available', { exact: true })).toBeVisible()
+        await expect(
+          decisionDrawer.getByText(new RegExp('^' + input.wolf.label + ' rolled \\d+, total \\d+$'))
+        ).toBeVisible()
+        if (!reaction)
+          return submitDecision(() =>
+            decisionDrawer.getByRole('button', { name: 'Decline', exact: true }).click()
+          )
+        await page.screenshot({
+          caret: 'initial',
+          path: input.evidenceDirectory + '/player-roll-window-offered.png',
+          fullPage: true
+        })
+        return submitDecision(() =>
+          decisionDrawer.getByRole('button', { name: new RegExp('^Use ' + reaction + ' \\(') }).click()
+        )
+      },
       castThunderwaveFromMap: async () => {
         stage = 'aim Thunderwave on the map'
         await openAction(/^Thunderwave/)

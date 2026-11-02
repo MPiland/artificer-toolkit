@@ -594,8 +594,19 @@ export async function planNativeLiveEncounterAction(
           roller: unwindowed.actor,
           movementTargets,
           loadTarget,
-          definitions,
-          scene: { actorId: command.actorId, ref: actionSceneRef, context: sceneContext },
+          scene: {
+            load: () => readNativeActionAreaScene(capture, command.actorId, actionSceneRef),
+            loadAttackPerception: nativeLiveAttackSceneLoaders({
+              state,
+              system,
+              actors,
+              movementTargets,
+              loadTarget,
+              definitions,
+              sceneContext,
+              capture
+            }).loadAttackPerception
+          },
           actionSources,
           capture
         })

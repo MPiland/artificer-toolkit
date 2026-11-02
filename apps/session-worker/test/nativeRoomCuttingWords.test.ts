@@ -3,6 +3,7 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 import { encounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { DND5E_REACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
+import { heckleFeature } from '@artificer-toolkit/rules-runtime/testing/heckleFeature'
 import {
   characterActor,
   creatureFeature,
@@ -10,16 +11,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
-import {
-  collegeOfLore,
-  cuttingWordsReaction
-} from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
-import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
@@ -59,51 +56,6 @@ const loreCuttingWords = {
 const inspirationGrantId = `resource:${bard.id}:${bard.resources?.id}`
 
 /**
- * A homebrew Fighter feature: a free reaction (no charge) that takes 1d4 from another creature's
- * attack roll, otherwise authored as Cutting Words is.
- */
-const heckle = ((): ClassFeature => {
-  if (cuttingWordsReaction.invocation.kind !== 'ACTION')
-    throw new Error('The SRD Cutting Words is not an action.')
-  const { resourceUse: _charge, ...invocation } = cuttingWordsReaction.invocation
-  const [path] = cuttingWordsReaction.paths ?? []
-  if (!path || !('resultBlock' in path)) throw new Error('Expected a result-block path.')
-  const [outcome] = path.resultBlock.outcomes
-  if (!outcome || !('die' in outcome) || !invocation.range)
-    throw new Error('The SRD Cutting Words has no ranged outcome.')
-  return {
-    ...srdByLabel(collegeOfLore.features ?? [], 'Cutting Words'),
-    id: testUuid(0x7d0),
-    label: 'Heckle',
-    availableAtLevel: 1,
-    effects: [
-      {
-        ...cuttingWordsReaction,
-        id: testUuid(0x7d1),
-        invocation: { ...invocation, range: { ...invocation.range, id: testUuid(0x7d2) } },
-        paths: [
-          {
-            ...path,
-            id: testUuid(0x7d3),
-            resultBlock: {
-              ...path.resultBlock,
-              id: testUuid(0x7d4),
-              outcomes: [
-                {
-                  ...outcome,
-                  id: testUuid(0x7d5),
-                  die: { count: 1, faces: 4, sign: 'SUBTRACT', timing: 'AFTER_ROLL' }
-                }
-              ]
-            }
-          }
-        ]
-      }
-    ]
-  }
-})()
-
-/**
  * A Wolf whose Bite (+4) attacks a Wolf (AC 13), with a Character 10 ft away: a level 3 Lore Bard
  * holding Cutting Words with `used` of its one Bardic Inspiration spent, or a Fighter holding Heckle.
  */
@@ -126,7 +78,7 @@ function reactorRoom(reactor: 'LORE_BARD' | 'HECKLER', used = 0) {
             ]
           }
         }
-      : { characterClassFeatures: [heckle] })
+      : { characterClassFeatures: [heckleFeature()] })
   })
 }
 type Room = Awaited<ReturnType<typeof reactorRoom>>

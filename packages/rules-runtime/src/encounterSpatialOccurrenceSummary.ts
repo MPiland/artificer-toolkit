@@ -1,4 +1,5 @@
 import { damageSaveRollTrigger } from './encounterConcentration.js'
+import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounters'
 import {
@@ -224,6 +225,10 @@ export function projectEncounterSpatialOccurrenceSummary(
             occurrenceVersion: occurrence.version,
             encounterVersion,
             rollerActorId: context.phase.rollerActorId,
+            // A reactor's die changes the opportunity attack the reacting creature rolled (D207).
+            ...(d20WindowReactorActorId(window)
+              ? { attackerActorId: actionEvidenceOption.candidate.reactorActorId }
+              : {}),
             requestId: pendingSnapshot.request.requestId,
             d20: {
               selectedNatural: window.rolled.d20.selectedNatural,

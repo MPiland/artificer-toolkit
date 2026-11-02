@@ -33,6 +33,7 @@ import {
 } from './encounterMovementReactionActionExecution.js'
 import {
   encounterAttackD20Belief,
+  isEncounterSightGovernedD20,
   type EncounterAttackD20Belief,
   type EncounterPreparedAttackSight
 } from './encounterAttackBelief.js'
@@ -341,14 +342,16 @@ export async function prepareNativeActionTest(
 
   /**
    * A rolled TEST d20 that a die could still change is shown to its next decider before it resolves:
-   * as rolled, or as the window just answered settled it, for the next reactor (D207).
+   * as rolled, or as the window just answered settled it, for the next reactor (D207). A d20 that
+   * sight governs settles its true mode first, as in `advanceNativeActionGraphs`, so it opens none.
    */
   async function windowRolledSave(
     rolledContinuation: ServerRuleExecutionContinuationDto,
     rolledPolicy: ServerRuleExecutionD20PolicyDto,
     rolled:
       | { response: SettledActionResponse; appRollId: string | null }
-      | { previous: D20WindowPausePayloadDto; d20: EncounterActionWindowAnswer['d20'] }
+      | { previous: D20WindowPausePayloadDto; d20: EncounterActionWindowAnswer['d20'] },
+    sightGoverned: boolean
   ) {
     const next = await nextActionWindowDice({
       saveWindow: input.saveWindow,
@@ -357,7 +360,7 @@ export async function prepareNativeActionTest(
     })
     if (next.dice.length > 0) mayAddDice = true
     const window =
-      next.dice.length > 0 && !attackSight
+      next.dice.length > 0 && !sightGoverned
         ? await openActionSaveWindow({
             runtime: input.runtime,
             occurrenceId: input.occurrenceId,
@@ -464,7 +467,7 @@ export async function prepareNativeActionTest(
       const window = await windowRolledSave(pending.continuation, policy, {
         response,
         appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
-      })
+      }, sight !== null)
       if (window) return window
     } else {
       mayAddDice = true
@@ -474,7 +477,7 @@ export async function prepareNativeActionTest(
       const window = await windowRolledSave(heldContinuation, policy, {
         previous: pending.pause.payload,
         d20: resolution.d20
-      })
+      }, false)
       if (window) return window
     }
     const windowDice = input.windowDice ?? []
@@ -535,7 +538,7 @@ export async function prepareNativeActionTest(
     const window = await windowRolledSave(result.continuation, pendingPolicy, {
       response: automatic,
       appRollId: null
-    })
+    }, isEncounterSightGovernedD20({ policy: pendingPolicy, belief: null }))
     if (window) return window
     continuation = result.continuation
     faces = automatic.faces

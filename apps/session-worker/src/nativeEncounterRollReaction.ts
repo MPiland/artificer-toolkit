@@ -30,17 +30,14 @@ import { encounterWindowReactionDie } from '@artificer-toolkit/rules-runtime/enc
 import { discoverEncounterEventHooks } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 
-import {
-  nativeLiveAttackSceneLoaders,
-  readNativeActionAreaScene
-} from './nativeAttackSceneLoaders.js'
+import type { readNativeActionAreaScene } from './nativeAttackSceneLoaders.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { nativeReactionCandidate, type NativeReaction } from './nativeEncounterReactionCandidate.js'
 import type { prepareNativeLiveMovementTarget } from './nativeEncounterTargets.js'
 
 type Prepared = NativeEncounterActionMechanicsInput['prepared']
 type ReactorTarget = Awaited<ReturnType<typeof prepareNativeLiveMovementTarget>>['target']
-type SceneLoaderInput = Parameters<typeof nativeLiveAttackSceneLoaders>[0]
+type NativeActionScene = Awaited<ReturnType<typeof readNativeActionAreaScene>>
 type PreparationInput = Parameters<typeof prepareEncounterActionMechanics>[0]
 
 /** A reaction its holder could roll against another creature's attack roll now, with its die (D207). */
@@ -64,25 +61,21 @@ export async function discoverNativeRollReactions(input: {
   roller: EncounterRunActorState
   movementTargets: ReadonlyMap<string, ReactorTarget>
   loadTarget(actor: EncounterRunActorState): Promise<ReactorTarget>
-  definitions: SceneLoaderInput['definitions']
-  /** The attack's Scene: its tokens measure each reaction's range, its sight the reactor's. */
+  /**
+   * The attack's Scene as the roll is made: its tokens measure each reaction's range, and its sight
+   * judges whether the reactor perceives the roller.
+   */
   scene: {
-    actorId: string
-    ref: { sceneId: string; expectedSceneVersion: number }
-    context: SceneLoaderInput['sceneContext']
+    load(): Promise<Pick<NativeActionScene, 'sceneGrid' | 'tokens'>>
+    loadAttackPerception: NonNullable<PreparationInput['loadAttackPerception']>
   }
   /** The action sources a reaction is prepared from, as the attack's own are. */
   actionSources: Pick<PreparationInput, 'loadSource' | 'loadRelationshipFacts'>
-  capture: SceneLoaderInput['capture']
+  capture: Parameters<typeof evaluateNativeLiveActionEconomy>[0]['capture']
 }): Promise<NativeRollReaction[]> {
   const { state, roller, movementTargets, capture } = input
   const loadTarget = async (actor: EncounterRunActorState) =>
     movementTargets.get(actor.id) ?? (await input.loadTarget(actor))
-  const { loadAttackPerception } = nativeLiveAttackSceneLoaders({
-    ...input,
-    loadTarget,
-    sceneContext: input.scene.context
-  })
   const holders = []
   for (const reactor of input.actors
     .filter((actor) => actor.kind === 'CHARACTER' && actor.id !== roller.id)
@@ -96,7 +89,9 @@ export async function discoverNativeRollReactions(input: {
     if (hooks.length > 0) holders.push({ reactor, reactorTarget, hooks })
   }
   if (holders.length === 0) return []
-  const scene = await readNativeActionAreaScene(capture, input.scene.actorId, input.scene.ref)
+  const scene = await input.scene.load()
+  const rollerToken = scene.tokens.find((token) => token.actorId === roller.id)
+  if (!rollerToken) return []
   const grid = resolveEncounterSceneGrid({ encounter: state, sceneGrid: scene.sceneGrid })
   const reactions: NativeRollReaction[] = []
   for (const { reactor, reactorTarget, hooks } of holders) {
@@ -115,7 +110,7 @@ export async function discoverNativeRollReactions(input: {
         overridable: false,
         movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
         sceneContext: null,
-        loadAttackPerception,
+        loadAttackPerception: input.scene.loadAttackPerception,
         ...input.actionSources
       }).catch((error: unknown) => {
         // A reaction its holder cannot pay for, or whose requirements the roller fails, is not offered.
@@ -130,7 +125,7 @@ export async function discoverNativeRollReactions(input: {
         actor: prepared.actor,
         target: prepared.target,
         targetPolicy: prepared.targetPolicy,
-        sceneContext: { grid, sourceToken: reactorToken, targetToken: scene.sourceToken },
+        sceneContext: { grid, sourceToken: reactorToken, targetToken: rollerToken },
         makesAttackRoll: prepared.makesAttackRoll,
         facing: encounterFacingRule(state)
       })

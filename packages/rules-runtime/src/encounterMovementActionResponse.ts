@@ -6,6 +6,7 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type {
@@ -491,10 +492,13 @@ export async function evaluateEncounterMovementActionResponse<
           continuation: execution.continuation,
           context: actionContext,
           selectedOptionId,
+          // A reactor asked whether to change the attack roll decides its own d20 window (D207).
           rollerActorId:
-            execution.roller === 'SOURCE'
+            (execution.pause?.kind === 'D20_WINDOW' &&
+              d20WindowReactorActorId(execution.pause.payload)) ||
+            (execution.roller === 'SOURCE'
               ? option.candidate.reactorActorId
-              : option.candidate.movingActorId,
+              : option.candidate.movingActorId),
           d20Policy: execution.d20Policy,
           ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
           ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
