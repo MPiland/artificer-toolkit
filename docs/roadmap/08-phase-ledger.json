@@ -17256,7 +17256,8 @@
                 "size": 5,
                 "after": ["SPELLS-31.T5e2a"]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208).",
+              "activeWorkbook": "local_14067161-2e98-4ab0-bc81-47a6416bbc1c"
             },
             {
               "id": "SPELLS-31.T5f1",
