@@ -1223,6 +1223,24 @@ row plan carries no rider of its own, so a plan that did is refused rather than 
 names a spell, and an action whose result selects one plan is planned exactly as before. Prismatic Spray's indigo and
 violet rows are held this way.
 
+**On an area (SPELLS-4.T2ps-d3, current).** A cone of the authored SRD Prismatic Spray runs end to end in the room
+(`apps/session-worker/test/nativeRoomPrismaticSpray.test.ts`, a Worker suite file in the Tests workflow, not a browser
+journey): the multi-creature lead reads every row plan (`leadActiveEffectPlans`), then each creature's own rays pick
+the rows it holds, one effect per lasting row (the area commit's per-target `createdEffects` is bounded by
+`MAX_ACTIVE_RULE_EFFECTS_PER_OWNER`, no longer one). Three refusals of the authored spell were lifted:
+
+- `prepareNativeActionTest` (`encounterActionExecution.ts`) paused for a die after a resumed save's d20 as if it were the
+  d20 still unsealed; only a TEST with no sealed d20 pauses there now, and the table dice after it are the System's.
+- An area settles by replaying each creature's kept answer, which rolled its TEST's table dice a second time. The area
+  target record keeps them beside the answer (`testDice`, written from `encounterAreaTestDice` when the save is
+  answered), and the replay enters each by its request id; a die the answer did not roll is refused, never rolled.
+- A repeat table's OUTCOME holds only the landed rows, so a creature that saved onto a row that does nothing (indigo
+  or violet) traced a row gate and no proposal; `interpretDirect` now settles that as owing nothing, as it does a
+  direct relationship.
+
+Authoring parity (`packages/authoring/src/nodeRuntime/prismaticSprayAuthoringParity.test.ts`): the spell authored from
+the core options publishes the source's result, and the table, repeat and merged-row options are generic.
+
 A test-less action's table (ATTACK-16.T1c2a, current) amends T1a's "save result path only" rule: an action with no
 attack, save or check may resolve its one path (ON_USE) through one `ROLL_TABLE`, rolled server-side in its single
 DIRECT graph (`directRollTableGraph`). The graph is the same table graph a save's OUTCOME phase runs (table die, row

@@ -1020,11 +1020,14 @@ export function interpretDirect(
   const proposals = input.execution.evidence.trace.filter((entry) =>
     proposalKeys.has(entry.operation.key)
   )
-  // A direct relationship applies nothing here; its active effect plan owns the held state.
+  // A direct relationship applies nothing here; its active effect plan owns the held state. A repeat
+  // table's OUTCOME holds only the rows its rolls landed in, and a landed row may owe nothing.
   if (
     proposals.length === 0 &&
     input.execution.evidence.trace.some(
-      (entry) => entry.operation.key === DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+      (entry) =>
+        entry.operation.key === DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY ||
+        entry.operation.key === DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY
     )
   )
     return []

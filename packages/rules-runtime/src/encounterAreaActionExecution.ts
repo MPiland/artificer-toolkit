@@ -55,6 +55,8 @@ export type EncounterAreaTarget = {
   attackSight?: NativeActionInput['attackSight']
   /** The dice the creature holds for after its save's d20 (D168); its roll is windowed when it holds any. */
   saveWindow?: NativeActionInput['saveWindow']
+  /** The dice its kept answer's TEST rolled after the d20, replayed rather than rolled again. */
+  testDice?: readonly { requestId: string; value: number }[]
   autoRoll: EncounterActionAutoRoll
   /** The creature's Legendary Resistance on its current pool, asked for only once its save has failed. */
   discoverLegendaryResistance: () => Promise<EncounterLegendaryResistanceCandidate | null>
@@ -140,6 +142,7 @@ async function testTarget(
     binding: target.binding,
     attackSight: target.attackSight,
     saveWindow: target.saveWindow,
+    testDice: target.testDice,
     autoRoll: target.autoRoll,
     // Runs after any completed TEST, whether it was answered or rolled for the creature.
     afterTest: async (execution) => {
@@ -189,6 +192,18 @@ export async function answerEncounterAreaTest(
     resolution: input.resolution
   })
   return input.tests.map((test) => (test === current ? answered : test))
+}
+
+/**
+ * The dice an answered roll's TEST rolled after its d20 (a roll table's die and its repeats), which
+ * the area keeps with the answer: a later replay of the roll reads them back instead of rolling.
+ */
+export function encounterAreaTestDice(boundary: TestBoundary) {
+  return boundary.execution.evidence.trace.flatMap(({ evidence }) =>
+    evidence && evidence.requestId !== boundary.d20.requestId
+      ? [{ requestId: evidence.requestId, value: evidence.value }]
+      : []
+  )
 }
 
 /**

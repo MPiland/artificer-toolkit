@@ -18,7 +18,10 @@ import {
   encounterLegendaryResistancePinDtoSchema,
   validateEncounterLegendaryResistancePin
 } from './ruleExecutionDirectActionPendingContexts.js'
-import { serverRuleExecutionD20PolicyDtoSchema } from './ruleExecutionEvidence.js'
+import {
+  MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS,
+  serverRuleExecutionD20PolicyDtoSchema
+} from './ruleExecutionEvidence.js'
 import {
   encounterFailedCounterDtoSchema,
   type EncounterFailedCounterDto
@@ -564,6 +567,11 @@ export type EncounterAreaActionPendingContextDto = {
     /** Set once the creature's own roller answered its save; the GM can no longer take it out. */
     testedJson?: string
     /**
+     * The dice the System rolled in the answered save's TEST after its d20 (a roll table's die and its
+     * repeats), kept with the answer so the area replays them and never rolls them again.
+     */
+    testDice?: { requestId: string; value: number }[]
+    /**
      * The roll of a creature holding after-roll saving-throw dice, kept until its d20 window settles
      * (D168); `testedJson` then holds the settled window. The windows open one at a time, in initiative order.
      */
@@ -687,6 +695,17 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             perceivedByCaster: z.boolean(),
             snapshot: z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema),
             testedJson: z.optional(z.string()),
+            testDice: z.optional(
+              z
+                .array(
+                  z.strictObject({
+                    requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
+                    value: integerSchema
+                  })
+                )
+                .check(z.minLength(1))
+                .check(z.maxLength(MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS))
+            ),
             rolledJson: z.optional(z.string()),
             legendaryResistance: z.optional(encounterAreaLegendaryResistanceDtoSchema),
             /**
@@ -770,6 +789,12 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             })
           if (!struck) seen.add(target.actorId)
           seenOccurrences.add(target.snapshot.occurrenceId)
+          if (target.testDice && target.testedJson === undefined)
+            context.addIssue({
+              code: 'custom',
+              path: ['targets', index, 'testDice'],
+              message: 'A save’s TEST dice are kept only with its answer.'
+            })
           if (target.legendaryResistance) {
             if (
               target.testedJson === undefined ||
