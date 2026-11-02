@@ -38,6 +38,7 @@ import {
   heldWindowedSave,
   openActionSaveWindow,
   windowedSaveResponse,
+  windowHeldDice,
   type EncounterActionSaveWindow,
   type EncounterActionWindowAnswer
 } from './encounterActionSaveWindow.js'
@@ -440,9 +441,7 @@ export async function prepareNativeActionTest(
     response: SettledActionResponse,
     appRollId: string | null
   ) {
-    const heldDice = rolledPolicy.savingThrowAbilityDefinitionId
-      ? (input.saveWindow?.heldDice(rolledPolicy.savingThrowAbilityDefinitionId) ?? [])
-      : []
+    const heldDice = windowHeldDice(input.saveWindow, rolledPolicy)
     mayAddDice = heldDice.length > 0
     const window =
       mayAddDice && !attackSight
@@ -463,7 +462,12 @@ export async function prepareNativeActionTest(
           ...window,
           d20Policy: null,
           twoPhase: testPhase,
-          roller: 'TARGET' as const
+          roller: actionRequestRoller({
+            continuation: rolledContinuation,
+            policy: rolledPolicy,
+            bound: current.bound,
+            twoPhase: null
+          })
         }
       : null
   }
@@ -1156,10 +1160,7 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    const heldDice =
-      policy && phase !== 'SINGLE' && policy.savingThrowAbilityDefinitionId
-        ? (input.saveWindow?.heldDice(policy.savingThrowAbilityDefinitionId) ?? [])
-        : []
+    const heldDice = policy && phase !== 'SINGLE' ? windowHeldDice(input.saveWindow, policy) : []
     // A roller's d20 that a held die could still change is shown to its roller before the save resolves.
     const window =
       heldDice.length > 0 && resolution.kind !== 'D20_WINDOW' && !sight && policy
@@ -1180,7 +1181,7 @@ export async function advanceNativeActionGraphs(input: {
         ...window,
         d20Policy: null,
         twoPhase,
-        roller: 'TARGET' as const,
+        roller: actionRequestRoller({ continuation, policy, bound, twoPhase }),
         ...(phaseReceipts.length ? { phaseReceipts } : {})
       }
     const resumed = await resumeEncounterD20({

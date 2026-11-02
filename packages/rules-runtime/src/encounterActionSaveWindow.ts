@@ -32,19 +32,36 @@ export type EncounterActionWindowAnswer = {
   d20: D20WindowPausePayloadDto['rolled']['d20']
 }
 
-/** The dice the target of an action's save holds for after its d20 (D168), by the save's ability. */
+/**
+ * The dice an action's TEST roller holds for after its d20 (D168): the target's, by the save's
+ * ability, for a save, and the attacker's `attackDice` for an attack roll.
+ */
 export type EncounterActionSaveWindow = {
   heldDice(abilityDefinitionId: string): readonly EncounterD20WindowHeldDie[]
+  attackDice: readonly EncounterD20WindowHeldDie[]
 }
 
-/** The dice the target of an action's TEST save holds for after its d20. */
+/** The dice the target of an action's TEST save, or the attacker of its TEST attack, holds for after its d20. */
 export const targetSaveWindow = (
   gameSystemId: string,
-  targetEffects: readonly ActiveRuleEffectRecord[]
+  targetEffects: readonly ActiveRuleEffectRecord[],
+  attackDice: readonly EncounterD20WindowHeldDie[] = []
 ): EncounterActionSaveWindow => ({
   heldDice: (abilityDefinitionId) =>
-    encounterHeldSavingThrowDice(gameSystemId, targetEffects, abilityDefinitionId)
+    encounterHeldSavingThrowDice(gameSystemId, targetEffects, abilityDefinitionId),
+  attackDice
 })
+
+/** The dice a rolled TEST d20 may still be changed by: the target's for a save, else the attacker's. */
+export function windowHeldDice(
+  window: EncounterActionSaveWindow | undefined,
+  policy: ServerRuleExecutionD20PolicyDto
+) {
+  if (!window) return []
+  return policy.savingThrowAbilityDefinitionId
+    ? window.heldDice(policy.savingThrowAbilityDefinitionId)
+    : window.attackDice
+}
 
 /**
  * The roll a settled window answers the save it held with. The window froze the roll against the

@@ -1,5 +1,6 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -123,8 +124,8 @@ function selfClassRuleEffect(
 
 /**
  * The die is the Bard's own at the level the Bard has when it is given (D168): the face below grows
- * with the granter's class level and is frozen into the holder's grant. It joins a check or a save
- * after the d20 is seen; an attack-roll grant of the same shape is the follow-up window's to add.
+ * with the granter's class level and is frozen into the holder's grant. It joins a check, a save or
+ * an attack roll after the d20 is seen.
  */
 function bardicInspirationEffect(): EffectAuthored {
   const payload: ModifierRolledDieAuthored = {
@@ -208,7 +209,14 @@ function bardicInspirationEffect(): EffectAuthored {
                     id: classRowId(BD, 0x84, 2),
                     valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                     order: 2
-                  }
+                  },
+                  ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+                    ...die,
+                    id: classRowId(BD, 0x84, 3 + index),
+                    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                    domain: { attackDomain },
+                    order: 3 + index
+                  }))
                 ]
               }
             }

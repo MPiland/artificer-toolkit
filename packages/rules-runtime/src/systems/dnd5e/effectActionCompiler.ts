@@ -3969,7 +3969,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return {
         facts: {
           ...baseFacts,
-          ...dnd5eAddedDiceFacts(addedDice),
+          ...dnd5eAddedDiceFacts(
+            addedDice,
+            true,
+            derivedAddedDice(sourceDerivedFacts.attackAfterRollDice, attackDomain)
+          ),
           [DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]: criticalRules.threshold,
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }

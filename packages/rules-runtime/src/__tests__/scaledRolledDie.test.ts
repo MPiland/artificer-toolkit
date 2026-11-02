@@ -6,6 +6,7 @@ import { CLASS_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
 
 import {
   activeAfterRollAbilityCheckDice,
+  activeAfterRollAttackRollDice,
   activeAfterRollSavingThrowDice
 } from '../character/activeEffectGrantTotals.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -59,6 +60,16 @@ describe('Bardic Inspiration die (D168)', () => {
     expect(check).toMatchObject([{ count: 1, faces, sign: 'ADD' }])
     expect(save).toMatchObject([{ count: 1, faces, sign: 'ADD' }])
   })
+
+  it.each(['MELEE', 'RANGED', 'SPELL', 'UNARMED'])(
+    'holds the scaled die for a %s attack roll after the d20',
+    (attackDomain) => {
+      const effects = grantedTo(bardicInspiration, { [CLASS_IDS.BARD]: 10 })
+      expect(activeAfterRollAttackRollDice(effects, attackDomain, 'STRENGTH')).toMatchObject([
+        { count: 1, faces: 10, sign: 'ADD' }
+      ])
+    }
+  )
 
   it('gives the base die to a granter with no Bard level, and keeps no scaling in the stored grant', () => {
     const effects = grantedTo(bardicInspiration, {})
