@@ -11,6 +11,8 @@ type TargetSight = Pick<EncounterAttackPerception, 'attackerSeesTarget' | 'targe
 
 const UNMET_MESSAGE = {
   HAS_CONDITION: 'The selected action target does not have the required condition.',
+  LACKS_CONDITION: 'The selected action target has a condition that rules it out.',
+  NOT_IMMUNE_TO_CONDITION: 'The selected action target is immune to a condition the action needs.',
   SIGHT: 'The selected action target is out of the required sight.',
   AT_ZERO_HIT_POINTS: 'The selected action target is not at 0 hit points.'
 } satisfies Record<TargetRequirementDto['kind'], string>
@@ -40,6 +42,16 @@ export async function refuseUnmetTargetRequirements(input: {
         )
         break
       }
+      case 'LACKS_CONDITION': {
+        const held = new Set(heldConditionIds(target))
+        met = !requirement.conditionIds.some((conditionId) => held.has(conditionId))
+        break
+      }
+      case 'NOT_IMMUNE_TO_CONDITION':
+        met = !requirement.conditionIds.some((conditionId) =>
+          target.conditionImmunityIds.includes(conditionId)
+        )
+        break
       case 'SIGHT':
         if (!loadSight) throw new Error('Target sight is unavailable.')
         met = encounterSightHolds(await loadSight(), requirement.direction)

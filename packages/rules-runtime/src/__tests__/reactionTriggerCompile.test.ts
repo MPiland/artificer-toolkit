@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
@@ -15,6 +17,7 @@ import {
 
 const MODIFIER_GRANT_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 const CANCEL_TRIGGERING_EVENT_OPERATION_KEY = 'dnd5e.cancel-triggering-event-proposal'
+const SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY = 'dnd5e.subtract-from-triggering-roll-proposal'
 
 /** Every operation key the compiled output names, wherever it nests. */
 function operationKeys(value: unknown): string[] {
@@ -95,6 +98,60 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
   it('refuses the slot-scaled grant until a cast level has fixed its amount', () => {
     expect(() => compile(absorbElementsEffect())).toThrow(
       CharacterRuleActionUnsupportedCompilationError
+    )
+  })
+})
+
+describe('a reaction authored with the ATTACK_ROLL_BY_OTHER trigger compiles through the dnd5e adapter', () => {
+  function cuttingWordsEffect(): EffectAuthored {
+    const effect = collegeOfLore.features.find((feature) => feature.label === 'Cutting Words')
+      ?.effects?.[0]
+    if (!effect) throw new Error('Cutting Words has no authored effect.')
+    return { ...effect, id: ACTION_EFFECT_ID }
+  }
+
+  it('carries the real SRD Cutting Words trigger, charge and restrictions onto its compiled invocation', () => {
+    expect(compileEffect(cuttingWordsEffect()).invocation).toMatchObject({
+      activation: { code: 'REACTION', amount: 1 },
+      resourceUse: { chargeId: BARDIC_INSPIRATION_CHARGE_ID, cost: 1 },
+      reactionTrigger: { kind: 'ATTACK_ROLL_BY_OTHER' },
+      targeting: {
+        targetRequirements: [
+          { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' },
+          { kind: 'LACKS_CONDITION', conditionIds: [expect.any(String)] },
+          { kind: 'NOT_IMMUNE_TO_CONDITION', conditionIds: [expect.any(String)] }
+        ]
+      }
+    })
+  })
+
+  it('compiles the real SRD Cutting Words to the subtract-from-triggering-roll proposal', () => {
+    expect(operationKeys(compile(cuttingWordsEffect()))).toContain(
+      SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY
+    )
+  })
+
+  it('refuses the subtract outcome on a reaction to any other trigger', () => {
+    const effect = cuttingWordsEffect()
+    expect(() =>
+      compile({
+        ...effect,
+        invocation: { ...effect.invocation, reactionTrigger: { kind: 'ATTACKED_SELF' } }
+      } as EffectAuthored)
+    ).toThrow(CharacterRuleActionUnsupportedCompilationError)
+  })
+
+  it('compiles a homebrew variant, a larger die, a shorter reach and fewer restrictions, the same way', () => {
+    const homebrew = structuredClone(cuttingWordsEffect()) as unknown as {
+      invocation: { range: { amount: number }; targeting: { targetRequirements: unknown[] } }
+      paths: { resultBlock: { outcomes: { die: Record<string, unknown> }[] } }[]
+    }
+    homebrew.invocation.range.amount = 30
+    homebrew.invocation.targeting.targetRequirements.splice(1)
+    const outcome = homebrew.paths[0]!.resultBlock.outcomes[0]!
+    outcome.die = { ...outcome.die, faces: 8, facesScaling: undefined }
+    expect(operationKeys(compile(homebrew as unknown as EffectAuthored))).toContain(
+      SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY
     )
   })
 })

@@ -20,6 +20,7 @@ import { facetDtoSchema } from '../shared/facet.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { spellSlotExchangeDtoSchema } from '../effects/spellSlotExchange.js'
 import { castModifierParameterDtoSchema } from '../effects/effect.js'
+import { rolledDiePayloadDtoSchema } from '../grants/modifier.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -317,6 +318,8 @@ const actionEffectFactSchema = lazySchema(() =>
         levelCheck: z.optional(higherLevelCheckDtoSchema)
       })
     ),
+    /** The die a SUBTRACT_FROM_TRIGGERING_ROLL outcome rolls and subtracts from the roll it answers. */
+    rolledDie: z.optional(rolledDiePayloadDtoSchema),
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
   })
 )

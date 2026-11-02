@@ -30,6 +30,7 @@ export const EFFECT_KIND = {
   REMOVE_FROM_PLAY: 'REMOVE_FROM_PLAY',
   DETECT_CONCEALED: 'DETECT_CONCEALED',
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
+  SUBTRACT_FROM_TRIGGERING_ROLL: 'SUBTRACT_FROM_TRIGGERING_ROLL',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
   RELEASE_CHOSEN_ITEM: 'RELEASE_CHOSEN_ITEM',
   END_EFFECTS: 'END_EFFECTS',
@@ -190,6 +191,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Cancel Triggering Event',
     description:
       'Cancels the event that triggered this reaction, such as a spell being cast, so it has no effect.'
+  },
+  [EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL]: {
+    code: EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL,
+    label: 'Subtract From Triggering Roll',
+    description:
+      'Rolls a die and subtracts it from the d20 roll that triggered this reaction, before the roll’s result is shown.'
   },
   [EFFECT_KIND.SOURCE_IMMUNITY]: {
     code: EFFECT_KIND.SOURCE_IMMUNITY,

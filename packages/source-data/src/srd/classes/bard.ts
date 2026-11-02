@@ -92,16 +92,14 @@ const abilityScoreImprovementDescription =
 const bardicInspirationDescription =
   '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>'
 
-/**
- * The die is the Bard's own at the level the Bard has when it is given (D168): the face below grows
- * with the granter's class level and is frozen into the holder's grant. It joins a check, a save or
- * an attack roll after the d20 is seen.
- */
-function bardicInspirationEffect(): EffectAuthored {
-  const payload: ModifierRolledDieAuthored = {
+/** The Bardic Inspiration die: a d6 that grows with the Bard's class level (a d12 from 15th). */
+export function bardicInspirationDie<TSign extends ModifierRolledDieAuthored['sign']>(
+  sign: TSign
+): ModifierRolledDieAuthored & { sign: TSign } {
+  return {
     count: 1,
     faces: 6,
-    sign: ROLLED_DIE_SIGN.ADD,
+    sign,
     timing: 'AFTER_ROLL',
     facesScaling: {
       classId: CLASS_IDS.BARD,
@@ -112,6 +110,15 @@ function bardicInspirationEffect(): EffectAuthored {
       ]
     }
   }
+}
+
+/**
+ * The die is the Bard's own at the level the Bard has when it is given (D168): the face below grows
+ * with the granter's class level and is frozen into the holder's grant. It joins a check, a save or
+ * an attack roll after the d20 is seen.
+ */
+function bardicInspirationEffect(): EffectAuthored {
+  const payload = bardicInspirationDie(ROLLED_DIE_SIGN.ADD)
   const die = {
     grantKind: GRANT_KIND.MODIFIER_GRANT,
     domain: {},
@@ -475,8 +482,11 @@ const bardSpellLimits = [
   }
 ]
 
+/** The Bard feature's charge; a subclass feature that spends a use of Bardic Inspiration names it too. */
+export const BARDIC_INSPIRATION_CHARGE_ID = classRowId(BD, 5, 2)
+
 const bardicInspirationCharge = {
-  id: classRowId(BD, 5, 2),
+  id: BARDIC_INSPIRATION_CHARGE_ID,
   limitKind: 'ABILITY_MODIFIER' as const,
   scalingKind: SCALING.NONE,
   resetKind: CHARGE_RESET_KIND.LONG_REST,

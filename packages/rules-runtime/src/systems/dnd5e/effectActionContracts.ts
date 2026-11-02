@@ -267,6 +267,7 @@ export type Outcome =
       destinationKind: TeleportAllowanceDestinationKind
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
+  | { kind: 'SUBTRACT_FROM_TRIGGERING_ROLL' }
   | { kind: 'END_EFFECTS' }
   | {
       kind: 'FORCED_MOVEMENT'

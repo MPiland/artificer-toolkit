@@ -10,6 +10,7 @@ import type {
 } from '../../effectOutcomeRegistry.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
+import { DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY } from './subtractFromTriggeringRoll.js'
 import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
@@ -214,6 +215,10 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       pathGated: true,
       changesTargetState: false
     }),
+    SUBTRACT_FROM_TRIGGERING_ROLL: targetOnly(
+      DND5E_SUBTRACT_FROM_TRIGGERING_ROLL_PROPOSAL_OPERATION_KEY,
+      { pathGated: true, changesTargetState: false }
+    ),
     END_EFFECTS: targetOnly(DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY, {
       pathGated: false,
       changesTargetState: false
@@ -369,6 +374,9 @@ export function dnd5eUnsupportedPlanUnderTest(kind: string): never {
 export const DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION =
   'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
 
+export const DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION =
+  'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+
 /**
  * The target-only outcome a test's result path proposes (RULES-2.T6c2). Refuses an outcome a test
  * cannot carry for its own reason; null for any other outcome, which the caller reads on.
@@ -382,6 +390,8 @@ export function dnd5eTestPathTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome) {
     )
   if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
     unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
+  if (outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL')
+    unsupported(DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION)
   const planKind = activeEffectPlanOutcomeKind(outcome)
   if (planKind) dnd5eUnsupportedPlanUnderTest(planKind)
   return null

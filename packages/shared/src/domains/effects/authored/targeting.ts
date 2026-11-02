@@ -8,6 +8,8 @@ import type {
 /** See `targetRequirementDtoSchema`: what the one target must be to the user, checked when it is named. */
 export type TargetRequirementAuthored =
   | { kind: 'HAS_CONDITION'; conditionIds: string[]; source: 'ACTOR' | 'ANY' }
+  | { kind: 'LACKS_CONDITION'; conditionIds: string[] }
+  | { kind: 'NOT_IMMUNE_TO_CONDITION'; conditionIds: string[] }
   | { kind: 'SIGHT'; direction: 'ACTOR_SEES_TARGET' | 'TARGET_SEES_ACTOR' }
   | { kind: 'AT_ZERO_HIT_POINTS' }
 

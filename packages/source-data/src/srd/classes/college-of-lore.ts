@@ -4,12 +4,15 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
+  ROLLED_DIE_SIGN,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELL_GRANT_ATTRIBUTE,
@@ -20,7 +23,9 @@ import {
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { conditionTypeId } from '../equipment/shared.js'
+import { BARDIC_INSPIRATION_CHARGE_ID, bardicInspirationDie } from './bard.js'
+import { gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -99,12 +104,15 @@ export const collegeOfLore: ClassAuthored = {
       availableAtLevel: 3,
       order: 1,
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(BD, 20, 1),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
+            resourceUse: { chargeId: BARDIC_INSPIRATION_CHARGE_ID, cost: 1 },
             activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+            reactionTrigger: { kind: 'ATTACK_ROLL_BY_OTHER' },
             range: {
               id: classRowId(BD, 21, 1),
               rangeKind: RANGE_KIND.DISTANCE,
@@ -113,11 +121,36 @@ export const collegeOfLore: ClassAuthored = {
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
+              dispositionKind: 'ANY',
+              targetRequirements: [
+                { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' },
+                { kind: 'LACKS_CONDITION', conditionIds: [conditionTypeId('DEAFENED')] },
+                { kind: 'NOT_IMMUNE_TO_CONDITION', conditionIds: [conditionTypeId('CHARMED')] }
+              ]
             }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_COLLEGE_OF_LORE_CUTTING_WORDS
-        })
+          paths: [
+            {
+              id: classRowId(BD, 23, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(BD, 24, 1),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(BD, 25, 1),
+                    effectKind: EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL,
+                    die: bardicInspirationDie(ROLLED_DIE_SIGN.SUBTRACT)
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {
