@@ -11,6 +11,7 @@ Artificer Toolkit is a creative tabletop RPG authoring workspace and play surfac
 - Current architecture: [docs/architecture/overview.md](docs/architecture/overview.md)
 - Architecture decisions: [docs/adr/README.md](docs/adr/README.md)
 - Release lifecycle: [docs/runbooks/phase-8-2-release.md](docs/runbooks/phase-8-2-release.md)
+- Alpha testers: [docs/guides/alpha-play-guide.md](docs/guides/alpha-play-guide.md)
 - Agent and contributor rules: [AGENTS.md](AGENTS.md)
 
 When code and prose disagree, use the precedence rules in [docs/README.md](docs/README.md). The architecture documentation describes the current working tree and labels transitional or target behavior explicitly.
