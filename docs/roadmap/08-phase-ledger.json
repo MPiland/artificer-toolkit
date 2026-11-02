@@ -13182,7 +13182,8 @@
             "apps/session-worker/test/nativeRoomPolymorph.test.ts",
             "apps/session-worker/test/nativeRoomRemoveFromPlay.test.ts",
             "apps/session-worker/test/nativeRoomSourceQualifiedGrants.test.ts",
-            "apps/session-worker/test/nativeRoomTurnEffectRepeatSave.test.ts"
+            "apps/session-worker/test/nativeRoomTurnEffectRepeatSave.test.ts",
+            "apps/session-worker/test/nativeRoomPrismaticSpray.test.ts"
           ],
           "journeyStatus": "verified",
           "origin": [],
@@ -19106,7 +19107,7 @@
             },
             {
               "id": "SPELLS-31.T4c3b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19120,8 +19121,7 @@
                 ]
               },
               "text": "Cutting Words on action attacks: a chained window for each qualifying non-roller, discovery, reaction and charge commit with undo, the SRD reaction attached and the closed kind deleted, a homebrew variant and a session-worker room journey. Single-target action attacks only.",
-              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged. Split again on seam trace (5 + 3); user approved T4c3b2 growth 2026-11-02.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged. Split again on seam trace (5 + 3); user approved T4c3b2 growth 2026-11-02. Merged in m607 (87abeecf5). Cutting Words authored as an ATTACK_ROLLED_BY_OTHER reaction; closed kind deleted."
             },
             {
               "id": "SPELLS-31.T4c3b2",
@@ -19139,7 +19139,8 @@
                   "SPELLS-31.T4c3b1"
                 ]
               },
-              "note": "Split from T4c3b on seam trace; user approved the growth 2026-11-02 (D187)."
+              "note": "Split from T4c3b on seam trace; user approved the growth 2026-11-02 (D187).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4r",
@@ -19157,7 +19158,8 @@
                   "SPELLS-31.T4c3b1"
                 ]
               },
-              "note": "User approved (D207). Amends D26/D115: a reaction pause no longer waits without limit."
+              "note": "User approved (D207). Amends D26/D115: a reaction pause no longer waits without limit.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4e",
@@ -19778,7 +19780,8 @@
                   "SPELLS-31.T4c2c"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T5e2b",
@@ -27329,7 +27332,8 @@
                 "finalSource": true
               },
               "text": "Close 3.4: resolve the Q16 per-session Convex I/O figure (4.3 vs 4.51 MB) with a user/architect ruling and make v15Budgets.mjs, its test, ADR 0035 Decision 9 and the validation docs agree; record the shadow harness deletion (git hash of deletion) in the decisions doc; verify docs/architecture/live-sessions.md and the Worker/Convex architecture guides describe the room-authoritative design and link-check. Existing test for the budget calculator must import the real constants.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Q16 ruled 2026-11-02 (D209): 4.3 MB decimal, strict; the modelled 4.44 MB must be cut to 4.3 MB or less.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "PERF-3.T2",
