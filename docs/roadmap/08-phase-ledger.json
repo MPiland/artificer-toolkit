@@ -15233,7 +15233,8 @@
                   "SPELLS-4.T2ps-d1"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-4.T2ps-d3",
@@ -19066,7 +19067,8 @@
                 ]
               },
               "text": "Cutting Words at the table: a chained window for a non-roller, discovery, reaction and charge commit, the drawer, a homebrew variant and a room journey. Deletes the closed kind.",
-              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged."
+              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T4r",
@@ -19915,7 +19917,8 @@
                   "SPELLS-31.T5h-3"
                 ]
               },
-              "note": "D206."
+              "note": "D206.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "SPELLS-31.T5i",
