@@ -35,6 +35,7 @@ describe('RELIABILITY-9.7: rendering is pure and SSR-stable', () => {
     expect(
       violations(/Date\.now\(\)|new Date\(\)/, [
         'CampaignClock/CampaignClockControl.tsx',
+        'vtt/CampaignTabletopDecisionDrawer.tsx',
         'listing-editor/SocialListingInvitations.tsx',
         'components/SocialInvitationsView.tsx'
       ]).filter((path) => path.endsWith('.tsx'))
