@@ -293358,6 +293358,10 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
+                        spentReaction?: {
+                          reactorActorId: string;
+                          selectionChecksum: string;
+                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -295654,6 +295658,10 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
+                        spentReaction?: {
+                          reactorActorId: string;
+                          selectionChecksum: string;
+                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -297216,6 +297224,10 @@ export declare const api: {
                     rolledFaces: Array<number>;
                     sign: "ADD" | "SUBTRACT";
                     spentEffectId?: string;
+                    spentReaction?: {
+                      reactorActorId: string;
+                      selectionChecksum: string;
+                    };
                   }>;
                   contributorChecksum: string;
                   contributors: Array<{
@@ -297649,6 +297661,10 @@ export declare const api: {
                         rolledFaces: Array<number>;
                         sign: "ADD" | "SUBTRACT";
                         spentEffectId?: string;
+                        spentReaction?: {
+                          reactorActorId: string;
+                          selectionChecksum: string;
+                        };
                       }>;
                       contributorChecksum: string;
                       contributors: Array<{
@@ -298925,6 +298941,10 @@ export declare const api: {
                   rolledFaces: Array<number>;
                   sign: "ADD" | "SUBTRACT";
                   spentEffectId?: string;
+                  spentReaction?: {
+                    reactorActorId: string;
+                    selectionChecksum: string;
+                  };
                 }>;
                 contributorChecksum: string;
                 contributors: Array<{
