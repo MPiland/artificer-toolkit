@@ -54,6 +54,10 @@ import {
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import { legendaryActionChoicePendingContextDtoSchema } from './ruleExecutionTurnPending.js'
+import {
+  damageRerollCostDtoSchema,
+  type DamageRerollCostDto
+} from './ruleExecutionDamageRollWindow.js'
 
 export type ServerKernelRuleExecutionPendingSnapshotDto = ServerRuleExecutionContinuationDto & {
   snapshotKind: 'KERNEL_EVIDENCE'
@@ -556,6 +560,17 @@ export type EncounterAreaActionPendingContextDto = {
     rays?: { targetActorId: string; ray: SpatialPointDto }[]
     pick?: { requestId: string; targetActorId: string; positions: SpatialPointDto[] }
   }
+  /**
+   * Once every save settled, the area's one shared damage roll when its caster holds a damage reroll
+   * (D208): the frozen roll tape in roll order (each roll's width and zero-based value), the window the
+   * caster answers while it is open, and the cost they paid once they rerolled. Every later replan
+   * settles on these rolls, so the damage never changes after the window.
+   */
+  damageRoll?: {
+    rolls: { maximum: number; value: number }[]
+    window?: ServerKernelRuleExecutionPendingSnapshotDto
+    reroll?: DamageRerollCostDto
+  }
   targets: {
     actorId: string
     /** The footprint of the creature's token when the area caught it; null when it has none on the Scene read. */
@@ -686,6 +701,29 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             })
           )
         })
+      ),
+      damageRoll: z.optional(
+        z
+          .strictObject({
+            rolls: z
+              .array(
+                z
+                  .strictObject({ maximum: positiveIntegerSchema, value: nonNegativeIntegerSchema })
+                  .check(
+                    z.refine(({ maximum, value }) => value < maximum, 'A roll is under its width.')
+                  )
+              )
+              .check(z.minLength(1))
+              .check(z.maxLength(MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS)),
+            window: z.optional(z.lazy(() => serverKernelRuleExecutionPendingSnapshotDtoSchema)),
+            reroll: z.optional(damageRerollCostDtoSchema)
+          })
+          .check(
+            z.refine(
+              ({ window, reroll }) => !window || !reroll,
+              'A damage roll is paid for only once its window is answered.'
+            )
+          )
       ),
       targets: z
         .array(

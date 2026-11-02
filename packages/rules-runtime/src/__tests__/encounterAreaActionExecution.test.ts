@@ -13,6 +13,7 @@ import { evasionGrant } from '@artificer-toolkit/source-data/srd/classes/mechani
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
@@ -26,6 +27,7 @@ import {
   prepareEncounterAreaTests,
   settleEncounterAreaAction,
   type EncounterAreaTarget,
+  type EncounterFrozenRoll,
   type EncounterAreaTargetTest
 } from '../encounterAreaActionExecution.js'
 import {
@@ -35,6 +37,7 @@ import {
   offerEncounterAreaLegendaryResistance
 } from '../encounterAreaLegendaryResistance.js'
 import { encounterChosenActorEntries } from '../encounterAreaPending.js'
+import { openEncounterAreaDamageRollWindow } from '../encounterDamageRollWindow.js'
 import { findEncounterFeatureResource } from '../encounterActorRuleOutput.js'
 import { decideEncounterLegendaryResistance } from '../encounterLegendaryResistanceChoice.js'
 import { discoverEncounterLegendaryResistanceCandidate } from '../encounterLegendaryResistanceDiscovery.js'
@@ -878,6 +881,91 @@ describe('an area action executed as one occurrence', () => {
         ({ targetActorId }) => targetActorId
       )
     ).toEqual([FOE_ID])
+  })
+})
+
+const REROLL = {
+  modifierId: '00000000-0000-4000-8000-0000000f0e11',
+  label: 'Rerolled casting',
+  chargeId: 'spell-craft',
+  cost: 1,
+  poolId: 'pool:spell-craft',
+  maxDice: 1
+} as const
+
+describe('one damage roll window for the whole area (D208, SPELLS-31.T5e2b)', () => {
+  /** Fireball with every save failed, its 8d6 rolled once onto the area's kept tape. */
+  async function rolledFireball() {
+    const { caster, ally, foe, wardedFoe } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
+    const source = await areaSource(caster, [ally, foe, wardedFoe])
+    const tests = await answerSaves(source, { [ALLY_ID]: 10, [FOE_ID]: 10, [WARDED_FOE_ID]: 10 }, [
+      ALLY_ID,
+      FOE_ID,
+      WARDED_FOE_ID
+    ])
+    const rolls: EncounterFrozenRoll[] = []
+    const settled = await settleEncounterAreaAction({
+      ...source,
+      tests,
+      random: scriptedRandom(EIGHT_D6).random,
+      sharedRolls: rolls
+    })
+    return { source, tests, rolls, settled }
+  }
+
+  it('keeps the area’s one roll on the tape and opens the caster’s window on its dice, in tape order', async () => {
+    const { source, rolls, settled } = await rolledFireball()
+    expect(rolls).toEqual(EIGHT_D6.map((value) => ({ maximum: 6, value })))
+
+    const opened = await openEncounterAreaDamageRollWindow({
+      runtime,
+      adapter: source.adapter,
+      occurrenceId: OCCURRENCE_ID,
+      costs: [REROLL],
+      rolls,
+      settled
+    })
+    if (opened?.pending.pause?.kind !== 'ROLL_WINDOW') throw new Error('Expected the window.')
+    const { payload } = opened.pending.pause
+    if (!isDamageRollWindow(payload)) throw new Error('Expected a damage window.')
+    expect(opened.pending.roller).toBe('SOURCE')
+    expect(payload.damage.dice.map(({ faces, value }) => ({ faces, value }))).toEqual(
+      EIGHT_D6.map((value) => ({ faces: 6, value: value + 1 }))
+    )
+    expect(payload.offer.options).toEqual([{ ...REROLL, optionId: expect.any(String) }])
+  })
+
+  it('opens no window when the caster has no reroll to pay for', async () => {
+    const { source, rolls, settled } = await rolledFireball()
+    const open = (costs: (typeof REROLL)[], kept: readonly EncounterFrozenRoll[]) =>
+      openEncounterAreaDamageRollWindow({
+        runtime,
+        adapter: source.adapter,
+        occurrenceId: OCCURRENCE_ID,
+        costs,
+        rolls: kept,
+        settled
+      })
+    expect(await open([], rolls)).toBeNull()
+    expect(await open([REROLL], [])).toBeNull()
+  })
+
+  it('replays the kept tape with a rerolled die for every creature, rolling nothing new', async () => {
+    const { source, tests, rolls } = await rolledFireball()
+    // The first die's 4 rerolled as a 6: 27 becomes 29 for every creature.
+    const rerolled = rolls.map((roll, index) => (index === 0 ? { ...roll, value: 5 } : roll))
+    const dice = scriptedRandom([])
+    const settled = await settleEncounterAreaAction({
+      ...source,
+      tests,
+      random: dice.random,
+      sharedRolls: rerolled
+    })
+
+    expect(dice.maximums).toEqual([])
+    expect(applied(settled, FOE_ID)).toEqual([29])
+    expect(applied(settled, ALLY_ID)).toEqual([29])
+    expect(applied(settled, WARDED_FOE_ID)).toEqual([14])
   })
 })
 

@@ -21,7 +21,10 @@ import type {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
+  decideEncounterAreaDamageRoll,
   encounterAreaCaughtChecksum,
+  encounterAreaDamageRollWindow,
+  holdEncounterAreaDamageRoll,
   holdEncounterAreaForcedMovement,
   landEncounterAreaForcedMovement,
   markEncounterAreaLegendaryResistanceDecided,
@@ -291,15 +294,19 @@ export async function requireAreaActionPendingRoot(
 }
 
 /**
- * The area holding what `next` opens once the saves settle, if anything: the push pick (D157) that
- * the answer settling an area may open first and each landing the next one, or, once every mover
- * landed, the saves of the creatures they struck (D159).
+ * The area holding what `next` opens once the saves settle, if anything: the caster's damage window
+ * (D208) that the answer settling an area opens first, the push pick (D157) that the settling answer
+ * or the damage window's answer may open and each landing the next one, or, once every mover landed,
+ * the saves of the creatures they struck (D159).
  */
 function withOpenedHold(
   area: ServerAggregateChoicePendingSnapshotDto,
   next: ServerRuleExecutionPendingSnapshotDto
 ) {
   const opened = areaActionPendingContext(next)
+  const damageRoll = opened?.damageRoll
+  if (damageRoll?.window && !areaActionPendingContext(area)?.damageRoll)
+    return holdEncounterAreaDamageRoll(area, damageRoll.rolls, damageRoll.window)
   const struck = opened?.targets.filter(({ collision }) => collision) ?? []
   if (
     struck.length > 0 &&
@@ -323,6 +330,28 @@ export function requireAreaActionAnswer(input: {
 }) {
   const stored = areaActionPendingContext(input.stored)
   const next = areaActionPendingContext(input.next)
+  // The caster's answer to the area's damage window (D208) closes it with the dice it rerolled and the
+  // cost it paid, and may open the push pick or the struck creatures' saves.
+  if (
+    stored &&
+    input.stored.snapshotKind === 'AGGREGATE_CHOICE' &&
+    encounterAreaDamageRollWindow(stored)?.window.request.requestId === input.requestId
+  ) {
+    const decided = next?.damageRoll
+    if (
+      !decided ||
+      decided.window ||
+      checksumCanonicalJson(input.next) !==
+        checksumCanonicalJson(
+          withOpenedHold(
+            decideEncounterAreaDamageRoll(input.stored, decided.rolls, decided.reroll ?? null),
+            input.next
+          )
+        )
+    )
+      throw new Error('Live Session pending area damage roll mismatch.')
+    return
+  }
   // An answer that opens the next d20 window swaps that save's snapshot, so the answered creature is
   // found by its place in the stored area.
   const answered =
@@ -474,6 +503,21 @@ export function projectNativeAreaActionPending(
 ): PendingEncounterRuleOccurrenceSummaryDto | null {
   const answers = (actorId: string) => viewer.isOwner || viewer.controlledActorIds.has(actorId)
   const casterId = pending.context.casterActorId
+  // Once every save settled, an open damage window (D208) is the area's one decision, its caster's.
+  const damageWindow = pending.context.damageRoll?.window
+  if (damageWindow) {
+    const context = damageWindow.applicationContext
+    if (context.kind !== 'ENCOUNTER_ACTION')
+      throw new Error('Stored area damage window is invalid.')
+    return answers(casterId)
+      ? projectNativeActionPending(
+          occurrence,
+          { snapshot: damageWindow, context },
+          viewer.isOwner,
+          reasons
+        )
+      : null
+  }
   // Once every save settled, an open push pick (D157) is the area's one decision, its source's.
   const pick = pending.context.forcedMovement?.pick
   if (pick)

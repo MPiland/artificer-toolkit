@@ -2,8 +2,14 @@ import { v5 as uuidv5 } from 'uuid'
 import {
   serverAggregateChoicePendingSnapshotDtoSchema,
   type EncounterAreaActionPendingContextDto,
-  type ServerAggregateChoicePendingSnapshotDto
+  type ServerAggregateChoicePendingSnapshotDto,
+  type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import {
+  isDamageRollWindow,
+  type DamageRerollCostDto,
+  type DamageRollWindowPayloadDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 const encounterAreaNamespace = '6f1c7a3e-5b0d-4d0a-9d52-3c7e8b1a2f64'
@@ -374,6 +380,120 @@ export function holdEncounterAreaForcedMovement(
           positions: pick.positions
         }
       }
+    }
+  })
+}
+
+type AreaDamageRoll = NonNullable<AreaContext['damageRoll']>
+
+/**
+ * The settled area holding its one shared damage roll for the caster's window (D208): the frozen
+ * roll tape every creature's outcome replays and the window opened on it. It opens before any push
+ * pick, once.
+ */
+export function holdEncounterAreaDamageRoll(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  rolls: AreaDamageRoll['rolls'],
+  window: ServerKernelRuleExecutionPendingSnapshotDto
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  if (
+    !encounterAreaSettled(snapshot) ||
+    applicationContext.damageRoll ||
+    applicationContext.forcedMovement
+  )
+    throw new Error('Only a settled area with no damage roll or push held holds a damage roll.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: { ...applicationContext, damageRoll: { rolls, window } }
+  })
+}
+
+/** The damage window an area holds open, with the roll it froze (D208). */
+export function encounterAreaDamageRollWindow(applicationContext: AreaContext) {
+  const window = applicationContext.damageRoll?.window
+  const context = window?.applicationContext
+  const pause = context?.kind === 'ENCOUNTER_ACTION' ? context.pause : undefined
+  return window && pause?.kind === 'ROLL_WINDOW' && isDamageRollWindow(pause.payload)
+    ? { window, payload: pause.payload }
+    : null
+}
+
+/**
+ * The area's roll tape once its caster rerolled some damage dice (D208): each die is found on the
+ * tape by its place among the frozen roll's evidence, and its new face is kept on the tape's
+ * zero-based scale.
+ */
+export function rerolledEncounterAreaRolls(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  rerolled: readonly { requestId: string; value: number }[]
+): AreaDamageRoll['rolls'] {
+  const applicationContext = requireAreaContext(snapshot)
+  const open = encounterAreaDamageRollWindow(applicationContext)
+  const rolls = applicationContext.damageRoll?.rolls
+  if (!open || !rolls) throw new Error('The area holds no damage roll window.')
+  const evidence = areaRollEvidence(open.payload, rolls)
+  return rolls.map((roll, index) => {
+    const { requestId, value } = evidence[index]!
+    const face = rerolled.find((die) => die.requestId === requestId)?.value
+    if (face === undefined) return roll
+    const rerolledValue = face - (value - roll.value)
+    if (rerolledValue < 0 || rerolledValue >= roll.maximum)
+      throw new Error('A rerolled area damage die is outside its roll.')
+    return { maximum: roll.maximum, value: rerolledValue }
+  })
+}
+
+const areaRollEvidence = (payload: DamageRollWindowPayloadDto, rolls: AreaDamageRoll['rolls']) => {
+  const evidence = payload.damage.execution.evidence.trace.flatMap(({ evidence }) =>
+    evidence ? [evidence] : []
+  )
+  if (evidence.length !== rolls.length)
+    throw new Error('The area damage roll window evidence is stale.')
+  return evidence
+}
+
+/**
+ * The area once its caster answered the damage window (D208): the window is closed, the tape keeps
+ * the rerolled dice and the cost they paid. Only dice the window offered may change, at most as many
+ * as the paid option allows, and a decline changes none.
+ */
+export function decideEncounterAreaDamageRoll(
+  snapshot: ServerAggregateChoicePendingSnapshotDto,
+  rolls: AreaDamageRoll['rolls'],
+  reroll: DamageRerollCostDto | null
+): ServerAggregateChoicePendingSnapshotDto {
+  const applicationContext = requireAreaContext(snapshot)
+  const open = encounterAreaDamageRollWindow(applicationContext)
+  const frozen = applicationContext.damageRoll?.rolls
+  if (!open || !frozen || rolls.length !== frozen.length)
+    throw new Error('The area damage roll decision is stale.')
+  const evidence = areaRollEvidence(open.payload, frozen)
+  const offered = new Set(open.payload.damage.dice.map(({ requestId }) => requestId))
+  const changed = rolls.flatMap((roll, index) =>
+    roll.maximum !== frozen[index]!.maximum
+      ? [null]
+      : roll.value === frozen[index]!.value
+        ? []
+        : [evidence[index]!.requestId]
+  )
+  const option = reroll
+    ? open.payload.offer.options.find(
+        ({ modifierId, poolId, cost }) =>
+          modifierId === reroll.modifierId && poolId === reroll.poolId && cost === reroll.cost
+      )
+    : null
+  if (
+    option === undefined ||
+    changed.length > (option?.maxDice ?? 0) ||
+    changed.some((requestId) => requestId === null || !offered.has(requestId))
+  )
+    throw new Error('The area damage reroll was not offered.')
+  return serverAggregateChoicePendingSnapshotDtoSchema.parse({
+    ...snapshot,
+    applicationContext: {
+      ...applicationContext,
+      damageRoll: { rolls, ...(reroll ? { reroll } : {}) }
     }
   })
 }
