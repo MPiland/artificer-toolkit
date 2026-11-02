@@ -28791,7 +28791,8 @@
           ],
           "journeyStatus": "verified"
         }
-      ]
+      ],
+      "uatByOtherFeatures": true
     },
     {
       "id": "RELEASE",
