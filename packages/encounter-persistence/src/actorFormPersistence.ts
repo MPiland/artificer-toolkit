@@ -7,7 +7,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
-import { blueprintEnemySnapshot } from './blueprintSnapshots.js'
+import { blueprintEnemySnapshot } from './blueprintEnemySnapshot.js'
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 

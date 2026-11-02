@@ -19,7 +19,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { blueprintEnemySnapshot } from './blueprintSnapshots.js'
+import { blueprintEnemySnapshot } from './blueprintEnemySnapshot.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { insertRunActor, readRunActors, readRunState, writeRunActor } from './documents.js'
 import {

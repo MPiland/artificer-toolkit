@@ -1,7 +1,7 @@
 import { convexTest } from '../../tests/convexTest'
 import { describe, expect, it } from 'vitest'
 import { seededSrdCreature, srdWolf as wolf } from '../../tests/fixtures/srdCreatures'
-import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintSnapshots'
+import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'

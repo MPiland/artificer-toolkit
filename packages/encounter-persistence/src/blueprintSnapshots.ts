@@ -1,19 +1,17 @@
 import {
   encounterBlueprintDtoSchema,
-  type CreateEncounterBlueprintInputDto,
-  type EncounterBlueprintDto
+  type CreateEncounterBlueprintInputDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
-import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
+import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/shared/utils/authoringLimits'
 import { compileInstalledCreatureRuleFacts } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { pinCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { readCreatureEquipmentRecords } from './creatureEquipmentRecords.js'
+import type { BlueprintSetup } from './blueprintEnemySnapshot.js'
 import type { EncounterAuthoredSource } from './ports.js'
-
-export type BlueprintSetup = Pick<EncounterBlueprintDto, 'enemies' | 'snapshots'>
 
 /** Pins each distinct Creature source once; enemies of one source share its snapshot. */
 export async function buildEncounterBlueprintEnemies({
@@ -91,14 +89,4 @@ export async function buildEncounterBlueprintEnemies({
     enemies: encounterBlueprintDtoSchema.shape.enemies.parse(enemies),
     snapshots
   }
-}
-
-/** The snapshot a Blueprint enemy points at. */
-export function blueprintEnemySnapshot(
-  setup: BlueprintSetup,
-  enemy: BlueprintSetup['enemies'][number]
-): JsonValue {
-  const snapshot = setup.snapshots[enemy.snapshotIndex]
-  if (snapshot === undefined) throw new Error('Encounter Blueprint enemy snapshot is missing.')
-  return snapshot
 }

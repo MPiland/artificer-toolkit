@@ -66,7 +66,7 @@ import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/c
 import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
-import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintSnapshots'
+import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
 import { snapshotBlueprintEnemies } from '../encounters/blueprintSnapshots'
 import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
