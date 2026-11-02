@@ -156,7 +156,7 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
       ]
     })
     expect(hand?.speedLabel).toMatch(/60/)
-    expect(cast1.overview.concentration).toMatchObject({ label: 'Arcane Hand' })
+    expect(cast1.overview.concentrations).toMatchObject([{ label: 'Arcane Hand' }])
     expect(cast1.spells.slots[0]).toMatchObject({ used: 1 })
 
     const damaged = await run({
@@ -172,7 +172,7 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
 
     const ended = await run({ type: 'END_CONCENTRATION' })
     expect(summonsOf(ended)).toEqual([])
-    expect(ended.overview.concentration).toBeNull()
+    expect(ended.overview.concentrations).toEqual([])
 
     const dismissed = await cast()
     const removed = await run({

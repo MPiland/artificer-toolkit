@@ -14,7 +14,11 @@ import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
-import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
+import {
+  MAX_ROLLED_DIE_COUNT,
+  MODIFIER_ROUNDING,
+  ROLLED_DIE_FACES
+} from '@artificer-toolkit/shared/core'
 import { amountBonusDtoSchema } from '../effects/heal.js'
 import {
   chargeLimitKindSchema,
@@ -100,6 +104,17 @@ const abilityCheckFloorParamDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A bonus's ability checks: one ability's or every ability's, and only those adding none of the
+ * holder's proficiency bonus when `unproficientOnly` (Jack of All Trades).
+ */
+const abilityCheckBonusParamDtoSchema = lazySchema(() =>
+  z.object({
+    ability: z.optional(systemCoreCodeSchema),
+    unproficientOnly: z.optional(z.boolean())
+  })
+)
+
 const savingThrowParamDtoSchema = lazySchema(() =>
   z.object({
     ability: systemCoreCodeSchema,
@@ -167,7 +182,8 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
     }),
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.PROFICIENCY_BONUS),
-      multiplier: z.optional(z.number())
+      multiplier: z.optional(z.number()),
+      rounding: z.optional(z.enum([MODIFIER_ROUNDING.DOWN, MODIFIER_ROUNDING.UP]))
     }),
     z.object({
       valueKind: z.literal(modifierValueKindSchema._zod.def.entries.ABILITY_MODIFIER),
@@ -644,6 +660,7 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...attackRollRollModeParamDtoSchema.shape,
       ...attackTraitParamDtoSchema.shape,
       ...abilityCheckFloorParamDtoSchema.shape,
+      ...abilityCheckBonusParamDtoSchema.shape,
       ...savingThrowParamDtoSchema.shape,
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
@@ -825,6 +842,12 @@ const buildModifierGrantVariants = () =>
       'ROLL_INFLUENCE',
       emptyDomainDtoSchema,
       rollInfluencePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'BONUS',
+      abilityCheckBonusParamDtoSchema,
+      modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'ABILITY_CHECK',

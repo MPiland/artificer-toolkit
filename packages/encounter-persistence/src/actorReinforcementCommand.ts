@@ -19,6 +19,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { projectGm } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { blueprintEnemySnapshot } from './blueprintEnemySnapshot.js'
 import { readEncounterCharacterStates } from './characterStates.js'
 import { insertRunActor, readRunActors, readRunState, writeRunActor } from './documents.js'
 import {
@@ -159,10 +160,11 @@ export async function reinforceEncounterActors(
   const sideId = input.sideId ?? state.sides.find((side) => side.sortOrder === 1)?.id
   if (!sideId || !state.sides.some((side) => side.id === sideId))
     throw new Error('Encounter side was not found.')
-  const [enemy] = await ctx.ports.snapshotBlueprintEnemies(userId, {
+  const setup = await ctx.ports.snapshotBlueprintEnemies(userId, {
     gameSystemId: state.gameSystemId,
     enemies: [input.enemy]
   })
+  const [enemy] = setup.enemies
   if (!enemy || enemy.systemId !== state.gameSystemId)
     throw new Error('Encounter actor does not match the Campaign Game System.')
   const now = new Date().toISOString()
@@ -192,7 +194,7 @@ export async function reinforceEncounterActors(
     gmNotes: null,
     initiative: input.initiative ?? null,
     manualOrder: null,
-    snapshot: enemy.snapshot,
+    snapshot: blueprintEnemySnapshot(setup, enemy),
     createdAt: now,
     updatedAt: now
   })

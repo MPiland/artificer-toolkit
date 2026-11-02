@@ -33,16 +33,23 @@ function requireModifierSource(
   return contribution.source
 }
 
-/** Derived statistics are Character-wide: only modifiers that apply everywhere count. */
+/**
+ * Derived statistics are Character-wide: only modifiers that apply everywhere count.
+ * `addsProficiency` is whether the statistic already adds a proficiency bonus, which an
+ * unproficient-only ability-check bonus yields to.
+ */
 function expandBonuses(
   bonuses: readonly NumericBonus[],
   grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>,
-  modifierGroups: readonly ResolvedModifierGroup[]
+  modifierGroups: readonly ResolvedModifierGroup[],
+  addsProficiency = false
 ): ResolvedBonus[] {
   const resolved: ResolvedBonus[] = []
   for (const bonus of bonuses) {
     if (bonus.kind === 'PROFICIENCY')
       throw new Error('Standalone proficiency bonus has no source provenance.')
+    if (bonus.kind === 'MODIFIER_GROUP' && bonus.unproficientOnly === true && addsProficiency)
+      continue
     if (bonus.kind === 'FIXED') {
       resolved.push({
         sourceId: bonus.sourceId,
@@ -151,7 +158,7 @@ function resolvedDerivedBonuses(
   const resolved: ResolvedBonus[] = []
   for (const bonus of bonuses) {
     if (bonus.kind !== 'PROFICIENCY') {
-      resolved.push(...expandBonuses([bonus], grantFold, modifierGroups))
+      resolved.push(...expandBonuses([bonus], grantFold, modifierGroups, proficiencyValue !== 0))
       continue
     }
     if (proficiencyValue === 0) continue
@@ -227,6 +234,8 @@ export function evaluateDnd5eCharacterDerivedStats(
               dnd5eAbilityScoreMaximum(grantFold.modifiers, record.abilityId)
             )
     const effectiveModifier = abilityModifier(effectiveScore)
+    // A plain check adds no proficiency, so unproficient-only bonuses apply.
+    const checkBonuses = expandBonuses(record.checkBonuses, grantFold, modifierGroups)
     return {
       abilityId: record.abilityId,
       score: {
@@ -239,6 +248,16 @@ export function evaluateDnd5eCharacterDerivedStats(
         base: effectiveModifier,
         effective: effectiveModifier,
         contributions: [],
+        override: null
+      },
+      check: {
+        base: effectiveModifier,
+        effective:
+          effectiveModifier +
+          checkBonuses
+            .filter((bonus) => bonus.state === 'APPLIED')
+            .reduce((total, bonus) => total + bonus.value, 0),
+        contributions: numericContributions(checkBonuses, null),
         override: null
       }
     }

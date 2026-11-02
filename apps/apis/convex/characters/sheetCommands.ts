@@ -66,6 +66,7 @@ import type { SheetSummonFormCreature } from '@artificer-toolkit/rules-runtime/c
 import { formSummonStats } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import { resolveAvailableSpellCast } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
+import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
 import { snapshotBlueprintEnemies } from '../encounters/blueprintSnapshots'
 import { readSheetSpellSummonPlacement } from './sheetSpellSummonPlacement'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
@@ -377,13 +378,17 @@ export async function executeCharacterSheetCommand(
       command
     )
     if (pick && !('refusal' in pick)) {
-      const [creature] = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
+      const setup = await snapshotBlueprintEnemies(ctx, initial.character.userId, {
         gameSystemId: initial.character.systemId,
         enemies: [{ kind: 'CREATURE', sourceId: pick.form.creatureId }]
       })
+      const [creature] = setup.enemies
       if (creature?.kind === 'CREATURE')
         summonFormCreatures.set(pick.form.creatureId, {
-          stats: formSummonStats({ ...creature, systemId: initial.character.systemId }),
+          stats: formSummonStats({
+            systemId: initial.character.systemId,
+            snapshot: blueprintEnemySnapshot(setup, creature)
+          }),
           maxHitPoints: creature.maxHitPoints
         })
     }
@@ -558,7 +563,10 @@ export async function executeCharacterSheetCommand(
       }
     )
 
-  if (command.type === 'END_CONCENTRATION')
+  if (command.type === 'END_CONCENTRATION') {
+    // A named state is a Run's live Concentration, which the room ends; Convex holds none.
+    if (command.stateId)
+      throw new CharacterSheetCommandError('That Concentration is held in an active Encounter.')
     await endCarriedConcentration(ctx, {
       characterId: initial.active.id,
       campaignId: initial.campaignContext.campaignId,
@@ -567,6 +575,7 @@ export async function executeCharacterSheetCommand(
         (summon) => summon.concentration
       )
     })
+  }
 
   if (command.type === 'COMPLETE_REST' && completedRest) {
     const owner = { kind: 'CHARACTER' as const, characterId: initial.active.id }

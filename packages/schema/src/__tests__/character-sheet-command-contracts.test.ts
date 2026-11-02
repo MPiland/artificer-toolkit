@@ -131,6 +131,7 @@ describe('character sheet command contracts', () => {
               short: 'DEX',
               score: 14,
               modifier: 2,
+              checkModifier: 2,
               rollMode: 'NORMAL'
             }
           ],
@@ -153,7 +154,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsReductions: [],
           activeGrants: [],
           standingEffects: [],
-          concentration: null,
+          concentrations: [],
           consequences: [],
           maxHitPointsOverride: null,
           savingThrows: [
@@ -327,7 +328,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsReductions: [],
           activeGrants: [],
           standingEffects: [],
-          concentration: null,
+          concentrations: [],
           consequences: [],
           maxHitPointsOverride: null,
           savingThrows: [

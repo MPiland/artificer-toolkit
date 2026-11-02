@@ -334,6 +334,7 @@ export async function executeRoomCharacterSheetCommand(input: {
       state,
       actors: runActors,
       holder,
+      stateId: command.stateId?.toLowerCase(),
       commandId: command.commandId.toLowerCase(),
       userId,
       occurredAt,

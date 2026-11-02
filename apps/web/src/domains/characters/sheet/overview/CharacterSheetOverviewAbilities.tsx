@@ -44,7 +44,7 @@ export function CharacterSheetOverviewAbilities({
             {ability.short}
           </button>
           <div
-            aria-label={`Score ${ability.score}, modifier ${formatSigned(ability.modifier)}`}
+            aria-label={`Score ${ability.score}, modifier ${formatSigned(ability.checkModifier)}`}
             className={overviewStyles.abilityValues}
           >
             <Text className={overviewStyles.abilityScore} component='span'>
@@ -54,7 +54,7 @@ export function CharacterSheetOverviewAbilities({
             <Text className={overviewStyles.abilityModifier} component='span'>
               <CharacterSheetRollValue
                 request={{
-                  expression: withRollModifier('1d20', ability.modifier),
+                  expression: withRollModifier('1d20', ability.checkModifier),
                   rollMode: ability.rollMode,
                   source: {
                     kind: 'ABILITY_CHECK',
@@ -62,7 +62,7 @@ export function CharacterSheetOverviewAbilities({
                   }
                 }}
               >
-                {formatSigned(ability.modifier)}
+                {formatSigned(ability.checkModifier)}
               </CharacterSheetRollValue>
             </Text>
           </div>

@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readRunActors, readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { blueprintEnemySnapshot } from './blueprintEnemySnapshot.js'
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
@@ -29,10 +30,11 @@ export async function readActorFormCreature(
   input: { campaignId: string; userId: string; gameSystemId: string; creatureId: string }
 ): Promise<EncounterActorFormCreature> {
   const { campaign } = await ports.requireCampaignAuthority(input.campaignId, input.userId)
-  const [enemy] = await ports.snapshotBlueprintEnemies(campaign.ownerUserId, {
+  const setup = await ports.snapshotBlueprintEnemies(campaign.ownerUserId, {
     gameSystemId: input.gameSystemId,
     enemies: [{ kind: 'CREATURE', sourceId: input.creatureId }]
   })
+  const [enemy] = setup.enemies
   if (
     enemy?.kind !== 'CREATURE' ||
     enemy.sourceId === null ||
@@ -44,7 +46,7 @@ export async function readActorFormCreature(
     systemId: enemy.systemId,
     sourceId: enemy.sourceId,
     sourceRevision: enemy.sourceRevision,
-    snapshot: enemy.snapshot,
+    snapshot: blueprintEnemySnapshot(setup, enemy),
     maxHitPoints: enemy.maxHitPoints
   }
 }

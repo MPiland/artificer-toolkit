@@ -26,6 +26,7 @@ export const characterSheetMulticlassFixture = {
         short: 'STR',
         score: 10,
         modifier: 0,
+        checkModifier: 0,
         rollMode: 'NORMAL'
       },
       {
@@ -34,6 +35,7 @@ export const characterSheetMulticlassFixture = {
         short: 'DEX',
         score: 16,
         modifier: 3,
+        checkModifier: 3,
         rollMode: 'NORMAL'
       },
       {
@@ -42,6 +44,7 @@ export const characterSheetMulticlassFixture = {
         short: 'CON',
         score: 14,
         modifier: 2,
+        checkModifier: 2,
         rollMode: 'NORMAL'
       },
       {
@@ -50,6 +53,7 @@ export const characterSheetMulticlassFixture = {
         short: 'INT',
         score: 10,
         modifier: 0,
+        checkModifier: 0,
         rollMode: 'NORMAL'
       },
       {
@@ -58,6 +62,7 @@ export const characterSheetMulticlassFixture = {
         short: 'WIS',
         score: 13,
         modifier: 1,
+        checkModifier: 1,
         rollMode: 'NORMAL'
       },
       {
@@ -66,6 +71,7 @@ export const characterSheetMulticlassFixture = {
         short: 'CHA',
         score: 12,
         modifier: 1,
+        checkModifier: 1,
         rollMode: 'NORMAL'
       }
     ],
@@ -86,7 +92,7 @@ export const characterSheetMulticlassFixture = {
     maxHitPointsReductions: [],
     activeGrants: [],
     standingEffects: [],
-    concentration: null,
+    concentrations: [],
     consequences: [],
     exhaustion: {
       label: 'Exhaustion',

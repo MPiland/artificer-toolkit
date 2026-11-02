@@ -112,7 +112,7 @@ import {
 import {
   dnd5eAddedDiceFacts,
   dnd5eAddedDiceNode,
-  derivedAddedDice,
+  derivedAttackDice,
   derivedSaveDice
 } from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
@@ -3930,7 +3930,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       // Roll-mode evidence is keyed by the modifier domain the attack reads.
       const attackKind = attackKindSchema.safeParse(action.attackKind)
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
-      const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
+      const { addedDice, heldDice } = derivedAttackDice(sourceDerivedFacts, attackDomain)
       const folded = foldD20Operands(foldedBonuses, action.attackBonus, armorClass, addedDice)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
         ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
@@ -3969,7 +3969,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return {
         facts: {
           ...baseFacts,
-          ...dnd5eAddedDiceFacts(addedDice),
+          ...dnd5eAddedDiceFacts(addedDice, true, heldDice),
           [DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY]: criticalRules.threshold,
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }

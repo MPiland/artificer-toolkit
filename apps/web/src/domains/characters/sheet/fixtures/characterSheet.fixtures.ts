@@ -38,6 +38,7 @@ export const characterSheetFixture = {
         short: 'STR',
         score: 8,
         modifier: -1,
+        checkModifier: -1,
         rollMode: 'NORMAL'
       },
       {
@@ -46,6 +47,7 @@ export const characterSheetFixture = {
         short: 'DEX',
         score: 14,
         modifier: 2,
+        checkModifier: 2,
         rollMode: 'NORMAL'
       },
       {
@@ -54,6 +56,7 @@ export const characterSheetFixture = {
         short: 'CON',
         score: 13,
         modifier: 1,
+        checkModifier: 1,
         rollMode: 'NORMAL'
       },
       {
@@ -62,6 +65,7 @@ export const characterSheetFixture = {
         short: 'INT',
         score: 16,
         modifier: 3,
+        checkModifier: 3,
         rollMode: 'NORMAL'
       },
       {
@@ -70,6 +74,7 @@ export const characterSheetFixture = {
         short: 'WIS',
         score: 12,
         modifier: 1,
+        checkModifier: 1,
         rollMode: 'NORMAL'
       },
       {
@@ -78,6 +83,7 @@ export const characterSheetFixture = {
         short: 'CHA',
         score: 10,
         modifier: 0,
+        checkModifier: 0,
         rollMode: 'NORMAL'
       }
     ],
@@ -106,7 +112,7 @@ export const characterSheetFixture = {
     maxHitPointsReductions: [],
     activeGrants: [],
     standingEffects: [],
-    concentration: null,
+    concentrations: [],
     consequences: [],
     exhaustion: {
       label: 'Exhaustion',

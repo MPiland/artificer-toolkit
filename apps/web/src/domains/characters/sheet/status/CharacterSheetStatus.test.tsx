@@ -395,7 +395,7 @@ describe('Character Sheet status', () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()
     const sheet = createSheet()
-    sheet.overview.concentration = { label: 'Bless', sourceHidden: false }
+    sheet.overview.concentrations = [{ stateId: null, label: 'Bless', sourceHidden: false }]
     sheet.meta.capabilities.managePlayState = true
 
     renderWithAppProviders(
@@ -414,9 +414,39 @@ describe('Character Sheet status', () => {
     })
   })
 
+  it('lists each held Concentration and ends the one the player picks (SPELLS-12.3)', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn()
+    const sheet = createSheet()
+    const blessId = '7b1f0a8e-5c52-4c1e-9d0b-0a1f2b3c4d5e'
+    const flyId = '2c9d6e41-8a37-4f0b-b6a5-3e4d5c6b7a89'
+    sheet.overview.concentrations = [
+      { stateId: blessId, label: 'Bless', sourceHidden: false },
+      { stateId: flyId, label: 'Fly', sourceHidden: false }
+    ]
+    sheet.meta.capabilities.managePlayState = true
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip
+        pending={false}
+        sheet={sheet}
+        submitCommand={submitCommand}
+      />
+    )
+
+    expect(screen.getByText('Concentrating on Bless')).toBeInTheDocument()
+    expect(screen.getByText('Concentrating on Fly')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'End Concentration: Fly' }))
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'END_CONCENTRATION',
+      stateId: flyId,
+      expectedVersion: sheet.meta.streamVersion
+    })
+  })
+
   it('offers no Concentration control to a viewer who cannot manage play state', () => {
     const sheet = createSheet()
-    sheet.overview.concentration = { label: 'Bless', sourceHidden: false }
+    sheet.overview.concentrations = [{ stateId: null, label: 'Bless', sourceHidden: false }]
     sheet.meta.capabilities.managePlayState = false
 
     renderWithAppProviders(

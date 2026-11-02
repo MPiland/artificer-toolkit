@@ -100,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Held die on a sight-governed attack (SPELLS-31.T4c2b):** an attack against an unseen or hidden target skips the after-roll window, as sight-governed saves do. The die stays unspent.
 - **Capacity use on a spell-slot on-hit rider (SPELLS-12.T2b):** a SPELL_SLOT on-hit rider can skip the capacity use. Rare; correct by hand.
 - **Open Hand push distance (SPELLS-31.T4l2b):** the push is exactly 15 ft where the rules say up to 15 ft. The GM moves the token back if the Monk wants less.
 - **Granted action option ids in authoring (SPELLS-31.T4l2b):** `GRANTED_ACTION_OPTION` asks for Effect ids as text. A homebrew author would be better served by a picker.

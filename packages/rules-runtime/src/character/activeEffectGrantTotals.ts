@@ -281,6 +281,33 @@ export function activeAbilityCheckDice(
 }
 
 /**
+ * The after-roll dice a holder's active effects hold for an attack roll of one attack domain, made
+ * with `attackAbility`: each is offered once the attack's d20 is seen, and the holder spends it by
+ * ending its effect.
+ */
+export function activeAfterRollAttackRollDice(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  attackDomain: string,
+  attackAbility: string | null
+) {
+  return activeRolledDieGrants(
+    effects,
+    'ATTACK_ROLL',
+    (domain) =>
+      domain.attackDomain === attackDomain &&
+      (domain.ability === undefined || domain.ability === attackAbility),
+    'AFTER_ROLL'
+  ).map(({ effectId, grantId, label, payload: { count, faces, sign } }) => ({
+    effectId,
+    grantId,
+    label,
+    count,
+    faces,
+    sign
+  }))
+}
+
+/**
  * The after-roll dice a holder's active effects hold for an ability check with one ability (or an
  * ability-less check when `abilityCode` is null): each is offered once the d20 is seen, and the
  * holder spends it by ending its effect.

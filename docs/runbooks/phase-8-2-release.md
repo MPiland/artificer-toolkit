@@ -78,6 +78,7 @@ flowchart LR
    - Day-to-day deploy, seed and audit checks of a slice or merge run in CI on an ephemeral container
      (`.github/workflows/live-backend.yml`, ADR 0035 amendment 2026-10-15). This lifecycle stays local
      because it uses the user's local data, the Session Worker and the browser proofs.
+
 - A change to the SRD corpus needs no backend reset: reseeding replaces a changed subject (for
   example a Class, Race, Equipment, Feat or Background), reusable definition, System, content source
   or catalogue in place and reports it as `replaced` (PLATFORM-18.T1 and T2, D120). The same holds in
@@ -85,43 +86,43 @@ flowchart LR
   named reason before writing: a subject or definition removed from the corpus (removal is deferred,
   see `docs/roadmap/future-enhancements.md`), and a System change that drops a vocabulary entry id
   stored data may name.
-   - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
-     `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
-   - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`
-     (`PRE_STAGING_VALIDATION_DIR` may name another folder under `local-validation/`). Reset evidence
-     goes to `local-validation/convex-reset/r08-reset-<attempt>.*` and native proof evidence to
-     `local-validation/local-convex-proofs/<proof>.*`. Provenance manifests must sit under
-     `local-validation/`.
-   - The development drivers write their own browser output under
-     `local-validation/local-convex-proofs/<topic>/`, for example
-     `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder, and
-     `phase82-signed-in-request-audit/request-audit.json`, which the runner copies there as
-     `r08-browser-signed-in-request-audit.json` after checking it was written by this proof and
-     passed.
-   - The drivers send Encounter commands, and Scene token moves, door changes and move undo, through
-     the Session room, as the tabletop does (D42, D43), so the proof stages need the local Worker.
-     Before the first proof stage the runner starts the documented Worker once on `127.0.0.1:8787`
-     (refusing a port that is already in use), with its ticket, Worker and rules continuation
-     secrets read in memory from the local Convex deployment. Before the first browser proof it
-     starts the web app on `localhost:3000` the same way, with the local application environment
-     and without the admin key. The web app is the production bundle, built with `vite build --mode
-     proof` and served by `vite preview --mode proof`: the dev server's React development runtime
-     and devtools load the browser enough to skew the V15 timings. The `proof` mode reads no `.env`
-     files, so the bundle carries only the local environment the runner checked. It stops both process trees before the VTT browser proof, which
-     starts its own Worker and web app, after a failure and at the end. Their output goes to
-     `local-session-worker.log` and `local-web-app.log` in the manifest folder.
-   - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action
-     start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
-     (container-only) from the Convex container and leaves them running. The local deployment must
-     set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
-     [API README](../../apps/apis/README.md).
-     The local deployment must also set `LIVE_SESSION_WORKER_URL=http://host.docker.internal:8787` (the container reaches the host Worker only through that name, never `127.0.0.1`), and the evidence folder name must stay short: the Worker's durable-object state path exceeds the Windows path limit in a worktree otherwise and the Session room upgrade fails with a 500.
-   - A slice that adds one browser journey runs it outside the lifecycle with `node
-     scripts/runLocalBrowserProof.mjs --name=<unique> --proof=<proof> [--deploy]` (in a heavy
-     batch). It reuses the runner's environment checks, admin-key generation, fixtures and
-     Worker/web start, optionally deploys the current source to the local container, never resets
-     or reseeds it, and stops only the services it started. Evidence goes to
-     `local-validation/browser-proof/<name>/` and the proof's usual packet.
+  - Convex codegen, deploy, seed and audit pass the self-hosted URL and generated key as explicit
+    `--url`/`--admin-key` arguments. They never use the CLI's `--deployment local` backend.
+  - The lifecycle manifest and stage logs go to `local-validation/pre-staging/<timestamp>/`
+    (`PRE_STAGING_VALIDATION_DIR` may name another folder under `local-validation/`). Reset evidence
+    goes to `local-validation/convex-reset/r08-reset-<attempt>.*` and native proof evidence to
+    `local-validation/local-convex-proofs/<proof>.*`. Provenance manifests must sit under
+    `local-validation/`.
+  - The development drivers write their own browser output under
+    `local-validation/local-convex-proofs/<topic>/`, for example
+    `phase82-vtt-browser/playwright.log`, which the runner copies into the manifest folder, and
+    `phase82-signed-in-request-audit/request-audit.json`, which the runner copies there as
+    `r08-browser-signed-in-request-audit.json` after checking it was written by this proof and
+    passed.
+  - The drivers send Encounter commands, and Scene token moves, door changes and move undo, through
+    the Session room, as the tabletop does (D42, D43), so the proof stages need the local Worker.
+    Before the first proof stage the runner starts the documented Worker once on `127.0.0.1:8787`
+    (refusing a port that is already in use), with its ticket, Worker and rules continuation
+    secrets read in memory from the local Convex deployment. Before the first browser proof it
+    starts the web app on `localhost:3000` the same way, with the local application environment
+    and without the admin key. The web app is the production bundle, built with `vite build --mode
+    proof` and served by `vite preview --mode proof`: the dev server's React development runtime
+    and devtools load the browser enough to skew the V15 timings. The `proof` mode reads no `.env`
+    files, so the bundle carries only the local environment the runner checked. It stops both process trees before the VTT browser proof, which
+    starts its own Worker and web app, after a failure and at the end. Their output goes to
+    `local-session-worker.log` and `local-web-app.log` in the manifest folder.
+  - Before the first proof stage the runner also runs `scripts/localConvexFixtures.ps1 -Action
+    start`, which idempotently serves the R2 substitute (host `127.0.0.1:8026`) and the email sink
+    (container-only) from the Convex container and leaves them running. The local deployment must
+    set `MAIL_DELIVERY_MODE=local` and `LOCAL_EMAIL_SINK_URL=http://127.0.0.1:8025/email`; see the
+    [API README](../../apps/apis/README.md).
+    The local deployment must also set `LIVE_SESSION_WORKER_URL=http://host.docker.internal:8787` (the container reaches the host Worker only through that name, never `127.0.0.1`), and the evidence folder name must stay short: the Worker's durable-object state path exceeds the Windows path limit in a worktree otherwise and the Session room upgrade fails with a 500.
+  - A slice that adds one browser journey runs it outside the lifecycle with `node
+    scripts/runLocalBrowserProof.mjs --name=<unique> --proof=<proof> [--deploy]` (in a heavy
+    batch). It reuses the runner's environment checks, admin-key generation, fixtures and
+    Worker/web start, optionally deploys the current source to the local container, never resets
+    or reseeds it, and stops only the services it started. Evidence goes to
+    `local-validation/browser-proof/<name>/` and the proof's usual packet.
 
 5. Record the exact source identity, command order, environment identity, native exit codes, collector
    completion, thresholds, and artifact paths in one release manifest. Inspect proof artifacts only
@@ -130,6 +131,12 @@ flowchart LR
 A source, schema, generated artifact, fixture, test, or configuration change invalidates evidence from
 the earliest affected stage. Repair locally and resume from that stage; do not repeat unrelated earlier
 proofs merely because a later check failed.
+
+## Review data
+
+`node scripts/seedReviewData.mjs [--name=<evidence-name>]` builds the data for the user's UI review on the local Docker backend (the single-constant guard in `scripts/convexSelfHosted.mjs`; it never reaches Convex Cloud). Run it after the final reset, deploy and seed. It starts the Session Worker, provisions four local-only review accounts, and creates three named review Campaigns through product commands: a Character party against SRD Creatures, a Shield reaction and Hold Person Concentration, and Fireball (point area) with Thunderwave (directed area). Each has members, a Scene with tokens and a played-through Encounter. The admin key is generated at run time and never printed; the log is `local-validation/review-data/<name>/seed.log`.
+
+It is idempotent. A Campaign with its final `Review data ready` Session is skipped, so a re-run after a reset rebuilds the same names with the same rolls. A Campaign without that Session is a failed earlier run: reset the backend and run again. The scenarios are data in `apps/apis/tests/developmentReviewDataScenarios.ts`; `apps/apis/convex/encounters/reviewData.test.ts` proves the build and the skip against the real room.
 
 ## Staging promotion
 

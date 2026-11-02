@@ -483,7 +483,8 @@ const encounterEnemySnapshotDtoSchema = lazySchema(() =>
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
     systemId: z.nullable(postgresUuidSchema),
     maxHitPoints: z.number().check(z.int()).check(z.nonnegative()),
-    snapshot: jsonValueSchema
+    /** Position in the Blueprint's `snapshots`; enemies of one source share one snapshot. */
+    snapshotIndex: z.number().check(z.int()).check(z.nonnegative())
   })
 )
 
@@ -503,7 +504,8 @@ export const encounterBlueprintEnemyInputDtoSchema = lazySchema(() =>
 
 export const encounterBlueprintDtoSchema = lazySchema(() =>
   z.extend(encounterBlueprintMetadataDtoSchema, {
-    enemies: z.array(encounterEnemySnapshotDtoSchema)
+    enemies: z.array(encounterEnemySnapshotDtoSchema),
+    snapshots: z.array(jsonValueSchema)
   })
 )
 export const encounterBlueprintListDtoSchema = lazySchema(() =>

@@ -305,7 +305,7 @@ type NativeActionTestBoundary = {
   twoPhase: Extract<NativeTwoPhase, { phase: 'TEST' }>
 }
 
-type NativeActionBaseInput = {
+export type NativeActionBaseInput = {
   runtime: RulesRuntimeService
   adapter: CharacterRuleActionSystemAdapter
   plan: CharacterRuleActionExecutionPlan
@@ -412,6 +412,8 @@ export async function prepareNativeActionTest(
     attackSight?: EncounterPreparedAttackSight | null
     /** The dice the TEST save's target holds for after its d20 (D168), as in `advanceNativeActionGraphs`. */
     saveWindow?: EncounterActionSaveWindow
+    /** The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. */
+    windowDice?: readonly D20RolledAddedDieDto[]
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
@@ -440,9 +442,7 @@ export async function prepareNativeActionTest(
     response: SettledActionResponse,
     appRollId: string | null
   ) {
-    const heldDice = rolledPolicy.savingThrowAbilityDefinitionId
-      ? (input.saveWindow?.heldDice(rolledPolicy.savingThrowAbilityDefinitionId) ?? [])
-      : []
+    const heldDice = input.saveWindow?.heldDice(rolledPolicy) ?? []
     mayAddDice = heldDice.length > 0
     const window =
       mayAddDice && !attackSight
@@ -463,7 +463,12 @@ export async function prepareNativeActionTest(
           ...window,
           d20Policy: null,
           twoPhase: testPhase,
-          roller: 'TARGET' as const
+          roller: actionRequestRoller({
+            continuation: rolledContinuation,
+            policy: rolledPolicy,
+            bound: current.bound,
+            twoPhase: null
+          })
         }
       : null
   }
@@ -552,12 +557,14 @@ export async function prepareNativeActionTest(
       )
       if (window) return window
     } else mayAddDice = true
+    const windowDice = input.windowDice ?? []
+    if (windowDice.length > 0) mayAddDice = true
     continuation = heldContinuation
     faces = response.faces
     rollMode = response.rollMode
     keep = response.keep
     modeAdjustment = response.modeAdjustment
-    addedDice = response.addedDice
+    addedDice = [...response.addedDice, ...windowDice]
     result = await resumeEncounterD20({
       continuation,
       natural: response.value,
@@ -659,65 +666,6 @@ export async function prepareNativeActionTest(
   }
   await input.afterTest(result, d20)
   return boundary
-}
-
-/**
- * Rebuilds a sealed TEST boundary from current facts and the recorded faces, without rolling again.
- * Omitting `execution` re-evaluates the recorded dice against the given binding (a sealed reaction
- * adjustment); every other caller proves the rebuilt execution equals the retained one.
- */
-export async function reconstructNativeActionTest(
-  input: Pick<
-    NativeActionBaseInput,
-    'runtime' | 'adapter' | 'plan' | 'occurrenceId' | 'binding'
-  > & {
-    execution?: ServerCompletedRuleExecutionDto
-    d20: Pick<
-      ServerRuleExecutionD20EvidenceDto,
-      'requestId' | 'rawFaces' | 'rollMode' | 'keep' | 'selectedNatural' | 'modeAdjustment'
-    >
-  }
-) {
-  const source: NativeActionBaseInput = {
-    runtime: input.runtime,
-    adapter: input.adapter,
-    plan: input.plan,
-    occurrenceId: input.occurrenceId,
-    binding: input.binding,
-    autoRoll: { SOURCE: false, TARGET: false },
-    afterTest: async () => undefined,
-    random: () => {
-      throw new Error('Retained TEST evidence must not roll again.')
-    }
-  }
-  const pending = await prepareNativeActionTest(source)
-  if (pending.kind !== 'PENDING' || pending.continuation.request.requestId !== input.d20.requestId)
-    throw new Error('The retained TEST request is stale.')
-  const boundary = await prepareNativeActionTest({
-    ...source,
-    resume: {
-      pending,
-      resolution: {
-        kind: 'ENTER_DICE',
-        requestId: input.d20.requestId,
-        rawFaces: input.d20.rawFaces,
-        rollMode: input.d20.rollMode
-      }
-    }
-  })
-  if (
-    boundary.kind !== 'TEST_BOUNDARY' ||
-    boundary.d20.rollMode !== input.d20.rollMode ||
-    boundary.d20.keep !== input.d20.keep ||
-    boundary.d20.selectedNatural !== input.d20.selectedNatural ||
-    (input.execution !== undefined &&
-      checksumRuleDocument(boundary.execution) !== checksumRuleDocument(input.execution))
-  )
-    throw new Error('The retained TEST execution is stale.')
-  // The recorded faces are already settled, so replaying them cannot rediscover a sight adjustment.
-  return input.d20.modeAdjustment
-    ? { ...boundary, d20: { ...boundary.d20, modeAdjustment: input.d20.modeAdjustment } }
-    : boundary
 }
 
 type NativeActionLegendaryResistanceAudit = NonNullable<
@@ -1156,10 +1104,7 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    const heldDice =
-      policy && phase !== 'SINGLE' && policy.savingThrowAbilityDefinitionId
-        ? (input.saveWindow?.heldDice(policy.savingThrowAbilityDefinitionId) ?? [])
-        : []
+    const heldDice = policy && phase !== 'SINGLE' ? (input.saveWindow?.heldDice(policy) ?? []) : []
     // A roller's d20 that a held die could still change is shown to its roller before the save resolves.
     const window =
       heldDice.length > 0 && resolution.kind !== 'D20_WINDOW' && !sight && policy
@@ -1180,7 +1125,7 @@ export async function advanceNativeActionGraphs(input: {
         ...window,
         d20Policy: null,
         twoPhase,
-        roller: 'TARGET' as const,
+        roller: actionRequestRoller({ continuation, policy, bound, twoPhase }),
         ...(phaseReceipts.length ? { phaseReceipts } : {})
       }
     const resumed = await resumeEncounterD20({

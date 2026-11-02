@@ -193,10 +193,11 @@ export function planEncounterMovementReactionEffects<
         ...decoyStrike.endedGrants,
         ...mover.endedEffects,
         ...mover.replacedEffects,
-        // A held die the mover spent in its save's d20 window ends with the reaction (D168).
-        ...windowSpentEffects(input.execution, moverEffects).filter(
-          ({ id }) => !mover.endedEffects.some((ended) => ended.id === id)
-        )
+        // A held die the mover spent in its save's d20 window, or the reactor in its attack's, ends with the reaction (D168).
+        ...windowSpentEffects(input.execution, activeEffectsByActorId, [
+          prepared.actor,
+          prepared.target
+        ]).filter(({ id }) => !mover.endedEffects.some((ended) => ended.id === id))
       ],
       decoyStrike,
       sourceReleases: reactor.sourceReleases,

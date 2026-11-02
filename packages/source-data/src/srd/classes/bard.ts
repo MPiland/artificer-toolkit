@@ -1,12 +1,12 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CHARGE_RESET_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
@@ -30,9 +30,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type ActivationCode,
   type ClassAuthored,
-  type ClosedRuleKind,
   type EffectAuthored,
   type ModifierRolledDieAuthored,
   type SpellGrantAuthored
@@ -49,7 +47,6 @@ import {
 } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
-  closedRuleEffect,
   gmRulingEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
@@ -95,36 +92,10 @@ const abilityScoreImprovementDescription =
 const bardicInspirationDescription =
   '<p>You can inspire others through stirring words or music. To do so, you use a bonus action on your turn to choose one creature other than yourself within 60 feet of you who can hear you. That creature gains one Bardic Inspiration die, a d6.</p><p>Once within the next 10 minutes, the creature can roll the die and add the number rolled to one ability check, attack roll, or saving throw it makes. The creature can wait until after it rolls the d20 before deciding to use the Bardic Inspiration die, but must decide before the GM says whether the roll succeeds or fails. Once the Bardic Inspiration die is rolled, it is lost. A creature can have only one Bardic Inspiration die at a time.</p><p>You can use this feature a number of times equal to your Charisma modifier (a minimum of once). You regain any expended uses when you finish a long rest.</p><p>Your Bardic Inspiration die changes when you reach certain levels in this class. The die becomes a d8 at 5th level, a d10 at 10th level, and a d12 at 15th level.</p>'
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>
-): EffectAuthored {
-  const range = { id: classRowId(BD, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
-  return closedRuleEffect({
-    id: classRowId(BD, 0x60, entry),
-    ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-  })
-}
-
 /**
  * The die is the Bard's own at the level the Bard has when it is given (D168): the face below grows
- * with the granter's class level and is frozen into the holder's grant. It joins a check or a save
- * after the d20 is seen; an attack-roll grant of the same shape is the follow-up window's to add.
+ * with the granter's class level and is frozen into the holder's grant. It joins a check, a save or
+ * an attack roll after the d20 is seen.
  */
 function bardicInspirationEffect(): EffectAuthored {
   const payload: ModifierRolledDieAuthored = {
@@ -208,7 +179,14 @@ function bardicInspirationEffect(): EffectAuthored {
                     id: classRowId(BD, 0x84, 2),
                     valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                     order: 2
-                  }
+                  },
+                  ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index) => ({
+                    ...die,
+                    id: classRowId(BD, 0x84, 3 + index),
+                    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+                    domain: { attackDomain },
+                    order: 3 + index
+                  }))
                 ]
               }
             }
@@ -906,7 +884,25 @@ export const bard: ClassAuthored = {
         "Starting at 2nd level, you can add half your proficiency bonus, rounded down, to any ability check you make that doesn't already include your proficiency bonus.",
       availableAtLevel: 2,
       order: 2,
-      effects: [selfClassRuleEffect(3, CLOSED_RULE_KIND.CLASS_BARD_JACK_OF_ALL_TRADES)]
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(BD, 0x8c, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+            domain: { unproficientOnly: true },
+            modifierKind: MODIFIER_KIND.BONUS,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              valueKind: 'PROFICIENCY_BONUS' as const,
+              multiplier: 0.5,
+              rounding: 'DOWN' as const
+            },
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: classRowId(BD, 3, 4),

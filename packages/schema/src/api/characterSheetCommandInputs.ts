@@ -202,7 +202,9 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
         effectId: stringSchema.check(z.uuid())
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
-        type: z.literal('END_CONCENTRATION')
+        type: z.literal('END_CONCENTRATION'),
+        /** The held Concentration to end; required while the caster holds more than one. */
+        stateId: z.optional(z.guid())
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('SET_INSPIRATION'),

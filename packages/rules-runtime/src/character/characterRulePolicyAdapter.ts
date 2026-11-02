@@ -289,6 +289,9 @@ export function projectCharacterRulePolicyToSheetProjection(
       abilityModifiers: Object.fromEntries(
         Object.entries(abilities).map(([key, entry]) => [key, entry.modifier.effective])
       ),
+      abilityCheckModifiers: Object.fromEntries(
+        Object.entries(abilities).map(([key, entry]) => [key, entry.check.effective])
+      ),
       savingThrows: Object.fromEntries(
         Object.entries(savingThrows).map(([key, entry]) => [key, entry.total.effective])
       ),
@@ -326,6 +329,9 @@ export function projectCharacterRulePolicyToSheetProjection(
       ),
       abilityModifiers: Object.fromEntries(
         Object.entries(abilities).map(([key, entry]) => [key, calculation(entry.modifier)])
+      ),
+      abilityCheckModifiers: Object.fromEntries(
+        Object.entries(abilities).map(([key, entry]) => [key, calculation(entry.check)])
       ),
       savingThrowProficiencyLevels: Object.fromEntries(
         Object.entries(savingThrows).map(([key, entry]) => [

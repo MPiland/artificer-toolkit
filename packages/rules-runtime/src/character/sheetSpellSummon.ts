@@ -224,9 +224,9 @@ export function encounterSpellSummonExtra(
 }
 
 /** The Concentration a Sheet summon holds, shown when no Run carried one. */
-export function sheetSpellSummonConcentration(
+export function sheetSpellSummonConcentrations(
   summons: readonly CharacterSpellSummonStateDto[] | undefined
-): { label: string; sourceHidden: false } | null {
+): { stateId: null; label: string; sourceHidden: false }[] {
   const summon = summons?.find((entry) => entry.concentration)
-  return summon ? { label: summon.label, sourceHidden: false } : null
+  return summon ? [{ stateId: null, label: summon.label, sourceHidden: false }] : []
 }

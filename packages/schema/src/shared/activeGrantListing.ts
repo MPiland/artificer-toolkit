@@ -45,6 +45,21 @@ export const concentrationListingDtoSchema = lazySchema(() =>
 export type ConcentrationListingDto = z.infer<typeof concentrationListingDtoSchema>
 
 /**
+ * A Concentration on the Sheet. While a caster holds more than one (SPELLS-12), each row names the
+ * state the caster ends by choice; the state id is null for a Concentration with no live state to
+ * name (one a finished Run carried over, or a Sheet summon's).
+ */
+export const sheetConcentrationListingDtoSchema = lazySchema(() =>
+  z.strictObject({
+    stateId: z.nullable(z.guid()),
+    label: z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))),
+    sourceHidden: z.boolean()
+  })
+)
+
+export type SheetConcentrationListingDto = z.infer<typeof sheetConcentrationListingDtoSchema>
+
+/**
  * A hidden creature's concealment as only the GM sees it (D116): the Stealth total it froze and the
  * observers it is still hidden from. Players never receive it, so no player projection carries it.
  */
