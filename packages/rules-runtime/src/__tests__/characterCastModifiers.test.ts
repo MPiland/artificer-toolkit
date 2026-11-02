@@ -59,7 +59,7 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
   })
 
   it('projects none for an option the Character did not choose', () => {
-    expect(sorcerer(['Quickened Spell']).castModifiers).toEqual([])
+    expect(sorcerer(['Extended Spell']).castModifiers).toEqual([])
   })
 
   /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
