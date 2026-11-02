@@ -2573,6 +2573,14 @@ export declare const api: {
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
+                attackAfterRollOffers?: Array<{
+                  count: number;
+                  effectId: string;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  grantId: string;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
                 damageAddedDice?: Array<{
@@ -3308,6 +3316,14 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  attackAfterRollOffers?: Array<{
+                    count: number;
+                    effectId: string;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    grantId: string;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   attackBonus?: number;
                   attackRollMode?: string;
                   damageAddedDice?: Array<{
@@ -3448,6 +3464,14 @@ export declare const api: {
                 attackAddedDice?: Array<{
                   count: number;
                   faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                attackAfterRollOffers?: Array<{
+                  count: number;
+                  effectId: string;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  grantId: string;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
@@ -17423,6 +17447,14 @@ export declare const api: {
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
+                attackAfterRollOffers?: Array<{
+                  count: number;
+                  effectId: string;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  grantId: string;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
                 attackBonus?: number;
                 attackRollMode?: string;
                 damageAddedDice?: Array<{
@@ -18158,6 +18190,14 @@ export declare const api: {
                     label: string;
                     sign: "ADD" | "SUBTRACT";
                   }>;
+                  attackAfterRollOffers?: Array<{
+                    count: number;
+                    effectId: string;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    grantId: string;
+                    label: string;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
                   attackBonus?: number;
                   attackRollMode?: string;
                   damageAddedDice?: Array<{
@@ -18298,6 +18338,14 @@ export declare const api: {
                 attackAddedDice?: Array<{
                   count: number;
                   faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                attackAfterRollOffers?: Array<{
+                  count: number;
+                  effectId: string;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  grantId: string;
                   label: string;
                   sign: "ADD" | "SUBTRACT";
                 }>;
@@ -20159,6 +20207,14 @@ export declare const api: {
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
+                    attackAfterRollOffers?: Array<{
+                      count: number;
+                      effectId: string;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      grantId: string;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
                     attackBonus?: number;
                     attackRollMode?: string;
                     damageAddedDice?: Array<{
@@ -20441,6 +20497,14 @@ export declare const api: {
                         label: string;
                         sign: "ADD" | "SUBTRACT";
                       }>;
+                      attackAfterRollOffers?: Array<{
+                        count: number;
+                        effectId: string;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        grantId: string;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       attackBonus?: number;
                       attackRollMode?: string;
                       damageAddedDice?: Array<{
@@ -20581,6 +20645,14 @@ export declare const api: {
                     attackAddedDice?: Array<{
                       count: number;
                       faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
+                    attackAfterRollOffers?: Array<{
+                      count: number;
+                      effectId: string;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      grantId: string;
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
@@ -20890,6 +20962,14 @@ export declare const api: {
                         label: string;
                         sign: "ADD" | "SUBTRACT";
                       }>;
+                      attackAfterRollOffers?: Array<{
+                        count: number;
+                        effectId: string;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        grantId: string;
+                        label: string;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
                       attackBonus?: number;
                       attackRollMode?: string;
                       damageAddedDice?: Array<{
@@ -21039,6 +21119,14 @@ export declare const api: {
                     attackAddedDice?: Array<{
                       count: number;
                       faces: 4 | 6 | 8 | 10 | 12;
+                      label: string;
+                      sign: "ADD" | "SUBTRACT";
+                    }>;
+                    attackAfterRollOffers?: Array<{
+                      count: number;
+                      effectId: string;
+                      faces: 4 | 6 | 8 | 10 | 12;
+                      grantId: string;
                       label: string;
                       sign: "ADD" | "SUBTRACT";
                     }>;
