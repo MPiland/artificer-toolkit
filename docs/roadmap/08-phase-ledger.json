@@ -18882,7 +18882,7 @@
               "note": "Approved by the user on 2026-10-31 (D203). Merged in m591 (43b5e04cb)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18898,7 +18898,7 @@
                 ]
               },
               "text": "Prove Legendary Resistance is still offered after a window-spent failed save at the action, area and movement-reaction sites. It stays a separate post-fail pause, not a fold.",
-              "note": "Split from T4c1b. Approved by the user on 2026-10-30."
+              "note": "Split from T4c1b. Approved by the user on 2026-10-30. Merged in m600 (357806ae7)."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -18958,6 +18958,24 @@
                 ]
               },
               "note": "Split from T4c2 (D206). Size is provisional until the T4c2 session reports the seam."
+            },
+            {
+              "id": "SPELLS-31.T4c2c",
+              "text": "Bardic Inspiration on Sheet attack rolls: the Sheet offers an eligible held die after an attack roll and spends it through the roll record.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T4c2b"
+                ]
+              },
+              "note": "Split from T4c2b on seam trace (D206 split rule)."
             },
             {
               "id": "SPELLS-31.T4c3",
@@ -20009,7 +20027,7 @@
             {
               "id": "SPELLS-31.T5q-B",
               "text": "Ability check BONUS with a proficiency gate and rounding, on skills, plain checks and initiative, shown on the Sheet: Jack of All Trades and Remarkable Athlete. Authoring-parity proof; deletes both kinds (D156).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -20022,8 +20040,7 @@
                   "SPELLS-31.T5q-A"
                 ]
               },
-              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split from T5q. Approved by the user on 2026-10-31 (D204). Merged in m600 (357806ae7)."
             },
             {
               "id": "SPELLS-31.T5ra",
@@ -27851,10 +27868,13 @@
             },
             {
               "text": "The guide lists the known gaps testers will hit and tells them how to send feedback and what to include (Campaign, Scene, round, what they expected and what happened).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-7.T2 (m600); see each task's proof."
+              ],
               "origin": [],
-              "id": "RELEASE-7.2"
+              "id": "RELEASE-7.2",
+              "note": "Closed 2026-11-02 by RELEASE-7.T2."
             },
             {
               "text": "A walkthrough of the release candidate confirms every statement in the guide matches the build before alpha invites go out.",
@@ -27890,7 +27910,7 @@
             },
             {
               "id": "RELEASE-7.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-7.2"
               ],
@@ -27905,7 +27925,7 @@
                 "finalSource": true
               },
               "text": "Add the known-gaps list (sourced from future-enhancements.md Deferred edge cases and open items, only shipped-surface gaps) and the feedback instructions (Campaign, Scene, round, expected vs happened); cross-link from README/docs index.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m600 (357806ae7)."
             },
             {
               "id": "RELEASE-7.T3",
@@ -27939,10 +27959,12 @@
           "acs": [
             {
               "text": "A re-runnable local script builds named review Campaigns with members, Scenes with tokens and Encounters that cover the shipped play surfaces (a party of Characters, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards), through the product's own commands, against the local Docker Convex backend only; running it again after a reset rebuilds the same data.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELEASE-8.T1 (m600); see each task's proof."
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14: the owner reviews the UI locally before staging, using test Campaigns, Scenes and Encounters. The final local lifecycle (validatePreStagingLocal.mjs) resets local Convex first, so review data is a scripted seed run after RELEASE-2, not hand-kept data.",
+              "note": "User ruling 2026-10-14: the owner reviews the UI locally before staging, using test Campaigns, Scenes and Encounters. The final local lifecycle (validatePreStagingLocal.mjs) resets local Convex first, so review data is a scripted seed run after RELEASE-2, not hand-kept data. Closed 2026-11-02 by RELEASE-8.T1.",
               "id": "RELEASE-8.1"
             },
             {
@@ -27967,7 +27989,7 @@
           "tasks": [
             {
               "id": "RELEASE-8.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELEASE-8.1"
               ],
@@ -27979,8 +28001,7 @@
                 "finalSource": true
               },
               "text": "Write the re-runnable review-data script (new scripts/ entry plus a thin Convex-backed driver reusing live-backend helpers): through product commands only it creates named review Campaigns with members, Scenes with tokens, and Encounters covering a Character party, SRD Creatures, point and directed areas, spells and slots, conditions, Concentration, reactions, initiative and roll cards; target pinned to the local Docker backend through scripts/convexSelfHosted.mjs; idempotent: re-running after a reset rebuilds identical data (deterministic names and rolls). Tests prove idempotence against real code (convex-test or local-container integration), with a red proof.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m600 (357806ae7)."
             },
             {
               "id": "RELEASE-8.T2",
