@@ -304,6 +304,7 @@ const encounterBase = {
 
 export const tabletopPlayerEncounter = {
   ...encounterBase,
+  viewerAfk: false,
   actors: playerActors
 } satisfies EncounterPlayerProjectionDto
 
@@ -312,6 +313,8 @@ export const tabletopGmEncounter = {
   trackAmmunition: false,
   zoneNoticing: 'GM_PROMPT',
   automaticCover: true,
+  reactionSeconds: 5,
+  afkUserIds: [],
   healthDisplayDefault: 'DESCRIPTIVE',
   actors: actorBases.map((actor, index) => ({
     ...actor,

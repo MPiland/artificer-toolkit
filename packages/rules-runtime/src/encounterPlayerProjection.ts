@@ -217,6 +217,7 @@ export function projectPlayerEncounterProjection(
     optionalCombatRules: encounter.optionalCombatRules,
     facingStepDegrees: encounter.facingStepDegrees,
     facingArcs: encounter.facingArcs,
+    viewerAfk: encounter.afkUserIds.includes(viewer.userId),
     version: encounter.version,
     round: encounter.round,
     currentActorId:

@@ -58,6 +58,7 @@ import { RoomSceneCache } from './roomSceneCache.js'
 import { RoomStorageAuthority } from './roomStorageAuthority.js'
 import { journalInputReload, loadRoomAggregate, reloadRoomAggregate } from './roomAggregateLoad.js'
 import { endBrokenRelationships, reconcileActorDepartures } from './roomActorSweeps.js'
+import { settleRoomReactionTimeouts } from './roomReactionTimeout.js'
 import { readFrozenCharacterIds } from './roomActorReconcile.js'
 import { restoreLocalPlayAuthorization } from './roomLocalPlayAuthorization.js'
 import { RoomSceneCommandRefusal } from './roomSceneEdits.js'
@@ -364,6 +365,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         CREATE TABLE IF NOT EXISTS room_idle_release (
           id INTEGER PRIMARY KEY CHECK (id = 1),
           release_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS room_reaction_timeout (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          answer_by INTEGER NOT NULL
         );
         CREATE TABLE IF NOT EXISTS room_scene_cache (
           id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -770,6 +775,13 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     this.#fogUploads.expire(now)
     this.#renewAuthorizationIfDue()
+    const answerBy = this.#reactionTimeoutAt()
+    if (answerBy !== null && answerBy <= now) {
+      // The post-commit steps decline the offer and record the next one, so a stale row clears here.
+      this.#storage.sql.exec('DELETE FROM room_reaction_timeout WHERE id = 1')
+      this.#queuePostCommit()
+      await this.#commandChain
+    }
     try {
       const releaseAt = this.#idleReleaseAt()
       const campaignId = this.#roomCampaignId()
@@ -803,7 +815,10 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     await this.#scheduleAlarm(leaving)
   }
 
-  /** The room's one alarm serves every pending admission window, the idle release and fog staging expiry. */
+  /**
+   * The room's one alarm serves every pending admission window, the idle release, fog staging expiry
+   * and the next reaction offer to run out of time.
+   */
   async #scheduleAlarm(leaving?: WebSocket): Promise<void> {
     const open = this.#openSockets(leaving)
     const deadlines = open.flatMap((socket) => {
@@ -820,6 +835,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     if (releaseAt !== null && open.length === 0) deadlines.push(releaseAt)
     const fogExpiresAt = this.#fogUploads.nextExpiry()
     if (fogExpiresAt !== null) deadlines.push(fogExpiresAt)
+    const answerBy = this.#reactionTimeoutAt()
+    if (answerBy !== null) deadlines.push(answerBy)
     if (deadlines.length === 0) await this.ctx.storage.deleteAlarm()
     else await this.ctx.storage.setAlarm(Math.min(...deadlines))
   }
@@ -830,6 +847,35 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
         .exec<{ release_at: number }>('SELECT release_at FROM room_idle_release WHERE id = 1')
         .toArray()[0]?.release_at ?? null
     )
+  }
+
+  #reactionTimeoutAt(): number | null {
+    return (
+      this.#storage.sql
+        .exec<{ answer_by: number }>('SELECT answer_by FROM room_reaction_timeout WHERE id = 1')
+        .toArray()[0]?.answer_by ?? null
+    )
+  }
+
+  /**
+   * Declines the reaction offers whose time ran out (D207) and records when the next one does, so
+   * the room's alarm wakes for it. A failed decline is logged and left to the GM, who can still
+   * answer; the next commit tries again.
+   */
+  async #settleReactionTimeouts(epoch: string): Promise<void> {
+    let answerBy: number | null = null
+    try {
+      answerBy = await settleRoomReactionTimeouts(this.#host, epoch, Date.now())
+    } catch (error) {
+      console.error('Live Session reaction timeout failed.', error)
+    }
+    if (answerBy === null) this.#storage.sql.exec('DELETE FROM room_reaction_timeout WHERE id = 1')
+    else
+      this.#storage.sql.exec(
+        'INSERT OR REPLACE INTO room_reaction_timeout (id, answer_by) VALUES (1, ?)',
+        answerBy
+      )
+    await this.#scheduleAlarm()
   }
 
   #openSockets(except?: WebSocket): WebSocket[] {
@@ -1199,6 +1245,8 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       } catch (error) {
         console.error('Live Session relationship end sweep failed.', error)
       }
+      const head = this.#journal.readCurrent()
+      if (head?.status === 'ACTIVE') await this.#settleReactionTimeouts(head.authorityEpoch)
       if (
         this.#sheetFeed.size === 0 &&
         this.#encounterFeed.size === 0 &&
@@ -1253,7 +1301,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     before: CampaignSceneStateDto,
     after: CampaignSceneStateDto,
     result: SceneCommandResultDto,
-    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto }
+    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto } | null
   ): void {
     for (const socket of this.ctx.getWebSockets()) {
       const admission = this.#admissions.liveAdmission(socket)
@@ -1261,7 +1309,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
       if (!admission || !epoch) continue
       send(
         socket,
-        socket === sender.socket
+        sender && socket === sender.socket
           ? sender.message
           : this.#sceneCommittedFor({
               admission,
