@@ -61,6 +61,15 @@ import {
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
+  isDamageRollWindow,
+  type DamageRerollCostDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
+import {
+  holdEncounterDamageRoll,
+  replayEncounterDamageRollWindow,
+  type EncounterDamageRerollAnswer
+} from './encounterDamageRollWindow.js'
+import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
   type ServerPublishedRuleDefinitionDto,
@@ -296,7 +305,7 @@ export type PendingNativeActionGraphs = {
    */
   pause?: Extract<
     EncounterActionPauseDto,
-    { kind: 'D20_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
+    { kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
   >
 }
 
@@ -427,7 +436,7 @@ export async function prepareNativeActionTest(
       throw new Error('The native action TEST policy is stale.')
     const { resolution } = input.resume
     const sight =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? null
         : sightGovernedStageD20({
             attackSight,
@@ -435,7 +444,7 @@ export async function prepareNativeActionTest(
             stored: { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null }
           })
     const response =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? windowedSaveResponse({ continuation: heldContinuation, policy, d20: resolution.d20 })
         : actionResponse({
             gameSystemId: current.published.gameSystemId,
@@ -460,7 +469,7 @@ export async function prepareNativeActionTest(
         ...(pending.d20Belief ? { d20Belief: pending.d20Belief } : {}),
         heldD20: heldStageD20(response.heldFace, sight)
       }
-    if (resolution.kind !== 'D20_WINDOW') {
+    if (resolution.kind !== 'ROLL_WINDOW') {
       const window = await windowRolledSave(pending.continuation, policy, {
         response,
         appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
@@ -468,7 +477,7 @@ export async function prepareNativeActionTest(
       if (window) return window
     } else {
       mayAddDice = true
-      if (pending.pause?.kind !== 'D20_WINDOW')
+      if (pending.pause?.kind !== 'ROLL_WINDOW' || isDamageRollWindow(pending.pause.payload))
         throw new Error('The native action TEST evidence is stale.')
       // The next reactor, if any, is asked about the roll as the window just answered settled it.
       const window = await windowRolledSave(heldContinuation, policy, {
@@ -644,6 +653,8 @@ export async function continueNativeActionAfterTest(
      * a creature lands on the hit points the first left it, but its roll was sealed before that.
      */
     testBinding?: NativeActionBaseInput['binding']
+    /** The costs the caster could pay to reroll the OUTCOME's damage dice (D208). */
+    damageRerolls?: readonly DamageRerollCostDto[]
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
@@ -896,6 +907,19 @@ export async function continueNativeActionAfterTest(
       policy: twoPhase.nestedOutcomeD20,
       evidence: nestedD20
     })
+  const heldDamage = nestedD20
+    ? null
+    : await holdEncounterDamageRoll({
+        runtime: input.runtime,
+        adapter: input.adapter,
+        occurrenceId: input.occurrenceId,
+        costs: input.damageRerolls,
+        published,
+        execution: result,
+        twoPhase,
+        phaseReceipts: input.boundary.phaseReceipts
+      })
+  if (heldDamage) return heldDamage
   const phaseReceipts: NativePhaseReceipts = [
     ...input.boundary.phaseReceipts,
     {
@@ -961,9 +985,15 @@ export async function advanceNativeActionGraphs(input: {
    * roll and the die it spent.
    */
   saveWindow?: EncounterActionSaveWindow
+  /**
+   * The costs the caster could pay now to reroll the action's damage dice (D208). With any, a phase
+   * that rolled damage and no d20 is held in a window before it settles; the window's answer replays
+   * the phase with the chosen dice rolled again.
+   */
+  damageRerolls?: readonly DamageRerollCostDto[]
   resume?: {
     pending: ResumedNativeActionGraphs
-    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer | EncounterDamageRerollAnswer
   }
   /**
    * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
@@ -1007,6 +1037,8 @@ export async function advanceNativeActionGraphs(input: {
     } | null
   } = { d20: null }
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
+  /** Set once a damage window's answer replayed the phase; that phase is never held again. */
+  let damageRerolled = false
 
   /** Whether this paused request is the TEST or single-stage d20 rather than the OUTCOME save. */
   const isStageD20 = (policy: ServerRuleExecutionD20PolicyDto | null) =>
@@ -1025,15 +1057,15 @@ export async function advanceNativeActionGraphs(input: {
       d20Belief: EncounterAttackD20Belief | null
       heldD20: EncounterActionHeldD20Dto | null
     },
-    /** The window a `D20_WINDOW` answer settled; the next reactor, if any, is asked after it. */
+    /** The window a `ROLL_WINDOW` answer settled; the next reactor, if any, is asked after it. */
     previousWindow: D20WindowPausePayloadDto | null = null
   ) {
     const sight =
-      policy !== null && isStageD20(policy) && resolution.kind !== 'D20_WINDOW'
+      policy !== null && isStageD20(policy) && resolution.kind !== 'ROLL_WINDOW'
         ? sightGovernedStageD20({ attackSight, policy, stored })
         : null
     const response =
-      resolution.kind === 'D20_WINDOW'
+      resolution.kind === 'ROLL_WINDOW'
         ? windowedSaveResponse({ continuation, policy, d20: resolution.d20 })
         : actionResponse({
             gameSystemId: published.gameSystemId,
@@ -1055,14 +1087,14 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    if (resolution.kind === 'D20_WINDOW' && !previousWindow)
+    if (resolution.kind === 'ROLL_WINDOW' && !previousWindow)
       throw new Error('The action TEST evidence is stale.')
     const next =
       policy && phase !== 'SINGLE'
         ? await nextActionWindowDice({
             saveWindow: input.saveWindow,
             policy,
-            previous: resolution.kind === 'D20_WINDOW' ? previousWindow : null
+            previous: resolution.kind === 'ROLL_WINDOW' ? previousWindow : null
           })
         : null
     // A d20 that a die could still change is shown to its next decider before the save resolves:
@@ -1076,7 +1108,7 @@ export async function advanceNativeActionGraphs(input: {
           gameSystemId: published.gameSystemId,
           dice: opening.dice,
           answeredReactorActorIds: opening.answeredReactorActorIds,
-          ...(resolution.kind === 'D20_WINDOW' && previousWindow
+          ...(resolution.kind === 'ROLL_WINDOW' && previousWindow
             ? { previous: previousWindow, d20: resolution.d20 }
             : {
                 continuation,
@@ -1098,7 +1130,7 @@ export async function advanceNativeActionGraphs(input: {
       continuation,
       natural: response.value,
       addedDice: response.addedDice,
-      mayAddDice: resolution.kind === 'D20_WINDOW' || (next?.dice.length ?? 0) > 0,
+      mayAddDice: resolution.kind === 'ROLL_WINDOW' || (next?.dice.length ?? 0) > 0,
       resume: (step) => input.runtime.resume(step)
     })
     if (policy && response.faces && response.rollMode && response.keep) {
@@ -1275,32 +1307,63 @@ export async function advanceNativeActionGraphs(input: {
     // A window holds its save as it paused before the roll; the window's answer resumes that request.
     const { resolution } = input.resume
     const windowed = heldWindowedSave(pending.pause, resolution)
-    const continuation = windowed ? windowed.continuation : pending.continuation
-    requireActionContinuation({
-      continuation,
-      occurrenceId: input.occurrenceId,
-      published,
-      facts: bound.facts
-    })
-    const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
-    if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
-      throw new Error('The action evidence policy is stale.')
-    const answered = await answer(
-      continuation,
-      policy,
-      resolution,
-      { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null },
-      pending.pause?.kind === 'D20_WINDOW' ? pending.pause.payload : null
-    )
-    if ('kind' in answered) return answered
-    result = answered
+    const window = pending.pause?.kind === 'ROLL_WINDOW' ? pending.pause.payload : null
+    if (resolution.kind === 'DAMAGE_REROLL') {
+      if (!window || !isDamageRollWindow(window))
+        throw new Error('The damage roll window evidence is stale.')
+      result = await replayEncounterDamageRollWindow({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        published,
+        facts: bound.facts,
+        window,
+        rerolled: resolution.rerolled
+      })
+      damageRerolled = true
+    } else {
+      const continuation = windowed ? windowed.continuation : pending.continuation
+      requireActionContinuation({
+        continuation,
+        occurrenceId: input.occurrenceId,
+        published,
+        facts: bound.facts
+      })
+      const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
+      if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
+        throw new Error('The action evidence policy is stale.')
+      const answered = await answer(
+        continuation,
+        policy,
+        resolution,
+        { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null },
+        window && !isDamageRollWindow(window) ? window : null
+      )
+      if ('kind' in answered) return answered
+      result = answered
+    }
   }
 
   const prompt = await rollUntilPrompt()
   if (prompt) return prompt
   if (result.status !== 'COMPLETE') throw new Error('The action did not settle.')
 
-  if (phase === 'SINGLE')
+  const damageHold = {
+    runtime: input.runtime,
+    adapter: input.adapter,
+    occurrenceId: input.occurrenceId,
+    costs: damageRerolled ? undefined : input.damageRerolls
+  }
+  if (phase === 'SINGLE') {
+    const heldDamage = stage.d20
+      ? null
+      : await holdEncounterDamageRoll({
+          ...damageHold,
+          published,
+          execution: result,
+          twoPhase,
+          phaseReceipts
+        })
+    if (heldDamage) return heldDamage
     return actionComplete({
       adapter: input.adapter,
       binding: input.binding,
@@ -1324,6 +1387,7 @@ export async function advanceNativeActionGraphs(input: {
         : null,
       nestedD20: null
     })
+  }
 
   if (phase === 'TEST') {
     if (!stage.d20 || input.plan.kind !== 'TEST_OUTCOME')
@@ -1506,6 +1570,16 @@ export async function advanceNativeActionGraphs(input: {
       evidence: nestedD20
     })
   if (!outcomeTemplate) throw new Error('The action OUTCOME template is unavailable.')
+  const heldDamage = nestedD20
+    ? null
+    : await holdEncounterDamageRoll({
+        ...damageHold,
+        published,
+        execution: result,
+        twoPhase,
+        phaseReceipts
+      })
+  if (heldDamage) return heldDamage
   phaseReceipts.push({
     phase: 'OUTCOME',
     template: outcomeTemplate,

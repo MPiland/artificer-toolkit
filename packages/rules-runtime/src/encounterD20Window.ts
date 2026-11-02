@@ -67,18 +67,26 @@ export type EncounterD20WindowHeldDie = D20HeldDieDto
 /** One die a window offers its decider: one the roller holds, or one a reactor rolls against the roll (D207). */
 export type EncounterD20WindowDie = D20HeldDieDto | D20WindowReactionDieDto
 
-/** What the roller answers: keeping the roll, or spending one offered die on it. */
+/**
+ * What the roller answers: keeping the roll, or spending one offered option on it. A damage roll's
+ * option names the dice it rolls again (D208).
+ */
 export type EncounterD20WindowSelection =
   | { kind: 'DECLINE' }
-  | { kind: 'USE'; optionId: string; faces?: readonly number[] }
+  | { kind: 'USE'; optionId: string; dice?: readonly string[]; faces?: readonly number[] }
 
 /** The selection a window answer carries; any other answer is not the window's. */
 export function encounterD20WindowSelection(
   resolution: ResolveRuleOccurrenceInputDto['resolution']
 ): EncounterD20WindowSelection {
-  if (resolution.kind === 'D20_WINDOW_USE')
-    return { kind: 'USE', optionId: resolution.optionId, faces: resolution.faces }
-  if (resolution.kind === 'D20_WINDOW_DECLINE') return { kind: 'DECLINE' }
+  if (resolution.kind === 'ROLL_WINDOW_USE')
+    return {
+      kind: 'USE',
+      optionId: resolution.optionId,
+      dice: resolution.dice,
+      faces: resolution.faces
+    }
+  if (resolution.kind === 'ROLL_WINDOW_DECLINE') return { kind: 'DECLINE' }
   throw new EncounterValidationError('The d20 window takes a use or a decline.')
 }
 
@@ -197,7 +205,7 @@ export async function openEncounterD20Window(input: {
     commandId: input.command.commandId,
     commandFingerprint: input.command.commandFingerprint,
     source: input.source,
-    pause: { kind: 'D20_WINDOW', payload }
+    pause: { kind: 'ROLL_WINDOW', payload }
   })
   return {
     context,
@@ -310,6 +318,8 @@ export async function settleEncounterD20Window(input: {
   const option = chosenEncounterD20WindowOption(window, selection)
   if (d20WindowRolledChecksum(rolled) !== window.offer.executionChecksum)
     throw new EncounterValidationError('The d20 window evidence is stale.')
+  if (selection.kind === 'USE' && selection.dice)
+    throw new EncounterValidationError('Only a damage roll’s window rerolls dice.')
   await settleEncounterSealedChoice({
     runtime: input.runtime,
     continuation: input.continuation,

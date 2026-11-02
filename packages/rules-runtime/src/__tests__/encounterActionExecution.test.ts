@@ -3,6 +3,8 @@ import {
   advanceNativeActionGraphs,
   executeNativeActionGraphs
 } from '../encounterActionExecution.js'
+import { settleEncounterDamageRollWindow } from '../encounterDamageRollWindow.js'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { DND5E_TARGET_STATE_CHECKSUM_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
@@ -663,5 +665,141 @@ describe('native phased action execution', () => {
     })
     // The grant stores no target state: the active effect it creates is the whole result.
     expect(result.applications).toEqual([])
+  })
+})
+
+describe('a damage roll window (SPELLS-31.T5e2a, D208)', () => {
+  const reroll = {
+    modifierId: '00000000-0000-4000-8000-0000000000e1',
+    label: 'Empowered Spell',
+    chargeId: 'sorcery-points',
+    cost: 1,
+    poolId: 'pool:sorcery-points',
+    maxDice: 1
+  }
+  const input = (damageRerolls?: (typeof reroll)[]) => ({
+    runtime: runtime(),
+    adapter: dnd5eCharacterRuleActionSystemAdapter,
+    plan: plan(attackAction({ dice: true })),
+    occurrenceId: OCCURRENCE_ID,
+    binding: binding({
+      attack: true,
+      outcomes: [
+        {
+          kind: 'DAMAGE',
+          outcomeId: 'damage-0',
+          pathCode: 'ON_HIT',
+          expression: '1d6',
+          damageTypeId: DAMAGE_TYPE_ID,
+          scaling: []
+        }
+      ]
+    }),
+    autoRoll: { SOURCE: true, TARGET: true },
+    afterTest: async () => undefined,
+    ...(damageRerolls ? { damageRerolls } : {})
+  })
+
+  /** The hit (natural 15) and its 1d6 rolled as a 4 by the system, with the window held after. */
+  async function heldDamage() {
+    const action = input([reroll])
+    const held = await advanceNativeActionGraphs({ ...action, random: deterministic([14, 3]) })
+    if (held.kind !== 'PENDING' || held.pause?.kind !== 'ROLL_WINDOW')
+      throw new Error('Expected the damage roll window.')
+    if (!isDamageRollWindow(held.pause.payload)) throw new Error('Expected a damage window.')
+    return { action, held, window: held.pause.payload }
+  }
+
+  it('leaves an action with no payable reroll unchanged', async () => {
+    const plain = await advanceNativeActionGraphs({ ...input(), random: deterministic([14, 3]) })
+    const empty = await advanceNativeActionGraphs({ ...input([]), random: deterministic([14, 3]) })
+    expect(plain.kind).toBe('COMPLETE')
+    expect(empty).toEqual(plain)
+  })
+
+  it('holds the rolled damage for its caster with the offered cost', async () => {
+    const { held, window } = await heldDamage()
+    expect(held.roller).toBe('SOURCE')
+    expect(held.d20Policy).toBeNull()
+    expect(held.phaseReceipts?.map(({ phase }) => phase)).toEqual(['TEST'])
+    expect(window.damage.dice).toEqual([{ requestId: expect.any(String), faces: 6, value: 4 }])
+    expect(window.offer.options).toEqual([{ ...reroll, optionId: expect.any(String) }])
+  })
+
+  it('applies the new roll of a rerolled die and never reopens the window', async () => {
+    const { action, held, window } = await heldDamage()
+    const [die] = window.damage.dice
+    const answer = await settleEncounterDamageRollWindow({
+      runtime: action.runtime,
+      window,
+      continuation: held.continuation,
+      selection: {
+        kind: 'USE',
+        optionId: window.offer.options[0]!.optionId,
+        dice: [die!.requestId]
+      },
+      random: deterministic([5])
+    })
+    expect(answer).toEqual({
+      kind: 'DAMAGE_REROLL',
+      option: window.offer.options[0],
+      rerolled: [{ requestId: die!.requestId, value: 6 }]
+    })
+    const complete = await advanceNativeActionGraphs({
+      ...action,
+      resume: { pending: held, resolution: answer },
+      random: deterministic([])
+    })
+    expect(complete.kind).toBe('COMPLETE')
+    if (complete.kind !== 'COMPLETE') throw new Error('Expected the completed action.')
+    expect(complete.applications).toMatchObject([{ kind: 'DAMAGE', appliedAmount: 6 }])
+    expect(complete.phaseReceipts?.map(({ phase }) => phase)).toEqual(['TEST', 'OUTCOME'])
+  })
+
+  it('keeps the roll when the caster declines', async () => {
+    const { action, held, window } = await heldDamage()
+    const answer = await settleEncounterDamageRollWindow({
+      runtime: action.runtime,
+      window,
+      continuation: held.continuation,
+      selection: { kind: 'DECLINE' },
+      random: deterministic([])
+    })
+    expect(answer).toEqual({ kind: 'DAMAGE_REROLL', option: null, rerolled: [] })
+    const complete = await advanceNativeActionGraphs({
+      ...action,
+      resume: { pending: held, resolution: answer },
+      random: deterministic([])
+    })
+    if (complete.kind !== 'COMPLETE') throw new Error('Expected the completed action.')
+    expect(complete.applications).toMatchObject([{ kind: 'DAMAGE', appliedAmount: 4 }])
+  })
+
+  it('refuses a die the roll did not roll, more dice than offered, or a face past the die', async () => {
+    const { action, held, window } = await heldDamage()
+    const optionId = window.offer.options[0]!.optionId
+    const [die] = window.damage.dice
+    const settle = (
+      selection: Parameters<typeof settleEncounterDamageRollWindow>[0]['selection']
+    ) =>
+      settleEncounterDamageRollWindow({
+        runtime: action.runtime,
+        window,
+        continuation: held.continuation,
+        selection,
+        random: deterministic([0, 0])
+      })
+    await expect(settle({ kind: 'USE', optionId, dice: ['forged'] })).rejects.toThrow(
+      'A damage reroll names a die the roll did not roll.'
+    )
+    await expect(
+      settle({ kind: 'USE', optionId, dice: [die!.requestId, 'forged'] })
+    ).rejects.toThrow('A damage reroll names from one to its most rolled dice')
+    await expect(
+      settle({ kind: 'USE', optionId, dice: [die!.requestId], faces: [7] })
+    ).rejects.toThrow('A rerolled face exceeds its die.')
+    await expect(settle({ kind: 'USE', optionId: 'f'.repeat(64), dice: [] })).rejects.toThrow(
+      'The damage roll window option was not offered.'
+    )
   })
 })

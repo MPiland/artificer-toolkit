@@ -182,7 +182,7 @@ describe('room massive-damage save with a die the holder keeps for after the d20
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     return { decision, pending: decision.pending }
   }
 
@@ -191,7 +191,7 @@ describe('room massive-damage save with a die the holder keeps for after the d20
     opened: Awaited<ReturnType<typeof openWindow>>
   ) =>
     room.resolve(opened.decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: opened.pending.requestId,
       optionId: opened.pending.options[0]!.optionId,
       faces: [4]
@@ -227,7 +227,7 @@ describe('room massive-damage save with a die the holder keeps for after the d20
     const before = await readRoomHistory(room.room.base.stub)
     const opened = await openWindow(room)
     const settled = await room.resolve(opened.decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: opened.pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')

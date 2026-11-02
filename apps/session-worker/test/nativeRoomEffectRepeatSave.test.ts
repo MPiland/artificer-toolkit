@@ -161,7 +161,7 @@ describe('room Hideous Laughter repeat save with a die the holder keeps for afte
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     // Nothing settles while the window pends.
     const paused = await readRoomHistory(room.room.base.stub)
     expect(repeatSaveChecks(paused)).toEqual([])
@@ -177,7 +177,7 @@ describe('room Hideous Laughter repeat save with a die the holder keeps for afte
       options: [{ label: 'Resistance', count: 1, faces: 4, sign: 'ADD' }]
     })
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [4]
@@ -198,7 +198,7 @@ describe('room Hideous Laughter repeat save with a die the holder keeps for afte
   it('keeps the roll, the die and the effect when declined', async () => {
     const { room, before, decision, pending } = await openWindow()
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')

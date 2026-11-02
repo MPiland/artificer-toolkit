@@ -330,12 +330,12 @@ export const movementReactionActionEvidenceCommandDtoSchema = lazySchema(() =>
     z.strictObject({
       ...movementResolutionCommandBaseShape(),
       requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-      kind: z.literal('D20_WINDOW_DECLINE')
+      kind: z.literal('ROLL_WINDOW_DECLINE')
     }),
     z.strictObject({
       ...movementResolutionCommandBaseShape(),
       requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-      kind: z.literal('D20_WINDOW_USE'),
+      kind: z.literal('ROLL_WINDOW_USE'),
       optionId: checksumSchema
     })
   ])

@@ -21,7 +21,7 @@ import {
   castModifierActivation,
   castModifierExtendsDuration,
   castModifierRange,
-  castModifierTargetCap,
+  castModifierCountCap,
   sparedCreatureCap,
   type CastModifierSource,
   type SparesCreaturesSource
@@ -286,57 +286,79 @@ export function buildCharacterSpellCastActions(input: {
             )
       if (pool === undefined) continue
       const resourceUse = pool && { poolId: pool.poolId, chargeId: pool.chargeId, cost: 1 }
-      const offeredModifiers = resourceUse
-        ? []
-        : (input.castModifiers ?? []).flatMap(({ modifierId, label, cost: authored }) => {
-            const cost = { ...authored, cost: castModifierCostAtLevel(authored, cast.castLevel) }
-            const fitsSpell =
-              !cost.parameters ||
-              (castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null &&
-                castModifierActivation(cost.parameters, mechanicFacts.invocation.activation) !==
-                  null &&
-                castModifierExtendsDuration(
-                  cost.parameters,
-                  group.entries.map((entry) =>
-                    'duration' in entry && entry.duration
-                      ? conditionDurationTurns(entry.duration)
-                      : null
-                  )
-                ))
-            const modifierPool =
-              !fitsSpell ||
-              (cost.targets?.outcome === 'EXTRA_TARGET' && !aimsAtOneCreature(group.invocation))
-                ? null
-                : affordablePoolFor(policyOutput.resources, cost)
-            return modifierPool
-              ? [
-                  {
-                    modifierId,
-                    label,
-                    chargeId: cost.chargeId,
-                    cost: cost.cost,
-                    poolId: modifierPool.poolId,
-                    ...(cost.parameters && { parameters: cost.parameters }),
-                    ...(cost.targets && {
-                      targets: {
-                        outcome: cost.targets.outcome,
-                        max: castModifierTargetCap(
-                          cost.targets,
-                          (abilityDefinitionId) =>
-                            policyOutput.derivedStats.abilities.find(
-                              (entry) =>
-                                entry.abilityId ===
-                                abilityScoreCapabilityRegistry
-                                  .require(input.gameSystemId)
-                                  .abilityCode(abilityDefinitionId)
-                            )?.modifier.effective ?? 0
-                        )
-                      }
-                    })
-                  }
-                ]
-              : []
-          })
+      const abilityModifier = (abilityDefinitionId: string) =>
+        policyOutput.derivedStats.abilities.find(
+          (entry) =>
+            entry.abilityId ===
+            abilityScoreCapabilityRegistry
+              .require(input.gameSystemId)
+              .abilityCode(abilityDefinitionId)
+        )?.modifier.effective ?? 0
+      const payableModifiers = (resourceUse ? [] : (input.castModifiers ?? [])).map(
+        ({ modifierId, label, cost: authored }) => ({
+          modifierId,
+          label,
+          cost: { ...authored, cost: castModifierCostAtLevel(authored, cast.castLevel) }
+        })
+      )
+      // A damage reroll is paid once the damage is rolled, so it is offered apart from the cast's own costs.
+      const damageRerolls = payableModifiers.flatMap(({ modifierId, label, cost }) => {
+        if (!cost.damageRerolls) return []
+        const modifierPool = affordablePoolFor(policyOutput.resources, cost)
+        const maxDice = castModifierCountCap(cost.damageRerolls, abilityModifier)
+        return modifierPool && maxDice > 0
+          ? [
+              {
+                modifierId,
+                label,
+                chargeId: cost.chargeId,
+                cost: cost.cost,
+                poolId: modifierPool.poolId,
+                maxDice
+              }
+            ]
+          : []
+      })
+      const offeredModifiers = payableModifiers
+        .filter(({ cost }) => !cost.damageRerolls)
+        .flatMap(({ modifierId, label, cost }) => {
+          const fitsSpell =
+            !cost.parameters ||
+            (castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null &&
+              castModifierActivation(cost.parameters, mechanicFacts.invocation.activation) !==
+                null &&
+              castModifierExtendsDuration(
+                cost.parameters,
+                group.entries.map((entry) =>
+                  'duration' in entry && entry.duration
+                    ? conditionDurationTurns(entry.duration)
+                    : null
+                )
+              ))
+          const modifierPool =
+            !fitsSpell ||
+            (cost.targets?.outcome === 'EXTRA_TARGET' && !aimsAtOneCreature(group.invocation))
+              ? null
+              : affordablePoolFor(policyOutput.resources, cost)
+          return modifierPool
+            ? [
+                {
+                  modifierId,
+                  label,
+                  chargeId: cost.chargeId,
+                  cost: cost.cost,
+                  poolId: modifierPool.poolId,
+                  ...(cost.parameters && { parameters: cost.parameters }),
+                  ...(cost.targets && {
+                    targets: {
+                      outcome: cost.targets.outcome,
+                      max: castModifierCountCap(cost.targets, abilityModifier)
+                    }
+                  })
+                }
+              ]
+            : []
+        })
       const spareCap = sparedCreatureCap(input.sparesCreatures ?? [], {
         level: cast.spellLevel,
         magicSchoolId: spell.magicSchoolId
@@ -355,6 +377,7 @@ export function buildCharacterSpellCastActions(input: {
         resourceUse,
         spellLevel: cast.spellLevel,
         ...(offeredModifiers.length > 0 && { castModifiers: offeredModifiers }),
+        ...(damageRerolls.length > 0 && { damageRerolls }),
         ...(spareCap > 0 && { sparesCreatures: { max: spareCap } }),
         mechanicFacts
       })

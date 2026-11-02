@@ -41,20 +41,20 @@ export function timedReactionOffer(pending: PendingEncounterRuleOccurrenceSummar
   if (
     (pending.kind !== 'REACTION_CHOICE' &&
       pending.kind !== 'MOVEMENT_REACTION' &&
-      pending.kind !== 'D20_WINDOW') ||
+      pending.kind !== 'ROLL_WINDOW') ||
     !pending.answerBy
   )
     return null
   const answerBy = Date.parse(pending.answerBy)
-  if (pending.kind === 'D20_WINDOW') {
+  if (pending.kind === 'ROLL_WINDOW') {
     const [first] = pending.options
     const { requestId } = pending
     return {
       answerBy,
       take: first
-        ? { kind: 'D20_WINDOW_USE', requestId, optionId: first.optionId }
-        : { kind: 'D20_WINDOW_DECLINE', requestId },
-      decline: { kind: 'D20_WINDOW_DECLINE', requestId }
+        ? { kind: 'ROLL_WINDOW_USE', requestId, optionId: first.optionId }
+        : { kind: 'ROLL_WINDOW_DECLINE', requestId },
+      decline: { kind: 'ROLL_WINDOW_DECLINE', requestId }
     }
   }
   const [first] = pending.kind === 'MOVEMENT_REACTION' ? pending.choice.options : pending.options
@@ -156,7 +156,8 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'ACTION_OUTCOME_EVIDENCE') return 'Action outcome required'
   if (kind === 'AREA_SAVES') return 'Area saves'
   if (kind === 'CONTEST_CHECK') return 'Contest check'
-  if (kind === 'D20_WINDOW') return 'Add a die to the roll?'
+  if (kind === 'ROLL_WINDOW') return 'Add a die to the roll?'
+  if (kind === 'DAMAGE_ROLL_WINDOW') return 'Reroll damage dice?'
   return 'Initiative order required'
 }
 

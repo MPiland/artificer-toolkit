@@ -6,6 +6,7 @@ import type {
   ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt/scene'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type {
@@ -282,8 +283,8 @@ export async function evaluateEncounterMovementActionResponse<
       resolution.kind !== 'ENTER_DICE' &&
       resolution.kind !== 'ENTER_INTEGER' &&
       resolution.kind !== 'SYSTEM_ROLL' &&
-      resolution.kind !== 'D20_WINDOW_USE' &&
-      resolution.kind !== 'D20_WINDOW_DECLINE'
+      resolution.kind !== 'ROLL_WINDOW_USE' &&
+      resolution.kind !== 'ROLL_WINDOW_DECLINE'
     )
       throw new Error('Movement response does not match the issued action evidence.')
     resolutionCommands = appendEncounterMovementReactionActionEvidenceCommand({
@@ -460,8 +461,8 @@ export async function evaluateEncounterMovementActionResponse<
           (resolution.kind === 'ENTER_DICE' ||
             resolution.kind === 'ENTER_INTEGER' ||
             resolution.kind === 'SYSTEM_ROLL' ||
-            resolution.kind === 'D20_WINDOW_USE' ||
-            resolution.kind === 'D20_WINDOW_DECLINE')
+            resolution.kind === 'ROLL_WINDOW_USE' ||
+            resolution.kind === 'ROLL_WINDOW_DECLINE')
             ? { resume: { pending: prior, resolution } }
             : {})
         })))
@@ -486,6 +487,9 @@ export async function evaluateEncounterMovementActionResponse<
       }
     }
     if (execution.kind === 'PENDING') {
+      // Only a Character's own action opens a damage roll's window (D208).
+      if (execution.pause?.kind === 'ROLL_WINDOW' && isDamageRollWindow(execution.pause.payload))
+        throw new Error('A movement reaction opens no damage roll window.')
       const pendingSnapshot = bindEncounterMovementMaintenancePending(
         retainEncounterMovementReactionActionEvidence({
           continuation: execution.continuation,
@@ -499,7 +503,10 @@ export async function evaluateEncounterMovementActionResponse<
           ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
           ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
-          ...(execution.pause?.kind === 'D20_WINDOW' ? { pause: execution.pause } : {}),
+          ...(execution.pause?.kind === 'ROLL_WINDOW' &&
+          !isDamageRollWindow(execution.pause.payload)
+            ? { pause: { kind: 'ROLL_WINDOW' as const, payload: execution.pause.payload } }
+            : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
         }),
         prepared.maintenance

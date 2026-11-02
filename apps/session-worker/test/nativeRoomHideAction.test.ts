@@ -797,7 +797,7 @@ describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T
     await hide(fixture, 5)
     expect(await concealmentOutputs(fixture)).toEqual([])
     const decision = await fixture.room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     return { decision, pending: decision.pending }
   }
 
@@ -812,7 +812,7 @@ describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T
     expect(await activeEffects(fixture)).toHaveLength(1)
 
     const settled = await fixture.room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -845,7 +845,7 @@ describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T
     const fixture = await hideRoom({ seed: heldDieSeed(heldDieEffect()) })
     const { decision, pending } = await openWindow(fixture)
     const settled = await fixture.room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
@@ -859,7 +859,7 @@ describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T
     const { decision, pending } = await openWindow(fixture)
     expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
     const settled = await fixture.room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [4, 2]
@@ -887,6 +887,6 @@ describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T
     })
     await hide(fixture, 5)
     const decision = await fixture.room.pendingDecision()
-    expect(decision.pending.kind).toBe('D20_WINDOW')
+    expect(decision.pending.kind).toBe('ROLL_WINDOW')
   })
 })

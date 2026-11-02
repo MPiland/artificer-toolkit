@@ -1,6 +1,7 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import {
   canAnswerNativeActionEvidence,
   projectNativeActionPending,
@@ -139,7 +140,7 @@ function reactionOffer(
 ): {
   offer: Extract<
     PendingEncounterRuleOccurrenceSummaryDto,
-    { kind: 'REACTION_CHOICE' | 'MOVEMENT_REACTION' | 'D20_WINDOW' }
+    { kind: 'REACTION_CHOICE' | 'MOVEMENT_REACTION' | 'ROLL_WINDOW' }
   >
   reactorActorId: string
 } | null {
@@ -150,12 +151,15 @@ function reactionOffer(
   const context = pendingSnapshot.applicationContext
   // Only a reactor's die against another creature's roll is a reaction; a roller's own window waits.
   const reactorActorId =
-    pending.kind === 'D20_WINDOW' &&
+    pending.kind === 'ROLL_WINDOW' &&
     context.kind === 'ENCOUNTER_ACTION' &&
-    context.pause?.kind === 'D20_WINDOW'
+    context.pause?.kind === 'ROLL_WINDOW' &&
+    !isDamageRollWindow(context.pause.payload)
       ? d20WindowReactorActorId(context.pause.payload)
       : null
-  return pending.kind === 'D20_WINDOW' && reactorActorId ? { offer: pending, reactorActorId } : null
+  return pending.kind === 'ROLL_WINDOW' && reactorActorId
+    ? { offer: pending, reactorActorId }
+    : null
 }
 
 type PendingSnapshot = NonNullable<Awaited<ReturnType<typeof readPendingSnapshot>>>

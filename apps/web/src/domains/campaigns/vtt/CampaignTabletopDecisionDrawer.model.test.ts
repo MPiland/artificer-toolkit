@@ -29,14 +29,14 @@ describe('timedReactionOffer (D207)', () => {
   })
   const window = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...head,
-    kind: 'D20_WINDOW',
+    kind: 'ROLL_WINDOW',
     rollerActorId: '33333333-3333-4333-8333-333333333333',
     requestId: 'window-1',
     d20: { selectedNatural: 10, total: 14 },
     options: [
       { optionId: 'c'.repeat(64), label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT' }
     ],
-    allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+    allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
   })
 
   it('takes the first offered reaction on Enter and declines on Esc, by the server deadline', () => {
@@ -50,8 +50,8 @@ describe('timedReactionOffer (D207)', () => {
   it('uses a reactor’s first held die in a d20 window, without faces', () => {
     expect(timedReactionOffer({ ...window, answerBy })).toEqual({
       answerBy: Date.parse(answerBy),
-      take: { kind: 'D20_WINDOW_USE', requestId: 'window-1', optionId: 'c'.repeat(64) },
-      decline: { kind: 'D20_WINDOW_DECLINE', requestId: 'window-1' }
+      take: { kind: 'ROLL_WINDOW_USE', requestId: 'window-1', optionId: 'c'.repeat(64) },
+      decline: { kind: 'ROLL_WINDOW_DECLINE', requestId: 'window-1' }
     })
   })
 

@@ -100,8 +100,8 @@ async function readRoomReactionTimeout(host: RoomReactionTimeoutHost, epoch: str
         occurrenceId: pending.occurrenceId,
         expectedOccurrenceVersion: pending.occurrenceVersion,
         resolution:
-          pending.kind === 'D20_WINDOW'
-            ? { kind: 'D20_WINDOW_DECLINE', requestId: pending.requestId }
+          pending.kind === 'ROLL_WINDOW'
+            ? { kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId }
             : { kind: 'DECLINE' }
       }
     }

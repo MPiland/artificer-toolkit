@@ -166,7 +166,7 @@ const movementReactionPendingPhaseDtoSchema = lazySchema(() =>
       heldD20: z.optional(encounterActionHeldD20DtoSchema),
       twoPhase: z.optional(z.nullable(z.lazy(() => directActionTwoPhaseDtoSchema))),
       /** The mover's save a d20 window holds for a die the mover keeps for after the roll (D168, D203). */
-      pause: z.optional(encounterPauseVariants().D20_WINDOW)
+      pause: z.optional(encounterPauseVariants().ROLL_WINDOW)
     }),
     z.strictObject({
       kind: z.literal('LEGENDARY_RESISTANCE_CHOICE'),

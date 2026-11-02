@@ -152,7 +152,7 @@ async function rollAttack(room: Room) {
 async function openWindow(room: Room) {
   await rollAttack(room)
   const decision = await room.pendingDecision()
-  if (decision.pending.kind !== 'D20_WINDOW')
+  if (decision.pending.kind !== 'ROLL_WINDOW')
     throw new Error(`Expected the d20 window, got ${decision.pending.kind}.`)
   return { decision, pending: decision.pending }
 }
@@ -211,7 +211,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     const hitPoints = await targetHitPoints(room)
     const { decision, pending } = await openWindow(room)
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -233,7 +233,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     const hitPoints = await targetHitPoints(room)
     const { decision, pending } = await openWindow(room)
     const declined = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
@@ -271,7 +271,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
       options: [{ label: 'Heckle', count: 1, faces: 4, sign: 'SUBTRACT' }]
     })
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [2]

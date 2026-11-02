@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingApplication'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -133,7 +134,7 @@ type CastPendingContext = {
     /** The failed ward save whose attacker is offered another creature to turn the action on. */
     | { kind: 'ATTACK_RETARGET'; payload: { gate: { effectId: string } } }
     | {
-        kind: 'D20_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
+        kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT'
         payload: unknown
       }
   failedCounters?: readonly PendingCounter[]
@@ -323,7 +324,7 @@ export function offeredDecisionOptionIds(context: {
         kind: 'ON_HIT' | 'ATTACK_RETARGET'
         payload: { options: readonly { useOptionId: string }[] }
       }
-    | { kind: 'INCOMING_GATE' | 'FORCED_MOVEMENT' | 'D20_WINDOW'; payload: unknown }
+    | { kind: 'INCOMING_GATE' | 'FORCED_MOVEMENT' | 'ROLL_WINDOW'; payload: unknown }
     | null
 }): string[] {
   const { pause } = context
@@ -408,10 +409,27 @@ export function projectNativeActionPending(
         })),
         allowedResponses: ['DECLINE', 'OPTION']
       }
-    case 'D20_WINDOW': {
+    case 'ROLL_WINDOW': {
+      if (isDamageRollWindow(pause.payload))
+        return {
+          kind: 'DAMAGE_ROLL_WINDOW',
+          occurrenceId: occurrence.id,
+          occurrenceVersion: occurrence.version,
+          encounterVersion: occurrence.expectedEncounterVersion,
+          rollerActorId: context.rollerActorId,
+          requestId: snapshot.request.requestId,
+          dice: pause.payload.damage.dice,
+          options: pause.payload.offer.options.map(({ optionId, label, cost, maxDice }) => ({
+            optionId,
+            label,
+            cost,
+            maxDice
+          })),
+          allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
+        }
       const { rolled, offer } = pause.payload
       return {
-        kind: 'D20_WINDOW',
+        kind: 'ROLL_WINDOW',
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
         encounterVersion: occurrence.expectedEncounterVersion,
@@ -425,7 +443,7 @@ export function projectNativeActionPending(
           faces,
           sign
         })),
-        allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+        allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
       }
     }
     case 'FORCED_MOVEMENT':

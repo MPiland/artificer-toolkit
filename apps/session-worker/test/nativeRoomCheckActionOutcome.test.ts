@@ -382,7 +382,7 @@ describe('a homebrew check action whose roller rolls their own dice, in the room
     // 5 + 3 = 8 misses DC 10; the Guidance die is offered before the check settles.
     await enterD20(room, 5)
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     const { pending } = decision
     expect(pending).toMatchObject({
       rollerActorId: STRIKER_ID,
@@ -392,7 +392,7 @@ describe('a homebrew check action whose roller rolls their own dice, in the room
     expect((await settled(room)).activeEffects).toHaveLength(1)
 
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -422,9 +422,9 @@ describe('a homebrew check action whose roller rolls their own dice, in the room
     await strike(room)
     await enterD20(room, 5)
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     const declined = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: decision.pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
