@@ -19052,7 +19052,7 @@
               "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged. Merged in m603 (097f8ebb7)."
             },
             {
-              "id": "SPELLS-31.T4c3b",
+              "id": "SPELLS-31.T4c3b1",
               "status": "TODO",
               "closes": [
                 "SPELLS-31.1"
@@ -19066,9 +19066,27 @@
                   "SPELLS-31.T4c3a"
                 ]
               },
-              "text": "Cutting Words at the table: a chained window for a non-roller, discovery, reaction and charge commit, the drawer, a homebrew variant and a room journey. Deletes the closed kind.",
-              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged.",
+              "text": "Cutting Words on action attacks: a chained window for each qualifying non-roller, discovery, reaction and charge commit with undo, the SRD reaction attached and the closed kind deleted, a homebrew variant and a session-worker room journey. Single-target action attacks only.",
+              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged. Split again on seam trace (5 + 3); user approved T4c3b2 growth 2026-11-02.",
               "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+            },
+            {
+              "id": "SPELLS-31.T4c3b2",
+              "text": "Cutting Words on opportunity attacks (movement-reaction path and its replay) and the reactor's answer drawer, with a browser journey under an existing proof name.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-31.T4c3b1"
+                ]
+              },
+              "note": "Split from T4c3b on seam trace; user approved the growth 2026-11-02 (D187)."
             },
             {
               "id": "SPELLS-31.T4r",
@@ -19083,7 +19101,7 @@
                 "rr": 3,
                 "size": 5,
                 "after": [
-                  "SPELLS-31.T4c3b"
+                  "SPELLS-31.T4c3b1"
                 ]
               },
               "note": "User approved (D207). Amends D26/D115: a reaction pause no longer waits without limit."
@@ -19703,7 +19721,7 @@
                 "size": 8,
                 "after": [
                   "SPELLS-31.T5e",
-                  "SPELLS-31.T4c3b",
+                  "SPELLS-31.T4c3b1",
                   "SPELLS-31.T4c2c"
                 ]
               },
