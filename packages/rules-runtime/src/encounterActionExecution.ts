@@ -7,6 +7,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   actionD20Policy,
   actionRequestRoller,
+  asksForOptionalDie,
   requireActionContinuation,
   type EncounterActionRoller,
   type NativeTwoPhase
@@ -141,7 +142,7 @@ export async function executeNativeActionGraphs(input: {
       requests.add(request.requestId)
       const isNestedSave = nestedPolicy?.requestNodeId === request.nodeId
       if (
-        phase === 'TEST' ||
+        (phase === 'TEST' && !asksForOptionalDie(continuation)) ||
         isNestedSave ||
         (phase === 'SINGLE' && bound.d20Audit && request.min === 1 && request.max === 20)
       ) {
@@ -388,7 +389,7 @@ async function requireNativeTestBoundary(input: {
   })
   if (checksumRuleDocument(evidence) !== checksumRuleDocument(boundary.d20))
     throw new Error('The native action TEST evidence is stale.')
-  const replayed = await resumeEncounterD20({
+  let replayed = await resumeEncounterD20({
     continuation: boundary.continuation,
     natural: boundary.d20.selectedNatural,
     addedDice: boundary.d20.addedDice ?? [],
@@ -396,6 +397,19 @@ async function requireNativeTestBoundary(input: {
     mayAddDice: true,
     resume: (step) => input.source.runtime.resume(step)
   })
+  // The dice the TEST rolled after its d20 are read back from the execution that sealed them.
+  while (replayed.status === 'PAUSED') {
+    const { request } = replayed.continuation
+    const sealed = boundary.execution.evidence.trace.find(
+      (entry) => entry.nodeId === request.nodeId
+    )?.evidence
+    if (sealed?.kind !== 'INTEGER_RANGE' || sealed.requestId !== request.requestId)
+      throw new Error('The native action TEST execution is stale.')
+    replayed = await input.source.runtime.resume({
+      continuation: replayed.continuation,
+      response: { requestId: request.requestId, value: sealed.value }
+    })
+  }
   if (checksumRuleDocument(replayed) !== checksumRuleDocument(boundary.execution))
     throw new Error('The native action TEST execution is stale.')
   return current
@@ -623,6 +637,31 @@ export async function prepareNativeActionTest(
       continuation: result.continuation,
       natural: automatic.value,
       addedDice,
+      mayAddDice,
+      resume: (step) => input.runtime.resume(step)
+    })
+  }
+  // The dice a TEST rolls once its d20 has chosen the path are the System's, as an OUTCOME's are.
+  while (
+    result.status === 'PAUSED' &&
+    !actionD20Policy({
+      phase: 'TEST',
+      continuation: result.continuation,
+      bound: current.bound,
+      twoPhase: testPhase
+    })
+  ) {
+    const die = actionResponse({
+      gameSystemId: current.published.gameSystemId,
+      continuation: result.continuation,
+      policy: null,
+      resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
+      random
+    })
+    result = await resumeEncounterD20({
+      continuation: result.continuation,
+      natural: die.value,
+      addedDice: [],
       mayAddDice,
       resume: (step) => input.runtime.resume(step)
     })

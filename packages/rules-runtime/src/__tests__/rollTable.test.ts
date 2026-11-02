@@ -17,6 +17,7 @@ import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointC
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
+import { dnd5eRollTableRerollFaceOperation } from '../systems/dnd5e/effectActionOperationRegistry.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -62,6 +63,24 @@ function row(
       resultKind: outcomes.length > 1 ? 'SEQUENCE' : 'SINGLE',
       outcomes,
       ...block
+    }
+  }
+}
+
+/** The row that rolls the table `count` more times on `face`, rerolling the `rerolled` faces. */
+function repeatRow(face: number, count: number, rerolled: readonly number[]): TableRow {
+  return {
+    id: testUuid(0xa141),
+    order: 9,
+    rollRange: [face, face],
+    resolutionKind: 'REPEAT_TABLE',
+    repeat: {
+      count,
+      rerollValues: rerolled.map((value, index) => ({
+        id: testUuid(0xa150 + index),
+        order: index + 1,
+        value
+      }))
     }
   }
 }
@@ -201,16 +220,22 @@ function cast(
     damageDie = 1,
     dc = UNSAVEABLE_DC,
     ability = CHARISMA,
-    tableDie = 6
+    tableDie = 6,
+    rerollMax = 0,
+    rerolls = []
   }: {
     tableRoll: number
     damageDie?: number
     dc?: number | null
     ability?: string
     tableDie?: number
+    /** The bound on a repeat's reroll index, and the 1-based indexes it lands on, in order. */
+    rerollMax?: number
+    rerolls?: readonly number[]
   }
 ) {
   const rolled: number[] = []
+  const pendingRerolls = [...rerolls]
   return executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({
       definitions: {
@@ -251,6 +276,8 @@ function cast(
     random: (maxExclusive) => {
       rolled.push(maxExclusive)
       if (maxExclusive === 20) return 9
+      if (maxExclusive === rerollMax && pendingRerolls.length > 0)
+        return pendingRerolls.shift()! - 1
       if (maxExclusive === tableDie) return tableRoll - 1
       return damageDie - 1
     }
@@ -377,18 +404,9 @@ describe('roll table outcomes (ATTACK-16.T1a)', () => {
 
   it.each([
     [
-      'a repeat row',
-      [
-        row(1, [1, 5], [blinded]),
-        {
-          id: testUuid(0xa141),
-          order: 2,
-          rollRange: [6, 6],
-          resolutionKind: 'REPEAT_TABLE',
-          repeat: { count: 2, rerollValues: [{ id: testUuid(0xa142), order: 1, value: 6 }] }
-        } satisfies TableRow
-      ],
-      /roll table repeats/
+      'a repeat that can roll its own face again',
+      [row(1, [1, 5], [blinded]), repeatRow(6, 2, [1])],
+      /reroll its own faces/
     ],
     [
       'a row that heals',
@@ -454,6 +472,10 @@ const LASTING_ROWS = [
 
 // The authored spell with the rows its later tasks build emptied: they owe nothing yet.
 function sprayWithRowsEmptiedFrom(firstEmptied: number): SpellAuthored {
+  return sprayWithRowsEmptied((order) => order >= firstEmptied)
+}
+
+function sprayWithRowsEmptied(emptied: (order: number) => boolean): SpellAuthored {
   return {
     ...prismaticSpray,
     effects: prismaticSpray.effects!.map((effect) => ({
@@ -463,7 +485,7 @@ function sprayWithRowsEmptiedFrom(firstEmptied: number): SpellAuthored {
           ? {
               ...path,
               rows: path.rows.map((tableRow) =>
-                tableRow.order >= firstEmptied
+                emptied(tableRow.order)
                   ? {
                       id: tableRow.id,
                       order: tableRow.order,
@@ -657,5 +679,93 @@ describe('a roll table on a test-less action (ATTACK-16.T1c2a)', () => {
     expect(() =>
       compileTable({ ...spell, effects: [{ ...effect!, paths: [path!, direct] }] })
     ).toThrow(/roll table path must not mix direct outcomes/)
+  })
+})
+
+describe('a roll table row that rolls the table again (SPELLS-4.T2ps-d1)', () => {
+  const REPEAT_ROWS = [
+    row(1, [1, 2], [blinded]),
+    row(2, [3, 4], [fixedFire]),
+    row(3, [5, 5], [deafened]),
+    repeatRow(6, 2, [6])
+  ]
+  const repeatCast = (
+    tableRoll: number,
+    rerolls: readonly number[],
+    options: { dc?: number } = {}
+  ) => cast(tableSpell({ rows: REPEAT_ROWS }), { tableRoll, rerollMax: 5, rerolls, ...options })
+
+  it('rolls the die and its rerolls in the TEST, then applies the rows they landed on', async () => {
+    const result = await repeatCast(6, [1, 3])
+    expect(result.applications).toMatchObject([
+      { kind: 'CONDITION_APPLY', conditionId: BLINDED },
+      { kind: 'DAMAGE', requestedAmount: 5 }
+    ])
+    expect(result.rolled).toEqual([20, 6, 5, 5])
+    // The OUTCOME holds the rolled rows' gates alone: it rolls nothing itself.
+    expect(traceOf(result).map(({ nodeId }) => nodeId)).toEqual(
+      expect.arrayContaining(['roll-table-ray-1', 'roll-table-ray-2'])
+    )
+  })
+
+  it('rolls no reroll when the die lands on a row of its own, and none when the save is made', async () => {
+    const landed = await repeatCast(3, [1, 1])
+    expect(landed.applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 5 }])
+    expect(landed.rolled).toEqual([20, 6])
+    const saved = await repeatCast(6, [1, 1], { dc: 1 })
+    expect(saved.applications).toEqual([])
+    expect(saved.rolled).toEqual([20])
+  })
+
+  it('rolls a reroll only among the faces it does not reroll', () => {
+    const faces = [1, 2, 3, 4, 5].map(
+      (index) => dnd5eRollTableRerollFaceOperation.execute({ index, faces: 6, excluded: '6' }).face
+    )
+    expect(faces).toEqual([1, 2, 3, 4, 5])
+    expect(() =>
+      dnd5eRollTableRerollFaceOperation.execute({ index: 6, faces: 6, excluded: '6' })
+    ).toThrow()
+  })
+
+  it('refuses a repeat that can roll its own face again, and a test-less action with one', () => {
+    expect(() =>
+      compileTable(tableSpell({ rows: [row(1, [1, 5], [blinded]), repeatRow(6, 2, [1])] }))
+    ).toThrow(/reroll its own faces/)
+    expect(() => compileTable(selfTableSpell({ rows: REPEAT_ROWS }))).toThrow(/repeats need a test/)
+  })
+
+  describe('on Prismatic Spray', () => {
+    const DEXTERITY = SRD_ABILITIES.find(({ code }) => code === 'DEXTERITY')!.id
+    // Rows 6 and 7 last, which waits on SPELLS-4.T2ps-d2; they owe nothing here.
+    const spray = sprayWithRowsEmptied((order) => order === 6 || order === 7)
+    const sprayCast = (dc: number) =>
+      cast(spray, {
+        tableRoll: 8,
+        damageDie: 3,
+        dc,
+        ability: DEXTERITY,
+        tableDie: 8,
+        rerollMax: 7,
+        rerolls: [1, 4]
+      })
+    const rolledDice = [20, 8, 7, 7, ...Array<number>(20).fill(6)]
+
+    it('rolls the two extra rays in the TEST, within the graph node bound', async () => {
+      const failed = await sprayCast(UNSAVEABLE_DC)
+      expect(failed.applications).toMatchObject([
+        { kind: 'DAMAGE', requestedAmount: 30 },
+        { kind: 'DAMAGE', requestedAmount: 30 }
+      ])
+      expect(failed.rolled).toEqual(rolledDice)
+    })
+
+    it('halves each ray for a creature that saves', async () => {
+      const saved = await sprayCast(1)
+      expect(saved.applications).toMatchObject([
+        { kind: 'DAMAGE', requestedAmount: 15 },
+        { kind: 'DAMAGE', requestedAmount: 15 }
+      ])
+      expect(saved.rolled).toEqual(rolledDice)
+    })
   })
 })

@@ -10,6 +10,7 @@ import {
 import {
   addNumbersRuleOperation,
   compareThresholdRuleOperation,
+  selectNumberRuleOperation,
   type CompiledRuleGraph,
   type RuleValue
 } from '@artificer-toolkit/shared/rules'
@@ -66,6 +67,8 @@ import {
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
   ROLL_TABLE_DICE_NODE_PREFIX,
+  ROLL_TABLE_FACE_OUTPUT,
+  ROLL_TABLE_TEST_NODE_PREFIX,
   proposalNodePathCode,
   positive
 } from './effectActionContracts.js'
@@ -83,6 +86,7 @@ import {
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5eNestedSaveGateOperation,
   dnd5eRollTableRowGateOperation,
+  dnd5eRollTableRerollFaceOperation,
   dnd5ePathGatedProposalOperations,
   dnd5eTestMarginConditionProposalOperation,
   dnd5eResultPathSatisfies
@@ -164,6 +168,101 @@ export function requireEntryDamageTraces(input: {
       throw invalid()
   }
 }
+
+const ROLL_TABLE_TEST_OPERATIONS = new Map<
+  string,
+  { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
+>(
+  [
+    dnd5eMovementInterruptionAuthorizationOperation,
+    selectNumberRuleOperation,
+    dnd5eRollTableRowGateOperation,
+    dnd5eRollTableRerollFaceOperation
+  ].map((operation) => [operation.key, operation])
+)
+
+/**
+ * The die and rerolls a repeat table rolls in the TEST graph: each node's inputs are what its
+ * committed bindings resolve to, a pure node re-executes to its outputs, and an integer request is
+ * answered only when its enabling node authorizes it. The rolled faces then equal the execution's
+ * `rollTableFace_*` outputs, which the OUTCOME's specialisation reads.
+ */
+function requireRollTableTestTraces(input: {
+  traces: Parameters<
+    CharacterRuleActionSystemAdapter['interpret']
+  >[0]['execution']['evidence']['trace']
+  published: ServerPublishedRuleDefinitionDto
+  occurrenceId: string
+  outputs: Readonly<Record<string, RuleValue>>
+}): void {
+  const { traces, published, occurrenceId } = input
+  const invalid = () =>
+    new Dnd5eEffectActionCompilerError('The committed D&D roll table dice topology is invalid.')
+  const nodeIds = published.definition.nodes.map((node) => node.id)
+  const traceOf = (nodeId: string) => traces.find((trace) => trace.nodeId === nodeId)
+  const resolve = (
+    binding: ServerPublishedRuleDefinitionDto['definition']['nodes'][number]['inputs'][string]
+  ) => {
+    if (binding?.kind === 'LITERAL') return binding.value
+    if (binding?.kind === 'NODE_OUTPUT') {
+      const source = traceOf(binding.nodeId)
+      if (!source) throw invalid()
+      return source.outputs[binding.port]
+    }
+    throw invalid()
+  }
+  for (const trace of traces) {
+    if (trace.nodeId === 'test') continue
+    const node = published.definition.nodes.find(({ id }) => id === trace.nodeId)
+    if (!node) throw invalid()
+    const inputs = Object.fromEntries(
+      Object.entries(node.inputs).map(([port, binding]) => [port, resolve(binding)])
+    )
+    if (
+      node.operation.key !== trace.operation.key ||
+      node.operation.contractVersion !== trace.operation.contractVersion ||
+      checksumRuleDocument(inputs) !== checksumRuleDocument(trace.inputs)
+    )
+      throw invalid()
+    if (trace.operation.key === 'evidence.optional-integer-range') {
+      const { min, max, enabled } = trace.inputs
+      const value = trace.outputs.value
+      const answered = trace.evidence
+      if (
+        typeof min !== 'number' ||
+        typeof max !== 'number' ||
+        typeof value !== 'number' ||
+        (enabled === true
+          ? answered?.kind !== 'INTEGER_RANGE' ||
+            answered.value !== value ||
+            answered.requestId !==
+              `${occurrenceId}:${nodeIds.indexOf(trace.nodeId)}:${trace.nodeId}` ||
+            value < min ||
+            value > max
+          : answered !== undefined || value !== min)
+      )
+        throw invalid()
+      continue
+    }
+    const operation = ROLL_TABLE_TEST_OPERATIONS.get(trace.operation.key)
+    if (
+      !operation ||
+      trace.evidence !== undefined ||
+      checksumRuleDocument(operation.execute(trace.inputs)) !== checksumRuleDocument(trace.outputs)
+    )
+      throw invalid()
+  }
+  for (const [name, binding] of Object.entries(published.definition.outputs)) {
+    if (!ROLL_TABLE_FACE_OUTPUT.test(name)) continue
+    if (
+      binding.kind !== 'NODE_OUTPUT' ||
+      !traceOf(binding.nodeId)?.nodeId.startsWith(ROLL_TABLE_TEST_NODE_PREFIX) ||
+      input.outputs[name] !== traceOf(binding.nodeId)?.outputs[binding.port]
+    )
+      throw invalid()
+  }
+}
+
 export function testApplications(
   input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
   replacementPath?: 'ON_SAVE_SUCCESS'
@@ -273,8 +372,14 @@ export function testApplications(
   const entryDamageTraces = remainingTraces.filter((trace) =>
     trace.nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX)
   )
+  const rollTableTraces = remainingTraces.filter((trace) =>
+    trace.nodeId.startsWith(ROLL_TABLE_TEST_NODE_PREFIX)
+  )
   const proposalTraces = remainingTraces.filter(
-    (trace) => trace.nodeId !== 'movement-interruption' && !entryDamageTraces.includes(trace)
+    (trace) =>
+      trace.nodeId !== 'movement-interruption' &&
+      !entryDamageTraces.includes(trace) &&
+      !rollTableTraces.includes(trace)
   )
   const naturalD20 = testTrace.outputs.naturalD20
   const modifier = testTrace.inputs.modifier
@@ -372,6 +477,12 @@ export function testApplications(
     published,
     occurrenceId: input.occurrenceId,
     resultPath
+  })
+  requireRollTableTestTraces({
+    traces: [testTrace, ...rollTableTraces],
+    published,
+    occurrenceId: input.occurrenceId,
+    outputs: execution.outputs
   })
   for (const proposal of proposalTraces) {
     const authoredPath = proposal.inputs.authoredPath
@@ -958,12 +1069,17 @@ function rollTableGateSteps(
   }
   const roll = gateNode.inputs.roll
   const gateTrace = traceOf(gateNode.id)
+  // A repeat table's TEST rolled its faces, and its OUTCOME gates read each one as a literal.
+  const rolledByTable =
+    roll?.kind === 'LITERAL'
+      ? typeof roll.value === 'number'
+      : roll?.kind === 'NODE_OUTPUT' &&
+        roll.port === 'value' &&
+        ROLL_TABLE_DICE_NODE.test(roll.nodeId)
   if (
     !gateTrace ||
     gateNode.operation.contractVersion !== dnd5eRollTableRowGateOperation.contractVersion ||
-    roll?.kind !== 'NODE_OUTPUT' ||
-    roll.port !== 'value' ||
-    !ROLL_TABLE_DICE_NODE.test(roll.nodeId)
+    !rolledByTable
   )
     return null
   return [...steps, [gateNode, gateTrace, dnd5eRollTableRowGateOperation]]
