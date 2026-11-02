@@ -153,14 +153,14 @@ The rules engine is mostly invisible. A tester sees it in two places: authored f
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC        | Why not a UAT step                                                                                                                                                                                    |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | RULES-1.3 | Rejection of tampered or invalid resume evidence (26 runtime tests): a tester would have to forge stored decision data. The honest pause-and-resume path is exercised in UAT-RULES-2 and UAT-RULES-3. |
-| RULES-2.1 | CI file-size and import-budget guardrails; no running behaviour. |
-| RULES-2.2 | Golden harness pinning compiled checksums; a test harness over every SRD effect. |
-| RULES-2.3 | One d20 settlement function behind every check, save and contest; behaviour unchanged for players, which the ATTACK and SPELLS journeys exercise. |
-| RULES-2.4 | One sealed-choice lifecycle and pause union in code; behaviour unchanged, and the pauses themselves (reactions, saves, initiative) are exercised in UAT-RULES-2, UAT-RULES-3 and the REACTION file. |
-| RULES-2.5 | Single event table and dispatch site; a code structure with no new play behaviour. |
-| RULES-2.6 | Effect-action compiler decomposition; an internal refactor. |
-| RULES-2.7 | Capability registry and a neutral second-System tracer; no second System exists to play. |
-| RULES-2.8 | File splits below the size budget and one home for initiative cursor ordering; an internal refactor, with turn order exercised in the ENCOUNTER file. |
+| RULES-2.1 | CI file-size and import-budget guardrails; no running behaviour.                                                                                                                                      |
+| RULES-2.2 | Golden harness pinning compiled checksums; a test harness over every SRD effect.                                                                                                                      |
+| RULES-2.3 | One d20 settlement function behind every check, save and contest; behaviour unchanged for players, which the ATTACK and SPELLS journeys exercise.                                                     |
+| RULES-2.4 | One sealed-choice lifecycle and pause union in code; behaviour unchanged, and the pauses themselves (reactions, saves, initiative) are exercised in UAT-RULES-2, UAT-RULES-3 and the REACTION file.   |
+| RULES-2.5 | Single event table and dispatch site; a code structure with no new play behaviour.                                                                                                                    |
+| RULES-2.6 | Effect-action compiler decomposition; an internal refactor.                                                                                                                                           |
+| RULES-2.7 | Capability registry and a neutral second-System tracer; no second System exists to play.                                                                                                              |
+| RULES-2.8 | File splits below the size budget and one home for initiative cursor ordering; an internal refactor, with turn order exercised in the ENCOUNTER file.                                                 |

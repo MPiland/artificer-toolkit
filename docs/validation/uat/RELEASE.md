@@ -49,22 +49,22 @@ These scenarios check the alpha play guide against the running build and record 
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC          | Why not a UAT step                                        |
+| ----------- | --------------------------------------------------------- |
 | RELEASE-1.1 | Documentation and ADR status text; link and wording audit |
-| RELEASE-1.2 | Deployment guides and runbook; document review |
-| RELEASE-1.3 | Link audit script |
-| RELEASE-2.1 | Lifecycle run from a fresh isolated deployment; harness |
-| RELEASE-2.2 | Lifecycle on one source state; harness |
-| RELEASE-2.3 | Rule-corpus and gameplay proof; harness |
-| RELEASE-5.1 | Release check on deployment configuration |
-| RELEASE-6.1 | Live-backend test observing typed rejection shape |
+| RELEASE-1.2 | Deployment guides and runbook; document review            |
+| RELEASE-1.3 | Link audit script                                         |
+| RELEASE-2.1 | Lifecycle run from a fresh isolated deployment; harness   |
+| RELEASE-2.2 | Lifecycle on one source state; harness                    |
+| RELEASE-2.3 | Rule-corpus and gameplay proof; harness                   |
+| RELEASE-5.1 | Release check on deployment configuration                 |
+| RELEASE-6.1 | Live-backend test observing typed rejection shape         |
 
 ## Not coverable by UAT
 
-| AC | Gap | Reason |
-| -- | --- | ------ |
-| RELEASE-3.1 | G4 (staging) | Staging promotion needs managed credentials and is not a local UAT step |
-| RELEASE-3.2 | none (decision record) | A recorded decision, not tester-visible behaviour |
-| RELEASE-4.1 | none (production) | Production deployment is not a local UAT step |
-| RELEASE-4.2 | none (production) | Production smoke is not a local UAT step |
+| AC          | Gap                    | Reason                                                                  |
+| ----------- | ---------------------- | ----------------------------------------------------------------------- |
+| RELEASE-3.1 | G4 (staging)           | Staging promotion needs managed credentials and is not a local UAT step |
+| RELEASE-3.2 | none (decision record) | A recorded decision, not tester-visible behaviour                       |
+| RELEASE-4.1 | none (production)      | Production deployment is not a local UAT step                           |
+| RELEASE-4.2 | none (production)      | Production smoke is not a local UAT step                                |

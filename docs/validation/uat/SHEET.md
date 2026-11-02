@@ -312,8 +312,8 @@ Proves a player can run their Character from the Sheet (hit points, rests, spell
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC        | Why not a UAT step                                                                   |
+| --------- | ------------------------------------------------------------------------------------ |
 | SHEET-5.1 | Two simultaneous Builder commits is a concurrency harness; not reproducible by hand. |
-| SHEET-5.4 | Post-write failure rollback needs fault injection. |
-| SHEET-7.1 | Records read by a note edit is a storage measurement. |
+| SHEET-5.4 | Post-write failure rollback needs fault injection.                                   |
+| SHEET-7.1 | Records read by a note edit is a storage measurement.                                |

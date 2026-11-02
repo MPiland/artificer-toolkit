@@ -8,7 +8,7 @@ QUALITY removes duplicated and diverging logic and adds lint guardrails. Its two
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC          | Why not a UAT step                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | QUALITY-1.1 | That one shared implementation serves every former copy is a code-structure property, proved by regression tests that fail before the fix; no extra behaviour is added for a tester. |
-| QUALITY-3.1 | A CI lint job at zero warnings with double-cast and component-file-export rules; no running behaviour. |
+| QUALITY-3.1 | A CI lint job at zero warnings with double-cast and component-file-export rules; no running behaviour.                                                                               |

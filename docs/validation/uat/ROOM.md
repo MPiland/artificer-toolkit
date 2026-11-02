@@ -298,23 +298,23 @@ Proves the GM and three players can all join the same live table, see each other
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
-| ROOM-1.2 | Ticket signing, single use and one-minute expiry are security-token checks; a tester cannot read or replay a ticket. |
-| ROOM-1.3 | Durable Object origin, signature, claim and replay rejection are contract tests needing forged requests. |
-| ROOM-4.3 | Clock version contention and DAILY recovery watermarks are timing harnesses. |
-| ROOM-4.4 | Contention and archived-authorization ordering are contract tests; the app has no verified tester path for GM adjustments outside live play, so its visible half has no step (owner: confirm). |
-| ROOM-5.2 | Which writer applies an Encounter move (room command rather than Convex) is internal; the move itself and its refusals are in UAT-MOVE-1, UAT-MOVE-2 and UAT-ROOM-9 step 7. |
-| ROOM-6.1 | Room test fixture (a player-socket helper); test code only. |
-| ROOM-6.2 | Room test of a spatial save-effect hazard; the hazard play itself is UAT-MOVE-8. |
-| ROOM-6.3 | Room tests of maintenance variants; no maintenance prompt exists in the review data to drive by hand. |
-| ROOM-6.4 | Room test asserting a movement receipt counter; internal bookkeeping. |
-| ROOM-6.5 | Room test of empty-prior maintenance; internal. |
-| ROOM-6.6 | Room test of maintenance pauses and stale refusals through a test-only seed route. |
-| ROOM-6.7 | Room test of a Character initiating Disarm; the Disarm play itself is UAT-REACTION-6. |
-| ROOM-6.8 | Test fixture item change (Longsword instead of Club); test code only. |
-| ROOM-6.9 | Room test of Concentration with two Characters; Concentration play itself is in the SPELLS file. |
-| ROOM-6.10 | Room test of equipment commands with content seeding; test code only. |
-| ROOM-6.11 | Room test of Legendary Action controller cases; Legendary play itself is in UAT-ENCOUNTER-6 and UAT-SPELLS-18. |
-| ROOM-6.12 | Room test of Concentration advantage on movement and a shared spatial effect; test code only. |
-| ROOM-6.13 | Room test of initiative receipt metadata; internal. |
+| AC        | Why not a UAT step                                                                                                                                                                             |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ROOM-1.2  | Ticket signing, single use and one-minute expiry are security-token checks; a tester cannot read or replay a ticket.                                                                           |
+| ROOM-1.3  | Durable Object origin, signature, claim and replay rejection are contract tests needing forged requests.                                                                                       |
+| ROOM-4.3  | Clock version contention and DAILY recovery watermarks are timing harnesses.                                                                                                                   |
+| ROOM-4.4  | Contention and archived-authorization ordering are contract tests; the app has no verified tester path for GM adjustments outside live play, so its visible half has no step (owner: confirm). |
+| ROOM-5.2  | Which writer applies an Encounter move (room command rather than Convex) is internal; the move itself and its refusals are in UAT-MOVE-1, UAT-MOVE-2 and UAT-ROOM-9 step 7.                    |
+| ROOM-6.1  | Room test fixture (a player-socket helper); test code only.                                                                                                                                    |
+| ROOM-6.2  | Room test of a spatial save-effect hazard; the hazard play itself is UAT-MOVE-8.                                                                                                               |
+| ROOM-6.3  | Room tests of maintenance variants; no maintenance prompt exists in the review data to drive by hand.                                                                                          |
+| ROOM-6.4  | Room test asserting a movement receipt counter; internal bookkeeping.                                                                                                                          |
+| ROOM-6.5  | Room test of empty-prior maintenance; internal.                                                                                                                                                |
+| ROOM-6.6  | Room test of maintenance pauses and stale refusals through a test-only seed route.                                                                                                             |
+| ROOM-6.7  | Room test of a Character initiating Disarm; the Disarm play itself is UAT-REACTION-6.                                                                                                          |
+| ROOM-6.8  | Test fixture item change (Longsword instead of Club); test code only.                                                                                                                          |
+| ROOM-6.9  | Room test of Concentration with two Characters; Concentration play itself is in the SPELLS file.                                                                                               |
+| ROOM-6.10 | Room test of equipment commands with content seeding; test code only.                                                                                                                          |
+| ROOM-6.11 | Room test of Legendary Action controller cases; Legendary play itself is in UAT-ENCOUNTER-6 and UAT-SPELLS-18.                                                                                 |
+| ROOM-6.12 | Room test of Concentration advantage on movement and a shared spatial effect; test code only.                                                                                                  |
+| ROOM-6.13 | Room test of initiative receipt metadata; internal.                                                                                                                                            |

@@ -183,8 +183,8 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC         | Why not a UAT step                                                                                                                                                          |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SOCIAL-1.3 | Needs two final-slot actions committing in the same instant, which a person cannot cause by hand; an OCC harness. The sequential full-table refusal is UAT-SOCIAL-1 step 7. |
-| SOCIAL-1.4 | Retention and cleanup run on a schedule over aged rows; nothing in the app brings a row to its purge age. |
-| SOCIAL-3.3 | Parallel final-slot race needs a harness; the sequential over-limit refusal is UAT-SOCIAL-6 step 4. |
+| SOCIAL-1.4 | Retention and cleanup run on a schedule over aged rows; nothing in the app brings a row to its purge age.                                                                   |
+| SOCIAL-3.3 | Parallel final-slot race needs a harness; the sequential over-limit refusal is UAT-SOCIAL-6 step 4.                                                                         |

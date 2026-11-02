@@ -179,7 +179,7 @@ Proves a player can build a Character from choices, save and resume drafts, comm
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC          | Why not a UAT step                                                                                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | BUILDER-2.3 | Convex limits, per-edit call counts, autosave bytes, commit database I/O and worker chunk size; measured by a harness and the build, not visible on screen (the Builder working is UAT-BUILDER-1 and 3). |
-| BUILDER-2.4 | Exact removal of test fixtures and stale-JWT denial; a test-harness property. |
+| BUILDER-2.4 | Exact removal of test fixtures and stale-JWT denial; a test-harness property.                                                                                                                            |

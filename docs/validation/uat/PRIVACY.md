@@ -171,7 +171,7 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 **Other users see**
 
-- **P2:** must NOT see Aria's exact hit points unless Aria is set to Exact; must NOT see Bryn's setting changed by P1. 
+- **P2:** must NOT see Aria's exact hit points unless Aria is set to Exact; must NOT see Bryn's setting changed by P1.
 - **P1:** must NOT see the Wolf's hit points in a form stricter or looser than the GM's setting.
 
 ## UAT-PRIVACY-7: Other players' Sheets and Campaign roster
@@ -255,6 +255,6 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC          | Why not a UAT step                                                          |
+| ----------- | --------------------------------------------------------------------------- |
 | PRIVACY-1.3 | Every producer using the reviewed dispatcher is a code and contract review. |

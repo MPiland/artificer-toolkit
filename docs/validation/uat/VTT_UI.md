@@ -49,7 +49,7 @@ This file proves the live map shows each token's identity, conditions, facing an
 4. **P2 (Fire and Thunder):** Start **Fireball** from Pyra's list (she has third-level slots; the review play spent one, so one is left). Confirm an area preview follows the pointer.
 5. **P2:** Start Thunderwave. Confirm the preview is centred on Pyra.
 6. **GM:** Place a hazard zone and a trap. Confirm each preview shows its footprint.
-6a. **GM:** If a token has an aura (an aura-bearing creature, or a spell that creates one), confirm its aura area is drawn around the token. If none is available, record VTT_UI-3.1's aura preview as not shown.
+   6a. **GM:** If a token has an aura (an aura-bearing creature, or a spell that creates one), confirm its aura area is drawn around the token. If none is available, record VTT_UI-3.1's aura preview as not shown.
 7. **GM:** Add a Large token (for example an Ogre). Confirm its footprint occupies a 2x2 area.
 8. **GM:** Drag the Large token to a spot partly overlapping another token. Confirm the move is refused.
 9. **GM:** Rotate a token. Confirm it rotates and keeps its footprint.
@@ -121,6 +121,6 @@ This file proves the live map shows each token's identity, conditions, facing an
 
 ## Covered elsewhere
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC         | Why not a UAT step                                                                                                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | VTT_UI-5.1 | A source-data audit comparing every SRD Creature's structured senses with its printed ones. A tester cannot check all of them; UAT-VTT_UI-3 step 11 spot-checks one (the Wolf). |

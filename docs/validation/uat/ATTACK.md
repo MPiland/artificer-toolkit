@@ -340,9 +340,9 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 ## Covered elsewhere
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
-| ATTACK-6.1 | The loadout's stored contract shared by authoring and Encounters; checked by schema tests. The behaviour it supports is UAT-ATTACK-11 step 5. |
-| ATTACK-6.2 | A source-data audit of the Creature equipment, not something a screen shows. |
-| ATTACK-6.3 | A shared derivation path (Creature and Character gear use one code path) with no behaviour change a tester could see. |
-| ATTACK-11.2 | A stat-block audit over all 142 SRD Multiattacks. UAT-ATTACK-10 spot-checks the visible effect on a sample of monsters. |
+| AC          | Why not a UAT step                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| ATTACK-6.1  | The loadout's stored contract shared by authoring and Encounters; checked by schema tests. The behaviour it supports is UAT-ATTACK-11 step 5. |
+| ATTACK-6.2  | A source-data audit of the Creature equipment, not something a screen shows.                                                                  |
+| ATTACK-6.3  | A shared derivation path (Creature and Character gear use one code path) with no behaviour change a tester could see.                         |
+| ATTACK-11.2 | A stat-block audit over all 142 SRD Multiattacks. UAT-ATTACK-10 spot-checks the visible effect on a sample of monsters.                       |

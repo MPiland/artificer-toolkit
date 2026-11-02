@@ -224,6 +224,6 @@ Part B: Manual
 
 ## Covered elsewhere
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC            | Why not a UAT step                                                                                                                                                  |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ENCOUNTER-2.6 | Forced rollbacks need injected failures a tester cannot cause; the race outcomes on lifecycle, binding and presentation are exercised by hand in UAT-RELIABILITY-2. |

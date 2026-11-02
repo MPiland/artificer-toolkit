@@ -234,10 +234,10 @@ Proves a GM can create, run, copy, archive and delete a Campaign, bring players 
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
+| AC           | Why not a UAT step                                                                                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | CAMPAIGN-1.3 | Staged publication, replay, rollback and quota contracts; checked by contract tests with injected faults a tester cannot cause. The create, copy, archive and delete flow itself is UAT-CAMPAIGN-1. |
-| CAMPAIGN-4.2 | Bounded background cleanup of oversized inventories; needs an inventory far larger than anyone can enter by hand. |
-| CAMPAIGN-4.3 | Real-backend source-loss and Vehicle cleanup under contention; a concurrency harness. |
-| CAMPAIGN-5.2 | Oversized cargo cleanup under contention; a concurrency harness. |
-| CAMPAIGN-8.2 | The exact-message match in notification code and the live-backend test patterns; a code check. The refusal wording a tester sees is UAT-CAMPAIGN-8. |
+| CAMPAIGN-4.2 | Bounded background cleanup of oversized inventories; needs an inventory far larger than anyone can enter by hand.                                                                                   |
+| CAMPAIGN-4.3 | Real-backend source-loss and Vehicle cleanup under contention; a concurrency harness.                                                                                                               |
+| CAMPAIGN-5.2 | Oversized cargo cleanup under contention; a concurrency harness.                                                                                                                                    |
+| CAMPAIGN-8.2 | The exact-message match in notification code and the live-backend test patterns; a code check. The refusal wording a tester sees is UAT-CAMPAIGN-8.                                                 |

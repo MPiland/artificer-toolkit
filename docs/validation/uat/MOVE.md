@@ -221,7 +221,7 @@ Proves a player can move only their own token, that the table stops illegal move
 4. **P1 and P2:** Look at the map and the zone list.
 5. **P1:** Move Aria toward the concealed zone from a distance.
 6. **GM:** Wait for a quiet prompt to reveal the zone to a Character whose passive Perception meets the Spot DC.
-6a. **GM:** Start dragging Aria's token toward the concealed zone without releasing, and read the path preview for which creatures have not noticed it. Release back on Aria's square.
+   6a. **GM:** Start dragging Aria's token toward the concealed zone without releasing, and read the path preview for which creatures have not noticed it. Release back on Aria's square.
 7. **P1:** Drag Aria through the visible pit and read the path preview or warning.
 8. **P1:** Drag Aria through the concealed zone.
 9. **GM:** Reveal the concealed zone to Aria only, then check P2's window.
@@ -274,9 +274,9 @@ Proves a player can move only their own token, that the table stops illegal move
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
-| MOVE-2.1 | The Overrun policy's authored shape and typing is a contract check; what it produces (the contested Overrun move) is exercised by MOVE-2.2 in UAT-MOVE-7. |
-| MOVE-2.3 | Same for the Shove Aside policy; its behaviour is MOVE-2.4 in UAT-MOVE-7. |
-| MOVE-2.5 | Same for the Tumble policy; its behaviour is MOVE-2.6 in UAT-MOVE-7. |
+| AC       | Why not a UAT step                                                                                                                                                                                                                                                |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MOVE-2.1 | The Overrun policy's authored shape and typing is a contract check; what it produces (the contested Overrun move) is exercised by MOVE-2.2 in UAT-MOVE-7.                                                                                                         |
+| MOVE-2.3 | Same for the Shove Aside policy; its behaviour is MOVE-2.4 in UAT-MOVE-7.                                                                                                                                                                                         |
+| MOVE-2.5 | Same for the Tumble policy; its behaviour is MOVE-2.6 in UAT-MOVE-7.                                                                                                                                                                                              |
 | MOVE-3.4 | A camouflaged zone comes only from an authored zone manifest on a Spell, which a tester would have to author and cast; the ledger proof is an authoring-parity test through the real form. The GM-set Spot DC in UAT-MOVE-8 shows the same concealment on screen. |

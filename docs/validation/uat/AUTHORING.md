@@ -371,12 +371,12 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 ACs with no tester-visible behaviour (internal refactors, measurements, CI or contract checks). Their ledger proof is the evidence.
 
-| AC | Why not a UAT step |
-| -- | ------------------ |
-| AUTHORING-1.2 | Fail-closed handling of malformed, corrupt or unavailable Systems; needs deliberately corrupted stored data that a tester cannot create. |
-| AUTHORING-1.5 | Neutral second-System tracers and documentation; no second System exists to browse. |
-| AUTHORING-4.2 | Canonical replay, index repair and managed backfill of all 1,057 roots; a seed and repair audit. |
-| AUTHORING-5.2 | Canonical Creature import audit across the corpus (compilation, identity, rollback); a seed audit. SRD Creatures are browsed in UAT-PLATFORM-1. |
-| AUTHORING-6.3 | Canonical Equipment import including the 500-item inheritance ceiling and unordered parents; a seed audit. |
+| AC             | Why not a UAT step                                                                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AUTHORING-1.2  | Fail-closed handling of malformed, corrupt or unavailable Systems; needs deliberately corrupted stored data that a tester cannot create.                |
+| AUTHORING-1.5  | Neutral second-System tracers and documentation; no second System exists to browse.                                                                     |
+| AUTHORING-4.2  | Canonical replay, index repair and managed backfill of all 1,057 roots; a seed and repair audit.                                                        |
+| AUTHORING-5.2  | Canonical Creature import audit across the corpus (compilation, identity, rollback); a seed audit. SRD Creatures are browsed in UAT-PLATFORM-1.         |
+| AUTHORING-6.3  | Canonical Equipment import including the 500-item inheritance ceiling and unordered parents; a seed audit.                                              |
 | AUTHORING-10.2 | Canonical Vehicle import audit (compilation, checksums, rollback of conflicts) across the corpus; a seed audit. Vehicles are browsed in UAT-PLATFORM-1. |
-| AUTHORING-14.1 | Clone conformance over all 1,057 canonical records; a corpus-scale test. One copy per domain is exercised by hand in UAT-AUTHORING-2 and 3. |
+| AUTHORING-14.1 | Clone conformance over all 1,057 canonical records; a corpus-scale test. One copy per domain is exercised by hand in UAT-AUTHORING-2 and 3.             |
