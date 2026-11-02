@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { BARDIC_INSPIRATION_CHARGE_ID } from '@artificer-toolkit/source-data/srd/classes/bard.js'
-import { collegeOfLore } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
+import { cuttingWordsReaction } from '@artificer-toolkit/source-data/srd/classes/college-of-lore.js'
 import { counterspell } from '@artificer-toolkit/source-data/srd/spells/counterspell.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 
@@ -104,13 +104,10 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
 
 describe('a reaction authored with the ATTACK_ROLL_BY_OTHER trigger compiles through the dnd5e adapter', () => {
   function cuttingWordsEffect(): EffectAuthored {
-    const effect = collegeOfLore.features?.find((feature) => feature.label === 'Cutting Words')
-      ?.effects?.[0]
-    if (!effect) throw new Error('Cutting Words has no authored effect.')
-    return { ...effect, id: ACTION_EFFECT_ID }
+    return { ...cuttingWordsReaction, id: ACTION_EFFECT_ID }
   }
 
-  it('carries the real SRD Cutting Words trigger, charge and restrictions onto its compiled invocation', () => {
+  it('carries the authored Cutting Words trigger, charge and restrictions onto its compiled invocation', () => {
     expect(compileEffect(cuttingWordsEffect()).invocation).toMatchObject({
       activation: { code: 'REACTION', amount: 1 },
       resourceUse: { chargeId: BARDIC_INSPIRATION_CHARGE_ID, cost: 1 },
@@ -125,7 +122,7 @@ describe('a reaction authored with the ATTACK_ROLL_BY_OTHER trigger compiles thr
     })
   })
 
-  it('compiles the real SRD Cutting Words to the subtract-from-triggering-roll proposal', () => {
+  it('compiles the authored Cutting Words to the subtract-from-triggering-roll proposal', () => {
     expect(operationKeys(compile(cuttingWordsEffect()))).toContain(
       SUBTRACT_FROM_TRIGGERING_ROLL_OPERATION_KEY
     )

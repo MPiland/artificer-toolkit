@@ -4,6 +4,7 @@ import {
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
+  CLOSED_RULE_KIND,
   EFFECT_KIND,
   GRANT_KIND,
   MANUAL_ADJUDICATION_REASON,
@@ -18,14 +19,15 @@ import {
   SPELL_GRANT_ATTRIBUTE,
   TARGET_SELECTION_KIND,
   TRIGGER,
-  type ClassAuthored
+  type ClassAuthored,
+  type EffectAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 import { conditionTypeId } from '../equipment/shared.js'
 import { BARDIC_INSPIRATION_CHARGE_ID, bardicInspirationDie } from './bard.js'
-import { gmRulingEffect } from './mechanics.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -40,6 +42,58 @@ function skillId(code: string): string {
   const entry = SRD_SKILLS.find((skill) => skill.code === code)
   if (!entry) throw new Error(`SRD skill vocabulary entry for ${code} required.`)
   return entry.id
+}
+
+/**
+ * Cutting Words as an attack-roll reaction (D207). Not yet attached to the feature below: the
+ * closed rule keeps it playable until the room lets a non-roller answer the d20 window (T4c3b).
+ */
+export const cuttingWordsReaction: EffectAuthored = {
+  id: classRowId(BD, 20, 1),
+  order: 1,
+  invocation: {
+    kind: 'ACTION',
+    triggerCode: TRIGGER.ACTIVATED,
+    resourceUse: { chargeId: BARDIC_INSPIRATION_CHARGE_ID, cost: 1 },
+    activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+    reactionTrigger: { kind: 'ATTACK_ROLL_BY_OTHER' },
+    range: {
+      id: classRowId(BD, 21, 1),
+      rangeKind: RANGE_KIND.DISTANCE,
+      amount: 60,
+      unit: MEASUREMENT_UNIT_CODE.FEET
+    },
+    targeting: {
+      selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+      dispositionKind: 'ANY',
+      targetRequirements: [
+        { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' },
+        { kind: 'LACKS_CONDITION', conditionIds: [conditionTypeId('DEAFENED')] },
+        { kind: 'NOT_IMMUNE_TO_CONDITION', conditionIds: [conditionTypeId('CHARMED')] }
+      ]
+    }
+  },
+  paths: [
+    {
+      id: classRowId(BD, 23, 1),
+      order: 1,
+      pathCode: PATH_CODE.ON_USE,
+      groupType: PATH_GROUP_TYPE.SINGLE,
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: classRowId(BD, 24, 1),
+        resultKind: 'SINGLE',
+        outcomes: [
+          {
+            id: classRowId(BD, 25, 1),
+            effectKind: EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL,
+            die: bardicInspirationDie(ROLLED_DIE_SIGN.SUBTRACT)
+          }
+        ]
+      }
+    }
+  ]
 }
 
 export const collegeOfLore: ClassAuthored = {
@@ -104,15 +158,12 @@ export const collegeOfLore: ClassAuthored = {
       availableAtLevel: 3,
       order: 1,
       effects: [
-        {
+        closedRuleEffect({
           id: classRowId(BD, 20, 1),
-          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: TRIGGER.ACTIVATED,
-            resourceUse: { chargeId: BARDIC_INSPIRATION_CHARGE_ID, cost: 1 },
             activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            reactionTrigger: { kind: 'ATTACK_ROLL_BY_OTHER' },
             range: {
               id: classRowId(BD, 21, 1),
               rangeKind: RANGE_KIND.DISTANCE,
@@ -121,36 +172,11 @@ export const collegeOfLore: ClassAuthored = {
             },
             targeting: {
               selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY',
-              targetRequirements: [
-                { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' },
-                { kind: 'LACKS_CONDITION', conditionIds: [conditionTypeId('DEAFENED')] },
-                { kind: 'NOT_IMMUNE_TO_CONDITION', conditionIds: [conditionTypeId('CHARMED')] }
-              ]
+              dispositionKind: 'ANY'
             }
           },
-          paths: [
-            {
-              id: classRowId(BD, 23, 1),
-              order: 1,
-              pathCode: PATH_CODE.ON_USE,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: classRowId(BD, 24, 1),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(BD, 25, 1),
-                    effectKind: EFFECT_KIND.SUBTRACT_FROM_TRIGGERING_ROLL,
-                    die: bardicInspirationDie(ROLLED_DIE_SIGN.SUBTRACT)
-                  }
-                ]
-              }
-            }
-          ]
-        }
+          ruleKind: CLOSED_RULE_KIND.CLASS_COLLEGE_OF_LORE_CUTTING_WORDS
+        })
       ]
     },
     {
