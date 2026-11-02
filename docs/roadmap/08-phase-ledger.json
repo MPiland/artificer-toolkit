@@ -15201,7 +15201,7 @@
             {
               "id": "SPELLS-4.T2ps-d1",
               "text": "Row 8 rolls the d8 and its rerolls in the test graph and specialises the outcome to the rolled rows, lifting the REPEAT_TABLE refusal.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15215,7 +15215,7 @@
                   "SPELLS-4.T2ps-c"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208). Merged in m603 (097f8ebb7)."
             },
             {
               "id": "SPELLS-4.T2ps-d2",
@@ -19033,7 +19033,7 @@
             },
             {
               "id": "SPELLS-31.T4c3a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19048,7 +19048,7 @@
                 ]
               },
               "text": "Cutting Words authoring: the reaction trigger, subtract outcome, Deafened and charm-immunity restrictions as data, the charge cost, and a parity proof. The closed kind stays live until T4c3b.",
-              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged."
+              "note": "Split from T4c3 on seam trace (D206 split rule); total size unchanged. Merged in m603 (097f8ebb7)."
             },
             {
               "id": "SPELLS-31.T4c3b",
