@@ -4,9 +4,9 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import {
   continueNativeActionAfterTest,
-  reconstructNativeActionTest,
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
+import { reconstructNativeActionTest } from './encounterActionTestReconstruction.js'
 import {
   encounterReactionAudit,
   sameEncounterReactionCandidate,
