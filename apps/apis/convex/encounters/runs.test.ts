@@ -177,7 +177,7 @@ describe('native Encounter Run creation', () => {
         .withIndex('by_publicId', (q) => q.eq('id', blueprint.id))
         .unique()
       if (!blueprintRow) throw new Error('Missing Blueprint')
-      await ctx.db.patch(blueprintRow._id, { enemiesJson: 'invalid' })
+      await ctx.db.patch(blueprintRow._id, { setupJson: 'invalid' })
     })
     expect(await other.caller.mutation(createRun, uppercaseInput)).toEqual(result)
     expect(await other.caller.mutation(createRun, input)).toEqual(result)

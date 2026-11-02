@@ -38,6 +38,7 @@ import { requireIdentity } from '../lib/identity'
 import { readActiveCampaignMembers, requireCampaignAuthority } from '../campaigns/authority'
 import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
+import { blueprintEnemySnapshot } from '@artificer-toolkit/encounter-persistence/blueprintEnemySnapshot'
 import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
 import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
@@ -195,7 +196,7 @@ export async function createEncounterRun(
         gmNotes: null,
         initiative: null,
         manualOrder: null,
-        snapshot: enemy.snapshot,
+        snapshot: blueprintEnemySnapshot(blueprint, enemy),
         createdAt: now,
         updatedAt: now
       })

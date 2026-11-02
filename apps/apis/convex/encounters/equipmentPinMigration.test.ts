@@ -65,15 +65,16 @@ it('replaces Blueprint pins of the old shape with the pinned version compilation
   })
   migrations.register(base.t)
   const [blueprint] = await base.t.run((ctx) => ctx.db.query('encounterBlueprints').collect())
-  const enemies: { snapshot: Record<string, unknown> }[] = JSON.parse(blueprint!.enemiesJson)
+  const setup: { snapshots: Record<string, unknown>[] } = JSON.parse(blueprint!.setupJson)
   await base.t.run((ctx) =>
     ctx.db.patch(blueprint!._id, {
-      enemiesJson: JSON.stringify(
-        enemies.map((enemy) => ({
-          ...enemy,
-          snapshot: { ...enemy.snapshot, equipmentSources: [legacyPin] }
+      setupJson: JSON.stringify({
+        ...setup,
+        snapshots: setup.snapshots.map((snapshot) => ({
+          ...snapshot,
+          equipmentSources: [legacyPin]
         }))
-      )
+      })
     })
   )
 
@@ -83,13 +84,13 @@ it('replaces Blueprint pins of the old shape with the pinned version compilation
   await base.t.mutation(runMigration, {})
   await base.t.finishAllScheduledFunctions(vi.runAllTimers, MIGRATION_BATCHES)
 
-  const current: { snapshot: { equipmentSources: Record<string, unknown>[] } }[] = JSON.parse(
-    migrated!.enemiesJson
+  const current: { snapshots: { equipmentSources: Record<string, unknown>[] }[] } = JSON.parse(
+    migrated!.setupJson
   )
-  for (const enemy of current) {
+  for (const snapshot of current.snapshots) {
     const { payload, ...pin } = legacyPin
     expect(payload).toBeDefined()
-    expect(enemy.snapshot.equipmentSources).toEqual([
+    expect(snapshot.equipmentSources).toEqual([
       { ...pin, sourceChecksum: stored.authoredChecksum, compilation: stored }
     ])
     expect(
@@ -100,9 +101,7 @@ it('replaces Blueprint pins of the old shape with the pinned version compilation
       ).id
     ).toBe(club.id)
   }
-  expect(migrated!.setupChecksum).toBe(
-    checksumCanonicalJson({ name: migrated!.name, enemies: current })
-  )
+  expect(migrated!.setupChecksum).toBe(checksumCanonicalJson({ name: migrated!.name, ...current }))
   expect(await base.t.run((ctx) => ctx.db.get(blueprint!._id))).toEqual(migrated)
 })
 

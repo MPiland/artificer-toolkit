@@ -37,15 +37,19 @@ export function readBlueprint(row: Doc<'encounterBlueprints'>): EncounterBluepri
     ownerUserId: _ownerUserId,
     commandId: _commandId,
     commandFingerprint: _commandFingerprint,
-    enemiesJson,
+    setupJson,
     ...metadata
   } = row
   const result = encounterBlueprintDtoSchema.parse({
     ...metadata,
-    enemies: JSON.parse(enemiesJson)
+    ...JSON.parse(setupJson)
   })
   if (
-    checksumCanonicalJson({ name: result.name, enemies: result.enemies }) !== result.setupChecksum
+    checksumCanonicalJson({
+      name: result.name,
+      enemies: result.enemies,
+      snapshots: result.snapshots
+    }) !== result.setupChecksum
   ) {
     throw new Error('Stored Encounter Blueprint checksum mismatch.')
   }
@@ -100,19 +104,19 @@ export const create = mutation({
       if (owned.length >= limit)
         throw new Error('Your account has reached its savedEncounters limit.')
     }
-    const enemies = await snapshotBlueprintEnemies(ctx, userId, input)
+    const setup = await snapshotBlueprintEnemies(ctx, userId, input)
     const now = new Date().toISOString()
     const result = encounterBlueprintDtoSchema.parse({
       id: crypto.randomUUID(),
       gameSystemId: input.gameSystemId,
       name: input.name,
       version: 1,
-      enemies,
+      ...setup,
       createdAt: now,
       updatedAt: now,
-      setupChecksum: checksumCanonicalJson({ name: input.name, enemies })
+      setupChecksum: checksumCanonicalJson({ name: input.name, ...setup })
     })
-    const { enemies: _enemies, ...metadata } = result
+    const { enemies: _enemies, snapshots: _snapshots, ...metadata } = result
     await ctx.db.insert(
       'encounterBlueprints',
       encounterStoredBlueprintSchema.parse({
@@ -120,7 +124,7 @@ export const create = mutation({
         ownerUserId: userId,
         commandId: input.commandId,
         commandFingerprint,
-        enemiesJson: JSON.stringify(enemies)
+        setupJson: JSON.stringify(setup)
       })
     )
     await syncAccountUsage(ctx, 'savedEncounters', result.id)
@@ -154,21 +158,21 @@ export const update = mutation({
     const current = readBlueprint(row)
     if (current.version !== input.expectedVersion)
       throw new Error('Encounter Blueprint version is stale.')
-    const enemies = await snapshotBlueprintEnemies(ctx, userId, {
+    const setup = await snapshotBlueprintEnemies(ctx, userId, {
       gameSystemId: current.gameSystemId,
       enemies: input.enemies
     })
     const result = encounterBlueprintDtoSchema.parse({
       ...current,
       name: input.name,
-      enemies,
+      ...setup,
       version: current.version + 1,
       updatedAt: new Date().toISOString(),
-      setupChecksum: checksumCanonicalJson({ name: input.name, enemies })
+      setupChecksum: checksumCanonicalJson({ name: input.name, ...setup })
     })
     await ctx.db.patch(row._id, {
       name: result.name,
-      enemiesJson: JSON.stringify(enemies),
+      setupJson: JSON.stringify(setup),
       version: result.version,
       updatedAt: result.updatedAt,
       setupChecksum: result.setupChecksum

@@ -35,9 +35,8 @@ const VISION_PASS_BUDGET_MS = PASS_SHARE * CONVERGENCE_P95_MS
 const COMMAND_PASS_BUDGET_MS = PASS_SHARE * COMMAND_P95_MS
 
 /**
- * The three smallest SRD Creatures that wear equipment: a Blueprint stores one full snapshot per
- * enemy under one payload limit (about 10.6 KB each at 99 enemies), and these keep the all-armored
- * Run at the cap inside it (10.2 KB on average).
+ * The three smallest SRD Creatures that wear equipment, which keep the all-armored Run at the cap
+ * cheap to build.
  */
 const ARMORED_CREATURES = ['Hill Giant', 'Grimlock', 'Ogre Zombie'].map((label) => {
   const creature = srdCreatureRecords.find((candidate) => candidate.label === label)
