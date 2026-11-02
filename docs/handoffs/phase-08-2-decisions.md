@@ -1997,3 +1997,8 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 - **Legendary Resistance:** T4c1b5 is not a fold, replacing the D198 wording. It stays a separate pause after a failed save.
 - **Sight-governed attacks:** skip the held-die window, as sight-governed saves do; the die stays unspent.
 - **T5h-3:** the bonus-action-spell limit reads a new turn-scoped `resources.spellCasting` record.
+
+## D208 (2026-11-01): Empowered Spell and Prismatic Spray sizing
+
+- **Empowered Spell (user):** T5e2 splits into T5e2a (action damage) and T5e2b (area damage). The d20 window is extended to damage rolls rather than adding a separate damage window. Orchestrator ruling: the kind is renamed `ROLL_WINDOW`, so its name stays true, and T5e2a waits for T4c3 and T4c2c, which change the same window.
+- **Prismatic Spray (user):** T2ps-d splits into T2ps-d1 (row 8 rerolls), T2ps-d2 (merged rows) and T2ps-d3 (parity proof and room journey). The roll-again rows stay automated.

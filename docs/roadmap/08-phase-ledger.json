@@ -15199,8 +15199,8 @@
               "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204). Ruling: the repeat graph gains ON_SAVE_FAIL-gated manual_adjudication nodes, the evidence check stays strict at 3 plus only those nodes, the plane transport stays a GM ruling in the turn receipt, and Blinded ends on both outcomes. Size 8 under the ruling. Merged in m594 (8b6104a3e)."
             },
             {
-              "id": "SPELLS-4.T2ps-d",
-              "text": "Row 8 repeat-table rerolls with merged rows (lifts the REPEAT_TABLE refusal), plus the authoring-parity proof and a room journey.",
+              "id": "SPELLS-4.T2ps-d1",
+              "text": "Row 8 rolls the d8 and its rerolls in the test graph and specialises the outcome to the rolled rows, lifting the REPEAT_TABLE refusal.",
               "status": "TODO",
               "closes": [
                 "SPELLS-4.1"
@@ -15215,7 +15215,43 @@
                   "SPELLS-4.T2ps-c"
                 ]
               },
-              "note": "Split from T2ps. Approved by the user on 2026-10-31 (D204)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+            },
+            {
+              "id": "SPELLS-4.T2ps-d2",
+              "text": "Merged rows: a target hit by two rows gets the effects of both through a multi-plan active effect.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "SPELLS-4.T2ps-d1"
+                ]
+              },
+              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+            },
+            {
+              "id": "SPELLS-4.T2ps-d3",
+              "text": "Prismatic Spray authoring-parity proof and room journey.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "SPELLS-4.T2ps-d2"
+                ]
+              },
+              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
             }
           ]
         },
@@ -19634,8 +19670,28 @@
               "note": "Merged in m592 (1d9d29081)."
             },
             {
-              "id": "SPELLS-31.T5e2",
-              "text": "Empowered Spell as a trigger: the window opens only when the caster holds an after-damage-roll reroll option and can pay; other casts are unchanged. Reuses the T4c1b window, covers area damage, one shared window per damage roll, and the caster answers once.",
+              "id": "SPELLS-31.T5e2a",
+              "text": "Empowered Spell on single-target action damage: extends the d20 window to damage rolls, renamed ROLL_WINDOW. It opens only when the caster holds an after-damage-roll reroll option and can pay; other casts are unchanged.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": [
+                  "SPELLS-31.T5e",
+                  "SPELLS-31.T4c3",
+                  "SPELLS-31.T4c2c"
+                ]
+              },
+              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+            },
+            {
+              "id": "SPELLS-31.T5e2b",
+              "text": "Empowered Spell on area damage: one shared window per damage roll, answered once by the caster, before damage is applied to any target.",
               "status": "TODO",
               "closes": [
                 "SPELLS-31.1"
@@ -19646,10 +19702,10 @@
                 "rr": 3,
                 "size": 5,
                 "after": [
-                  "SPELLS-31.T5e"
+                  "SPELLS-31.T5e2a"
                 ]
               },
-              "note": "User approved (D206)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
             },
             {
               "id": "SPELLS-31.T5f1",
@@ -26905,7 +26961,7 @@
                   "SPELLS-12.T2b",
                   "SPELLS-12.T3b",
                   "SPELLS-12.T4b",
-                  "SPELLS-31.T5e2",
+                  "SPELLS-31.T5e2b",
                   "SPELLS-31.T4c2b",
                   "SPELLS-31.T5h-2",
                   "SPELLS-31.T4l2b-2",
