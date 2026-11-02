@@ -293933,8 +293933,8 @@ export declare const api: {
                 allowedResponses: Array<
                   | "ENTER_DICE"
                   | "SYSTEM_ROLL"
-                  | "D20_WINDOW_DECLINE"
-                  | "D20_WINDOW_USE"
+                  | "ROLL_WINDOW_DECLINE"
+                  | "ROLL_WINDOW_USE"
                   | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
@@ -294064,11 +294064,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
-                kind: "D20_WINDOW";
+                kind: "ROLL_WINDOW";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{
@@ -294898,8 +294898,8 @@ export declare const api: {
                   allowedResponses: Array<
                     | "ENTER_DICE"
                     | "SYSTEM_ROLL"
-                    | "D20_WINDOW_DECLINE"
-                    | "D20_WINDOW_USE"
+                    | "ROLL_WINDOW_DECLINE"
+                    | "ROLL_WINDOW_USE"
                     | "AREA_LEGENDARY_RESISTANCE"
                   >;
                   casterActorId: string | null;
@@ -295033,11 +295033,11 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<
-                    "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                    "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                   >;
                   d20: { selectedNatural: number; total: number };
                   encounterVersion: number;
-                  kind: "D20_WINDOW";
+                  kind: "ROLL_WINDOW";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   options: Array<{
@@ -296540,8 +296540,8 @@ export declare const api: {
             allowedResponses: Array<
               | "ENTER_DICE"
               | "SYSTEM_ROLL"
-              | "D20_WINDOW_DECLINE"
-              | "D20_WINDOW_USE"
+              | "ROLL_WINDOW_DECLINE"
+              | "ROLL_WINDOW_USE"
               | "AREA_LEGENDARY_RESISTANCE"
             >;
             casterActorId: string | null;
@@ -296667,10 +296667,10 @@ export declare const api: {
             >;
           }
         | {
-            allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            allowedResponses: Array<"ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE">;
             d20: { selectedNatural: number; total: number };
             encounterVersion: number;
-            kind: "D20_WINDOW";
+            kind: "ROLL_WINDOW";
             occurrenceId: string;
             occurrenceVersion: number;
             options: Array<{
@@ -298195,8 +298195,8 @@ export declare const api: {
                 allowedResponses: Array<
                   | "ENTER_DICE"
                   | "SYSTEM_ROLL"
-                  | "D20_WINDOW_DECLINE"
-                  | "D20_WINDOW_USE"
+                  | "ROLL_WINDOW_DECLINE"
+                  | "ROLL_WINDOW_USE"
                   | "AREA_LEGENDARY_RESISTANCE"
                 >;
                 casterActorId: string | null;
@@ -298326,11 +298326,11 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<
-                  "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
+                  "ROLL_WINDOW_DECLINE" | "ROLL_WINDOW_USE"
                 >;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
-                kind: "D20_WINDOW";
+                kind: "ROLL_WINDOW";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 options: Array<{
