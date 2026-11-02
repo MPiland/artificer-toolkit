@@ -97,7 +97,7 @@ function mechanicRolls(
 function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
   return [
     ...sheet.overview.abilities.map((ability) => ({
-      expression: withModifier('1d20', ability.modifier),
+      expression: withModifier('1d20', ability.checkModifier),
       rollMode: ability.rollMode,
       abilityCode: ability.ability,
       source: { kind: 'ABILITY_CHECK' as const, label: `${ability.label} check` }

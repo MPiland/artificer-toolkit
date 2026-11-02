@@ -363,6 +363,8 @@ const characterDerivedNumericBonusSchema = lazySchema(() =>
       kind: z.literal('MODIFIER_GROUP'),
       sourceId: boundedIdentitySchema,
       domainKey: boundedIdentitySchema,
+      /** An ability-check bonus held only while the check adds no proficiency. */
+      unproficientOnly: z.optional(z.boolean()),
       operation: z.enum(['ADD', 'SET'])
     }),
     z.strictObject({
@@ -401,6 +403,7 @@ const characterDerivedBaseFactsSchema = lazySchema(() =>
           abilityId: boundedIdentitySchema,
           baseScore: integerSchema.check(z.gte(0)).check(z.lte(30)),
           bonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
+          checkBonuses: z.array(characterDerivedNumericBonusSchema).check(z.maxLength(200)),
           scoreOverride: characterDerivedNumericOverrideSchema
         })
       )
@@ -1282,7 +1285,8 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
         z.strictObject({
           abilityId: boundedIdentitySchema,
           score: characterDerivedNumericCalculationSchema,
-          modifier: characterDerivedNumericCalculationSchema
+          modifier: characterDerivedNumericCalculationSchema,
+          check: characterDerivedNumericCalculationSchema
         })
       ),
       savingThrows: z.array(

@@ -1376,6 +1376,7 @@ export function projectCharacterSheetBundle(
           short,
           score: ruleProjection.derivedStats.abilityScores[abilityCode] ?? 0,
           modifier: ruleProjection.derivedStats.abilityModifiers[abilityCode] ?? 0,
+          checkModifier: ruleProjection.derivedStats.abilityCheckModifiers[abilityCode] ?? 0,
           rollMode: ruleProjection.rollModes.abilityChecks[abilityCode]
         }
       }),

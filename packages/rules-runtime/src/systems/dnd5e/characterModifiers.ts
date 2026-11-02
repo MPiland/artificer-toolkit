@@ -62,8 +62,10 @@ export function evaluateDnd5eCharacterModifiers(
     switch (payload.valueKind) {
       case 'FIXED':
         return payload.amount
-      case 'PROFICIENCY_BONUS':
-        return proficiencyBonus(input.totalLevel) * (payload.multiplier ?? 1)
+      case 'PROFICIENCY_BONUS': {
+        const scaled = proficiencyBonus(input.totalLevel) * (payload.multiplier ?? 1)
+        return payload.rounding === 'UP' ? Math.ceil(scaled) : Math.floor(scaled)
+      }
       case 'CHARACTER_LEVEL':
         return input.totalLevel * (payload.multiplier ?? 1)
       case 'CLASS_LEVEL':

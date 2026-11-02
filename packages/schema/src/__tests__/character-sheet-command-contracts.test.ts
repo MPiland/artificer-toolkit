@@ -131,6 +131,7 @@ describe('character sheet command contracts', () => {
               short: 'DEX',
               score: 14,
               modifier: 2,
+              checkModifier: 2,
               rollMode: 'NORMAL'
             }
           ],

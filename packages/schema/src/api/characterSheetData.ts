@@ -114,6 +114,8 @@ export const characterSheetAbilityDtoSchema = lazySchema(() =>
     short: stringSchema,
     score: integerSchema,
     modifier: integerSchema,
+    /** The modifier of a plain check on this ability: the modifier plus ability-check bonuses. */
+    checkModifier: integerSchema,
     rollMode: systemCoreCodeSchema
   })
 )

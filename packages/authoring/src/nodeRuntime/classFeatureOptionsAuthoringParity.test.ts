@@ -5,6 +5,7 @@ import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { bard } from '@artificer-toolkit/source-data/srd/classes/bard.js'
+import { championMartialArchetype } from '@artificer-toolkit/source-data/srd/classes/champion.js'
 import { circleOfTheLand } from '@artificer-toolkit/source-data/srd/classes/circle-of-the-land.js'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
@@ -38,7 +39,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * Reliable Talent (T5c) is a proficient-only ability check floor; Indomitable, Diamond Soul and
  * Stroke of Luck (T5c, D187a) spend their use automatically and leave the new result to a GM ruling.
  * Arcane Recovery, Natural Recovery and Font of Magic (T5j) are SPELL_SLOT_EXCHANGE outcomes;
- * Sorcerous Restoration and Eldritch Master (T5j) are GM rulings.
+ * Sorcerous Restoration and Eldritch Master (T5j) are GM rulings. Jack of All Trades and Remarkable
+ * Athlete (T5q-B) are proficiency-gated, rounded ABILITY_CHECK bonuses.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -439,6 +441,32 @@ const CASES: ReadonlyArray<{
       return variant
     }
   },
+  ...(
+    [
+      { record: bard, label: 'Jack of All Trades' },
+      { record: championMartialArchetype, label: 'Remarkable Athlete' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const grants = feature(variant, label).grants?.modifiers ?? []
+      if (
+        grants.length === 0 ||
+        grants.some(
+          (grant) => grant.valueDomainCode !== 'ABILITY_CHECK' || grant.modifierKind !== 'BONUS'
+        )
+      )
+        throw new Error(`${label} must author ability check bonuses.`)
+      // A homebrew variant that adds a full proficiency bonus, rounded up, to every check.
+      for (const grant of grants) {
+        grant.domain = {}
+        grant.payload = { valueKind: 'PROFICIENCY_BONUS', multiplier: 1, rounding: 'UP' }
+      }
+      return variant
+    }
+  })),
   ...(
     [
       { record: fighter, label: 'Indomitable' },
