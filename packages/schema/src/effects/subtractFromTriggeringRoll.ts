@@ -7,7 +7,7 @@ export const subtractFromTriggeringRollDtoSchema = lazySchema(() =>
   z.strictObject({
     id: authoredIdentifierSchema,
     effectKind: z.literal('SUBTRACT_FROM_TRIGGERING_ROLL'),
-    die: rolledDiePayloadDtoSchema().check(
+    die: rolledDiePayloadDtoSchema.check(
       z.superRefine((die, context) => {
         if (die.sign !== 'SUBTRACT') {
           context.addIssue({
