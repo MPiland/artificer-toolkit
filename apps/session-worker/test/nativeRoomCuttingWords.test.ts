@@ -145,6 +145,45 @@ async function undoLastAction(room: Room) {
   expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
 }
 
+/**
+ * A Wolf bites a Character holding Heckle and Shield, hitting by 1 so Heckle's d4 could make it
+ * miss; returns the Character's d20 window on the roll.
+ */
+async function biteTheHeckler() {
+  const room = await actionRoom({
+    actors: [
+      srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
+      characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
+    ],
+    ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+    characterClassFeatures: [heckleFeature()],
+    characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+  })
+  const started = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext())
+  expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
+  const attack = await room.pendingDecision()
+  if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack prompt.')
+  const { request } = attack.pending
+  const context = await readPendingActionContext(room.room.base.stub)
+  if (context.kind !== 'ENCOUNTER_ACTION' || !context.d20Policy)
+    throw new Error('Expected a pending attack d20.')
+  const face = context.d20Policy.dc + 1 - context.d20Policy.modifier
+  expect(
+    (
+      await room.resolve(attack, {
+        kind: 'ENTER_DICE',
+        requestId: request.requestId,
+        rawFaces: [face],
+        rollMode: request.rollMode
+      })
+    ).type
+  ).toBe('COMMAND_COMMITTED')
+  const window = await room.pendingDecision()
+  if (window.pending.kind !== 'D20_WINDOW')
+    throw new Error(`Expected the d20 window, got ${window.pending.kind}.`)
+  return { room, window, pending: window.pending }
+}
+
 describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', () => {
   it('asks the Lore Bard, not the attacker, once the attack is rolled, spending nothing yet', async () => {
     const room = await reactorRoom('LORE_BARD')
@@ -223,41 +262,10 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   })
 
   it('rebuilds the declined roll when the bitten Heckler then casts Shield', async () => {
-    const room = await actionRoom({
-      actors: [
-        srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
-        characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
-      ],
-      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
-      characterClassFeatures: [heckleFeature()],
-      characterSpellcasting: { spells: [shield], prepared: [shield.id] }
-    })
-    const started = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext())
-    expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
-    const attack = await room.pendingDecision()
-    if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack prompt.')
-    const { request } = attack.pending
-    const context = await readPendingActionContext(room.room.base.stub)
-    if (context.kind !== 'ENCOUNTER_ACTION' || !context.d20Policy)
-      throw new Error('Expected a pending attack d20.')
-    // The Bite hits by 1, so Heckle's d4 could make it miss.
-    const face = context.d20Policy.dc + 1 - context.d20Policy.modifier
-    expect(
-      (
-        await room.resolve(attack, {
-          kind: 'ENTER_DICE',
-          requestId: request.requestId,
-          rawFaces: [face],
-          rollMode: request.rollMode
-        })
-      ).type
-    ).toBe('COMMAND_COMMITTED')
-    const window = await room.pendingDecision()
-    if (window.pending.kind !== 'D20_WINDOW')
-      throw new Error(`Expected the d20 window, got ${window.pending.kind}.`)
+    const { room, window, pending } = await biteTheHeckler()
     const declined = await room.resolve(window, {
       kind: 'D20_WINDOW_DECLINE',
-      requestId: window.pending.requestId
+      requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
     const offered = await room.pendingDecision()
@@ -270,6 +278,20 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     expect(shielded.type, JSON.stringify(shielded)).toBe('COMMAND_COMMITTED')
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     // Shield, not the declined Heckle, spent the reaction.
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('offers no Shield once Heckle spent the reaction on the same roll', async () => {
+    const { room, window, pending } = await biteTheHeckler()
+    const heckled = await room.resolve(window, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [1]
+    })
+    expect(heckled.type, JSON.stringify(heckled)).toBe('COMMAND_COMMITTED')
+    // A 1 off a hit by 1 still meets the armor class, so the Bite hits with no reaction left for Shield.
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await reactionUsed(room)).toBe(1)
   })
 })

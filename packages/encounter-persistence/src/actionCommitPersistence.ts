@@ -353,7 +353,7 @@ export async function persistEncounterActionCommit(
     (sourceFailed &&
       sourceFailed.failed.receipt.characterStreamVersion !==
         sourceMechanics?.characterStreamVersion) ||
-    (targetFailed &&
+    (targetFailed?.spends &&
       targetFailed.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion)
   )
     throw new Error('Live Session failed counter Character receipt mismatch.')
