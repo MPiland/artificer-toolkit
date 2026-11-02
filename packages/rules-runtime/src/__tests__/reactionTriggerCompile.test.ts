@@ -104,7 +104,7 @@ describe('a reaction authored with the DAMAGE_TAKEN trigger compiles through the
 
 describe('a reaction authored with the ATTACK_ROLL_BY_OTHER trigger compiles through the dnd5e adapter', () => {
   function cuttingWordsEffect(): EffectAuthored {
-    const effect = collegeOfLore.features.find((feature) => feature.label === 'Cutting Words')
+    const effect = collegeOfLore.features?.find((feature) => feature.label === 'Cutting Words')
       ?.effects?.[0]
     if (!effect) throw new Error('Cutting Words has no authored effect.')
     return { ...effect, id: ACTION_EFFECT_ID }

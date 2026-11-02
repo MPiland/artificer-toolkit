@@ -207,10 +207,9 @@ import {
   effectOutcomeProposalOutputs
 } from '../../effectOutcomeRegistry.js'
 import {
-  DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
-  DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION,
   dnd5eOutcomeDefinition,
   dnd5eOutcomeTargetPreconditions,
+  dnd5eReactionOnlyOutcomeRefusal,
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
@@ -2204,18 +2203,8 @@ function supported(
     (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED')
   )
     unsupported('D&D conceal and detect outcomes belong to a check action.')
-  if (
-    outcome.effectKind === 'CANCEL_TRIGGERING_EVENT' &&
-    !('reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'SPELL_CAST')
-  )
-    unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
-  if (
-    outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL' &&
-    !(
-      'reactionTrigger' in invocation && invocation.reactionTrigger?.kind === 'ATTACK_ROLL_BY_OTHER'
-    )
-  )
-    unsupported(DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION)
+  const reactionOnlyRefusal = dnd5eReactionOnlyOutcomeRefusal(outcome.effectKind, invocation)
+  if (reactionOnlyRefusal) unsupported(reactionOnlyRefusal)
   // A concealment check is decided against scores the roller never sees: a passive DC only conceals
   // and a concealment DC only detects, and neither pairs with any other outcome.
   if (

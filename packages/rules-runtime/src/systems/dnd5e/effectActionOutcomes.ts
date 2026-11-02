@@ -371,11 +371,28 @@ export function dnd5eUnsupportedPlanUnderTest(kind: string): never {
   )
 }
 
-export const DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION =
-  'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
+/** The reaction trigger an outcome that acts on the triggering event or roll belongs to. */
+const REACTION_ONLY_OUTCOMES = {
+  CANCEL_TRIGGERING_EVENT: {
+    trigger: 'SPELL_CAST',
+    refusal: 'D&D cancel-triggering-event outcome belongs to a spell-cast reaction.'
+  },
+  SUBTRACT_FROM_TRIGGERING_ROLL: {
+    trigger: 'ATTACK_ROLL_BY_OTHER',
+    refusal: 'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+  }
+} as const
 
-export const DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION =
-  'D&D subtract-from-triggering-roll outcome belongs to an attack-roll reaction.'
+/** The refusal for an outcome that needs a reaction trigger the action does not have; else null. */
+export function dnd5eReactionOnlyOutcomeRefusal(effectKind: string, invocation: object | null) {
+  if (!(effectKind in REACTION_ONLY_OUTCOMES)) return null
+  const required = REACTION_ONLY_OUTCOMES[effectKind as keyof typeof REACTION_ONLY_OUTCOMES]
+  const triggerKind =
+    invocation && 'reactionTrigger' in invocation
+      ? (invocation.reactionTrigger as { kind?: string } | undefined)?.kind
+      : undefined
+  return required.trigger === triggerKind ? null : required.refusal
+}
 
 /**
  * The target-only outcome a test's result path proposes (RULES-2.T6c2). Refuses an outcome a test
@@ -388,10 +405,8 @@ export function dnd5eTestPathTargetOnlyOutcome(outcome: Dnd5eAuthoredOutcome) {
     unsupported(
       "D&D self teleport takes its reach from a self-targeted action's range, which a test action does not have."
     )
-  if (outcome.effectKind === 'CANCEL_TRIGGERING_EVENT')
-    unsupported(DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION)
-  if (outcome.effectKind === 'SUBTRACT_FROM_TRIGGERING_ROLL')
-    unsupported(DND5E_SUBTRACT_NEEDS_ATTACK_ROLL_REACTION)
+  const reactionOnlyRefusal = dnd5eReactionOnlyOutcomeRefusal(outcome.effectKind, null)
+  if (reactionOnlyRefusal) unsupported(reactionOnlyRefusal)
   const planKind = activeEffectPlanOutcomeKind(outcome)
   if (planKind) dnd5eUnsupportedPlanUnderTest(planKind)
   return null
