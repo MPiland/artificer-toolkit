@@ -24445,8 +24445,8 @@
             {
               "id": "RELEASE-8.3",
               "text": "UAT runs end to end on local data: testers read local emails (invitations, resets, verification) in local mode only, sign in as a superadmin and as spare players outside every Campaign, and use a seeded sandbox Campaign with walls, doors, fog, lights, hidden tokens and manual initiative.",
-              "status": "DONE",
-              "note": "User approved 2026-11-02 (D187 growth) from the UAT gaps G1, G2, G3 and G5 in docs/validation/uat/README.md. Closed 2026-11-02 by RELEASE-8.T3, RELEASE-8.T3b, RELEASE-8.T4.",
+              "status": "IN_PROGRESS",
+              "note": "User approved 2026-11-02 (D187 growth) from the UAT gaps G1, G2, G3 and G5 in docs/validation/uat/README.md. Closed 2026-11-02 by RELEASE-8.T3, RELEASE-8.T3b, RELEASE-8.T4. Reopened 2026-11-02: the review-data seed fails at the first checkpoint (RELEASE-8.T3c).",
               "proof": [
                 "Closed by RELEASE-8.T3 (m610), RELEASE-8.T3b (m614), RELEASE-8.T4 (m615); see each task's proof."
               ]
@@ -24502,6 +24502,21 @@
                 "after": ["RELEASE-8.T3"]
               },
               "note": "Merged in m614 (m612 refused on a flaky shove-aside-browser run; rerun green).Regression test apps/apis/convex/reviewAccounts.test.ts (red before the fix). Bug fix within RELEASE-8.3, no scope growth."
+            },
+            {
+              "id": "RELEASE-8.T3c",
+              "text": "Bug: after a D196 reset, node scripts/seedReviewData.mjs fails at the first Campaign checkpoint. awaitCampaignCheckpoint -> RoomControl.open -> convexEnvironmentValue throws \"LIVE_SESSION_WORKER_SECRET could not be read from the selected local Convex deployment\" (apps/apis/tests/developmentConvexEnvironment.ts:39), although the Session Worker the same driver started read that secret. Reproduced twice (local-validation/d196-m615/review3.log, review5.log). Find the root cause, fix it, add a regression test that fails before the fix, and prove a full seedReviewData run on a freshly reset local backend.",
+              "status": "TODO",
+              "closes": ["RELEASE-8.3"],
+              "wsjf": {
+                "bv": 8,
+                "tc": 8,
+                "rr": 8,
+                "size": 1,
+                "after": ["RELEASE-8.T3b"]
+              },
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json",
+              "note": "Bug fix within RELEASE-8.3 (review data must build for UAT), no scope growth."
             },
             {
               "id": "RELEASE-8.T4",
