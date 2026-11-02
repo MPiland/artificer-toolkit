@@ -13,9 +13,9 @@ export function encounterWindowReactionDie(
 ) {
   const { source } = prepared
   if (source.kind !== 'CHARACTER_ACTION') return null
-  const rolled = source.candidate.mechanicFacts.outcomes.find(
-    (outcome) => outcome.rolledDie !== undefined
-  )?.rolledDie
+  const [rolled] = source.candidate.mechanicFacts.outcomes.flatMap((outcome) =>
+    'rolledDie' in outcome && outcome.rolledDie ? [outcome.rolledDie] : []
+  )
   if (!rolled) return null
   const scaling = rolled.facesScaling
   const row = scaling
