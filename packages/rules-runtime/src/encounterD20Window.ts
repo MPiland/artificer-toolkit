@@ -271,6 +271,17 @@ export function chosenEncounterD20WindowOption(
   return chosen
 }
 
+/** The held die a decision spends, or null for a decline, on a window no reactor answers (D207). */
+export function chosenEncounterD20WindowHeldOption(
+  window: Pick<D20WindowPausePayloadDto, 'offer'>,
+  selection: EncounterD20WindowSelection
+) {
+  const chosen = chosenEncounterD20WindowOption(window, selection)
+  if (chosen && isD20WindowReactionDie(chosen))
+    throw new EncounterValidationError('Only an attack roll’s window offers a reaction.')
+  return chosen
+}
+
 /** The kernel index a selection answers the window's choice with: 0 keeps the roll. */
 export function encounterD20WindowSelectedIndex(
   window: Pick<D20WindowPausePayloadDto, 'offer'>,
