@@ -88,7 +88,11 @@ import {
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
 import { encounterFacingRule } from './encounterFacing.js'
-import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
+import {
+  activeAfterRollAttackRollDice,
+  activeAttackCriticalRules,
+  activeDamageDice
+} from './character/activeEffectGrantTotals.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import {
@@ -970,6 +974,15 @@ export async function prepareEncounterActionMechanics<
     ...(attackSight && attackKind === null ? attackSight.trueSight : []),
     ...castModifierContributors
   ]
+  const attackAbility =
+    source.kind === 'CHARACTER_ACTION'
+      ? (characterActionState?.actionMechanic.attackAbility ?? null)
+      : creatureAttackAbility(source.capability.mechanicFacts.outcomes)
+  // The attacker's dice held for after its attack d20 (D168), seen in a window only where asked.
+  const attackWindowDice =
+    input.saveWindow && attackDomain !== null
+      ? activeAfterRollAttackRollDice(sourceFacts.activeEffects, attackDomain, attackAbility)
+      : []
   return {
     state,
     actor,
@@ -982,6 +995,7 @@ export async function prepareEncounterActionMechanics<
     adapter,
     targetPolicy,
     makesAttackRoll: attackKind !== null,
+    attackWindowDice,
     attackSight,
     /** The decoy the attack was rolled against, for the settlement to destroy when it hit. */
     attackDecoy,
@@ -1007,12 +1021,19 @@ export async function prepareEncounterActionMechanics<
         ...(turnUses ? { attackTurnUses: turnUses } : {}),
         ...(attackItemBindingEffectIds.length > 0 ? { attackItemBindingEffectIds } : {}),
         ...(attackSuppressedInfluences.length > 0 ? { attackSuppressedInfluences } : {}),
-        attackAddedDice: encounterAttackAddedDice(
-          sourceFacts.activeEffects,
-          source.kind === 'CHARACTER_ACTION'
-            ? (characterActionState?.actionMechanic.attackAbility ?? null)
-            : creatureAttackAbility(source.capability.mechanicFacts.outcomes)
-        ),
+        attackAddedDice: encounterAttackAddedDice(sourceFacts.activeEffects, attackAbility),
+        ...(attackWindowDice.length > 0 && attackDomain !== null
+          ? {
+              attackAfterRollDice: {
+                [attackDomain]: attackWindowDice.map(({ label, count, faces, sign }) => ({
+                  label,
+                  count,
+                  faces,
+                  sign
+                }))
+              }
+            }
+          : {}),
         // The dice active grants add to, or take from, this source's damage to this target (D156).
         damageAddedDice: activeDamageDice({
           dealerActorId: actor.id,

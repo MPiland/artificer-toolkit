@@ -81,11 +81,12 @@ function reactionAutoRoll(input: {
   }
 }
 
-/** The dice the mover holds for after its reaction save's d20 (D168, D203). */
+/** The dice the mover holds for after its reaction save's d20, and the reactor for its attack's (D168, D203). */
 export function movementReactionSaveWindow({ prepared }: PreparedMovementReaction) {
   return targetSaveWindow(
     prepared.state.gameSystemId,
-    prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []
+    prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? [],
+    prepared.attackWindowDice
   )
 }
 

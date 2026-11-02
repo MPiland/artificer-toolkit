@@ -1170,10 +1170,7 @@ export async function planNativeLiveEncounterAction(
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
-      saveWindow: targetSaveWindow(
-        state.gameSystemId,
-        activeEffectsByActorId.get(prepared.target.id) ?? []
-      ),
+      saveWindow: targetSaveWindow(state.gameSystemId, heldOnTarget, prepared.attackWindowDice),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) =>
@@ -1641,7 +1638,7 @@ export async function planNativeLiveEncounterAction(
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.
     consumedGrants: [
       ...consumedGrants,
-      ...windowSpentEffects(execution, activeEffectsByActorId.get(prepared.target.id) ?? []),
+      ...windowSpentEffects(execution, activeEffectsByActorId, [prepared.actor, prepared.target]),
       ...hitEnded.consumedGrants,
       ...uses.endedGrants,
       ...damageEnded.endedEffects,

@@ -35,6 +35,14 @@ export function derivedAddedDice(diceByKey: unknown, key: string): D20AddedDieDt
   return dice === undefined ? [] : d20AddedDiceDtoSchema.parse(dice)
 }
 
+/** A source's attack dice for one attack domain: those added at the roll, and those held until the d20 is seen. */
+export function derivedAttackDice(derivedFacts: Record<string, unknown>, attackDomain: string) {
+  return {
+    addedDice: derivedAddedDice(derivedFacts.attackAddedDice, attackDomain),
+    heldDice: derivedAddedDice(derivedFacts.attackAfterRollDice, attackDomain)
+  }
+}
+
 /** A target's saving-throw dice for one ability: those added at the roll, and those held until the d20 is seen. */
 export function derivedSaveDice(
   derivedFacts: Record<string, unknown>,
