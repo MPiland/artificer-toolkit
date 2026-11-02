@@ -79,11 +79,20 @@ function tablePathCodes(action: Dnd5eCompiledEffectActionSource): string[] {
   ]
 }
 
-/** What a template identity hashes: the table's rows, and the repeat that sends the die back to them. */
-export function rollTableChecksum(table: RollTable): string {
+/** What a table path's template identity hashes: its rows, and the repeat that sends the die back to them. */
+function rollTableChecksum(table: RollTable): string {
   return checksumRuleDocument(
     table.repeat ? { rows: table.rows, repeat: table.repeat } : table.rows
   )
+}
+
+/** The template identity of a result path's roll table, or null when the path holds none. */
+export function rollTableTemplateChecksum(
+  action: Dnd5eCompiledEffectActionSource,
+  pathCode: string
+): string | null {
+  const table = rollTablePath(action, pathCode)
+  return table && rollTableChecksum(table)
 }
 
 /** An authored row with no outcomes compiles to this placeholder: the face owes nothing. */
@@ -226,10 +235,11 @@ function directRowEntry(entry: RowEntry): Entry {
 export function rollTableOutcomeTemplate(
   action: Dnd5eCompiledEffectActionSource,
   pathCode: string,
-  rolled?: readonly number[]
+  facts: { rollTableFaces?: Readonly<Record<string, readonly number[]>> }
 ) {
   const table = rollTablePath(action, pathCode)
   if (!table) return null
+  const rolled = facts.rollTableFaces?.[pathCode]
   if (table.repeat && !rolled) unsupported('D&D roll table repeat has no rolled faces.')
   return {
     phase: 'OUTCOME' as const,
@@ -247,7 +257,7 @@ const faceSpan = (entry: RowEntry | RepeatEntry): [number, number] =>
  * carries a rider is refused here, before the TEST is rolled. A row that lasts otherwise is held by
  * its own timed plan (see `admitRollTablePaths`). One row may repeat the table: its faces send the
  * one die back to the table, and the die and those rerolls are rolled in the TEST (see
- * `rollTableTestGraph`) so that the OUTCOME holds only the rows they landed in.
+ * `withRollTableTestGraph`) so that the OUTCOME holds only the rows they landed in.
  */
 export function rollTablePath(
   action: Dnd5eCompiledEffectActionSource,
@@ -580,10 +590,10 @@ function rollTableRowGateNode(
  * per repeat, asked only then. A reroll is the index of an allowed face, so it can never land on a
  * rerolled one. The rolled die settles at 0 when not asked, a face no row owns.
  */
-export function rollTableTestGraph(action: Dnd5eCompiledEffectActionSource): {
-  nodes: RuleGraphDefinition['nodes'][number][]
-  outputs: Record<string, RuleInputBinding>
-} {
+export function withRollTableTestGraph(
+  action: Dnd5eCompiledEffectActionSource,
+  definition: RuleGraphDefinition
+): RuleGraphDefinition {
   const nodes: RuleGraphDefinition['nodes'][number][] = []
   const outputs: Record<string, RuleInputBinding> = {}
   for (const pathCode of tablePathCodes(action)) {
@@ -665,7 +675,11 @@ export function rollTableTestGraph(action: Dnd5eCompiledEffectActionSource): {
       outputs[rollTableFaceOutputName(pathCode, ray)] = output(id(`ray-${ray}`), 'face')
     }
   }
-  return { nodes, outputs }
+  return {
+    ...definition,
+    nodes: [...definition.nodes, ...nodes],
+    outputs: { ...definition.outputs, ...outputs }
+  }
 }
 
 /** A damage outcome's own dice, asked for only when its row's gate authorizes them. */

@@ -267,11 +267,10 @@ import {
   admitRollTablePaths,
   directRollTableGraph,
   isRowPlanId,
-  rollTableChecksum,
   rollTableOutcomeTemplate,
-  rollTablePath,
+  rollTableTemplateChecksum,
   rollTableRowActions,
-  rollTableTestGraph
+  withRollTableTestGraph
 } from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
@@ -2402,8 +2401,6 @@ function compileDnd5eEffectActionTestTemplate({
   const thresholdFact = kind === 'ATTACK' ? DND5E_TARGET_DEFENSE_FACT_KEY : DND5E_SAVE_DC_FACT_KEY
   const testOperation =
     kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
-  // A table that repeats rolls its die and rerolls here, so its OUTCOME holds only the rolled rows.
-  const tableRolls = rollTableTestGraph(action)
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: action.effectId,
@@ -2442,8 +2439,7 @@ function compileDnd5eEffectActionTestTemplate({
           },
           outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
-      },
-      ...tableRolls.nodes
+      }
     ],
     outputs: {
       targetActorId: {
@@ -2458,11 +2454,11 @@ function compileDnd5eEffectActionTestTemplate({
         kind: 'NODE_OUTPUT',
         nodeId: 'test',
         port: 'contributorChecksum'
-      },
-      ...tableRolls.outputs
+      }
     }
   }
-  const base = publishedGraph(definition)
+  // A table that repeats rolls its die and rerolls here, so its OUTCOME holds only the rolled rows.
+  const base = publishedGraph(withRollTableTestGraph(action, definition))
   const published = bindMovementInterruptionTestOutput({ action, published: base, kind })
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }
@@ -2750,11 +2746,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
-  const table = rollTableOutcomeTemplate(
-    input.action,
-    input.selectedPath,
-    input.facts.rollTableFaces?.[input.selectedPath]
-  )
+  const table = rollTableOutcomeTemplate(input.action, input.selectedPath, input.facts)
   if (table) return table
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
@@ -3446,26 +3438,25 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     }
   }[]
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
-    const table = rollTablePath(action, pathCode)
-    const groups = table ? [] : selectedOutcomeGroups(action, pathCode)
-    if (!table && groups.length === 0) continue
+    const tableChecksum = rollTableTemplateChecksum(action, pathCode)
+    const groups = tableChecksum ? [] : selectedOutcomeGroups(action, pathCode)
+    if (!tableChecksum && groups.length === 0) continue
     const followUpSave =
-      !table &&
+      !tableChecksum &&
       (pathCode === 'ON_HIT' || pathCode === 'ON_CRIT') &&
       isExactImmediateFollowUpSaveAction(action)
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
     if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry)
+    const authored = followUpSave ? action.compiledEffect.entries : groups
     outcomes.push({
       pathCode,
       template: {
         definitionId: action.effectId,
         gameSystemId: DND5E_SYSTEM_ID,
         definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        checksum: table
-          ? rollTableChecksum(table)
-          : checksumRuleDocument(followUpSave ? action.compiledEffect.entries : groups)
+        checksum: tableChecksum ?? checksumRuleDocument(authored)
       }
     })
   }

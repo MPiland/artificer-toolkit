@@ -1203,13 +1203,13 @@ paths), not to a trace candidate, since the duration node outputs nothing.
 A table that repeats (SPELLS-4.T2ps-d1, current) has one `REPEAT_TABLE` entry beside its rows: it lands on a face, rolls
 the table `count` more times and skips the `rerollValues` faces. A save-based action rolls those dice in its **TEST**
 graph, not the OUTCOME, so the OUTCOME holds only the rolled rows and stays inside the 64-node cap
-(`rollTableTestGraph`; per table path: `table-roll-<path>-die`, `-repeat` gate, and per ray an index request plus
+(`withRollTableTestGraph`; per table path: `table-roll-<path>-die`, `-repeat` gate, and per ray an index request plus
 `dnd5e.roll-table-reroll-face`, which maps the index to the n-th face not rerolled so a reroll can never land on one).
 The die is asked only when the TEST selects the path, and the rolls are the System's (`asksForOptionalDie` in
 `encounterActionRequest.ts`), never a prompt; the sealed-TEST replay reads them back from the retained trace. The TEST
 publishes each rolled face as a `rollTableFace_<PATH>_<ray>` output; `rollTableOutcomeTemplate` specialises the OUTCOME
-from them (`facts.rollTableFaces`), with LITERAL row-gate rolls, and `rollTableChecksum` keys the template identity on
-rows and repeat together. `requireRollTableTestTraces` re-executes every `table-roll-` node. A repeat on a test-less
+from them (`facts.rollTableFaces`), with LITERAL row-gate rolls, and `rollTableTemplateChecksum` keys the template identity on
+rows and repeat together. `requireRollTableTestTraces` (`effectActionRollTableTrace.ts`) re-executes every `table-roll-` node. A repeat on a test-less
 action is refused. The OUTCOME's `rollTableRoll` output is the first face, so a lasting row rolled by a ray has no held
 plan until its multi-plan effect (T2ps-d2).
 
