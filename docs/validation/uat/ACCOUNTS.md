@@ -111,7 +111,7 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 - **Covers:** ACCOUNTS-6.1, ACCOUNTS-6.2, ACCOUNTS-6.3
 - **Accounts:** P3
-- **Preconditions:** Steps 1-5 (wrong code, resend limit, reload) can be run now. Steps 6-10 are blocked until gap G1 is fixed: the six-digit code arrives only by email and no tester can read local email. If a reset is completed, step 10 restores the review password.
+- **Preconditions:** The six-digit code arrives by email; read it as [Reading local email](README.md#reading-local-email) describes. Step 10 restores the review password.
 
 **Steps**
 
@@ -120,11 +120,11 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 3. **P3:** Enter a wrong six-digit code such as 000000 and submit.
 4. **P3:** Request a new code from the same page (resend) a few times in a row.
 5. **P3:** Reload the page and look at the address bar.
-6. **P3:** (blocked: G1) Before the reset, keep a second tab open and signed in as P3. Then enter the real code from the email.
-7. **P3:** (blocked: G1) On **Update password**, type different values in **New password** and **Confirm password**; submit.
-8. **P3:** (blocked: G1) Type the same new password in both fields; submit.
-9. **P3:** (blocked: G1) Try to sign in with the old password, and reload the second tab.
-10. **P3:** (blocked: G1) Sign in with the new password. Try the code from step 6 again. Then reset the password back to the review password the same way.
+6. **P3:** Before the reset, keep a second tab open and signed in as P3. Then enter the real code from the newest reset email to `review_pl_cade@example.invalid`.
+7. **P3:** On **Update password**, type different values in **New password** and **Confirm password**; submit.
+8. **P3:** Type the same new password in both fields; submit.
+9. **P3:** Try to sign in with the old password, and reload the second tab.
+10. **P3:** Sign in with the new password. Try the code from step 6 again. Then reset the password back to the review password the same way.
 11. **GM:** Meanwhile, with the GM signed in on another profile, confirm the GM can still use the app.
 
 **Expected**
@@ -145,7 +145,7 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 - **Covers:** ACCOUNTS-3.1, ACCOUNTS-3.2, ACCOUNTS-3.3, ACCOUNTS-4.2
 - **Accounts:** OUTSIDER (gap G3)
-- **Preconditions:** Blocked until gap G3 is fixed: public sign-up is closed and invitation emails are not retained locally, so no tester can receive an invitation link.
+- **Preconditions:** Blocked until gap G3 is fixed: public sign-up is closed and invitations are issued only by the internal `authInvitations:issue` function, not from the app.
 
 **Steps**
 

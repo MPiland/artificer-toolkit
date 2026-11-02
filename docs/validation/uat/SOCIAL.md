@@ -2,7 +2,7 @@
 
 Feature `SOCIAL` in the [phase ledger](../../roadmap/08-phase-ledger.json). Set up first: [README](README.md#setup).
 
-Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](README.md#accounts). Several windows: [README](README.md#running-several-users-side-by-side). Record results: [README](README.md#recording-results). Email is not readable on this build (gap G1, see [README](README.md#known-uat-gaps)).
+Proves players can find a table, apply, be accepted or refused, block and be blocked, receive notifications they chose, and that plan limits stop over-use without destroying data. Accounts: [README](README.md#accounts). Several windows: [README](README.md#running-several-users-side-by-side). Record results: [README](README.md#recording-results). Read email as [Reading local email](README.md#reading-local-email) describes.
 
 ## UAT-SOCIAL-1: Create a listing, apply, accept and fill a table
 
@@ -124,7 +124,7 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 
 - **Covers:** SOCIAL-2.1, SOCIAL-2.2, SOCIAL-2.3
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Review: Party in the Field. Email delivery cannot be read (gap G1), so check only the in-app feed here; the "delivered once" email evidence for SOCIAL-2.3 is a harness result.
+- **Preconditions:** Review: Party in the Field. Read email as [Reading local email](README.md#reading-local-email) describes; the "delivered once" retry evidence for SOCIAL-2.3 is a harness result.
 
 **Steps**
 
@@ -145,7 +145,7 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 - The new announcement arrives live as an unread notification; opening it marks it read.
 - With both channels off P1 gets no notification for the second announcement; P2 still does.
 - Step 9: P2's feed holds 25 entries, the latest 25; the oldest are gone. (The announcements stay in the Campaign.)
-- Email: not checked here (gap G1); the in-app result is the evidence for turning both channels off.
+- Email: [local email](README.md#reading-local-email) holds no email to P1 for the second announcement (both channels off). Record which announcement emails P1 and P2 did receive.
 - After re-enabling channels P1 gets the next one.
 
 **Other users see**

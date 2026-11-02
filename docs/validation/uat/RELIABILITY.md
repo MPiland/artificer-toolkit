@@ -369,7 +369,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-21.8
 - **Accounts:** GM, SPARE (gap G3)
-- **Preconditions:** Blocked until gap G3 is fixed. Needs a spare player account that the GM has added to the Sandbox Campaign (an invitation path, which also needs email, gap G1). Never delete a Review account.
+- **Preconditions:** Blocked until gap G3 is fixed. Needs a spare player account that the GM has added to the Sandbox Campaign (through an invitation). Never delete a Review account.
 
 **Steps**
 

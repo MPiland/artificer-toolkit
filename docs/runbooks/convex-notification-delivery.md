@@ -19,7 +19,8 @@ For an authorized managed smoke, `RESEND_TEST_RECIPIENT` may be one of Resend's 
 these values through `VITE_` variables.
 
 Local correctness uses `MAIL_DELIVERY_MODE=local`, loopback `CONVEX_SITE_URL`, and a loopback
-`LOCAL_EMAIL_SINK_URL`. It does not contact Resend.
+`LOCAL_EMAIL_SINK_URL`. It does not contact Resend. The local sink keeps the newest 50 messages for
+testers to read ([Reading local email](../validation/uat/README.md#reading-local-email)).
 
 ## Operation
 
