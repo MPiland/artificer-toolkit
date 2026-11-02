@@ -460,6 +460,11 @@ of a table once it stops running. While it runs, the room is.
       checkpoint carries, which would fire about every 8 combat commands and recreate an interval.
     - **There is no timer and no deadline alarm.** N and the `DEADLINE` checkpoint reason are
       retired.
+    - **Recovery saves (2026-11-02, PERF-3.T1).** Activation, a cold admission and an aggregate
+      reload also save, but only journal entries Convex does not hold yet, such as those of a room
+      that restarted before it published them. With nothing unsaved they write no checkpoint
+      (`apps/session-worker/test/nativeRoomAdmission.test.ts`), so they never publish what was just
+      loaded from Convex and add no I/O to a session that saved at its last save point.
     - **The lease is independent.** The authorization lease (Amendment 14) stays at 60 s. It bounds
       revocation, not saving.
     - **What a table close leaves behind.** When everyone leaves, idle release saves everything a
@@ -492,7 +497,8 @@ of a table once it stops running. While it runs, the room is.
   session, over the 4.3 MB decimal budget (Decision 9, D209). Most of a COMPLETE save's
   scope checks (about 90 KB of its I/O in a84) re-read the same conversation for every chat entry
   and payload, and the same Scene for every token binding. A save now reads each once (PERF-3.T1):
-  an estimated 0.4 MB less per session, about 4.03 MB, until a V15 rerun measures it.
+  an estimated 0.4 MB less per session, about 4.03 MB, until a V15 rerun measures it. Recovery
+  saves (Amendment 25) add nothing to it: they write only entries a restarted room never published.
 - **Loss window.** Losing the room's storage loses changes since the last save point: at most the
   current fight, or the current out-of-combat stretch. Scene undo of earlier moves is then refused,
   as for Encounter history (D88). This replaces D85's "about one round".
