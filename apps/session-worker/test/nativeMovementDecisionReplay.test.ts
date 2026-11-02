@@ -7,6 +7,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf, reactionWolf } from '../src/testing/movementPlannerFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import { movementRoom, type MovementRoomConfig } from './movementRoomFixture.js'
+import { expireReactionOffer } from './reactionTimeoutClock.js'
 
 const MOVER_ID = testUuid(0x200)
 const REACTOR_ID = testUuid(0x201)
@@ -106,6 +107,32 @@ it('replays the Scene receipt and the Encounter result of a player answer, in th
   expect(scopes(live)).toEqual(['SCENE', 'ENCOUNTER'])
   expect(scopes(replay)).toEqual(scopes(live))
   expect(replay).toEqual(live.map(asReplay))
+})
+
+it('declines a movement reaction once its time runs out, so the player’s late answer is stale (D207)', async () => {
+  const room = await reactionRoom({ playerControlledActorIds: [REACTOR_ID] })
+  const player = await connectPlayer(room.base)
+  await room.move(EAST)
+  const decision = await pendingDecision(room)
+
+  await expireReactionOffer(room.base.stub)
+  expect(await room.pending()).toBeNull()
+  const commandId = crypto.randomUUID()
+  player.socket.send(
+    JSON.stringify({
+      type: 'COMMAND',
+      expectedSessionSequence: 0,
+      command: answer(commandId, decision)
+    })
+  )
+  await vi.waitFor(() =>
+    expect(
+      player.messages.some(
+        (message) => message.type === 'COMMAND_REJECTED' && message.commandId === commandId
+      )
+    ).toBe(true)
+  )
+  expect(committedFor(player, commandId)).toEqual([])
 })
 
 it('replays both messages of a GM void of a movement decision', async () => {

@@ -167,16 +167,17 @@ export async function verifyEncounterPlayerBrowser(
       },
       useReaction: async () => {
         stage = 'use the offered reaction'
-        await openDecision()
+        // A timed offer opens the drawer itself, with its countdown (D207).
+        await expect(decisionDrawer).toBeVisible()
+        await expect(decisionDrawer.getByRole('timer')).toContainText(/\d+ seconds? to react/)
         await expect(decisionDrawer.getByText('Reaction', { exact: false }).first()).toBeVisible()
         await page.screenshot({
           caret: 'initial',
           path: input.evidenceDirectory + '/player-reaction-offered.png',
           fullPage: true
         })
-        return submitDecision(() =>
-          decisionDrawer.getByRole('button', { name: 'Use reaction', exact: true }).click()
-        )
+        // Enter takes the first offered reaction.
+        return submitDecision(() => page.keyboard.press('Enter'))
       },
       castThunderwaveFromMap: async () => {
         stage = 'aim Thunderwave on the map'

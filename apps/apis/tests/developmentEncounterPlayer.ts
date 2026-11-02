@@ -119,7 +119,9 @@ export async function verifyEncounterPlayer({
     expectedVersion: version,
     automationMode: 'ASSISTED',
     initiativePolicyDefinitionId,
-    initiativeTieDefinitionId: null
+    initiativeTieDefinitionId: null,
+    // The longest a GM may set (D207): the offered Shield declines itself if a slow runner misses it.
+    reactionSeconds: 15
   })
   await player.mutation(api.campaigns.assignments.assign, { campaignId, characterId })
 

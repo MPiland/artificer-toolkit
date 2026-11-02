@@ -4,8 +4,60 @@ import {
   decisionTitle,
   onHitChoiceTitle,
   onHitOptionLabel,
-  rollPromptText
+  rollPromptText,
+  timedReactionOffer
 } from './CampaignTabletopDecisionDrawer.model'
+
+describe('timedReactionOffer (D207)', () => {
+  const answerBy = '2026-11-02T12:00:05.000Z'
+  const head = {
+    occurrenceId: '11111111-1111-4111-8111-111111111111',
+    occurrenceVersion: 2,
+    encounterVersion: 4
+  }
+  const reaction = {
+    ...head,
+    kind: 'REACTION_CHOICE',
+    targetActorId: '22222222-2222-4222-8222-222222222222',
+    options: [
+      { optionId: 'a'.repeat(64), actionId: 'shield' },
+      { optionId: 'b'.repeat(64), actionId: 'counterspell' }
+    ],
+    allowedResponses: ['DECLINE', 'OPTION']
+  } as const
+  const window = {
+    ...head,
+    kind: 'D20_WINDOW',
+    rollerActorId: '33333333-3333-4333-8333-333333333333',
+    requestId: 'window-1',
+    d20: { selectedNatural: 10, total: 14 },
+    options: [
+      { optionId: 'c'.repeat(64), label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT' }
+    ],
+    allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+  } as const
+
+  it('takes the first offered reaction on Enter and declines on Esc, by the server deadline', () => {
+    expect(timedReactionOffer({ ...reaction, answerBy })).toEqual({
+      answerBy: Date.parse(answerBy),
+      take: { kind: 'OPTION', optionId: 'a'.repeat(64) },
+      decline: { kind: 'DECLINE' }
+    })
+  })
+
+  it('uses a reactor’s first held die in a d20 window, without faces', () => {
+    expect(timedReactionOffer({ ...window, answerBy })).toEqual({
+      answerBy: Date.parse(answerBy),
+      take: { kind: 'D20_WINDOW_USE', requestId: 'window-1', optionId: 'c'.repeat(64) },
+      decline: { kind: 'D20_WINDOW_DECLINE', requestId: 'window-1' }
+    })
+  })
+
+  it('leaves untimed: a roller’s own window and a reaction offer with no deadline', () => {
+    expect(timedReactionOffer(window)).toBeNull()
+    expect(timedReactionOffer(reaction)).toBeNull()
+  })
+})
 
 describe('decisionTitle', () => {
   it('titles a pending area as its saves', () => {

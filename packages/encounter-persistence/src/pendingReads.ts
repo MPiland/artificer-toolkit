@@ -1,5 +1,6 @@
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { serverRuleExecutionPendingOccurrenceId } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
   canAnswerNativeActionEvidence,
   projectNativeActionPending,
@@ -108,6 +109,59 @@ export async function readPendingRunDecision(
   const pendingSnapshot = await readPendingSnapshot(ctx, occurrence)
   if (!pendingSnapshot || serverRuleExecutionPendingOccurrenceId(pendingSnapshot) !== occurrence.id)
     throw new Error('Stored Encounter occurrence state is invalid.')
+  const pending = await projectPendingRunDecision(ctx, {
+    row,
+    campaign,
+    membership,
+    occurrence,
+    pendingSnapshot
+  })
+  const reactorActorId = pending && reactionOfferReactorActorId(pending, pendingSnapshot)
+  if (!pending || !reactorActorId) return pending
+  // A reaction offer declines itself once its time runs out (D207); an AFK reactor's at once.
+  const state = readRunState(row)
+  const controller = await readEncounterActorPrimaryController(
+    ctx,
+    campaign,
+    await readRunActor(ctx, state, reactorActorId)
+  )
+  const seconds = state.afkUserIds.includes(controller) ? 0 : state.reactionSeconds
+  return {
+    ...pending,
+    answerBy: new Date(Date.parse(occurrence.updatedAt) + seconds * 1000).toISOString()
+  }
+}
+
+/** The reactor a pending decision offers a reaction to, or null when it is not a reaction offer. */
+function reactionOfferReactorActorId(
+  pending: PendingEncounterRuleOccurrenceSummaryDto,
+  pendingSnapshot: PendingSnapshot
+): string | null {
+  if (pending.kind === 'REACTION_CHOICE') return pending.targetActorId
+  if (pending.kind === 'MOVEMENT_REACTION') return pending.choice.reactorActorId
+  const context = pendingSnapshot.applicationContext
+  // Only a reactor's die against another creature's roll is a reaction; a roller's own window waits.
+  return pending.kind === 'D20_WINDOW' &&
+    context.kind === 'ENCOUNTER_ACTION' &&
+    context.pause?.kind === 'D20_WINDOW'
+    ? d20WindowReactorActorId(context.pause.payload)
+    : null
+}
+
+type PendingSnapshot = NonNullable<Awaited<ReturnType<typeof readPendingSnapshot>>>
+
+/** The pending decision as one member reads it. */
+async function projectPendingRunDecision(
+  ctx: EncounterReadTransaction,
+  input: {
+    row: EncounterDocument<'encounterRuns'>
+    campaign: EncounterDocument<'campaigns'>
+    membership: EncounterDocument<'campaignMemberships'>
+    occurrence: EncounterDocument<'encounterRuleOccurrences'>
+    pendingSnapshot: PendingSnapshot
+  }
+): Promise<PendingEncounterRuleOccurrenceSummaryDto | null> {
+  const { row, campaign, membership, occurrence, pendingSnapshot } = input
   const context = pendingSnapshot.applicationContext
   if (context.kind === 'ENCOUNTER_ACTION' && context.contest)
     return projectNativeContestPendingForMember(ctx, row, campaign, membership, occurrence)

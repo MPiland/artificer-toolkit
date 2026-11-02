@@ -35,6 +35,7 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'CREATURE_REST',
         'REPLACE_OPTIONAL_COMBAT_RULES',
         'SET_HEALTH_DISPLAY_DEFAULT',
+        'SET_AFK',
         'COMPLETE',
         'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',
         'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING',

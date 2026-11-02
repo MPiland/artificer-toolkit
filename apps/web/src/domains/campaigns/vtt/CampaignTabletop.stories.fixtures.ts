@@ -312,6 +312,8 @@ export const tabletopGmEncounter = {
   trackAmmunition: false,
   zoneNoticing: 'GM_PROMPT',
   automaticCover: true,
+  reactionSeconds: 5,
+  afkUserIds: [],
   healthDisplayDefault: 'DESCRIPTIVE',
   actors: actorBases.map((actor, index) => ({
     ...actor,

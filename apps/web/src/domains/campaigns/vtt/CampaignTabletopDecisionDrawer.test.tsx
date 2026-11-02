@@ -427,6 +427,100 @@ describe('CampaignTabletopDecisionDrawer void', () => {
   })
 })
 
+describe('CampaignTabletopDecisionDrawer timed reaction offer (D207)', () => {
+  /** Offered now with the default 5 s to answer. */
+  const timedPending = () =>
+    validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
+      kind: 'MOVEMENT_REACTION',
+      occurrenceId,
+      occurrenceVersion: 2,
+      encounterVersion: tabletopGmEncounter.version,
+      answerBy: new Date(Date.now() + 5_000).toISOString(),
+      choice: {
+        pathDistance: 5,
+        reactorActorId: tabletopGmEncounter.actors[0]!.id,
+        reactorTokenId: '77777777-7777-4777-8777-777777777791',
+        options: [
+          {
+            optionId: 'a'.repeat(64),
+            actionId: 'opportunity-attack',
+            actionSourceKind: 'CHARACTER_ACTION'
+          }
+        ]
+      },
+      allowedResponses: ['DECLINE', 'OPTION']
+    })
+
+  function renderTimed(
+    onResolve: ComponentProps<typeof CampaignTabletopDecisionDrawer>['onResolve'],
+    submitting = false
+  ) {
+    return renderWithAppProviders(
+      <>
+        <input aria-label='Chat message' />
+        <CampaignTabletopDecisionDrawer
+          skipped={null}
+          canVoid
+          connected
+          encounter={tabletopGmEncounter}
+          latestRoll={null}
+          pending={timedPending()}
+          submitting={submitting}
+          onResolve={onResolve}
+        />
+      </>
+    )
+  }
+
+  it('opens itself with a countdown and large answer buttons', async () => {
+    renderTimed(vi.fn(async () => resolved()))
+
+    expect(await screen.findByRole('timer')).toHaveTextContent(/^[45] seconds to react$/)
+    expect(screen.getByText('Enter takes the first option. Esc declines.')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Use opportunity-attack' })).toHaveAttribute(
+      'data-size',
+      'lg'
+    )
+  })
+
+  it('takes the first option on Enter and declines on Esc', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    renderTimed(onResolve)
+    await screen.findByRole('timer')
+
+    await user.keyboard('{Enter}')
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_RULE_OCCURRENCE',
+        resolution: { kind: 'OPTION', optionId: 'a'.repeat(64) }
+      })
+    )
+    await user.keyboard('{Escape}')
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({ resolution: { kind: 'DECLINE' } })
+    )
+    expect(onResolve).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves Enter and Esc to a text field, and answers nothing while a submit is in flight', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn(async () => resolved())
+    const { unmount } = renderTimed(onResolve)
+    await screen.findByRole('timer')
+
+    await user.click(screen.getByRole('textbox', { name: 'Chat message' }))
+    await user.keyboard('{Enter}{Escape}')
+    expect(onResolve).not.toHaveBeenCalled()
+    unmount()
+
+    renderTimed(onResolve, true)
+    await screen.findByRole('timer')
+    await user.keyboard('{Enter}{Escape}')
+    expect(onResolve).not.toHaveBeenCalled()
+  })
+})
+
 describe('CampaignTabletopDecisionDrawer movement skip', () => {
   it('offers the GM Skip decision on a pending movement choice (D26)', async () => {
     const user = userEvent.setup()
