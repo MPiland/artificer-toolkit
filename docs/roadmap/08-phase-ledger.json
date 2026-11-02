@@ -16284,9 +16284,11 @@
         {
           "id": "SPELLS-12",
           "title": "Concentrate on more than one spell",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/tests/live-backend/encounterConcentrationSheet.ts"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -16311,11 +16313,16 @@
             },
             {
               "text": "An authored rule can apply an effect only while its holder keeps two Concentrations (the ring: vulnerability to psychic damage), and the effect ends when either Concentration ends; the caster can end either one by choice (SPELLS-5.11).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-12.T4 (m592), SPELLS-12.T4b (m601); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered with SPELLS-12.1. The conditional effect is an ordinary modifier (damage vulnerability) gated by the held-Concentration-count predicate, evaluated where modifiers are read, not a timed grant. Journey: a Character with the authored ring holds Bless and Fly, takes damage, rolls two saves in order, loses one spell and keeps the other.",
-              "id": "SPELLS-12.3"
+              "note": "Registered with SPELLS-12.1. The conditional effect is an ordinary modifier (damage vulnerability) gated by the held-Concentration-count predicate, evaluated where modifiers are read, not a timed grant. Journey: a Character with the authored ring holds Bless and Fly, takes damage, rolls two saves in order, loses one spell and keeps the other. Closed 2026-11-02 by SPELLS-12.T4, SPELLS-12.T4b.",
+              "id": "SPELLS-12.3",
+              "journeys": [
+                "concentration-sheet-browser"
+              ]
             }
           ],
           "wsjf": {
@@ -16453,7 +16460,7 @@
             {
               "id": "SPELLS-12.T4b",
               "text": "Sheet Concentration picker: with two Concentrations held, the Sheet lists each one and ends the one the player picks. Adds a state id to END_CONCENTRATION, the per-state Sheet listing and UI, and the Convex path.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-12.3"
               ],
@@ -16466,7 +16473,7 @@
                   "SPELLS-12.T4"
                 ]
               },
-              "note": "Required by approved AC SPELLS-12.3 (also SPELLS-5.11 end-either-by-choice), so it is not new scope under D187."
+              "note": "Required by approved AC SPELLS-12.3 (also SPELLS-5.11 end-either-by-choice), so it is not new scope under D187. Merged in m601 (72d466bd7)."
             }
           ]
         },
@@ -18944,7 +18951,7 @@
             {
               "id": "SPELLS-31.T4c2b",
               "text": "Bardic Inspiration on attack rolls: an attack-roll window that opens only when the attacker holds an eligible die.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18957,7 +18964,7 @@
                   "SPELLS-31.T4c2"
                 ]
               },
-              "note": "Split from T4c2 (D206). Size is provisional until the T4c2 session reports the seam."
+              "note": "Split from T4c2 (D206). Size is provisional until the T4c2 session reports the seam. Merged in m601 (72d466bd7)."
             },
             {
               "id": "SPELLS-31.T4c2c",
@@ -27172,9 +27179,9 @@
         {
           "id": "PERF-4",
           "title": "Faster commands and reads",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "internal",
           "origin": [],
           "acs": [
             {
@@ -27219,9 +27226,11 @@
             },
             {
               "text": "Computing Creature armor class in the Encounter projection keeps projection reads within the PERF-1 targets at the 100-actor cap; if it does not, the computed AC is cached by the actor's pinned source facts.",
-              "status": "TODO",
-              "proof": [],
-              "note": "Registered 2026-10-11 from AUTHORING-17 slice B: snapshotStatBlock recomputes AC on every call (about 0.9 ms per Creature across the SRD set, local-validation/a17b/perf.mjs). Measure it in the V15 load run before optimizing.",
+              "status": "DONE",
+              "proof": [
+                "Closed by PERF-4.T1 (m593), PERF-4.T2 (m601); see each task's proof."
+              ],
+              "note": "Registered 2026-10-11 from AUTHORING-17 slice B: snapshotStatBlock recomputes AC on every call (about 0.9 ms per Creature across the SRD set, local-validation/a17b/perf.mjs). Measure it in the V15 load run before optimizing. Closed 2026-11-02 by PERF-4.T1, PERF-4.T2.",
               "origin": [
                 "AUTHORING-17"
               ],
@@ -27255,7 +27264,7 @@
             {
               "id": "PERF-4.T2",
               "text": "Bug: `buildEncounterBlueprintEnemies` stores one full snapshot per enemy against the 1,048,576-byte mutation payload limit, so 139 of 317 SRD types cannot reach 99 enemies and 16 Duergar fail at 66.8 KB each. Store one snapshot per distinct source. Red-first test.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "PERF-4.4"
               ],
@@ -27269,9 +27278,10 @@
                   "PERF-4.T1"
                 ]
               },
-              "note": "Found by PERF-4.T1. A bug, so allowed under D187."
+              "note": "Found by PERF-4.T1. A bug, so allowed under D187. Merged in m601 (72d466bd7)."
             }
-          ]
+          ],
+          "internalReason": "Performance fixes with no new user-visible flow; each task carries its own real-code proof and budget test."
         }
       ]
     },
