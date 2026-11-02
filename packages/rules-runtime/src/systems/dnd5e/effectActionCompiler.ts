@@ -124,6 +124,7 @@ import {
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
+import { rolledDamageDice } from './effectActionDamageDice.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -3521,6 +3522,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       )
     ).values()
   ],
+  rolledDamageDice,
   outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({

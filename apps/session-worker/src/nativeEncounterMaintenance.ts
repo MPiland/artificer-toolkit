@@ -341,37 +341,46 @@ export async function prepareNativeLiveActionMaintenance(input: {
 /**
  * The resource or slot spend that settles with a Character action beyond its own cost: what the
  * attacker's chosen on-hit rider is paid with, else the use a Concentration capacity bonus spent to
- * make room for the cast's Concentration. Null when neither applies.
+ * make room for the cast's Concentration. A damage reroll the caster paid for (D208) joins the cast's
+ * own spend from that pool, beside an on-hit slot. Null when none applies.
  */
 export function settledCharacterActionSpend(input: {
   prepared: Pick<
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
-    'source' | 'sourceFacts'
+    'source' | 'sourceFacts' | 'characterActionState'
   >
   chosenOnHit: EncounterOnHitCost | null
+  damageReroll: { poolId: string; cost: number } | null
   maintenance: { capacityUse: { poolId: string } | null } | null
   automationMode: AutomationModeDto
 }) {
-  const { prepared, chosenOnHit } = input
+  const { prepared, chosenOnHit, damageReroll } = input
   const { source } = prepared
   if (source.kind !== 'CHARACTER_ACTION') return null
-  if (chosenOnHit?.kind === 'SPELL_SLOT')
-    return {
-      spellConsumption: onHitSpellConsumption({
-        spellSlots: source.effectivePolicyOutput.spellSlots,
-        slotLevel: chosenOnHit.slotLevel,
-        characterId: source.characterId,
-        expectedStreamVersion: source.characterStreamVersion
-      })
-    }
-  const pool =
-    (chosenOnHit?.kind === 'FREE' ? null : chosenOnHit) ??
-    (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
-  if (!pool) return null
+  const spellConsumption =
+    chosenOnHit?.kind === 'SPELL_SLOT'
+      ? onHitSpellConsumption({
+          spellSlots: source.effectivePolicyOutput.spellSlots,
+          slotLevel: chosenOnHit.slotLevel,
+          characterId: source.characterId,
+          expectedStreamVersion: source.characterStreamVersion
+        })
+      : null
+  const castSpend = prepared.characterActionState?.resourceConsumption ?? null
+  if (damageReroll && castSpend && castSpend.poolId !== damageReroll.poolId)
+    throw new StaleCharacterActionError('The damage reroll pool is stale.')
+  const pool = damageReroll
+    ? { poolId: damageReroll.poolId, cost: damageReroll.cost + (castSpend?.cost ?? 0) }
+    : spellConsumption
+      ? null
+      : ((chosenOnHit?.kind === 'RESOURCE_POOL' ? chosenOnHit : null) ??
+        (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 }))
+  if (!pool) return spellConsumption ? { spellConsumption } : null
   const { characterFacts } = prepared.sourceFacts
   if (!characterFacts)
     throw new StaleCharacterActionError('The selected Character action source is stale.')
   return {
+    ...(spellConsumption ? { spellConsumption } : {}),
     resourceConsumption: poolResourceConsumption({
       resources: source.effectivePolicyOutput.resources,
       resourceUsage: characterFacts.sheetState.resourceUsage,

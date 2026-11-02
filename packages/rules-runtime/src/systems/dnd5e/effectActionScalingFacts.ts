@@ -231,7 +231,7 @@ function parseMoveToward(value: RuleValue | undefined): MoveToward | undefined {
   return { closedFeet }
 }
 
-function parseDamageAddedDice(
+export function parseDamageAddedDice(
   value: RuleValue | undefined
 ): readonly DamageAddedDieDto[] | undefined {
   if (value === undefined) return undefined

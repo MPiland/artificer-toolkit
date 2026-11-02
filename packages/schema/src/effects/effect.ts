@@ -63,20 +63,32 @@ export const castModifierParameterDtoSchema = lazySchema(() =>
   ])
 )
 
+const castModifierCountShape = () => ({
+  base: z.number().check(z.int()).check(z.gte(0)),
+  abilityDefinitionId: z.optional(authoredIdentifierSchema),
+  minimum: z.optional(z.number().check(z.int()).check(z.gte(0)))
+})
+
 const castModifierDtoSchema = lazySchema(() =>
-  z.object({
-    ...resourceUseDtoShape(),
-    parameters: z.optional(z.array(castModifierParameterDtoSchema).check(z.maxLength(8))),
-    perSpellLevel: z.optional(z.boolean()),
-    targets: z.optional(
-      z.object({
-        outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
-        base: z.number().check(z.int()).check(z.gte(0)),
-        abilityDefinitionId: z.optional(authoredIdentifierSchema),
-        minimum: z.optional(z.number().check(z.int()).check(z.gte(0)))
+  z
+    .object({
+      ...resourceUseDtoShape(),
+      parameters: z.optional(z.array(castModifierParameterDtoSchema).check(z.maxLength(8))),
+      perSpellLevel: z.optional(z.boolean()),
+      targets: z.optional(
+        z.object({
+          outcome: z.enum(['SAVE_AUTO_SUCCESS', 'SAVE_DISADVANTAGE', 'EXTRA_TARGET']),
+          ...castModifierCountShape()
+        })
+      ),
+      damageRerolls: z.optional(z.object(castModifierCountShape()))
+    })
+    .check(
+      z.refine((value) => !value.damageRerolls || (!value.parameters?.length && !value.targets), {
+        message: 'A damage reroll is paid after the damage roll, so it changes nothing at cast.',
+        path: ['damageRerolls']
       })
     )
-  })
 )
 
 const optionalOnHitDtoSchema = lazySchema(() =>

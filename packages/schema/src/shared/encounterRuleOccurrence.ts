@@ -9,6 +9,7 @@ import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 import type { DamageSaveSource } from './ruleExecutionConcentration.js'
 import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
+import { rolledDamageDieDtoSchema } from './ruleExecutionDamageRollWindow.js'
 import { aimedAreaTargetDtoSchema } from './shape.js'
 import {
   offeredRollModeSchema,
@@ -474,6 +475,34 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         ...d20WindowChoiceShape(),
+        allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
+      }),
+      /**
+       * A cast's damage the caster has seen, with the costs it may pay to reroll some of its dice
+       * (D208): a use names the dice, up to the option's most.
+       */
+      z.strictObject({
+        kind: z.literal('DAMAGE_ROLL_WINDOW'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        dice: z
+          .array(rolledDamageDieDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              label: triggerLabelSchema,
+              cost: z.number().check(z.int()).check(z.positive()),
+              maxDice: z.number().check(z.int()).check(z.positive())
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(50)),
         allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
       }),
       /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */

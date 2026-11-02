@@ -17,6 +17,7 @@ import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../share
 import { manifestDtoSchema } from '../effects/manifest.js'
 import { summonPicksShape } from './summonPickOptions.js'
 import { zoneDcDtoSchema } from '../shared/spatial.js'
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -595,13 +596,17 @@ export const resolveRuleOccurrenceInputDtoSchema = lazySchema(() =>
       /** The roller lets a held die go unused after seeing the d20. */
       z.strictObject({ kind: z.literal('ROLL_WINDOW_DECLINE'), requestId: requestIdSchema }),
       /**
-       * The roller adds a held die the window offered. `faces` are the die's entered faces; absent,
-       * the server rolls it.
+       * The roller adds a held die the window offered, or on a damage roll's window pays the offered
+       * cost to reroll the named `dice` (D208). `faces` are the entered faces, die by die (one per
+       * named die on a damage roll); absent, the server rolls them.
        */
       z.strictObject({
         kind: z.literal('ROLL_WINDOW_USE'),
         requestId: requestIdSchema,
         optionId: checksumSchema,
+        dice: z.optional(
+          z.array(requestIdSchema).check(z.minLength(1)).check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        ),
         faces: z.optional(d20AddedFacesDtoSchema)
       }),
       z.strictObject({ kind: z.literal('PASSAGE_DECLINE') }),

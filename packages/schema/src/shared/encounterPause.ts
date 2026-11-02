@@ -8,6 +8,10 @@ import {
   type D20WindowPausePayloadDto
 } from './ruleExecutionD20WindowOffer.js'
 import {
+  damageRollWindowPayloadDtoSchema,
+  type DamageRollWindowPayloadDto
+} from './ruleExecutionDamageRollWindow.js'
+import {
   encounterForcedMovementOfferDtoSchema,
   type EncounterForcedMovementOfferDto
 } from './ruleExecutionForcedMovementChoice.js'
@@ -41,8 +45,13 @@ export type EncounterPauseDto =
   | { kind: 'FORCED_MOVEMENT'; payload: EncounterForcedMovementOfferDto }
   | { kind: 'ROLL_WINDOW'; payload: D20WindowPausePayloadDto }
 
-/** The pauses an Encounter action holds: its TEST save's d20 window, and every choice it offers. */
-export type EncounterActionPauseDto = EncounterPauseDto
+/**
+ * The pauses an Encounter action holds: its TEST's d20 window, the window its damage roll extends it
+ * to (D208), and every choice it offers.
+ */
+export type EncounterActionPauseDto =
+  | Exclude<EncounterPauseDto, { kind: 'ROLL_WINDOW' }>
+  | { kind: 'ROLL_WINDOW'; payload: D20WindowPausePayloadDto | DamageRollWindowPayloadDto }
 
 export type EncounterPauseKind = EncounterPauseDto['kind']
 
@@ -84,7 +93,10 @@ export const encounterActionPauseDtoSchema: z.ZodMiniType<EncounterActionPauseDt
       variants.ATTACK_RETARGET,
       variants.ON_HIT,
       variants.FORCED_MOVEMENT,
-      variants.ROLL_WINDOW
+      z.strictObject({
+        kind: z.literal('ROLL_WINDOW'),
+        payload: z.union([d20WindowPausePayloadDtoSchema, damageRollWindowPayloadDtoSchema])
+      })
     ])
   }
 )

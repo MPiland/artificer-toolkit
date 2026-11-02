@@ -11,6 +11,7 @@ import {
   isD20RolledCheck,
   isD20WindowReactionDie
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { z } from 'zod'
 
@@ -87,10 +88,11 @@ export function retainedD20Evidence(input: {
   receipt?: RetainedActionReceipt
 }) {
   const pending = input.twoPhase
-  const windowed =
-    input.pause?.kind === 'ROLL_WINDOW' && !isD20RolledCheck(input.pause.payload.rolled)
-      ? input.pause.payload.rolled.d20
+  const window =
+    input.pause?.kind === 'ROLL_WINDOW' && !isDamageRollWindow(input.pause.payload)
+      ? input.pause.payload
       : null
+  const windowed = window && !isD20RolledCheck(window.rolled) ? window.rolled.d20 : null
   const retained = retainedReceiptD20(input.receipt)
   const evidence = [
     ...(pending?.phase === 'OUTCOME'
@@ -201,7 +203,11 @@ export function windowAnswerForRetainedEvidence(input: {
   d20: ReadonlyMap<string, RetainedD20Evidence>
   used: Set<string>
 }): EncounterActionWindowAnswer {
-  const window = input.pending.pause?.kind === 'ROLL_WINDOW' ? input.pending.pause.payload : null
+  // Only a Character's own action opens a damage roll's window, and no retained replay runs one.
+  const window =
+    input.pending.pause?.kind === 'ROLL_WINDOW' && !isDamageRollWindow(input.pending.pause.payload)
+      ? input.pending.pause.payload
+      : null
   if (!window || isD20RolledCheck(window.rolled))
     throw new Error('The retained action window evidence is stale.')
   const { d20 } = window.rolled

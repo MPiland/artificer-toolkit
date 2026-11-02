@@ -12,6 +12,7 @@ import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/e
 import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
 import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { liveSessionEncounterActionPendingInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type {
@@ -507,7 +508,11 @@ async function recordAreaRoll(
   )
   if (result.kind === 'PENDING') {
     const held = result.pending.pause
-    if (held?.kind !== 'ROLL_WINDOW' || isD20RolledCheck(held.payload.rolled))
+    if (
+      held?.kind !== 'ROLL_WINDOW' ||
+      isDamageRollWindow(held.payload) ||
+      isD20RolledCheck(held.payload.rolled)
+    )
       throw new Error('An area save must settle with its answer.')
     const { rawFaces, rollMode } = held.payload.rolled.d20
     const rolled: EncounterEvidenceAnswer = { kind: 'ENTER_DICE', requestId, rawFaces, rollMode }

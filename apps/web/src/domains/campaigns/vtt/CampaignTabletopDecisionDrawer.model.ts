@@ -120,6 +120,7 @@ export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['ki
   if (kind === 'AREA_SAVES') return 'Area saves'
   if (kind === 'CONTEST_CHECK') return 'Contest check'
   if (kind === 'ROLL_WINDOW') return 'Add a die to the roll?'
+  if (kind === 'DAMAGE_ROLL_WINDOW') return 'Reroll damage dice?'
   return 'Initiative order required'
 }
 

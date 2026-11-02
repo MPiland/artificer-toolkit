@@ -421,6 +421,13 @@ export function CampaignTabletopDecisionDrawer({
                 Keep the roll
               </Button>
             </Stack>
+          ) : pending.kind === 'DAMAGE_ROLL_WINDOW' ? (
+            <DamageRollWindowControls
+              disabled={disabled}
+              key={`${pending.occurrenceId}:${pending.occurrenceVersion}`}
+              pending={pending}
+              onSubmit={(resolution) => void resolve(resolution)}
+            />
           ) : pending.kind === 'ATTACK_RETARGET_CHOICE' ? (
             <Stack gap='xs'>
               {pending.options.map((option) => (
@@ -551,6 +558,57 @@ export function CampaignTabletopDecisionDrawer({
         </Stack>
       </Drawer>
     </>
+  )
+}
+
+/** The caster picks damage dice to reroll and the cost that pays for them, or keeps the roll (D208). */
+function DamageRollWindowControls({
+  disabled,
+  pending,
+  onSubmit
+}: {
+  disabled: boolean
+  pending: Extract<PendingEncounterRuleOccurrenceSummaryDto, { kind: 'DAMAGE_ROLL_WINDOW' }>
+  onSubmit: (resolution: ResolveRuleOccurrenceInputDto['resolution']) => void
+}) {
+  const [dice, setDice] = useState<string[]>([])
+  return (
+    <Stack gap='xs'>
+      <MultiSelect
+        data={pending.dice.map((die, index) => ({
+          value: die.requestId,
+          label: `Die ${index + 1}: ${die.value} on d${die.faces}`
+        }))}
+        disabled={disabled}
+        label='Dice to reroll'
+        maxValues={Math.max(...pending.options.map(({ maxDice }) => maxDice))}
+        value={dice}
+        onChange={setDice}
+      />
+      {pending.options.map((option) => (
+        <Button
+          disabled={disabled || dice.length === 0 || dice.length > option.maxDice}
+          key={option.optionId}
+          onClick={() =>
+            onSubmit({
+              kind: 'ROLL_WINDOW_USE',
+              requestId: pending.requestId,
+              optionId: option.optionId,
+              dice
+            })
+          }
+        >
+          Reroll with {option.label} ({option.cost})
+        </Button>
+      ))}
+      <Button
+        disabled={disabled}
+        variant='default'
+        onClick={() => onSubmit({ kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId })}
+      >
+        Keep the roll
+      </Button>
+    </Stack>
   )
 }
 

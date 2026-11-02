@@ -11,6 +11,7 @@ import {
   type D20WindowReactionDieDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
 import { encounterHeldSavingThrowDice } from './encounterActiveGrants.js'
@@ -122,15 +123,22 @@ export function windowedSaveResponse(input: {
 }
 
 /**
- * The save a pending window holds as it paused before the roll, or null for any other pause. Only a
- * window's answer resumes a window, and only a save's window belongs to an action.
+ * The save a pending d20 window holds as it paused before the roll, or null for any other pause. Only
+ * a window's answer resumes a window, only a save's window belongs to an action, and only a damage
+ * reroll answers a damage roll's window (D208).
  */
 export function heldWindowedSave(
   pause: EncounterActionPauseDto | undefined,
   resolution: { kind: string }
 ) {
-  const held = pause?.kind === 'ROLL_WINDOW' ? pause.payload.rolled : null
-  if ((resolution.kind === 'ROLL_WINDOW') !== (held !== null) || (held && isD20RolledCheck(held)))
+  const window = pause?.kind === 'ROLL_WINDOW' ? pause.payload : null
+  const damage = window !== null && isDamageRollWindow(window)
+  const held = window && !isDamageRollWindow(window) ? window.rolled : null
+  if (
+    (resolution.kind === 'ROLL_WINDOW') !== (held !== null) ||
+    (resolution.kind === 'DAMAGE_REROLL') !== damage ||
+    (held && isD20RolledCheck(held))
+  )
     throw new Error('The action TEST evidence is stale.')
   return held
 }

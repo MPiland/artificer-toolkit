@@ -2,6 +2,7 @@ import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-too
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { EncounterFailedCounterDto } from '@artificer-toolkit/schema/shared/ruleExecutionReactionChoice'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type {
   PendingNativeActionGraphs,
@@ -82,6 +83,7 @@ export function buildEncounterActionPendingSnapshot(input: {
       // A reactor's d20 window is answered by the reactor, not the roller (D207).
       rollerActorId:
         (execution.pause?.kind === 'ROLL_WINDOW' &&
+          !isDamageRollWindow(execution.pause.payload) &&
           d20WindowReactorActorId(execution.pause.payload)) ||
         (execution.roller === 'SOURCE' ? input.sourceActorId : input.targetActorId),
       currentnessChecksum: input.currentnessChecksum,

@@ -74,17 +74,26 @@ export type CastModifierParameterAuthored =
  * only for a spell that targets a single creature at the level cast (not Self), so a spell that
  * can already reach several is never offered it. `perSpellLevel` multiplies the cost by the level
  * the spell is cast at (a cantrip counts as 1).
+ *
+ * With `damageRerolls` the modifier is not paid at cast: once the cast rolls its damage against one
+ * target, the caster may pay it to reroll up to that many of the damage dice (counted as `targets`
+ * counts creatures) and must keep the new rolls.
  */
 export type CastModifierAuthored = ResourceUseAuthored & {
   /** What the paid modifier changes about the cast itself; each parameter applies only to a spell it fits. */
   parameters?: CastModifierParameterAuthored[]
   perSpellLevel?: boolean
-  targets?: {
+  targets?: CastModifierCountAuthored & {
     outcome: 'SAVE_AUTO_SUCCESS' | 'SAVE_DISADVANTAGE' | 'EXTRA_TARGET'
-    base: number // int
-    abilityDefinitionId?: string
-    minimum?: number // int
   }
+  damageRerolls?: CastModifierCountAuthored
+}
+
+/** How many a cast modifier reaches: `base` plus the holder's ability modifier, never below `minimum`. */
+export type CastModifierCountAuthored = {
+  base: number // int
+  abilityDefinitionId?: string
+  minimum?: number // int
 }
 
 /**

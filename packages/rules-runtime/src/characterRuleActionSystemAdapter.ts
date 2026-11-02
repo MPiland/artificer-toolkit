@@ -24,6 +24,7 @@ import type {
   ActiveRuleEffectDefinitionDto,
   ActiveRuleEffectLifecycleDto,
   RuleGraphSourceIdentityDto,
+  ServerCompletedRuleExecutionDto,
   ServerRuleExecutionD20PolicyDto,
   ServerPublishedRuleDefinitionDto,
   ServerRuleExecutionResultDto
@@ -743,6 +744,14 @@ export interface CharacterRuleActionSystemAdapter {
     /** The granted action's authored Effect whose attacks alone offer the rider; absent, every attack does. */
     grantedByEffectId?: string
   }[]
+  /**
+   * The damage dice a completed phase rolled for the action's own damage, by request, which a damage
+   * reroll after the roll may roll again (D208). Omitted: the System offers no damage reroll.
+   */
+  rolledDamageDice?(input: {
+    published: ServerPublishedRuleDefinitionDto
+    execution: ServerCompletedRuleExecutionDto
+  }): readonly { requestId: string; faces: number; value: number }[]
   /** The target preconditions the System's outcome registry declares for these effect kinds (D173 Q1). */
   outcomeTargetPreconditions(input: {
     effectKinds: readonly string[]

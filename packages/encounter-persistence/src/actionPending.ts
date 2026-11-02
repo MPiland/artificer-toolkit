@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ServerRuleExecutionPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingApplication'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/api/encounterData'
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -409,6 +410,23 @@ export function projectNativeActionPending(
         allowedResponses: ['DECLINE', 'OPTION']
       }
     case 'ROLL_WINDOW': {
+      if (isDamageRollWindow(pause.payload))
+        return {
+          kind: 'DAMAGE_ROLL_WINDOW',
+          occurrenceId: occurrence.id,
+          occurrenceVersion: occurrence.version,
+          encounterVersion: occurrence.expectedEncounterVersion,
+          rollerActorId: context.rollerActorId,
+          requestId: snapshot.request.requestId,
+          dice: pause.payload.damage.dice,
+          options: pause.payload.offer.options.map(({ optionId, label, cost, maxDice }) => ({
+            optionId,
+            label,
+            cost,
+            maxDice
+          })),
+          allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
+        }
       const { rolled, offer } = pause.payload
       return {
         kind: 'ROLL_WINDOW',

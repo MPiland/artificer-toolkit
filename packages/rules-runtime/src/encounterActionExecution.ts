@@ -61,6 +61,15 @@ import {
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
+  isDamageRollWindow,
+  type DamageRerollCostDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
+import {
+  openEncounterDamageRollWindow,
+  replayEncounterDamageRollWindow,
+  type EncounterDamageRerollAnswer
+} from './encounterDamageRollWindow.js'
+import {
   ruleExecutionPhaseReceiptsDtoSchema,
   type ServerCompletedRuleExecutionDto,
   type ServerPublishedRuleDefinitionDto,
@@ -300,6 +309,47 @@ export type PendingNativeActionGraphs = {
   >
 }
 
+/**
+ * Holds a phase that rolled damage and settled no d20 for its caster to pay a cost and reroll some of
+ * the damage dice (D208), or null when no cost or no damage die is there. A hit whose on-hit rider a
+ * pool paid offers no reroll: an action spends from one pool.
+ */
+async function holdActionDamageRoll(input: {
+  runtime: RulesRuntimeService
+  adapter: CharacterRuleActionSystemAdapter
+  occurrenceId: string
+  costs: readonly DamageRerollCostDto[] | undefined
+  published: ServerPublishedRuleDefinitionDto
+  execution: ServerCompletedRuleExecutionDto
+  twoPhase: NativeTwoPhase | null
+  phaseReceipts: NativePhaseReceipts
+}): Promise<PendingNativeActionGraphs | null> {
+  const { twoPhase } = input
+  const poolPaidOnHit =
+    twoPhase?.phase === 'OUTCOME' && twoPhase.onHit?.option?.kind === 'RESOURCE_POOL'
+  if (!input.costs?.length || poolPaidOnHit) return null
+  const dice =
+    input.adapter.rolledDamageDice?.({ published: input.published, execution: input.execution }) ??
+    []
+  if (dice.length === 0) return null
+  const window = await openEncounterDamageRollWindow({
+    runtime: input.runtime,
+    occurrenceId: input.occurrenceId,
+    gameSystemId: input.published.gameSystemId,
+    execution: input.execution,
+    dice,
+    costs: input.costs
+  })
+  return {
+    kind: 'PENDING',
+    ...window,
+    d20Policy: null,
+    twoPhase,
+    roller: 'SOURCE',
+    ...(input.phaseReceipts.length ? { phaseReceipts: input.phaseReceipts } : {})
+  }
+}
+
 /** Seals only the TEST phase so a server-owned interstitial can choose its legal OUTCOME. */
 export async function prepareNativeActionTest(
   input: NativeActionBaseInput & {
@@ -468,7 +518,7 @@ export async function prepareNativeActionTest(
       if (window) return window
     } else {
       mayAddDice = true
-      if (pending.pause?.kind !== 'ROLL_WINDOW')
+      if (pending.pause?.kind !== 'ROLL_WINDOW' || isDamageRollWindow(pending.pause.payload))
         throw new Error('The native action TEST evidence is stale.')
       // The next reactor, if any, is asked about the roll as the window just answered settled it.
       const window = await windowRolledSave(heldContinuation, policy, {
@@ -644,6 +694,8 @@ export async function continueNativeActionAfterTest(
      * a creature lands on the hit points the first left it, but its roll was sealed before that.
      */
     testBinding?: NativeActionBaseInput['binding']
+    /** The costs the caster could pay to reroll the OUTCOME's damage dice (D208). */
+    damageRerolls?: readonly DamageRerollCostDto[]
     resume?: { pending: ResumedNativeActionGraphs; resolution: EncounterEvidenceAnswer }
   }
 ): Promise<PendingNativeActionGraphs | CompleteNativeActionGraphs> {
@@ -896,6 +948,19 @@ export async function continueNativeActionAfterTest(
       policy: twoPhase.nestedOutcomeD20,
       evidence: nestedD20
     })
+  const heldDamage = nestedD20
+    ? null
+    : await holdActionDamageRoll({
+        runtime: input.runtime,
+        adapter: input.adapter,
+        occurrenceId: input.occurrenceId,
+        costs: input.damageRerolls,
+        published,
+        execution: result,
+        twoPhase,
+        phaseReceipts: input.boundary.phaseReceipts
+      })
+  if (heldDamage) return heldDamage
   const phaseReceipts: NativePhaseReceipts = [
     ...input.boundary.phaseReceipts,
     {
@@ -961,9 +1026,15 @@ export async function advanceNativeActionGraphs(input: {
    * roll and the die it spent.
    */
   saveWindow?: EncounterActionSaveWindow
+  /**
+   * The costs the caster could pay now to reroll the action's damage dice (D208). With any, a phase
+   * that rolled damage and no d20 is held in a window before it settles; the window's answer replays
+   * the phase with the chosen dice rolled again.
+   */
+  damageRerolls?: readonly DamageRerollCostDto[]
   resume?: {
     pending: ResumedNativeActionGraphs
-    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer | EncounterDamageRerollAnswer
   }
   /**
    * The true and believed sight of an attack roll. Only the room's RESOLVE_ACTION passes it: the
@@ -1007,6 +1078,8 @@ export async function advanceNativeActionGraphs(input: {
     } | null
   } = { d20: null }
   let result: Awaited<ReturnType<RulesRuntimeService['executeResolved']>>
+  /** Set once a damage window's answer replayed the phase; that phase is never held again. */
+  let damageRerolled = false
 
   /** Whether this paused request is the TEST or single-stage d20 rather than the OUTCOME save. */
   const isStageD20 = (policy: ServerRuleExecutionD20PolicyDto | null) =>
@@ -1275,32 +1348,63 @@ export async function advanceNativeActionGraphs(input: {
     // A window holds its save as it paused before the roll; the window's answer resumes that request.
     const { resolution } = input.resume
     const windowed = heldWindowedSave(pending.pause, resolution)
-    const continuation = windowed ? windowed.continuation : pending.continuation
-    requireActionContinuation({
-      continuation,
-      occurrenceId: input.occurrenceId,
-      published,
-      facts: bound.facts
-    })
-    const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
-    if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
-      throw new Error('The action evidence policy is stale.')
-    const answered = await answer(
-      continuation,
-      policy,
-      resolution,
-      { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null },
-      pending.pause?.kind === 'ROLL_WINDOW' ? pending.pause.payload : null
-    )
-    if ('kind' in answered) return answered
-    result = answered
+    const window = pending.pause?.kind === 'ROLL_WINDOW' ? pending.pause.payload : null
+    if (resolution.kind === 'DAMAGE_REROLL') {
+      if (!window || !isDamageRollWindow(window))
+        throw new Error('The damage roll window evidence is stale.')
+      result = await replayEncounterDamageRollWindow({
+        runtime: input.runtime,
+        occurrenceId: input.occurrenceId,
+        published,
+        facts: bound.facts,
+        window,
+        rerolled: resolution.rerolled
+      })
+      damageRerolled = true
+    } else {
+      const continuation = windowed ? windowed.continuation : pending.continuation
+      requireActionContinuation({
+        continuation,
+        occurrenceId: input.occurrenceId,
+        published,
+        facts: bound.facts
+      })
+      const policy = actionD20Policy({ phase, continuation, bound, twoPhase })
+      if (!windowed && checksumRuleDocument(policy) !== checksumRuleDocument(pending.d20Policy))
+        throw new Error('The action evidence policy is stale.')
+      const answered = await answer(
+        continuation,
+        policy,
+        resolution,
+        { d20Belief: pending.d20Belief ?? null, heldD20: pending.heldD20 ?? null },
+        window && !isDamageRollWindow(window) ? window : null
+      )
+      if ('kind' in answered) return answered
+      result = answered
+    }
   }
 
   const prompt = await rollUntilPrompt()
   if (prompt) return prompt
   if (result.status !== 'COMPLETE') throw new Error('The action did not settle.')
 
-  if (phase === 'SINGLE')
+  const damageHold = {
+    runtime: input.runtime,
+    adapter: input.adapter,
+    occurrenceId: input.occurrenceId,
+    costs: damageRerolled ? undefined : input.damageRerolls
+  }
+  if (phase === 'SINGLE') {
+    const heldDamage = stage.d20
+      ? null
+      : await holdActionDamageRoll({
+          ...damageHold,
+          published,
+          execution: result,
+          twoPhase,
+          phaseReceipts
+        })
+    if (heldDamage) return heldDamage
     return actionComplete({
       adapter: input.adapter,
       binding: input.binding,
@@ -1324,6 +1428,7 @@ export async function advanceNativeActionGraphs(input: {
         : null,
       nestedD20: null
     })
+  }
 
   if (phase === 'TEST') {
     if (!stage.d20 || input.plan.kind !== 'TEST_OUTCOME')
@@ -1506,6 +1611,16 @@ export async function advanceNativeActionGraphs(input: {
       evidence: nestedD20
     })
   if (!outcomeTemplate) throw new Error('The action OUTCOME template is unavailable.')
+  const heldDamage = nestedD20
+    ? null
+    : await holdActionDamageRoll({
+        ...damageHold,
+        published,
+        execution: result,
+        twoPhase,
+        phaseReceipts
+      })
+  if (heldDamage) return heldDamage
   phaseReceipts.push({
     phase: 'OUTCOME',
     template: outcomeTemplate,

@@ -28,6 +28,7 @@ import type { prepareEncounterMovementReactionAction } from './encounterMovement
 import type { PreparedEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
 import { bindMovementInterruption } from './encounterMovementReactionActionExecution.js'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
@@ -107,7 +108,7 @@ async function settledWindowResume(
   const { pending, resolution } = resume
   if (resolution.kind !== 'ROLL_WINDOW_USE' && resolution.kind !== 'ROLL_WINDOW_DECLINE')
     return { pending, resolution }
-  if (pending.pause?.kind !== 'ROLL_WINDOW')
+  if (pending.pause?.kind !== 'ROLL_WINDOW' || isDamageRollWindow(pending.pause.payload))
     throw new Error('The movement reaction holds no d20 window to answer.')
   const settled = await settleEncounterD20Window({
     runtime: input.runtime,
