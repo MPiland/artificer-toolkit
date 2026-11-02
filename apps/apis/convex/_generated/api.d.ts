@@ -293633,6 +293633,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -293683,6 +293684,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -293812,6 +293814,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               }
             | null;
           halfSpeedFields: Array<{
@@ -294001,6 +294004,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 choice: {
                   options: Array<{
                     actionId: string;
@@ -294027,6 +294031,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
@@ -294069,6 +294074,7 @@ export declare const api: {
                 allowedResponses: Array<
                   "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                 >;
+                answerBy?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "D20_WINDOW";
@@ -294969,6 +294975,7 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
+                  answerBy?: string;
                   choice: {
                     options: Array<{
                       actionId: string;
@@ -294996,6 +295003,7 @@ export declare const api: {
                 }
               | {
                   allowedResponses: Array<"DECLINE" | "OPTION">;
+                  answerBy?: string;
                   encounterVersion: number;
                   kind: "REACTION_CHOICE";
                   occurrenceId: string;
@@ -295038,6 +295046,7 @@ export declare const api: {
                   allowedResponses: Array<
                     "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                   >;
+                  answerBy?: string;
                   d20: { selectedNatural: number; total: number };
                   encounterVersion: number;
                   kind: "D20_WINDOW";
@@ -295933,6 +295942,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -295983,6 +295993,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -296112,6 +296123,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               };
           roll: {
             afterRollOffers?: Array<{
@@ -296605,6 +296617,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
+            answerBy?: string;
             choice: {
               options: Array<{
                 actionId: string;
@@ -296631,6 +296644,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"DECLINE" | "OPTION">;
+            answerBy?: string;
             encounterVersion: number;
             kind: "REACTION_CHOICE";
             occurrenceId: string;
@@ -296671,6 +296685,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            answerBy?: string;
             d20: { selectedNatural: number; total: number };
             encounterVersion: number;
             kind: "D20_WINDOW";
@@ -297498,6 +297513,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
+            afkUserIds?: Array<string>;
             automaticCover?: boolean;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
@@ -297547,6 +297563,7 @@ export declare const api: {
                 | "MORALE";
               label: string;
             }>;
+            reactionSeconds?: number;
             reminders?: Array<{
               actorId: string | null;
               id: string;
@@ -297676,6 +297693,7 @@ export declare const api: {
             status: "PREPARED" | "ACTIVE" | "COMPLETED";
             updatedAt: string;
             version: number;
+            viewerAfk?: boolean;
           }
       >;
       list: FunctionReference<
@@ -297936,6 +297954,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                afkUserIds?: Array<string>;
                 automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
@@ -297986,6 +298005,7 @@ export declare const api: {
                     | "MORALE";
                   label: string;
                 }>;
+                reactionSeconds?: number;
                 reminders?: Array<{
                   actorId: string | null;
                   id: string;
@@ -298115,6 +298135,7 @@ export declare const api: {
                 status: "PREPARED" | "ACTIVE" | "COMPLETED";
                 updatedAt: string;
                 version: number;
+                viewerAfk?: boolean;
               };
           pending:
             | {
@@ -298263,6 +298284,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 choice: {
                   options: Array<{
                     actionId: string;
@@ -298289,6 +298311,7 @@ export declare const api: {
               }
             | {
                 allowedResponses: Array<"DECLINE" | "OPTION">;
+                answerBy?: string;
                 encounterVersion: number;
                 kind: "REACTION_CHOICE";
                 occurrenceId: string;
@@ -298331,6 +298354,7 @@ export declare const api: {
                 allowedResponses: Array<
                   "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                 >;
+                answerBy?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "D20_WINDOW";
@@ -299215,6 +299239,7 @@ export declare const api: {
             systemId: string | null;
             tempHitPoints: number;
           }>;
+          afkUserIds?: Array<string>;
           automaticCover?: boolean;
           automationMode: "ASSISTED" | "MANUAL";
           blueprintChecksum: string;
@@ -299264,6 +299289,7 @@ export declare const api: {
               | "MORALE";
             label: string;
           }>;
+          reactionSeconds?: number;
           reminders?: Array<{
             actorId: string | null;
             id: string;
