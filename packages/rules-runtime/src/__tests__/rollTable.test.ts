@@ -774,6 +774,20 @@ describe('a roll table row that rolls the table again (SPELLS-4.T2ps-d1)', () =>
       ])
       expect(saved.rolled).toEqual(rolledDice)
     })
+
+    it('owes nothing for a creature that saves when its die lands on a row that does nothing', async () => {
+      const saved = await cast(spray, {
+        tableRoll: 6,
+        damageDie: 3,
+        dc: 1,
+        ability: DEXTERITY,
+        tableDie: 8,
+        rerollMax: 7,
+        rerolls: [1, 4]
+      })
+      expect(saved.applications).toEqual([])
+      expect(saved.rolled).toEqual([20, 8])
+    })
   })
 })
 

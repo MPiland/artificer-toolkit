@@ -279,15 +279,16 @@ export function openEncounterAreaSaveWindow(
 }
 
 /**
- * Records that the roller of the save with `requestId` answered it, keeping the answer to settle
- * the area with, and the Legendary Resistance offered if the save failed. The other saves, the
- * caught set and its checksum stay exactly as sealed.
+ * Records that the roller of the save with `requestId` answered it, keeping the answer and the dice
+ * its TEST rolled after the d20 to settle the area with, and the Legendary Resistance offered if the
+ * save failed. The other saves, the caught set and its checksum stay exactly as sealed.
  */
 export function markEncounterAreaSaveTested(
   snapshot: ServerAggregateChoicePendingSnapshotDto,
   requestId: string,
   testedJson: string,
-  legendaryResistance: AreaTarget['legendaryResistance'] | null = null
+  legendaryResistance: AreaTarget['legendaryResistance'] | null = null,
+  testDice: AreaTarget['testDice'] = undefined
 ): ServerAggregateChoicePendingSnapshotDto {
   const applicationContext = requireAreaContext(snapshot)
   const answered = applicationContext.targets.find(
@@ -304,6 +305,7 @@ export function markEncounterAreaSaveTested(
           ? {
               ...target,
               testedJson,
+              ...(testDice?.length ? { testDice } : {}),
               ...(legendaryResistance ? { legendaryResistance } : {})
             }
           : target

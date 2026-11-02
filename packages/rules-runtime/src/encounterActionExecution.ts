@@ -32,7 +32,8 @@ import {
 import { heldStageD20, sightGovernedStageD20 } from './encounterSightGovernedD20.js'
 import {
   type EncounterD20RollMode,
-  type EncounterEvidenceAnswer
+  type EncounterEvidenceAnswer,
+  testDieAnswer
 } from './encounterEvidenceAnswer.js'
 import { resumeEncounterD20 } from './encounterD20AddedDice.js'
 import {
@@ -428,6 +429,11 @@ export async function prepareNativeActionTest(
     saveWindow?: EncounterActionSaveWindow
     /** The dice a d20 window spent on the recorded roll, replayed when a retained TEST is rebuilt. */
     windowDice?: readonly D20RolledAddedDieDto[]
+    /**
+     * The dice this TEST rolled after its d20 when it was first answered, replayed by request when a
+     * kept answer rebuilds it; a die it did not roll then is refused, never rolled.
+     */
+    testDice?: readonly { requestId: string; value: number }[]
   }
 ): Promise<PendingNativeActionGraphs | NativeActionTestBoundary> {
   const current = nativeTestIdentity(input)
@@ -588,7 +594,8 @@ export async function prepareNativeActionTest(
     })
   }
 
-  if (result.status === 'PAUSED') {
+  // Only a TEST whose d20 is still unsealed pauses for it here; an answered save's later dice are the System's.
+  if (result.status === 'PAUSED' && !policy) {
     const pendingPolicy = actionD20Policy({
       phase: 'TEST',
       continuation: result.continuation,
@@ -655,7 +662,7 @@ export async function prepareNativeActionTest(
       gameSystemId: current.published.gameSystemId,
       continuation: result.continuation,
       policy: null,
-      resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
+      resolution: testDieAnswer(result.continuation.request.requestId, input.testDice),
       random
     })
     result = await resumeEncounterD20({

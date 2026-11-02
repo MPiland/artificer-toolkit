@@ -73,6 +73,21 @@ export type EncounterEvidenceAnswer =
   | { kind: 'AUTO_ROLL'; requestId: string }
 
 /**
+ * The answer to a die a TEST rolls after its d20, which is the System's: rolled on a first answer,
+ * and entered again from the dice a kept answer rolled when it rebuilds the TEST. A kept answer that
+ * did not roll the die is refused, never rolled.
+ */
+export function testDieAnswer(
+  requestId: string,
+  kept: readonly { requestId: string; value: number }[] | undefined
+): EncounterEvidenceAnswer {
+  if (!kept) return { kind: 'AUTO_ROLL', requestId }
+  const die = kept.find((entry) => entry.requestId === requestId)
+  if (!die) throw new Error('The native action TEST execution is stale.')
+  return { kind: 'ENTER_INTEGER', requestId, value: die.value }
+}
+
+/**
  * The mode entered dice are rolled under and the `keep` its System derives from it. A request offers
  * the System's `rollMode` vocabulary, so a code outside it is refused.
  */
