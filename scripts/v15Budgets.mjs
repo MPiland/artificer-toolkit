@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url'
 // by scripts/runLocalConvexProof.ps1, and `v15-room-evidence.json` from the driver, which holds the
 // room meter's totals around each measured window (the meter is read from the Worker's
 // development-only route) and the per-document sizes of what a checkpoint wrote.
-const MB = 1024 * 1024
+// Convex's document limit is binary (1 MiB); the I/O budget is decimal (D209).
+const MIB = 1024 * 1024
 
 // Q16 (docs/handoffs/phase-08-2-decisions.md): 100 Free users, 20 of them hosting four 4-hour
 // sessions a month, with 50% headroom against the free allowances.
@@ -34,10 +35,11 @@ const SESSION_MODEL = {
 const perSessionFromDaily = (limit) => limit / HEADROOM / sessionsPerDay
 const perSessionFromMonthly = (limit) => limit / HEADROOM / SESSIONS_PER_MONTH
 
-const budgets = {
+export const budgets = {
   // docs/roadmap/tier-research-2026-09-27.md:137-143: 1 GB/month of Convex database I/O, about
   // 683 MB usable with headroom, half to live play: about 341 MB / 80 sessions = 4.3 MB per session.
-  convexIoBytesPerSession: 4.3 * MB,
+  // D209: 4.3 MB decimal, strict.
+  convexIoBytesPerSession: 4_300_000,
   // Same table: 1M function calls a month, about 667k usable, over 80 sessions.
   convexCallsPerSession: perSessionFromMonthly(1_000_000),
   // ADR 0035 Amendment 9 (Decision 9), Workers Free Durable Objects, per day: 100,000 requests,
@@ -48,7 +50,7 @@ const budgets = {
   durableObjectRowsReadPerSession: perSessionFromDaily(5_000_000),
   durableObjectRowsWrittenPerSession: perSessionFromDaily(100_000),
   // Convex stores a document of at most 1 MiB; a checkpoint document keeps the same headroom.
-  convexDocumentBytes: MB / HEADROOM
+  convexDocumentBytes: MIB / HEADROOM
 }
 const WEBSOCKET_MESSAGES_PER_REQUEST = 20
 // A Durable Object bills duration at its 128 MB memory limit.
@@ -379,7 +381,7 @@ const assumption = (name) => {
  * V15_ESTIMATE_FIGHTS, V15_ESTIMATE_COMBAT_COMMANDS, V15_ESTIMATE_OOC_MINUTES and
  * V15_ESTIMATE_SESSION_HOURS override them.
  */
-function sessionEstimate(unitCosts, perSession, failures) {
+export function sessionEstimate(unitCosts, perSession, failures) {
   const fights = assumption('V15_ESTIMATE_FIGHTS') ?? SESSION_MODEL.fights
   const commands = assumption('V15_ESTIMATE_COMBAT_COMMANDS') ?? SESSION_MODEL.combatCommands
   const minutes = assumption('V15_ESTIMATE_OOC_MINUTES') ?? SESSION_MODEL.outOfCombatMinutes
@@ -617,7 +619,7 @@ export async function verifyV15Budgets(proofName) {
   const perSession = convexPerSession(executions, failures)
   const summary = {
     proofName,
-    unit: 'bytes of Convex database I/O (read + write); 1 MB = 1024 * 1024 bytes',
+    unit: 'bytes of Convex database I/O (read + write); 1 MB = 1,000,000 bytes',
     budgets,
     windows: {
       start: { ...startAudit, meter: startMeter },

@@ -50,7 +50,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-2.1, RELIABILITY-2.2, RELIABILITY-2.3, RELIABILITY-2.4
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Review data loaded. Steps 1-7 use **Review: Shield and Hold** (GM and P1 only; P2 is not a member there). Ember's Shield is already spent in the review data, so first start a new round (the GM uses **Next turn** until Ember's reaction is available; see UAT-REACTION-1). Steps 8-11 use **Review: Party in the Field** (GM, P1, P2). Steps 12-15 use the Sandbox Campaign from UAT-SCENE-1 with two Scenes (P1 a member; Heavy setup: G5) and the GM in two browser tabs. Use two computers or two side-by-side windows and a helper counting "3, 2, 1, go". Reset the review data afterwards.
+- **Preconditions:** Review data loaded. Steps 1-7 use **Review: Shield and Hold** (GM and P1 only; P2 is not a member there). Ember's Shield is already spent in the review data, so first start a new round (the GM uses **Next turn** until Ember's reaction is available; see UAT-REACTION-1). Steps 8-11 use **Review: Party in the Field** (GM, P1, P2). Steps 12-15 use the Sandbox Campaign from UAT-SCENE-1 with two Scenes (P1 a member; Heavy setup: build that Campaign and its second Scene by hand) and the GM in two browser tabs. Use two computers or two side-by-side windows and a helper counting "3, 2, 1, go". Reset the review data afterwards.
 
 **Steps**
 
@@ -122,7 +122,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-4.1, RELIABILITY-4.2
 - **Accounts:** GM
-- **Preconditions:** Review data loaded. Have any small JPEG, PNG or WebP image on your computer to use as a map. Use the Sandbox Campaign from UAT-SCENE-1 (Heavy setup: G5): the Review Encounters are already running, so they cannot start a new Encounter on a new Scene.
+- **Preconditions:** Review data loaded. Have any small JPEG, PNG or WebP image on your computer to use as a map. Use the Sandbox Campaign from UAT-SCENE-1 (Heavy setup: build it by hand): the Review Encounters are already running, so they cannot start a new Encounter on a new Scene.
 
 **Steps**
 
@@ -183,7 +183,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-1.3
 - **Accounts:** GM, P1
-- **Preconditions:** The same setup as UAT-MOVE-7: **Review: Party in the Field**, Aria adjacent to the Wolf, Assisted, the Overrun choice available (Heavy setup: G5; reset the review data afterwards). The movement readout appears in the action area.
+- **Preconditions:** The same setup as UAT-MOVE-7: **Review: Party in the Field**, Aria adjacent to the Wolf, Assisted, the Overrun choice available (reset the review data afterwards). The movement readout appears in the action area.
 
 **Steps**
 
@@ -209,7 +209,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-5.1
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign from UAT-SCENE-1 with P1's Character on a Scene (Heavy setup: G5). The GM authors a Feature at `/features` (or the equivalent authoring area; the exact labels were not verified, so describe what you find). The editor must offer a length unit on speed and sense modifiers; if it does not, record that against RELIABILITY-5.1.
+- **Preconditions:** The Sandbox Campaign from UAT-SCENE-1 with P1's Character on a Scene (Heavy setup: build that Campaign and Scene by hand). The GM authors a Feature at `/features` (or the equivalent authoring area; the exact labels were not verified, so describe what you find). The editor must offer a length unit on speed and sense modifiers; if it does not, record that against RELIABILITY-5.1.
 
 **Steps**
 
@@ -261,7 +261,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-6.9, RELIABILITY-6.15
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign (UAT-SCENE-1) with P1's Character, a Wolf and a Goblin and a new Run waiting to start (UAT-ENCOUNTER-3 steps 3 and 5; Heavy setup: G5). P1's Roll my dice automatically OFF.
+- **Preconditions:** The Sandbox Campaign (UAT-SCENE-1) with P1's Character, a Wolf and a Goblin and a new Run waiting to start (UAT-ENCOUNTER-3 steps 3 and 5; Heavy setup: build that Campaign and Run by hand). P1's Roll my dice automatically OFF.
 
 **Steps**
 
@@ -286,7 +286,7 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 
 - **Covers:** RELIABILITY-6.5, RELIABILITY-6.13, RELIABILITY-6.17, RELIABILITY-7.2, RELIABILITY-10.3
 - **Accounts:** GM, P1
-- **Preconditions:** Review data loaded. P1 opens the Builder for a new Character (Heavy setup if you finish it: G5; do not finish it inside a Review Campaign, and delete the draft afterwards). The GM opens the party inventory of **Review: Party in the Field** (UAT-CAMPAIGN-5).
+- **Preconditions:** Review data loaded. P1 opens the Builder for a new Character (Heavy setup if you finish it: finish it only inside a throwaway Campaign of your own, never a Review Campaign, and delete the draft afterwards). The GM opens the party inventory of **Review: Party in the Field** (UAT-CAMPAIGN-5).
 
 **Steps**
 
@@ -368,25 +368,25 @@ These scenarios prove that a dropped connection, a double click, a page refresh,
 ## UAT-RELIABILITY-13: Account deletion closes the live table
 
 - **Covers:** RELIABILITY-21.8
-- **Accounts:** GM, SPARE (gap G3)
-- **Preconditions:** Blocked until gap G3 is fixed. Needs a spare player account that the GM has added to the Sandbox Campaign (through an invitation). Never delete a Review account.
+- **Accounts:** GM, SPARE1 (Review_Pl_Dara)
+- **Preconditions:** Delete only a spare account (never GM, P1, P2, P3 or SUPERADMIN); a reset and a rerun of the review data restores it. Heavy setup: the GM adds SPARE1 to **Review: Sandbox** by inviting SPARE1 by username from SPARE1's social profile, and SPARE1 accepts in the app (UAT-SOCIAL-2 shows the invitation flow; no email is needed). Reset the review data afterwards.
 
 **Steps**
 
-1. **SPARE:** Open the Sandbox tabletop window.
-2. **GM:** Open the tabletop window and confirm SPARE is present in the roster.
-3. **SPARE:** Delete the account from the account settings and confirm the deletion.
-4. **SPARE:** Read the tabletop window.
+1. **SPARE1:** Open the Review: Sandbox tabletop window.
+2. **GM:** Open the tabletop window and confirm SPARE1 is present in the roster.
+3. **SPARE1:** Delete the account from the account settings and confirm the deletion.
+4. **SPARE1:** Read the tabletop window.
 5. **GM:** Read the roster and the live table.
 
 **Expected**
 
-- Step 4: SPARE's tabletop window stops receiving updates and shows a signed-out or access message; it does not keep updating.
-- Step 5: SPARE is no longer a member; nothing else in the table changes.
+- Step 4: SPARE1's tabletop window stops receiving updates and shows a signed-out or access message; it does not keep updating.
+- Step 5: SPARE1 is no longer a member; nothing else in the table changes.
 
 **Other users see**
 
-- **GM:** Sees SPARE removed and no error.
+- **GM:** Sees SPARE1 removed and no error.
 
 ## Covered elsewhere
 

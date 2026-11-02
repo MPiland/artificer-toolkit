@@ -8,7 +8,7 @@ Proves a GM can upload and calibrate a map, build and present a Scene with token
 
 - **Covers:** SCENE-1.1, SCENE-3.1
 - **Accounts:** GM
-- **Preconditions:** A map image on your computer (JPEG, PNG or WebP, under 25 MiB and no side over 8192 pixels). Use your own "Sandbox" Campaign (the copy from UAT-CAMPAIGN-1), not a Review Campaign, so the review data stays clean. Scenarios 3 to 9 also need P1, P2 and P3 as Sandbox members (invite and accept as in UAT-CAMPAIGN-2 steps 1 to 3) and a Character each: Aria, Bryn and Cade are already in the Review Campaign and a Character can be in only one Campaign, so each player first creates a new level-1 Character in the Builder and assigns it with **Add Character**. Below these are "P1's Character", "P2's Character" and "P3's Character". Heavy setup: G5.
+- **Preconditions:** A map image on your computer (JPEG, PNG or WebP, under 25 MiB and no side over 8192 pixels). Use your own "Sandbox" Campaign (the copy from UAT-CAMPAIGN-1), not a Review Campaign, so the review data stays clean. Scenarios 3 to 9 also need P1, P2 and P3 as Sandbox members (invite and accept as in UAT-CAMPAIGN-2 steps 1 to 3) and a Character each: Aria, Bryn and Cade are already in the Review Campaign and a Character can be in only one Campaign, so each player first creates a new level-1 Character in the Builder and assigns it with **Add Character**. Below these are "P1's Character", "P2's Character" and "P3's Character". Heavy setup: build the Sandbox Campaign, its members and their Characters by hand.
 
 **Steps**
 

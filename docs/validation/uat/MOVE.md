@@ -39,7 +39,7 @@ Proves a player can move only their own token, that the table stops illegal move
 
 - **Covers:** MOVE-1.1
 - **Accounts:** GM, P1
-- **Preconditions:** Review: Party in the Field (this scenario adds walls, a door and terrain to its Scene, so reset the review data afterwards: README setup steps 2 to 5). Heavy setup: G5. The GM draws these in the steps with the tools described in UAT-SCENE-3. Aria has room to move.
+- **Preconditions:** **Review: Sandbox** (this scenario adds walls, a door and terrain to its Scene, so reset the review data afterwards: README setup steps 2 to 5). Read "Aria" below as Iris (P1) and "the Wolf" as the Ogre. The Scene already has a wall at x=400, a closed door in it and a rubble line in the west room; the GM draws the extra pieces in the steps with the tools described in UAT-SCENE-3. Iris has room to move.
 
 **Steps**
 
@@ -72,7 +72,7 @@ Proves a player can move only their own token, that the table stops illegal move
 
 - **Covers:** MOVE-1.2
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Review: Party in the Field; Aria adjacent to the Wolf; Encounter active in Assisted mode. P1, GM and P2 in the tabletop window. Before step 1 the GM turns **Fog of war** on for the Scene (Shared party) so stopped-path fog can be seen. Heavy setup: G5. Roll my dice automatically OFF for the GM.
+- **Preconditions:** Review: Party in the Field; Aria adjacent to the Wolf; Encounter active in Assisted mode. P1, GM and P2 in the tabletop window. Before step 1 the GM turns **Fog of war** on for the Scene (Shared party) so stopped-path fog can be seen. Roll my dice automatically OFF for the GM.
 
 **Steps**
 
@@ -105,7 +105,7 @@ Proves a player can move only their own token, that the table stops illegal move
 
 - **Covers:** MOVE-1.2
 - **Accounts:** GM, P1
-- **Preconditions:** Review: Party in the Field, GM and P1 in the tabletop window. Fog of war is on (Shared party; see UAT-SCENE-4 for the switch). Heavy setup: G5.
+- **Preconditions:** Review: Party in the Field, GM and P1 in the tabletop window. Fog of war is on (Shared party; see UAT-SCENE-4 for the switch).
 
 **Steps**
 
@@ -211,7 +211,7 @@ Proves a player can move only their own token, that the table stops illegal move
 
 - **Covers:** MOVE-3.1, MOVE-3.2, MOVE-3.3, MOVE-3.5, MOVE-3.6, MOVE-3.7
 - **Accounts:** GM, P1, P2
-- **Preconditions:** A sandbox Campaign (or Review: Party in the Field) with a Scene, an active Encounter and tokens for Aria (P1) and Bryn (P2). The GM uses the zone tool in the tabletop window. In Campaign table settings **Noticing concealed zones** is **GM prompt** (default). Heavy setup: G5; if you use the Review Campaign, reset the review data afterwards. Before step 3, P1 reads Aria's passive Perception from her Sheet and tells the GM, who sets the Spot DC to that number or lower in step 3.
+- **Preconditions:** **Review: Sandbox** (or Review: Party in the Field) with its Scene, active Encounter and tokens for P1's and P2's Characters (Iris and Juno; read "Aria" and "Bryn" below as them). The GM uses the zone tool in the tabletop window. In Campaign table settings **Noticing concealed zones** is **GM prompt** (default). This adds zones to review data, so reset the review data afterwards. Before step 3, P1 reads Aria's passive Perception from her Sheet and tells the GM, who sets the Spot DC to that number or lower in step 3.
 
 **Steps**
 
@@ -247,7 +247,7 @@ Proves a player can move only their own token, that the table stops illegal move
 
 - **Covers:** MOVE-4.1, MOVE-4.2, MOVE-4.3, MOVE-4.4
 - **Accounts:** GM, P1
-- **Preconditions:** A sandbox Campaign (or Review: Party in the Field) where a Large or bigger creature (for example a Giant or Ogre; the GM adds it to the Encounter and places its token next to Aria's) stands next to Aria's token. Heavy setup: G5; this changes review data, so reset it afterwards. The Climb rule is offered in Campaign table settings only once it works; look for it there.
+- **Preconditions:** **Review: Sandbox**, where the Large Ogre stands in the east room (read "Aria" below as Iris; the GM moves the Ogre's token next to Iris's, or the party crosses through the door). Alternatively use Review: Party in the Field and add a Large or bigger creature (for example a Giant or Ogre) to the Encounter next to Aria's token by hand. This changes review data, so reset it afterwards. The Climb rule is offered in Campaign table settings only once it works; look for it there.
 
 **Steps**
 

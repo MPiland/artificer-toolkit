@@ -67,7 +67,7 @@ Proves the GM and three players can all join the same live table, see each other
 
 - **Covers:** ROOM-2.2, ROOM-1.4
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Steps 1-6: GM and P1 in the tabletop window of Review: Party in the Field. Steps 7-10 use the sandbox Campaign from UAT-CAMPAIGN-2 (Heavy setup: G5) with P1 and P2 as members (invite P2 as in UAT-SOCIAL-2 if absent) and a tabletop window open for GM, P1 and P2. Never remove anyone from a review Campaign. The browser Network panel's "Offline" throttle lets you drop a connection.
+- **Preconditions:** Steps 1-6: GM and P1 in the tabletop window of Review: Party in the Field. Steps 7-10 use the sandbox Campaign from UAT-CAMPAIGN-2 (Heavy setup: build it by hand) with P1 and P2 as members (invite P2 as in UAT-SOCIAL-2 if absent) and a tabletop window open for GM, P1 and P2. Never remove anyone from a review Campaign. The browser Network panel's "Offline" throttle lets you drop a connection.
 
 **Steps**
 
@@ -275,7 +275,7 @@ Proves the GM and three players can all join the same live table, see each other
 
 - **Covers:** ROOM-1.5
 - **Accounts:** GM, P1
-- **Preconditions:** Heavy setup: G5. A throwaway Campaign owned by the GM with P1 as a member (create "UAT Archive Room" as in UAT-CAMPAIGN-1; P1 joins by invitation as in UAT-SOCIAL-2). Never archive a review Campaign. The saved-and-closed-after-five-minutes half of ROOM-1.5 is UAT-ROOM-1 steps 11-12.
+- **Preconditions:** Heavy setup: build a throwaway Campaign by hand. A throwaway Campaign owned by the GM with P1 as a member (create "UAT Archive Room" as in UAT-CAMPAIGN-1; P1 joins by invitation as in UAT-SOCIAL-2). Never archive a review Campaign. The saved-and-closed-after-five-minutes half of ROOM-1.5 is UAT-ROOM-1 steps 11-12.
 
 **Steps**
 

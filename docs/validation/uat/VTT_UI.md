@@ -8,7 +8,7 @@ This file proves the live map shows each token's identity, conditions, facing an
 
 - **Covers:** VTT_UI-1.1, VTT_UI-1.2, VTT_UI-1.3, VTT_UI-2.1
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Review data loaded. **Review: Party in the Field**, Assisted, for steps 1 to 8 and 12 (Step 4's reaction halo uses **Review: Shield and Hold**, GM and P1 only). Steps 9 to 11 need the optional rules Facing, Marking, Injuries and Morale, which the already-running Review Encounter cannot take: run them in the Sandbox Campaign (UAT-SCENE-1) after enabling those rules in table settings and starting a new Run with P1's and P2's Characters, a Wolf and a Goblin (UAT-ENCOUNTER-3 steps 3 and 5). Heavy setup: G5. Reset the review data afterwards.
+- **Preconditions:** Review data loaded. **Review: Party in the Field**, Assisted, for steps 1 to 8 and 12 (Step 4's reaction halo uses **Review: Shield and Hold**, GM and P1 only). Steps 9 to 11 need the optional rules Facing, Marking, Injuries and Morale, which the already-running Review Encounter cannot take: run them in the Sandbox Campaign (UAT-SCENE-1) after enabling those rules in table settings and starting a new Run with P1's and P2's Characters, a Wolf and a Goblin (UAT-ENCOUNTER-3 steps 3 and 5). Heavy setup: build that Sandbox Campaign and Run by hand. Reset the review data afterwards.
 
 **Steps**
 
@@ -39,7 +39,7 @@ This file proves the live map shows each token's identity, conditions, facing an
 
 - **Covers:** VTT_UI-3.1, VTT_UI-3.3
 - **Accounts:** GM, P1, P2
-- **Preconditions:** **Review: Fire and Thunder** (GM and P2 only) for steps 4 and 5; **Review: Party in the Field** for the rest (P1 and P2 both members and watching). Steps 6 to 9 add tokens and zones, so reset the review data afterwards. Heavy setup: G5.
+- **Preconditions:** **Review: Fire and Thunder** (GM and P2 only) for steps 4 and 5; **Review: Party in the Field** for the rest (P1 and P2 both members and watching). Steps 6 to 9 add tokens and zones, so reset the review data afterwards. Heavy setup: add the tokens and zones by hand.
 
 **Steps**
 
@@ -67,7 +67,7 @@ This file proves the live map shows each token's identity, conditions, facing an
 
 - **Covers:** VTT_UI-3.2, VTT_UI-3.4, VTT_UI-3.5, VTT_UI-5.2
 - **Accounts:** GM, P1
-- **Preconditions:** Heavy setup: G5. Use the Sandbox Campaign (UAT-SCENE-1). Review Scenes have no lighting; the GM edits the Sandbox Scene in **Live maps** to set ambient illumination, a light source, magical darkness, obscurement and fog. The review Characters have no darkvision or Devil's Sight, so P1 builds in the Builder (Heavy setup) one Character with darkvision (for example a dwarf or elf) and one Warlock with Devil's Sight; the GM assigns each to P1's seat in turn with **Change Character** (a player has one Character per Campaign). The GM adds a Giant Bat (blindsight) and a Wolf to the Scene. Players' Roll my dice automatically does not matter here.
+- **Preconditions:** Heavy setup: build the Sandbox Campaign (UAT-SCENE-1) by hand. Use that Sandbox Campaign (not Review: Sandbox, whose Characters cannot be swapped). Review Scenes have no lighting; the GM edits the Sandbox Scene in **Live maps** to set ambient illumination, a light source, magical darkness, obscurement and fog. The review Characters have no darkvision or Devil's Sight, so P1 builds in the Builder (Heavy setup) one Character with darkvision (for example a dwarf or elf) and one Warlock with Devil's Sight; the GM assigns each to P1's seat in turn with **Change Character** (a player has one Character per Campaign). The GM adds a Giant Bat (blindsight) and a Wolf to the Scene. Players' Roll my dice automatically does not matter here.
 
 **Steps**
 

@@ -8,7 +8,7 @@ This file proves a GM and up to three players can prepare, start, run and finish
 
 - **Covers:** ENCOUNTER-2.2, ENCOUNTER-2.3, ENCOUNTER-2.7, ENCOUNTER-3.3, ENCOUNTER-3.4, ENCOUNTER-3.5, ENCOUNTER-3.6, ENCOUNTER-5.1
 - **Accounts:** GM, P1, P2, P3
-- **Preconditions:** Review data loaded. Campaign **Review: Party in the Field** (Assisted, Encounter in round 2). All four accounts have the live table open in separate browser profiles. P1, P2 and P3 have switched **Auto-roll** ON in the tabletop header (this scenario needs auto-roll on). Part B uses the Sandbox Campaign (set up as in UAT-SCENE-1: P1, P2 and P3 are members, each with a Character created in the Builder, because Aria, Bryn and Cade are already in the Review Campaign and a Character can be in only one Campaign). Heavy setup: G5. Part A completes the Review Encounter, so reset the review data (README setup steps 2 to 5) afterwards if you need it again.
+- **Preconditions:** Review data loaded. Campaign **Review: Party in the Field** (Assisted, Encounter in round 2). All four accounts have the live table open in separate browser profiles. P1, P2 and P3 have switched **Auto-roll** ON in the tabletop header (this scenario needs auto-roll on). Part B uses **Review: Sandbox** (Manual automation mode and standard initiative; P1, P2 and P3 are members with Iris, Juno and Kit). Parts A and B each complete a review Encounter, so reset the review data (README setup steps 2 to 5) afterwards if you need it again.
 
 **Steps**
 
@@ -28,12 +28,12 @@ Part A: Assisted, three players
 
 Part B: Manual
 
-12. **GM:** Open the Sandbox Campaign and, in its table settings, set **Automation mode** to **Manual** and save. Reuse the "UAT Cavern" Scene with tokens for P1's and P2's Characters.
+12. **GM:** Open **Review: Sandbox** and, in its table settings, check **Automation mode** is **Manual**. Choose **Complete encounter** on its already started Encounter. Reuse its presented Scene, which has tokens for Iris, Juno and Kit.
 13. **GM:** Create an Encounter with a Goblin; the party takes in the Sandbox's assigned Characters. Check that **Start encounter** stays disabled until every combatant has initiative.
 14. **GM:** Use **Roll initiative** for the Goblin, then enter an Initiative number for each of P1's, P2's and P3's Characters, then **Start encounter**.
 15. **P1:** Open the live table. Confirm the action drawer is not shown (Manual mode) and that you can still move your own Character's token.
 16. **GM:** Use **Next turn** through a full round. Edit a hit point total by hand on a creature and confirm the app records it without applying any rule or prompt.
-17. **GM:** Complete the Encounter, then set **Automation mode** back to **Assisted** and save, so later scenarios in the Sandbox are Assisted.
+17. **GM:** Complete the Encounter. Leave **Automation mode** as **Manual**; reset the review data afterwards if you need Review: Sandbox in its started state again.
 
 **Expected**
 
@@ -43,7 +43,7 @@ Part B: Manual
 - After **Complete encounter** the Run no longer shows as active.
 - In Part B the **Start encounter** button is disabled until every combatant has initiative, then enabled.
 - In Manual mode the action drawer is hidden for players, no roll prompts or reaction prompts appear, and the table tracks turns, rounds and reminders only. (The "Assisted only" refusal of a rules action cannot be triggered by hand because no rules control is offered; the ledger proof covers it.)
-- The Manual Encounter's party is exactly the Sandbox's active Character assignments: P1's, P2's and P3's Characters are in the order.
+- The Manual Encounter's party is exactly the Sandbox's active Character assignments: Iris, Juno and Kit are in the order.
 
 **Other users see**
 
@@ -54,7 +54,7 @@ Part B: Manual
 
 - **Covers:** ENCOUNTER-3.2, ENCOUNTER-4.1, ENCOUNTER-4.2, ENCOUNTER-4.3, ENCOUNTER-4.4, ENCOUNTER-9.1, ENCOUNTER-10.1, ENCOUNTER-2.3
 - **Accounts:** GM, P1, P2, P3
-- **Preconditions:** Review data loaded. This scenario changes Campaign table settings; use **Review: Party in the Field** after finishing its current Encounter (scenario UAT-ENCOUNTER-1 Part A completes it), or use the Sandbox Campaign (kept **Assisted**; it needs P1, P2 and P3 with Characters as in UAT-ENCOUNTER-1). Heavy setup: G5 for the extra Encounters in steps 8 to 10. P1, P2 and P3 have Auto-roll ON for the first half and OFF for the second.
+- **Preconditions:** Review data loaded. This scenario changes Campaign table settings; use **Review: Party in the Field** after finishing its current Encounter (scenario UAT-ENCOUNTER-1 Part A completes it), or use the Sandbox Campaign (kept **Assisted**; it needs P1, P2 and P3 with Characters as in UAT-ENCOUNTER-1). Heavy setup: build the extra Encounters in steps 8 to 10 by hand. P1, P2 and P3 have Auto-roll ON for the first half and OFF for the second.
 
 **Steps**
 
@@ -123,7 +123,7 @@ Part B: Manual
 
 - **Covers:** ENCOUNTER-3.3, ENCOUNTER-3.4, ENCOUNTER-3.5, ENCOUNTER-3.6, ENCOUNTER-3.7
 - **Accounts:** GM, P1, P2, P3
-- **Preconditions:** Steps 1 to 6 use **Review: Party in the Field** with its Encounter active (they change the Wolf's disposition and the Goblin's controllers, which steps 4 and 6 set back). Steps 7 and 8 use the Sandbox Campaign with P3 as a member with a Character and a new Prepared Run (create one from the Blueprint as in UAT-ENCOUNTER-3 step 3), because they remove a Character and a member and must not touch Review data. Heavy setup: G5.
+- **Preconditions:** Steps 1 to 6 use **Review: Party in the Field** with its Encounter active (they change the Wolf's disposition and the Goblin's controllers, which steps 4 and 6 set back). Steps 7 and 8 use the Sandbox Campaign with P3 as a member with a Character and a new Prepared Run (create one from the Blueprint as in UAT-ENCOUNTER-3 step 3), because they remove a Character and a member and must not touch Review data. Heavy setup: build that Campaign, its member and Prepared Run by hand.
 
 **Steps**
 
@@ -179,7 +179,7 @@ Part B: Manual
 **Steps**
 
 1. **P1:** Set Auto-roll ON. Take a turn and attack. Count the roll cards your attack posts.
-2. **GM:** Add a creature with Recharge (such as a Dragon Wyrmling) and one with Legendary Actions as reinforcements (Heavy setup: G5), take the Recharge creature's turn and count cards at turn start; when the legendary window opens after another creature's turn, roll its legendary dice and count cards.
+2. **GM:** Add a creature with Recharge (such as a Dragon Wyrmling) and one with Legendary Actions as reinforcements (Heavy setup: add the creatures by hand), take the Recharge creature's turn and count cards at turn start; when the legendary window opens after another creature's turn, roll its legendary dice and count cards.
 3. **P1:** Set Auto-roll OFF. Attack again; at the roll prompt choose **Roll dice**, then commit. Count cards.
 4. **P1:** Attack again and type physical dice faces instead. Count cards.
 5. **GM:** Make an attack that has advantage or disadvantage (the roll prompt names the reason), change the roll mode at the prompt before committing, and watch the card. Then turn on your computer's "reduce motion" accessibility setting, reload, and repeat.

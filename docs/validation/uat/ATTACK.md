@@ -2,7 +2,7 @@
 
 Feature `ATTACK` in the [phase ledger](../../roadmap/08-phase-ledger.json). Set up first: [README](README.md#setup). Accounts: [README](README.md#accounts). Review data: [README](README.md#review-data). Several users: [README](README.md#running-several-users-side-by-side). Record results: [README](README.md#recording-results). Gaps: [README](README.md#known-uat-gaps).
 
-In this file "Auto-roll ON" means the players' setting; the GM's stays OFF, so monster rolls raise a roll prompt the GM answers. Aria, Bryn and Cade are level-1 Fighters with a club: no Extra Attack and no spells. Casters are Ember (Review: Shield and Hold) and Pyra (Review: Fire and Thunder). Scenarios that need other Characters (levelled, multiclassed or two-weapon) use P1's Character in the Sandbox Campaign built in the Builder (Heavy setup: G5; a player can have only one Character per Campaign, so swap with **Change Character** on the Party panel). Several scenarios change review data: reset it (README setup steps 2 to 5) when you need it clean again.
+In this file "Auto-roll ON" means the players' setting; the GM's stays OFF, so monster rolls raise a roll prompt the GM answers. Aria, Bryn and Cade are level-1 Fighters with a club: no Extra Attack and no spells. Casters are Ember (Review: Shield and Hold) and Pyra (Review: Fire and Thunder). Scenarios that need other Characters (levelled, multiclassed or two-weapon) use P1's Character in your own Sandbox Campaign (UAT-SCENE-1, not Review: Sandbox) built in the Builder (Heavy setup: build the Character by hand; a player can have only one Character per Campaign, so swap with **Change Character** on the Party panel). Several scenarios change review data: reset it (README setup steps 2 to 5) when you need it clean again.
 
 This file proves a GM and up to three players can fight at the same time: each player acts only for their own Characters on their own turn, Assisted mode warns (and lets the GM or player proceed when the rule is bendable), the GM can undo the last action, and the combat rules, monster attacks and class features resolve as the SRD says.
 
@@ -138,7 +138,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 - **Covers:** ATTACK-17.3, ATTACK-17.4, ATTACK-17.5, ATTACK-17.6, ATTACK-10.5, ATTACK-10.6
 - **Accounts:** GM, P1, P2
-- **Preconditions:** **Review: Party in the Field**. The GM creates the hidden state in the steps. Steps 7 and 10 add creatures to the Encounter (Heavy setup: G5; reset review data afterwards). GM Auto-roll OFF; P1 and P2 Auto-roll ON.
+- **Preconditions:** **Review: Party in the Field**. The GM creates the hidden state in the steps. Steps 7 and 10 add creatures to the Encounter (Heavy setup: add them by hand; reset review data afterwards). GM Auto-roll OFF; P1 and P2 Auto-roll ON.
 
 **Steps**
 
@@ -225,7 +225,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 - **Covers:** ATTACK-7.1, ATTACK-7.3, ATTACK-7.4, ATTACK-7.5, ATTACK-7.6, ATTACK-7.7, ATTACK-18.2, ATTACK-18.3, ATTACK-18.1, ATTACK-7.9
 - **Accounts:** GM, P1, P2
-- **Preconditions:** **Review: Party in the Field**, Aria adjacent to the Wolf. Players' Auto-roll ON, GM's OFF. Steps 8, 10 and 13 add creatures or Characters (Heavy setup: G5; reset the review data afterwards).
+- **Preconditions:** **Review: Party in the Field**, Aria adjacent to the Wolf. Players' Auto-roll ON, GM's OFF. Steps 8, 10 and 13 add creatures or Characters (Heavy setup: add or build them by hand; reset the review data afterwards).
 
 **Steps**
 
@@ -256,7 +256,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 - **Covers:** ATTACK-8.2, ATTACK-8.4, ATTACK-9.1, ATTACK-9.2, ATTACK-9.3, ATTACK-9.4, ATTACK-9.5, ATTACK-9.6
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign with P1 as a member (Heavy setup: G5). The review Characters are level-1 Fighters with no Extra Attack, so P1 builds these in the Builder first: a Barbarian, a Rogue, a Fighter of level 5 (Extra Attack, Second Wind, Action Surge), a Paladin with spell slots, a Character with two light melee weapons, and the multiclasses Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20. A player can have only one Character per Campaign, so before each group of steps the GM uses **Change Character** on P1's seat in the Party panel to assign the right one and starts a fresh Encounter (a Wolf plus the Character). Players' Auto-roll ON; GM's OFF.
+- **Preconditions:** Your own Sandbox Campaign (UAT-SCENE-1) with P1 as a member (Heavy setup: P1 builds the Characters below by hand). The review Characters are level-1 Fighters with no Extra Attack, so P1 builds these in the Builder first: a Barbarian, a Rogue, a Fighter of level 5 (Extra Attack, Second Wind, Action Surge), a Paladin with spell slots, a Character with two light melee weapons, and the multiclasses Fighter 5 / Ranger 5, Fighter 11 / Paladin 5 and Fighter 20. A player can have only one Character per Campaign, so before each group of steps the GM uses **Change Character** on P1's seat in the Party panel to assign the right one and starts a fresh Encounter (a Wolf plus the Character). Players' Auto-roll ON; GM's OFF.
 
 **Steps**
 
@@ -286,7 +286,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 - **Covers:** ATTACK-1.2, ATTACK-5.1, ATTACK-5.2, ATTACK-5.3, ATTACK-5.4, ATTACK-5.5, ATTACK-5.6, ATTACK-5.7, ATTACK-5.8, ATTACK-5.9, ATTACK-5.10, ATTACK-5.11, ATTACK-5.12, ATTACK-5.13, ATTACK-5.14, ATTACK-5.15, ATTACK-7.2, ATTACK-7.8, ATTACK-11.1, ATTACK-11.3, ATTACK-11.4
 - **Accounts:** GM, P1
-- **Preconditions:** Heavy setup: G5. Reset the review data afterwards. The GM builds one Encounter (Review: Party in the Field after completing its Encounter, or the Sandbox with P1's Character as the target) with, as separate creatures: Balor, Clay Golem, Cloaker, Dryad, Duergar, Kraken, Purple Worm, Quasit, Rug of Smothering, Shadow, Spirit Naga, Shambling Mound, Brown Bear and Drider. Auto-roll ON.
+- **Preconditions:** Heavy setup: the GM adds the creatures below by hand. Reset the review data afterwards. The GM builds one Encounter (Review: Party in the Field after completing its Encounter, or the Sandbox with P1's Character as the target) with, as separate creatures: Balor, Clay Golem, Cloaker, Dryad, Duergar, Kraken, Purple Worm, Quasit, Rug of Smothering, Shadow, Spirit Naga, Shambling Mound, Brown Bear and Drider. Auto-roll ON.
 
 **Steps**
 
@@ -316,7 +316,7 @@ This file proves a GM and up to three players can fight at the same time: each p
 
 - **Covers:** ATTACK-1.1, ATTACK-6.4, ATTACK-6.5, ATTACK-6.6, ATTACK-19.1, ATTACK-19.2, ATTACK-19.3, ATTACK-19.4
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign (Assisted) with P1's Character built in the Builder with two light melee weapons (main hand and off hand) and a shortbow with arrows (Heavy setup: G5; the review Aria has only a club). The GM enables **Track ammunition** in table settings, then starts a new Run with a Goblin (UAT-ENCOUNTER-3 steps 3 and 5). GM has the Goblin's actor card open in two browser tabs for steps 5 to 7. P1's Auto-roll ON.
+- **Preconditions:** The Sandbox Campaign (Assisted) with P1's Character built in the Builder with two light melee weapons (main hand and off hand) and a shortbow with arrows (Heavy setup: build the Character by hand; the review Aria has only a club). The GM enables **Track ammunition** in table settings, then starts a new Run with a Goblin (UAT-ENCOUNTER-3 steps 3 and 5). GM has the Goblin's actor card open in two browser tabs for steps 5 to 7. P1's Auto-roll ON.
 
 **Steps**
 

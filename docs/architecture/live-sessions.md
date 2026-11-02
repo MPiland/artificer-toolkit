@@ -23,7 +23,8 @@ While a Campaign has live authority, its Session Durable Object (`NativeLiveSess
 `apps/session-worker/src/nativeLiveSessionRoom.ts`, one object per Campaign ID) is the only writer of
 live table state: the presented Scene and its fog, the open Encounter Runs, the held Characters'
 play state, and Campaign chat and rolls. It commits each command to its SQLite store before
-acknowledging it, then publishes the committed prefix to Convex as a fenced checkpoint.
+acknowledging it, and publishes its unsaved changes to Convex as a fenced checkpoint only at save points
+(ADR 0035 Amendment 25).
 
 Convex stays:
 
@@ -52,7 +53,8 @@ Lifecycle of one epoch:
    failed activation leaves no authority to serve; the next admission retries. A replacement epoch
    may discard an initial SQLite snapshot only while its sequence and published sequence are zero
    and it holds no receipts or outbox entries; committed state always goes through drain and release.
-3. **Serve.** `DO_ACTIVE`: commands commit locally, checkpoints publish in the background.
+3. **Serve.** `DO_ACTIVE`: commands commit locally; checkpoints publish only at save points and the
+   chat backlog bound.
 4. **Drain and release.** When the last admitted socket has left for five minutes
    (`ROOM_LIMITS.idleReleaseMs`), or Convex sends `CLOSE_ROOM`, the room runs `#closeRoom`: close
    every socket, await the in-flight command chain, set the drain fence, `begin-drain`, publish the
@@ -96,10 +98,11 @@ sequenceDiagram
   SQLite-->>Room: Sequence and write-set chain checksum
   Room-->>Client: COMMAND_COMMITTED or exact replay
   Room-->>Peers: Recipient-filtered committed projection
-  Room->>Convex: Checkpoint of the committed prefix
-  Convex-->>Room: Acknowledgement and changed authorization sections
-  Room->>SQLite: Compact prefix and acknowledge journal in one transaction
-  Convex-->>Peers: Reactive durable-state update
+  opt At a save point (START, COMPLETE, Scene presentation, drain, release, chat backlog)
+    Room->>Convex: Checkpoint of the unsaved changes
+    Convex-->>Room: Acknowledgement and changed authorization sections
+    Room->>SQLite: Compact prefix and acknowledge journal in one transaction
+  end
 ```
 
 Every command takes the same path. The room's command chain serializes commands; a command first
@@ -211,7 +214,7 @@ the GM (`NOT_ACTOR_CONTROLLER` otherwise).
   refuses `ACTIVE_ENCOUNTER_EXISTS`, and checkpoint ingestion refuses a checkpoint that would leave
   two ACTIVE Runs.
 - Only commands that change a Convex-owned hold set `checkpointBeforeAcknowledgement` (ADR 0035
-  Amendment 17): `START`, `COMPLETE` and removing a Character actor. The room flushes a checkpoint
+  Amendment 25's synchronous key moments): `START`, `COMPLETE` and removing a Character actor. The room flushes a checkpoint
   before acknowledging them, including when a retry recovers that receipt after a restart. The rest of
   the synchronous list is not room commands: Encounter delete and adding a Character actor (assignment
   or `START`) happen in Convex, and the departure reconcile (D81) flushes in the room's own departure
@@ -627,7 +630,7 @@ lease is not renewed. A proven `sub` that differs closes the socket ("Live-sessi
 Any token the room cannot prove (a JWKS fetch failure, an unknown key, a bad signature, an expired
 token), a lapsed lease or a first admission goes the cold path, where Convex decides: it flushes,
 captures, ensures authority and refreshes the lease. An idle socket therefore re-admits warm only
-while the 60 s (2N) authorization lease is current. `LIVE_SESSION_WORKER_SECRET` authenticates the
+while the 60 s authorization lease (ADR 0035 Amendment 14) is current. `LIVE_SESSION_WORKER_SECRET` authenticates the
 Worker's HTTP calls to Convex and Convex's control calls to the Worker.
 
 **Control route.** Convex reaches a room through `POST /internal/live-sessions/control`
@@ -664,7 +667,7 @@ contract `packages/schema/src/api/liveSessionRoomAuthorization.ts`):
 The room sends the revisions it holds (`known`); Convex reads the revisions and returns only the sections
 whose revision differs.
 
-**Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (60 s, 2N) from the start of the read
+**Lease.** The cache is trusted for `ROOM_LIMITS.authorizationLeaseMs` (60 s, Amendment 14) from the start of the read
 that loaded it. Each socket's authentication, including its renewal at token expiry, renews it. A
 checkpoint never renews it and Convex reads no authorization for it (Amendment 18). Instead
 `#renewAuthorizationIfDue` starts one background `/room-authorization` read once half the lease has passed

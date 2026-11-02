@@ -65,8 +65,8 @@ Proves that at a live table the GM sees everything, each player sees only what t
 ## UAT-PRIVACY-3: Non-members, removed players and signed-out visitors
 
 - **Covers:** PRIVACY-1.2
-- **Accounts:** GM, P1, P2, OUTSIDER (gap G3)
-- **Preconditions:** Review: Fire and Thunder (P1 is not a member) for steps 1 to 2. Steps 3 to 6 remove P2, so use the Sandbox Campaign from UAT-SCENE-1 with P1's and P2's Characters, not a Review Campaign (Heavy setup: G5). Step 7 (signed out) runs now. Step 8 is blocked until gap G3 is fixed (it needs an account outside every Campaign).
+- **Accounts:** GM, P1, P2, SPARE1 (Review_Pl_Dara)
+- **Preconditions:** Review: Fire and Thunder (P1 is not a member) for steps 1 to 2. Steps 3 to 6 remove P2, so use the Sandbox Campaign from UAT-SCENE-1 with P1's and P2's Characters, not a Review Campaign (Heavy setup: build that Sandbox by hand). Step 7 (signed out) needs no account. Step 8 uses SPARE1, an account that is in no Campaign.
 
 **Steps**
 
@@ -77,7 +77,7 @@ Proves that at a live table the GM sees everything, each player sees only what t
 5. **P2:** Try the old tabletop address and the Campaign address.
 6. **P2:** Try to open the Sheet addresses for P1's Character and for P2's own old Character in the Sandbox.
 7. **Signed-out window:** Open the Sandbox tabletop address while signed out (a private window needs no spare account).
-8. **OUTSIDER:** (blocked: G3) Sign in with an account that is not a member and open the tabletop address.
+8. **SPARE1:** Sign in with an account that is not a member and open the tabletop address.
 
 **Expected**
 
@@ -89,17 +89,17 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 - **P1 (not a member):** must NOT see any Fire and Thunder tokens, chat, notes, announcements or roster.
 - **P2 (removed):** must NOT see any Encounter data, chat, notes or roster after removal.
-- **Signed-out window and OUTSIDER (blocked: G3):** must NOT see anything.
+- **Signed-out window and SPARE1:** must NOT see anything.
 
 ## UAT-PRIVACY-4: Ownership transfer changes who sees what
 
 - **Covers:** PRIVACY-1.2, PRIVACY-1.7
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign from UAT-SCENE-1 (GM owner, P1 a member) with a running Encounter (UAT-ENCOUNTER-3 steps 3 and 5). Heavy setup: G5. Both in the tabletop window. Roll my dice automatically OFF for the GM.
+- **Preconditions:** **Review: Sandbox** (GM owner, P1 a member playing Iris) with its started Encounter and hidden Goblin and Wolf already on the Scene. This scenario transfers ownership, so reset the review data afterwards. Both in the tabletop window. Roll my dice automatically OFF for the GM.
 
 **Steps**
 
-1. **GM:** Add a hidden token to the Scene, then make a Private roll for a monster (as in UAT-PRIVACY-2 step 1).
+1. **GM:** Confirm the hidden Goblin and Wolf tokens on the Scene (add another hidden token if you want), then make a Private roll for a monster (as in UAT-PRIVACY-2 step 1).
 2. **P1:** Note what the tabletop shows. Run an action as P1 and note its command card in chat (for example roll a skill).
 3. **GM:** Transfer ownership to P1 (UAT-CAMPAIGN-2 steps 12 to 13) and have **P1** accept.
 4. **P1 (new GM):** Reload the tabletop window.
@@ -205,7 +205,7 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 - **Covers:** PRIVACY-3.2
 - **Accounts:** GM, P1
-- **Preconditions:** The Sandbox Campaign from UAT-SCENE-1 (P1 a member) with a first Encounter running and a second Scene (UAT-SCENE-1). Heavy setup: G5. P1's Roll my dice automatically OFF.
+- **Preconditions:** The Sandbox Campaign from UAT-SCENE-1 (P1 a member) with a first Encounter running and a second Scene (UAT-SCENE-1). Heavy setup: build that Campaign, Encounter and second Scene by hand. P1's Roll my dice automatically OFF.
 
 **Steps**
 
@@ -232,7 +232,7 @@ Proves that at a live table the GM sees everything, each player sees only what t
 
 - **Covers:** PRIVACY-4.1
 - **Accounts:** GM, P1
-- **Preconditions:** Review: Shield and Hold (GM and P1 only; P1 plays Ember, who holds Hold Person). Roll my dice automatically OFF. A hidden caster is needed: GM adds a hidden spellcasting creature to the Scene that concentrates on a spell (a Mage). Heavy setup: G5; reset the review data afterwards.
+- **Preconditions:** Review: Shield and Hold (GM and P1 only; P1 plays Ember, who holds Hold Person). Roll my dice automatically OFF. A hidden caster is needed: GM adds a hidden spellcasting creature to the Scene that concentrates on a spell (a Mage). Heavy setup: add the hidden caster by hand; reset the review data afterwards.
 
 **Steps**
 

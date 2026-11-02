@@ -260,6 +260,8 @@ export async function applyCheckpointRecords(
     if (owner && assignment && owner !== assignment.userId)
       throw new Error('Checkpoint Character owner does not match.')
   }
+  // Every entry and payload of a save names the same few conversations; Convex bills each re-read.
+  const storedConversationRecords = new Map<string, Record<string, JsonValue> | null>()
   const readConversationRecord = async (
     table:
       | 'campaignConversations'
@@ -269,10 +271,16 @@ export async function applyCheckpointRecords(
   ) => {
     const identity = `${table}:${canonicalizeJson([id])}`
     if (nextRows.has(identity)) return nextRows.get(identity) ?? null
+    if (storedConversationRecords.has(identity))
+      return storedConversationRecords.get(identity) ?? null
     const row = await readCheckpointRecord(ctx, table, [id])
-    if (!row) return null
-    const { _id, _creationTime, ...fields } = row
-    return decodeCheckpointRecord(table, fields)
+    let record: Record<string, JsonValue> | null = null
+    if (row) {
+      const { _id, _creationTime, ...fields } = row
+      record = decodeCheckpointRecord(table, fields)
+    }
+    storedConversationRecords.set(identity, record)
+    return record
   }
   const requireConversation = async (id: string) => {
     const record = await readConversationRecord('campaignConversations', id)
@@ -310,6 +318,8 @@ export async function applyCheckpointRecords(
     )
       throw new Error('Checkpoint conversation nonce evidence does not match its payload.')
   }
+  // A save's Scene binding and every token binding name the same Scene.
+  const checkedScenes = new Set<string>()
   const requireScope = async (table: string, value: Record<string, unknown>) => {
     if (typeof value.campaignId === 'string' && value.campaignId !== frame.campaignId)
       throw new Error('Checkpoint record belongs to another Campaign.')
@@ -326,13 +336,14 @@ export async function applyCheckpointRecords(
         typeof value.userId === 'string' ? value.userId : undefined
       )
     if (typeof value.sourceEncounterId === 'string') await requireEncounter(value.sourceEncounterId)
-    if (typeof value.sceneId === 'string') {
+    if (typeof value.sceneId === 'string' && !checkedScenes.has(value.sceneId)) {
       const scene = await ctx.db
         .query('campaignScenes')
         .withIndex('by_publicId', (q) => q.eq('id', value.sceneId as string))
         .unique()
       if (!scene || scene.campaignId !== frame.campaignId)
         throw new Error('Checkpoint Scene belongs to another Campaign.')
+      checkedScenes.add(scene.id)
     }
   }
   const newConversationKeys = new Set<string>()

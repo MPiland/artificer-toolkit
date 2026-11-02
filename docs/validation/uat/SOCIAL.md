@@ -65,8 +65,8 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 ## UAT-SOCIAL-3: Blocks and what they do
 
 - **Covers:** SOCIAL-1.5
-- **Accounts:** GM, P1, P2, SUPERADMIN (gap G2, step 8 only)
-- **Preconditions:** P1 and P2 are members of Review: Party in the Field. Their membership must still be there after the block. Steps 1-7 are runnable now; step 8 (the moderation half of SOCIAL-1.5) is blocked: G2.
+- **Accounts:** GM, P1, P2, SUPERADMIN (Review_Admin_Sol, step 8 only)
+- **Preconditions:** P1 and P2 are members of Review: Party in the Field. Their membership must still be there after the block. Step 8 is the moderation half of SOCIAL-1.5.
 
 **Steps**
 
@@ -77,7 +77,7 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 5. **P1 and P2:** Open Review: Party in the Field and its Campaign chat; each posts one line in the Table conversation.
 6. **P1:** In **Blocked profiles**, choose **Unblock** next to P2.
 7. **P2:** Reload P1's profile.
-8. **SUPERADMIN (blocked: G2):** Moderate P2 (suspend or restrict the profile) and check P1 and P2 stay members of Review: Party in the Field; then reverse the moderation.
+8. **SUPERADMIN:** Moderate P2 (suspend or restrict the profile) and check P1 and P2 stay members of Review: Party in the Field; then reverse the moderation.
 
 **Expected**
 
@@ -85,7 +85,7 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 - While blocked, P2 sees an "unavailable" profile for P1 and cannot invite or apply to P1.
 - Both players remain members of Review: Party in the Field and can still chat and play together: a block never removes accepted membership.
 - After unblocking, profile and invitation actions work again.
-- Step 8 (blocked: G2): moderation leaves accepted membership in place, as a block does.
+- Step 8: moderation leaves accepted membership in place, as a block does.
 
 **Other users see**
 
@@ -95,8 +95,8 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 ## UAT-SOCIAL-4: Private profiles and masking
 
 - **Covers:** SOCIAL-1.2
-- **Accounts:** P1, P2, OUTSIDER (gap G3)
-- **Preconditions:** Steps 1-5 run now with P2. Steps 6-7 are (blocked: G3). Run after UAT-SOCIAL-1 so the "UAT Table" listing and P1's application exist.
+- **Accounts:** P1, P2, SPARE1 (Review_Pl_Dara)
+- **Preconditions:** Steps 1-5 use P2. Steps 6-7 use a signed-out window and then SPARE1. Run after UAT-SOCIAL-1 so the "UAT Table" listing and P1's application exist.
 
 **Steps**
 
@@ -105,20 +105,20 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 3. **P2:** Open the "UAT Table" listing from UAT-SOCIAL-1 and look for P1's application, name and message.
 4. **P1:** Set the profile back to public.
 5. **P2:** Reload P1's profile.
-6. **OUTSIDER (blocked: G3):** Without signing in, open P1's profile address and the listing address.
-7. **OUTSIDER (blocked: G3):** Sign in and open them again.
+6. **SPARE1 (signed out):** Without signing in, open P1's profile address and the listing address.
+7. **SPARE1:** Sign in and open them again.
 
 **Expected**
 
 - Private information (age, safety practices, any field marked private) does not appear to other users or to a signed-out visitor.
 - Pages and any shared link show only the public basics.
 - Step 3: P2 sees the listing but none of P1's application details.
-- Steps 6-7 (blocked: G3): a signed-out visitor is sent to sign in.
+- Steps 6-7: a signed-out visitor is sent to sign in.
 
 **Other users see**
 
 - **P2:** must NOT see fields P1 marked private, in the profile, the listing, or the tab title.
-- **OUTSIDER (blocked: G3):** must NOT see profile or listing data until signed in, and then only the public part.
+- **SPARE1:** must NOT see profile or listing data until signed in, and then only the public part.
 
 ## UAT-SOCIAL-5: Notification feed, read state and preferences
 
@@ -155,8 +155,8 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 ## UAT-SOCIAL-6: Plan limits and capacity
 
 - **Covers:** SOCIAL-3.1, SOCIAL-3.2
-- **Accounts:** P1, GM, SUPERADMIN (gap G2)
-- **Preconditions:** The review accounts' tiers are whatever the README Accounts table lists; read them in step 1 and record them. Steps 1-6 run now; step 7 is (blocked: G2) because a downgrade cannot be done from the app. If the limit in step 3 is too high to reach by hand (more than about 20), record the number and mark steps 3-5 not run.
+- **Accounts:** P1, GM, SUPERADMIN (Review_Admin_Sol)
+- **Preconditions:** The review accounts' tiers are whatever the README Accounts table lists; read them in step 1 and record them. Step 7 uses SUPERADMIN, because a downgrade cannot be done from the app. If the limit in step 3 is too high to reach by hand (more than about 20), record the number and mark steps 3-5 not run.
 
 **Steps**
 
@@ -166,14 +166,14 @@ Proves players can find a table, apply, be accepted or refused, block and be blo
 4. **P1:** Try to create one more beyond the limit.
 5. **P1:** Delete one and create it again, then delete the Feats you made for this scenario.
 6. **P1:** Try to host a Campaign beyond the hosted-Campaign limit, or add a seat beyond the seat limit, if the free tier has one.
-7. **SUPERADMIN (blocked: G2):** Downgrade P1's tier and open the Account page.
+7. **SUPERADMIN:** Downgrade P1's tier and open the Account page.
 
 **Expected**
 
 - The Account page shows tier, shared policy limits and counters for homebrew, Characters, hosted Campaigns, seats, listings, storage and Blueprints.
 - Step 4 is refused with a message naming the limit and nothing is created.
 - Freed capacity can be used again; counters change immediately.
-- Step 7 (blocked: G2): existing items remain but new ones are refused.
+- Step 7: existing items remain but new ones are refused.
 
 **Other users see**
 

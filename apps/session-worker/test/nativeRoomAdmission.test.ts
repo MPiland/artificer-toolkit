@@ -395,6 +395,17 @@ it('keeps room authority after the activating member leaves and admits another c
   })
 })
 
+it('writes no checkpoint at activation or a cold admission while nothing is unsaved (ADR 0035 Amendment 25)', async () => {
+  const base = await room()
+  const owner = await base.connect('OWNER')
+  await admitted(owner)
+  const player = await base.connect('PLAYER')
+  await admitted(player)
+  expect(base.count('/live-sessions/activate')).toBe(1)
+  expect(base.count('/live-sessions/capture')).toBe(2)
+  expect(base.count('/live-sessions/checkpoint')).toBe(0)
+})
+
 const halfLease = ROOM_LIMITS.authorizationLeaseMs / 2
 const resume = JSON.stringify({ type: 'RESUME', lastAppliedSequence: 0 })
 

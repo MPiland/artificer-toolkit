@@ -14,16 +14,16 @@ flowchart LR
   Api --> Db["Convex documents + scheduler"]
   Api --> Media["private R2 through @convex-dev/r2"]
   Api --> Email["Resend component"]
-  Worker["Session Durable Object"] -->|bootstrap + ordered publish + release| Api
-  Worker --> Live[("SQLite live state + receipts + outbox")]
+  Worker["Session Durable Object"] -->|bootstrap + save-point checkpoints + drain/release| Api
+  Worker --> Live[("SQLite live table state + journal + receipts")]
 ```
 
-During an active live Session, its Durable Object is the single authority for the supported Door and
-standalone token move/undo command paths. It atomically commits the minimum SQLite
-live projection, replay receipt and ordered Convex publication outbox before broadcasting success.
-Convex independently revalidates those publications, fences overlapping direct writes while room
-authority is active, drives subscriptions, and supplies recovery state after release or eviction.
-Character Sheet, Encounter rule and other product commands use their owning Convex functions. The Worker also carries
+While a Campaign's room holds live authority, it is the only writer of the presented Scene, open
+Encounter Runs, held Characters' play state, chat and rolls, and commits each command to SQLite before
+acknowledging it ([ADR 0035](../../docs/adr/0035-room-authoritative-live-encounters.md)). Convex ingests
+fenced checkpoints at save points, fences overlapping direct writes while room authority is active,
+and supplies the next room's inputs after release or eviction. Other product commands use their owning
+Convex functions. The Worker also carries
 recipient-filtered ephemeral previews. Canonical source import reads the preserved
 `packages/source-data` corpus; media, notifications and cleanup use native Convex components.
 
@@ -63,10 +63,8 @@ The local S3 checkpoint endpoint validates the actual payload digest, contiguous
 public record keys, Campaign/assigned Character scope and canonical stored integrity. It publishes
 changed fields, grouped shared/private receipt ledgers and the replay fence in one mutation, bumps
 the Character play stream once per checkpoint, and returns authorization revisions. Checkpoint writes
-refresh outside-view revisions without invalidating their own room. Oversized checkpoint payloads
-upload indexed 240 KiB UTF-8 parts through the existing Worker-secret routes; fenced publication
-removes staging bytes in the same transaction. Abandoned uploads expire and use bounded scheduled
-cleanup. Scene/fog records now share that publication transaction, with source/presentation pins,
+refresh outside-view revisions without invalidating their own room. Every checkpoint publishes inline in one request,
+within the 1 MiB records bound (ADR 0035 Amendment 31). Scene/fog records now share that publication transaction, with source/presentation pins,
 normalized deltas and complete native fog save and chunk references. Scene command receipts and geometry
 saves are not Convex rows: the room keeps them for 30 days (ADR 0035 Amendment 26), and the checkpoint
 reads each record once, before it writes (Amendment 27).

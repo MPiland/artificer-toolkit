@@ -103,7 +103,7 @@ This file proves that when an attack or spell triggers a reaction, the right per
 
 - **Covers:** REACTION-4.1, REACTION-4.3
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Heavy setup: G5. The Sandbox Campaign (UAT-SCENE-1) with P1 and P2 each assigned a Character built in the Builder as a level 5 caster who knows Counterspell with a third-level slot (the review casters Ember and Pyra do not know Counterspell), and an Encounter with a Mage creature. All three tokens are within range of each other. Players' Auto-roll ON; GM's OFF.
+- **Preconditions:** Heavy setup: build the Characters and the Mage Encounter by hand. Your own Sandbox Campaign (UAT-SCENE-1) with P1 and P2 each assigned a Character built in the Builder as a level 5 caster who knows Counterspell with a third-level slot (the review casters Ember and Pyra do not know Counterspell), and an Encounter with a Mage creature. All three tokens are within range of each other. Players' Auto-roll ON; GM's OFF.
 
 **Steps**
 
@@ -149,7 +149,7 @@ This file proves that when an attack or spell triggers a reaction, the right per
 
 - **Covers:** REACTION-1.3
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Heavy setup: G5. The Sandbox Campaign (UAT-SCENE-1) with P1's and P2's Characters each holding a weapon (set on their Sheets), Assisted, the Disarm optional rule enabled in table settings and a new Run started with a Wolf (UAT-ENCOUNTER-3 steps 3 and 5). The review Encounters are already running and cannot take the new rule.
+- **Preconditions:** Heavy setup: build the Campaign and Run by hand. Your own Sandbox Campaign (UAT-SCENE-1) with P1's and P2's Characters each holding a weapon (set on their Sheets), Assisted, the Disarm optional rule enabled in table settings and a new Run started with a Wolf (UAT-ENCOUNTER-3 steps 3 and 5). The review Encounters are already running and cannot take the new rule.
 
 **Steps**
 
