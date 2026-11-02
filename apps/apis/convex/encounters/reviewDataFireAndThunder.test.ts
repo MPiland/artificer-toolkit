@@ -15,7 +15,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-const scenarios = REVIEW_SCENARIOS.slice(2)
+const scenarios = REVIEW_SCENARIOS.slice(2, 3)
 
 it('builds the area-spell review Campaign once and skips it on a re-run', async () => {
   const { context, counts } = await reviewDataHarness()

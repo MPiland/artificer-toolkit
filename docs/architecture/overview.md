@@ -17,8 +17,8 @@ flowchart LR
   Web["apps/web<br/>TanStack Start"] -->|generated queries, mutations, actions| ConvexApi["apps/apis/convex<br/>auth + product authority"]
   ConvexApi --> Convex[("Convex<br/>tables + storage + scheduler")]
   Web <-->|active live commands + transient previews| Worker["apps/session-worker<br/>Session Durable Object"]
-  Worker -->|bootstrap + ordered publication| ConvexApi
-  Worker --> LiveSqlite[("SQLite live projection<br/>receipts + outbox")]
+  Worker -->|bootstrap + save-point checkpoints + drain/release| ConvexApi
+  Worker --> LiveSqlite[("SQLite live table state<br/>journal + receipts")]
   ConvexApi --> Schema["packages/schema<br/>public contracts"]
   ConvexApi --> Shared["packages/shared<br/>domain + compilers"]
   ConvexApi --> Authoring["packages/authoring<br/>pure authoring resolution"]
@@ -33,11 +33,12 @@ flowchart LR
   Static Assets, separate from the session Worker ([ADR 0037](../adr/0037-web-app-on-cloudflare-workers.md)).
 - `apps/apis/convex` owns Better Auth integration, the Convex schema, queries, mutations, actions,
   scheduled cleanup, object-storage coordination, authorization, ordinary atomic product writes and
-  replay, Session DO publication revalidation, and reactive durable state.
+  replay, fenced checkpoint ingestion from the room, and reactive durable state.
 - `apps/session-worker` owns short-lived ticket admission, hibernatable WebSockets, the active
-  Session's minimum live projection, supported command execution, replay receipts, ordered Convex
-  publication, recipient-filtered transient previews, and transport security state. It does not own
-  cross-session product persistence or all Encounter rule commands.
+  Campaign's live table while it holds authority (the presented Scene, open Encounter Runs, held
+  Characters' play state, chat and rolls), command execution, replay receipts, save-point checkpoints
+  to Convex, recipient-filtered transient previews, and transport security state. It does not own
+  product persistence outside a running table.
 - `packages/schema` owns shared public DTOs and validation contracts.
 - `packages/shared` owns domain vocabulary, node maps, compilers, and normalized Character and rules facts.
 - `packages/authoring` owns pure Authoring Schema resolution, import preparation, and publication validation.
@@ -53,15 +54,16 @@ network connections.
 ## Product and live-session paths
 
 Product reads, writes and SSR hydration use Convex. Outside active room authority, durable commands use
-their owning Convex functions. During an active live Session, its Durable Object is the single authority
-for the supported Door and standalone token move/undo paths. Direct overlapping Scene writes in
-Convex reject until that authority drains and releases. All Character Sheet and Encounter rule
-commands stay in their owning Convex mutations throughout the Session.
+their owning Convex functions. While a Campaign's room holds live authority, it is the only writer of
+the presented Scene, open Encounter Runs, held Characters' play state, chat and rolls
+([ADR 0035](../adr/0035-room-authoritative-live-encounters.md)). Overlapping writes in Convex reject
+until that authority drains and releases.
 
-The room commits its minimum SQLite live projection, replay receipt, and ordered publication outbox in
-one transaction before broadcasting success. Convex independently revalidates ordered publications,
-commits durable cross-session/system state, drives subscriptions, and bootstraps recovery after release
-or eviction. The same room relays recipient-filtered ephemeral previews. See
+The room commits each command and its replay receipt to SQLite in one transaction before broadcasting
+success, and publishes fenced checkpoints to Convex only at save points (Run START and COMPLETE, a Scene
+presentation change, drain, release and the chat backlog bound). Convex fences each checkpoint, keeps
+the durable record, serves pages outside the running table as of the last save, and bootstraps the next
+room after release or eviction. The same room relays recipient-filtered ephemeral previews. See
 [Live-session coordination](live-sessions.md).
 
 [ADR 0033](../adr/0033-campaign-owned-play-and-session-log.md) is implemented locally: the live table is

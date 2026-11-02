@@ -14,7 +14,9 @@
 ## Implementation status — 2026-09-30
 
 _Update 2026-10-05:_ D90 (save points, Amendments 25–31) is implemented and V15 passed locally within
-the Q16 budgets; the text below is the 2026-09-30 snapshot.
+the Q16 budgets; the text below is the 2026-09-30 snapshot. _Update 2026-11-02:_ D209 set the
+per-session Convex I/O budget at 4.3 MB decimal, strict (Decision 9). a84's 4.44 MB exceeds it; the
+save no longer re-reads a conversation or Scene per record (D90 consequences), pending a V15 rerun.
 
 S0 measurements, S1 persistence extraction, S1b Encounter record changes, S1c Character play-state
 separation, S2 SQLite hydrate/rehydrate and S4 authorization caching are implemented locally.
@@ -63,7 +65,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - The result is broadcast to each recipient through the existing privacy projection: hidden actors, GM-only rolls and redactions (D62, Q14).
    - Receipts keep commands idempotent on retry.
 3. **Checkpoints to Convex.**
-   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than N after the first unsent change, N = 30 s since REL-5 (Amendments 1, 4, 13 and 17).
+   - **When:** the room writes a checkpoint at each round boundary and lifecycle event, before an idle release or drain, and no later than N after the first unsent change, N = 30 s since REL-5 (Amendments 1, 4, 13 and 17). _Superseded by D90 (Amendment 25): the room saves only at save points; N is retired._
    - **Fencing:** a checkpoint is one idempotent Convex mutation carrying the room's authority epoch and sequence. Convex accepts only a newer sequence under the current authority, so the existing authority fencing is reused.
    - **Contents:** the checkpoint writes the Run, the actors, Character play state, timeline entries and receipts that Convex's own features need, such as history, the Sheet outside play and audits.
 4. **Durability.**
@@ -90,6 +92,8 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - V15 gains hard budgets for Convex reads per command and per session, alongside the existing latency budgets.
    - The Builder gains a budget for reads per edit.
    - Budgets derive from the free allowances and a target number of active groups per month (Q16).
+   - Per-session Convex I/O is at most 4.3 MB, decimal (4,300,000 bytes), strict (D209, 2026-11-02;
+     `scripts/v15Budgets.mjs`).
 
 ## Consequences
 
@@ -98,6 +102,7 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
 - Steady-state combat commands need no Convex round trips, so latency is bounded by room CPU (tens of milliseconds), not two HTTP calls.
 - Convex reads for live play drop from about 1 MB per command to checkpoint and input-reload traffic,
   with checkpoints at most 120 seconds after the first unsent change, plus round/lifecycle boundaries.
+  _Superseded by D90: checkpoints only at save points (Amendment 25)._
 - Subscriber re-runs during play disappear.
 - The capture bundle, fenced commit, write-ahead journal and resolve route for Encounter commands are deleted, along with their per-command checksum verification (D52, D64 and much of D27).
 
@@ -168,7 +173,7 @@ Based on the [S0 record](../validation/phase-08-2/adr-0035-s0-2026-09-27.md):
       headers remain per command and point into the checksummed ledger; they preserve replay,
       duplicate-command checks, public UUIDs and timeline pagination without repeating history payloads.
     - Tied-initiative and other occurrence updates write only the changed occurrence fields.
-13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event (superseded: Amendment 17, N = 30 s since REL-5). This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12.
+13. **Checkpoint interval N = 120 s,** plus every round boundary and lifecycle event (superseded: Amendment 17, N = 30 s since REL-5). This is provisional until S9 measures usage outside live play. It fits Q16's budget only with Amendment 12. N is retired (Amendment 25).
 14. **Authorization lease: 240 s (2N; 60 s since REL-5, renewed as Amendment 18 states),** renewed by checkpoint responses and each socket's 15-minute re-authentication. This replaces "about 60 s".
     - A lost eviction is the only case the lease covers. To keep that rare, eviction delivery retries with backoff until it is acknowledged or the room releases, instead of giving up after 5 attempts.
     - The worst-case exposure after a failed eviction is therefore one lease.
@@ -455,6 +460,11 @@ of a table once it stops running. While it runs, the room is.
       checkpoint carries, which would fire about every 8 combat commands and recreate an interval.
     - **There is no timer and no deadline alarm.** N and the `DEADLINE` checkpoint reason are
       retired.
+    - **Recovery saves (2026-11-02, PERF-3.T1).** Activation, a cold admission and an aggregate
+      reload also save, but only journal entries Convex does not hold yet, such as those of a room
+      that restarted before it published them. With nothing unsaved they write no checkpoint
+      (`apps/session-worker/test/nativeRoomAdmission.test.ts`), so they never publish what was just
+      loaded from Convex and add no I/O to a session that saved at its last save point.
     - **The lease is independent.** The authorization lease (Amendment 14) stays at 60 s. It bounds
       revocation, not saving.
     - **What a table close leaves behind.** When everyone leaves, idle release saves everything a
@@ -484,7 +494,11 @@ of a table once it stops running. While it runs, the room is.
 
 - **Per-session Convex I/O.** A session costs one save per fight, the lifecycle moments, and one
   close. It no longer costs one save per 30 s of play. V15 run a84 measured 4.44 MB per modelled
-  session against the 4.51 MB budget (Amendment 31).
+  session, over the 4.3 MB decimal budget (Decision 9, D209). Most of a COMPLETE save's
+  scope checks (about 90 KB of its I/O in a84) re-read the same conversation for every chat entry
+  and payload, and the same Scene for every token binding. A save now reads each once (PERF-3.T1):
+  an estimated 0.4 MB less per session, about 4.03 MB, until a V15 rerun measures it. Recovery
+  saves (Amendment 25) add nothing to it: they write only entries a restarted room never published.
 - **Loss window.** Losing the room's storage loses changes since the last save point: at most the
   current fight, or the current out-of-combat stretch. Scene undo of earlier moves is then refused,
   as for Encounter history (D88). This replaces D85's "about one round".
