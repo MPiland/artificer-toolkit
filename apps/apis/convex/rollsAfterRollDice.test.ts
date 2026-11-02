@@ -2,13 +2,14 @@
 import { describe, expect, it } from 'vitest'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
+import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
-import { setupCharacterRun } from '../tests/fixtures/encounterCharacter'
+import { equipAllCharacterItems, setupCharacterRun } from '../tests/fixtures/encounterCharacter'
 import { api } from './_generated/api'
 import { createConvexEncounterStore } from './lib/convexEncounterStore'
 
-type HeldSpell = typeof guidance | typeof resistance
+type HeldSpell = typeof guidance | typeof resistance | typeof bless
 
 /** The spell's one effect, its die authored to be offered after the d20 and limited to `ability` when given. */
 function heldAfterRoll(spell: HeldSpell, change: { ability?: 'DEXTERITY'; count?: number } = {}) {
@@ -29,26 +30,30 @@ function heldAfterRoll(spell: HeldSpell, change: { ability?: 'DEXTERITY'; count?
   return effect
 }
 
-async function characterHolding(spell: HeldSpell, change?: Parameters<typeof heldAfterRoll>[1]) {
+async function characterHolding(
+  spell: HeldSpell | null,
+  change?: Parameters<typeof heldAfterRoll>[1]
+) {
   const base = await setupCharacterRun()
   const { t, run, actor, character, player } = base
-  await t.run((ctx) =>
-    createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
-      id: crypto.randomUUID(),
-      owner: { kind: 'CHARACTER', characterId: character.id },
-      definition: plannedModifierGrant({
-        encounterId: run.id,
-        sourceActorId: actor.id,
-        holderActorId: actor.id,
-        lifecycle: {},
-        effect: heldAfterRoll(spell, change),
-        sourceLabel: spell.label,
-        rounds: 10,
-        lifetimeScope: 'OWNER'
-      }).definition,
-      lifecycle: { schemaVersion: 1, remainingTicks: 10 }
-    })
-  )
+  if (spell)
+    await t.run((ctx) =>
+      createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).create({
+        id: crypto.randomUUID(),
+        owner: { kind: 'CHARACTER', characterId: character.id },
+        definition: plannedModifierGrant({
+          encounterId: run.id,
+          sourceActorId: actor.id,
+          holderActorId: actor.id,
+          lifecycle: {},
+          effect: heldAfterRoll(spell, change),
+          sourceLabel: spell.label,
+          rounds: 10,
+          lifetimeScope: 'OWNER'
+        }).definition,
+        lifecycle: { schemaVersion: 1, remainingTicks: 10 }
+      })
+    )
   const effectCount = () =>
     t.run(
       async (ctx) =>
@@ -96,12 +101,28 @@ async function characterHolding(spell: HeldSpell, change?: Parameters<typeof hel
       source: { kind: 'INITIATIVE', label: 'Initiative' }
     })
   }
+  let equipped = false
+  const attack = async () => {
+    if (!equipped) await equipAllCharacterItems(base)
+    equipped = true
+    const row = (await sheet()).actions.items.find((action) => action.mechanic?.attackBonus != null)
+    const { attackBonus, attackRollMode } = row?.mechanic ?? {}
+    if (row == null || attackBonus == null) throw new Error('The Character has no attack row.')
+    return player.caller.mutation(api.rolls.execute, {
+      characterId: character.id,
+      rollMode: attackRollMode,
+      expression:
+        attackBonus === 0 ? '1d20' : `1d20 ${attackBonus > 0 ? '+' : '-'} ${Math.abs(attackBonus)}`,
+      source: { kind: 'ATTACK', label: `${row.label} attack` }
+    })
+  }
   const history = () => player.caller.query(api.rolls.history, {})
   return {
     ...base,
     abilityCheck,
     savingThrow,
     initiative,
+    attack,
     effectCount,
     history,
     add: (offer: { id: string; effectId: string; grantId: string }) =>
@@ -214,5 +235,45 @@ describe('a held saving-throw die offered after a Sheet roll', () => {
     const used = await add({ id: rolled.id, effectId: offer!.effectId, grantId: offer!.grantId })
     expect(d4Terms(used)).toHaveLength(1)
     expect(await effectCount()).toBe(0)
+  })
+})
+
+describe('a held attack-roll die offered after a Sheet attack', () => {
+  it('rolls the attack without the die and offers it, spending nothing', async () => {
+    const { attack, effectCount } = await characterHolding(bless)
+    const record = await attack()
+    expect(d4Terms(record)).toEqual([])
+    expect(record.afterRollOffers).toEqual([
+      expect.objectContaining({ label: bless.label, count: 1, faces: 4, sign: 'ADD' })
+    ])
+    expect(await effectCount()).toBe(1)
+  })
+
+  it('adds the die when used, spends it and keeps the total consistent', async () => {
+    const { attack, effectCount, add } = await characterHolding(bless)
+    const rolled = await attack()
+    const [offer] = rolled.afterRollOffers!
+    const used = await add({ id: rolled.id, effectId: offer!.effectId, grantId: offer!.grantId })
+
+    const [die] = d4Terms(used)
+    expect(die).toBeDefined()
+    expect(used.evidence.total).toBe(rolled.evidence.total + die!.subtotal)
+    expect(used.afterRollOffers).toBeUndefined()
+    expect(await effectCount()).toBe(0)
+  })
+
+  it('keeps the roll and the die when declined, and offers it for the next attack', async () => {
+    const { attack, effectCount, decline } = await characterHolding(bless)
+    const rolled = await attack()
+    const kept = await decline(rolled.id)
+    expect(kept.evidence).toEqual(rolled.evidence)
+    expect(kept.afterRollOffers).toBeUndefined()
+    expect(await effectCount()).toBe(1)
+    expect((await attack()).afterRollOffers).toHaveLength(1)
+  })
+
+  it('offers nothing to a Character holding no attack die, or only a check die', async () => {
+    expect((await (await characterHolding(null)).attack()).afterRollOffers).toBeUndefined()
+    expect((await (await characterHolding(guidance)).attack()).afterRollOffers).toBeUndefined()
   })
 })

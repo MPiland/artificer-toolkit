@@ -1,7 +1,11 @@
 import type { CharacterResolvedActionMechanic } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 
-import { activeAttackRollDice, activeDamageDiceTo } from './activeEffectGrantTotals.js'
+import {
+  activeAfterRollAttackRollDice,
+  activeAttackRollDice,
+  activeDamageDiceTo
+} from './activeEffectGrantTotals.js'
 
 import type {
   CharacterSheetProjectedMechanic,
@@ -81,6 +85,10 @@ export function projectCharacterRuleActionMechanic(
     attackDomain === null
       ? []
       : activeAttackRollDice(effects.active, attackDomain, mechanic.attackAbility)
+  const attackAfterRollOffers =
+    attackDomain === null
+      ? []
+      : activeAfterRollAttackRollDice(effects.active, attackDomain, mechanic.attackAbility)
   const outcomes = mechanic.outcomes.map((outcome) => projectOutcome(outcome, references))
   const damageAddedDice = outcomes.some((outcome) => outcome.kind === 'DAMAGE')
     ? [
@@ -100,6 +108,7 @@ export function projectCharacterRuleActionMechanic(
     ...(mechanic.rangeLabel === null ? {} : { rangeLabel: mechanic.rangeLabel }),
     ...(mechanic.attackBonus === null ? {} : { attackBonus: mechanic.attackBonus }),
     ...(attackAddedDice.length > 0 ? { attackAddedDice } : {}),
+    ...(attackAfterRollOffers.length > 0 ? { attackAfterRollOffers } : {}),
     ...(damageAddedDice.length > 0 ? { damageAddedDice } : {}),
     ...(mechanic.attackRollMode === null ? {} : { attackRollMode: mechanic.attackRollMode }),
     ...(mechanic.save === null
