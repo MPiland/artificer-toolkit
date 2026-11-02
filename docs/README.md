@@ -47,6 +47,10 @@ or JSDoc.
 - [CI validation and affected-test selection](architecture/ci-validation.md)
 - [Versioned documents and correctness projections](architecture/versioned-projections.md) — historical implementation record superseded by ADRs 0023–0025 and 0029
 
+## Guides
+
+- [Alpha play guide](guides/alpha-play-guide.md): live-table guide, known gaps and feedback instructions for alpha testers
+
 ## Operator runbooks
 
 - [Phase 8.2 release lifecycle](runbooks/phase-8-2-release.md)

@@ -2,7 +2,7 @@
 
 A plain-language guide to the live table for alpha players and GMs. It describes what the app does today, checked against the code and its tests. Where a feature is not finished, a note says so instead of guessing.
 
-> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. Known gaps and how to send feedback are added by RELEASE-7.T2.
+> Status: draft. The release-candidate walkthrough (RELEASE-7.T3) confirms each statement against the running build before alpha invites go out. The [known gaps](#known-gaps) and [how to send feedback](#sending-feedback) are at the end.
 
 ## Words used in this guide
 
@@ -146,3 +146,51 @@ There are two separate undos, and only you can use them. Players cannot undo any
 
 - Surprise rounds, and delay or ready actions, are not available. Rule them by hand.
 - Whether a token may move off its turn is not enforced by the movement path (not confirmed in tests).
+
+## Known gaps
+
+These are things you may run into. None is a surprise bug: the team knows about each and has decided it can wait. When one comes up, the GM rules it by hand and play carries on. (More are listed under [Spells](#spells) and [Undo](#undo-what-it-can-and-cannot-do) above.)
+
+### Table and map
+
+- **Hex grids are not available.** Scenes are square or gridless.
+- **Distances are in feet.** A Scene's grid can be calibrated in metres, but rules distances (range, reach, speed) stay in feet.
+- **No surprise round.** Features that depend on being surprised (Assassinate's automatic critical, Surprise Attack, Foresight's "can't be surprised") are description only.
+- **Daylight is all or nothing per Scene.** A torch-lit room on a daylit map counts as sunlight, which matters for sunlight-sensitive creatures. The GM can rule it or turn the Scene's daylight off.
+- **No hazard or trap tools beyond the basics.** The GM places a zone, sets the spot and disarm numbers, and reveals or disarms it by hand.
+- **Other players see a roll as a text card.** Only the roller sees the dice animate.
+- **A death save shows its result on the Sheet only.** The tabletop shows the prompt but no tally or token mark.
+- **Pushes can stop early.** If a push or pull needs a free square and none is within 5 feet, the creature stays put and may overlap its target. The GM moves the token.
+
+### Combat
+
+- **Manual mode gives no reminders.** In Manual mode the app does not hint that an opportunity attack, ongoing damage or a Concentration check is due.
+- **Hands and components are not checked.** A caster holding a sword and shield can still cast a spell with somatic or material components, and free object interactions are not counted.
+- **Hitting cover is not a rule here.** A ranged attack that misses only because of cover simply misses.
+- **Undo does not cover contests.** Grapple, Shove, Disarm and contested escapes cannot be undone; the GM adjusts by hand.
+- **Group tokens are one token.** A group makes one attack per creature in it, so four bears make four attacks, not eight. Multi-creature Conjure spells make one group token, and the GM raises the group count when a higher slot should add creatures.
+- **Defeat bonuses are limited to the holder's own actions.** Features that reward a kill (Dark One's Blessing) give nothing for a kill by a movement reaction, a contest or a zone. The GM adds it.
+- **Some creature features are partial.** Examples: a Vampire's regeneration does not stop in sunlight or running water, Death Throes do not chain from one dying Balor to another, and a long rest for a creature does not restore its hit points. The GM applies the missing step.
+- **Initiative variants.** With Speed Factor, basic actions such as Dodge cannot be declared, so a creature could pick a light action for the bonus and then do something else.
+
+### Spells and features
+
+- **Some spell parts are description only.** Where a spell names an effect the app cannot yet model (for example, ending a chosen list of creatures' conditions with Heroes' Feast, or Mass Heal's shared pool), the GM resolves it.
+- **Dice are spent on the first matching roll.** Guidance and Resistance cannot be saved for later or applied to initiative.
+- **Metamagic, Monk and Warlock gaps.** See [Spells](#spells) for the Sorcerer list. Open Hand pushes exactly 15 feet; the GM moves the token back if the Monk wants less.
+- **Spell-slot recovery is not limited by the app.** Arcane Recovery and Natural Recovery are not restricted to a short rest, so keep to the rule yourselves.
+- **Magic Weapon does not start Concentration** until its source data is corrected; track it by hand.
+
+## Sending feedback
+
+Tell us when something is wrong, confusing or missing, including things that look like the gaps above. The more exactly you can point at the moment, the faster it is fixed. Please include:
+
+1. **Campaign**: its name.
+2. **Scene**: the name of the Scene on screen.
+3. **Round and turn**: the Encounter round, and whose turn it was.
+4. **Mode**: Assisted or Manual, and whether Auto-roll was on.
+5. **What you expected** to happen.
+6. **What happened instead**, with a screenshot if you can, and the exact wording of any warning or error.
+7. **Whether you can repeat it**, and the steps if so.
+
+Check this list first: a known gap does not need a report, though a note that it hurt your table is useful.
