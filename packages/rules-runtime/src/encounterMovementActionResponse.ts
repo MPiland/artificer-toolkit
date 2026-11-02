@@ -489,7 +489,8 @@ export async function evaluateEncounterMovementActionResponse<
     }
     if (execution.kind === 'PENDING') {
       // Only a Character's own action opens a damage roll's window (D208).
-      if (execution.pause?.kind === 'ROLL_WINDOW' && isDamageRollWindow(execution.pause.payload))
+      const rollWindow = execution.pause?.kind === 'ROLL_WINDOW' ? execution.pause.payload : null
+      if (rollWindow && isDamageRollWindow(rollWindow))
         throw new Error('A movement reaction opens no damage roll window.')
       const pendingSnapshot = bindEncounterMovementMaintenancePending(
         retainEncounterMovementReactionActionEvidence({
@@ -498,8 +499,7 @@ export async function evaluateEncounterMovementActionResponse<
           selectedOptionId,
           // A reactor asked whether to change the attack roll decides its own d20 window (D207).
           rollerActorId:
-            (execution.pause?.kind === 'ROLL_WINDOW' &&
-              d20WindowReactorActorId(execution.pause.payload)) ||
+            (rollWindow && d20WindowReactorActorId(rollWindow)) ||
             (execution.roller === 'SOURCE'
               ? option.candidate.reactorActorId
               : option.candidate.movingActorId),
@@ -507,10 +507,7 @@ export async function evaluateEncounterMovementActionResponse<
           ...(execution.d20Belief ? { d20Belief: execution.d20Belief } : {}),
           ...(execution.heldD20 ? { heldD20: execution.heldD20 } : {}),
           ...(execution.twoPhase ? { twoPhase: execution.twoPhase } : {}),
-          ...(execution.pause?.kind === 'ROLL_WINDOW' &&
-          !isDamageRollWindow(execution.pause.payload)
-            ? { pause: { kind: 'ROLL_WINDOW' as const, payload: execution.pause.payload } }
-            : {}),
+          ...(rollWindow ? { pause: { kind: 'ROLL_WINDOW' as const, payload: rollWindow } } : {}),
           ...(execution.phaseReceipts ? { phaseReceipts: execution.phaseReceipts } : {})
         }),
         prepared.maintenance

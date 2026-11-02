@@ -103,7 +103,7 @@ export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]
  */
 export function requireFailedCounterReceipt(
   reaction: { spends: boolean; failed: { receipt: { characterStreamVersion: number | null } } },
-  mechanics: { characterStreamVersion: number } | null
+  mechanics: { characterStreamVersion: number | null } | null
 ) {
   const expected = reaction.spends ? (mechanics?.characterStreamVersion ?? null) : null
   if (reaction.failed.receipt.characterStreamVersion !== expected)
