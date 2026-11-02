@@ -19921,7 +19921,7 @@
             {
               "id": "SPELLS-31.T5h-2",
               "text": "Extended Spell: a cast modifier on the feature that doubles the initial duration at `baseRemaining` (`encounterActionEffectPlans.ts`), after the summon check, capped at 24 hours, offered only for timed spells of 1 minute or more. Trace zones first and report if more than a small addition.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19934,8 +19934,7 @@
                   "SPELLS-31.T5h-3"
                 ]
               },
-              "note": "D206.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "D206. Merged in m605 (a6263a9bc). Concentration spells of 1 minute or more are offered (SRD reading)."
             },
             {
               "id": "SPELLS-31.T5i",
