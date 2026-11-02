@@ -123,7 +123,7 @@ export function replaceCurrencyAtPlacement(input: {
 }
 
 export function requireAcquirableCurrencyIdentity(
-  command: Extract<CharacterSheetCommandInputDto, { type: 'ADJUST_CURRENCY' }>,
+  command: Omit<Extract<CharacterSheetCommandInputDto, { type: 'ADJUST_CURRENCY' }>, 'commandId'>,
   options: readonly CharacterSheetCurrencyOptionDto[]
 ): CharacterCurrencyIdentityDto {
   const requestedKey = createCharacterCurrencyIdentityKey(characterCurrencyIdentity(command))
