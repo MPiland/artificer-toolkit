@@ -13,7 +13,7 @@ import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/s
 import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
-import { encounterActiveEffectPlan } from '../encounterActionEffects.js'
+import { encounterActiveEffectPlans } from '../encounterActionEffects.js'
 import { prepareEncounterActionMechanics } from '../encounterActionMechanicsPreparation.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
@@ -269,11 +269,9 @@ async function execute(prepared: Awaited<ReturnType<typeof prepareRuleAction>>) 
   })
   return {
     kinds: execution.applications.map((application) => application.kind),
-    activeEffectPlan: encounterActiveEffectPlan(
-      prepared,
-      execution.published,
-      execution.execution.outputs
-    )
+    activeEffectPlan:
+      encounterActiveEffectPlans(prepared, execution.published, execution.execution.outputs)[0] ??
+      null
   }
 }
 
