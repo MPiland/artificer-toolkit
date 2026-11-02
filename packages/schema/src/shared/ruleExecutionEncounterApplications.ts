@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
+import { encounterSpellCastingTransitionDtoSchema } from '../projections/encounterSpellCasting.js'
 import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
@@ -469,7 +470,9 @@ export const encounterActionEconomyTransitionDtoSchema = lazySchema(() =>
       definitionChecksum: checksumSchema,
       maximum: positiveIntegerSchema,
       beforeUsed: nonNegativeIntegerSchema,
-      afterUsed: positiveIntegerSchema
+      afterUsed: positiveIntegerSchema,
+      /** The spell-casting record a spell cast with this allowance changed; absent for any other action. */
+      spellCasting: z.optional(encounterSpellCastingTransitionDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

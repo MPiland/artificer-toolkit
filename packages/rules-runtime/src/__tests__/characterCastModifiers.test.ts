@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   aimsAtOneCreature,
+  castModifierActivation,
   castModifierCostAtLevel,
   castModifierRange,
   castModifierTargetCap,
@@ -58,7 +59,7 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
   })
 
   it('projects none for an option the Character did not choose', () => {
-    expect(sorcerer(['Quickened Spell']).castModifiers).toEqual([])
+    expect(sorcerer(['Extended Spell']).castModifiers).toEqual([])
   })
 
   /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
@@ -170,6 +171,83 @@ describe('the spells that can take a further target (SPELLS-31.T5g3)', () => {
     })
     expect(character.castModifiers).toEqual([
       { modifierId: testUuid(0xc33), label: 'Echoing Cast', cost }
+    ])
+  })
+})
+
+describe('casting an action spell as a bonus action (SPELLS-31.T5h-3)', () => {
+  const action = { code: 'ACTION', amount: 1 }
+  const bonusAction = [{ parameter: 'ACTIVATION' as const, activation: 'BONUS_ACTION' as const }]
+
+  it('projects Quickened Spell as 2 sorcery points that cast with a bonus action', () => {
+    const [quickened] = sorcerer(['Quickened Spell']).castModifiers
+    expect(quickened?.cost).toEqual({
+      chargeId: sorceryPointsCharge.id,
+      cost: 2,
+      parameters: bonusAction
+    })
+  })
+
+  it('changes the activation of a one-action cast only', () => {
+    expect(castModifierActivation(bonusAction, action)).toEqual({
+      code: 'BONUS_ACTION',
+      amount: 1
+    })
+    expect(castModifierActivation(bonusAction, { code: 'BONUS_ACTION', amount: 1 })).toBeNull()
+    expect(castModifierActivation(bonusAction, { code: 'ACTION', amount: 2 })).toBeNull()
+    expect(castModifierActivation(bonusAction, { code: 'MINUTE', amount: 1 })).toBeNull()
+    expect(castModifierActivation(bonusAction, null)).toBeNull()
+    expect(castModifierActivation([], { code: 'MINUTE', amount: 1 })).toEqual({
+      code: 'MINUTE',
+      amount: 1
+    })
+  })
+
+  it('leaves the range of a cast alone', () => {
+    const range = { id: 'range', rangeKind: 'DISTANCE', amount: 60, unit: 'FEET' } as const
+    expect(castModifierRange(bonusAction, range)).toEqual(range)
+  })
+
+  /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
+  it('projects the same cost from a homebrew feature authored with the core option', () => {
+    const chargeId = testUuid(0xc41)
+    const cost = { chargeId, cost: 2, parameters: bonusAction }
+    const homebrew: FeatureAuthored = {
+      id: testUuid(0xc42),
+      label: 'Hasty Casting',
+      description: 'Pay two uses to cast an action spell as a bonus action.',
+      availableAtLevel: 1,
+      order: 1,
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: testUuid(0xc43),
+            range: testUuid(0xc44),
+            path: testUuid(0xc45),
+            result: testUuid(0xc46),
+            outcome: testUuid(0xc47)
+          },
+          label: 'Hasty Casting',
+          instructions: 'The spell is cast with a bonus action.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          castModifier: cost
+        })
+      ]
+    }
+    const character = evaluateSrdCharacter({
+      classes: [{ label: 'Fighter', level: 1 }],
+      extraFeatures: [homebrew],
+      features: [
+        {
+          acquisitionId: 'acquired:hasty-casting',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: srdByLabel(SRD.classes, 'Fighter').id, classLevel: 1 },
+          timing: { kind: 'IMMEDIATE' }
+        }
+      ]
+    })
+    expect(character.castModifiers).toEqual([
+      { modifierId: testUuid(0xc43), label: 'Hasty Casting', cost }
     ])
   })
 })

@@ -576,6 +576,8 @@ export const characterActionCandidatesSchema = lazySchema(() =>
         ]),
         equipment: z.nullable(actionEquipmentStateSchema),
         resourceUse: z.nullable(actionResourceUseSchema),
+        /** The cast spell's own level (0 for a cantrip); absent for any other action. */
+        spellLevel: z.optional(integerSchema.check(z.gte(0)).check(z.lte(9))),
         /** The costs the caster may pay on this spell cast, each affordable now; the cast command names one. */
         castModifiers: z.optional(
           z

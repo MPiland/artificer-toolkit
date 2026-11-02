@@ -2,7 +2,9 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterSpellCastingTransitionDto } from '@artificer-toolkit/schema/projections/encounterSpellCasting'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from './encounterActorState.js'
+import { applyEncounterSpellCastingTransition } from './encounterSpellCasting.js'
 
 export type EncounterActionEconomyConsumption = {
   definitionId: string
@@ -11,6 +13,8 @@ export type EncounterActionEconomyConsumption = {
   maximum: number
   beforeUsed: number
   afterUsed: number
+  /** The spell-casting record a spell cast with this allowance changes. */
+  spellCasting?: EncounterSpellCastingTransitionDto
 }
 
 export function consumeEncounterActionEconomy(input: {
@@ -26,7 +30,7 @@ export function consumeEncounterActionEconomy(input: {
     (!input.overridden && input.consumption.afterUsed > input.consumption.maximum)
   )
     throw new Error('The selected action allowance changed before settlement.')
-  return encounterRunActorStateSchema.parse({
+  const spent = encounterRunActorStateSchema.parse({
     ...input.actor,
     resources: withEncounterRuleUsageUsed(
       input.actor,
@@ -34,4 +38,7 @@ export function consumeEncounterActionEconomy(input: {
       input.consumption.afterUsed
     )
   })
+  return input.consumption.spellCasting
+    ? applyEncounterSpellCastingTransition(spent, input.consumption.spellCasting)
+    : spent
 }

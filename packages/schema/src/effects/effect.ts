@@ -52,7 +52,8 @@ export const castModifierParameterDtoSchema = lazySchema(() =>
       parameter: z.literal('RANGE'),
       multiplier: z.number().check(z.int()).check(z.gte(2)),
       touchDistance: authoredLengthSchema
-    })
+    }),
+    z.strictObject({ parameter: z.literal('ACTIVATION'), activation: z.literal('BONUS_ACTION') })
   ])
 )
 

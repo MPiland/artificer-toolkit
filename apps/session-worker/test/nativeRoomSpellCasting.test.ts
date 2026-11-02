@@ -758,6 +758,81 @@ describe('room burst cast by a Character who pays a cast modifier for its range 
   }, 120000)
 })
 
+describe('room burst cast by a Character who pays to cast it with a bonus action (SPELLS-31.T5h-3)', () => {
+  const POOL_ID = testUuid(0x7e0)
+  const HASTE_ID = testUuid(0x7e2)
+  const hasteFeature: ClassFeature = {
+    id: testUuid(0x7e1),
+    label: 'Hasty Casting',
+    description: 'Pay a use to cast an action spell as a bonus action.',
+    attributes: ['LIMITED_USE'],
+    charges: {
+      id: POOL_ID,
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 5
+    },
+    availableAtLevel: 1,
+    order: 1,
+    effects: [
+      gmRulingEffect({
+        ids: {
+          effect: HASTE_ID,
+          range: testUuid(0x7e3),
+          path: testUuid(0x7e4),
+          result: testUuid(0x7e5),
+          outcome: testUuid(0x7e6)
+        },
+        label: 'Hasty casting',
+        instructions: 'The spell is cast with a bonus action.',
+        reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+        castModifier: {
+          chargeId: POOL_ID,
+          cost: 2,
+          parameters: [{ parameter: 'ACTIVATION', activation: 'BONUS_ACTION' }]
+        }
+      })
+    ]
+  }
+
+  const hasteRoom = () =>
+    actionRoom({
+      actors: [
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+        ...CAUGHT_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
+      ],
+      characterSpellcasting: { spells: [emberBurst], prepared: [emberBurst.id] },
+      characterClassFeatures: [hasteFeature],
+      characterAction: (action) => action.label === 'Ember Burst (1st level)'
+    })
+
+  const cast = (room: Awaited<ReturnType<typeof hasteRoom>>, quickened: boolean) =>
+    room.startAreaAction(
+      { x: 50, y: 150 },
+      [],
+      'GM',
+      undefined,
+      quickened ? { id: HASTE_ID, actorIds: [] } : undefined
+    )
+
+  it('refuses a leveled action spell after the bonus action spell, and casts it again once that is undone', async () => {
+    const room = await hasteRoom()
+
+    const quickened = await cast(room, true)
+    expect(quickened.answer.type, JSON.stringify(quickened.answer)).toBe('COMMAND_COMMITTED')
+    await answerAllSaves(room)
+
+    const refused = await cast(room, false)
+    expect(refused.answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(refused.answer)).toContain('only a cantrip')
+
+    await undoLastAction(room)
+    const again = await cast(room, false)
+    expect(again.answer.type, JSON.stringify(again.answer)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+})
+
 describe('room Ice Storm upcast by a Character wizard (SPELLS-7.2)', () => {
   it('adds 1d8 bludgeoning for the 5th-level slot and keeps the cold at 4d6', async () => {
     // 3d8 bludgeoning then 4d6 cold, every face 1; a further die would roll the fallback 6.

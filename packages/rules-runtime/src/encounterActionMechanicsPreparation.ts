@@ -117,7 +117,7 @@ import type {
   NativeEncounterActionSource
 } from './encounterActionSources.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
-import { castModifierRange } from './character/characterCastModifiers.js'
+import { castModifierActivation, castModifierRange } from './character/characterCastModifiers.js'
 import { damageTypeIdsTaken } from './encounterDamageTypesSinceTurnStart.js'
 import { encounterActionTargetKind } from './encounterAreaAction.js'
 import {
@@ -371,8 +371,29 @@ export async function prepareEncounterActionSource<
     : targetPolicy.range
   if (!range)
     throw new EncounterValidationError('The selected cast modifier does not fit this spell.')
+  // The cast spends the activation the paid modifier gives it, so the economy below reads it.
+  const invocation =
+    source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicFacts.invocation : null
+  const activation =
+    castModifier?.parameters && invocation
+      ? castModifierActivation(castModifier.parameters, invocation.activation)
+      : undefined
+  if (activation === null)
+    throw new EncounterValidationError('The selected cast modifier does not fit this spell.')
   return {
-    source,
+    source:
+      activation && source.kind === 'CHARACTER_ACTION' && activation !== invocation?.activation
+        ? {
+            ...source,
+            candidate: {
+              ...source.candidate,
+              mechanicFacts: {
+                ...source.candidate.mechanicFacts,
+                invocation: { ...source.candidate.mechanicFacts.invocation, activation }
+              }
+            }
+          }
+        : source,
     adapter,
     targetPolicy: range === targetPolicy.range ? targetPolicy : { ...targetPolicy, range },
     creatureTargeting,

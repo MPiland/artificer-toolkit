@@ -165,9 +165,12 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
  * The allowance an action uses. An exhausted or suppressed allowance is still returned, marked
  * unavailable; only Assisted actions may override it (`prepareEncounterActionEconomy` refuses).
  */
-export async function evaluateEncounterActionEconomy(
-  input: ActionEconomyInput
-): Promise<{ consumption: EncounterActionEconomyConsumption; available: boolean } | null> {
+export async function evaluateEncounterActionEconomy(input: ActionEconomyInput): Promise<{
+  consumption: EncounterActionEconomyConsumption
+  available: boolean
+  /** Why the System's limit on spells cast in a turn bars this cast; an override clears it too. */
+  limit?: string
+} | null> {
   const allowance = await resolveActionAllowance(input)
   if (!allowance) return null
   const { capability, maximum, beforeUsed, excludedBySibling } = allowance

@@ -18,6 +18,7 @@ import { spellComponentsLabel } from '../spellCastCandidates.js'
 import {
   aimsAtOneCreature,
   castModifierCostAtLevel,
+  castModifierActivation,
   castModifierRange,
   castModifierTargetCap,
   sparedCreatureCap,
@@ -289,7 +290,9 @@ export function buildCharacterSpellCastActions(input: {
             const cost = { ...authored, cost: castModifierCostAtLevel(authored, cast.castLevel) }
             const fitsSpell =
               !cost.parameters ||
-              castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null
+              (castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null &&
+                castModifierActivation(cost.parameters, mechanicFacts.invocation.activation) !==
+                  null)
             const modifierPool =
               !fitsSpell ||
               (cost.targets?.outcome === 'EXTRA_TARGET' && !aimsAtOneCreature(group.invocation))
@@ -340,6 +343,7 @@ export function buildCharacterSpellCastActions(input: {
         activationSourceKind: 'ACTIVE_SOURCE',
         equipment: null,
         resourceUse,
+        spellLevel: cast.spellLevel,
         ...(offeredModifiers.length > 0 && { castModifiers: offeredModifiers }),
         ...(spareCap > 0 && { sparesCreatures: { max: spareCap } }),
         mechanicFacts

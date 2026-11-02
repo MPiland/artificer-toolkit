@@ -10,6 +10,7 @@ import {
   evaluateEncounterActionEconomy,
   type ActionEconomyInput
 } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { evaluateEncounterSpellCasting } from '@artificer-toolkit/rules-runtime/encounterSpellCasting'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { GrantedAttackCharge } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
@@ -216,12 +217,35 @@ export async function evaluateNativeLiveActionEconomy(input: {
     )
       rejectDomain('UNDECLARED_ACTION')
   }
+  // The System's limit on spells cast in a turn; a manual encounter tracks no economy, so none applies.
+  const spellCasting =
+    economy &&
+    prepared.source.kind === 'CHARACTER_ACTION' &&
+    prepared.source.candidate.mechanicsOwner.kind === 'SPELL'
+      ? evaluateEncounterSpellCasting({
+          actor: prepared.actor,
+          state: input.state,
+          activation: { code: activation.code, amount: activation.amount },
+          cantrip: prepared.source.candidate.spellLevel === 0
+        })
+      : null
   const openedAttackAction = offered
     ? evaluated.attackAction && { ...evaluated.attackAction, total: 1 }
     : evaluated.attackAction
   return {
     activationCode: activation.code,
-    economy,
+    economy:
+      economy && spellCasting
+        ? {
+            ...economy,
+            available: economy.available && !spellCasting.refusal,
+            ...(spellCasting.refusal ? { limit: spellCasting.refusal } : {}),
+            consumption: {
+              ...economy.consumption,
+              ...(spellCasting.transition ? { spellCasting: spellCasting.transition } : {})
+            }
+          }
+        : economy,
     suppressed,
     grantedUseKey: offered && 'useKey' in offered ? offered.useKey : grantedUseKey,
     delegation: null,

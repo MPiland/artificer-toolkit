@@ -73,6 +73,7 @@ export function castModifierRange(
 ): RangeDto | null {
   let changed: RangeDto | null = range
   for (const parameter of parameters) {
+    if (parameter.parameter !== 'RANGE') continue
     if (!changed) return null
     if (changed.rangeKind === 'TOUCH')
       changed = { id: changed.id, rangeKind: 'DISTANCE', ...parameter.touchDistance }
@@ -85,6 +86,24 @@ export function castModifierRange(
         })
       }
     else return null
+  }
+  return changed
+}
+
+/**
+ * The activation a cast has once a paid modifier's parameters change it, or null when a parameter
+ * does not fit the spell: `ACTIVATION` replaces a cast of exactly one Action, and fits no other.
+ * Offering and refusing share it as they do `castModifierRange`.
+ */
+export function castModifierActivation(
+  parameters: readonly CastModifierParameterAuthored[],
+  activation: { code: string; amount: number | null } | null
+): { code: string; amount: number | null } | null {
+  let changed = activation
+  for (const parameter of parameters) {
+    if (parameter.parameter !== 'ACTIVATION') continue
+    if (changed?.code !== 'ACTION' || changed.amount !== 1) return null
+    changed = { code: parameter.activation, amount: 1 }
   }
   return changed
 }

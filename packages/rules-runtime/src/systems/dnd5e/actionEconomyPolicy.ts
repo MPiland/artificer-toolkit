@@ -53,6 +53,30 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
         attackKind === 'UNARMED')
     )
   },
+  /**
+   * After a spell cast with a bonus action, only a cantrip cast with an action may follow; a bonus
+   * action spell may not follow a spell other than a cantrip cast with an action. Reaction spells and
+   * longer casting times are outside the limit.
+   */
+  spellCastingLimit({ activationKind, activationAmount, cantrip, held }) {
+    if (activationAmount !== 1) return { refusal: null, marks: null }
+    if (activationKind === 'BONUS_ACTION')
+      return held.actionSpell || held.bonusActionSpell
+        ? {
+            refusal:
+              'A bonus action spell can’t follow another spell cast this turn, except a cantrip cast with an action.',
+            marks: 'bonusActionSpell'
+          }
+        : { refusal: null, marks: 'bonusActionSpell' }
+    if (activationKind === 'ACTION')
+      return held.bonusActionSpell && !cantrip
+        ? {
+            refusal: 'After a bonus action spell, only a cantrip cast with an action may be cast.',
+            marks: 'actionSpell'
+          }
+        : { refusal: null, marks: cantrip ? null : 'actionSpell' }
+    return { refusal: null, marks: null }
+  },
   allowanceDefinitionIdByCountDomain: {
     ACTION_COUNT: DND5E_ACTION_ALLOWANCE_DEFINITION_ID,
     BONUS_ACTION_COUNT: DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,

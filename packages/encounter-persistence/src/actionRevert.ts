@@ -38,6 +38,7 @@ import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encoun
 import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { revertEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
+import { revertEncounterSpellCastingTransition } from '@artificer-toolkit/rules-runtime/encounterSpellCasting'
 import {
   revertEncounterActorItemDraw,
   revertEncounterActorItemRelease
@@ -743,15 +744,8 @@ export async function revertLastEncounterAction(
     ) => {
       const owner = actorsById.get(actorId)
       if (!owner) throw new Error('Stored Encounter action actors are unavailable.')
-      if (economy) {
-        if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
-          revertUnavailable(
-            "The actor's action economy changed after this action; adjust manually."
-          )
-        updateActor(actorId, {
-          resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
-        })
-      }
+      if (economy)
+        updateActor(actorId, { resources: returnSpentActionEconomy(owner, economy).resources })
       if (attackAction) {
         const restored = revertEncounterAttackActionTransition(
           actorsById.get(actorId)!,
@@ -1183,10 +1177,15 @@ function returnSpentActionEconomy(
   if (!economy) return actor
   if (encounterRuleUsageUsed(actor, economy.definitionId) !== economy.afterUsed)
     revertUnavailable("The actor's action economy changed after this action; adjust manually.")
-  return encounterRunActorStateSchema.parse({
+  const returned = encounterRunActorStateSchema.parse({
     ...actor,
     resources: withEncounterRuleUsageUsed(actor, economy.definitionId, economy.beforeUsed)
   })
+  if (!economy.spellCasting) return returned
+  const restored = revertEncounterSpellCastingTransition(returned, economy.spellCasting)
+  if (!restored)
+    revertUnavailable("The actor's spell casting changed after this action; adjust manually.")
+  return restored
 }
 
 /**

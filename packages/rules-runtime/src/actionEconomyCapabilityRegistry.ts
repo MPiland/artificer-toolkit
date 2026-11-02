@@ -40,6 +40,17 @@ export interface ActionEconomyCapabilityAdapter {
     replacesAttack: boolean
   }): boolean
   /**
+   * The limit a spell cast with this activation falls under, given the spells the actor has already
+   * cast this turn. `refusal` is the reason the cast is not allowed; `marks` is the record a cast
+   * that is allowed leaves for the actor's later spells. Absent when the System limits no spells.
+   */
+  spellCastingLimit?(input: {
+    activationKind: string
+    activationAmount: number
+    cantrip: boolean
+    held: { bonusActionSpell: boolean; actionSpell: boolean }
+  }): { refusal: string | null; marks: 'bonusActionSpell' | 'actionSpell' | null }
+  /**
    * The allowance each count value domain names: an active `SET_VALUE 0` grant on the domain
    * suppresses it (D99).
    */
