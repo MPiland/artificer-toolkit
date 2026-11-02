@@ -181,7 +181,9 @@ export async function verifyEncounterPlayerBrowser(
       },
       answerRollWindow: async (reaction) => {
         stage = reaction ? 'use ' + reaction + ' on the roll' : 'decline the roll window'
-        await openDecision()
+        // A reactor's roll window is a timed offer, so it opens the drawer itself (D207).
+        await expect(decisionDrawer).toBeVisible()
+        await expect(decisionDrawer.getByRole('timer')).toContainText(/\d+ seconds? to react/)
         await expect(decisionDrawer.getByText('Reaction available', { exact: true })).toBeVisible()
         await expect(
           decisionDrawer.getByText(new RegExp('^' + input.wolf.label + ' rolled \\d+, total \\d+$'))
