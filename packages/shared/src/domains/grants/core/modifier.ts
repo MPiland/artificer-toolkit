@@ -13,6 +13,7 @@ import type {
   ValueDomainCode,
   CoreMeta,
   DamageDefenseBypassCode,
+  GrantedActionOption,
   LengthUnitCode,
   MovementPassageOption,
   ValueDomainOptionPayloadByDomain,
@@ -371,6 +372,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   MOVEMENT_PASSAGE: [MODIFIER_KIND.ADD_OPTION],
 
+  GRANTED_ACTION_OPTION: [MODIFIER_KIND.ADD_OPTION],
+
   SENSE_RANGE: [MODIFIER_KIND.BONUS],
 
   /* ──────────────────────────────────────────────
@@ -468,6 +471,8 @@ export type ModifierValueDomainOptionPayloadByDomain = {
   MOVEMENT_MODE: { movementModeId: string }
 
   MOVEMENT_PASSAGE: MovementPassageOption
+
+  GRANTED_ACTION_OPTION: GrantedActionOption
 }
 
 export const MODIFIER_VALUE_SOURCE_CODE = {

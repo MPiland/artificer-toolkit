@@ -36,14 +36,54 @@ export function onHitSlotChoices(
     .sort((left, right) => left.level - right.level)
 }
 
-/** Every way the attacker could pay for each of the action's optional on-hit riders now. */
+/**
+ * The optional on-hit riders the attacker can still choose now: an option of a granted action only
+ * while that action's attack offer is open, and a paid rider only while its cost is not already
+ * settled on the action.
+ */
+export function offerableOnHitRiders<
+  TRider extends { cost: OptionalOnHitAuthored; grantedByEffectId?: string }
+>(
+  riders: readonly TRider[],
+  openOfferEffectIds: readonly string[],
+  settled: { spellConsumption?: unknown; resourceConsumption?: unknown } | null | undefined
+): TRider[] {
+  const paid = {
+    SPELL_SLOT: !!settled?.spellConsumption,
+    RESOURCE_POOL: !!settled?.resourceConsumption
+  }
+  return riders.filter(({ cost, grantedByEffectId }) => {
+    if (grantedByEffectId !== undefined && !openOfferEffectIds.includes(grantedByEffectId))
+      return false
+    if (cost.kind === 'FREE') return true
+    return !paid[cost.kind]
+  })
+}
+
+/**
+ * Every way the attacker could pay for each of the action's offerable optional on-hit riders now:
+ * `offerableOnHitRiders` against the open offers, the settled spend and the capacity bonus use.
+ */
 export function onHitCandidates(input: {
-  riders: readonly { riderId: string; label: string; cost: OptionalOnHitAuthored }[]
+  riders: readonly {
+    riderId: string
+    label: string
+    cost: OptionalOnHitAuthored
+    grantedByEffectId?: string
+  }[]
+  openOfferEffectIds?: readonly string[]
+  settled?: { spellConsumption?: unknown; resourceConsumption?: unknown } | null | undefined
+  capacityUse?: unknown
   spellSlots: SpellSlots
   resources: Resources
 }): EncounterOnHitCandidate[] {
   const choices = onHitSlotChoices(input.spellSlots)
-  return input.riders.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
+  const offerable = offerableOnHitRiders(input.riders, input.openOfferEffectIds ?? [], {
+    spellConsumption: input.settled?.spellConsumption,
+    resourceConsumption: input.settled?.resourceConsumption ?? input.capacityUse
+  })
+  return offerable.flatMap(({ riderId, label: riderLabel, cost }): EncounterOnHitCandidate[] => {
+    if (cost.kind === 'FREE') return [{ kind: 'FREE', riderId, riderLabel }]
     if (cost.kind === 'SPELL_SLOT')
       return choices.map(({ level }) => ({
         kind: 'SPELL_SLOT',

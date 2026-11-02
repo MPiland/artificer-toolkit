@@ -740,6 +740,8 @@ export interface CharacterRuleActionSystemAdapter {
     riderId: string
     label: string
     cost: OptionalOnHitAuthored
+    /** The granted action's authored Effect whose attacks alone offer the rider; absent, every attack does. */
+    grantedByEffectId?: string
   }[]
   /** The target preconditions the System's outcome registry declares for these effect kinds (D173 Q1). */
   outcomeTargetPreconditions(input: {

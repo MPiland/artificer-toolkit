@@ -49,12 +49,12 @@ import type {
 
 /** A contact's Concentration children, which a response may append to but never rewrite. */
 type ContactChildren = {
-  concentrationEnd?: MovementConcentrationEndDto
+  concentrationEnds?: MovementConcentrationEndDto[]
   concentrationChecks?: MovementConcentrationExecutionDto[]
 }
 
 function contactEvidence<T extends ContactChildren>(value: T) {
-  const { concentrationChecks: _checks, concentrationEnd: _end, ...contact } = value
+  const { concentrationChecks: _checks, concentrationEnds: _ends, ...contact } = value
   return contact
 }
 
@@ -126,11 +126,14 @@ function retainedContactChildren<T extends object & ContactChildren>(
     throw new Error('Movement response changed its retained contact history.')
   const ends: MovementConcentrationEndDto[] = []
   const checks = prior.flatMap((entry, index) => {
-    const previousEnd = entry.concentrationEnd
-    const nextEnd = next[index]!.concentrationEnd
-    if (previousEnd && (!nextEnd || checksumOnce(previousEnd) !== checksumOnce(nextEnd)))
+    const previousEnds = entry.concentrationEnds ?? []
+    const nextEnds = next[index]!.concentrationEnds ?? []
+    if (
+      nextEnds.length < previousEnds.length ||
+      !sameChecksums(previousEnds, nextEnds.slice(0, previousEnds.length), checksumOnce)
+    )
       throw new Error('Movement response changed its retained Concentration history.')
-    if (!previousEnd && nextEnd) ends.push(nextEnd)
+    ends.push(...nextEnds.slice(previousEnds.length))
     const previousChecks = entry.concentrationChecks ?? []
     const nextChecks = next[index]!.concentrationChecks ?? []
     if (
@@ -398,7 +401,7 @@ export async function persistMovementContacts(
       transitions.push({ kind: 'SPATIAL_PREFIX', result: committed })
       spatialIndex += expected.length
       checks.push(...expected.flatMap((entry) => entry.concentrationChecks ?? []))
-      ends.push(...expected.flatMap((entry) => entry.concentrationEnd ?? []))
+      ends.push(...expected.flatMap((entry) => entry.concentrationEnds ?? []))
     } else if (step.kind === 'REACTION') {
       const expected = reactions[reactionIndex]
       if (!expected || evidenceChecksum(expected) !== checksumCanonicalJson(step.execution))
@@ -422,7 +425,7 @@ export async function persistMovementContacts(
       transitions.push({ kind: 'REACTION', execution: expected })
       reactionIndex++
       checks.push(...(expected.concentrationChecks ?? []))
-      if (expected.concentrationEnd) ends.push(expected.concentrationEnd)
+      ends.push(...(expected.concentrationEnds ?? []))
     } else if (step.kind === 'PASSAGE') {
       if (
         !resolution ||
