@@ -197,10 +197,7 @@ export async function planAreaOutcomes(args: {
     }
     const applications = [...complete.applications, ...effects.relationshipConditionApplications]
     // A die the creature's d20 window spent on its save is used up with the action.
-    for (const spent of windowSpentEffects(
-      complete,
-      input.activeEffectsByActorId.get(actor.id) ?? []
-    ))
+    for (const spent of windowSpentEffects(complete, input.activeEffectsByActorId, [actor]))
       damageEndedEffects.set(spent.id, spent)
     const damageEnded = targetEndedEffects({
       holderActorId: actor.id,

@@ -38,7 +38,6 @@ import {
   heldWindowedSave,
   openActionSaveWindow,
   windowedSaveResponse,
-  windowHeldDice,
   type EncounterActionSaveWindow,
   type EncounterActionWindowAnswer
 } from './encounterActionSaveWindow.js'
@@ -441,7 +440,7 @@ export async function prepareNativeActionTest(
     response: SettledActionResponse,
     appRollId: string | null
   ) {
-    const heldDice = windowHeldDice(input.saveWindow, rolledPolicy)
+    const heldDice = input.saveWindow?.heldDice(rolledPolicy) ?? []
     mayAddDice = heldDice.length > 0
     const window =
       mayAddDice && !attackSight
@@ -1160,7 +1159,7 @@ export async function advanceNativeActionGraphs(input: {
         heldD20: heldStageD20(response.heldFace, sight)
       }
     }
-    const heldDice = policy && phase !== 'SINGLE' ? windowHeldDice(input.saveWindow, policy) : []
+    const heldDice = policy && phase !== 'SINGLE' ? (input.saveWindow?.heldDice(policy) ?? []) : []
     // A roller's d20 that a held die could still change is shown to its roller before the save resolves.
     const window =
       heldDice.length > 0 && resolution.kind !== 'D20_WINDOW' && !sight && policy

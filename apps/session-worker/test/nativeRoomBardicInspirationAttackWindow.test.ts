@@ -118,8 +118,12 @@ describe('Bardic Inspiration spent in the room d20 window of an attack roll', ()
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
     expect(await holdsInspiration(room)).toBe(false)
-    const damage = await room.pendingDecision()
-    expect(damage.pending.kind).toBe('ACTION_OUTCOME_EVIDENCE')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const batch = await targetBatch(room)
+    if (batch?.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
+      throw new Error('The Bite left no batch.')
+    const { before, after } = batch.targetTransition
+    expect(before.currentHitPoints - after.currentHitPoints).toBe(1)
   })
 
   it('keeps the inspiration when the attacker declines, so the attack misses', async () => {
