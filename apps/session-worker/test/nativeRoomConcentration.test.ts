@@ -764,7 +764,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     return { decision, pending: decision.pending }
   }
 
@@ -783,7 +783,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     expect(paused.maintainedStates).toHaveLength(1)
 
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -813,7 +813,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     const room = await heldDieRoom()
     const { decision, pending } = await openWindow(room)
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
@@ -829,7 +829,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     const { decision, pending } = await openWindow(room)
     expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [1, 1]
@@ -866,11 +866,11 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
     })
     expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
     const decision = await room.pendingDecision()
-    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
     expect(decision.pending).toMatchObject({ d20: { selectedNatural: 8, total: 9 } })
     expect(concentrationChecks(await readRoomHistory(room.room.base.stub))).toEqual([])
     const settled = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: decision.pending.requestId
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
@@ -908,7 +908,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       })
       expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
       const next = await readPendingActionDecision(room.room.base.stub)
-      return next?.pending.kind === 'D20_WINDOW' ? await room.pendingDecision() : null
+      return next?.pending.kind === 'ROLL_WINDOW' ? await room.pendingDecision() : null
     }
 
     const holdsDie = async (room: Awaited<ReturnType<typeof chainRoom>>) =>
@@ -921,9 +921,9 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       expect(await holdsDie(room)).toBe(true)
       await room.startAction(HOLDER_ID)
       const window = await nextSave(room)
-      if (window?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the first window.')
+      if (window?.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the first window.')
       const used = await room.resolve(window, {
-        kind: 'D20_WINDOW_USE',
+        kind: 'ROLL_WINDOW_USE',
         requestId: window.pending.requestId,
         optionId: window.pending.options[0]!.optionId,
         faces: [4]
@@ -932,7 +932,7 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       expect(await holdsDie(room)).toBe(false)
       // The second save no longer holds a die, so it is rolled at once: nothing prompts a d20.
       const next = await readPendingActionDecision(room.room.base.stub)
-      expect(['D20_EVIDENCE', 'D20_WINDOW']).not.toContain(next?.pending.kind)
+      expect(['D20_EVIDENCE', 'ROLL_WINDOW']).not.toContain(next?.pending.kind)
     })
 
     it('offers a declined die again at the second save', async () => {
@@ -940,20 +940,20 @@ describe('a die the holder keeps for after its Concentration save d20 (SPELLS-31
       expect(await holdsDie(room)).toBe(true)
       await room.startAction(HOLDER_ID)
       const first = await nextSave(room)
-      if (first?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the first window.')
+      if (first?.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the first window.')
       const declined = await room.resolve(first, {
-        kind: 'D20_WINDOW_DECLINE',
+        kind: 'ROLL_WINDOW_DECLINE',
         requestId: first.pending.requestId
       })
       expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
       expect(await holdsDie(room)).toBe(true)
 
       const second = await nextSave(room)
-      if (second?.pending.kind !== 'D20_WINDOW') throw new Error('Expected the second window.')
+      if (second?.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the second window.')
       expect(second.pending.options).toMatchObject([{ label: 'Resistance', count: 1, faces: 4 }])
       expect(second.pending.requestId).not.toBe(first.pending.requestId)
       const used = await room.resolve(second, {
-        kind: 'D20_WINDOW_USE',
+        kind: 'ROLL_WINDOW_USE',
         requestId: second.pending.requestId,
         optionId: second.pending.options[0]!.optionId,
         faces: [4]

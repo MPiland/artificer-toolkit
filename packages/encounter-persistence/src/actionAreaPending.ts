@@ -538,7 +538,7 @@ export function projectNativeAreaActionPending(
   })
   const windows = answerable.flatMap(({ awaiting, actorId, targetActorId, summary }) => {
     if (awaiting !== 'WINDOW') return []
-    if (summary.kind !== 'D20_WINDOW') throw new Error('Stored area save window is invalid.')
+    if (summary.kind !== 'ROLL_WINDOW') throw new Error('Stored area save window is invalid.')
     const { requestId, d20, options } = summary
     return [{ actorId, targetActorId, requestId, d20, options }]
   })
@@ -564,8 +564,8 @@ export function projectNativeAreaActionPending(
         allowedResponses: [
           'ENTER_DICE',
           'SYSTEM_ROLL',
-          'D20_WINDOW_DECLINE',
-          'D20_WINDOW_USE',
+          'ROLL_WINDOW_DECLINE',
+          'ROLL_WINDOW_USE',
           'AREA_LEGENDARY_RESISTANCE'
         ]
       }

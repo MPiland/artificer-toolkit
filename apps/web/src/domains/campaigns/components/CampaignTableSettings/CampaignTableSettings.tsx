@@ -179,6 +179,19 @@ function CampaignTableSettingsForm({
           label='Automatic cover'
           onChange={(event) => set('automaticCover', event.currentTarget.checked)}
         />
+        <NumberInput
+          allowDecimal={false}
+          clampBehavior='strict'
+          description='How long a reaction offer counts down before it declines itself.'
+          disabled={!editable}
+          label='Reaction time (seconds)'
+          min={3}
+          max={15}
+          value={draft.reactionSeconds}
+          onChange={(value) => {
+            if (typeof value === 'number') set('reactionSeconds', value)
+          }}
+        />
         <Select
           clearable
           data={options.initiativePolicies.map((policy) => ({

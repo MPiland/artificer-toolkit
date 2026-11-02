@@ -5,7 +5,6 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
-  CLOSED_RULE_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
@@ -14,15 +13,11 @@ import {
   MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
-  RANGE_KIND,
   SCALING,
   SCALING_AMOUNT_KIND,
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
-  TRIGGER,
-  type ClassAuthored,
-  type ClosedRuleKind,
-  type EffectAuthored
+  type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import {
@@ -34,12 +29,7 @@ import {
   SRD_ABILITY_DEFINITION_IDS
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import {
-  abilityScoreImprovementOptions,
-  closedRuleEffect,
-  gmRulingEffect,
-  selfActionEffect
-} from './mechanics.js'
+import { abilityScoreImprovementOptions, gmRulingEffect, selfActionEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -66,19 +56,6 @@ const S = 10 // Sorcerer class index
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
-
-function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
-  return closedRuleEffect({
-    id: classRowId(S, 0x60, entry),
-    ruleKind,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(S, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    }
-  })
-}
 
 // Sorcerer spell slot charge — full caster, resets on long rest
 const sorcererSlotCharge = {
@@ -810,7 +787,30 @@ export const sorcerer: ClassAuthored = {
           label: 'Empowered Spell',
           description:
             'When you roll damage for a spell, you can spend 1 sorcery point to reroll a number of the damage dice up to your Charisma modifier (minimum of one). You must use the new rolls. You can use Empowered Spell even if you have already used a different Metamagic option during the casting of the spell.',
-          effects: [selfClassRuleEffect(22, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_EMPOWERED)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 22),
+                range: classRowId(S, 0x69, 22),
+                path: classRowId(S, 0x80, 22),
+                result: classRowId(S, 0x81, 22),
+                outcome: classRowId(S, 0x82, 22)
+              },
+              label: 'Empowered Spell',
+              instructions:
+                'The chosen damage dice are rolled again, and the new rolls stand. The sorcery point is spent with the reroll.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 1,
+                damageRerolls: {
+                  base: 0,
+                  abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
+                  minimum: 1
+                }
+              }
+            })
+          ],
           order: 2
         },
         {

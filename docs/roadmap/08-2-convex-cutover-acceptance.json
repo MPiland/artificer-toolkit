@@ -3546,7 +3546,7 @@
               "status": "READY_FOR_ACCEPTANCE",
               "proof": [
                 "docs/validation/phase-08-2/v15-workload-2026-10-05.md (run a84: command p95 187 ms; preview p95 8.6 ms; durable convergence p95 12.2 ms and p99 14.2 ms)",
-                "scripts/v15Budgets.mjs a84: 4.44 MB Convex I/O per modelled session against 4.51 MB (assumptions: 4 fights, 2,000 combat commands, 120 out-of-combat minutes)",
+                "scripts/v15Budgets.mjs a84: 4.44 MB Convex I/O per modelled session, over the 4.3 MB decimal budget set by D209 on 2026-11-02 (assumptions: 4 fights, 2,000 combat commands, 120 out-of-combat minutes); PERF-3.T1 reads each conversation and Scene once per save, an estimated 4.03 MB pending a V15 rerun",
                 "reworded, user-approved 2026-09-27 (ADR 0035); the partial runs below measured the per-command Convex path and are historical",
                 "partial: docs/validation/phase-08-2/v15-browserless-2026-09-26.md (after D52: gameplay command p95 1,089-1,090 ms, budget 1,000, missed; warm durable convergence p95 251-252 ms, budget 250, missed; p99 met; ephemeral preview not measured)",
                 "partial: A35-S10b removes the forced flushes on binding, admission and round change and the Convex capture on warm re-admission, cutting synchronous Convex writes per session; not yet measured"

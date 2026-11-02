@@ -92,6 +92,7 @@ type EncounterToolCommand = Extract<
       | 'COMPLETE'
       | 'REPLACE_OPTIONAL_COMBAT_RULES'
       | 'SET_HEALTH_DISPLAY_DEFAULT'
+      | 'SET_AFK'
   }
 >
 
@@ -154,7 +155,8 @@ export async function recordEncounterCommand(
     command.type !== 'ADJUST_FEATURE_RESOURCE' &&
     command.type !== 'COMPLETE' &&
     command.type !== 'REPLACE_OPTIONAL_COMBAT_RULES' &&
-    command.type !== 'SET_HEALTH_DISPLAY_DEFAULT'
+    command.type !== 'SET_HEALTH_DISPLAY_DEFAULT' &&
+    command.type !== 'SET_AFK'
   )
     throw new Error('Encounter command is not available.')
   return recordEncounterToolCommand(ctx, command, userId, nextInt)
@@ -198,44 +200,51 @@ async function recordEncounterToolCommand(
               encounterId: command.encounterId.toLowerCase(),
               commandId: command.commandId.toLowerCase()
             }
-          : command.type === 'REPLACE_OPTIONAL_COMBAT_RULES'
+          : command.type === 'SET_AFK'
             ? {
                 ...command,
                 encounterId: command.encounterId.toLowerCase(),
                 commandId: command.commandId.toLowerCase(),
-                definitionIds: command.definitionIds.map((definitionId) =>
-                  definitionId.toLowerCase()
-                )
+                userId: command.userId.toLowerCase()
               }
-            : command.type === 'SET_CURRENT_ACTOR'
+            : command.type === 'REPLACE_OPTIONAL_COMBAT_RULES'
               ? {
                   ...command,
                   encounterId: command.encounterId.toLowerCase(),
                   commandId: command.commandId.toLowerCase(),
-                  actorId: command.actorId?.toLowerCase() ?? null
+                  definitionIds: command.definitionIds.map((definitionId) =>
+                    definitionId.toLowerCase()
+                  )
                 }
-              : {
-                  ...command,
-                  encounterId: command.encounterId.toLowerCase(),
-                  commandId: command.commandId.toLowerCase(),
-                  actorId: command.actorId.toLowerCase(),
-                  ...(command.type === 'REPLACE_CREATURE_EQUIPMENT'
-                    ? {
-                        loadoutEntryId: command.loadoutEntryId.toLowerCase(),
-                        equipmentId: command.equipmentId.toLowerCase()
-                      }
-                    : {}),
-                  ...(!('sideId' in command) || command.sideId === undefined
-                    ? {}
-                    : { sideId: command.sideId.toLowerCase() }),
-                  ...(command.type === 'UPDATE_ACTOR' && command.controllerUserIds
-                    ? {
-                        controllerUserIds: command.controllerUserIds
-                          .map((userId) => userId.toLowerCase())
-                          .sort()
-                      }
-                    : {})
-                }
+              : command.type === 'SET_CURRENT_ACTOR'
+                ? {
+                    ...command,
+                    encounterId: command.encounterId.toLowerCase(),
+                    commandId: command.commandId.toLowerCase(),
+                    actorId: command.actorId?.toLowerCase() ?? null
+                  }
+                : {
+                    ...command,
+                    encounterId: command.encounterId.toLowerCase(),
+                    commandId: command.commandId.toLowerCase(),
+                    actorId: command.actorId.toLowerCase(),
+                    ...(command.type === 'REPLACE_CREATURE_EQUIPMENT'
+                      ? {
+                          loadoutEntryId: command.loadoutEntryId.toLowerCase(),
+                          equipmentId: command.equipmentId.toLowerCase()
+                        }
+                      : {}),
+                    ...(!('sideId' in command) || command.sideId === undefined
+                      ? {}
+                      : { sideId: command.sideId.toLowerCase() }),
+                    ...(command.type === 'UPDATE_ACTOR' && command.controllerUserIds
+                      ? {
+                          controllerUserIds: command.controllerUserIds
+                            .map((userId) => userId.toLowerCase())
+                            .sort()
+                        }
+                      : {})
+                  }
   const row = await ctx.db
     .query('encounterRuns')
     .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
@@ -250,7 +259,19 @@ async function recordEncounterToolCommand(
     state.status === 'PREPARED' &&
     (input.type === 'ROLL_ACTOR_INITIATIVE' ||
       (input.type === 'SET_INITIATIVE' && input.manualOrder === undefined))
-  if (membership.role !== 'OWNER' && !playerInitiative) rejectDomain('GM_ONLY')
+  // A player marks only themselves AFK; the GM marks any member (D207).
+  const ownAfk = input.type === 'SET_AFK' && input.userId === userId
+  if (membership.role !== 'OWNER' && !playerInitiative && !ownAfk) rejectDomain('GM_ONLY')
+  if (
+    input.type === 'SET_AFK' &&
+    !(await ctx.db
+      .query('campaignMemberships')
+      .withIndex('by_campaignId_userId', (q) =>
+        q.eq('campaignId', campaign.id).eq('userId', input.userId)
+      )
+      .unique())
+  )
+    throw new Error('Campaign member was not found.')
   if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
   if (row.gameSystemId !== campaign.gameSystemId)
     throw new Error('Encounter does not match the Campaign Game System.')
@@ -290,6 +311,7 @@ async function recordEncounterToolCommand(
   let optionalCombatSnapshot = state.optionalCombatSnapshot
   let optionalCombatSnapshotChecksum = state.optionalCombatSnapshotChecksum
   let healthDisplayDefault = state.healthDisplayDefault
+  let afkUserIds = state.afkUserIds
   const version = row.version + 1
   if (input.type === 'UPSERT_REMINDER') {
     if (input.reminder.actorId !== null && !actorIds.has(input.reminder.actorId))
@@ -637,6 +659,10 @@ async function recordEncounterToolCommand(
     optionalCombatSnapshotChecksum = snapshot.optionalCombatSnapshotChecksum
   } else if (input.type === 'SET_HEALTH_DISPLAY_DEFAULT') {
     healthDisplayDefault = input.level
+  } else if (input.type === 'SET_AFK') {
+    afkUserIds = input.afk
+      ? [...new Set([...afkUserIds, input.userId])].sort()
+      : afkUserIds.filter((afkUserId) => afkUserId !== input.userId)
   } else if (input.type === 'ROLL_ENEMY_ACTION') {
     if (state.status !== 'ACTIVE')
       rejectDomain('ENCOUNTER_NOT_ACTIVE', 'Enemy actions require an active Encounter.')
@@ -789,6 +815,7 @@ async function recordEncounterToolCommand(
     optionalCombatSnapshot,
     optionalCombatSnapshotChecksum,
     healthDisplayDefault,
+    afkUserIds,
     version,
     updatedAt
   })

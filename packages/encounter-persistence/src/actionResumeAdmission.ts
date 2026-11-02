@@ -190,7 +190,7 @@ export async function readNativeEncounterActionResponseAdmission(
   else if (
     areaSave &&
     (encounterAreaSaveAwaiting(areaSave) === 'WINDOW') !==
-      (answer.kind === 'D20_WINDOW_USE' || answer.kind === 'D20_WINDOW_DECLINE')
+      (answer.kind === 'ROLL_WINDOW_USE' || answer.kind === 'ROLL_WINDOW_DECLINE')
   )
     rejectDomain('VERSION_STALE', 'The area save is not at this step.')
   else {
@@ -231,8 +231,8 @@ export async function readNativeEncounterActionResponseAdmission(
     resolution.kind !== 'DECLINE' &&
     resolution.kind !== 'OPTION' &&
     resolution.kind !== 'FORCED_MOVEMENT' &&
-    resolution.kind !== 'D20_WINDOW_USE' &&
-    resolution.kind !== 'D20_WINDOW_DECLINE'
+    resolution.kind !== 'ROLL_WINDOW_USE' &&
+    resolution.kind !== 'ROLL_WINDOW_DECLINE'
   )
     throw new Error('The action requires dice, integer, a decision, a destination or a d20 window.')
   const admission = await readNativeEncounterActionAdmission(ctx, parsed, userId, {

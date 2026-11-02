@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { sourceImmunityEffect } from '../encounterActionEffectPlans.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { heldIncomingGate, incomingGateSaveDc } from '../encounterIncomingAttackGate.js'
-import { incomingGateImmunityPlan } from '../systems/dnd5e/effectActionCompiler.js'
+import { incomingGateImmunityPlan } from '../systems/dnd5e/effectActionLifetime.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { plannedModifierGrant } from '../testing/modifierGrantFixture.js'
 

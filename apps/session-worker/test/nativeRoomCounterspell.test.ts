@@ -12,6 +12,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { expireReactionOffer } from './reactionTimeoutClock.js'
 import { mend, unlimitedCureWounds } from './mendSpell.js'
 import {
   parseReceiptExecution,
@@ -372,6 +373,18 @@ describe('room Counterspell against a Character’s spell cast (REACTION-4.3)', 
 
     const declined = await room.resolve(decision, { kind: 'DECLINE' })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await hitPointsOf(room)).toBe(3)
+    expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))
+    expect(await slotsOf(room, REACTOR_ID)).toEqual([])
+  })
+
+  it('lets the cast resolve once the offer’s time runs out, as a decline (D207)', async () => {
+    const room = await counterspellRoom()
+    await cast(room)
+    await offered(room)
+
+    await expireReactionOffer(room.room.base.stub)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await hitPointsOf(room)).toBe(3)
     expect(await slotsOf(room, CASTER_ID)).toEqual(SLOT_SPENT(1))

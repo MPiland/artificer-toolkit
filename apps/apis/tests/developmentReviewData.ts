@@ -12,7 +12,6 @@ import type {
   EncounterActionChoicesResponseDto,
   GetEncounterActionChoicesInputDto
 } from '@artificer-toolkit/schema/api/encounterActionChoices'
-import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { api } from '../convex/_generated/api.js'
@@ -23,6 +22,7 @@ import { createDevelopmentSpellCharacter } from './developmentSpellCharacterFixt
 import {
   REVIEW_PLAYERS,
   REVIEW_READY_TITLE,
+  REVIEW_SPARES,
   REVIEW_SCENARIOS,
   type ReviewHero,
   type ReviewScenario,
@@ -86,8 +86,13 @@ export type ReviewContext = {
   gm: ReviewAccount
   /** One account per entry of REVIEW_PLAYERS, in order. */
   players: readonly ReviewAccount[]
+  admin: ReviewAccount
+  /** One account per entry of REVIEW_SPARES, in order; they join no Campaign. */
+  spares: readonly ReviewAccount[]
   /** Operator step: lifts the GM account to the GM tier, whose hosted-Campaign limit fits every review Campaign. */
   grantGmTier: (userId: string) => Promise<void>
+  /** Operator step: promotes the admin account to superadmin (deployment-admin `authAdmin:setRole`). */
+  grantSuperadmin: (userId: string) => Promise<void>
   /** Closes a finished Campaign's room where a harness would otherwise keep every room open; a live backend closes idle rooms itself. */
   releaseRoom?: (campaignId: string) => Promise<void>
   /** Publishes what the room holds to Convex: a running table saves only at save points (D90). */
@@ -115,10 +120,12 @@ export async function seedReviewData(
   scenarios: readonly ReviewScenario[] = REVIEW_SCENARIOS
 ): Promise<ReviewSeedResult> {
   assert.equal(context.players.length, REVIEW_PLAYERS.length, 'One account per review player.')
+  assert.equal(context.spares.length, REVIEW_SPARES.length, 'One account per spare player.')
   const result: ReviewSeedResult = { created: [], skipped: [] }
   await context.grantGmTier(context.gm.userId)
+  await context.grantSuperadmin(context.admin.userId)
   // The room caches each roller's preference, so every account stays off: dice are typed.
-  for (const account of [context.gm, ...context.players])
+  for (const account of [context.gm, ...context.players, context.admin, ...context.spares])
     await account.client.mutation(api.account.setAutoRollDice, { autoRollDice: false })
   for (const scenario of scenarios) {
     const existing = await findCampaign(context.gm.client, scenario.campaign)
@@ -256,8 +263,7 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
   await gm.client.mutation(api.campaigns.playSettings.save, {
     ...fields,
     expectedVersion: version,
-    automationMode: 'ASSISTED',
-    initiativePolicyDefinitionId: SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID,
+    ...scenario.play,
     initiativeTieDefinitionId: null
   })
 
@@ -301,6 +307,8 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       position: { x: number; y: number }
       tokenId: string
       controlledBy: string[]
+      squares: number
+      hidden: boolean
     }
   >()
   for (const { hero, owner, characterId } of heroRecords) {
@@ -313,7 +321,9 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       label: actor.label,
       position: hero.position,
       tokenId: crypto.randomUUID(),
-      controlledBy: [owner.userId]
+      controlledBy: [owner.userId],
+      squares: 1,
+      hidden: false
     })
   }
   const seen = new Map<string, number>()
@@ -329,7 +339,9 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
       label: actor.label,
       position: creature.position,
       tokenId: crypto.randomUUID(),
-      controlledBy: []
+      controlledBy: [],
+      squares: creature.squares ?? 1,
+      hidden: creature.hidden ?? false
     })
   }
 
@@ -384,24 +396,27 @@ async function buildScenario(context: ReviewContext, scenario: ReviewScenario) {
     id: actor.tokenId,
     assetId: null,
     controlledByUserIds: actor.controlledBy,
-    height: 50,
-    hidden: false as const,
+    height: actor.squares * 50,
+    hidden: actor.hidden,
     label: actor.label,
     locked: false as const,
     position: actor.position,
     rotationDegrees: 0,
     senses: [],
     vision: null,
-    width: 50
+    width: actor.squares * 50
   }))
   assert.ok(firstToken && secondToken, 'A review Scene needs at least two tokens.')
+  const { board } = scenario
   const scene = await createEncounterLifecycleScene({
     owner: gm.client,
     campaignId,
     name: `${scenario.campaign} map`,
     options: {
-      // A player sees only explored tokens (D87); review boards show everything.
-      fogMode: 'OFF',
+      fogMode: board.fogMode,
+      ambientIllumination: board.ambientIllumination,
+      barriers: board.barriers.map((barrier) => ({ ...barrier, id: crypto.randomUUID() })),
+      lights: board.lights.map((light) => ({ ...light, id: crypto.randomUUID() })),
       map: { width: 800, height: 600 },
       grid: {
         kind: 'SQUARE',

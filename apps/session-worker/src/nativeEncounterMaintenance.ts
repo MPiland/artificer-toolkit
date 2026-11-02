@@ -6,6 +6,8 @@ import {
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { prepareEncounterActionMaintenance } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import type { EncounterOnHitCost } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
+import type { DamageRerollCostDto } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
+import { payableDamageRerolls } from '@artificer-toolkit/rules-runtime/character/characterCastModifiers'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import {
   MaintainedReplacementRequiredError,
@@ -338,49 +340,94 @@ export async function prepareNativeLiveActionMaintenance(input: {
   })
 }
 
+/** The damage rerolls a Character action's caster can still pay for once its damage is rolled (D208). */
+export function payableCharacterDamageRerolls(input: {
+  prepared: Pick<
+    Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
+    'source' | 'characterActionState'
+  >
+  maintenance: { capacityUse: { poolId: string } | null } | null
+}): DamageRerollCostDto[] {
+  const { source, characterActionState } = input.prepared
+  return source.kind === 'CHARACTER_ACTION'
+    ? payableDamageRerolls({
+        costs: source.candidate.damageRerolls ?? [],
+        spent: characterActionState?.resourceConsumption ?? null,
+        capacityUse: input.maintenance?.capacityUse
+      })
+    : []
+}
+
 /**
  * The resource or slot spend that settles with a Character action beyond its own cost: what the
  * attacker's chosen on-hit rider is paid with, else the use a Concentration capacity bonus spent to
- * make room for the cast's Concentration. Null when neither applies.
+ * make room for the cast's Concentration. A damage reroll the caster paid for (D208) joins the cast's
+ * own spend from that pool, beside an on-hit slot; one no longer payable is refused. Returns the
+ * prepared action with that spend settled into its Character action state, unchanged when none applies.
  */
-export function settledCharacterActionSpend(input: {
-  prepared: Pick<
+export function settledCharacterActionSpend<
+  Prepared extends Pick<
     Awaited<ReturnType<typeof prepareEncounterActionMechanics>>,
-    'source' | 'sourceFacts'
+    'source' | 'sourceFacts' | 'characterActionState'
   >
+>(input: {
+  prepared: Prepared
   chosenOnHit: EncounterOnHitCost | null
+  damageReroll: DamageRerollCostDto | null
   maintenance: { capacityUse: { poolId: string } | null } | null
   automationMode: AutomationModeDto
-}) {
-  const { prepared, chosenOnHit } = input
-  const { source } = prepared
-  if (source.kind !== 'CHARACTER_ACTION') return null
-  if (chosenOnHit?.kind === 'SPELL_SLOT')
-    return {
-      spellConsumption: onHitSpellConsumption({
-        spellSlots: source.effectivePolicyOutput.spellSlots,
-        slotLevel: chosenOnHit.slotLevel,
-        characterId: source.characterId,
-        expectedStreamVersion: source.characterStreamVersion
-      })
-    }
-  const pool =
-    (chosenOnHit?.kind === 'FREE' ? null : chosenOnHit) ??
-    (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 })
-  if (!pool) return null
+}): Prepared {
+  const { prepared, chosenOnHit, damageReroll } = input
+  const { source, characterActionState } = prepared
+  if (source.kind !== 'CHARACTER_ACTION' || !characterActionState) return prepared
+  if (
+    damageReroll &&
+    !payableCharacterDamageRerolls(input).some(
+      ({ modifierId, poolId, cost }) =>
+        modifierId === damageReroll.modifierId &&
+        poolId === damageReroll.poolId &&
+        cost === damageReroll.cost
+    )
+  )
+    throw new StaleCharacterActionError('The damage reroll can no longer be paid for.')
+  const spellConsumption =
+    chosenOnHit?.kind === 'SPELL_SLOT'
+      ? onHitSpellConsumption({
+          spellSlots: source.effectivePolicyOutput.spellSlots,
+          slotLevel: chosenOnHit.slotLevel,
+          characterId: source.characterId,
+          expectedStreamVersion: source.characterStreamVersion
+        })
+      : null
+  const castSpend = characterActionState.resourceConsumption ?? null
+  const pool = damageReroll
+    ? { poolId: damageReroll.poolId, cost: damageReroll.cost + (castSpend?.cost ?? 0) }
+    : spellConsumption
+      ? null
+      : ((chosenOnHit?.kind === 'RESOURCE_POOL' ? chosenOnHit : null) ??
+        (input.maintenance?.capacityUse && { ...input.maintenance.capacityUse, cost: 1 }))
+  if (!pool)
+    return spellConsumption
+      ? { ...prepared, characterActionState: { ...characterActionState, spellConsumption } }
+      : prepared
   const { characterFacts } = prepared.sourceFacts
   if (!characterFacts)
     throw new StaleCharacterActionError('The selected Character action source is stale.')
   return {
-    resourceConsumption: poolResourceConsumption({
-      resources: source.effectivePolicyOutput.resources,
-      resourceUsage: characterFacts.sheetState.resourceUsage,
-      poolId: pool.poolId,
-      cost: pool.cost,
-      characterId: source.characterId,
-      expectedStreamVersion: source.characterStreamVersion,
-      automationMode: input.automationMode
-    })
+    ...prepared,
+    characterActionState: {
+      ...characterActionState,
+      ...(spellConsumption ? { spellConsumption } : {}),
+      resourceConsumption: poolResourceConsumption({
+        resources: source.effectivePolicyOutput.resources,
+        resourceUsage: characterFacts.sheetState.resourceUsage,
+        poolId: pool.poolId,
+        cost: pool.cost,
+        characterId: source.characterId,
+        expectedStreamVersion: source.characterStreamVersion,
+        automationMode: input.automationMode
+      })
+    }
   }
 }
 

@@ -64,11 +64,11 @@ async function openWindow(room: Room) {
   if (
     window?.context.kind !== 'ENCOUNTER_MOVEMENT_REACTION' ||
     window.context.phase.kind !== 'ACTION_EVIDENCE' ||
-    window.context.phase.pause?.kind !== 'D20_WINDOW'
+    window.context.phase.pause?.kind !== 'ROLL_WINDOW'
   )
     throw new Error('Expected the mover to hold a d20 window on the reaction save.')
   const shown = await room.pendingFor(false)
-  if (shown?.kind !== 'D20_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
+  if (shown?.kind !== 'ROLL_WINDOW') throw new Error(`Expected a d20 window, got ${shown?.kind}.`)
   return { phase: window.context.phase, pause: window.context.phase.pause, shown }
 }
 
@@ -94,7 +94,7 @@ describe('a movement-reaction save with a held after-the-roll die (SPELLS-31.T4c
     expect(shown.rollerActorId).toBe(MOVER_ID)
 
     const answered = await room.respond({
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: shown.requestId,
       optionId: pause.payload.offer.options[0]!.optionId,
       faces: [4]
@@ -115,7 +115,7 @@ describe('a movement-reaction save with a held after-the-roll die (SPELLS-31.T4c
     const room = await holdingRoom()
     const { shown } = await openWindow(room)
 
-    const answered = await room.respond({ kind: 'D20_WINDOW_DECLINE', requestId: shown.requestId })
+    const answered = await room.respond({ kind: 'ROLL_WINDOW_DECLINE', requestId: shown.requestId })
     expect(answered.type, JSON.stringify(answered)).toBe('COMMAND_COMMITTED')
 
     const { application } = await reactionOf(room, answered.commandId)

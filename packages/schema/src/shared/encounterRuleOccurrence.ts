@@ -9,6 +9,7 @@ import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 import type { DamageSaveSource } from './ruleExecutionConcentration.js'
 import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
+import { rolledDamageDieDtoSchema } from './ruleExecutionDamageRollWindow.js'
 import { aimedAreaTargetDtoSchema } from './shape.js'
 import {
   offeredRollModeSchema,
@@ -215,7 +216,11 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
     )
 )
 
+/** When a reaction offer declines itself (D207): the Campaign's reaction time after it opened, or at once for an AFK reactor. */
+const reactionAnswerByShape = () => ({ answerBy: z.optional(z.iso.datetime()) })
+
 /** What a roller sees of a d20 they have rolled and may add a held die to (D168). */
+
 const d20WindowChoiceShape = () => ({
   requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
   /** The kept face and the total the roll stands at before any die is added. */
@@ -344,8 +349,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           allowedResponses: z.tuple([
             z.literal('ENTER_DICE'),
             z.literal('SYSTEM_ROLL'),
-            z.literal('D20_WINDOW_DECLINE'),
-            z.literal('D20_WINDOW_USE'),
+            z.literal('ROLL_WINDOW_DECLINE'),
+            z.literal('ROLL_WINDOW_USE'),
             z.literal('AREA_LEGENDARY_RESISTANCE')
           ])
         })
@@ -398,6 +403,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             .check(z.minLength(1))
             .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
         }),
+        ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -426,6 +432,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           )
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
+        ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -466,7 +473,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
       }),
       /** A d20 the roller has seen, with the dice it holds for after the roll: it may add one or let them go. */
       z.strictObject({
-        kind: z.literal('D20_WINDOW'),
+        kind: z.literal('ROLL_WINDOW'),
         occurrenceId: uuidSchema,
         occurrenceVersion: versionSchema,
         encounterVersion: versionSchema,
@@ -479,7 +486,37 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         ...d20WindowChoiceShape(),
-        allowedResponses: z.tuple([z.literal('D20_WINDOW_DECLINE'), z.literal('D20_WINDOW_USE')])
+        /** Set when a reactor's die answers another creature's roll (D207); a roller's own window waits. */
+        ...reactionAnswerByShape(),
+        allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
+      }),
+      /**
+       * A cast's damage the caster has seen, with the costs it may pay to reroll some of its dice
+       * (D208): a use names the dice, up to the option's most.
+       */
+      z.strictObject({
+        kind: z.literal('DAMAGE_ROLL_WINDOW'),
+        occurrenceId: uuidSchema,
+        occurrenceVersion: versionSchema,
+        encounterVersion: versionSchema,
+        rollerActorId: uuidSchema,
+        requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        dice: z
+          .array(rolledDamageDieDtoSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
+        options: z
+          .array(
+            z.strictObject({
+              optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
+              label: triggerLabelSchema,
+              cost: z.number().check(z.int()).check(z.positive()),
+              maxDice: z.number().check(z.int()).check(z.positive())
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(50)),
+        allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
       }),
       /** An attack or spell a ward stopped, whose attacker may turn it on another creature or let it be lost. */
       z.strictObject({

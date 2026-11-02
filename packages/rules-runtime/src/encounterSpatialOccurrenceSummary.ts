@@ -220,7 +220,7 @@ export function projectEncounterSpatialOccurrenceSummary(
           occurrenceVersion: occurrence.version,
           status: 'PENDING',
           pending: {
-            kind: 'D20_WINDOW',
+            kind: 'ROLL_WINDOW',
             occurrenceId: occurrence.id,
             occurrenceVersion: occurrence.version,
             encounterVersion,
@@ -241,7 +241,7 @@ export function projectEncounterSpatialOccurrenceSummary(
               faces,
               sign
             })),
-            allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
+            allowedResponses: ['ROLL_WINDOW_DECLINE', 'ROLL_WINDOW_USE']
           }
         }
       return {

@@ -11,6 +11,7 @@ import type { EncounterRunState } from '@artificer-toolkit/schema/projections/en
 import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { d20WindowReactorActorId } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
+import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
@@ -184,6 +185,10 @@ export async function persistEncounterActionPending(
       snapshot.applicationContext.kind === 'ENCOUNTER_ACTION'
         ? snapshot.applicationContext.pause
         : null
+    const windowReactorActorId =
+      pause?.kind === 'ROLL_WINDOW' && !isDamageRollWindow(pause.payload)
+        ? d20WindowReactorActorId(pause.payload)
+        : null
     if (
       snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       snapshot.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
@@ -193,9 +198,9 @@ export async function persistEncounterActionPending(
         // A creature offered the chance to counter the cast is the roller of that decision.
         pause?.kind !== 'CAST_REACTION' &&
         // A reactor asked whether to change the attack roll decides its own d20 window (D207).
-        (pause?.kind !== 'D20_WINDOW' ||
-          d20WindowReactorActorId(pause.payload) !== snapshot.applicationContext.rollerActorId ||
-          !actors.some(({ id }) => id === d20WindowReactorActorId(pause.payload)))) ||
+        (windowReactorActorId === null ||
+          windowReactorActorId !== snapshot.applicationContext.rollerActorId ||
+          !actors.some(({ id }) => id === windowReactorActorId))) ||
       // The save a ward owes is asked of the one who attacks it.
       (pause?.kind === 'INCOMING_GATE' &&
         (pause.payload.holderActorId !== target.actorId ||

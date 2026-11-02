@@ -1,6 +1,7 @@
 import type {
   ActivationAuthored,
   CastModifierAuthored,
+  CastModifierCountAuthored,
   CastModifierParameterAuthored,
   EffectInvocationKind,
   EffectInvocationAuthored,
@@ -124,6 +125,41 @@ const CAST_MODIFIER_TARGETS_NODE_MAP = castModifierTargets.define(
   }
 )
 
+const castModifierDamageRerolls = buildNodeMap<CastModifierCountAuthored>()
+
+const CAST_MODIFIER_DAMAGE_REROLLS_NODE_MAP = castModifierDamageRerolls.define(
+  'castModifierDamageRerolls',
+  ({ map, nodes, data }) => {
+    const { selectSingle, number } = nodes
+    const { table } = data
+
+    map
+      .set(
+        'base',
+        number(['base'], 'Damage dice rerolled', {
+          order: 1,
+          constraints: { minimum: 0 },
+          requiredIf: true
+        })
+      )
+      .set(
+        'abilityDefinitionId',
+        selectSingle(
+          ['abilityDefinitionId'],
+          'Plus the modifier of',
+          {
+            kind: 'DATA',
+            relationship: table('ability_definitions', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { order: 2 }
+        )
+      )
+      .set('minimum', number(['minimum'], 'At least', { order: 3, constraints: { minimum: 0 } }))
+  }
+)
+
 const castModifierParameter = buildNodeMap<CastModifierParameterAuthored>()
 
 const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
@@ -234,6 +270,15 @@ const CAST_MODIFIER_NODE_MAP = castModifier.define('castModifier', ({ map, nodes
         presentation: 'inline',
         order: 4
       })
+    )
+    .set(
+      'damageRerolls',
+      groupObject(
+        ['damageRerolls'],
+        'Rerolls damage dice after the roll',
+        () => CAST_MODIFIER_DAMAGE_REROLLS_NODE_MAP,
+        { presentation: 'inline', order: 5 }
+      )
     )
 })
 

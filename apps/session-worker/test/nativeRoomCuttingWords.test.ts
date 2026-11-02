@@ -20,6 +20,7 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { expireReactionOffer } from './reactionTimeoutClock.js'
 import {
   readActorHitPoints,
   readPendingActionContext,
@@ -105,7 +106,7 @@ async function rollAttack(room: Room) {
 async function openWindow(room: Room) {
   await rollAttack(room)
   const decision = await room.pendingDecision()
-  if (decision.pending.kind !== 'D20_WINDOW')
+  if (decision.pending.kind !== 'ROLL_WINDOW')
     throw new Error(`Expected the d20 window, got ${decision.pending.kind}.`)
   return { decision, pending: decision.pending }
 }
@@ -214,7 +215,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     const hitPoints = await targetHitPoints(room)
     const { decision, pending } = await openWindow(room)
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [3]
@@ -236,10 +237,22 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     const hitPoints = await targetHitPoints(room)
     const { decision, pending } = await openWindow(room)
     const declined = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await targetHitPoints(room)).toBeLessThan(hitPoints)
+    expect(await inspirationUsed(room)).toBe(0)
+    expect(await reactionUsed(room)).toBe(0)
+  })
+
+  it('declines the window once the offer’s time runs out, so the Bite hits (D207)', async () => {
+    const room = await reactorRoom('LORE_BARD')
+    const hitPoints = await targetHitPoints(room)
+    await openWindow(room)
+
+    await expireReactionOffer(room.room.base.stub)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await targetHitPoints(room)).toBeLessThan(hitPoints)
     expect(await inspirationUsed(room)).toBe(0)
@@ -262,7 +275,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
       options: [{ label: 'Heckle', count: 1, faces: 4, sign: 'SUBTRACT' }]
     })
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [2]

@@ -1,11 +1,14 @@
 import type {
   CastModifierAuthored,
+  CastModifierCountAuthored,
   CastModifierParameterAuthored,
   SparesCreaturesAuthored
 } from '@artificer-toolkit/shared/authored'
 import type { RangeDto } from '@artificer-toolkit/schema/shared/range'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { DamageRerollCostDto } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import { ROUNDS_PER_CAMPAIGN_MINUTE } from '../campaignClock.js'
+import type { NativeCharacterActionResourceConsumption } from './characterNativeActionResources.js'
 
 /** A cost a Character may pay on casting a spell, authored as a passive Effect's `castModifier`. */
 export type CastModifierSource = {
@@ -50,16 +53,33 @@ export function aimsAtOneCreature(invocation: CompiledEffectGroup['invocation'])
 }
 
 /**
- * The most creatures a paid cast modifier may name: its base, plus the holder's modifier in the
+ * The most creatures a paid cast modifier may name, or damage dice it may reroll: its base, plus the holder's modifier in the
  * authored ability, never below the authored minimum (1 when an ability is added).
  */
-export function castModifierTargetCap(
-  targets: NonNullable<CastModifierAuthored['targets']>,
+export function castModifierCountCap(
+  targets: CastModifierCountAuthored,
   abilityModifier: (abilityDefinitionId: string) => number
 ): number {
   const added = targets.abilityDefinitionId ? abilityModifier(targets.abilityDefinitionId) : 0
   const minimum = targets.minimum ?? (targets.abilityDefinitionId ? 1 : 0)
   return Math.max(minimum, targets.base + added)
+}
+
+/**
+ * The damage rerolls a cast can still pay for once its damage is rolled (D208). An action spends from
+ * one pool: a reroll pays from the pool the cast already spends, out of the charges left after it, or
+ * from its own pool when nothing on the action spends one.
+ */
+export function payableDamageRerolls(input: {
+  costs: readonly DamageRerollCostDto[]
+  spent: Pick<NativeCharacterActionResourceConsumption, 'poolId' | 'afterRemaining'> | null
+  capacityUse: unknown
+}): DamageRerollCostDto[] {
+  const { spent } = input
+  if (input.capacityUse) return []
+  return input.costs.filter(
+    ({ poolId, cost }) => !spent || (poolId === spent.poolId && cost <= spent.afterRemaining)
+  )
 }
 
 /**

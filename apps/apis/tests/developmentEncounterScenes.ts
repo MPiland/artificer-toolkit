@@ -63,8 +63,10 @@ type EncounterLifecycleSceneOwner = DevelopmentClient & Pick<ConvexHttpClient, '
 export type EncounterLifecycleSceneOptions = {
   map: { height: number; width: number }
   grid: SceneDefinitionDto['grid']
+  ambientIllumination?: SceneDefinitionDto['ambientIllumination']
   barriers?: SceneDefinitionDto['barriers']
   fogMode?: SceneDefinitionDto['fogMode']
+  lights?: SceneDefinitionDto['lights']
   tokens: [
     SceneDefinitionDto['tokens'][number],
     SceneDefinitionDto['tokens'][number],
@@ -102,6 +104,7 @@ async function createScene(
   }
 ): Promise<EncounterLifecycleScene> {
   const sceneBarriers = options.barriers ?? []
+  const sceneLights = options.lights ?? []
   const sceneTokens = options.tokens
   const save = await owner.mutation(beginScene, {
     commandId: crypto.randomUUID(),
@@ -110,7 +113,7 @@ async function createScene(
     settings: {
       campaignId,
       name,
-      ambientIllumination: 'BRIGHT',
+      ambientIllumination: options.ambientIllumination ?? 'BRIGHT',
       daylight: false,
       fogMode: options.fogMode ?? 'PER_PLAYER',
       visionRevealMode: 'ON_DRAG',
@@ -121,7 +124,7 @@ async function createScene(
       annotations: 0,
       barriers: sceneBarriers.length,
       darknessZones: 0,
-      lights: 0,
+      lights: sceneLights.length,
       tokens: sceneTokens.length
     }
   })
@@ -132,6 +135,15 @@ async function createScene(
         collection: 'barriers',
         offset,
         entities: sceneBarriers.slice(offset, offset + SCENE_DEFINITION_BATCH_SIZE)
+      }
+    })
+  for (let offset = 0; offset < sceneLights.length; offset += SCENE_DEFINITION_BATCH_SIZE)
+    await owner.mutation(appendScene, {
+      input: {
+        saveId: save.saveId,
+        collection: 'lights',
+        offset,
+        entities: sceneLights.slice(offset, offset + SCENE_DEFINITION_BATCH_SIZE)
       }
     })
   for (let offset = 0; offset < sceneTokens.length; offset += SCENE_DEFINITION_BATCH_SIZE)

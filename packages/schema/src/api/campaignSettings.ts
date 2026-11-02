@@ -31,6 +31,11 @@ export type AutomationModeDto = z.infer<typeof automationModeDtoSchema>
 /** How concealed zones are noticed: the GM is prompted on a sighting, or only a Search finds them (MOVE-3.5). */
 export const zoneNoticingModeDtoSchema = lazySchema(() => z.enum(['GM_PROMPT', 'SEARCH_ONLY']))
 export type ZoneNoticingModeDto = z.infer<typeof zoneNoticingModeDtoSchema>
+export const DEFAULT_REACTION_SECONDS = 5
+/** The GM-set reaction time, 3 to 15 seconds (D207). */
+export const reactionSecondsSchema = lazySchema(() =>
+  z.number().check(z.int()).check(z.gte(3)).check(z.lte(15))
+)
 
 const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -55,6 +60,8 @@ const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
     zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
     /** When on, the app works out each target's cover from the Scene for attacks and area saves (SPELLS-14, Q1). */
     automaticCover: z._default(z.boolean(), true),
+    /** How long a reaction offer counts down before it declines itself (D207). */
+    reactionSeconds: z._default(reactionSecondsSchema, DEFAULT_REACTION_SECONDS),
     initiativePolicyDefinitionId: z._default(z.nullable(uuidSchema), null),
     initiativeTieDefinitionId: z._default(z.nullable(uuidSchema), null),
     optionalCombatRuleDefinitionIds: optionalCombatDefinitionIdsDtoSchema,

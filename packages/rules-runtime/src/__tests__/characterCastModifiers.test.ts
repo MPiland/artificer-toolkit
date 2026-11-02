@@ -12,7 +12,8 @@ import {
   castModifierDuration,
   castModifierExtendsDuration,
   castModifierRange,
-  castModifierTargetCap,
+  castModifierCountCap,
+  payableDamageRerolls,
   sparedCreatureCap
 } from '../character/characterCastModifiers.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -356,9 +357,9 @@ describe('the creatures a paid cast modifier names (SPELLS-31.T5g2)', () => {
     }
     const modifier = (value: number) => (abilityId: string) =>
       abilityId === SRD_ABILITY_DEFINITION_IDS.CHARISMA ? value : 0
-    expect(castModifierTargetCap(careful, modifier(4))).toBe(4)
-    expect(castModifierTargetCap(careful, modifier(-1))).toBe(1)
-    expect(castModifierTargetCap({ outcome: 'SAVE_DISADVANTAGE', base: 1 }, modifier(5))).toBe(1)
+    expect(castModifierCountCap(careful, modifier(4))).toBe(4)
+    expect(castModifierCountCap(careful, modifier(-1))).toBe(1)
+    expect(castModifierCountCap({ base: 1 }, modifier(5))).toBe(1)
   })
 
   /** The authoring-parity proof: a Builder author writes the same options from core options alone. */
@@ -410,7 +411,70 @@ describe('the creatures a paid cast modifier names (SPELLS-31.T5g2)', () => {
         cost: { chargeId, cost: 1, targets }
       }
     ])
-    expect(castModifierTargetCap(targets, () => 3)).toBe(5)
+    expect(castModifierCountCap(targets, () => 3)).toBe(5)
+  })
+})
+
+describe('the damage dice a paid cast modifier rerolls (SPELLS-31.T5e2a)', () => {
+  const cost = (poolId: string, charge: number) => ({
+    modifierId: testUuid(0xe01),
+    label: 'Empowered Spell',
+    chargeId: sorceryPointsCharge.id,
+    cost: charge,
+    poolId,
+    maxDice: 3
+  })
+
+  it('projects Empowered Spell as up to the Charisma modifier of rerolled dice, at least one', () => {
+    const [empowered] = sorcerer(['Empowered Spell']).castModifiers
+    expect(empowered?.cost).toEqual({
+      chargeId: sorceryPointsCharge.id,
+      cost: 1,
+      damageRerolls: {
+        base: 0,
+        abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CHARISMA,
+        minimum: 1
+      }
+    })
+  })
+
+  it('offers a reroll from its own pool when the action spends none', () => {
+    const offered = cost('pool:sorcery', 1)
+    expect(payableDamageRerolls({ costs: [offered], spent: null, capacityUse: null })).toEqual([
+      offered
+    ])
+  })
+
+  it('offers a reroll beside a same-pool cast spend only while charges remain after it', () => {
+    const offered = cost('pool:sorcery', 1)
+    expect(
+      payableDamageRerolls({
+        costs: [offered],
+        spent: { poolId: 'pool:sorcery', afterRemaining: 1 },
+        capacityUse: null
+      })
+    ).toEqual([offered])
+    expect(
+      payableDamageRerolls({
+        costs: [offered],
+        spent: { poolId: 'pool:sorcery', afterRemaining: 0 },
+        capacityUse: null
+      })
+    ).toEqual([])
+  })
+
+  it('offers no reroll beside another pool or a Concentration capacity use', () => {
+    const offered = cost('pool:sorcery', 1)
+    expect(
+      payableDamageRerolls({
+        costs: [offered],
+        spent: { poolId: 'pool:ki', afterRemaining: 4 },
+        capacityUse: null
+      })
+    ).toEqual([])
+    expect(
+      payableDamageRerolls({ costs: [offered], spent: null, capacityUse: { poolId: 'pool:x' } })
+    ).toEqual([])
   })
 })
 

@@ -184,7 +184,7 @@ const awaitingWindow = (target: SaveProgress) =>
 const windowOpen = (target: SaveProgress) =>
   awaitingWindow(target) &&
   target.snapshot.applicationContext.kind === 'ENCOUNTER_ACTION' &&
-  target.snapshot.applicationContext.pause?.kind === 'D20_WINDOW'
+  target.snapshot.applicationContext.pause?.kind === 'ROLL_WINDOW'
 
 /** Whether a creature has been neither rolled nor settled: its roller still owes the save. */
 const awaitingRoll = (target: SaveProgress) =>
@@ -264,7 +264,7 @@ export function openEncounterAreaSaveWindow(
     !awaitingWindow(rolled) ||
     applicationContext.targets.some(windowOpen) ||
     window.applicationContext.kind !== 'ENCOUNTER_ACTION' ||
-    window.applicationContext.pause?.kind !== 'D20_WINDOW'
+    window.applicationContext.pause?.kind !== 'ROLL_WINDOW'
   )
     throw new Error('This area save has no d20 window to open.')
   return serverAggregateChoicePendingSnapshotDtoSchema.parse({

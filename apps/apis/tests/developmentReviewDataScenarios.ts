@@ -1,5 +1,9 @@
+import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { SceneDefinitionDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
+import { ogre } from '@artificer-toolkit/source-data/srd/creatures/ogre.js'
 import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
+import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { fireball } from '@artificer-toolkit/source-data/srd/spells/fireball.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
@@ -18,6 +22,13 @@ export const REVIEW_PLAYERS: readonly ReviewAccountSpec[] = [
   { key: 'player1', username: 'Review_Pl_Aria' },
   { key: 'player2', username: 'Review_Pl_Bryn' },
   { key: 'player3', username: 'Review_Pl_Cade' }
+]
+/** Promoted to superadmin; joins no Campaign. */
+export const REVIEW_ADMIN: ReviewAccountSpec = { key: 'admin', username: 'Review_Admin_Sol' }
+/** Players outside every Campaign: strangers to apply to listings, fresh free-tier accounts, accounts to delete. */
+export const REVIEW_SPARES: readonly ReviewAccountSpec[] = [
+  { key: 'spare1', username: 'Review_Pl_Dara' },
+  { key: 'spare2', username: 'Review_Pl_Eli' }
 ]
 
 /** The last Session every review Campaign gets: its presence is what marks the Campaign finished. */
@@ -41,7 +52,44 @@ export type ReviewHero = {
   }
 }
 
-export type ReviewCreature = { key: string; sourceId: string; position: Point }
+export type ReviewCreature = {
+  key: string
+  sourceId: string
+  position: Point
+  /** Token width and height in grid squares (default 1). */
+  squares?: number
+  /** The token starts hidden from players. */
+  hidden?: true
+}
+
+/** Scene entity ids are minted per run, as token ids are. */
+type WithoutId<T> = T extends unknown ? Omit<T, 'id'> : never
+
+export type ReviewBoard = {
+  fogMode: SceneDefinitionDto['fogMode']
+  ambientIllumination: SceneDefinitionDto['ambientIllumination']
+  barriers: readonly WithoutId<SceneDefinitionDto['barriers'][number]>[]
+  lights: readonly WithoutId<SceneDefinitionDto['lights'][number]>[]
+}
+
+export type ReviewPlay = {
+  automationMode: AutomationModeDto
+  /** Null is the System's standard initiative. */
+  initiativePolicyDefinitionId: string | null
+}
+
+/** A player sees only explored tokens (D87); the open board shows everything. */
+const OPEN_BOARD: ReviewBoard = {
+  fogMode: 'OFF',
+  ambientIllumination: 'BRIGHT',
+  barriers: [],
+  lights: []
+}
+
+const ASSISTED_SPEED_FACTOR: ReviewPlay = {
+  automationMode: 'ASSISTED',
+  initiativePolicyDefinitionId: SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID
+}
 
 export type ReviewStep =
   | {
@@ -57,6 +105,8 @@ export type ReviewStep =
 
 export type ReviewScenario = {
   campaign: string
+  play: ReviewPlay
+  board: ReviewBoard
   heroes: readonly ReviewHero[]
   creatures: readonly ReviewCreature[]
   steps: readonly ReviewStep[]
@@ -65,6 +115,8 @@ export type ReviewScenario = {
 export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
   {
     campaign: 'Review: Party in the Field',
+    play: ASSISTED_SPEED_FACTOR,
+    board: OPEN_BOARD,
     heroes: [
       { slug: 'aria', label: 'Aria', player: 0, position: { x: 100, y: 100 } },
       { slug: 'bryn', label: 'Bryn', player: 1, position: { x: 100, y: 250 } },
@@ -88,6 +140,8 @@ export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
   },
   {
     campaign: 'Review: Shield and Hold',
+    play: ASSISTED_SPEED_FACTOR,
+    board: OPEN_BOARD,
     heroes: [
       {
         slug: 'ember',
@@ -118,6 +172,8 @@ export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
   },
   {
     campaign: 'Review: Fire and Thunder',
+    play: ASSISTED_SPEED_FACTOR,
+    board: OPEN_BOARD,
     heroes: [
       {
         slug: 'pyra',
@@ -152,5 +208,63 @@ export const REVIEW_SCENARIOS: readonly ReviewScenario[] = [
       { actor: 'pyra', action: 'Thunderwave', target: 'wolf', d20: 4 },
       { actor: 'pyra', advance: true }
     ]
+  },
+  {
+    // A dim, fogged board split by a wall with a closed door: the party starts in the west room,
+    // a lit east room holds a Large Ogre and two hidden creatures. Started, nobody has acted.
+    campaign: 'Review: Sandbox',
+    play: { automationMode: 'MANUAL', initiativePolicyDefinitionId: null },
+    board: {
+      fogMode: 'PER_PLAYER',
+      ambientIllumination: 'DIM',
+      barriers: [
+        {
+          kind: 'WALL',
+          a: { x: 400, y: 0 },
+          b: { x: 400, y: 250 },
+          blocksLight: true,
+          blocksMovement: true
+        },
+        {
+          kind: 'DOOR',
+          a: { x: 400, y: 250 },
+          b: { x: 400, y: 350 },
+          blocksLightWhenClosed: true,
+          blocksMovementWhenClosed: true,
+          initialState: 'CLOSED',
+          openAngleDegrees: 90
+        },
+        {
+          kind: 'WALL',
+          a: { x: 400, y: 350 },
+          b: { x: 400, y: 600 },
+          blocksLight: true,
+          blocksMovement: true
+        },
+        // Rubble across the west room: double movement cost.
+        { kind: 'TERRAIN', a: { x: 200, y: 400 }, b: { x: 200, y: 600 }, movementCostMultiplier: 2 }
+      ],
+      lights: [
+        {
+          kind: 'POINT',
+          position: { x: 600, y: 300 },
+          brightRadius: 100,
+          dimRadius: 200,
+          color: '#ffcc66',
+          intensity: 0.8
+        }
+      ]
+    },
+    heroes: [
+      { slug: 'iris', label: 'Iris', player: 0, position: { x: 100, y: 200 } },
+      { slug: 'juno', label: 'Juno', player: 1, position: { x: 100, y: 300 } },
+      { slug: 'kit', label: 'Kit', player: 2, position: { x: 100, y: 400 } }
+    ],
+    creatures: [
+      { key: 'ogre', sourceId: ogre.id, position: { x: 550, y: 250 }, squares: 2 },
+      { key: 'goblin', sourceId: goblin.id, position: { x: 700, y: 100 }, hidden: true },
+      { key: 'wolf', sourceId: wolf.id, position: { x: 700, y: 500 }, hidden: true }
+    ],
+    steps: []
   }
 ]

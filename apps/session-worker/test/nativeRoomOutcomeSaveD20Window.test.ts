@@ -155,7 +155,7 @@ async function openWindow() {
   })
   expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
   const decision = await room.pendingDecision()
-  if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+  if (decision.pending.kind !== 'ROLL_WINDOW') throw new Error('Expected the d20 window.')
   return { room, decision, pending: decision.pending }
 }
 
@@ -189,7 +189,7 @@ describe('room d20 window on the nested save of a hit', () => {
   it('adds the die to the nested save, which then passes, and ends the spent effect', async () => {
     const { room, decision, pending } = await openWindow()
     const used = await room.resolve(decision, {
-      kind: 'D20_WINDOW_USE',
+      kind: 'ROLL_WINDOW_USE',
       requestId: pending.requestId,
       optionId: pending.options[0]!.optionId,
       faces: [4]
@@ -203,7 +203,7 @@ describe('room d20 window on the nested save of a hit', () => {
   it('keeps the roll and the die when declined, so the nested save fails', async () => {
     const { room, decision, pending } = await openWindow()
     const declined = await room.resolve(decision, {
-      kind: 'D20_WINDOW_DECLINE',
+      kind: 'ROLL_WINDOW_DECLINE',
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')

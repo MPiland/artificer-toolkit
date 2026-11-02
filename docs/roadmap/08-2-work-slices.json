@@ -1268,8 +1268,8 @@
       "label": "Convex I/O per modelled session",
       "value": "4.44 MB",
       "from": "~96 MB",
-      "goal": "4.51 MB or less (Q16)",
-      "met": true
+      "goal": "4.3 MB or less, decimal (D209)",
+      "met": false
     },
     {
       "label": "Convex reads per Builder edit",

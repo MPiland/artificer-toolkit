@@ -16,9 +16,9 @@ internal function name.
 ```mermaid
 flowchart LR
   Web["apps/web"] -->|generated query / mutation / action| Api["apps/apis/convex"]
-  Web <-->|supported live commands + previews| Worker["Session Durable Object"]
-  Worker -->|protected bootstrap / ordered publish / release| Api
-  Worker --> Live[("SQLite live state + receipts + outbox")]
+  Web <-->|live table commands + previews| Worker["Session Durable Object"]
+  Worker -->|protected bootstrap / save-point checkpoints / drain / release| Api
+  Worker --> Live[("SQLite live table state + journal + receipts")]
   Api --> Contracts["packages/schema DTOs"]
   Api --> Db[("Convex transaction + scheduler")]
   Api --> External["R2 / Resend when action-owned"]
@@ -32,10 +32,10 @@ validated internal mutations. Internal functions stay behind generated server re
 
 Better Auth routes and the small audited HTTP-action surface preserve same-origin/authentication and
 secret boundaries. The Session Worker supplies both its private shared secret and the signed-in user's
-bearer token. Convex rechecks Campaign, Session, role, membership and authority epoch during capture,
-bootstrap and every ordered publication. The room accepts only the supported Door, standalone token
-move/undo command contracts. All Character Sheet and Encounter rule commands keep their owning Convex
-boundary, including during live Sessions.
+bearer token. Convex rechecks Campaign, Session, role, membership and authority epoch during capture
+and bootstrap, and fences each checkpoint by authority epoch, sequence range and record checksums.
+While authority is live, the room executes Scene, Encounter, held-Character play, chat and roll
+commands ([ADR 0035](../adr/0035-room-authoritative-live-encounters.md)).
 
 Unexpected provider, storage and validation failures return generic product errors. Credentials,
 private mechanics, object keys and raw provider responses do not cross the public boundary. Generated
@@ -408,7 +408,7 @@ action's push. A fixed-DC check action whose success runs an outcome (D173), mad
 commits through the basic action commit input, which names its `source` (`BASIC_ACTION` or `CREATURE_FEATURE`) and a
 feature's `featureResourceConsumption` receipt, with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
 `forcedMovements`) and records one `CHECK_ACTION` output with the same `TARGET_OUTCOME` or `NONE` `stateTransition`.
-A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `D20_WINDOW`), then a success's
+A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `ROLL_WINDOW`), then a success's
 outcome dice on an `ACTION_OUTCOME_EVIDENCE` summary answered with `ENTER_INTEGER` or `SYSTEM_ROLL`. The room commits
 each pause with `LiveSessionEncounterCheckPauseCommitInput` (the next snapshot, and `window.spentEffect` after a d20
 window's answer) and the settled check with the basic action response commit input.
@@ -456,10 +456,10 @@ source in the member's projection (as auras do) and rests while it is a defeated
 designations name only listed actors. Shown, never enforced: the room prices the move.
 
 Ordinary Scene editing uses the owning Convex functions. While a Session authority epoch is active,
-live Door commands and standalone token move/undo travel through the Session Durable Object; direct
-overlapping Convex writes are fenced. The browser supplies the exact expected versions and command ID.
-The room validates the admitted actor, executes against its minimum live projection, and commits the
-next SQLite state, replay receipt and ordered publication outbox entry before returning
+every live Scene command travels through the Session Durable Object; direct overlapping Convex writes
+are fenced. The browser supplies the exact expected versions and command ID.
+The room validates the admitted actor, executes against its live table state, and commits the next
+SQLite state, journal entry and replay receipt before returning
 `COMMAND_COMMITTED`. For a Run the room holds (any non-COMPLETED Run while the Campaign has a live
 authority), every Encounter command also commits in the room (ADR 0035, D78): turn changes,
 rule-occurrence decisions, Encounter-bound movement and actor-token bindings on the presented Scene,
@@ -469,10 +469,10 @@ Convex, whose `encounters/actorTokenBindings:execute` refuses a held Run.
 Live-session tickets use `liveSessions/tickets:issue`; identity and current Campaign membership come
 from inherited authentication, and the exact open Session is required. The signed ticket retains its
 60-second, one-use HS256 contract. The protected Worker HTTP surface captures authority, bootstraps the
-minimum live projection, publishes outbox entries in sequence, and performs drain/release. Each
-publication rechecks the Worker secret, current authority epoch, membership/role, expected durable
-state and result semantics before committing Convex state and advancing the persisted sequence.
-Subscriptions then expose the durable result. On release or eviction, a fresh authority epoch rebuilds
+room's inputs, ingests fenced checkpoints at save points (ADR 0035 Amendment 25), and performs
+drain/release. Each checkpoint rechecks the Worker secret, current authority epoch, sequence range and
+record scopes, and reads each record once for the checksum fence (Amendment 27). Live views read the
+room's feeds, not Convex subscriptions (Amendment 28). On release or eviction, a fresh authority epoch rebuilds
 from Convex.
 
 The same room carries recipient-filtered ephemeral previews. Capture and hydration require the signed-in
@@ -559,7 +559,7 @@ sequenceDiagram
   Host->>Host: derive the next command's exact conflict keys
 ```
 
-A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `D20_WINDOW_USE` or `D20_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused.
+A d20 window (`ENCOUNTER_D20_WINDOW`, SPELLS-31.T4c1a) is answered by `RESOLVE_RULE_OCCURRENCE` with `ROLL_WINDOW_USE` or `ROLL_WINDOW_DECLINE`; the first response commit pends it (version +1, no receipt) and the answer settles the check, ends the spent effect and writes the receipt atomically. A GM void of it is refused. A damage roll window (SPELLS-31.T5e2a, D208) projects as the caster's `DAMAGE_ROLL_WINDOW` summary (`dice`, `options` with `cost` and `maxDice`); its `ROLL_WINDOW_USE` adds `dice`, the ids of the rolled dice to reroll, with `faces` for entered rolls.
 
 `RESOLVE_RULE_OCCURRENCE` fails closed unless exactly one binding matches its Encounter and occurrence. A spatial resolution claims the Encounter, the exact bound Scene, and the Encounter's bound Characters; a non-spatial resolution does not claim a Scene merely because the Encounter has one. A command result adds, replaces, or clears the cached binding immediately. A persisted replay whose pause changed no aggregate version must still reconcile that binding; when a full authoritative refresh ran, the refreshed snapshot wins. Any replay refresh must cover both the replay's changed roots and every root already represented in the coordinator, so recovery cannot drop or regress unrelated state.
 

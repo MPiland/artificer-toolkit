@@ -50,6 +50,7 @@ import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
   activeEffectGraphNodeId,
   durationPublishedGraph,
+  incomingGateImmunityPlan,
   isGrantEndTrigger,
   maintenancePlan
 } from './effectActionLifetime.js'
@@ -124,6 +125,7 @@ import {
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
+import { rolledDamageDice } from './effectActionDamageDice.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -1208,30 +1210,6 @@ function sourceImmunityPlan(
       effectId: action.effectId,
       plan: { ...plan, marginRiders: [] }
     })
-  }
-}
-
-/**
- * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary, "immune
- * to this effect for 24 hours"), keyed by the ward's grant. Null when the duration cannot be counted.
- */
-export function incomingGateImmunityPlan(input: { wardId: string; duration: CompiledDuration }) {
-  const initialRemaining = conditionDurationTurns(input.duration)
-  if (initialRemaining === null || !UUID.test(input.wardId)) return null
-  const plan = { compiledEntryId: input.wardId, frozenGraphNodeId: 'source-immunity' }
-  return {
-    authoredEffectId: input.wardId,
-    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    immunity: {
-      ...plan,
-      appliesTo: 'SAVE_SUCCESS' as const,
-      immuneToId: input.wardId,
-      initialRemaining,
-      frozenGraph: durationPublishedGraph({
-        effectId: input.wardId,
-        plan: { ...plan, marginRiders: [] }
-      })
-    }
   }
 }
 
@@ -3521,6 +3499,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       )
     ).values()
   ],
+  rolledDamageDice,
   outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
