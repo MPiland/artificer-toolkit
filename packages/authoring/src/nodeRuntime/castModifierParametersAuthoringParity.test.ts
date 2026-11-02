@@ -82,6 +82,31 @@ describe('cast modifier parameters through the class node map (SPELLS-31.T5h)', 
     expect(getValueAtPath(result.values, ['features'])).toEqual(sorcerer.features)
   })
 
+  it('keeps the SRD Extended Spell exactly as authored, with no closed rule (SPELLS-31.T5h-2)', async () => {
+    expect(parametersOf(sorcerer, 'Extended Spell')).toEqual([
+      { parameter: 'DURATION', multiplier: 2, minimumMinutes: 1, maximumHours: 24 }
+    ])
+    expect(JSON.stringify(find(sorcerer.features, 'Extended Spell'))).not.toContain('CLOSED_RULE')
+    const result = await normalize(sorcerer)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(sorcerer.features)
+  })
+
+  it('keeps a homebrew duration variant, and clears a duration field on a range parameter', async () => {
+    const authored = structuredClone(sorcerer)
+    const [duration] = parametersOf(authored, 'Extended Spell')!
+    duration!.multiplier = 3
+    duration!.maximumHours = 12
+    const kept = await normalize(authored)
+    expect(kept.clearedPaths).toEqual([])
+    expect(getValueAtPath(kept.values, ['features'])).toEqual(authored.features)
+
+    const [range] = parametersOf(authored)!
+    range!.maximumHours = 12
+    const cleared = await normalize(authored)
+    expect(cleared.clearedPaths.length).toBeGreaterThan(0)
+  })
+
   it('clears a parameter the System does not offer', async () => {
     const authored = structuredClone(sorcerer)
     const [parameter] = parametersOf(authored)!
