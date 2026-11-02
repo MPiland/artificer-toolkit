@@ -74,6 +74,7 @@ import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
+import { CampaignTabletopPlayerHeaderControls } from './CampaignTabletopPlayerHeaderControls'
 import type { ZonePointPick } from './campaignTabletopZoneTool.model'
 import { CampaignVttGmViewControls } from './CampaignVttGmViewControls'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
@@ -1402,19 +1403,17 @@ export function CampaignVttStage({
         </div>
         <div className={styles.headerActions}>
           {scenePresentationControl}
-          {effectiveRole === 'PLAYER' && controlled.length > 1 ? (
-            <Select
-              aria-label='Main Character'
-              allowDeselect={false}
-              data={controlled.map((character) => ({
-                label: character.label,
-                value: character.id
-              }))}
-              size='xs'
-              value={mainCharacterId}
-              onChange={setPickedMainCharacterId}
-            />
-          ) : null}
+          <CampaignTabletopPlayerHeaderControls
+            awayDisabled={
+              !live.commandReady || encounterCommand.isPending || Boolean(pendingOccurrence)
+            }
+            encounter={activeEncounter}
+            characters={effectiveRole === 'PLAYER' ? controlled : []}
+            mainCharacterId={mainCharacterId}
+            userId={currentUserId}
+            onCommand={(command) => encounterCommand.mutate(command)}
+            onMainCharacterChange={setPickedMainCharacterId}
+          />
           {campaign.role === 'OWNER' ? (
             <>
               <CampaignVttGmViewControls

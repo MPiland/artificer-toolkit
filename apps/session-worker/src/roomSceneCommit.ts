@@ -26,6 +26,7 @@ import {
   send,
   viewer,
   type Admission,
+  type RoomCommandIssuer,
   type SocketAttachment
 } from './roomSocket.js'
 import { readRoomSceneHeader } from './roomSceneRead.js'
@@ -37,7 +38,7 @@ import {
 } from './roomSceneEdits.js'
 import { RoomRateLimitedError } from './roomRateLimits.js'
 import { readRoomEncounterPlayAuthorization } from './roomEncounterCommands.js'
-import { admitsRoomMember } from './roomAuthorization.js'
+import { admitsRoomIssuer, admitsRoomMember } from './roomAuthorization.js'
 
 /** The room steps and stores a Scene commit uses; each is lent by `RoomCommandHost`. */
 export type RoomSceneCommitHost = Pick<
@@ -73,23 +74,14 @@ export type RoomSceneCommitHost = Pick<
  */
 export async function commitMovementDecision(
   host: RoomSceneCommitHost,
-  socket: WebSocket,
-  admission: Admission,
-  value: SocketAttachment,
+  issuer: RoomCommandIssuer,
   command: ResolveRuleOccurrenceInputDto | VoidRuleOccurrenceInputDto,
   fingerprint: string
 ): Promise<EncounterCommandResultDto> {
   const presented = host.cache()
   if (presented && presented.encounterId !== command.encounterId.toLowerCase())
     throw sceneNotPresentedRejection()
-  const { encounter } = await commitRoomGeometry(
-    host,
-    socket,
-    admission,
-    value,
-    command,
-    fingerprint
-  )
+  const { encounter } = await commitRoomGeometry(host, issuer, command, fingerprint)
   if (!encounter) throw new Error('A movement decision commit returned no Encounter result.')
   return encounter
 }
@@ -314,12 +306,11 @@ export async function commitRoomSceneEdit(
 /** Geometry, fog, rules, replay evidence and acknowledgement commit in one SQLite transaction. */
 export async function commitRoomGeometry(
   host: RoomSceneCommitHost,
-  socket: WebSocket,
-  admission: Admission,
-  value: SocketAttachment,
+  issuer: RoomCommandIssuer,
   command: StagedSceneCommand,
   fingerprint: string
 ) {
+  const { admission, value } = issuer
   if (host.aggregateNeedsReload()) await host.flushOutbox('RELOAD')
   await host.loadRoomAggregate(host.cache()?.scene?.id ?? null)
   const context = stagedSceneContext(host)
@@ -336,11 +327,7 @@ export async function commitRoomGeometry(
   )
     throw new LiveSessionRouteError(409)
   const authorization = await host.authorizationBoundary(value)
-  if (
-    host.liveAdmission(socket)?.generation !== admission.generation ||
-    !admitsRoomMember(authorization, admission)
-  )
-    throw new RoomAdmissionExpiredError()
+  if (!admitsRoomIssuer(host, authorization, issuer)) throw new RoomAdmissionExpiredError()
   host.store.assertAuthorityHead({
     epoch: current.authorityEpoch,
     sequence: current.sequence,
@@ -445,10 +432,9 @@ export async function commitRoomGeometry(
       (entry) => {
         const latest = host.authorization.current(value.authorityEpoch)
         if (
-          host.liveAdmission(socket)?.generation !== admission.generation ||
           !latest ||
           checksumCanonicalJson(latest.revisions) !== checksumCanonicalJson(prepared.revisions) ||
-          !admitsRoomMember(latest, admission) ||
+          !admitsRoomIssuer(host, latest, issuer) ||
           host.cache()?.scene?.id !== before.id ||
           host.cache()?.scene?.version !== before.version ||
           host.cache()?.presentation?.expectedPresentationVersion !==
@@ -457,9 +443,11 @@ export async function commitRoomGeometry(
           throw new RoomAdmissionExpiredError()
         if (!receipt || !nextStateJson || entry.sequence !== sequence)
           throw new Error('Room command sequence does not match its authority.')
-        host.buckets.charge(accountBucket('SCENE', value, admission))
+        if (issuer.socket !== null)
+          host.buckets.charge(accountBucket('SCENE', issuer.value, issuer.admission))
         const result = host.journal.commitInTransaction({
-          actorId: admission.userId,
+          // The room's own command is journaled under its authority, as its sweeps are.
+          actorId: issuer.socket === null ? value.authorityEpoch : admission.userId,
           authorityEpoch: value.authorityEpoch,
           commandId: command.commandId,
           fingerprint,
@@ -487,7 +475,7 @@ export async function commitRoomGeometry(
     before,
     committed.nextScene,
     committed.scene,
-    { socket, message: committed.sent }
+    issuer.socket && { socket: issuer.socket, message: committed.sent }
   )
   if (committed.fogChanged || !equalCanonicalJson(before.tokens, committed.nextScene.tokens))
     host.broadcastStateSync()

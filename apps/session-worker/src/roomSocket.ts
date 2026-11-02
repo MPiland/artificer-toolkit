@@ -58,6 +58,18 @@ export interface Admission {
 }
 
 /**
+ * Who issues a committed command: a member on their socket, or the room itself, which declines a
+ * reaction offer whose time ran out as the Campaign owner (D207); no socket awaits that one.
+ */
+export type RoomCommandIssuer =
+  | { socket: WebSocket; admission: Admission; value: SocketAttachment }
+  | {
+      socket: null
+      admission: Pick<Admission, 'role' | 'userId'>
+      value: Pick<SocketAttachment, 'authorityEpoch' | 'campaignId'>
+    }
+
+/**
  * The room's shared Scene: every entity (never filtered for one member), each token's and
  * barrier's definition ordinal and the bound Encounter.
  */

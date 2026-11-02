@@ -11,7 +11,13 @@ import { createNativeLiveSessionState } from './nativeLiveSessionState.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
 import { commitMovementDecision } from './roomSceneCommit.js'
-import { accountBucket, send, type Admission, type SocketAttachment } from './roomSocket.js'
+import {
+  accountBucket,
+  send,
+  type Admission,
+  type RoomCommandIssuer,
+  type SocketAttachment
+} from './roomSocket.js'
 import { readRoomSceneMovedBy } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { RoomRateLimitedError } from './roomRateLimits.js'
@@ -26,7 +32,7 @@ import {
   roomOwnsEncounterVoid
 } from './roomEncounterResponseRouting.js'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
-import { admitsRoomMember } from './roomAuthorization.js'
+import { admitsRoomIssuer, admitsRoomMember } from './roomAuthorization.js'
 import type { RoomCommandHost } from './roomCommandHost.js'
 
 /** The room steps an Encounter command uses. */
@@ -208,9 +214,7 @@ export async function executeEncounterCommand(
     try {
       const result = await commitMovementDecision(
         host,
-        socket,
-        admission,
-        value,
+        { socket, admission, value },
         command,
         fingerprint
       )
@@ -226,23 +230,27 @@ export async function executeEncounterCommand(
     }
     return
   }
-  return executeLocalEncounterCommand(host, socket, admission, value, command, fingerprint)
+  return commitRoomEncounterCommand(host, { socket, admission, value }, command, fingerprint)
 }
 
-async function executeLocalEncounterCommand(
+/**
+ * Commits one Encounter command in the room and sends each member its own result. A member's
+ * refusal reaches their socket; the room's own command (D207) throws it to the caller.
+ */
+export async function commitRoomEncounterCommand(
   host: RoomEncounterExecutionHost,
-  socket: WebSocket,
-  admission: Admission,
-  value: SocketAttachment,
+  issuer: RoomCommandIssuer,
   command: RoomNativeEncounterCommand,
   fingerprint: string
 ): Promise<void> {
+  const { admission, value } = issuer
   // A roll posted to the table spends the same D72 allowance as chat and Campaign rolls.
   const tableBucket =
-    command.type === 'ROLL_RULE_EVIDENCE' ||
-    command.type === 'ROLL_ACTOR_INITIATIVE' ||
-    (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'PUBLIC')
-      ? accountBucket('TABLE', value, admission)
+    issuer.socket !== null &&
+    (command.type === 'ROLL_RULE_EVIDENCE' ||
+      command.type === 'ROLL_ACTOR_INITIATIVE' ||
+      (command.type === 'ROLL_ENEMY_ACTION' && command.visibility === 'PUBLIC'))
+      ? accountBucket('TABLE', issuer.value, issuer.admission)
       : null
   try {
     if (tableBucket && !host.buckets.admits(tableBucket)) throw new RoomRateLimitedError()
@@ -252,11 +260,7 @@ async function executeLocalEncounterCommand(
     if (!current || current.authorityEpoch !== value.authorityEpoch || current.status !== 'ACTIVE')
       throw new Error('Live Session authority changed.')
     const authorization = await host.authorizationBoundary(value)
-    if (
-      host.liveAdmission(socket)?.generation !== admission.generation ||
-      !admitsRoomMember(authorization, admission)
-    )
-      return
+    if (!admitsRoomIssuer(host, authorization, issuer)) return
     host.store.assertAuthorityHead({
       epoch: current.authorityEpoch,
       sequence: current.sequence,
@@ -302,14 +306,16 @@ async function executeLocalEncounterCommand(
                 }
               : {})
           })
-          const ownResult = result.recipients.get(admission.userId)
-          if (!ownResult) throw new Error('Room command has no admitted recipient result.')
+          // The room's own command has no sender to replay to; its members get their results below.
+          const ownResult = issuer.socket === null ? null : result.recipients.get(admission.userId)
+          if (ownResult === undefined)
+            throw new Error('Room command has no admitted recipient result.')
           checkpointBeforeAcknowledgement = result.checkpointBeforeAcknowledgement
           receipt = liveSessionWebSocketServerMessageDtoSchema.parse({
             type: 'COMMAND_COMMITTED',
             commandId: command.commandId,
             sequence: current.sequence + 1,
-            delta: { scope: 'ENCOUNTER', result: ownResult }
+            delta: ownResult && { scope: 'ENCOUNTER', result: ownResult }
           })
           // An action's forced movement (D139) or its revert moved tokens on the presented Scene.
           const moved = await readRoomSceneMovedBy(transaction, sceneCache?.sceneHeader)
@@ -332,17 +338,17 @@ async function executeLocalEncounterCommand(
         (entry) => {
           const latest = host.authorization.current(value.authorityEpoch)
           if (
-            host.liveAdmission(socket)?.generation !== admission.generation ||
             !latest ||
             checksumCanonicalJson(latest.revisions) !== checksumCanonicalJson(prepared.revisions) ||
-            !admitsRoomMember(latest, admission)
+            !admitsRoomIssuer(host, latest, issuer)
           )
             throw new RoomAdmissionExpiredError()
           if (!receipt || entry.sequence !== current.sequence + 1)
             throw new Error('Room command sequence does not match its authority.')
           if (tableBucket) host.buckets.charge(tableBucket)
           const committed = host.journal.commitInTransaction({
-            actorId: admission.userId,
+            // The room's own command is journaled under its authority, as its sweeps are.
+            actorId: issuer.socket === null ? value.authorityEpoch : admission.userId,
             authorityEpoch: value.authorityEpoch,
             commandId: command.commandId,
             fingerprint,
@@ -411,6 +417,8 @@ async function executeLocalEncounterCommand(
     }
     await host.scheduleAlarm()
   } catch (error) {
+    if (issuer.socket === null) throw error
+    const { socket } = issuer
     if (
       error instanceof EncounterDomainRejection ||
       error instanceof LiveSessionDomainRejectionError

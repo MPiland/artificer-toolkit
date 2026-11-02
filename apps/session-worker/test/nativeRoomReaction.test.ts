@@ -25,7 +25,8 @@ import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, fireballWolf } from './actionRoomFixture.js'
 import { areaReceipts } from './areaRoomReads.js'
 import { seedModifierGrant } from './grantSeed.js'
-import { closeTrackedSockets } from './liveRoomFixture.js'
+import { closeTrackedSockets, ROOM_REPLY_WAIT } from './liveRoomFixture.js'
+import { expireReactionOffer } from './reactionTimeoutClock.js'
 import {
   readPendingActionContext,
   readPendingActionDecision,
@@ -1091,5 +1092,124 @@ describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', 
     expect(
       biteDamage(characterBatch(await readRoomHistory(room.room.base.stub))).requestedAmount
     ).toBe(BITE_DAMAGE)
+  })
+})
+
+describe('a timed reaction offer (D207)', () => {
+  const playerRoom = () => shieldRoom({ playerControlledActorIds: [CHARACTER_ACTOR_ID] })
+
+  /** The pending decision the GM's Encounter session shows, where a client reads the offer's time. */
+  async function sessionPending(room: Room) {
+    const { base } = room.room
+    const first = base.messages.length
+    base.socket.send(JSON.stringify({ type: 'SUBSCRIBE_ENCOUNTER_SESSION', timeline: false }))
+    return vi.waitFor(() => {
+      const message = base.messages
+        .slice(first)
+        .find((candidate) => candidate.type === 'ENCOUNTER_SESSION')
+      if (message?.type !== 'ENCOUNTER_SESSION' || !message.session.held)
+        throw new Error('The room has not sent the held Encounter session.')
+      return message.session.state.pending
+    }, ROOM_REPLY_WAIT)
+  }
+
+  async function setPlayerAway(room: Room, afk: boolean, by: 'GM' | 'PLAYER' | 'OTHER_PLAYER') {
+    const command = {
+      type: 'SET_AFK' as const,
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      userId: room.room.base.playerId,
+      afk
+    }
+    return by === 'GM' ? room.send(command) : room.sendAsPlayer(command, by)
+  }
+
+  it('declines itself through the decline path once the Run’s reaction time runs out', async () => {
+    const room = await playerRoom()
+    const offeredAfter = Date.now()
+    await strike(room, 0)
+    const pending = await sessionPending(room)
+    if (pending?.kind !== 'REACTION_CHOICE') throw new Error('The session holds no reaction offer.')
+    const answerBy = Date.parse(pending.answerBy ?? '')
+    expect(answerBy - offeredAfter).toBeGreaterThanOrEqual(15_000)
+    expect(answerBy - Date.now()).toBeLessThanOrEqual(15_000)
+
+    await runInDurableObject(room.room.base.stub, (instance) => instance.alarm())
+    expect(await readPendingActionDecision(room.room.base.stub)).not.toBeNull()
+
+    await expireReactionOffer(room.room.base.stub)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    expect(batch.reaction).toMatchObject({ selection: 'DECLINE', spellCastConsumption: null })
+    expect(hitPointsLost(batch)).toBeGreaterThan(0)
+    expect(await readSpellSlots(room)).toEqual([])
+  })
+
+  it('lets the GM answer for the reactor before the time runs out', async () => {
+    const room = await playerRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    const version = await room.version()
+    await expireReactionOffer(room.room.base.stub)
+    expect(await room.version()).toBe(version)
+    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toMatchObject({
+      selection: 'USE'
+    })
+  })
+
+  it('refuses the player’s answer after the offer declined itself, and a replayed expiry changes nothing', async () => {
+    const room = await playerRoom()
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    await expireReactionOffer(room.room.base.stub)
+    const version = await room.version()
+    const settled = await readRoomHistory(room.room.base.stub)
+
+    const late = await room.sendAsPlayer(
+      room.resolveCommand(decision, { kind: 'OPTION', optionId: pending.options[0].optionId })
+    )
+    expect(late.type, JSON.stringify(late)).toBe('COMMAND_REJECTED')
+    await expireReactionOffer(room.room.base.stub)
+    expect(await room.version()).toBe(version)
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(settled)
+  })
+
+  it('declines at once when the reactor’s player is away', async () => {
+    const room = await playerRoom()
+    const away = await setPlayerAway(room, true, 'PLAYER')
+    expect(away.type, JSON.stringify(away)).toBe('COMMAND_COMMITTED')
+
+    await strike(room, 0)
+    await vi.waitFor(
+      async () => expect(await readPendingActionDecision(room.room.base.stub)).toBeNull(),
+      ROOM_REPLY_WAIT
+    )
+    expect(characterBatch(await readRoomHistory(room.room.base.stub)).reaction).toMatchObject({
+      selection: 'DECLINE'
+    })
+  })
+
+  it('lets a player mark only themselves away and the GM anyone, but not while an offer waits', async () => {
+    const room = await shieldRoom({
+      playerControlledActorIds: [CHARACTER_ACTOR_ID],
+      otherPlayerControlledActorIds: [WOLF_ID]
+    })
+    expect((await setPlayerAway(room, true, 'OTHER_PLAYER')).type).toBe('COMMAND_REJECTED')
+    expect((await setPlayerAway(room, true, 'GM')).type).toBe('COMMAND_COMMITTED')
+    expect((await setPlayerAway(room, false, 'PLAYER')).type).toBe('COMMAND_COMMITTED')
+
+    await strike(room, 0)
+    await offeredReaction(room)
+    const version = await room.version()
+    expect((await setPlayerAway(room, true, 'PLAYER')).type).toBe('COMMAND_REJECTED')
+    expect((await setPlayerAway(room, true, 'GM')).type).toBe('COMMAND_REJECTED')
+    expect(await room.version()).toBe(version)
   })
 })

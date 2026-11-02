@@ -418,6 +418,7 @@ export function srdEncounterState(input: {
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   optionalCombatHomebrew?: Parameters<typeof srdOptionalCombat>[1]
   sides?: readonly { id: string; label: string }[]
+  reactionSeconds?: number
 }): EncounterRunState {
   const optionalCombat = srdOptionalCombat(
     input.optionalCombatKinds ?? [],
@@ -436,6 +437,7 @@ export function srdEncounterState(input: {
     trackAmmunition: input.trackAmmunition ?? false,
     zoneNoticing: input.zoneNoticing ?? 'GM_PROMPT',
     automaticCover: input.automaticCover ?? true,
+    reactionSeconds: input.reactionSeconds,
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,
