@@ -23,7 +23,11 @@ import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 import { deleteGrants, spendEffectUses } from './consumedGrantPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
-import { applyFailedCounterSpends, failedCounterSpends } from './failedCounterSpend.js'
+import {
+  applyFailedCounterSpends,
+  failedCounterSpends,
+  requireFailedCounterReceipt
+} from './failedCounterSpend.js'
 import { engageIdleTurnActor } from './idleTurnMark.js'
 import { spendTurnUses } from './turnMovement.js'
 import { writeRunActor } from './documents.js'
@@ -226,9 +230,8 @@ export async function persistLiveMovementReaction(
       (step.createdEffects.length > 0 || Boolean(targetWindow?.spends)),
     ...(targetWindow?.mutation ?? {})
   })
+  if (targetWindow) requireFailedCounterReceipt(targetWindow, mechanics)
   if (
-    (targetWindow?.spends &&
-      targetWindow.failed.receipt.characterStreamVersion !== mechanics.characterStreamVersion) ||
     checksumCanonicalJson(mechanics.receiptApplications) !==
       checksumCanonicalJson(batch.applications) ||
     checksumCanonicalJson(mechanics.targetTransition) !==

@@ -98,6 +98,19 @@ export function failedCounterSpends(input: {
 export type FailedCounterSpend = ReturnType<typeof failedCounterSpends>[number]
 
 /**
+ * Throws unless a reactor's Character version after its mechanics is the one its receipt recorded:
+ * none when its reaction spends no slot or charge, since nothing was planned against its Character.
+ */
+export function requireFailedCounterReceipt(
+  reaction: { spends: boolean; failed: { receipt: { characterStreamVersion: number | null } } },
+  mechanics: { characterStreamVersion: number } | null
+) {
+  const expected = reaction.spends ? (mechanics?.characterStreamVersion ?? null) : null
+  if (reaction.failed.receipt.characterStreamVersion !== expected)
+    throw new Error('Live Session failed counter Character receipt mismatch.')
+}
+
+/**
  * Spends each failed reactor's slot and reaction with the cast's terminal commit (D127) and returns the
  * reactors as settled. The reactors named by `exceptActorIds` are the cast's source and target: their
  * spend rides in their own mechanics beside the cast's, and the caller settles them there.
@@ -118,7 +131,8 @@ export async function applyFailedCounterSpends(
   }
 ) {
   const settled = new Map<string, EncounterRunActorState>()
-  for (const { failed, reactor, spends, mutation } of input.spends) {
+  for (const reaction of input.spends) {
+    const { failed, reactor, spends, mutation } = reaction
     if (input.exceptActorIds.includes(reactor.id)) continue
     const mechanics = spends
       ? await input.applyMechanics({
@@ -144,8 +158,7 @@ export async function applyFailedCounterSpends(
           ...mutation
         })
       : null
-    if ((mechanics?.characterStreamVersion ?? null) !== failed.receipt.characterStreamVersion)
-      throw new Error('Live Session failed counter Character receipt mismatch.')
+    requireFailedCounterReceipt(reaction, mechanics)
     settled.set(
       reactor.id,
       await settleActionSourceSpend(ctx, {

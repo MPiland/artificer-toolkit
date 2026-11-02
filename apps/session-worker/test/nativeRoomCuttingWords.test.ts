@@ -146,18 +146,29 @@ async function undoLastAction(room: Room) {
 }
 
 /**
- * A Wolf bites a Character holding Heckle and Shield, hitting by 1 so Heckle's d4 could make it
- * miss; returns the Character's d20 window on the roll.
+ * A Wolf bites a Character holding Heckle and Shield, or a level 3 Lore Bard with its one Bardic
+ * Inspiration, hitting by 1 so the Character's die could make it miss; returns the Character's d20
+ * window on the roll.
  */
-async function biteTheHeckler() {
+async function biteTheReactor(reactor: 'HECKLER' | 'LORE_BARD') {
   const room = await actionRoom({
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature: attackBite }),
       characterActor({ id: REACTOR_ACTOR_ID, characterId: REACTOR_ID })
     ],
     ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
-    characterClassFeatures: [heckleFeature()],
-    characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+    ...(reactor === 'HECKLER'
+      ? {
+          characterClassFeatures: [heckleFeature()],
+          characterSpellcasting: { spells: [shield], prepared: [shield.id] }
+        }
+      : {
+          characterPlay: {
+            characterClass: bard,
+            characterSubclass: loreCuttingWords,
+            classLevel: 3
+          }
+        })
   })
   const started = await room.startAction(REACTOR_ACTOR_ID, [], room.sceneContext())
   expect(started.answer.type, JSON.stringify(started.answer)).toBe('COMMAND_COMMITTED')
@@ -262,7 +273,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   })
 
   it('rebuilds the declined roll when the bitten Heckler then casts Shield', async () => {
-    const { room, window, pending } = await biteTheHeckler()
+    const { room, window, pending } = await biteTheReactor('HECKLER')
     const declined = await room.resolve(window, {
       kind: 'D20_WINDOW_DECLINE',
       requestId: pending.requestId
@@ -282,7 +293,7 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
   })
 
   it('offers no Shield once Heckle spent the reaction on the same roll', async () => {
-    const { room, window, pending } = await biteTheHeckler()
+    const { room, window, pending } = await biteTheReactor('HECKLER')
     const heckled = await room.resolve(window, {
       kind: 'D20_WINDOW_USE',
       requestId: pending.requestId,
@@ -292,6 +303,21 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
     expect(heckled.type, JSON.stringify(heckled)).toBe('COMMAND_COMMITTED')
     // A 1 off a hit by 1 still meets the armor class, so the Bite hits with no reaction left for Shield.
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await reactionUsed(room)).toBe(1)
+  })
+
+  it('lets the bitten Lore Bard spend inspiration on the roll against itself, with the Bite', async () => {
+    const { room, window, pending } = await biteTheReactor('LORE_BARD')
+    const used = await room.resolve(window, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    // Its charge rides its own mechanics, so its receipt names the version they leave it at.
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await inspirationUsed(room)).toBe(1)
     expect(await reactionUsed(room)).toBe(1)
   })
 })

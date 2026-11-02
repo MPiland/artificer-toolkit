@@ -589,7 +589,10 @@ export async function planNativeLiveEncounterAction(
           roller: unwindowed.actor,
           movementTargets,
           loadTarget,
-          loadScene: () => readNativeActionAreaScene(capture, command.actorId, actionSceneRef),
+          loadScene: async () => {
+            const scene = await readNativeActionAreaScene(capture, command.actorId, actionSceneRef)
+            return { ...scene, rollerToken: scene.sourceToken }
+          },
           loadAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
           actionSources,
           capture

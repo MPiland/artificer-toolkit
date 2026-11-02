@@ -61,8 +61,15 @@ export async function discoverNativeRollReactions(input: {
   roller: EncounterRunActorState
   movementTargets: ReadonlyMap<string, ReactorTarget>
   loadTarget(actor: EncounterRunActorState): Promise<ReactorTarget>
-  /** The attack's Scene as the roll is made: its tokens measure each reaction's range. */
-  loadScene(): Promise<Pick<NativeActionScene, 'sceneGrid' | 'tokens'>>
+  /**
+   * The attack's Scene as the roll is made: its tokens measure each reaction's range from the roller's
+   * own token, which each caller has already required of the attack.
+   */
+  loadScene(): Promise<
+    Pick<NativeActionScene, 'sceneGrid' | 'tokens'> & {
+      rollerToken: NativeActionScene['sourceToken']
+    }
+  >
   /** The Scene's sight, which judges whether the reactor perceives the roller. */
   loadAttackPerception: NonNullable<PreparationInput['loadAttackPerception']>
   /** The action sources a reaction is prepared from, as the attack's own are. */
@@ -86,8 +93,7 @@ export async function discoverNativeRollReactions(input: {
   }
   if (holders.length === 0) return []
   const scene = await input.loadScene()
-  const rollerToken = scene.tokens.find((token) => token.actorId === roller.id)
-  if (!rollerToken) return []
+  const { rollerToken } = scene
   const grid = resolveEncounterSceneGrid({ encounter: state, sceneGrid: scene.sceneGrid })
   const reactions: NativeRollReaction[] = []
   for (const { reactor, reactorTarget, hooks } of holders) {

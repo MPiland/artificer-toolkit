@@ -253,8 +253,6 @@ export async function prepareNativeLiveMovement(
           }
         })
     }
-    // The reactions other creatures may roll against the reaction attack's d20 (D207).
-    let rollReactions: NativeRollReaction[] = []
     // A reaction chosen from options that changed since they were issued is the client's stale view.
     const prepared = await prepareEncounterMovementReactionAction({
       facts: factsFor(reaction.targets),
@@ -362,7 +360,7 @@ export async function prepareNativeLiveMovement(
         })
         // The creatures that may roll a die against the reaction attack's roll by a reaction (D207);
         // their dice join the windows the roll opens, so the attack is prepared again with them.
-        rollReactions = unwindowed.makesAttackRoll
+        const rollReactions = unwindowed.makesAttackRoll
           ? await discoverNativeRollReactions({
               state,
               actors: mechanics.actors,
@@ -370,18 +368,24 @@ export async function prepareNativeLiveMovement(
               roller: unwindowed.actor,
               movementTargets: reaction.targets,
               loadTarget: loadReactionTarget,
-              loadScene: async () => ({ sceneGrid: scene.grid, tokens: contactTokens }),
+              loadScene: async () => ({
+                sceneGrid: scene.grid,
+                tokens: contactTokens,
+                rollerToken: tokenOf(unwindowed.actor.id)
+              }),
               loadAttackPerception: loadContactPerception,
               actionSources,
               capture
             })
           : []
-        return rollReactions.length > 0
-          ? prepareAs(
-              unwindowed.attackDecoy,
-              rollReactions.map(({ die }) => die)
-            )
-          : unwindowed
+        const windowed =
+          rollReactions.length > 0
+            ? await prepareAs(
+                unwindowed.attackDecoy,
+                rollReactions.map(({ die }) => die)
+              )
+            : unwindowed
+        return { ...windowed, rollReactions }
       },
       prepareMaintenance: (prepared, _actorUserId, maintenanceProjection) =>
         prepareNativeLiveActionMaintenance({
@@ -403,12 +407,10 @@ export async function prepareNativeLiveMovement(
         rejectDomain('VERSION_STALE', 'This reaction changed; refresh and choose again.')
       throw error
     })
-    const reactions = rollReactions
     return {
       ...prepared,
-      rollReactions: reactions,
       windowReactionDice: async (answeredReactorActorIds: readonly string[]) =>
-        nextNativeRollReactionDice(reactions, answeredReactorActorIds)
+        nextNativeRollReactionDice(prepared.prepared.rollReactions, answeredReactorActorIds)
     }
   }
 
@@ -423,7 +425,7 @@ export async function prepareNativeLiveMovement(
     const windowReactions =
       plan.execution.kind === 'COMPLETE'
         ? planNativeWindowReactions({
-            reactions: plan.prepared.rollReactions,
+            reactions: plan.prepared.prepared.rollReactions,
             execution: plan.execution,
             state,
             occurrenceId: plan.occurrenceId,
