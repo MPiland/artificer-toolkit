@@ -21,7 +21,9 @@ export async function createDevelopmentSpellCharacter(
   /** Rewrites each spell copy's payload before it is saved and published. */
   amendSpell: (payload: AuthoredDraftResult['payload']) => AuthoredDraftResult['payload'] = (
     payload
-  ) => payload
+  ) => payload,
+  /** The Character's name; defaults to the shared fixture name. */
+  label?: string
 ) {
   assert.ok(wizard.spellcasting)
   const copies = new Map<string, AuthoredDraftResult>()
@@ -33,14 +35,19 @@ export async function createDevelopmentSpellCharacter(
         subjectId: spell.id
       })
     )
-  const result = await createDevelopmentCharacter(owner, characterId, {
-    spellcasting: {
-      ...wizard.spellcasting,
-      attributes: ['PREPARES_SPELLS', 'USES_SPELLBOOK'],
-      spellLimits: [{ classLevel: 1, slots: [...slots], cantripsLimit: 0 }]
+  const result = await createDevelopmentCharacter(
+    owner,
+    characterId,
+    {
+      spellcasting: {
+        ...wizard.spellcasting,
+        attributes: ['PREPARES_SPELLS', 'USES_SPELLBOOK'],
+        spellLimits: [{ classLevel: 1, slots: [...slots], cantripsLimit: 0 }]
+      },
+      ...(features ? { features: features(copies) } : {})
     },
-    ...(features ? { features: features(copies) } : {})
-  })
+    label
+  )
   const classId = result.character.intent.classes[0]?.classId
   if (!classId) throw new Error('Spell fixture Character must retain its Class identity.')
   const spellSubjectIds = new Map<string, string>()
