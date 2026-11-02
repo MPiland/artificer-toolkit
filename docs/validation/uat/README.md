@@ -112,28 +112,28 @@ The coverage below is generated from the scenario files and the ledger: every AC
 
 | Feature     | File                             | Scenarios | ACs     | Covered by a scenario | of which blocked | Covered elsewhere | Not coverable |
 | ----------- | -------------------------------- | --------- | ------- | --------------------- | ---------------- | ----------------- | ------------- |
-| PLATFORM    | [PLATFORM.md](PLATFORM.md)       | 5         | 68      | 10                    | 0                | 6                 | 0             |
+| PLATFORM    | [PLATFORM.md](PLATFORM.md)       | 5         | 68      | 10                    | 0                | 58                | 0             |
 | ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 12               | 8                 | 0             |
-| AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 12        | 57      | 50                    | 0                | 2                 | 0             |
+| AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 12        | 57      | 50                    | 0                | 7                 | 0             |
 | RULES       | [RULES.md](RULES.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER.md](BUILDER.md)         | 6         | 14      | 12                    | 0                | 2                 | 0             |
 | SHEET       | [SHEET.md](SHEET.md)             | 11        | 25      | 22                    | 0                | 3                 | 0             |
 | CAMPAIGN    | [CAMPAIGN.md](CAMPAIGN.md)       | 8         | 24      | 19                    | 0                | 5                 | 0             |
 | SOCIAL      | [SOCIAL.md](SOCIAL.md)           | 6         | 11      | 8                     | 0                | 3                 | 0             |
-| ROOM        | [ROOM.md](ROOM.md)               | 10        | 38      | 20                    | 0                | 4                 | 0             |
+| ROOM        | [ROOM.md](ROOM.md)               | 10        | 38      | 20                    | 0                | 18                | 0             |
 | SCENE       | [SCENE.md](SCENE.md)             | 9         | 16      | 15                    | 0                | 1                 | 0             |
 | MOVE        | [MOVE.md](MOVE.md)               | 9         | 22      | 18                    | 0                | 4                 | 0             |
 | ENCOUNTER   | [ENCOUNTER.md](ENCOUNTER.md)     | 7         | 30      | 29                    | 0                | 1                 | 0             |
-| ATTACK      | [ATTACK.md](ATTACK.md)           | 11        | 88      | 84                    | 0                | 1                 | 0             |
-| SPELLS      | [SPELLS.md](SPELLS.md)           | 27        | 102     | 98                    | 0                | 2                 | 0             |
+| ATTACK      | [ATTACK.md](ATTACK.md)           | 11        | 88      | 84                    | 0                | 4                 | 0             |
+| SPELLS      | [SPELLS.md](SPELLS.md)           | 27        | 102     | 98                    | 0                | 4                 | 0             |
 | REACTION    | [REACTION.md](REACTION.md)       | 7         | 14      | 14                    | 0                | 0                 | 0             |
 | PRIVACY     | [PRIVACY.md](PRIVACY.md)         | 9         | 11      | 10                    | 0                | 1                 | 0             |
-| RELIABILITY | [RELIABILITY.md](RELIABILITY.md) | 13        | 92      | 36                    | 1                | 11                | 0             |
+| RELIABILITY | [RELIABILITY.md](RELIABILITY.md) | 13        | 92      | 36                    | 1                | 56                | 0             |
 | VTT_UI      | [VTT_UI.md](VTT_UI.md)           | 4         | 13      | 12                    | 0                | 1                 | 0             |
-| PERF        | [PERF.md](PERF.md)               | 2         | 21      | 5                     | 1                | 4                 | 0             |
+| PERF        | [PERF.md](PERF.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY.md](QUALITY.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE.md](RELEASE.md)         | 1         | 17      | 5                     | 0                | 8                 | 4             |
-| **Total**   |                                  | **175**   | **716** | **501**               | **14**           | **78**            | **4**         |
+| **Total**   |                                  | **175**   | **716** | **501**               | **14**           | **211**           | **4**         |
 
 ### AC map
 
@@ -144,8 +144,8 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 
 | AC                            | Scenarios                                                                                                                                                                   |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PLATFORM-2.1                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-2.2                  | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-2.1                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-2.2                  | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-2.3                  | [UAT-PLATFORM-1](PLATFORM.md#uat-platform-1-srd-content-is-present-and-browsable)                                                                                           |
 | PLATFORM-3.1                  | [UAT-PLATFORM-4](PLATFORM.md#uat-platform-4-password-reset-email-is-requested-from-the-app)                                                                                 |
 | PLATFORM-3.2                  | [UAT-PLATFORM-4](PLATFORM.md#uat-platform-4-password-reset-email-is-requested-from-the-app)                                                                                 |
@@ -153,65 +153,65 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | PLATFORM-4.2                  | [UAT-PLATFORM-2](PLATFORM.md#uat-platform-2-upload-replace-and-remove-an-avatar)                                                                                            |
 | PLATFORM-4.3                  | [UAT-PLATFORM-3](PLATFORM.md#uat-platform-3-artwork-is-private-to-its-owner-until-shared)                                                                                   |
 | PLATFORM-4.4                  | [UAT-PLATFORM-2](PLATFORM.md#uat-platform-2-upload-replace-and-remove-an-avatar), [UAT-PLATFORM-3](PLATFORM.md#uat-platform-3-artwork-is-private-to-its-owner-until-shared) |
-| PLATFORM-5.1                  | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-5.1                  | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-5.2                  | [UAT-PLATFORM-1](PLATFORM.md#uat-platform-1-srd-content-is-present-and-browsable)                                                                                           |
-| PLATFORM-5.3                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-5.4                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-5.5                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-5.6                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-5.7                  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-6.1 (internal PBI)   | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-7.1 (internal PBI)   | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-8.1 (internal PBI)   | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-9.1 (internal PBI)   | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-10.1 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-11.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-12.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.2 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.4 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.5 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.6 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.7 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.8 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-13.9 (internal PBI)  | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-5.3                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-5.4                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-5.5                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-5.6                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-5.7                  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-6.1 (internal PBI)   | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-7.1 (internal PBI)   | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-8.1 (internal PBI)   | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-9.1 (internal PBI)   | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-10.1 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-11.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-12.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.2 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.4 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.5 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.6 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.7 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.8 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-13.9 (internal PBI)  | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.10 (internal PBI) | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.11 (internal PBI) | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.12 (internal PBI) | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.13 (internal PBI) | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.14 (internal PBI) | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-13.15 (internal PBI) | Covered elsewhere                                                                                                                                                           |
-| PLATFORM-14.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-14.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-14.3                 | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-14.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-14.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-14.3                 | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-15.1                 | [UAT-PLATFORM-5](PLATFORM.md#uat-platform-5-a-concentration-save-shows-its-result-on-the-roll-card)                                                                         |
-| PLATFORM-16.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-16.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-17.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-17.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-17.3                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-18.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-18.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-19.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-20.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-20.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-20.3                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-20.4                 | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-16.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-16.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-17.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-17.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-17.3                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-18.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-18.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-19.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-20.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-20.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-20.3                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-20.4                 | Covered elsewhere                                                                                                                                                           |
 | PLATFORM-21.1                 | [UAT-AUTHORING-3](AUTHORING.md#uat-authoring-3-background-lifecycle--create-save-publish-replace-export-delete)                                                             |
-| PLATFORM-21.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-22.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-22.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-22.3                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-22.4                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-23.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-23.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-23.3                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-23.4                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-24.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-24.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-25.1                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-25.2                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-25.4                 | UNMAPPED                                                                                                                                                                    |
-| PLATFORM-25.3                 | UNMAPPED                                                                                                                                                                    |
+| PLATFORM-21.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-22.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-22.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-22.3                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-22.4                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-23.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-23.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-23.3                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-23.4                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-24.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-24.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-25.1                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-25.2                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-25.4                 | Covered elsewhere                                                                                                                                                           |
+| PLATFORM-25.3                 | Covered elsewhere                                                                                                                                                           |
 
 </details>
 
@@ -266,10 +266,10 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | AC             | Scenarios                                                                                                                                                                                                       |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AUTHORING-1.1  | [UAT-AUTHORING-1](AUTHORING.md#uat-authoring-1-browse-game-systems-and-rules-catalogues)                                                                                                                        |
-| AUTHORING-1.2  | UNMAPPED                                                                                                                                                                                                        |
+| AUTHORING-1.2  | Covered elsewhere                                                                                                                                                                                               |
 | AUTHORING-1.3  | [UAT-AUTHORING-1](AUTHORING.md#uat-authoring-1-browse-game-systems-and-rules-catalogues)                                                                                                                        |
 | AUTHORING-1.4  | [UAT-AUTHORING-1](AUTHORING.md#uat-authoring-1-browse-game-systems-and-rules-catalogues)                                                                                                                        |
-| AUTHORING-1.5  | UNMAPPED                                                                                                                                                                                                        |
+| AUTHORING-1.5  | Covered elsewhere                                                                                                                                                                                               |
 | AUTHORING-2.1  | [UAT-AUTHORING-1](AUTHORING.md#uat-authoring-1-browse-game-systems-and-rules-catalogues)                                                                                                                        |
 | AUTHORING-2.2  | [UAT-AUTHORING-2](AUTHORING.md#uat-authoring-2-srd-records-are-locked-but-can-be-copied-into-an-owned-draft), [UAT-AUTHORING-11](AUTHORING.md#uat-authoring-11-share-homebrew-with-a-campaign-then-withdraw-it) |
 | AUTHORING-2.3  | [UAT-AUTHORING-3](AUTHORING.md#uat-authoring-3-background-lifecycle--create-save-publish-replace-export-delete)                                                                                                 |
@@ -277,14 +277,14 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | AUTHORING-3.2  | [UAT-AUTHORING-3](AUTHORING.md#uat-authoring-3-background-lifecycle--create-save-publish-replace-export-delete)                                                                                                 |
 | AUTHORING-3.3  | [UAT-BUILDER-4](BUILDER.md#uat-builder-4-removing-content-a-character-uses-repairs-the-character)                                                                                                               |
 | AUTHORING-4.1  | [UAT-AUTHORING-4](AUTHORING.md#uat-authoring-4-author-publish-and-filter-a-homebrew-spell-with-artwork), [UAT-AUTHORING-5](AUTHORING.md#uat-authoring-5-author-a-class-and-see-the-spell-guard)                 |
-| AUTHORING-4.2  | UNMAPPED                                                                                                                                                                                                        |
+| AUTHORING-4.2  | Covered elsewhere                                                                                                                                                                                               |
 | AUTHORING-4.3  | [UAT-AUTHORING-5](AUTHORING.md#uat-authoring-5-author-a-class-and-see-the-spell-guard)                                                                                                                          |
 | AUTHORING-4.4  | [UAT-AUTHORING-5](AUTHORING.md#uat-authoring-5-author-a-class-and-see-the-spell-guard)                                                                                                                          |
 | AUTHORING-5.1  | [UAT-AUTHORING-6](AUTHORING.md#uat-authoring-6-creature-copy-computed-ac-and-the-item-loadout), [UAT-AUTHORING-8](AUTHORING.md#uat-authoring-8-author-a-feat-a-race-and-a-vehicle)                              |
-| AUTHORING-5.2  | UNMAPPED                                                                                                                                                                                                        |
+| AUTHORING-5.2  | Covered elsewhere                                                                                                                                                                                               |
 | AUTHORING-6.1  | [UAT-AUTHORING-7](AUTHORING.md#uat-authoring-7-equipment-variants-inheritance-and-item-names)                                                                                                                   |
 | AUTHORING-6.2  | [UAT-AUTHORING-7](AUTHORING.md#uat-authoring-7-equipment-variants-inheritance-and-item-names)                                                                                                                   |
-| AUTHORING-6.3  | UNMAPPED                                                                                                                                                                                                        |
+| AUTHORING-6.3  | Covered elsewhere                                                                                                                                                                                               |
 | AUTHORING-6.4  | [UAT-BUILDER-4](BUILDER.md#uat-builder-4-removing-content-a-character-uses-repairs-the-character)                                                                                                               |
 | AUTHORING-7.1  | [UAT-AUTHORING-8](AUTHORING.md#uat-authoring-8-author-a-feat-a-race-and-a-vehicle)                                                                                                                              |
 | AUTHORING-7.2  | [UAT-BUILDER-4](BUILDER.md#uat-builder-4-removing-content-a-character-uses-repairs-the-character)                                                                                                               |
@@ -459,8 +459,8 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | AC        | Scenarios                                                                                                                                        |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | ROOM-1.1  | [UAT-ROOM-1](ROOM.md#uat-room-1-gm-and-three-players-join-at-once)                                                                               |
-| ROOM-1.2  | UNMAPPED                                                                                                                                         |
-| ROOM-1.3  | UNMAPPED                                                                                                                                         |
+| ROOM-1.2  | Covered elsewhere                                                                                                                                |
+| ROOM-1.3  | Covered elsewhere                                                                                                                                |
 | ROOM-1.4  | [UAT-ROOM-3](ROOM.md#uat-room-3-reconnect-after-a-dropped-connection)                                                                            |
 | ROOM-1.5  | [UAT-ROOM-1](ROOM.md#uat-room-1-gm-and-three-players-join-at-once), [UAT-ROOM-10](ROOM.md#uat-room-10-archiving-a-campaign-closes-its-live-room) |
 | ROOM-2.1  | [UAT-ROOM-2](ROOM.md#uat-room-2-previews-and-pings)                                                                                              |
@@ -474,22 +474,22 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | ROOM-3.6  | [UAT-ROOM-7](ROOM.md#uat-room-7-show-a-map-to-players-without-presenting)                                                                        |
 | ROOM-4.1  | [UAT-ROOM-8](ROOM.md#uat-room-8-plan-and-log-sessions)                                                                                           |
 | ROOM-4.2  | [UAT-ROOM-8](ROOM.md#uat-room-8-plan-and-log-sessions)                                                                                           |
-| ROOM-4.3  | UNMAPPED                                                                                                                                         |
-| ROOM-4.4  | UNMAPPED                                                                                                                                         |
+| ROOM-4.3  | Covered elsewhere                                                                                                                                |
+| ROOM-4.4  | Covered elsewhere                                                                                                                                |
 | ROOM-4.5  | [UAT-ROOM-8](ROOM.md#uat-room-8-plan-and-log-sessions)                                                                                           |
 | ROOM-5.1  | [UAT-ROOM-9](ROOM.md#uat-room-9-live-play-commands-go-through-the-room)                                                                          |
-| ROOM-5.2  | UNMAPPED                                                                                                                                         |
+| ROOM-5.2  | Covered elsewhere                                                                                                                                |
 | ROOM-5.3  | [UAT-ROOM-9](ROOM.md#uat-room-9-live-play-commands-go-through-the-room)                                                                          |
 | ROOM-5.4  | [UAT-ROOM-9](ROOM.md#uat-room-9-live-play-commands-go-through-the-room)                                                                          |
-| ROOM-6.1  | UNMAPPED                                                                                                                                         |
-| ROOM-6.2  | UNMAPPED                                                                                                                                         |
-| ROOM-6.3  | UNMAPPED                                                                                                                                         |
-| ROOM-6.4  | UNMAPPED                                                                                                                                         |
-| ROOM-6.5  | UNMAPPED                                                                                                                                         |
-| ROOM-6.6  | UNMAPPED                                                                                                                                         |
-| ROOM-6.7  | UNMAPPED                                                                                                                                         |
-| ROOM-6.8  | UNMAPPED                                                                                                                                         |
-| ROOM-6.9  | UNMAPPED                                                                                                                                         |
+| ROOM-6.1  | Covered elsewhere                                                                                                                                |
+| ROOM-6.2  | Covered elsewhere                                                                                                                                |
+| ROOM-6.3  | Covered elsewhere                                                                                                                                |
+| ROOM-6.4  | Covered elsewhere                                                                                                                                |
+| ROOM-6.5  | Covered elsewhere                                                                                                                                |
+| ROOM-6.6  | Covered elsewhere                                                                                                                                |
+| ROOM-6.7  | Covered elsewhere                                                                                                                                |
+| ROOM-6.8  | Covered elsewhere                                                                                                                                |
+| ROOM-6.9  | Covered elsewhere                                                                                                                                |
 | ROOM-6.10 | Covered elsewhere                                                                                                                                |
 | ROOM-6.11 | Covered elsewhere                                                                                                                                |
 | ROOM-6.12 | Covered elsewhere                                                                                                                                |
@@ -624,9 +624,9 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | ATTACK-5.13 | [UAT-ATTACK-10](ATTACK.md#uat-attack-10-multiattack-and-srd-monster-attacks)                                                                                                           |
 | ATTACK-5.14 | [UAT-ATTACK-10](ATTACK.md#uat-attack-10-multiattack-and-srd-monster-attacks)                                                                                                           |
 | ATTACK-5.15 | [UAT-ATTACK-10](ATTACK.md#uat-attack-10-multiattack-and-srd-monster-attacks)                                                                                                           |
-| ATTACK-6.1  | UNMAPPED                                                                                                                                                                               |
-| ATTACK-6.2  | UNMAPPED                                                                                                                                                                               |
-| ATTACK-6.3  | UNMAPPED                                                                                                                                                                               |
+| ATTACK-6.1  | Covered elsewhere                                                                                                                                                                      |
+| ATTACK-6.2  | Covered elsewhere                                                                                                                                                                      |
+| ATTACK-6.3  | Covered elsewhere                                                                                                                                                                      |
 | ATTACK-6.4  | [UAT-ATTACK-11](ATTACK.md#uat-attack-11-weapons-in-hand-loadouts-and-disarm)                                                                                                           |
 | ATTACK-6.5  | [UAT-ATTACK-11](ATTACK.md#uat-attack-11-weapons-in-hand-loadouts-and-disarm)                                                                                                           |
 | ATTACK-6.6  | [UAT-ATTACK-11](ATTACK.md#uat-attack-11-weapons-in-hand-loadouts-and-disarm)                                                                                                           |
@@ -708,7 +708,7 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | SPELLS-3.5                 | [UAT-SPELLS-10](SPELLS.md#uat-spells-10-dying-death-saves-healing-and-kills), [UAT-SPELLS-11](SPELLS.md#uat-spells-11-stabilizing-spare-the-dying-healers-kit-and-first-aid)                                                                                                                                                                                         |
 | SPELLS-3.6                 | [UAT-SPELLS-1](SPELLS.md#uat-spells-1-build-the-casters-and-cast-from-the-sheet-outside-an-encounter), [UAT-SPELLS-25](SPELLS.md#uat-spells-25-phone-width-sheet-death-saves-and-summons)                                                                                                                                                                            |
 | SPELLS-3.7                 | [UAT-SPELLS-11](SPELLS.md#uat-spells-11-stabilizing-spare-the-dying-healers-kit-and-first-aid)                                                                                                                                                                                                                                                                       |
-| SPELLS-4.1                 | UNMAPPED                                                                                                                                                                                                                                                                                                                                                             |
+| SPELLS-4.1                 | Covered elsewhere                                                                                                                                                                                                                                                                                                                                                    |
 | SPELLS-4.2                 | [UAT-SPELLS-19](SPELLS.md#uat-spells-19-zones-auras-and-lasting-hazards)                                                                                                                                                                                                                                                                                             |
 | SPELLS-5.1                 | [UAT-SPELLS-12](SPELLS.md#uat-spells-12-single-use-items-and-antitoxin)                                                                                                                                                                                                                                                                                              |
 | SPELLS-5.2                 | [UAT-SPELLS-12](SPELLS.md#uat-spells-12-single-use-items-and-antitoxin)                                                                                                                                                                                                                                                                                              |
@@ -724,7 +724,7 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | SPELLS-5.12                | [UAT-SPELLS-16](SPELLS.md#uat-spells-16-grants-and-concentration-carry-over-after-the-encounter)                                                                                                                                                                                                                                                                     |
 | SPELLS-5.13                | [UAT-SPELLS-16](SPELLS.md#uat-spells-16-grants-and-concentration-carry-over-after-the-encounter)                                                                                                                                                                                                                                                                     |
 | SPELLS-5.14                | [UAT-SPELLS-16](SPELLS.md#uat-spells-16-grants-and-concentration-carry-over-after-the-encounter)                                                                                                                                                                                                                                                                     |
-| SPELLS-6.1                 | UNMAPPED                                                                                                                                                                                                                                                                                                                                                             |
+| SPELLS-6.1                 | Covered elsewhere                                                                                                                                                                                                                                                                                                                                                    |
 | SPELLS-7.1                 | [UAT-SPELLS-3](SPELLS.md#uat-spells-3-fireball-on-a-group-with-saves-answered-by-different-controllers)                                                                                                                                                                                                                                                              |
 | SPELLS-7.2                 | [UAT-SPELLS-3](SPELLS.md#uat-spells-3-fireball-on-a-group-with-saves-answered-by-different-controllers)                                                                                                                                                                                                                                                              |
 | SPELLS-7.3                 | [UAT-SPELLS-4](SPELLS.md#uat-spells-4-area-caster-cannot-see-a-hidden-creature)                                                                                                                                                                                                                                                                                      |
@@ -856,73 +856,73 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | RELIABILITY-4.1                 | [UAT-RELIABILITY-4](RELIABILITY.md#uat-reliability-4-a-new-scene-measures-lengths-correctly-in-every-unit)                |
 | RELIABILITY-4.2                 | [UAT-RELIABILITY-4](RELIABILITY.md#uat-reliability-4-a-new-scene-measures-lengths-correctly-in-every-unit)                |
 | RELIABILITY-5.1                 | [UAT-RELIABILITY-7](RELIABILITY.md#uat-reliability-7-authored-speed-and-sense-bonuses-use-the-right-length-unit)          |
-| RELIABILITY-5.2                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-5.2                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.1                 | [UAT-RELIABILITY-8](RELIABILITY.md#uat-reliability-8-the-sheet-shows-correct-rests-ability-checks-and-hit-points)         |
-| RELIABILITY-6.2                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.2                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.3                 | [UAT-RELIABILITY-8](RELIABILITY.md#uat-reliability-8-the-sheet-shows-correct-rests-ability-checks-and-hit-points)         |
-| RELIABILITY-6.4                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.4                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.5                 | [UAT-RELIABILITY-10](RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right)                      |
-| RELIABILITY-6.6                 | UNMAPPED                                                                                                                  |
-| RELIABILITY-6.7                 | UNMAPPED                                                                                                                  |
-| RELIABILITY-6.8                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.6                 | Covered elsewhere                                                                                                         |
+| RELIABILITY-6.7                 | Covered elsewhere                                                                                                         |
+| RELIABILITY-6.8                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.9                 | [UAT-RELIABILITY-9](RELIABILITY.md#uat-reliability-9-roll-reasons-and-initiative-read-the-right-source)                   |
-| RELIABILITY-6.10                | UNMAPPED                                                                                                                  |
-| RELIABILITY-6.11                | UNMAPPED                                                                                                                  |
-| RELIABILITY-6.12                | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.10                | Covered elsewhere                                                                                                         |
+| RELIABILITY-6.11                | Covered elsewhere                                                                                                         |
+| RELIABILITY-6.12                | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.13                | [UAT-RELIABILITY-10](RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right)                      |
-| RELIABILITY-6.14                | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.14                | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.15                | [UAT-RELIABILITY-9](RELIABILITY.md#uat-reliability-9-roll-reasons-and-initiative-read-the-right-source)                   |
-| RELIABILITY-6.16                | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.16                | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.17                | [UAT-RELIABILITY-10](RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right)                      |
-| RELIABILITY-6.18                | UNMAPPED                                                                                                                  |
+| RELIABILITY-6.18                | Covered elsewhere                                                                                                         |
 | RELIABILITY-6.19                | [UAT-RELIABILITY-8](RELIABILITY.md#uat-reliability-8-the-sheet-shows-correct-rests-ability-checks-and-hit-points)         |
-| RELIABILITY-7.1                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-7.1                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-7.2                 | [UAT-RELIABILITY-10](RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right)                      |
-| RELIABILITY-8.1 (internal PBI)  | UNMAPPED                                                                                                                  |
+| RELIABILITY-8.1 (internal PBI)  | Covered elsewhere                                                                                                         |
 | RELIABILITY-8.2 (internal PBI)  | [UAT-RELIABILITY-11](RELIABILITY.md#uat-reliability-11-authoring-selects-labels-and-lists)                                |
 | RELIABILITY-8.3 (internal PBI)  | [UAT-RELIABILITY-5](RELIABILITY.md#uat-reliability-5-forms-and-sign-out-recover-without-silent-data-loss)                 |
 | RELIABILITY-8.4 (internal PBI)  | [UAT-RELIABILITY-11](RELIABILITY.md#uat-reliability-11-authoring-selects-labels-and-lists)                                |
-| RELIABILITY-8.5 (internal PBI)  | UNMAPPED                                                                                                                  |
-| RELIABILITY-8.6 (internal PBI)  | UNMAPPED                                                                                                                  |
+| RELIABILITY-8.5 (internal PBI)  | Covered elsewhere                                                                                                         |
+| RELIABILITY-8.6 (internal PBI)  | Covered elsewhere                                                                                                         |
 | RELIABILITY-8.7 (internal PBI)  | [UAT-RELIABILITY-11](RELIABILITY.md#uat-reliability-11-authoring-selects-labels-and-lists)                                |
 | RELIABILITY-9.1                 | [UAT-RELIABILITY-5](RELIABILITY.md#uat-reliability-5-forms-and-sign-out-recover-without-silent-data-loss)                 |
 | RELIABILITY-9.2                 | [UAT-RELIABILITY-11](RELIABILITY.md#uat-reliability-11-authoring-selects-labels-and-lists)                                |
-| RELIABILITY-9.3                 | UNMAPPED                                                                                                                  |
-| RELIABILITY-9.4                 | UNMAPPED                                                                                                                  |
+| RELIABILITY-9.3                 | Covered elsewhere                                                                                                         |
+| RELIABILITY-9.4                 | Covered elsewhere                                                                                                         |
 | RELIABILITY-9.6                 | [UAT-RELIABILITY-5](RELIABILITY.md#uat-reliability-5-forms-and-sign-out-recover-without-silent-data-loss)                 |
-| RELIABILITY-9.7                 | UNMAPPED                                                                                                                  |
-| RELIABILITY-9.8                 | UNMAPPED                                                                                                                  |
-| RELIABILITY-10.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-10.2                | UNMAPPED                                                                                                                  |
+| RELIABILITY-9.7                 | Covered elsewhere                                                                                                         |
+| RELIABILITY-9.8                 | Covered elsewhere                                                                                                         |
+| RELIABILITY-10.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-10.2                | Covered elsewhere                                                                                                         |
 | RELIABILITY-10.3                | [UAT-RELIABILITY-10](RELIABILITY.md#uat-reliability-10-builder-and-party-inventory-values-are-right)                      |
-| RELIABILITY-11.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-12.1 (internal PBI) | UNMAPPED                                                                                                                  |
-| RELIABILITY-12.2 (internal PBI) | UNMAPPED                                                                                                                  |
-| RELIABILITY-13.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-14.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-15.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-15.2                | UNMAPPED                                                                                                                  |
-| RELIABILITY-15.3                | UNMAPPED                                                                                                                  |
-| RELIABILITY-16.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-17.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-18.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-19.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-19.2                | UNMAPPED                                                                                                                  |
-| RELIABILITY-19.3                | UNMAPPED                                                                                                                  |
-| RELIABILITY-20.1                | UNMAPPED                                                                                                                  |
-| RELIABILITY-20.2                | UNMAPPED                                                                                                                  |
-| RELIABILITY-20.3                | UNMAPPED                                                                                                                  |
-| RELIABILITY-20.4                | UNMAPPED                                                                                                                  |
-| RELIABILITY-20.5                | UNMAPPED                                                                                                                  |
+| RELIABILITY-11.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-12.1 (internal PBI) | Covered elsewhere                                                                                                         |
+| RELIABILITY-12.2 (internal PBI) | Covered elsewhere                                                                                                         |
+| RELIABILITY-13.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-14.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-15.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-15.2                | Covered elsewhere                                                                                                         |
+| RELIABILITY-15.3                | Covered elsewhere                                                                                                         |
+| RELIABILITY-16.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-17.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-18.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-19.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-19.2                | Covered elsewhere                                                                                                         |
+| RELIABILITY-19.3                | Covered elsewhere                                                                                                         |
+| RELIABILITY-20.1                | Covered elsewhere                                                                                                         |
+| RELIABILITY-20.2                | Covered elsewhere                                                                                                         |
+| RELIABILITY-20.3                | Covered elsewhere                                                                                                         |
+| RELIABILITY-20.4                | Covered elsewhere                                                                                                         |
+| RELIABILITY-20.5                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.1                | [UAT-RELIABILITY-12](RELIABILITY.md#uat-reliability-12-core-pages-open-with-their-data)                                   |
 | RELIABILITY-21.2                | [UAT-RELIABILITY-12](RELIABILITY.md#uat-reliability-12-core-pages-open-with-their-data)                                   |
 | RELIABILITY-21.3                | [UAT-RELIABILITY-12](RELIABILITY.md#uat-reliability-12-core-pages-open-with-their-data)                                   |
 | RELIABILITY-21.4                | [UAT-RELIABILITY-12](RELIABILITY.md#uat-reliability-12-core-pages-open-with-their-data)                                   |
-| RELIABILITY-21.5                | UNMAPPED                                                                                                                  |
-| RELIABILITY-21.6                | UNMAPPED                                                                                                                  |
-| RELIABILITY-21.7                | UNMAPPED                                                                                                                  |
+| RELIABILITY-21.5                | Covered elsewhere                                                                                                         |
+| RELIABILITY-21.6                | Covered elsewhere                                                                                                         |
+| RELIABILITY-21.7                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.8                | [UAT-RELIABILITY-13](RELIABILITY.md#uat-reliability-13-account-deletion-closes-the-live-table) (blocked)                  |
-| RELIABILITY-21.9                | UNMAPPED                                                                                                                  |
+| RELIABILITY-21.9                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.10               | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.11               | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.12               | Covered elsewhere                                                                                                         |
@@ -964,27 +964,27 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 
 | AC                      | Scenarios                                                                                                                                       |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| PERF-1.1 (internal PBI) | UNMAPPED                                                                                                                                        |
-| PERF-1.2 (internal PBI) | UNMAPPED                                                                                                                                        |
+| PERF-1.1 (internal PBI) | Covered elsewhere                                                                                                                               |
+| PERF-1.2 (internal PBI) | Covered elsewhere                                                                                                                               |
 | PERF-1.3 (internal PBI) | [UAT-PERF-2](PERF.md#uat-perf-2-four-people-at-a-local-table-feel-responsive)                                                                   |
 | PERF-2.1                | [UAT-PERF-1](PERF.md#uat-perf-1-managed-three-user-live-room-journey-needs-managed-credentials-run-only-on-an-approved-staging-smoke) (blocked) |
-| PERF-3.1                | UNMAPPED                                                                                                                                        |
+| PERF-3.1                | Covered elsewhere                                                                                                                               |
 | PERF-3.2                | [UAT-PERF-2](PERF.md#uat-perf-2-four-people-at-a-local-table-feel-responsive)                                                                   |
 | PERF-3.3                | [UAT-PERF-2](PERF.md#uat-perf-2-four-people-at-a-local-table-feel-responsive)                                                                   |
-| PERF-3.4                | UNMAPPED                                                                                                                                        |
-| PERF-3.5                | UNMAPPED                                                                                                                                        |
-| PERF-3.6                | UNMAPPED                                                                                                                                        |
+| PERF-3.4                | Covered elsewhere                                                                                                                               |
+| PERF-3.5                | Covered elsewhere                                                                                                                               |
+| PERF-3.6                | Covered elsewhere                                                                                                                               |
 | PERF-3.7                | [UAT-PERF-2](PERF.md#uat-perf-2-four-people-at-a-local-table-feel-responsive)                                                                   |
-| PERF-3.8                | UNMAPPED                                                                                                                                        |
-| PERF-3.9                | UNMAPPED                                                                                                                                        |
+| PERF-3.8                | Covered elsewhere                                                                                                                               |
+| PERF-3.9                | Covered elsewhere                                                                                                                               |
 | PERF-3.10               | Covered elsewhere                                                                                                                               |
 | PERF-3.11               | Covered elsewhere                                                                                                                               |
 | PERF-3.12               | Covered elsewhere                                                                                                                               |
 | PERF-3.14               | Covered elsewhere                                                                                                                               |
-| PERF-4.1 (internal PBI) | UNMAPPED                                                                                                                                        |
-| PERF-4.2 (internal PBI) | UNMAPPED                                                                                                                                        |
-| PERF-4.3 (internal PBI) | UNMAPPED                                                                                                                                        |
-| PERF-4.4 (internal PBI) | UNMAPPED                                                                                                                                        |
+| PERF-4.1 (internal PBI) | Covered elsewhere                                                                                                                               |
+| PERF-4.2 (internal PBI) | Covered elsewhere                                                                                                                               |
+| PERF-4.3 (internal PBI) | Covered elsewhere                                                                                                                               |
+| PERF-4.4 (internal PBI) | Covered elsewhere                                                                                                                               |
 
 </details>
 
