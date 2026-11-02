@@ -19,6 +19,7 @@ import {
   aimsAtOneCreature,
   castModifierCostAtLevel,
   castModifierActivation,
+  castModifierExtendsDuration,
   castModifierRange,
   castModifierTargetCap,
   sparedCreatureCap,
@@ -27,6 +28,7 @@ import {
 } from './characterCastModifiers.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import { affordablePoolFor } from './characterResourcePool.js'
+import { conditionDurationTurns } from '../systems/dnd5e/effectActionFollowUp.js'
 import { dnd5eSpellRangeReplacement } from '../systems/dnd5e/spellRangeReplacement.js'
 import { dnd5eWithSaveSuccessDamage } from '../systems/dnd5e/spellSaveSuccessDamage.js'
 import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
@@ -292,7 +294,15 @@ export function buildCharacterSpellCastActions(input: {
               !cost.parameters ||
               (castModifierRange(cost.parameters, rangedGroup.invocation.range) !== null &&
                 castModifierActivation(cost.parameters, mechanicFacts.invocation.activation) !==
-                  null)
+                  null &&
+                castModifierExtendsDuration(
+                  cost.parameters,
+                  group.entries.map((entry) =>
+                    'duration' in entry && entry.duration
+                      ? conditionDurationTurns(entry.duration)
+                      : null
+                  )
+                ))
             const modifierPool =
               !fitsSpell ||
               (cost.targets?.outcome === 'EXTRA_TARGET' && !aimsAtOneCreature(group.invocation))

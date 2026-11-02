@@ -818,7 +818,28 @@ export const sorcerer: ClassAuthored = {
           label: 'Extended Spell',
           description:
             'When you cast a spell that has a duration of 1 minute or longer, you can spend 1 sorcery point to double its duration, to a maximum duration of 24 hours.',
-          effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_SORCERER_METAMAGIC_EXTENDED)],
+          effects: [
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(S, 0x60, 23),
+                range: classRowId(S, 0x69, 23),
+                path: classRowId(S, 0x80, 23),
+                result: classRowId(S, 0x81, 23),
+                outcome: classRowId(S, 0x82, 23)
+              },
+              label: 'Extended Spell',
+              instructions:
+                'The spell has twice its duration, to a maximum of 24 hours. The sorcery point is spent with the cast.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+              castModifier: {
+                chargeId: sorceryPointsCharge.id,
+                cost: 1,
+                parameters: [
+                  { parameter: 'DURATION', multiplier: 2, minimumMinutes: 1, maximumHours: 24 }
+                ]
+              }
+            })
+          ],
           order: 3
         },
         {

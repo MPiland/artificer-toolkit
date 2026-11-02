@@ -128,10 +128,12 @@ const castModifierParameter = buildNodeMap<CastModifierParameterAuthored>()
 
 const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
   'castModifierParameter',
-  ({ map, nodes, cond }) => {
+  ({ map, nodes, cond, logic }) => {
     const { selectSingle, number, groupObject } = nodes
     const isRange = cond.local().field(['parameter']).eq('RANGE')
     const isActivation = cond.local().field(['parameter']).eq('ACTIVATION')
+    const isDuration = cond.local().field(['parameter']).eq('DURATION')
+    const multiplies = logic.or([isRange, isDuration])
 
     map
       .set(
@@ -143,7 +145,8 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
             kind: 'INLINE_OPTIONS',
             options: [
               { code: 'RANGE', label: 'The spell’s range' },
-              { code: 'ACTIVATION', label: 'What the spell takes to cast' }
+              { code: 'ACTIVATION', label: 'What the spell takes to cast' },
+              { code: 'DURATION', label: 'How long the spell lasts' }
             ]
           },
           { order: 1, requiredIf: true }
@@ -151,11 +154,11 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
       )
       .set(
         'multiplier',
-        number(['multiplier'], 'Range multiplied by', {
+        number(['multiplier'], 'Multiplied by', {
           order: 2,
           constraints: { minimum: 2 },
-          requiredIf: isRange,
-          showIf: isRange,
+          requiredIf: multiplies,
+          showIf: multiplies,
           hiddenBehavior: 'CLEAR'
         })
       )
@@ -182,6 +185,26 @@ const CAST_MODIFIER_PARAMETER_NODE_MAP = castModifierParameter.define(
             hiddenBehavior: 'CLEAR'
           }
         )
+      )
+      .set(
+        'minimumMinutes',
+        number(['minimumMinutes'], 'For a spell lasting at least (minutes)', {
+          order: 5,
+          constraints: { minimum: 1 },
+          requiredIf: isDuration,
+          showIf: isDuration,
+          hiddenBehavior: 'CLEAR'
+        })
+      )
+      .set(
+        'maximumHours',
+        number(['maximumHours'], 'Duration multiplied, up to (hours)', {
+          order: 6,
+          constraints: { minimum: 1 },
+          requiredIf: isDuration,
+          showIf: isDuration,
+          hiddenBehavior: 'CLEAR'
+        })
       )
   }
 )
