@@ -46,6 +46,15 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/**
+ * The College of Lore with only its SRD Cutting Words: its Bonus Proficiencies choice would leave the
+ * captured Character awaiting Builder repair.
+ */
+const loreCuttingWords = {
+  ...collegeOfLore,
+  features: [srdByLabel(collegeOfLore.features ?? [], 'Cutting Words')]
+}
+
 /** The id of the grant a Character's reconciliation records for the Bard's Bardic Inspiration. */
 const inspirationGrantId = `resource:${bard.id}:${bard.resources?.id}`
 
@@ -110,7 +119,7 @@ function reactorRoom(reactor: 'LORE_BARD' | 'HECKLER', used = 0) {
       ? {
           characterPlay: {
             characterClass: bard,
-            characterSubclass: collegeOfLore,
+            characterSubclass: loreCuttingWords,
             classLevel: 3,
             resourceUsage: [
               { owner: { kind: 'AUTHORED_GRANT', resourceGrantId: inspirationGrantId }, used }
@@ -124,7 +133,9 @@ type Room = Awaited<ReturnType<typeof reactorRoom>>
 
 /** The attacker rolls a natural 10: 14 hits AC 13, and any die taken off it makes it miss. */
 async function rollAttack(room: Room) {
-  expect((await room.startAction(TARGET_ID)).answer.type).toBe('COMMAND_COMMITTED')
+  expect((await room.startAction(TARGET_ID, [], room.sceneContext())).answer.type).toBe(
+    'COMMAND_COMMITTED'
+  )
   const attack = await room.pendingDecision()
   if (attack.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected the attack prompt.')
   const { request } = attack.pending
