@@ -429,6 +429,16 @@ export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
 export const DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY = 'dnd5e.roll-table-row-gate'
 /** The id prefix of a roll table's own dice and running sums, which every row gate reads. */
 export const ROLL_TABLE_DICE_NODE_PREFIX = 'roll-table-'
+/** The op that maps a bounded index onto the faces of a die a table reroll may land on. */
+export const DND5E_ROLL_TABLE_REROLL_FACE_OPERATION_KEY = 'dnd5e.roll-table-reroll-face'
+/** The id prefix of the nodes a repeat roll table rolls in its TEST, before its OUTCOME is specialised. */
+export const ROLL_TABLE_TEST_NODE_PREFIX = 'table-roll-'
+export const rollTableTestNodeId = (pathCode: string, part: string) =>
+  `${ROLL_TABLE_TEST_NODE_PREFIX}${pathCode.toLowerCase()}-${part}`
+/** The TEST output holding a face a repeat roll table rolled: ray 0 is the table die, 1.. the repeats. */
+export const rollTableFaceOutputName = (pathCode: string, ray: number) =>
+  `rollTableFace_${pathCode}_${ray}`
+export const ROLL_TABLE_FACE_OUTPUT = /^rollTableFace_([A-Z_]+)_(\d+)$/
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */

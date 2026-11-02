@@ -80,6 +80,7 @@ import {
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   NESTED_SAVE_GATE_CLOSED_PATH,
   DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
+  DND5E_ROLL_TABLE_REROLL_FACE_OPERATION_KEY,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -1120,6 +1121,42 @@ export const dnd5eRollTableRowGateOperation: PureRuleOperationContract = {
   }
 }
 
+/**
+ * A table reroll's face: the `index`th face of the die that is not one of the faces the table
+ * rerolls, so a reroll is one bounded request and can never land on a rerolled face.
+ */
+export const dnd5eRollTableRerollFaceOperation: PureRuleOperationContract = {
+  key: DND5E_ROLL_TABLE_REROLL_FACE_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {
+    index: RULE_VALUE_KIND.NUMBER,
+    faces: RULE_VALUE_KIND.NUMBER,
+    excluded: RULE_VALUE_KIND.TEXT
+  },
+  outputs: { face: RULE_VALUE_KIND.NUMBER },
+  execute(inputs) {
+    const { index, faces, excluded } = inputs
+    if (
+      typeof index !== 'number' ||
+      typeof faces !== 'number' ||
+      typeof excluded !== 'string' ||
+      !Number.isSafeInteger(index) ||
+      !Number.isSafeInteger(faces)
+    )
+      throw new Error(
+        'D&D roll table reroll requires an index, the die faces and the rerolled faces.'
+      )
+    const barred = new Set(excluded === '' ? [] : excluded.split(',').map(Number))
+    const face = Array.from({ length: faces }, (_, at) => at + 1).filter(
+      (candidate) => !barred.has(candidate)
+    )[index - 1]
+    if (face === undefined)
+      throw new Error('D&D roll table reroll index is outside the allowed faces.')
+    return { face }
+  }
+}
+
 /** A test's result path selects an outcome authored on it, and a critical hit also selects the hit's. */
 export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
   return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
@@ -1480,6 +1517,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eTestMarginConditionProposalOperation,
         dnd5eNestedSaveGateOperation,
         dnd5eRollTableRowGateOperation,
+        dnd5eRollTableRerollFaceOperation,
         dnd5eHitPointGatedKillProposalOperation,
         dnd5eHitPointGatedHealProposalOperation,
         dnd5eHitPointGatedConditionApplyProposalOperation

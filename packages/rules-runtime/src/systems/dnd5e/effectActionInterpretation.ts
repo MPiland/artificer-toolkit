@@ -66,6 +66,7 @@ import {
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
   ROLL_TABLE_DICE_NODE_PREFIX,
+  ROLL_TABLE_TEST_NODE_PREFIX,
   proposalNodePathCode,
   positive
 } from './effectActionContracts.js'
@@ -75,6 +76,7 @@ import {
   conditionImmunityFacts
 } from './effectActionEvidenceChecks.js'
 import { gateEvidenceIsValid, reducedToZeroGateHolds } from './effectActionGates.js'
+import { requireRollTableTestTraces } from './effectActionRollTableTrace.js'
 import {
   parseRecoveryTags,
   isDnd5eTestOutcomeRule,
@@ -164,6 +166,7 @@ export function requireEntryDamageTraces(input: {
       throw invalid()
   }
 }
+
 export function testApplications(
   input: Parameters<CharacterRuleActionSystemAdapter['interpret']>[0],
   replacementPath?: 'ON_SAVE_SUCCESS'
@@ -273,8 +276,14 @@ export function testApplications(
   const entryDamageTraces = remainingTraces.filter((trace) =>
     trace.nodeId.startsWith(ENTRY_DAMAGE_NODE_PREFIX)
   )
+  const rollTableTraces = remainingTraces.filter((trace) =>
+    trace.nodeId.startsWith(ROLL_TABLE_TEST_NODE_PREFIX)
+  )
   const proposalTraces = remainingTraces.filter(
-    (trace) => trace.nodeId !== 'movement-interruption' && !entryDamageTraces.includes(trace)
+    (trace) =>
+      trace.nodeId !== 'movement-interruption' &&
+      !entryDamageTraces.includes(trace) &&
+      !rollTableTraces.includes(trace)
   )
   const naturalD20 = testTrace.outputs.naturalD20
   const modifier = testTrace.inputs.modifier
@@ -372,6 +381,12 @@ export function testApplications(
     published,
     occurrenceId: input.occurrenceId,
     resultPath
+  })
+  requireRollTableTestTraces({
+    traces: [testTrace, ...rollTableTraces],
+    published,
+    occurrenceId: input.occurrenceId,
+    outputs: execution.outputs
   })
   for (const proposal of proposalTraces) {
     const authoredPath = proposal.inputs.authoredPath
@@ -958,12 +973,17 @@ function rollTableGateSteps(
   }
   const roll = gateNode.inputs.roll
   const gateTrace = traceOf(gateNode.id)
+  // A repeat table's TEST rolled its faces, and its OUTCOME gates read each one as a literal.
+  const rolledByTable =
+    roll?.kind === 'LITERAL'
+      ? typeof roll.value === 'number'
+      : roll?.kind === 'NODE_OUTPUT' &&
+        roll.port === 'value' &&
+        ROLL_TABLE_DICE_NODE.test(roll.nodeId)
   if (
     !gateTrace ||
     gateNode.operation.contractVersion !== dnd5eRollTableRowGateOperation.contractVersion ||
-    roll?.kind !== 'NODE_OUTPUT' ||
-    roll.port !== 'value' ||
-    !ROLL_TABLE_DICE_NODE.test(roll.nodeId)
+    !rolledByTable
   )
     return null
   return [...steps, [gateNode, gateTrace, dnd5eRollTableRowGateOperation]]

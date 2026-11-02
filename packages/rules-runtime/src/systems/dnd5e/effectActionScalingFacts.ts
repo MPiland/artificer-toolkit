@@ -31,6 +31,7 @@ import {
   DND5E_TARGET_CREATURE_TYPE_FACT_KEY,
   DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY,
   DND5E_WEAPON_DAMAGE_DIE_FACT_KEY,
+  ROLL_TABLE_FACE_OUTPUT,
   type SpecializedPath,
   unsupported
 } from './effectActionContracts.js'
@@ -63,7 +64,19 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   resolvedDamageExpressions: Readonly<Partial<Record<SpecializedPath, string>>>
   resolvedDamageOutcomeExpressions: Readonly<Record<string, string>>
   weaponDamageDieFaces?: number
+  /** The faces a repeat roll table rolled in the TEST, by result path: the table die, then each repeat. */
+  rollTableFaces?: Readonly<Record<string, readonly number[]>>
 }>
+
+function rolledTableFaces(outputs: Readonly<Record<string, RuleValue>> | undefined) {
+  const faces: Record<string, number[]> = {}
+  for (const [name, value] of Object.entries(outputs ?? {})) {
+    const match = ROLL_TABLE_FACE_OUTPUT.exec(name)
+    if (match?.[1] && match[2] && typeof value === 'number')
+      (faces[match[1]] ??= [])[Number(match[2])] = value
+  }
+  return Object.keys(faces).length > 0 ? faces : undefined
+}
 
 /** The attack TEST's facts about its target: its creature type, and whether it is wounded. */
 export function dnd5eAttackTargetFacts(
@@ -135,6 +148,7 @@ export function dnd5eEffectScalingFacts(input: {
       facts[DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY]
     ),
     weaponDamageDieFaces: positiveInteger(facts[DND5E_WEAPON_DAMAGE_DIE_FACT_KEY]),
+    rollTableFaces: rolledTableFaces(input.testOutputs),
     targetCurrentHitPoints:
       typeof facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY] === 'number'
         ? facts[DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]

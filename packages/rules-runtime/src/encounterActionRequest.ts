@@ -33,6 +33,17 @@ export function requireActionContinuation(input: {
     throw new Error('The action evidence continuation is stale.')
 }
 
+/**
+ * A TEST's one required roll is its d20. The dice a graph asks for only when its path is chosen come
+ * after it and are the System's to roll, like an OUTCOME's.
+ */
+export function asksForOptionalDie(continuation: ServerRuleExecutionContinuationDto): boolean {
+  return (
+    continuation.graph.nodes.find(({ id }) => id === continuation.request.nodeId)?.operation.key ===
+    'evidence.optional-integer-range'
+  )
+}
+
 export function actionD20Policy(input: {
   phase: 'SINGLE' | 'TEST' | 'OUTCOME'
   continuation: ServerRuleExecutionContinuationDto
@@ -40,7 +51,10 @@ export function actionD20Policy(input: {
   twoPhase: NativeTwoPhase | null
 }): ServerRuleExecutionD20PolicyDto | null {
   const nested = input.twoPhase?.phase === 'OUTCOME' ? input.twoPhase.nestedOutcomeD20 : null
-  if (input.phase === 'TEST' || nested?.requestNodeId === input.continuation.request.nodeId)
+  if (
+    (input.phase === 'TEST' && !asksForOptionalDie(input.continuation)) ||
+    nested?.requestNodeId === input.continuation.request.nodeId
+  )
     return (
       nested ??
       deriveEncounterActionD20Policy({ continuation: input.continuation, bound: input.bound })
