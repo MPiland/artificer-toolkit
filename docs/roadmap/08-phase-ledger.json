@@ -29420,7 +29420,8 @@
                   "RELEASE-8.T1"
                 ]
               },
-              "note": "User approved 2026-11-02 (D187)."
+              "note": "User approved 2026-11-02 (D187).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-8.T4",
@@ -29435,7 +29436,8 @@
                 "rr": 8,
                 "size": 2
               },
-              "note": "User approved 2026-11-02 (D187)."
+              "note": "User approved 2026-11-02 (D187).",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             },
             {
               "id": "RELEASE-8.T2",
