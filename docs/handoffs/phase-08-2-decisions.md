@@ -2006,3 +2006,4 @@ A condition's `HIT_POINT_MAXIMUM` mechanic (Exhaustion 4 halves the maximum) is 
 ## D209 (2026-11-02): Q16 Convex I/O budget
 
 - **Budget (user):** the per-session Convex I/O gate is 4.3 MB, decimal and strict, from the free-tier math in `docs/roadmap/tier-research-2026-09-27.md`. The 4.51 MB figure was 4.3 MiB written in MB and is retired. The modelled 4.44 MB (run a84) fails it, so PERF-3.T1 cuts real I/O under the same assumptions; the budget and the assumptions do not move.
+- **PERF-3.T1 (m609):** a checkpoint save reads each conversation and Scene once (estimate about 4.03 MB, measured by PERF-1.T1). Recovery saves at activation, cold admission and reload publish only unsaved journal entries and write nothing otherwise (ADR 0035 Amendment 25). The shadow harness was deleted in `e3f51905a212d6db88b03d4282688a27a5d288eb` (A35-S6c3, 2026-10-02).
