@@ -38,6 +38,7 @@ import { artificerPortableContentDtoSchema } from '@artificer-toolkit/schema/api
 import { stripPortableMetadata } from '@artificer-toolkit/shared/utils'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { developmentTarget } from './developmentTarget'
+import { retryRateLimitedAuth } from './developmentAuthRequest'
 import { developmentCli as cli } from './developmentCli'
 import type { SocialProofCohort } from './developmentSocial'
 import {
@@ -357,30 +358,19 @@ function actionAllowanceUsed(run: unknown, actorId: string): number {
   return encounterRuleUsageUsed(actor, SRD_ACTION_ALLOWANCE_DEFINITION_ID)
 }
 
-/** Sends an auth request; a 429 waits the server's bounded `X-Retry-After`, as the browser clients do. */
-async function auth(path: string, body?: Record<string, unknown>, session?: string) {
-  for (let retry = 0; ; retry++) {
-    const response = await fetch(new URL(`/api/auth${path}`, siteUrl), {
-      method: body ? 'POST' : 'GET',
-      headers: {
-        origin: 'http://localhost:3000',
-        'content-type': 'application/json',
-        ...(session ? { authorization: `Bearer ${session}` } : {})
-      },
-      body: body ? JSON.stringify(body) : undefined,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(30_000)
-    })
-    if (response.status !== 429 || retry === 3) return response
-    const retrySeconds = Number(response.headers.get('X-Retry-After'))
-    assert.ok(
-      Number.isInteger(retrySeconds) && retrySeconds > 0 && retrySeconds <= 10,
-      "Auth rate limit requires the server's bounded retry delay."
-    )
-    console.log(`Auth rate limit on ${path}: waiting ${retrySeconds}s before retry ${retry + 1}.`)
-    await new Promise((resolve) => setTimeout(resolve, retrySeconds * 1000))
-  }
-}
+const auth = retryRateLimitedAuth((path, body, session) =>
+  fetch(new URL(`/api/auth${path}`, siteUrl), {
+    method: body ? 'POST' : 'GET',
+    headers: {
+      origin: 'http://localhost:3000',
+      'content-type': 'application/json',
+      ...(session ? { authorization: `Bearer ${session}` } : {})
+    },
+    body: body ? JSON.stringify(body) : undefined,
+    redirect: 'manual',
+    signal: AbortSignal.timeout(30_000)
+  })
+)
 
 async function responseToken(response: Response) {
   assert.equal(response.status, 200, 'Expected authenticated HTTP response.')
