@@ -294066,6 +294066,7 @@ export declare const api: {
                 allowedResponses: Array<
                   "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                 >;
+                attackerActorId?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "D20_WINDOW";
@@ -295035,6 +295036,7 @@ export declare const api: {
                   allowedResponses: Array<
                     "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                   >;
+                  attackerActorId?: string;
                   d20: { selectedNatural: number; total: number };
                   encounterVersion: number;
                   kind: "D20_WINDOW";
@@ -296668,6 +296670,7 @@ export declare const api: {
           }
         | {
             allowedResponses: Array<"D20_WINDOW_DECLINE" | "D20_WINDOW_USE">;
+            attackerActorId?: string;
             d20: { selectedNatural: number; total: number };
             encounterVersion: number;
             kind: "D20_WINDOW";
@@ -298328,6 +298331,7 @@ export declare const api: {
                 allowedResponses: Array<
                   "D20_WINDOW_DECLINE" | "D20_WINDOW_USE"
                 >;
+                attackerActorId?: string;
                 d20: { selectedNatural: number; total: number };
                 encounterVersion: number;
                 kind: "D20_WINDOW";
