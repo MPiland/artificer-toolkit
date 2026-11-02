@@ -1180,7 +1180,7 @@ and movement reactions and spatial effects run under `MOVE_SCENE_TOKEN`, which i
 A result that tiers on the target's hit points (`HIT_POINT_TIERS` path rows, T2i4a) compiles to
 `compilation.hitPointTierPlans`: one active-effect plan per tier, each carrying `hitPointTier: { atMost }`, with
 `activeEffectPlan` null. `hitPointTiers.ts` is the one place a ceiling is compared with current hit points (the
-lowest `atMost` the target satisfies wins, none means no tier); `encounterActiveEffectPlan` picks the target's plan
+lowest `atMost` the target satisfies wins, none means no tier); `encounterActiveEffectPlans` picks the target's plan
 with it and the hit-point-gated proposal operations decide with it. Tier plans author no maintenance or source
 immunity, and a cast pick cannot also tier.
 
@@ -1193,9 +1193,10 @@ row (`narrowedActions` in `effectActionNarrowing.ts`, the one rule hit-point tie
 direct results of the table's path, and must hold that row (`compiledEntryId` is the row's entry); a row no timed plan
 holds, a lasting row on an action with two tables, or rows beside hit-point tiers are refused. A row's grant is the
 plan's alone and leaves no OUTCOME node; its timed condition is applied by the OUTCOME graph and held by the plan.
-`encounterActiveEffectPlan` picks the row whose faces hold the settled `rollTableRoll` (no row plan when the save
-succeeds or the rolled row does not last), so it needs the settled OUTCOME outputs: a multi-creature action's lead plan
-(`leadActiveEffectPlan`) has none and refuses row plans, and a cast pick cannot also roll on a table. A timed
+`encounterActiveEffectPlans` picks the row whose faces hold the settled `rollTableRoll` (no row plan when the save
+succeeds or the rolled row does not last). Read before the roll settles (`outputs` omitted) every row plan is a
+candidate, which is what a multi-creature action's lead (`leadActiveEffectPlans`) reads, and a cast pick cannot also
+roll on a table. A timed
 condition's last counted turn (D62.2) removes the effect's conditions under `dnd5e.condition-duration`; the stored
 turn-effect result binds that removal to the expiring effect itself (an `EXPIRE` lifecycle, its own effect id, no
 paths), not to a trace candidate, since the duration node outputs nothing.
@@ -1210,14 +1211,23 @@ The die is asked only when the TEST selects the path, and the rolls are the Syst
 publishes each rolled face as a `rollTableFace_<PATH>_<ray>` output; `rollTableOutcomeTemplate` specialises the OUTCOME
 from them (`facts.rollTableFaces`), with LITERAL row-gate rolls, and `rollTableTemplateChecksum` keys the template identity on
 rows and repeat together. `requireRollTableTestTraces` (`effectActionRollTableTrace.ts`) re-executes every `table-roll-` node. A repeat on a test-less
-action is refused. The OUTCOME's `rollTableRoll` output is the first face, so a lasting row rolled by a ray has no held
-plan until its multi-plan effect (T2ps-d2).
+action is refused. The OUTCOME's `rollTableRoll` output is the first face; on a repeat table it also publishes
+`rollTableLanded`, a LITERAL comma-joined list of every face the die and its rays landed on.
+
+**Merged rows (SPELLS-4.T2ps-d2, current).** A target a repeat table struck in more than one lasting row holds the plan of
+each. `encounterActiveEffectPlans` (plural) selects every row plan whose faces hold a landed face, each plan once, so a
+row landed twice makes one effect. `prepareNativeActionEffectsPlan` plans each selected plan from the same settled
+cast (`prepareNativeActionEffectsForPlan`): the first effect is the action's recurring effect and the others ride beside
+it as `riderEffects`, which are unlinked (no `endsWith`), since the rows share nothing and each ends on its own terms. A
+row plan carries no rider of its own, so a plan that did is refused rather than merged. The merge is generic: nothing
+names a spell, and an action whose result selects one plan is planned exactly as before. Prismatic Spray's indigo and
+violet rows are held this way.
 
 A test-less action's table (ATTACK-16.T1c2a, current) amends T1a's "save result path only" rule: an action with no
 attack, save or check may resolve its one path (ON_USE) through one `ROLL_TABLE`, rolled server-side in its single
 DIRECT graph (`directRollTableGraph`). The graph is the same table graph a save's OUTCOME phase runs (table die, row
 gates, path-gated row outcomes, `rollTableRoll` output), admitted by the same rules, so `rollTableRowPlans` and
-`encounterActiveEffectPlan` work unchanged from the DIRECT outputs. The table must be the action's only path. Tables on
+`encounterActiveEffectPlans` work unchanged from the DIRECT outputs. The table must be the action's only path. Tables on
 an attack's or a check's result paths stay refused.
 
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
