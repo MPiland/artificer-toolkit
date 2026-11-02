@@ -80,7 +80,8 @@ export interface RoomCommandHost {
     before: CampaignSceneStateDto,
     after: CampaignSceneStateDto,
     result: SceneCommandResultDto,
-    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto }
+    /** The member whose stored receipt is already built; null for the room's own command. */
+    sender: { socket: WebSocket; message: LiveSessionWebSocketServerMessageDto } | null
   ): void
   broadcastStateSync(): void
   scheduleAlarm(): Promise<void>

@@ -321,7 +321,7 @@ export async function executeSceneCommand(
   }
   if (command.type !== 'MOVE_SCENE_TOKEN' && command.type !== 'SET_SCENE_DOOR_STATE') {
     try {
-      await commitRoomGeometry(host, socket, admission, value, command, fingerprint)
+      await commitRoomGeometry(host, { socket, admission, value }, command, fingerprint)
     } catch (error) {
       host.rejectSceneCommand(socket, commandId, error, correction())
     }
@@ -347,7 +347,7 @@ export async function executeSceneCommand(
   }
   if (plan.kind === 'STAGED') {
     try {
-      await commitRoomGeometry(host, socket, admission, value, command, fingerprint)
+      await commitRoomGeometry(host, { socket, admission, value }, command, fingerprint)
     } catch (error) {
       host.rejectSceneCommand(socket, commandId, error, correction())
     }

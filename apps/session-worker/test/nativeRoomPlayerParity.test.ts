@@ -488,6 +488,19 @@ const PARITY: Record<CommandType, Entry> = {
     actorScoped: false,
     build: (probe) => ({ ...base(probe), type: 'SET_HEALTH_DISPLAY_DEFAULT', level: 'HIDDEN' })
   },
+  SET_AFK: {
+    access: 'TABLE',
+    rule: table(
+      'D207: the GM marks any member away; a player marks only themselves (proved in nativeRoomReaction.test.ts)'
+    ),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'SET_AFK',
+      userId: probe.room.room.base.userId,
+      afk: true
+    })
+  },
   SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING: {
     access: 'TABLE',
     rule: TABLE_ADMIN,

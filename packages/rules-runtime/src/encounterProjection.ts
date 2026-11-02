@@ -402,6 +402,8 @@ function projectGmFacts(
     trackAmmunition: encounter.trackAmmunition,
     zoneNoticing: encounter.zoneNoticing,
     automaticCover: encounter.automaticCover,
+    reactionSeconds: encounter.reactionSeconds,
+    afkUserIds: encounter.afkUserIds,
     healthDisplayDefault: encounter.healthDisplayDefault,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null

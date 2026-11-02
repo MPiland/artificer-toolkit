@@ -22,6 +22,7 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import type { ClassFeature } from '../src/testing/srdCharacterSource.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { expireReactionOffer } from './reactionTimeoutClock.js'
 import {
   readActorHitPoints,
   readPendingActionDecision,
@@ -236,6 +237,18 @@ describe('Cutting Words against an attack roll in the room (SPELLS-31.T4c3b1)', 
       requestId: pending.requestId
     })
     expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(await targetHitPoints(room)).toBeLessThan(hitPoints)
+    expect(await inspirationUsed(room)).toBe(0)
+    expect(await reactionUsed(room)).toBe(0)
+  })
+
+  it('declines the window once the offer’s time runs out, so the Bite hits (D207)', async () => {
+    const room = await reactorRoom('LORE_BARD')
+    const hitPoints = await targetHitPoints(room)
+    await openWindow(room)
+
+    await expireReactionOffer(room.room.base.stub)
     expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
     expect(await targetHitPoints(room)).toBeLessThan(hitPoints)
     expect(await inspirationUsed(room)).toBe(0)

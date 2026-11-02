@@ -340,7 +340,10 @@ export async function movementRoom(config: MovementRoomConfig) {
       automaticCover: config.automaticCover,
       optionalCombatKinds: config.optionalCombatKinds,
       optionalCombatHomebrew: config.optionalCombatHomebrew,
-      sides: config.sides
+      sides: config.sides,
+      // The longest a GM may set (D207): the room's alarm runs in real time, so a loaded runner
+      // must not decline an offer a test is still answering.
+      reactionSeconds: 15
     }),
     id: encounterId,
     campaignId

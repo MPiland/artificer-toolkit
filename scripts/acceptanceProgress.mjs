@@ -36,11 +36,15 @@ const isPbiProven = (pbi) =>
   pbi.acs.every((ac) => ac.status === 'DONE' && hasProof(ac)) &&
   ['verified', 'internal'].includes(journeyStatusOf(pbi))
 
-// Every feature needs accepted UAT to be DONE; built features without it are UAT_READY.
-const featureStatus = (feature) => {
+// Every feature needs accepted UAT to be DONE; built features without it are UAT_READY. A feature
+// proven by the other features' UAT (`uatByOtherFeatures`) is accepted once every other feature is.
+const featureStatus = (feature, othersAccepted = false) => {
   const { pbis, uat = [] } = feature
   if (pbis.every((pbi) => pbi.status === 'DONE') && (pbis.length > 0 || uat.length > 0)) {
-    return uat.length > 0 && uat.every((item) => item.status === 'PASSED') ? 'DONE' : 'UAT_READY'
+    const accepted = feature.uatByOtherFeatures
+      ? othersAccepted
+      : uat.length > 0 && uat.every((item) => item.status === 'PASSED')
+    return accepted ? 'DONE' : 'UAT_READY'
   }
   const started =
     pbis.some((pbi) => pbi.status !== 'TODO' || pbi.acs.some((ac) => ac.status !== 'TODO')) ||
@@ -304,7 +308,18 @@ const validate = () => {
 
 const buildReport = () => {
   const { ordered } = dependencyOrder(ledger.features)
-  const statusById = new Map(ordered.map((feature) => [feature.id, featureStatus(feature)]))
+  const ownStatusById = new Map(ordered.map((feature) => [feature.id, featureStatus(feature)]))
+  const othersAccepted = ordered.every(
+    (feature) => feature.uatByOtherFeatures || ownStatusById.get(feature.id) === 'DONE'
+  )
+  const statusById = new Map(
+    ordered.map((feature) => [
+      feature.id,
+      feature.uatByOtherFeatures
+        ? featureStatus(feature, othersAccepted)
+        : ownStatusById.get(feature.id)
+    ])
+  )
   const features = ordered.map((feature) => {
     const pbis = feature.pbis.map((pbi) => ({
       id: pbi.id,

@@ -40,6 +40,7 @@ import {
   NO_SCENE_TOKENS,
   type LegendaryAreaAim,
   rollPromptText,
+  timedReactionOffer,
   type InitiativeDeclarationAdjudicationValues
 } from './CampaignTabletopDecisionDrawer.model'
 import { AREA_AIM_COPY } from './campaignTabletopAimCopy'
@@ -82,7 +83,9 @@ export function CampaignTabletopDecisionDrawer({
       | VoidRuleOccurrenceInputDto
   ) => Promise<EncounterCommandResultDto>
 }) {
-  const [opened, { close, open }] = useDisclosure(false)
+  const timedOffer = timedReactionOffer(pending)
+  // A timed reaction opens itself: it declines when its time runs out (D207).
+  const [opened, { close, open }] = useDisclosure(timedOffer !== null)
   const [localPending, setLocalPending] = useState(false)
   const [primaryOptionId, setPrimaryOptionId] = useState<string | null>(null)
   const [bonusOptionId, setBonusOptionId] = useState<string | null>(null)
@@ -110,7 +113,29 @@ export function CampaignTabletopDecisionDrawer({
     setAdjudicationValues({})
     setFeedback(null)
     setError(null)
+    if (timedOffer) open()
   }
+
+  const secondsLeft = useSecondsLeft(timedOffer?.answerBy ?? null)
+  useEffect(() => {
+    if (!opened || !timedOffer || aim.aiming || disabled) return
+    const { take, decline } = timedOffer
+    // Capture runs before a focused button's own Enter, so one key press answers once.
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Enter' && event.key !== 'Escape') return
+      if (
+        event.target instanceof HTMLElement &&
+        (event.target.isContentEditable ||
+          ['INPUT', 'SELECT', 'TEXTAREA'].includes(event.target.tagName))
+      )
+        return
+      event.preventDefault()
+      event.stopPropagation()
+      void resolve(event.key === 'Enter' ? take : decline)
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    return () => window.removeEventListener('keydown', onKeyDown, true)
+  })
 
   function commandTarget() {
     return {
@@ -214,7 +239,7 @@ export function CampaignTabletopDecisionDrawer({
         closeButtonProps={{ 'aria-label': 'Close pending decision' }}
         // Aiming hides the drawer to free the map without unmounting it, so the chosen option and
         // aim return with it.
-        closeOnEscape={!aim.aiming}
+        closeOnEscape={!aim.aiming && !timedOffer}
         lockScroll={!aim.aiming}
         opened={opened}
         position='right'
@@ -247,6 +272,18 @@ export function CampaignTabletopDecisionDrawer({
               </Text>
             )}
           </div>
+          {timedOffer && !skipped && secondsLeft !== null ? (
+            <Stack gap={4}>
+              <Text fw={650} role='timer' size='xl'>
+                {secondsLeft > 0
+                  ? `${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'} to react`
+                  : 'Time is up'}
+              </Text>
+              <Text c='dimmed' size='xs'>
+                Enter takes the first option. Esc declines.
+              </Text>
+            </Stack>
+          ) : null}
           {!connected && !skipped ? (
             <Alert color='yellow'>Decision controls will return when live play reconnects.</Alert>
           ) : null}
@@ -313,6 +350,7 @@ export function CampaignTabletopDecisionDrawer({
                 <Button
                   disabled={disabled}
                   key={option.optionId}
+                  size='lg'
                   onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
                 >
                   Use {option.actionId}
@@ -320,6 +358,7 @@ export function CampaignTabletopDecisionDrawer({
               ))}
               <Button
                 disabled={disabled}
+                size='lg'
                 variant='default'
                 onClick={() => void resolve({ kind: 'DECLINE' })}
               >
@@ -353,6 +392,7 @@ export function CampaignTabletopDecisionDrawer({
                 <Button
                   disabled={disabled}
                   key={option.optionId}
+                  size='lg'
                   onClick={() => void resolve({ kind: 'OPTION', optionId: option.optionId })}
                 >
                   {pending.options.length === 1 ? 'Use reaction' : `Use ${option.actionId}`}
@@ -360,6 +400,7 @@ export function CampaignTabletopDecisionDrawer({
               ))}
               <Button
                 disabled={disabled}
+                size='lg'
                 variant='default'
                 onClick={() => void resolve({ kind: 'DECLINE' })}
               >
@@ -399,6 +440,7 @@ export function CampaignTabletopDecisionDrawer({
                 <Button
                   disabled={disabled}
                   key={option.optionId}
+                  size='lg'
                   onClick={() =>
                     void resolve({
                       kind: 'ROLL_WINDOW_USE',
@@ -413,6 +455,7 @@ export function CampaignTabletopDecisionDrawer({
               ))}
               <Button
                 disabled={disabled}
+                size='lg'
                 variant='default'
                 onClick={() =>
                   void resolve({ kind: 'ROLL_WINDOW_DECLINE', requestId: pending.requestId })
@@ -610,6 +653,27 @@ function DamageRollWindowControls({
       </Button>
     </Stack>
   )
+}
+
+/**
+ * Whole seconds until `answerBy`, ticking while it is set; null without one, and until a new offer's
+ * first tick reads the clock, so it never counts from the last tick of the offer before it.
+ */
+function useSecondsLeft(answerBy: number | null): number | null {
+  const [clock, setClock] = useState(() => ({ answerBy, now: Date.now() }))
+  useEffect(() => {
+    if (answerBy === null) return
+    const tick = () => setClock({ answerBy, now: Date.now() })
+    const first = setTimeout(tick)
+    const timer = setInterval(tick, 250)
+    return () => {
+      clearTimeout(first)
+      clearInterval(timer)
+    }
+  }, [answerBy])
+  return answerBy === null || clock.answerBy !== answerBy
+    ? null
+    : Math.max(0, Math.ceil((answerBy - clock.now) / 1000))
 }
 
 /** A contest participant picks one of its checks, when offered several, and rolls its d20. */

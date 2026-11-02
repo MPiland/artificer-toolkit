@@ -7,6 +7,7 @@ import {
   Group,
   Menu,
   Modal,
+  MultiSelect,
   NumberInput,
   Select,
   Stack,
@@ -320,6 +321,24 @@ export function CampaignEncounterWorkspace({
           </Group>
         ) : null}
       </Group>
+      {canManage && encounter.status === 'ACTIVE' ? (
+        <MultiSelect
+          classNames={{ input: sharedStyles.input }}
+          data={campaign.memberships
+            .filter((membership) => membership.role === 'PLAYER')
+            .map((membership) => ({ label: membership.username, value: membership.userId }))}
+          description='Their reaction offers decline at once.'
+          disabled={structureDisabled}
+          label='Players away'
+          value={encounter.afkUserIds}
+          onChange={(userIds) => {
+            const added = userIds.find((userId) => !encounter.afkUserIds.includes(userId))
+            const userId =
+              added ?? encounter.afkUserIds.find((afkUserId) => !userIds.includes(afkUserId))
+            if (userId) commandWithVersion({ type: 'SET_AFK', userId, afk: added !== undefined })
+          }}
+        />
+      ) : null}
       {encounter.status === 'PREPARED' && requiresManualInitiative && missingInitiative ? (
         <Text c='dimmed' size='sm'>
           Roll or enter initiative for each combatant to start.
@@ -674,6 +693,7 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'PREVIOUS_TURN') return 'Turn moved back'
   if (commandType === 'SET_CURRENT_ACTOR') return 'Current turn corrected'
   if (commandType === 'SET_ROUND') return 'Round corrected'
+  if (commandType === 'SET_AFK') return 'Away status changed'
   if (commandType === 'UPDATE_ACTOR') return 'Combatant updated'
   if (commandType === 'SET_HEALTH_DISPLAY_DEFAULT') return 'Enemy health display changed'
   if (commandType === 'REMOVE_ACTOR') return 'Enemy removed'

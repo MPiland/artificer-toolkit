@@ -1618,6 +1618,33 @@ bonus is consumed by the first attack roll (`ON_ATTACK_ROLL`). Limits: only the 
 (save-based and area damage do not offer it), and the follow-up is spent by any attack roll of its holder, not
 only a melee hit (see future enhancements).
 
+#### Timed reaction offers (current, SPELLS-31.T4r, D207)
+
+Every reaction offer declines itself when its time runs out: `REACTION_CHOICE` (a hit, `SPELL_CAST`,
+`DAMAGE_TAKEN`), `MOVEMENT_REACTION` and a reactor's `ROLL_WINDOW` (a roller's own window waits). The Campaign's
+`reactionSeconds` (default 5, 3 to 15, set by the GM in the table settings) is frozen into the Run's policy snapshot at
+Run start with the other play settings. `readPendingRunDecision` (`encounter-persistence/pendingReads.ts`) is the one
+home of the deadline: `answerBy = occurrence.updatedAt + reactionSeconds`, or `updatedAt` itself when the offer's reactor
+(the reaction's `targetActorId`, the movement choice's `reactorActorId`, the window's reactor) is controlled by a member in
+the Run's `afkUserIds`. The pending summary carries `answerBy`; the timer applies to GM creatures as well.
+
+The Session Durable Object keeps the deadline: after each commit it records the earliest `answerBy` in
+`room_reaction_timeout` and schedules its alarm for it. When the alarm runs, `settleRoomReactionTimeouts`
+(`apps/session-worker/src/roomReactionTimeout.ts`) issues the decline (`DECLINE`, or `ROLL_WINDOW_DECLINE`) as the Campaign
+owner through the path a member's answer takes (`commitMovementDecision` for a movement reaction, `commitRoomEncounterCommand`
+otherwise). Its command ID is a UUIDv5 of the occurrence ID and version, and it carries the offer's
+`expectedVersion` and `expectedOccurrenceVersion`. So a member's or the GM's answer that settled the offer first makes the
+decline stale. A replayed alarm reuses the same key and so replays the committed result, and a late member answer after the
+decline is rejected by the revision fence. The GM can still answer or void an offer at once.
+
+`SET_AFK` (a tool command) marks a member away: a player may mark only themselves, the GM anyone. It is refused while a
+decision is pending, so a deadline never moves under an open offer. The GM projection lists `afkUserIds`; the player
+projection carries `viewerAfk`. The decision drawer opens itself for a timed offer, shows a countdown and large
+buttons, and answers Enter (the first option; a d20 window's first held die) and Esc (decline). Keys typed in a text field
+are left to it. Proofs: `nativeRoomReaction.test.ts` (expiry, GM answer, stale late answer, replayed expiry, AFK and its
+authorization), `nativeRoomCounterspell.test.ts`, `nativeRoomCuttingWords.test.ts`, `nativeMovementDecisionReplay.test.ts`,
+and the `player-browser` journey's Shield answered with Enter.
+
 ### 0 hit points (D63, current)
 
 A Creature or custom Run actor stores `defeated`. `nextEncounterActorDefeated`

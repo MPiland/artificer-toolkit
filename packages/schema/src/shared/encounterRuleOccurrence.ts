@@ -216,7 +216,11 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
     )
 )
 
+/** When a reaction offer declines itself (D207): the Campaign's reaction time after it opened, or at once for an AFK reactor. */
+const reactionAnswerByShape = () => ({ answerBy: z.optional(z.iso.datetime()) })
+
 /** What a roller sees of a d20 they have rolled and may add a held die to (D168). */
+
 const d20WindowChoiceShape = () => ({
   requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
   /** The kept face and the total the roll stands at before any die is added. */
@@ -399,6 +403,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             .check(z.minLength(1))
             .check(z.maxLength(RULE_GRAPH_LIMITS.NODES - 1))
         }),
+        ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -427,6 +432,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           )
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_REACTION_OPTIONS)),
+        ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('DECLINE'), z.literal('OPTION')])
       }),
       z.strictObject({
@@ -475,6 +481,8 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         /** What the roll is for; absent for an action's own save, which the action names. */
         trigger: z.optional(encounterRuleRollTriggerDtoSchema),
         ...d20WindowChoiceShape(),
+        /** Set when a reactor's die answers another creature's roll (D207); a roller's own window waits. */
+        ...reactionAnswerByShape(),
         allowedResponses: z.tuple([z.literal('ROLL_WINDOW_DECLINE'), z.literal('ROLL_WINDOW_USE')])
       }),
       /**

@@ -10,9 +10,11 @@ import { developmentCli as cli } from './developmentCli'
 import { DevelopmentHttpClient } from './developmentHttpClient'
 import { seedReviewData, type ReviewAccount } from './developmentReviewData'
 import {
+  REVIEW_ADMIN,
   REVIEW_GM,
   REVIEW_PASSWORD,
   REVIEW_PLAYERS,
+  REVIEW_SPARES,
   type ReviewAccountSpec
 } from './developmentReviewDataScenarios'
 import { developmentTarget } from './developmentTarget'
@@ -97,11 +99,18 @@ const gm = await connect(REVIEW_GM)
 // One at a time: the auth endpoints rate-limit bursts.
 const players: ReviewAccount[] = []
 for (const spec of REVIEW_PLAYERS) players.push(await connect(spec))
+const admin = await connect(REVIEW_ADMIN)
+const spares: ReviewAccount[] = []
+for (const spec of REVIEW_SPARES) spares.push(await connect(spec))
 const result = await seedReviewData({
   gm,
   players,
+  admin,
+  spares,
   grantGmTier: (userId) =>
     cli('accountEntitlements:setTier', { userId, tier: 'GM' }, false).then(() => {}),
+  grantSuperadmin: (userId) =>
+    cli('authAdmin:setRole', { userId, role: 'superadmin' }, false).then(() => {}),
   checkpoint: (campaignId) => awaitCampaignCheckpoint(gm.client, campaignId),
   log: (message) => console.log(message)
 })

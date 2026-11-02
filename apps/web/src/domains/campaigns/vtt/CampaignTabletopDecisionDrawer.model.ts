@@ -1,4 +1,5 @@
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounters'
 import type { VttAreaAim, VttAreaSize } from './vttSceneRenderer.model'
 
 import {
@@ -27,6 +28,42 @@ export const NO_AREA_AIM: LegendaryAreaAim = {
 }
 
 export const NO_SCENE_TOKENS: CampaignSceneStateDto['tokens'] = []
+
+/**
+ * A reaction offer that declines itself at `answerBy` (D207), with the answers its keys give: Enter
+ * takes the first option and Esc declines. Null for every decision that waits.
+ */
+export function timedReactionOffer(pending: PendingEncounterRuleOccurrenceSummaryDto): {
+  answerBy: number
+  take: ResolveRuleOccurrenceInputDto['resolution']
+  decline: ResolveRuleOccurrenceInputDto['resolution']
+} | null {
+  if (
+    (pending.kind !== 'REACTION_CHOICE' &&
+      pending.kind !== 'MOVEMENT_REACTION' &&
+      pending.kind !== 'ROLL_WINDOW') ||
+    !pending.answerBy
+  )
+    return null
+  const answerBy = Date.parse(pending.answerBy)
+  if (pending.kind === 'ROLL_WINDOW') {
+    const [first] = pending.options
+    const { requestId } = pending
+    return {
+      answerBy,
+      take: first
+        ? { kind: 'ROLL_WINDOW_USE', requestId, optionId: first.optionId }
+        : { kind: 'ROLL_WINDOW_DECLINE', requestId },
+      decline: { kind: 'ROLL_WINDOW_DECLINE', requestId }
+    }
+  }
+  const [first] = pending.kind === 'MOVEMENT_REACTION' ? pending.choice.options : pending.options
+  return {
+    answerBy,
+    take: first ? { kind: 'OPTION', optionId: first.optionId } : { kind: 'DECLINE' },
+    decline: { kind: 'DECLINE' }
+  }
+}
 
 /** What a Legendary option needs to have its area aimed on the stage map. */
 export type LegendaryAreaAim = {
