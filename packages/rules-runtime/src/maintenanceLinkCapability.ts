@@ -34,6 +34,10 @@ export interface MaintenanceLinkCapabilityAdapter {
   saveFacts(input: {
     appliedDamage: number
     targetActorId: string
+    /** How many Concentrations the holder maintains, the one saved for included. */
+    heldCount: number
+    /** The cast level of the spell whose Concentration is saved for, null when no spell cast it. */
+    spellLevel: number | null
     target: Pick<
       MovementTarget,
       'effectiveRulePolicyOutput' | 'targetDerivedFacts' | 'conditionMechanics'

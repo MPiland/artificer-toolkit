@@ -104,11 +104,10 @@ import {
   canControlSceneToken,
   resolveViewTokenId,
   stageOverlays,
-  type VttActionPreview,
-  type VttAreaAim,
-  type VttAreaSize
+  type VttActionPreview
 } from './vttSceneRenderer.model'
 import { travelFacingDegrees } from './vttFacing.model'
+import { legendaryOwnerToken, useStageAreaAim } from './useStageAreaAim'
 import { useVttTokenPresentations } from './useVttTokenPresentations'
 import {
   buildTargetEntries,
@@ -138,9 +137,7 @@ export function CampaignVttStage({
   const convex = useConvex()
   const [actionsOpened, setActionsOpened] = useState(false)
   // Where the caster aimed an area action on the map, and the area's size on this Scene.
-  const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
-  const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
-  const [aimingArea, setAimingArea] = useState(false)
+  const area = useStageAreaAim()
   // The zone the GM zone tool aims on the map, with where its picked center goes.
   const [zoneAim, setZoneAim] = useState<ZonePointPick | null>(null)
   const zoneAimRef = useRef(zoneAim)
@@ -683,14 +680,16 @@ export function CampaignVttStage({
     selectedTokenId,
     targetEntries
   })
+  const legendaryOwnerTokenId = legendaryOwnerToken(drawerDecision, actorIdByTokenId)
+  const aimCasterTokenId = actionPreview?.sourceTokenId ?? legendaryOwnerTokenId ?? null
   const rendererAreaAim = useMemo(
     () =>
-      aimingArea && areaSize
-        ? { casterTokenId: actionPreview?.sourceTokenId ?? null, size: areaSize }
+      area.aimingArea && area.areaSize
+        ? { casterTokenId: aimCasterTokenId, size: area.areaSize }
         : zoneAim
           ? { casterTokenId: null, size: zoneAim.size }
           : null,
-    [actionPreview?.sourceTokenId, aimingArea, areaSize, zoneAim]
+    [aimCasterTokenId, area.aimingArea, area.areaSize, zoneAim]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(
@@ -698,9 +697,10 @@ export function CampaignVttStage({
       stageOverlays({
         actionPreview,
         aimingArea: rendererAreaAim !== null,
-        areaAim,
-        areaSize,
+        areaAim: area.areaAim,
+        areaSize: area.areaSize,
         auras: encounterSessionState?.auras ?? [],
+        casterTokenId: aimCasterTokenId,
         destinationOverlays: forcedMovementDestinationOverlays(destinationPick, focusedDestination),
         drawerOpened: actionsOpened,
         // The Run's zones are fixed to its Scene; another presented Scene draws none.
@@ -710,8 +710,9 @@ export function CampaignVttStage({
     [
       actionPreview,
       actionsOpened,
-      areaAim,
-      areaSize,
+      aimCasterTokenId,
+      area.areaAim,
+      area.areaSize,
       destinationPick,
       encounterSessionState?.auras,
       encounterScene,
@@ -928,14 +929,14 @@ export function CampaignVttStage({
     const host = rendererHost.current
     if (!host || !scene) return
     let disposed = false
+    const endAreaAim = () => area.endAiming() && setActionsOpened(true)
     void createVttSceneRenderer(host, campaign.gameSystemId, {
       onAreaAimCancel: () => {
         if (zoneAimRef.current) {
           setZoneAim(null)
           return
         }
-        setAimingArea(false)
-        setActionsOpened(true)
+        endAreaAim()
       },
       onAreaPoint: (point) => {
         if (zoneAimRef.current) {
@@ -943,14 +944,12 @@ export function CampaignVttStage({
           setZoneAim(null)
           return
         }
-        setAreaAim({ origin: point, toward: null })
-        setAimingArea(false)
-        setActionsOpened(true)
+        area.setAreaAim({ origin: point, toward: null })
+        endAreaAim()
       },
       onAreaDirection: (aim) => {
-        setAreaAim(aim)
-        setAimingArea(false)
-        setActionsOpened(true)
+        area.setAreaAim(aim)
+        endAreaAim()
       },
       onSquarePick: (center) => pickDestinationRef.current?.(center),
       onZoomChange: (scale, origin) => {
@@ -1579,20 +1578,20 @@ export function CampaignVttStage({
               connected={live.status === 'CONNECTED'}
               encounter={activeEncounter}
               isGm={campaign.role === 'OWNER'}
-              opened={actionsOpened && !aimingArea && !targeting}
+              opened={actionsOpened && !area.aimingArea && !targeting}
               onOpen={() => setActionsOpened(true)}
               onClose={() => setActionsOpened(false)}
               unavailableActions={currentActionChoices?.unavailableActions ?? []}
               optionalRules={currentActionChoices?.optionalRules ?? []}
               pending={encounterCommand.isPending || pendingOccurrence !== null}
               scene={encounterScene}
-              areaAim={areaAim}
+              areaAim={area.areaAim}
               waitingOn={encounterSessionState?.waitingOn ?? null}
               actorIdByTokenId={actorIdByTokenId}
-              onAreaAimChange={setAreaAim}
-              onAreaSizeChange={setAreaSize}
+              onAreaAimChange={area.setAreaAim}
+              onAreaSizeChange={area.setAreaSize}
               onActionPreviewChange={setActionPreview}
-              onPickAreaOrigin={() => setAimingArea(true)}
+              onPickAreaOrigin={() => area.startAiming(false)}
               pickedTargetActorId={pickedTargetActorId}
               onPickTargetOnMap={setTargetingRequest}
               onTargetPick={setPickedTargetActorId}
@@ -1612,6 +1611,7 @@ export function CampaignVttStage({
               encounter={activeEncounter}
               latestRoll={latestEvidenceRoll}
               pending={drawerDecision}
+              aim={area.decisionAim(encounterScene, legendaryOwnerTokenId)}
               skipped={
                 !pendingOccurrence && decisionOutcome === 'GM_SKIP'
                   ? { onDismiss: () => setShownDecision(null) }

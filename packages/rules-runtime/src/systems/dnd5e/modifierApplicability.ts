@@ -11,7 +11,10 @@ import type { ModifierScopeCapabilityAdapter } from '../../modifierScopeCapabili
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 type ActionCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
-type ActionFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation' | 'spell'>
+type ActionFacts = Pick<
+  Dnd5eModifierTarget,
+  'item' | 'attackAbility' | 'activation' | 'spell' | 'concentrationSave'
+>
 
 const SPELL_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
   'SPELL_IDENTITY',
@@ -20,8 +23,14 @@ const SPELL_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
   'SPELL_DAMAGE_TYPE'
 ])
 
+const CONCENTRATION_SAVE_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
+  'HOLDER_CONCENTRATION_COUNT',
+  'CONCENTRATION_DAMAGE_OVER'
+])
+
 /**
- * The conditions read from the action itself (its attacking item, attack and cast spell); any
+ * The conditions read from the action itself (its attacking item, attack, cast spell and
+ * Concentration save); any
  * other deferred condition is the encounter's.
  */
 export const DND5E_ACTION_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> = new Set([
@@ -31,7 +40,8 @@ export const DND5E_ACTION_CONDITION_KINDS: ReadonlySet<ActionCondition['kind']> 
   'ITEM_SOLE_WEAPON',
   'ITEM_ATTACK_ABILITY',
   'ITEM_ACTIVATION',
-  ...SPELL_CONDITION_KINDS
+  ...SPELL_CONDITION_KINDS,
+  ...CONCENTRATION_SAVE_CONDITION_KINDS
 ])
 
 /**
@@ -59,6 +69,17 @@ export type Dnd5eCastSpell = {
 }
 
 /**
+ * The Concentration save being rolled: how many Concentrations the holder maintains (the one saved
+ * for included), the level of the spell saved for (null when no spell cast started it), and the
+ * damage behind the save.
+ */
+export type Dnd5eConcentrationSave = {
+  readonly heldCount: number
+  readonly spellLevel: number | null
+  readonly damage: number
+}
+
+/**
  * What a modifier consumer evaluates: the sources whose own (SOURCE-scoped) modifiers apply, the
  * attacking item for item facets, the ability the attack uses for attack-ability facets, the
  * activation it is made with and the cast spell for spell facets.
@@ -69,6 +90,8 @@ export type Dnd5eModifierTarget = {
   readonly attackAbility: string | null
   readonly activation: string | null
   readonly spell: Dnd5eCastSpell | null
+  /** Only a Concentration save sets it; any other evaluation meets no Concentration-save condition. */
+  readonly concentrationSave?: Dnd5eConcentrationSave
 }
 
 /** Character-wide values (saves, skills, initiative, spellcasting) evaluate no source or item. */
@@ -108,6 +131,26 @@ function spellConditionMatches(condition: ActionCondition, spell: Dnd5eCastSpell
       return (
         spell.damageTypeId !== null &&
         (condition.mode === 'ALL' || condition.requiredIds.includes(spell.damageTypeId))
+      )
+    default:
+      return false
+  }
+}
+
+function concentrationSaveConditionMatches(
+  condition: ActionCondition,
+  save: Dnd5eConcentrationSave
+): boolean {
+  switch (condition.kind) {
+    case 'HOLDER_CONCENTRATION_COUNT':
+      return (
+        save.heldCount >= (condition.min ?? 0) &&
+        (condition.max === null || save.heldCount <= condition.max)
+      )
+    case 'CONCENTRATION_DAMAGE_OVER':
+      return (
+        save.spellLevel !== null &&
+        save.damage > (condition.min ?? 0) + condition.perSpellLevel * save.spellLevel
       )
     default:
       return false
@@ -166,6 +209,12 @@ export function dnd5eActionRequirementsMet(
         if (!DND5E_ACTION_CONDITION_KINDS.has(condition.kind)) return false
         if (SPELL_CONDITION_KINDS.has(condition.kind)) {
           const matches = target.spell !== null && spellConditionMatches(condition, target.spell)
+          return condition.constraint === 'INCLUDE' ? matches : !matches
+        }
+        if (CONCENTRATION_SAVE_CONDITION_KINDS.has(condition.kind)) {
+          // Without a save to read, the condition fails closed whatever its constraint.
+          if (target.concentrationSave === undefined) return false
+          const matches = concentrationSaveConditionMatches(condition, target.concentrationSave)
           return condition.constraint === 'INCLUDE' ? matches : !matches
         }
         if (
