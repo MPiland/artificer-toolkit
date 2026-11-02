@@ -65,14 +65,14 @@ export const dnd5eActionEconomyCapabilityAdapter: ActionEconomyCapabilityAdapter
         ? {
             refusal:
               'A bonus action spell can’t follow another spell cast this turn, except a cantrip cast with an action.',
-            marks: null
+            marks: 'bonusActionSpell'
           }
         : { refusal: null, marks: 'bonusActionSpell' }
     if (activationKind === 'ACTION')
       return held.bonusActionSpell && !cantrip
         ? {
             refusal: 'After a bonus action spell, only a cantrip cast with an action may be cast.',
-            marks: null
+            marks: 'actionSpell'
           }
         : { refusal: null, marks: cantrip ? null : 'actionSpell' }
     return { refusal: null, marks: null }

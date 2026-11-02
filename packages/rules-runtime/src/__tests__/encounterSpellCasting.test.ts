@@ -29,7 +29,7 @@ function castInOrder(
       state: state(turnSequence),
       ...cast
     })
-    if (!evaluated.refusal && evaluated.transition)
+    if (evaluated.transition)
       actor = applyEncounterSpellCastingTransition(actor, evaluated.transition)
     return evaluated.refusal
   })
@@ -101,6 +101,40 @@ describe('the limit on spells cast in one turn (SPELLS-31.T5h-3)', () => {
       bonusActionSpell: true,
       actionSpell: false
     })
+  })
+})
+
+describe('a cast that overrides the limit (SPELLS-31.T5h-3)', () => {
+  it('still records the cast, so the next cast is judged against it', () => {
+    // An action spell, then a bonus action spell the GM allows, then a second action spell.
+    const { actor, outcomes } = castInOrder([
+      { activation: ACTION, cantrip: false },
+      { activation: BONUS_ACTION, cantrip: false },
+      { activation: ACTION, cantrip: false }
+    ])
+    expect(outcomes[1]).toMatch(/bonus action spell can’t follow/)
+    expect(outcomes[2]).toMatch(/only a cantrip/)
+    expect(encounterSpellCastingState(actor)).toEqual({
+      turnSequence: 1,
+      bonusActionSpell: true,
+      actionSpell: true
+    })
+  })
+
+  it('restores the earlier record on undo', () => {
+    const first = castInOrder([{ activation: ACTION, cantrip: false }])
+    const overridden = evaluateEncounterSpellCasting({
+      actor: first.actor,
+      state: state(1),
+      activation: BONUS_ACTION,
+      cantrip: false
+    })
+    expect(overridden.refusal).not.toBeNull()
+    const spent = applyEncounterSpellCastingTransition(first.actor, overridden.transition!)
+    const restored = revertEncounterSpellCastingTransition(spent, overridden.transition!)
+    expect(restored && encounterSpellCastingState(restored)).toEqual(
+      encounterSpellCastingState(first.actor)
+    )
   })
 })
 
