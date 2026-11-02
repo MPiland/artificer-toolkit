@@ -304,6 +304,7 @@ const encounterBase = {
 
 export const tabletopPlayerEncounter = {
   ...encounterBase,
+  viewerAfk: false,
   actors: playerActors
 } satisfies EncounterPlayerProjectionDto
 

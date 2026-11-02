@@ -9358,6 +9358,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"
@@ -9424,6 +9425,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"
@@ -9451,6 +9453,7 @@ export declare const api: {
           normalCadenceDays: number | null;
           optionalCombatRuleDefinitionIds?: Array<string>;
           quorum: number | null;
+          reactionSeconds?: number;
           safetyPractices: Array<
             | "SESSION_ZERO"
             | "LINES_AND_VEILS"

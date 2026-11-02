@@ -116,36 +116,46 @@ export async function readPendingRunDecision(
     occurrence,
     pendingSnapshot
   })
-  const reactorActorId = pending && reactionOfferReactorActorId(pending, pendingSnapshot)
-  if (!pending || !reactorActorId) return pending
+  const reaction = pending && reactionOffer(pending, pendingSnapshot)
+  if (!reaction) return pending
   // A reaction offer declines itself once its time runs out (D207); an AFK reactor's at once.
   const state = readRunState(row)
   const controller = await readEncounterActorPrimaryController(
     ctx,
     campaign,
-    await readRunActor(ctx, state, reactorActorId)
+    await readRunActor(ctx, state, reaction.reactorActorId)
   )
   const seconds = state.afkUserIds.includes(controller) ? 0 : state.reactionSeconds
   return {
-    ...pending,
+    ...reaction.offer,
     answerBy: new Date(Date.parse(occurrence.updatedAt) + seconds * 1000).toISOString()
   }
 }
 
-/** The reactor a pending decision offers a reaction to, or null when it is not a reaction offer. */
-function reactionOfferReactorActorId(
+/** A pending decision that offers a reaction, with its reactor; null for every other decision. */
+function reactionOffer(
   pending: PendingEncounterRuleOccurrenceSummaryDto,
   pendingSnapshot: PendingSnapshot
-): string | null {
-  if (pending.kind === 'REACTION_CHOICE') return pending.targetActorId
-  if (pending.kind === 'MOVEMENT_REACTION') return pending.choice.reactorActorId
+): {
+  offer: Extract<
+    PendingEncounterRuleOccurrenceSummaryDto,
+    { kind: 'REACTION_CHOICE' | 'MOVEMENT_REACTION' | 'D20_WINDOW' }
+  >
+  reactorActorId: string
+} | null {
+  if (pending.kind === 'REACTION_CHOICE')
+    return { offer: pending, reactorActorId: pending.targetActorId }
+  if (pending.kind === 'MOVEMENT_REACTION')
+    return { offer: pending, reactorActorId: pending.choice.reactorActorId }
   const context = pendingSnapshot.applicationContext
   // Only a reactor's die against another creature's roll is a reaction; a roller's own window waits.
-  return pending.kind === 'D20_WINDOW' &&
+  const reactorActorId =
+    pending.kind === 'D20_WINDOW' &&
     context.kind === 'ENCOUNTER_ACTION' &&
     context.pause?.kind === 'D20_WINDOW'
-    ? d20WindowReactorActorId(context.pause.payload)
-    : null
+      ? d20WindowReactorActorId(context.pause.payload)
+      : null
+  return pending.kind === 'D20_WINDOW' && reactorActorId ? { offer: pending, reactorActorId } : null
 }
 
 type PendingSnapshot = NonNullable<Awaited<ReturnType<typeof readPendingSnapshot>>>

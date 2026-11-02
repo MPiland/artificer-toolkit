@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { validated } from '../../../test/validatedFixture'
 import {
   addedDieEntries,
   decisionTitle,
@@ -15,7 +17,7 @@ describe('timedReactionOffer (D207)', () => {
     occurrenceVersion: 2,
     encounterVersion: 4
   }
-  const reaction = {
+  const reaction = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...head,
     kind: 'REACTION_CHOICE',
     targetActorId: '22222222-2222-4222-8222-222222222222',
@@ -24,8 +26,8 @@ describe('timedReactionOffer (D207)', () => {
       { optionId: 'b'.repeat(64), actionId: 'counterspell' }
     ],
     allowedResponses: ['DECLINE', 'OPTION']
-  } as const
-  const window = {
+  })
+  const window = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     ...head,
     kind: 'D20_WINDOW',
     rollerActorId: '33333333-3333-4333-8333-333333333333',
@@ -35,7 +37,7 @@ describe('timedReactionOffer (D207)', () => {
       { optionId: 'c'.repeat(64), label: 'Cutting Words', count: 1, faces: 6, sign: 'SUBTRACT' }
     ],
     allowedResponses: ['D20_WINDOW_DECLINE', 'D20_WINDOW_USE']
-  } as const
+  })
 
   it('takes the first offered reaction on Enter and declines on Esc, by the server deadline', () => {
     expect(timedReactionOffer({ ...reaction, answerBy })).toEqual({
