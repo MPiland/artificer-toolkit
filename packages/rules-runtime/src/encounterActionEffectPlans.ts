@@ -9,8 +9,10 @@ import { canonicalActiveEffectEndTriggers } from '@artificer-toolkit/schema/shar
 import { actionResolvedPath } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
+import type { CastModifierParameterAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
+import { castModifierDuration } from './character/characterCastModifiers.js'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
 import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
@@ -133,6 +135,8 @@ export function prepareEncounterActionEffectPlans(input: {
   form?: { creatureId: string }
   /** The source Character's level in each class, by class id, which a level-scaled form duration reads. */
   sourceClassLevels?: Readonly<Record<string, number>>
+  /** The parameters of the cast modifier the caster paid, whose `DURATION` changes the initial duration. */
+  castModifierParameters?: readonly CastModifierParameterAuthored[]
   /**
    * The target's item the action was used on and whether the target dropped it; omitted for every
    * action that chooses none.
@@ -524,7 +528,7 @@ export function prepareRecurringActiveEffect(
   )
   const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
   const tickAnchor = plan.tickAnchor ?? 'HOLDER'
-  const baseRemaining =
+  const authoredRemaining =
     plan.initialRemaining !== null && formContribution
       ? resolveCreatureFormDuration(
           plan.initialRemaining,
@@ -532,6 +536,10 @@ export function prepareRecurringActiveEffect(
           input.sourceClassLevels ?? {}
         )
       : plan.initialRemaining
+  // A paid cast modifier lengthens the duration the cast starts with, never one counted later.
+  const baseRemaining = input.castModifierParameters
+    ? castModifierDuration(input.castModifierParameters, authoredRemaining)
+    : authoredRemaining
   // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
   // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest, and runs an
   // indefinite effect that recurs on its source's turns (Engulf).

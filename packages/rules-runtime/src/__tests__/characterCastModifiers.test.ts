@@ -9,6 +9,8 @@ import {
   aimsAtOneCreature,
   castModifierActivation,
   castModifierCostAtLevel,
+  castModifierDuration,
+  castModifierExtendsDuration,
   castModifierRange,
   castModifierTargetCap,
   sparedCreatureCap
@@ -59,7 +61,7 @@ describe('the costs a Character may pay on casting a spell (SPELLS-31.T5g)', () 
   })
 
   it('projects none for an option the Character did not choose', () => {
-    expect(sorcerer(['Extended Spell']).castModifiers).toEqual([])
+    expect(sorcerer([]).castModifiers).toEqual([])
   })
 
   /** The authoring-parity proof: a Builder author writes the same option from core options alone. */
@@ -448,4 +450,46 @@ describe('the range a paid cast modifier gives a cast (SPELLS-31.T5h)', () => {
       expect(castModifierRange(double, { id: 'r', rangeKind })).toBeNull()
     }
   )
+})
+
+describe('the duration a paid cast modifier gives an effect (SPELLS-31.T5h-2)', () => {
+  const extended = [
+    { parameter: 'DURATION' as const, multiplier: 2, minimumMinutes: 1, maximumHours: 24 }
+  ]
+  const EXTENDED = srdByLabel(METAMAGIC.options ?? [], 'Extended Spell')
+
+  it('is authored as data on the Metamagic option, without a closed rule kind', () => {
+    expect(sorcerer(['Extended Spell']).castModifiers).toEqual([
+      {
+        modifierId: EXTENDED.effects?.[0]?.id,
+        label: 'Extended Spell',
+        cost: { chargeId: sorceryPointsCharge.id, cost: 1, parameters: extended }
+      }
+    ])
+  })
+
+  it('doubles a timed duration of a minute or more', () => {
+    expect(castModifierDuration(extended, 10)).toBe(20)
+    expect(castModifierDuration(extended, 600)).toBe(1200)
+  })
+
+  it('caps the doubled duration at the maximum', () => {
+    expect(castModifierDuration(extended, 9_000)).toBe(14_400)
+    expect(castModifierDuration(extended, 14_400)).toBe(14_400)
+  })
+
+  it('leaves a shorter or untimed duration as it was', () => {
+    expect(castModifierDuration(extended, 9)).toBe(9)
+    expect(castModifierDuration(extended, 1)).toBe(1)
+    expect(castModifierDuration(extended, null)).toBeNull()
+    expect(castModifierDuration([], 10)).toBe(10)
+  })
+
+  it('is offered only for a spell with a timed effect it lengthens', () => {
+    expect(castModifierExtendsDuration(extended, [null, 10])).toBe(true)
+    expect(castModifierExtendsDuration(extended, [null, 1])).toBe(false)
+    expect(castModifierExtendsDuration(extended, [14_400])).toBe(false)
+    expect(castModifierExtendsDuration(extended, [])).toBe(false)
+    expect(castModifierExtendsDuration([], [])).toBe(true)
+  })
 })

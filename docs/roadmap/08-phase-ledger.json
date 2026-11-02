@@ -15220,7 +15220,7 @@
             {
               "id": "SPELLS-4.T2ps-d2",
               "text": "Merged rows: a target hit by two rows gets the effects of both through a multi-plan active effect.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -15233,8 +15233,7 @@
                   "SPELLS-4.T2ps-d1"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208).",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "Split on seam trace; user approved 2026-11-01 (D208). Merged in m604 (c53551104)."
             },
             {
               "id": "SPELLS-4.T2ps-d3",
@@ -15252,7 +15251,8 @@
                   "SPELLS-4.T2ps-d2"
                 ]
               },
-              "note": "Split on seam trace; user approved 2026-11-01 (D208)."
+              "note": "Split on seam trace; user approved 2026-11-01 (D208). The room journey must cover the area-cast lead path (leadActiveEffectPlans), which d2 left without its own test.",
+              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
             }
           ]
         },
@@ -19922,7 +19922,7 @@
             {
               "id": "SPELLS-31.T5h-2",
               "text": "Extended Spell: a cast modifier on the feature that doubles the initial duration at `baseRemaining` (`encounterActionEffectPlans.ts`), after the summon check, capped at 24 hours, offered only for timed spells of 1 minute or more. Trace zones first and report if more than a small addition.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -19935,8 +19935,7 @@
                   "SPELLS-31.T5h-3"
                 ]
               },
-              "note": "D206.",
-              "activeWorkbook": "docs/roadmap/08-phase-ledger.json"
+              "note": "D206. Merged in m605 (a6263a9bc). Concentration spells of 1 minute or more are offered (SRD reading)."
             },
             {
               "id": "SPELLS-31.T5i",

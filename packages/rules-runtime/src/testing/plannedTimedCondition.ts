@@ -4,6 +4,7 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
+import type { CastModifierParameterAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import {
@@ -130,6 +131,8 @@ export function plannedTimedCondition(input: {
   lifetimeScope: 'OWNER' | 'ENCOUNTER'
   /** Whose turn it is when the spell is cast; none by default. */
   currentActorId?: string | null
+  /** The parameters of the cast modifier the caster paid, as the room passes them to the plan. */
+  castModifierParameters?: readonly CastModifierParameterAuthored[]
 }) {
   const { spell } = input
   const sourceInstanceId = `class-${spell.id}`
@@ -172,6 +175,7 @@ export function plannedCastEffects(input: {
   entry: ReturnType<typeof compiledTestSpellCast>['entry']
   lifetimeScope: 'OWNER' | 'ENCOUNTER'
   currentActorId?: string | null
+  castModifierParameters?: readonly CastModifierParameterAuthored[]
   resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
 }) {
   const { executionPlan, activeEffectPlan } = input.entry.compilation
@@ -211,6 +215,7 @@ export function plannedCastEffects(input: {
     },
     activeEffectsByActorId: new Map(),
     activeEffectPlan,
+    ...(input.castModifierParameters && { castModifierParameters: input.castModifierParameters }),
     published,
     execution,
     d20:

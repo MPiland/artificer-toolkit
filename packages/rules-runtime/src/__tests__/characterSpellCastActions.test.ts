@@ -3701,6 +3701,74 @@ describe('a cost the caster may pay on a spell cast (SPELLS-31.T5g)', () => {
     })
   })
 
+  describe('lengthening the spell (SPELLS-31.T5h-2)', () => {
+    const extended = {
+      ...modifier,
+      cost: {
+        ...modifier.cost,
+        parameters: [
+          {
+            parameter: 'DURATION' as const,
+            multiplier: 2,
+            minimumMinutes: 1,
+            maximumHours: 24
+          }
+        ]
+      }
+    }
+    const documents = new Map([
+      ...authoredById,
+      ...[SHIELD_OF_FAITH, MAGE_ARMOR, MIND_BLANK, HOLD_PERSON, FIREBALL, GUIDING_BOLT].map(
+        (entry) => [entry.id, entry] as const
+      )
+    ])
+    const offeredFor = (spellAuthored: SpellAuthored, level: number) => {
+      const spellCast = candidate(spellAuthored, level)
+      return build([spellCast], {
+        castModifiers: [extended],
+        spellsById: compiledById(documents),
+        policyOutput: { ...policyFor([spellCast], documents), resources: [pool(0)] }
+      }).candidates[0]?.castModifiers
+    }
+
+    it.each([
+      ['a spell of 10 minutes', SHIELD_OF_FAITH, 1],
+      ['a spell of 8 hours', MAGE_ARMOR, 1],
+      ['a Concentration spell of 1 minute', HOLD_PERSON, 2]
+    ])('offers it on %s, with its parameters', (_label, spellAuthored, level) => {
+      expect(offeredFor(spellAuthored, level)?.[0]?.parameters).toEqual(extended.cost.parameters)
+    })
+
+    it.each([
+      ['an instantaneous spell', FIREBALL, 3],
+      ['a spell of one round', GUIDING_BOLT, 1],
+      ['a spell already at 24 hours', MIND_BLANK, 8]
+    ])('does not offer it on %s', (_label, spellAuthored, level) => {
+      expect(offeredFor(spellAuthored, level)).toBeUndefined()
+    })
+
+    const planned = (parameters: typeof extended.cost.parameters | undefined) =>
+      plannedTimedCondition({
+        encounterId: testUuid(0xd931),
+        sourceActorId: testUuid(0xd932),
+        holderActorId: testUuid(0xd933),
+        spell: HOLD_PERSON,
+        lifetimeScope: 'ENCOUNTER',
+        ...(parameters && { castModifierParameters: parameters })
+      }).lifecycle.remainingTicks
+
+    it('doubles the minute a plan starts with, and leaves an unmodified cast alone', () => {
+      expect(planned(undefined)).toBe(10)
+      expect(planned(extended.cost.parameters)).toBe(20)
+    })
+
+    it('caps the lengthened duration at 24 hours', () => {
+      expect(
+        planned([{ parameter: 'DURATION', multiplier: 5000, minimumMinutes: 1, maximumHours: 24 }])
+      ).toBe(MAX_ACTIVE_EFFECT_TURNS)
+    })
+  })
+
   describe('naming the creatures it affects (SPELLS-31.T5g2)', () => {
     const charisma = character.output.derivedStats.abilities.find(
       ({ abilityId }) =>

@@ -62,7 +62,7 @@ import type { EncounterActorFormCreature } from '@artificer-toolkit/rules-runtim
 import { summonFormPick } from '@artificer-toolkit/rules-runtime/spellSummonStatBlock'
 import {
   creatureSnapshotSize,
-  encounterActiveEffectPlan
+  encounterActiveEffectPlans
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { selectHitPointPoolTargets } from '@artificer-toolkit/rules-runtime/encounterHitPointPool'
 import {
@@ -888,8 +888,9 @@ export type ReachTarget = Awaited<ReturnType<typeof prepareAreaTarget>> & {
 
 export type AreaPrepared = Awaited<ReturnType<typeof prepareAreaTarget>>['prepared']
 
-export function leadActiveEffectPlan(prepared: AreaPrepared) {
-  return encounterActiveEffectPlan(
+/** The plans the lead target's action could hold: a roll table's rows are all candidates until it rolls. */
+export function leadActiveEffectPlans(prepared: AreaPrepared) {
+  return encounterActiveEffectPlans(
     prepared,
     prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
   )
@@ -929,7 +930,8 @@ export function reachRuleOverrides(input: {
   }
   const deadCharacterIds = deadCharacterIdsOfTargets(input.movementTargets.values())
   const linkFloor =
-    leadActiveEffectPlan(input.lead)?.actorLinkContribution?.excludesAbilityAtOrBelow ?? null
+    leadActiveEffectPlans(input.lead).find(({ actorLinkContribution }) => actorLinkContribution)
+      ?.actorLinkContribution?.excludesAbilityAtOrBelow ?? null
   const ruleWarnings =
     input.command.target.kind === 'ACTORS'
       ? evaluateEncounterActorsRuleWarnings({

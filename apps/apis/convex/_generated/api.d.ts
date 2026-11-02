@@ -23734,6 +23734,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -33601,6 +33607,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -43417,6 +43429,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -53327,6 +53345,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -63194,6 +63218,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -73010,6 +73040,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -82929,6 +82965,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -92796,6 +92838,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -102612,6 +102660,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -112522,6 +112576,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -122389,6 +122449,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -132205,6 +132271,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -142150,6 +142222,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -152017,6 +152095,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -161833,6 +161917,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -171743,6 +171833,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -181610,6 +181706,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -191426,6 +191528,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -201334,6 +201442,12 @@ export declare const api: {
                                       activation: "BONUS_ACTION";
                                       parameter: "ACTIVATION";
                                     }
+                                  | {
+                                      maximumHours: number;
+                                      minimumMinutes: number;
+                                      multiplier: number;
+                                      parameter: "DURATION";
+                                    }
                                 >;
                                 perSpellLevel?: boolean;
                                 targets?: {
@@ -211152,6 +211266,12 @@ export declare const api: {
                                 activation: "BONUS_ACTION";
                                 parameter: "ACTIVATION";
                               }
+                            | {
+                                maximumHours: number;
+                                minimumMinutes: number;
+                                multiplier: number;
+                                parameter: "DURATION";
+                              }
                           >;
                           perSpellLevel?: boolean;
                           targets?: {
@@ -220837,6 +220957,12 @@ export declare const api: {
                             | {
                                 activation: "BONUS_ACTION";
                                 parameter: "ACTIVATION";
+                              }
+                            | {
+                                maximumHours: number;
+                                minimumMinutes: number;
+                                multiplier: number;
+                                parameter: "DURATION";
                               }
                           >;
                           perSpellLevel?: boolean;
@@ -230630,6 +230756,12 @@ export declare const api: {
                                     | {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
+                                      }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
                                       }
                                   >;
                                   perSpellLevel?: boolean;
@@ -240498,6 +240630,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -250314,6 +250452,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;
@@ -260224,6 +260368,12 @@ export declare const api: {
                                         activation: "BONUS_ACTION";
                                         parameter: "ACTIVATION";
                                       }
+                                    | {
+                                        maximumHours: number;
+                                        minimumMinutes: number;
+                                        multiplier: number;
+                                        parameter: "DURATION";
+                                      }
                                   >;
                                   perSpellLevel?: boolean;
                                   targets?: {
@@ -270091,6 +270241,12 @@ export declare const api: {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
                                 }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
+                                }
                             >;
                             perSpellLevel?: boolean;
                             targets?: {
@@ -279907,6 +280063,12 @@ export declare const api: {
                               | {
                                   activation: "BONUS_ACTION";
                                   parameter: "ACTIVATION";
+                                }
+                              | {
+                                  maximumHours: number;
+                                  minimumMinutes: number;
+                                  multiplier: number;
+                                  parameter: "DURATION";
                                 }
                             >;
                             perSpellLevel?: boolean;

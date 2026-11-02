@@ -83,7 +83,7 @@ import {
   type ReachPlanInput,
   type ReachTarget,
   hitPointPoolCovered,
-  leadActiveEffectPlan,
+  leadActiveEffectPlans,
   openReachCastWindow,
   prepareAreaScene,
   prepareAreaTarget,
@@ -802,7 +802,9 @@ export async function readChosenFormCreature(
   const chosen = input.command.target.kind === 'ACTORS' ? input.command.target : null
   const formId = chosen?.formId
   const creatureId = chosen?.creatureId
-  const contribution = leadActiveEffectPlan(lead)?.creatureFormContribution
+  const contribution = leadActiveEffectPlans(lead).find(
+    ({ creatureFormContribution }) => creatureFormContribution
+  )?.creatureFormContribution
   if (!contribution) {
     if (formId !== undefined || creatureId !== undefined)
       throw formRefusal('This action takes no creature form.')
