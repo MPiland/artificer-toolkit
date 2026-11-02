@@ -484,7 +484,11 @@ export async function verifyEncounterPlayer({
       pendingOf(await wolfBites(15), 'D20_WINDOW')
       const heckled = await controls.answerRollWindow('Heckle')
       const felled = await answerOwnerDice(heckled.result, 15)
-      assert.equal(felled.occurrence?.status, 'COMPLETE')
+      assert.equal(
+        felled.occurrence?.status,
+        'COMPLETE',
+        JSON.stringify(felled.occurrence?.pending)
+      )
       assert.equal((await readRun()).heroHitPoints, 0)
 
       // 5. The Wolf's turn ends; the Character's turn opens with a death save the player rolls.
@@ -522,7 +526,14 @@ export async function verifyEncounterPlayer({
     for (let answers = 0; current.occurrence?.status === 'PENDING'; answers++) {
       assert.ok(answers < 10, 'The Wolf dice did not settle.')
       const { occurrence } = current
-      const pending = occurrence.pending
+      // A player's command result shows no decision the player cannot answer; the owner's view shows it.
+      const pending =
+        occurrence.pending ??
+        (
+          await checkpoint().then(() =>
+            owner.query(api.encounters.activeReads.active, { campaignId })
+          )
+        ).pending
       let resolution: Resolution
       if (pending?.kind === 'D20_EVIDENCE' && pending.rollerActorId === wolfId) {
         resolution = {
