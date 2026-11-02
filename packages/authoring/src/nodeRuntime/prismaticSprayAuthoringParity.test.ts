@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import { compiledTestSpellCast } from '@artificer-toolkit/rules-runtime/testing/plannedTimedCondition'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { prismaticSpray } from '@artificer-toolkit/source-data/srd/spells/prismatic-spray.js'
 import {
@@ -171,14 +172,20 @@ describe('Prismatic Spray authored from core options (SPELLS-4.T2ps-d3)', () => 
 
   it('publishes the authored Prismatic Spray as the SRD source publishes it', async () => {
     const { values } = await normalize(prismaticSpray)
-    const authored = { ...prismaticSpray, effects: values.effects } as SpellAuthored
+    const authored = {
+      ...prismaticSpray,
+      effects: getValueAtPath(values, ['effects'])
+    } as SpellAuthored
     expect(compileSpell(authored)).toEqual(compileSpell(prismaticSpray))
     expect(castCompilation(authored)).toEqual(castCompilation(prismaticSpray))
   })
 
   it('plans each lasting row of the homebrew table on its own faces, as Prismatic Spray’s', async () => {
     const { values } = await normalize(chromaticBurst())
-    const authored = { ...chromaticBurst(), effects: values.effects } as SpellAuthored
+    const authored = {
+      ...chromaticBurst(),
+      effects: getValueAtPath(values, ['effects'])
+    } as SpellAuthored
     expect(castCompilation(authored).rollTableRowPlans?.map((plan) => plan.rollTableRow)).toEqual([
       { min: 1, max: 2 },
       { min: 3, max: 4 }

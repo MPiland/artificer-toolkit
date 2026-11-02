@@ -32,7 +32,8 @@ import {
 import { heldStageD20, sightGovernedStageD20 } from './encounterSightGovernedD20.js'
 import {
   type EncounterD20RollMode,
-  type EncounterEvidenceAnswer
+  type EncounterEvidenceAnswer,
+  testDieAnswer
 } from './encounterEvidenceAnswer.js'
 import { resumeEncounterD20 } from './encounterD20AddedDice.js'
 import {
@@ -657,16 +658,11 @@ export async function prepareNativeActionTest(
       twoPhase: testPhase
     })
   ) {
-    const { requestId } = result.continuation.request
-    const kept = input.testDice?.find((die) => die.requestId === requestId)
-    if (input.testDice && !kept) throw new Error('The native action TEST execution is stale.')
     const die = actionResponse({
       gameSystemId: current.published.gameSystemId,
       continuation: result.continuation,
       policy: null,
-      resolution: kept
-        ? { kind: 'ENTER_INTEGER', requestId, value: kept.value }
-        : { kind: 'AUTO_ROLL', requestId },
+      resolution: testDieAnswer(result.continuation.request.requestId, input.testDice),
       random
     })
     result = await resumeEncounterD20({
