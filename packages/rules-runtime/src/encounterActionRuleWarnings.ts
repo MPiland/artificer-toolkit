@@ -258,12 +258,14 @@ export function encounterActionEconomyWarnings(
 ): EncounterRuleWarningDto[] {
   if (!economy || economy.available) return []
   return [
-    economy.consumption.beforeUsed >= economy.consumption.maximum
-      ? {
-          code: 'ACTION_ECONOMY_UNAVAILABLE',
-          message: `No ${allowanceName(activationCode)} left this turn.`
-        }
-      : encounterActionSuppressedWarning(activationCode)
+    economy.limit
+      ? { code: 'ACTION_ECONOMY_UNAVAILABLE', message: economy.limit }
+      : economy.consumption.beforeUsed >= economy.consumption.maximum
+        ? {
+            code: 'ACTION_ECONOMY_UNAVAILABLE',
+            message: `No ${allowanceName(activationCode)} left this turn.`
+          }
+        : encounterActionSuppressedWarning(activationCode)
   ]
 }
 

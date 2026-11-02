@@ -229,17 +229,21 @@ export async function evaluateNativeLiveActionEconomy(input: {
           cantrip: prepared.source.candidate.spellLevel === 0
         })
       : null
-  if (spellCasting?.refusal) rejectDomain('SOURCE_REQUIREMENTS_NOT_MET', spellCasting.refusal)
   const openedAttackAction = offered
     ? evaluated.attackAction && { ...evaluated.attackAction, total: 1 }
     : evaluated.attackAction
   return {
     activationCode: activation.code,
     economy:
-      economy && spellCasting?.transition
+      economy && spellCasting
         ? {
             ...economy,
-            consumption: { ...economy.consumption, spellCasting: spellCasting.transition }
+            available: economy.available && !spellCasting.refusal,
+            ...(spellCasting.refusal ? { limit: spellCasting.refusal } : {}),
+            consumption: {
+              ...economy.consumption,
+              ...(spellCasting.transition ? { spellCasting: spellCasting.transition } : {})
+            }
           }
         : economy,
     suppressed,

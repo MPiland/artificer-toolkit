@@ -224,6 +224,14 @@ describe('encounter action economy warning', () => {
       }
     ])
   })
+  it('warns with the spell-casting limit that bars a cast, though the allowance is free', () => {
+    expect(
+      encounterActionEconomyWarnings(
+        { consumption: consumption(0), available: false, limit: 'Only a cantrip may follow.' },
+        'ACTION'
+      )
+    ).toEqual([{ code: 'ACTION_ECONOMY_UNAVAILABLE', message: 'Only a cantrip may follow.' }])
+  })
 })
 
 describe('encounter action economy consumption', () => {

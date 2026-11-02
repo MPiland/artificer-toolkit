@@ -744,26 +744,8 @@ export async function revertLastEncounterAction(
     ) => {
       const owner = actorsById.get(actorId)
       if (!owner) throw new Error('Stored Encounter action actors are unavailable.')
-      if (economy) {
-        if (encounterRuleUsageUsed(owner, economy.definitionId) !== economy.afterUsed)
-          revertUnavailable(
-            "The actor's action economy changed after this action; adjust manually."
-          )
-        updateActor(actorId, {
-          resources: withEncounterRuleUsageUsed(owner, economy.definitionId, economy.beforeUsed)
-        })
-        if (economy.spellCasting) {
-          const restored = revertEncounterSpellCastingTransition(
-            actorsById.get(actorId)!,
-            economy.spellCasting
-          )
-          if (!restored)
-            revertUnavailable(
-              "The actor's spell casting changed after this action; adjust manually."
-            )
-          updateActor(actorId, { resources: restored.resources })
-        }
-      }
+      if (economy)
+        updateActor(actorId, { resources: returnSpentActionEconomy(owner, economy).resources })
       if (attackAction) {
         const restored = revertEncounterAttackActionTransition(
           actorsById.get(actorId)!,
