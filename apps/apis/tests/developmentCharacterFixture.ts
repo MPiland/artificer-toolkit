@@ -15,7 +15,8 @@ import { api } from '../convex/_generated/api.js'
 export async function prepareDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
-  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {}
+  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {},
+  label = 'Equipment reconciliation fixture'
 ) {
   const equipment = await owner.mutation(api.content.drafts.duplicate, {
     subjectKind: 'EQUIPMENT',
@@ -114,7 +115,7 @@ export async function prepareDevelopmentCharacter(
   })
   const character = characterAuthoredDtoSchema.parse({
     ...draft.payload.character,
-    label: 'Equipment reconciliation fixture',
+    label,
     intent: {
       ...draft.payload.character.intent,
       race: { raceId: race.subjectId },
@@ -162,12 +163,14 @@ export async function prepareDevelopmentCharacter(
 export async function createDevelopmentCharacter(
   owner: DevelopmentClient & Pick<ConvexHttpClient, 'action'>,
   characterId: string,
-  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {}
+  options: Partial<Pick<typeof fighter, 'features' | 'resources' | 'spellcasting'>> = {},
+  label?: string
 ) {
   const { candidate, character, equipment } = await prepareDevelopmentCharacter(
     owner,
     characterId,
-    options
+    options,
+    label
   )
   const committed = await owner.mutation(api.characters.commit.commit, candidate)
   return { committed, character, equipment }

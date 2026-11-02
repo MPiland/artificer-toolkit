@@ -8,7 +8,8 @@ import { dirname, resolve } from 'node:path'
 export const localConvex = {
   container: 'phase82-convex-local-linux',
   instance: 'phase82-local-linux',
-  url: 'http://127.0.0.1:3210'
+  url: 'http://127.0.0.1:3210',
+  siteUrl: 'http://127.0.0.1:3211'
 }
 
 // `URL.hostname` keeps the brackets of an IPv6 literal. `host.docker.internal` reaches this machine
