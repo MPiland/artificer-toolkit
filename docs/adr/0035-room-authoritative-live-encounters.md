@@ -14,7 +14,9 @@
 ## Implementation status — 2026-09-30
 
 _Update 2026-10-05:_ D90 (save points, Amendments 25–31) is implemented and V15 passed locally within
-the Q16 budgets; the text below is the 2026-09-30 snapshot.
+the Q16 budgets; the text below is the 2026-09-30 snapshot. _Update 2026-11-02:_ D209 set the
+per-session Convex I/O budget at 4.3 MB decimal, strict (Decision 9). a84's 4.44 MB exceeds it; the
+save no longer re-reads a conversation or Scene per record (D90 consequences), pending a V15 rerun.
 
 S0 measurements, S1 persistence extraction, S1b Encounter record changes, S1c Character play-state
 separation, S2 SQLite hydrate/rehydrate and S4 authorization caching are implemented locally.
@@ -90,6 +92,8 @@ Foundry VTT, the play baseline, keeps the live world in one server process and p
    - V15 gains hard budgets for Convex reads per command and per session, alongside the existing latency budgets.
    - The Builder gains a budget for reads per edit.
    - Budgets derive from the free allowances and a target number of active groups per month (Q16).
+   - Per-session Convex I/O is at most 4.3 MB, decimal (4,300,000 bytes), strict (D209, 2026-11-02;
+     `scripts/v15Budgets.mjs`).
 
 ## Consequences
 
@@ -484,7 +488,10 @@ of a table once it stops running. While it runs, the room is.
 
 - **Per-session Convex I/O.** A session costs one save per fight, the lifecycle moments, and one
   close. It no longer costs one save per 30 s of play. V15 run a84 measured 4.44 MB per modelled
-  session against the 4.51 MB budget (Amendment 31).
+  session, over the 4.3 MB decimal budget (Decision 9, D209). Most of a COMPLETE save's
+  scope checks (about 90 KB of its I/O in a84) re-read the same conversation for every chat entry
+  and payload, and the same Scene for every token binding. A save now reads each once (PERF-3.T1):
+  an estimated 0.4 MB less per session, about 4.03 MB, until a V15 rerun measures it.
 - **Loss window.** Losing the room's storage loses changes since the last save point: at most the
   current fight, or the current out-of-combat stretch. Scene undo of earlier moves is then refused,
   as for Encounter history (D88). This replaces D85's "about one round".

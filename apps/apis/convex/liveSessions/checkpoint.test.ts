@@ -36,12 +36,14 @@ import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shar
 import { activateFixtureRun } from '../../tests/fixtures/activeInitiative'
 import { setupCharacterRun } from '../../tests/fixtures/encounterCharacter'
 import { api } from '../_generated/api'
-import { createCampaign } from '../../tests/fixtures/encounterScene'
+import { createCampaign, createEncounterSceneFixture } from '../../tests/fixtures/encounterScene'
+import { countDatabaseIo, createDatabaseIoTotals } from '../../tests/fixtures/databaseIo'
 import { checkpointLiveRoom, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
 import { disarmInRoom, nativeDisarmFixture } from '../../tests/fixtures/nativeDisarm'
 import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
 import { readReceiptHeaders, readReceiptLedger } from '../lib/receiptLedgers'
 import { presentCampaignLiveAuthority } from './authority'
+import { publishCheckpoint } from './checkpoint'
 import { requireSystem } from '../content/systemDocuments'
 import { retainUserRolls } from '../rollDocuments'
 import {
@@ -1648,4 +1650,98 @@ it("retains an active member's own private checkpoint roll and refuses a copy th
   ).rejects.toThrow('another owner')
   expect(await snapshot(base)).toEqual(afterLeaving)
   expect(await historyOf(base.player.userId)).toEqual(playerBefore)
+})
+
+it('reads a Scene and a conversation once however many records of a save name them (V15 I/O)', async () => {
+  const base = await createEncounterSceneFixture()
+  const now = new Date().toISOString()
+  const conversation = campaignStoredConversationSchema.parse({
+    id: crypto.randomUUID(),
+    campaignId: base.campaign.id,
+    kind: 'TABLE',
+    participantUserIds: [],
+    createdAt: now
+  })
+  const bindings = base.run.actors.slice(0, 2).map((actor, index) => ({
+    encounterId: base.run.id,
+    actorId: actor.id,
+    sceneId: base.sceneId,
+    tokenId: base.tokens[index]!.id.toLowerCase()
+  }))
+  expect(bindings).toHaveLength(2)
+  await base.t.run(async (ctx) => {
+    await ctx.db.insert('campaignConversations', conversation)
+    for (const binding of bindings) await ctx.db.insert('encounterActorTokenBindings', binding)
+  })
+  // The Campaign's GM opens the room.
+  const claimed = await base.other.caller.mutation(claim, { campaignId: base.campaign.id })
+  const authority = await base.t.mutation(commitActivation, {
+    campaignId: base.campaign.id,
+    epoch: claimed.epoch,
+    activationFingerprint: claimed.activationFingerprint,
+    stateChecksum: 'a'.repeat(64)
+  })
+  const entries = Array.from({ length: 3 }, (_, index) => {
+    const payload = campaignStoredEntryPayloadSchema.parse({
+      entryId: crypto.randomUUID(),
+      kind: 'CHAT',
+      mode: 'ROLEPLAY',
+      body: `Table chat ${index}`,
+      roll: null,
+      revealedByGm: false,
+      authorUsername: 'GM',
+      characterId: null,
+      characterLabel: null,
+      editedAt: null,
+      unsentAt: null,
+      consumedAt: null
+    })
+    const header = createCampaignEntryHeader(
+      {
+        id: payload.entryId,
+        campaignId: base.campaign.id,
+        conversationId: conversation.id,
+        authorUserId: base.other.userId,
+        clientNonce: crypto.randomUUID(),
+        createdAt: now
+      },
+      payload
+    )
+    return [
+      recordChange(
+        'campaignConversationEntryPayloads',
+        [payload.entryId],
+        null,
+        decodeCheckpointRecord('campaignConversationEntryPayloads', payload)
+      ),
+      recordChange(
+        'campaignConversationEntries',
+        [header.id],
+        null,
+        decodeCheckpointRecord('campaignConversationEntries', header)
+      )
+    ]
+  })
+  // COMPLETE drops every token binding (ADR 0035 Amendment 30) beside the fight's chat.
+  const input = frame(authority, {
+    changes: [
+      ...bindings.map((binding) =>
+        recordChange(
+          'encounterActorTokenBindings',
+          [binding.encounterId, binding.actorId],
+          decodeCheckpointRecord('encounterActorTokenBindings', binding),
+          null
+        )
+      ),
+      ...entries.flat()
+    ],
+    history: []
+  })
+  const totals = createDatabaseIoTotals()
+  const published = await base.t.run((ctx) =>
+    publishCheckpoint({ ...ctx, db: countDatabaseIo(ctx.db, totals) }, input)
+  )
+  expect(published.status).toBe('COMMITTED')
+  expect(totals.reads.byTable.campaignConversations?.documents).toBe(1)
+  expect(totals.reads.byTable.campaignScenes?.documents).toBe(1)
 })
