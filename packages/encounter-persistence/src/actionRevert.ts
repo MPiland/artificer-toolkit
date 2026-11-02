@@ -765,26 +765,32 @@ export async function revertLastEncounterAction(
       if (marked)
         updateActor(actorId, { resources: withEncounterActorIdleTurnMark(marked, before) })
     }
-    // The creature that countered the cast, and each that failed to, spent its own slot and reaction.
+    // The creature that countered the cast, and each that failed to, spent its own slot and reaction;
+    // each that reacted to the attack roll spent its reaction and charge (D207).
     const invertReactorSpend = (
       spend: Pick<
         CounteredRoot['counter'],
-        | 'reaction'
         | 'spellCastConsumption'
         | 'applications'
         | 'characterStreamVersion'
         | 'actionEconomyTransition'
-      >
+      > & {
+        reaction: { reactorActorId: string }
+        resourceConsumption?: ActionBatch['resourceConsumption']
+      }
     ) => {
       const reactor = actorsById.get(spend.reaction.reactorActorId)
       if (reactor?.kind !== 'CHARACTER')
         throw new Error('Stored Encounter action actors are unavailable.')
-      if (spend.spellCastConsumption) {
+      if (spend.spellCastConsumption || spend.resourceConsumption) {
         if (spend.characterStreamVersion === null)
           throw new Error('Stored reactor Character version is missing.')
-        characterInverse(reactor.sourceId, spend.characterStreamVersion).spells.push(
-          spend.spellCastConsumption
-        )
+        const inverse = characterInverse(reactor.sourceId, spend.characterStreamVersion)
+        if (spend.spellCastConsumption) inverse.spells.push(spend.spellCastConsumption)
+        if (spend.resourceConsumption) {
+          if (inverse.resource) throw new Error('Stored reactor resource spends collide.')
+          inverse.resource = spend.resourceConsumption
+        }
       }
       restoreReleasedConditions(
         reactor,
@@ -802,6 +808,8 @@ export async function revertLastEncounterAction(
     }
     if (lostRoot && 'counter' in lostRoot) invertReactorSpend(lostRoot.counter)
     for (const failed of root.failedCounters) invertReactorSpend(failed)
+    for (const reacted of root.windowReactions)
+      invertReactorSpend({ ...reacted, spellCastConsumption: null, applications: [] })
 
     // A Dash's speed bonus leaves the turn's movement record.
     if (root.speedBonusTurn)

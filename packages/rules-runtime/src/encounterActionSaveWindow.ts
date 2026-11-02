@@ -5,8 +5,10 @@ import type {
   ServerRuleExecutionD20PolicyDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
+  d20WindowReactorActorId,
   isD20RolledCheck,
-  type D20WindowPausePayloadDto
+  type D20WindowPausePayloadDto,
+  type D20WindowReactionDieDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { EncounterActionPauseDto } from '@artificer-toolkit/schema/shared/encounterPause'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -15,6 +17,7 @@ import { encounterHeldSavingThrowDice } from './encounterActiveGrants.js'
 import { damageSaveRolledD20 } from './encounterConcentration.js'
 import {
   openEncounterD20WindowPause,
+  type EncounterD20WindowDie,
   type EncounterD20WindowHeldDie
 } from './encounterD20Window.js'
 import type { SettledActionResponse } from './encounterD20Settlement.js'
@@ -38,19 +41,57 @@ export type EncounterActionWindowAnswer = {
  */
 export type EncounterActionSaveWindow = {
   heldDice(policy: ServerRuleExecutionD20PolicyDto): readonly EncounterD20WindowHeldDie[]
+  /**
+   * The dice the first reactor not yet asked may roll against the attack roll by its reaction (D207),
+   * all of that one reactor; empty when nobody is left. Absent where no reactor may answer the roll.
+   */
+  reactionDice?(
+    answeredReactorActorIds: readonly string[]
+  ): Promise<readonly D20WindowReactionDieDto[]>
 }
 
 /** The dice the target of an action's TEST save, or the attacker of its TEST attack, holds for after its d20. */
 export const targetSaveWindow = (
   gameSystemId: string,
   targetEffects: readonly ActiveRuleEffectRecord[],
-  attackDice: readonly EncounterD20WindowHeldDie[] = []
+  attackDice: readonly EncounterD20WindowHeldDie[] = [],
+  reactionDice?: EncounterActionSaveWindow['reactionDice']
 ): EncounterActionSaveWindow => ({
   heldDice: ({ savingThrowAbilityDefinitionId }) =>
     savingThrowAbilityDefinitionId
       ? encounterHeldSavingThrowDice(gameSystemId, targetEffects, savingThrowAbilityDefinitionId)
-      : attackDice
+      : attackDice,
+  ...(reactionDice ? { reactionDice } : {})
 })
+
+/**
+ * Who decides next on a rolled TEST d20, and the dice they are offered (D168, D207): right after the
+ * roll, the roller on its held dice; then, for an attack roll, each reactor in turn, one window each.
+ * `previous` is the window just answered, null right after the roll. No dice: nobody is left to ask.
+ */
+export async function nextActionWindowDice(input: {
+  saveWindow: EncounterActionSaveWindow | undefined
+  policy: ServerRuleExecutionD20PolicyDto
+  previous: Pick<D20WindowPausePayloadDto, 'answeredReactorActorIds' | 'offer'> | null
+}): Promise<{
+  dice: readonly EncounterD20WindowDie[]
+  answeredReactorActorIds: readonly string[]
+}> {
+  const { saveWindow, policy, previous } = input
+  if (!saveWindow) return { dice: [], answeredReactorActorIds: [] }
+  const heldDice = previous ? [] : saveWindow.heldDice(policy)
+  if (heldDice.length > 0) return { dice: heldDice, answeredReactorActorIds: [] }
+  const reactor = previous && d20WindowReactorActorId(previous)
+  const answeredReactorActorIds =
+    previous && reactor ? [...previous.answeredReactorActorIds, reactor] : []
+  return {
+    dice:
+      policy.savingThrowAbilityDefinitionId || !saveWindow.reactionDice
+        ? []
+        : await saveWindow.reactionDice(answeredReactorActorIds),
+    answeredReactorActorIds
+  }
+}
 
 /**
  * The roll a settled window answers the save it held with. The window froze the roll against the
@@ -95,26 +136,36 @@ export function heldWindowedSave(
 }
 
 /**
- * Pauses a rolled save for its roller to spend a held die on it (D168), or null when the roll is not
- * one a window can show. The window freezes the save's continuation with the roll.
+ * Pauses a rolled TEST for its next decider to spend a die on it (D168), or null when the roll is not
+ * one a window can show. The window freezes the TEST's continuation with the roll: as rolled (a
+ * `response`), or as the window before settled it (`previous` and its `d20`), for the next reactor.
  */
-export async function openActionSaveWindow(input: {
-  runtime: RulesRuntimeService
-  occurrenceId: string
-  gameSystemId: string
-  continuation: ServerRuleExecutionContinuationDto
-  policy: ServerRuleExecutionD20PolicyDto
-  response: SettledActionResponse
-  appRollId: string | null
-  heldDice: readonly EncounterD20WindowHeldDie[]
-}) {
-  const { response } = input
-  if (!response.faces || !response.rollMode || !response.keep) return null
-  const window = await openEncounterD20WindowPause({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    gameSystemId: input.gameSystemId,
-    rolled: {
+export async function openActionSaveWindow(
+  input: {
+    runtime: RulesRuntimeService
+    occurrenceId: string
+    gameSystemId: string
+    dice: readonly EncounterD20WindowDie[]
+    answeredReactorActorIds?: readonly string[]
+  } & (
+    | {
+        continuation: ServerRuleExecutionContinuationDto
+        policy: ServerRuleExecutionD20PolicyDto
+        response: SettledActionResponse
+        appRollId: string | null
+      }
+    | { previous: D20WindowPausePayloadDto; d20: EncounterActionWindowAnswer['d20'] }
+  )
+) {
+  let rolled: D20WindowPausePayloadDto['rolled']
+  let appRollId: string | null
+  if ('previous' in input) {
+    rolled = { ...input.previous.rolled, d20: input.d20 }
+    appRollId = input.previous.appRollId
+  } else {
+    const { response } = input
+    if (!response.faces || !response.rollMode || !response.keep) return null
+    rolled = {
       continuation: input.continuation,
       initialFactsChecksum: checksumRuleDocument(input.continuation.facts),
       d20: damageSaveRolledD20({
@@ -128,9 +179,17 @@ export async function openActionSaveWindow(input: {
           addedDice: response.addedDice
         }
       })
-    },
-    appRollId: input.appRollId,
-    heldDice: input.heldDice
+    }
+    appRollId = input.appRollId
+  }
+  const window = await openEncounterD20WindowPause({
+    runtime: input.runtime,
+    occurrenceId: input.occurrenceId,
+    gameSystemId: input.gameSystemId,
+    rolled,
+    appRollId,
+    dice: input.dice,
+    answeredReactorActorIds: input.answeredReactorActorIds
   })
   return {
     continuation: window.continuation,

@@ -39,7 +39,9 @@ import { characterMechanicsResourceReceiptDtoSchema } from '../shared/ruleExecut
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
 import {
   encounterFailedCounterReceiptDtoSchema,
-  type EncounterFailedCounterReceiptDto
+  encounterWindowReactionReceiptDtoSchema,
+  type EncounterFailedCounterReceiptDto,
+  type EncounterWindowReactionReceiptDto
 } from '../shared/ruleExecutionReactionChoice.js'
 import {
   characterItemConsumptionFieldsSchema,
@@ -127,6 +129,23 @@ const liveSessionFailedCountersSchema = lazySchema(() =>
     .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
 )
 
+/** A reaction rolled against the attack roll's d20 window, with the reactor charge request the commit spends (D207). */
+export type LiveSessionWindowReaction = {
+  receipt: EncounterWindowReactionReceiptDto
+  resourceConsumption: z.infer<typeof liveSessionCharacterResourceConsumptionSchema> | null
+}
+
+const liveSessionWindowReactionsSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        receipt: encounterWindowReactionReceiptDtoSchema,
+        resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema)
+      })
+    )
+    .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+)
+
 /**
  * A creature an action's outcome moves (D139, D157): away from or toward the acting creature along
  * the straight line, aside within its reach, or in any direction, by an exact or up-to distance. The
@@ -208,6 +227,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   reactionSpellConsumption: z.infer<typeof liveSessionCharacterSpellConsumptionSchema> | null
   /** The counters reactors attempted and failed against this cast, each spent with this commit (D127). */
   failedCounters: LiveSessionFailedCounter[]
+  /** The reactions other creatures used against the attack roll, each spent with this commit (D207). */
+  windowReactions: LiveSessionWindowReaction[]
   /** The planned action's display name; the stored command, the timeline and its roll cards carry it (D150). */
   label: string
   /** Warnings the command acknowledged and the planner found; recorded as overrides. */
@@ -275,6 +296,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       spellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       reactionSpellConsumption: z.nullable(liveSessionCharacterSpellConsumptionSchema),
       failedCounters: liveSessionFailedCountersSchema,
+      windowReactions: liveSessionWindowReactionsSchema,
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       ruleOverrides: encounterRuleWarningsDtoSchema,
       // The action's state and recurring effects, and the effect of a reaction its target used.
@@ -310,6 +332,7 @@ export type LiveSessionEncounterCounteredCastCommitInput = Omit<
   | 'turnUses'
   | 'spentUseGrants'
   | 'forcedMovements'
+  | 'windowReactions'
 >
 
 /** What a terminal commit of an action that did nothing carries: its source's one spend and the grants it used up. */

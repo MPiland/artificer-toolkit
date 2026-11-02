@@ -106,6 +106,12 @@ import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/char
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
+import {
+  discoverNativeRollReactions,
+  nextNativeRollReactionDice,
+  planNativeWindowReactions,
+  type NativeRollReaction
+} from './nativeEncounterRollReaction.js'
 import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
@@ -494,6 +500,20 @@ export async function planNativeLiveEncounterAction(
     targetToken: sceneInputs.targetToken,
     grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: sceneInputs.sceneGrid })
   }
+  // Every token of the action's Scene, where a reaction to the action measures its range.
+  const readActionAreaScene = async (sceneRef: NonNullable<typeof command.sceneContext>) => {
+    const areaScene = await capture({
+      kind: 'ACTION_AREA_SCENE',
+      command: {
+        actorId: command.actorId,
+        sceneId: sceneRef.sceneId,
+        expectedSceneVersion: sceneRef.expectedSceneVersion
+      }
+    })
+    if (areaScene.kind !== 'ACTION_AREA_SCENE')
+      throw new Error('Action Scene context is unavailable.')
+    return areaScene.context
+  }
   const definitions = {
     requireCurrent: async (definitionId: string) => {
       const response = await capture({ kind: 'DEFINITION', definitionId })
@@ -529,10 +549,12 @@ export async function planNativeLiveEncounterAction(
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
-    attackDecoy: EncounterAttackDecoy | null
+    attackDecoy: EncounterAttackDecoy | null,
+    rollReactions: readonly NativeRollReaction[]
   ) =>
     prepareEncounterActionMechanics({
       attackDecoy,
+      windowReactionDice: rollReactions.map(({ die }) => die),
       state,
       actor: actors.find((actor) => actor.id === command.actorId)!,
       target: actors.find((actor) => actor.id === targetActorId)!,
@@ -584,12 +606,54 @@ export async function planNativeLiveEncounterAction(
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()
   const occurrenceVersion = responseCommand ? responseCommand.expectedOccurrenceVersion + 1 : 0
   // An attack that a decoy of the target intercepts is rolled against the decoy's armor class.
-  const prepared = await prepareAttackBehindDecoys({
+  const unwindowed = await prepareAttackBehindDecoys({
     occurrenceId,
     effects: activeEffectsByActorId.get(targetActorId) ?? [],
     system,
-    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
+    prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy, [])
   })
+  // The creatures that may roll a die against the attack roll by a reaction (D207); their dice join
+  // the windows the roll opens, so the attack is prepared again with them. Range is read from the
+  // Scene, so an attack made without one offers no such reaction.
+  const actionSceneRef = command.sceneContext
+  const rollReactions =
+    unwindowed.makesAttackRoll && actionSceneRef
+      ? await discoverNativeRollReactions({
+          state,
+          actors,
+          roller: unwindowed.actor,
+          loadTarget: async (actor) => movementTargets.get(actor.id) ?? (await loadTarget(actor)),
+          readScene: () => readActionAreaScene(actionSceneRef),
+          prepareReaction: async (reactor, reactorTarget, actionId) =>
+            prepareEncounterActionMechanics({
+              state,
+              actor: reactor,
+              target: unwindowed.actor,
+              actors,
+              actionId,
+              wieldConflictAcceptance: { kind: 'UNPROMPTED' },
+              overridable: false,
+              movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
+              sceneContext: null,
+              loadAttackPerception: nativeLiveAttackSceneLoaders({
+                state,
+                system,
+                actors,
+                movementTargets,
+                loadTarget,
+                definitions,
+                sceneContext,
+                capture
+              }).loadAttackPerception,
+              ...actionSources
+            }),
+          capture
+        })
+      : []
+  const prepared =
+    rollReactions.length > 0
+      ? await prepareAttackAs(movementTargets, unwindowed.attackDecoy, rollReactions)
+      : unwindowed
   // A spell that takes a list of creatures is not aimed at one.
   if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS') throw targetNotPermitted()
   refuseActionOutsideItsWindow(prepared, command)
@@ -1055,21 +1119,7 @@ export async function planNativeLiveEncounterAction(
     chosenActorIds: null,
     reactionSources: actionSources,
     // Range is read from the Scene, so a cast made without one offers no reaction.
-    readScene: command.sceneContext
-      ? async () => {
-          const castScene = await capture({
-            kind: 'ACTION_AREA_SCENE',
-            command: {
-              actorId: command.actorId,
-              sceneId: command.sceneContext!.sceneId,
-              expectedSceneVersion: command.sceneContext!.expectedSceneVersion
-            }
-          })
-          if (castScene.kind !== 'ACTION_AREA_SCENE')
-            throw new Error('Action Scene context is unavailable.')
-          return castScene.context
-        }
-      : null,
+    readScene: actionSceneRef ? () => readActionAreaScene(actionSceneRef) : null,
     occurrenceId,
     occurredAt,
     userId: initial.expectedUserId,
@@ -1119,7 +1169,7 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId,
     // The answered attack keeps the decoy it was rolled against.
     prepareAttack: (reactedTargets: typeof movementTargets) =>
-      prepareAttackAs(reactedTargets, prepared.attackDecoy),
+      prepareAttackAs(reactedTargets, prepared.attackDecoy, rollReactions),
     loadTarget,
     targetStateChecksum,
     binding: prepared.binding
@@ -1170,7 +1220,17 @@ export async function planNativeLiveEncounterAction(
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
-      saveWindow: targetSaveWindow(state.gameSystemId, heldOnTarget, prepared.attackWindowDice),
+      // A creature that already spent its reaction on a counter to this cast has none left to roll.
+      saveWindow: targetSaveWindow(
+        state.gameSystemId,
+        heldOnTarget,
+        prepared.attackWindowDice,
+        async (answeredReactorActorIds) =>
+          nextNativeRollReactionDice(rollReactions, [
+            ...answeredReactorActorIds,
+            ...failedCounters.map(({ reaction }) => reaction.reactorActorId)
+          ])
+      ),
       legendaryResistance: { discover: discoverResistance, targetStateChecksum },
       reaction: {
         discover: async (critical) =>
@@ -1263,8 +1323,24 @@ export async function planNativeLiveEncounterAction(
   const failedTarget = failedSpends.find(
     ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
   )
-  const failedTargetEconomy = failedTarget?.economy ?? null
-  const targetFailedCounterSpend = Boolean(failedTarget?.spellConsumption)
+  // Each reaction rolled against the attack roll spends its reaction and charge with the outcome (D207);
+  // the target's rides its own mechanics, like a failed counter.
+  const windowReactions = planNativeWindowReactions({
+    reactions: rollReactions,
+    execution,
+    state,
+    occurrenceId,
+    commandId: command.commandId,
+    occurredAt,
+    userId: initial.expectedUserId
+  })
+  const windowTarget = windowReactions.find(
+    ({ receipt }) => receipt.reaction.reactorActorId === prepared.target.id
+  )
+  const spentTargetEconomy = failedTarget?.economy ?? windowTarget?.economy ?? null
+  const targetReactorSpend = Boolean(
+    failedTarget?.spellConsumption || windowTarget?.resourceConsumption
+  )
   const interpretedMovements = interpretForcedMovements(prepared, {
     execution: execution.execution,
     occurrenceId,
@@ -1398,7 +1474,7 @@ export async function planNativeLiveEncounterAction(
           preparedEffects.recurringEffect !== null ||
           preparedEffects.riderEffects.some(Boolean) ||
           reactionUse !== null ||
-          targetFailedCounterSpend ||
+          targetReactorSpend ||
           damageEnded.grants.length > 0 ||
           gateImmunityGrant !== null)
     },
@@ -1414,7 +1490,7 @@ export async function planNativeLiveEncounterAction(
           resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.afterUsed)
         })
       : actor
-    const spentReaction = reactionUse?.economy ?? failedTargetEconomy
+    const spentReaction = reactionUse?.economy ?? spentTargetEconomy
     return spentReaction
       ? consumeEncounterActionEconomy({
           actor: charged,
@@ -1572,7 +1648,7 @@ export async function planNativeLiveEncounterAction(
         activeEffectTransitions: settlement.reactionActiveEffectTransitions
       }
     },
-    targetFailedCounterSpend,
+    targetReactorSpend,
     meleeRetaliation: retaliation?.evidence ?? null,
     grantEffectTransitions: settlement.grantEffectTransitions
   })
@@ -1633,6 +1709,7 @@ export async function planNativeLiveEncounterAction(
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: uses.spentUseGrants,
     failedSpends,
+    windowReactions,
     forcedMovements,
     revisions,
     // The attacker's one-roll grants and the target's effects the damage or action ended, one receipt.

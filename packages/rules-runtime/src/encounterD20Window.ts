@@ -7,11 +7,14 @@ import {
   type EncounterD20WindowPendingContextDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
 import {
+  d20WindowReactionOptionId,
   d20WindowRolledChecksum,
   d20WindowUseOptionId,
+  isD20WindowReactionDie,
   type D20HeldDieDto,
   type D20WindowOptionDto,
-  type D20WindowPausePayloadDto
+  type D20WindowPausePayloadDto,
+  type D20WindowReactionDieDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
@@ -61,6 +64,9 @@ export function encounterD20WindowTrigger(context: EncounterD20WindowPendingCont
 /** One die a roller holds for after its d20: the effect that holds it and the grant that gives it. */
 export type EncounterD20WindowHeldDie = D20HeldDieDto
 
+/** One die a window offers its decider: one the roller holds, or one a reactor rolls against the roll (D207). */
+export type EncounterD20WindowDie = D20HeldDieDto | D20WindowReactionDieDto
+
 /** What the roller answers: keeping the roll, or spending one offered die on it. */
 export type EncounterD20WindowSelection =
   | { kind: 'DECLINE' }
@@ -92,24 +98,35 @@ export function encounterHeldCheckDice(
   )
 }
 
-/** The options offered for one roll: each held die, identified by the roll it was offered for. */
+/** The options offered for one roll: each die, identified by the roll it was offered for. */
 export function encounterD20WindowOptions(
   executionChecksum: string,
-  heldDice: readonly EncounterD20WindowHeldDie[]
+  dice: readonly EncounterD20WindowDie[]
 ): D20WindowOptionDto[] {
-  return heldDice.map((die) => ({
-    ...die,
-    optionId: d20WindowUseOptionId({
-      executionChecksum,
-      effectId: die.effectId,
-      grantId: die.grantId
-    })
-  }))
+  return dice.map((die) =>
+    isD20WindowReactionDie(die)
+      ? {
+          ...die,
+          optionId: d20WindowReactionOptionId({
+            executionChecksum,
+            selectionChecksum: die.reaction.selectionChecksum
+          })
+        }
+      : {
+          ...die,
+          optionId: d20WindowUseOptionId({
+            executionChecksum,
+            effectId: die.effectId,
+            grantId: die.grantId
+          })
+        }
+  )
 }
 
 /**
- * Holds a rolled d20 for its roller to spend a held die: the sealed bounded choice they answer, and
- * the pause payload that freezes the roll and the options. `heldDice` must not be empty.
+ * Holds a rolled d20 for one decider to spend a die on it: the sealed bounded choice they answer, and
+ * the pause payload that freezes the roll and the options. `dice` must not be empty, and all belong to
+ * the roller or all to one reactor not yet asked about this roll.
  */
 export async function openEncounterD20WindowPause(input: {
   runtime: RulesRuntimeService
@@ -117,7 +134,9 @@ export async function openEncounterD20WindowPause(input: {
   gameSystemId: string
   rolled: D20WindowPausePayloadDto['rolled']
   appRollId: string | null
-  heldDice: readonly EncounterD20WindowHeldDie[]
+  dice: readonly EncounterD20WindowDie[]
+  /** The reactors earlier windows of this roll already asked. */
+  answeredReactorActorIds?: readonly string[]
 }): Promise<{
   continuation: ServerRuleExecutionContinuationDto
   payload: D20WindowPausePayloadDto
@@ -132,7 +151,7 @@ export async function openEncounterD20WindowPause(input: {
       definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
       gameSystemId: input.gameSystemId
     },
-    optionCount: input.heldDice.length,
+    optionCount: input.dice.length,
     declinable: true
   })
   return {
@@ -140,9 +159,10 @@ export async function openEncounterD20WindowPause(input: {
     payload: {
       rolled,
       appRollId: input.appRollId,
+      answeredReactorActorIds: [...(input.answeredReactorActorIds ?? [])],
       offer: {
         executionChecksum,
-        options: encounterD20WindowOptions(executionChecksum, input.heldDice)
+        options: encounterD20WindowOptions(executionChecksum, input.dice)
       }
     }
   }
@@ -167,7 +187,10 @@ export async function openEncounterD20Window(input: {
   context: EncounterD20WindowPendingContextDto
   snapshot: ServerKernelRuleExecutionPendingSnapshotDto
 }> {
-  const { continuation, payload } = await openEncounterD20WindowPause(input)
+  const { continuation, payload } = await openEncounterD20WindowPause({
+    ...input,
+    dice: input.heldDice
+  })
   const context = encounterD20WindowPendingContextDtoSchema.parse({
     kind: 'ENCOUNTER_D20_WINDOW',
     schemaVersion: 1,
@@ -304,7 +327,14 @@ export function spendEncounterD20WindowDie(
     count: option.count,
     faces: option.faces,
     sign: option.sign,
-    spentEffectId: option.effectId,
+    ...(isD20WindowReactionDie(option)
+      ? {
+          spentReaction: {
+            reactorActorId: option.reaction.reactorActorId,
+            selectionChecksum: option.reaction.selectionChecksum
+          }
+        }
+      : { spentEffectId: option.effectId }),
     rolledFaces: [...rolledFaces]
   }
   const addedDice = [...(d20.addedDice ?? []), die]
@@ -320,7 +350,10 @@ export function spendEncounterD20WindowDie(
   }
 }
 
-type SpentDiceHolder = { addedDice?: readonly { spentEffectId?: string }[] } | null | undefined
+type SpentDiceHolder =
+  | { addedDice?: readonly Pick<D20RolledAddedDieDto, 'spentEffectId' | 'spentReaction'>[] }
+  | null
+  | undefined
 
 /** The effects whose held die a window spent on the action's settled rolls; each is used up with the action. */
 export function windowSpentEffects(
@@ -337,4 +370,13 @@ export function windowSpentEffects(
       if (!spent) throw new Error('The d20 window die is no longer held.')
       return [spent]
     })
+}
+
+/** The reactions a window spent on the action's settled rolls (D207); each reactor pays at the action's commit. */
+export function windowSpentReactions(
+  execution: Readonly<Record<'d20' | 'nestedD20', SpentDiceHolder>>
+) {
+  return [execution.d20, execution.nestedD20]
+    .flatMap((d20) => d20?.addedDice ?? [])
+    .flatMap(({ spentReaction }) => (spentReaction ? [spentReaction] : []))
 }

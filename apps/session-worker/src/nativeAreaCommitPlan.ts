@@ -362,7 +362,7 @@ export async function planAreaOutcomes(args: {
         attackAction: null,
         area: { parentOccurrenceId: areaOccurrenceId },
         resistance,
-        targetFailedCounterSpend: carriesFailedCounterSpend,
+        targetReactorSpend: carriesFailedCounterSpend,
         reactionEffectTransitions: projectNativeActionEffectTransitions({
           state: null,
           recurring: reactionRecord ?? null,

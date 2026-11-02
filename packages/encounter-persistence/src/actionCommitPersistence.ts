@@ -15,6 +15,7 @@ import { clearHolderDamageTypes } from './damageTypesClearing.js'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { windowSpentReactions } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
@@ -119,7 +120,7 @@ export async function persistEncounterActionCommit(
     execution.occurrenceVersion !== occurrenceVersion ||
     (resume && execution.occurrenceId !== resume.occurrence.id) ||
     // Failed counters come from a cast's earlier pauses, so a commit with none behind it carries none.
-    (!resume && input.failedCounters.length > 0) ||
+    (!resume && (input.failedCounters.length > 0 || input.windowReactions.length > 0)) ||
     (resume &&
       !castPendingContinues(resume.pending.context, input.response, {
         failedCounters: input.failedCounters.map(({ receipt }) => receipt),
@@ -151,6 +152,17 @@ export async function persistEncounterActionCommit(
     batch.occurrenceId !== execution.occurrenceId
   )
     throw new Error('Live Session action result scope mismatch.')
+  // Each reaction rolled against the attack roll is the one a die of its settled d20 names (D207).
+  const spentReactions = windowSpentReactions(batch)
+  if (
+    input.windowReactions.length !== spentReactions.length ||
+    input.windowReactions.some(
+      ({ receipt: { reaction } }, index) =>
+        reaction.reactorActorId !== spentReactions[index]?.reactorActorId ||
+        reaction.selectionChecksum !== spentReactions[index]?.selectionChecksum
+    )
+  )
+    throw new Error('Live Session window reactions do not match the rolled dice.')
   const actors = await readRunActors(ctx, state)
   const source = actors.find((actor) => actor.id === command.actorId)
   const target = actors.find((actor) => actor.id === targetActorId)
@@ -236,9 +248,11 @@ export async function persistEncounterActionCommit(
       spellCastConsumption: reaction?.spellCastConsumption ?? null
     }
   })
-  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast (D127).
+  // Every counter that failed against this cast spends its reactor's slot and reaction with the cast
+  // (D127), and every reaction rolled against the attack roll its reaction and charge (D207).
   const failedSpends = failedCounterSpends({
     failedCounters: input.failedCounters,
+    windowReactions: input.windowReactions,
     actors,
     source
   })
@@ -565,9 +579,7 @@ export async function persistEncounterActionCommit(
     encounterId: state.id,
     gameSystemId: state.gameSystemId,
     occurrenceId: execution.occurrenceId,
-    checks: failedSpends.flatMap(({ failed, reactor }) =>
-      failed.receipt.check ? [{ reactor, check: failed.receipt.check }] : []
-    ),
+    checks: failedSpends.flatMap(({ check, reactor }) => (check ? [{ reactor, check }] : [])),
     response: input.response,
     responderUserId: userId,
     initiatorUserId,
@@ -640,6 +652,7 @@ export async function persistEncounterActionCommit(
       turnUses,
       clearedDamageTypes,
       failedCounters: input.failedCounters.map(({ receipt }) => receipt),
+      windowReactions: input.windowReactions.map(({ receipt }) => receipt),
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors)
     },
     occurredAt: input.occurredAt

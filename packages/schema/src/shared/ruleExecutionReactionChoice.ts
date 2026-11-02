@@ -19,6 +19,7 @@ import {
   type ServerRuleExecutionD20PolicyDto
 } from './ruleExecutionEvidence.js'
 import {
+  characterMechanicsResourceReceiptDtoSchema,
   characterActiveEffectCreateReceiptDtoSchema,
   encounterActorActiveEffectCreateReceiptDtoSchema,
   sourceApplicationsChangeState,
@@ -82,6 +83,15 @@ export const encounterCastReactionPinDtoSchema = lazySchema(() =>
 )
 export type EncounterCastReactionPinDto = z.infer<typeof encounterCastReactionPinDtoSchema>
 
+/**
+ * The exact reaction another creature's attack roll offers in its d20 window (D207), sealed like an
+ * attack reaction.
+ */
+export const encounterRollReactionPinDtoSchema = lazySchema(() =>
+  z.strictObject({ trigger: z.literal('ATTACK_ROLL_BY_OTHER'), ...reactionPinShape() })
+)
+export type EncounterRollReactionPinDto = z.infer<typeof encounterRollReactionPinDtoSchema>
+
 /** What identifies the reaction offered, independent of the volatile Character version and allowance. */
 export function encounterReactionSelectionIdentity(
   pin: Pick<
@@ -116,7 +126,7 @@ export function encounterReactionUseOptionId(selectionChecksum: string): string 
  * a Character's version exactly when it names a Character.
  */
 export function validateEncounterReactionPin(
-  pin: EncounterReactionPinDto | EncounterCastReactionPinDto,
+  pin: EncounterReactionPinDto | EncounterCastReactionPinDto | EncounterRollReactionPinDto,
   context: z.core.$RefinementCtx,
   path: readonly (string | number)[]
 ) {
@@ -387,6 +397,59 @@ export const encounterFailedCounterReceiptDtoSchema: z.ZodMiniType<EncounterFail
     z
       .strictObject({ ...failedCounterShape(), ...counterSpendShape() })
       .check(z.superRefine(validateCounterSpend))
+  )
+
+/**
+ * What a reactor spent to roll a die against another creature's attack roll in its d20 window (D207),
+ * settled with the action's terminal commit: its reaction allowance and the charge the reaction costs.
+ */
+export type EncounterWindowReactionReceiptDto = {
+  reaction: EncounterRollReactionPinDto
+  resourceConsumption: z.infer<typeof characterMechanicsResourceReceiptDtoSchema> | null
+  /** The reactor's Character version once its charge was spent; null when the reaction costs none. */
+  characterStreamVersion: number | null
+  actionEconomyTransition: z.infer<typeof encounterActionEconomyTransitionDtoSchema>
+}
+
+export const encounterWindowReactionReceiptDtoSchema: z.ZodMiniType<EncounterWindowReactionReceiptDto> =
+  lazySchema(() =>
+    z
+      .strictObject({
+        reaction: encounterRollReactionPinDtoSchema,
+        resourceConsumption: z.nullable(characterMechanicsResourceReceiptDtoSchema),
+        characterStreamVersion: z.nullable(aggregateVersionSchema),
+        actionEconomyTransition: encounterActionEconomyTransitionDtoSchema
+      })
+      .check(
+        z.superRefine((value, context) => {
+          validateEncounterReactionPin(value.reaction, context, ['reaction'])
+          const resource = value.resourceConsumption
+          if (
+            value.reaction.characterId === null ||
+            (value.characterStreamVersion === null) !== (resource === null) ||
+            (resource &&
+              (resource.afterUsed !== resource.beforeUsed + resource.cost ||
+                resource.afterRemaining !== resource.beforeRemaining - resource.cost ||
+                resource.afterRemaining < 0))
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['resourceConsumption'],
+              message: 'The reactor charge receipt must match its Character and stream version.'
+            })
+          const economy = value.actionEconomyTransition
+          if (
+            economy.definitionId !== value.reaction.allowanceDefinitionId ||
+            economy.beforeUsed !== value.reaction.allowanceBeforeUsed ||
+            economy.maximum !== value.reaction.allowanceMaximum
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['actionEconomyTransition'],
+              message: 'The reactor allowance spend must be the one the reaction pinned.'
+            })
+        })
+      )
   )
 
 /**

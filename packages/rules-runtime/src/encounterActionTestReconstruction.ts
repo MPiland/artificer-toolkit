@@ -46,7 +46,9 @@ export async function reconstructNativeActionTest(
     throw new Error('The retained TEST request is stale.')
   const boundary = await prepareNativeActionTest({
     ...source,
-    windowDice: (input.d20.addedDice ?? []).filter(({ spentEffectId }) => spentEffectId),
+    windowDice: (input.d20.addedDice ?? []).filter(
+      ({ spentEffectId, spentReaction }) => spentEffectId || spentReaction
+    ),
     resume: {
       pending,
       resolution: {

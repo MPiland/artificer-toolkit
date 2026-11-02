@@ -116,8 +116,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
       delegatingActorSpend: z.optional(encounterDelegatingActorSpendDtoSchema),
       /** The target's reaction decision on this attack; its spend belongs to the target, not the source. */
       reaction: z._default(z.nullable(encounterActionReactionReceiptDtoSchema), null),
-      /** The target also failed a counter against this cast (D127): its slot spend rides in this batch's Character write. */
-      targetFailedCounterSpend: z._default(z.boolean(), false),
+      /** The target also spent its reaction on a failed counter (D127) or a die against the attack roll (D207): that spend rides in this batch's Character write. */
+      targetReactorSpend: z._default(z.boolean(), false),
       /** The action's recurring effect and, beside it, a failure-margin rider's effect. */
       activeEffectTransitions: z
         .array(characterActiveEffectCreateReceiptDtoSchema)
@@ -569,7 +569,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         // hit points unchanged (a halved 1 deals nothing).
         const hasReactionMutation =
           reaction?.selection === 'USE' ||
-          value.targetFailedCounterSpend ||
+          value.targetReactorSpend ||
           release !== null ||
           degradation !== null
         if (

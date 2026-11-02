@@ -304,8 +304,8 @@ export async function persistEncounterCounteredCastCommit(
     gameSystemId: state.gameSystemId,
     occurrenceId: root.occurrenceId,
     checks: [
-      ...failedSpends.flatMap(({ failed, reactor: failedReactor }) =>
-        failed.receipt.check ? [{ reactor: failedReactor, check: failed.receipt.check }] : []
+      ...failedSpends.flatMap(({ check, reactor: failedReactor }) =>
+        check ? [{ reactor: failedReactor, check }] : []
       ),
       ...(counter.check ? [{ reactor, check: counter.check }] : [])
     ],
