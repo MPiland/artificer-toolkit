@@ -1,12 +1,15 @@
-import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import type { CompiledDuration, CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import {
   uuid,
+  UUID,
+  DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY
 } from './effectActionContracts.js'
+import { conditionDurationTurns } from './effectActionFollowUp.js'
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
@@ -63,6 +66,30 @@ export const isGrantEndTrigger = (
 
 export function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
+}
+
+/**
+ * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary, "immune
+ * to this effect for 24 hours"), keyed by the ward's grant. Null when the duration cannot be counted.
+ */
+export function incomingGateImmunityPlan(input: { wardId: string; duration: CompiledDuration }) {
+  const initialRemaining = conditionDurationTurns(input.duration)
+  if (initialRemaining === null || !UUID.test(input.wardId)) return null
+  const plan = { compiledEntryId: input.wardId, frozenGraphNodeId: 'source-immunity' }
+  return {
+    authoredEffectId: input.wardId,
+    capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+    immunity: {
+      ...plan,
+      appliesTo: 'SAVE_SUCCESS' as const,
+      immuneToId: input.wardId,
+      initialRemaining,
+      frozenGraph: durationPublishedGraph({
+        effectId: input.wardId,
+        plan: { ...plan, marginRiders: [] }
+      })
+    }
+  }
 }
 
 /**

@@ -65,7 +65,7 @@ import {
   type DamageRerollCostDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import {
-  openEncounterDamageRollWindow,
+  holdEncounterDamageRoll,
   replayEncounterDamageRollWindow,
   type EncounterDamageRerollAnswer
 } from './encounterDamageRollWindow.js'
@@ -307,47 +307,6 @@ export type PendingNativeActionGraphs = {
     EncounterActionPauseDto,
     { kind: 'ROLL_WINDOW' | 'LEGENDARY_RESISTANCE' | 'REACTION' | 'ON_HIT' | 'FORCED_MOVEMENT' }
   >
-}
-
-/**
- * Holds a phase that rolled damage and settled no d20 for its caster to pay a cost and reroll some of
- * the damage dice (D208), or null when no cost or no damage die is there. A hit whose on-hit rider a
- * pool paid offers no reroll: an action spends from one pool.
- */
-async function holdActionDamageRoll(input: {
-  runtime: RulesRuntimeService
-  adapter: CharacterRuleActionSystemAdapter
-  occurrenceId: string
-  costs: readonly DamageRerollCostDto[] | undefined
-  published: ServerPublishedRuleDefinitionDto
-  execution: ServerCompletedRuleExecutionDto
-  twoPhase: NativeTwoPhase | null
-  phaseReceipts: NativePhaseReceipts
-}): Promise<PendingNativeActionGraphs | null> {
-  const { twoPhase } = input
-  const poolPaidOnHit =
-    twoPhase?.phase === 'OUTCOME' && twoPhase.onHit?.option?.kind === 'RESOURCE_POOL'
-  if (!input.costs?.length || poolPaidOnHit) return null
-  const dice =
-    input.adapter.rolledDamageDice?.({ published: input.published, execution: input.execution }) ??
-    []
-  if (dice.length === 0) return null
-  const window = await openEncounterDamageRollWindow({
-    runtime: input.runtime,
-    occurrenceId: input.occurrenceId,
-    gameSystemId: input.published.gameSystemId,
-    execution: input.execution,
-    dice,
-    costs: input.costs
-  })
-  return {
-    kind: 'PENDING',
-    ...window,
-    d20Policy: null,
-    twoPhase,
-    roller: 'SOURCE',
-    ...(input.phaseReceipts.length ? { phaseReceipts: input.phaseReceipts } : {})
-  }
 }
 
 /** Seals only the TEST phase so a server-owned interstitial can choose its legal OUTCOME. */
@@ -950,7 +909,7 @@ export async function continueNativeActionAfterTest(
     })
   const heldDamage = nestedD20
     ? null
-    : await holdActionDamageRoll({
+    : await holdEncounterDamageRoll({
         runtime: input.runtime,
         adapter: input.adapter,
         occurrenceId: input.occurrenceId,
@@ -1397,7 +1356,7 @@ export async function advanceNativeActionGraphs(input: {
   if (phase === 'SINGLE') {
     const heldDamage = stage.d20
       ? null
-      : await holdActionDamageRoll({
+      : await holdEncounterDamageRoll({
           ...damageHold,
           published,
           execution: result,
@@ -1613,7 +1572,7 @@ export async function advanceNativeActionGraphs(input: {
   if (!outcomeTemplate) throw new Error('The action OUTCOME template is unavailable.')
   const heldDamage = nestedD20
     ? null
-    : await holdActionDamageRoll({
+    : await holdEncounterDamageRoll({
         ...damageHold,
         published,
         execution: result,

@@ -1,8 +1,7 @@
 import {
   damageRerollOptionId,
   type DamageRerollCostDto,
-  type DamageRollWindowPayloadDto,
-  type RolledDamageDieDto
+  type DamageRollWindowPayloadDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
 import type {
   ServerCompletedRuleExecutionDto,
@@ -11,6 +10,10 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument, type RuleValue } from '@artificer-toolkit/shared/rules'
 
+import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
+import type { NativePhaseReceipts } from './encounterActionCompletion.js'
+import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
+import type { NativeTwoPhase } from './encounterActionRequest.js'
 import {
   ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
   type EncounterD20WindowSelection
@@ -34,40 +37,57 @@ export type EncounterDamageRerollAnswer = {
 }
 
 /**
- * Holds a completed phase's damage roll for its caster to pay a cost and reroll some of its dice: the
- * sealed choice they answer (index 0 keeps the roll) and the pause that freezes the roll and the costs.
- * `dice` and `costs` must not be empty.
+ * Holds a phase that rolled damage and settled no d20 for its caster to pay a cost and reroll some of
+ * the damage dice (D208): the sealed choice they answer (index 0 keeps the roll) and the pause that
+ * freezes the roll and the costs. Null when no cost or no damage die is there. A hit whose on-hit
+ * rider a pool paid offers no reroll: an action spends from one pool.
  */
-export async function openEncounterDamageRollWindow(input: {
+export async function holdEncounterDamageRoll(input: {
   runtime: RulesRuntimeService
+  adapter: CharacterRuleActionSystemAdapter
   occurrenceId: string
-  gameSystemId: string
+  costs: readonly DamageRerollCostDto[] | undefined
+  published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
-  dice: readonly RolledDamageDieDto[]
-  costs: readonly DamageRerollCostDto[]
-}) {
-  const executionChecksum = checksumRuleDocument(input.execution)
+  twoPhase: NativeTwoPhase | null
+  phaseReceipts: NativePhaseReceipts
+}): Promise<PendingNativeActionGraphs | null> {
+  const { twoPhase, costs, execution } = input
+  const poolPaidOnHit =
+    twoPhase?.phase === 'OUTCOME' && twoPhase.onHit?.option?.kind === 'RESOURCE_POOL'
+  if (!costs?.length || poolPaidOnHit) return null
+  const dice = input.adapter.rolledDamageDice?.({ published: input.published, execution }) ?? []
+  if (dice.length === 0) return null
+  const executionChecksum = checksumRuleDocument(execution)
   const continuation = await openEncounterSealedChoice({
     runtime: input.runtime,
     occurrenceId: input.occurrenceId,
     graph: {
       definitionId: ENCOUNTER_D20_WINDOW_CHOICE_DEFINITION_ID,
-      gameSystemId: input.gameSystemId
+      gameSystemId: input.published.gameSystemId
     },
-    optionCount: input.costs.length,
+    optionCount: costs.length,
     declinable: true
   })
   const payload: DamageRollWindowPayloadDto = {
-    damage: { execution: input.execution, dice: [...input.dice] },
+    damage: { execution, dice: [...dice] },
     offer: {
       executionChecksum,
-      options: input.costs.map((cost) => ({
+      options: costs.map((cost) => ({
         ...cost,
         optionId: damageRerollOptionId({ executionChecksum, modifierId: cost.modifierId })
       }))
     }
   }
-  return { continuation, pause: { kind: 'ROLL_WINDOW' as const, payload } }
+  return {
+    kind: 'PENDING',
+    continuation,
+    pause: { kind: 'ROLL_WINDOW', payload },
+    d20Policy: null,
+    twoPhase,
+    roller: 'SOURCE',
+    ...(input.phaseReceipts.length ? { phaseReceipts: input.phaseReceipts } : {})
+  }
 }
 
 /**

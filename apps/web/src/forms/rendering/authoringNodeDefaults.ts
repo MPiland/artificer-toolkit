@@ -868,6 +868,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { outcome: 'SAVE_AUTO_SUCCESS', base: 1 } satisfies NonNullable<
         CastModifierAuthored['targets']
       >
+    case 'castModifierDamageRerolls':
+      return { base: 1 } satisfies NonNullable<CastModifierAuthored['damageRerolls']>
     case 'resourceUse':
       return { chargeId: '', cost: 1 } satisfies ResourceUseAuthored
     case 'featureOptionActionReference':

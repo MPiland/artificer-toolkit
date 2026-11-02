@@ -84,6 +84,7 @@ import {
   reactionCastEnded
 } from './nativeEndEffects.js'
 import {
+  payableCharacterDamageRerolls,
   prepareNativeLiveActionMaintenance,
   settledCharacterActionSpend
 } from './nativeEncounterMaintenance.js'
@@ -91,8 +92,6 @@ import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/enco
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { replayNativeActionReaction } from '@artificer-toolkit/rules-runtime/encounterActionReaction'
 import { onHitCandidates } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
-import { payableDamageRerolls } from '@artificer-toolkit/rules-runtime/character/characterCastModifiers'
-import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
 import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
@@ -429,8 +428,6 @@ export async function planNativeLiveEncounterAction(
           revisions
         }
       if (!snapshot || !resolved) throw new Error('The pending area action is unavailable.')
-      if (resolved.kind === 'DAMAGE_REROLL')
-        throw new Error('An area action opens no damage roll window.')
       return {
         ...(await planNativeLiveEncounterAreaAnswer({
           ...areaInput,
@@ -834,18 +831,9 @@ export async function planNativeLiveEncounterAction(
     responseCommand && resolved && snapshot?.applicationContext.kind === 'ENCOUNTER_ACTION'
       ? { pending: restoreEncounterActionPending(snapshot), resolution: resolved }
       : null
-  // The damage rerolls the caster can still pay for once its damage is rolled (D208).
-  const damageRerolls =
-    prepared.source.kind === 'CHARACTER_ACTION'
-      ? payableDamageRerolls({
-          costs: prepared.source.candidate.damageRerolls ?? [],
-          spent: prepared.characterActionState?.resourceConsumption ?? null,
-          capacityUse: maintenance?.capacityUse
-        })
-      : []
   const actionSource = {
     runtime: executionOptions.runtime,
-    damageRerolls,
+    damageRerolls: payableCharacterDamageRerolls({ prepared, maintenance }),
     random: executionOptions.random,
     adapter: prepared.adapter,
     plan: prepared.plan,
@@ -1170,31 +1158,13 @@ export async function planNativeLiveEncounterAction(
     (retained?.phase === 'OUTCOME' ? (retained.onHit?.option ?? null) : null)
   // A Concentration the holder keeps beside another spends the use of the bonus that made room; an
   // on-hit pool rider is not offered beside it, so the two never spend the one resource slot together.
-  const chosenReroll = resolved?.kind === 'DAMAGE_REROLL' ? resolved.option : null
-  if (
-    chosenReroll &&
-    !damageRerolls.some(
-      ({ modifierId, poolId, cost }) =>
-        modifierId === chosenReroll.modifierId &&
-        poolId === chosenReroll.poolId &&
-        cost === chosenReroll.cost
-    )
-  )
-    throw new StaleCharacterActionError('The damage reroll can no longer be paid for.')
-  const settledSpend = settledCharacterActionSpend({
+  const settledPrepared = settledCharacterActionSpend({
     prepared,
     chosenOnHit,
-    damageReroll: chosenReroll,
+    damageReroll: resolved?.kind === 'DAMAGE_REROLL' ? resolved.option : null,
     maintenance,
     automationMode: state.automationMode
   })
-  const settledPrepared =
-    settledSpend && prepared.characterActionState
-      ? {
-          ...prepared,
-          characterActionState: { ...prepared.characterActionState, ...settledSpend }
-        }
-      : prepared
   const preparedEffects = prepareNativeActionEffectsPlan({
     prepared,
     execution,

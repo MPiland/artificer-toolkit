@@ -10,6 +10,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { EncounterEvidenceAnswer } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import type { EncounterActionWindowAnswer } from '@artificer-toolkit/rules-runtime/encounterActionSaveWindow'
+import type { EncounterDamageRerollAnswer } from '@artificer-toolkit/rules-runtime/encounterDamageRollWindow'
 import { initiativeActionOrder } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { isD20RolledCheck } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import { isDamageRollWindow } from '@artificer-toolkit/schema/shared/ruleExecutionDamageRollWindow'
@@ -598,11 +599,13 @@ export async function planNativeLiveEncounterAreaAnswer(
     response: ResolveRuleOccurrenceInputDto
     /** The save the answer is for: its sealed roll, or the d20 window opened on it. */
     requestId: string
-    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer
+    resolution: EncounterEvidenceAnswer | EncounterActionWindowAnswer | EncounterDamageRerollAnswer
     areaSnapshot: ServerAggregateChoicePendingSnapshotDto
   }
 ) {
   const { command, actors, areaSnapshot, resolution } = input
+  if (resolution.kind === 'DAMAGE_REROLL')
+    throw new Error('An area action opens no damage roll window.')
   const context = areaSnapshot.applicationContext
   if (context.kind !== 'ENCOUNTER_AREA_ACTION')
     throw new Error('The pending area action is unavailable.')
