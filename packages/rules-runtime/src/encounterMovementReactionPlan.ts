@@ -241,7 +241,8 @@ function reactionMechanicsInput<
     applications: [...execution.applications, ...effects.effects.relationshipConditionApplications],
     forceTargetVersionAdvance:
       prepared.prepared.target.kind === 'CHARACTER' &&
-      (effects.createdEffects.length > 0 || Boolean(targetWindowReaction(input)?.resourceConsumption)),
+      (effects.createdEffects.length > 0 ||
+        Boolean(targetWindowReaction(input)?.resourceConsumption)),
     sourceReleases: ended.sourceReleases,
     damageReleases: ended.damageReleases,
     eventPhases: {

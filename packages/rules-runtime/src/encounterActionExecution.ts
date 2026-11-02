@@ -464,20 +464,30 @@ export async function prepareNativeActionTest(
         heldD20: heldStageD20(response.heldFace, sight)
       }
     if (resolution.kind !== 'D20_WINDOW') {
-      const window = await windowRolledSave(pending.continuation, policy, {
-        response,
-        appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
-      }, sight !== null)
+      const window = await windowRolledSave(
+        pending.continuation,
+        policy,
+        {
+          response,
+          appRollId: resolution.kind === 'SYSTEM_ROLL' ? resolution.rollId : null
+        },
+        sight !== null
+      )
       if (window) return window
     } else {
       mayAddDice = true
       if (pending.pause?.kind !== 'D20_WINDOW')
         throw new Error('The native action TEST evidence is stale.')
       // The next reactor, if any, is asked about the roll as the window just answered settled it.
-      const window = await windowRolledSave(heldContinuation, policy, {
-        previous: pending.pause.payload,
-        d20: resolution.d20
-      }, false)
+      const window = await windowRolledSave(
+        heldContinuation,
+        policy,
+        {
+          previous: pending.pause.payload,
+          d20: resolution.d20
+        },
+        false
+      )
       if (window) return window
     }
     const windowDice = input.windowDice ?? []
@@ -535,10 +545,15 @@ export async function prepareNativeActionTest(
       resolution: { kind: 'AUTO_ROLL', requestId: result.continuation.request.requestId },
       random
     })
-    const window = await windowRolledSave(result.continuation, pendingPolicy, {
-      response: automatic,
-      appRollId: null
-    }, isEncounterSightGovernedD20({ policy: pendingPolicy, belief: null }))
+    const window = await windowRolledSave(
+      result.continuation,
+      pendingPolicy,
+      {
+        response: automatic,
+        appRollId: null
+      },
+      isEncounterSightGovernedD20({ policy: pendingPolicy, belief: null })
+    )
     if (window) return window
     continuation = result.continuation
     faces = automatic.faces

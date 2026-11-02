@@ -395,8 +395,8 @@ export function CampaignTabletopDecisionDrawer({
                   ? (encounter.actors.find((actor) => actor.id === pending.attackerActorId)
                       ?.label ?? 'A hidden combatant')
                   : `${rollPromptText(
-                      encounter.actors.find((actor) => actor.id === pending.rollerActorId)
-                        ?.label ?? 'a hidden combatant',
+                      encounter.actors.find((actor) => actor.id === pending.rollerActorId)?.label ??
+                        'a hidden combatant',
                       pending.trigger
                     )}:`}{' '}
                 rolled {pending.d20.selectedNatural}, total {pending.d20.total}

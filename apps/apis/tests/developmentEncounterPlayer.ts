@@ -50,9 +50,7 @@ export type EncounterPlayerBrowserControls = {
    * Answers the reaction window another combatant's attack roll opened: uses the reaction with this
    * label, or declines it when the label is null.
    */
-  answerRollWindow: (
-    reaction: string | null
-  ) => Promise<PlayerStep<ResolveRuleOccurrenceInputDto>>
+  answerRollWindow: (reaction: string | null) => Promise<PlayerStep<ResolveRuleOccurrenceInputDto>>
   /** Picks Thunderwave, aims it on the map from the Character toward the Wolf, and resolves it. */
   castThunderwaveFromMap: () => Promise<PlayerStep<ResolveEncounterActionInputDto>>
   /** Ends the player's own turn from the turn-order drawer. */

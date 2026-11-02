@@ -43,7 +43,12 @@ export function heckleFeature(newId?: () => string) {
                 {
                   ...outcome,
                   id: id(),
-                  die: { count: 1, faces: 4, sign: 'SUBTRACT' as const, timing: 'AFTER_ROLL' as const }
+                  die: {
+                    count: 1,
+                    faces: 4,
+                    sign: 'SUBTRACT' as const,
+                    timing: 'AFTER_ROLL' as const
+                  }
                 }
               ]
             }

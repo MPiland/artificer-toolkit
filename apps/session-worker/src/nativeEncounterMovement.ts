@@ -265,94 +265,94 @@ export async function prepareNativeLiveMovement(
           attackDecoy: Parameters<typeof prepareEncounterActionMechanics>[0]['attackDecoy'],
           windowReactionDice: NativeRollReaction['die'][]
         ) =>
-            prepareEncounterActionMechanics({
-              ...mechanics,
-              attackDecoy,
-              windowReactionDice,
-              overridable: false,
-              saveWindow: true,
-              // The reactor attacks from its token; the mover is the target at the contact point.
-              loadAttackPerception: loadContactPerception,
-              ...actionSources,
-              loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
-                measureNativeEnemyProximity({
-                  state,
-                  actors: captured.actors,
-                  attackerActorId: sourceFacts.actor.id,
-                  targetActorId: targetFacts.actor.id,
-                  grid: scene.grid,
-                  tokens: contactTokens,
-                  loadTarget: loadReactionTarget,
-                  definitions
+          prepareEncounterActionMechanics({
+            ...mechanics,
+            attackDecoy,
+            windowReactionDice,
+            overridable: false,
+            saveWindow: true,
+            // The reactor attacks from its token; the mover is the target at the contact point.
+            loadAttackPerception: loadContactPerception,
+            ...actionSources,
+            loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
+              measureNativeEnemyProximity({
+                state,
+                actors: captured.actors,
+                attackerActorId: sourceFacts.actor.id,
+                targetActorId: targetFacts.actor.id,
+                grid: scene.grid,
+                tokens: contactTokens,
+                loadTarget: loadReactionTarget,
+                definitions
+              }),
+            // Each ally's sight of the mover is judged at the contact point too.
+            loadFlanking: ({ sourceFacts, targetFacts, capabilityDefinitionId }) =>
+              loadEncounterFlankingFacts({
+                gameSystemId: state.gameSystemId,
+                actors: captured.actors,
+                attacker: sourceFacts,
+                target: targetFacts,
+                grid: scene.grid,
+                tokens: contactTokens,
+                capabilityDefinitionId,
+                loadTarget: loadReactionTarget,
+                definitions,
+                observersSeeing: ({ subject, observers }) =>
+                  resolveEncounterObserversSeeing({
+                    gameSystemId: state.gameSystemId,
+                    loadDefinition,
+                    loadSystem: async () => system,
+                    subject,
+                    observers: observers.map((observer) => ({
+                      observer,
+                      placement: {
+                        scene: captured.perceptionScene,
+                        sceneGrid: scene.grid,
+                        observerToken: tokenOf(observer.actor.id),
+                        subjectToken: tokenOf(subject.actor.id),
+                        spatialEffects
+                      }
+                    }))
+                  })
+              }),
+            // The reactor's cover against the mover is judged with the mover at the contact point.
+            loadCover: async ({ sourceFacts, targetFacts }) => {
+              const reactorToken = contactTokens.find(
+                ({ actorId }) => actorId === sourceFacts.actor.id
+              )
+              const movingToken = contactTokens.find(
+                ({ actorId }) => actorId === targetFacts.actor.id
+              )
+              if (!reactorToken || !movingToken)
+                throw new Error('Movement reaction perception facts are stale.')
+              return refuseBlockedCover(
+                resolveEncounterCover({
+                  system,
+                  scene: { ...captured.perceptionScene, tokens: contactTokens },
+                  origin: { kind: 'TOKEN', token: reactorToken },
+                  targetTokenId: movingToken.id,
+                  automatic: state.automaticCover
                 }),
-              // Each ally's sight of the mover is judged at the contact point too.
-              loadFlanking: ({ sourceFacts, targetFacts, capabilityDefinitionId }) =>
-                loadEncounterFlankingFacts({
-                  gameSystemId: state.gameSystemId,
-                  actors: captured.actors,
-                  attacker: sourceFacts,
-                  target: targetFacts,
-                  grid: scene.grid,
-                  tokens: contactTokens,
-                  capabilityDefinitionId,
-                  loadTarget: loadReactionTarget,
-                  definitions,
-                  observersSeeing: ({ subject, observers }) =>
-                    resolveEncounterObserversSeeing({
-                      gameSystemId: state.gameSystemId,
-                      loadDefinition,
-                      loadSystem: async () => system,
-                      subject,
-                      observers: observers.map((observer) => ({
-                        observer,
-                        placement: {
-                          scene: captured.perceptionScene,
-                          sceneGrid: scene.grid,
-                          observerToken: tokenOf(observer.actor.id),
-                          subjectToken: tokenOf(subject.actor.id),
-                          spatialEffects
-                        }
-                      }))
-                    })
-                }),
-              // The reactor's cover against the mover is judged with the mover at the contact point.
-              loadCover: async ({ sourceFacts, targetFacts }) => {
-                const reactorToken = contactTokens.find(
-                  ({ actorId }) => actorId === sourceFacts.actor.id
-                )
-                const movingToken = contactTokens.find(
-                  ({ actorId }) => actorId === targetFacts.actor.id
-                )
-                if (!reactorToken || !movingToken)
-                  throw new Error('Movement reaction perception facts are stale.')
-                return refuseBlockedCover(
-                  resolveEncounterCover({
-                    system,
-                    scene: { ...captured.perceptionScene, tokens: contactTokens },
-                    origin: { kind: 'TOKEN', token: reactorToken },
-                    targetTokenId: movingToken.id,
-                    automatic: state.automaticCover
-                  }),
-                  true
-                )
-              },
-              loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
-              loadTargetHasNotTakenTurn: ({ targetFacts }) =>
-                readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
-              // The reactor attacks from its own square.
-              loadHolderLight: async ({ sourceFacts }) => {
-                const reactorToken = scene.tokens.find(
-                  (token) => captured.actorIdByTokenId.get(token.id) === sourceFacts.actor.id
-                )
-                return reactorToken
-                  ? measureHolderLight(
-                      state.gameSystemId,
-                      captured.perceptionScene,
-                      reactorToken.position
-                    )
-                  : null
-              }
-            })
+                true
+              )
+            },
+            loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
+            loadTargetHasNotTakenTurn: ({ targetFacts }) =>
+              readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
+            // The reactor attacks from its own square.
+            loadHolderLight: async ({ sourceFacts }) => {
+              const reactorToken = scene.tokens.find(
+                (token) => captured.actorIdByTokenId.get(token.id) === sourceFacts.actor.id
+              )
+              return reactorToken
+                ? measureHolderLight(
+                    state.gameSystemId,
+                    captured.perceptionScene,
+                    reactorToken.position
+                  )
+                : null
+            }
+          })
         // The reaction shares its move's occurrence, so each reactor's decoy roll is salted with it.
         const unwindowed = await prepareAttackBehindDecoys({
           occurrenceId: `${reaction.occurrenceId}:${mechanics.actor.id}`,
@@ -437,8 +437,7 @@ export async function prepareNativeLiveMovement(
     const reacted = planEncounterMovementReactionAction(
       { ...plan, windowReactions: windowReactions.map(({ receipt }) => receipt) },
       actorUserId,
-      (row) =>
-      readNativeLiveMaintenanceCharacter(row, state.gameSystemId)
+      (row) => readNativeLiveMaintenanceCharacter(row, state.gameSystemId)
     )
     // An opportunity attack that hits the mover in melee sets off the zones the mover holds
     // against the reactor, with the mover where the attack caught it (D153).

@@ -195,7 +195,9 @@ export async function verifyEncounterPlayerBrowser(
           fullPage: true
         })
         return submitDecision(() =>
-          decisionDrawer.getByRole('button', { name: new RegExp('^Use ' + reaction + ' \\(') }).click()
+          decisionDrawer
+            .getByRole('button', { name: new RegExp('^Use ' + reaction + ' \\(') })
+            .click()
         )
       },
       castThunderwaveFromMap: async () => {

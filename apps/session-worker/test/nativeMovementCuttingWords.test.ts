@@ -78,7 +78,9 @@ function walkRoom(input: {
   return movementRoom({
     actors: [
       srdCreatureActor({ id: WOLF_ID, creature: reactionWolf }),
-      ...(input.secondWolf ? [srdCreatureActor({ id: SECOND_WOLF_ID, creature: reactionWolf })] : []),
+      ...(input.secondWolf
+        ? [srdCreatureActor({ id: SECOND_WOLF_ID, creature: reactionWolf })]
+        : []),
       characterActor({ id: MOVER_ID, characterId: MOVER_CHARACTER_ID }),
       ...(input.bard === 'BYSTANDER'
         ? [characterActor({ id: BARD_ACTOR_ID, characterId: BARD_CHARACTER_ID })]
@@ -259,10 +261,14 @@ describe('Cutting Words against an opportunity attack (SPELLS-31.T4c3b2)', () =>
     },
     // 13 cells of 5 ft from the Wolf: beyond Cutting Words' 60 ft.
     { name: 'is out of range', bardPlay: loreBard(), bardAt: { x: 50, y: 1450 } }
-  ])('never pauses for a Bard who $name', async ({ bardPlay, bardAt }) => {
-    const room = await walkRoom({ bard: 'BYSTANDER', bardPlay, ...(bardAt ? { bardAt } : {}) })
-    await provokeAttack(room)
-    expect((await room.pendingFor(true))?.kind).not.toBe('D20_WINDOW')
-    expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
-  }, 120_000)
+  ])(
+    'never pauses for a Bard who $name',
+    async ({ bardPlay, bardAt }) => {
+      const room = await walkRoom({ bard: 'BYSTANDER', bardPlay, ...(bardAt ? { bardAt } : {}) })
+      await provokeAttack(room)
+      expect((await room.pendingFor(true))?.kind).not.toBe('D20_WINDOW')
+      expect(await reactionUsed(room, BARD_ACTOR_ID)).toBe(0)
+    },
+    120_000
+  )
 })
