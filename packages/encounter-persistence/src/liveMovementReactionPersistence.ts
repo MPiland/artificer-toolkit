@@ -108,7 +108,6 @@ export async function persistLiveMovementReaction(
   )
     throw new Error('Live movement reaction window reactions do not match the rolled dice.')
   const windowSpends = failedCounterSpends({
-    failedCounters: [],
     windowReactions: step.windowReactions,
     actors: input.actors,
     source

@@ -20,7 +20,7 @@ import type { EncounterWriteContext } from './store.js'
  * Returns what each reactor's mechanics apply.
  */
 export function failedCounterSpends(input: {
-  failedCounters: readonly LiveSessionFailedCounter[]
+  failedCounters?: readonly LiveSessionFailedCounter[]
   windowReactions?: readonly LiveSessionWindowReaction[]
   actors: readonly EncounterRunActorState[]
   source: EncounterRunActorState
@@ -52,7 +52,7 @@ export function failedCounterSpends(input: {
       ...request
     })
   return [
-    ...input.failedCounters.map((failed) => {
+    ...(input.failedCounters ?? []).map((failed) => {
       const { reaction } = failed.receipt
       const reactor = reactorOf(
         reaction,
