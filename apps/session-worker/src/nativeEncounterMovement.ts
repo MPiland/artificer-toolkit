@@ -370,10 +370,8 @@ export async function prepareNativeLiveMovement(
               roller: unwindowed.actor,
               movementTargets: reaction.targets,
               loadTarget: loadReactionTarget,
-              scene: {
-                load: async () => ({ sceneGrid: scene.grid, tokens: contactTokens }),
-                loadAttackPerception: loadContactPerception
-              },
+              loadScene: async () => ({ sceneGrid: scene.grid, tokens: contactTokens }),
+              loadAttackPerception: loadContactPerception,
               actionSources,
               capture
             })

@@ -61,14 +61,10 @@ export async function discoverNativeRollReactions(input: {
   roller: EncounterRunActorState
   movementTargets: ReadonlyMap<string, ReactorTarget>
   loadTarget(actor: EncounterRunActorState): Promise<ReactorTarget>
-  /**
-   * The attack's Scene as the roll is made: its tokens measure each reaction's range, and its sight
-   * judges whether the reactor perceives the roller.
-   */
-  scene: {
-    load(): Promise<Pick<NativeActionScene, 'sceneGrid' | 'tokens'>>
-    loadAttackPerception: NonNullable<PreparationInput['loadAttackPerception']>
-  }
+  /** The attack's Scene as the roll is made: its tokens measure each reaction's range. */
+  loadScene(): Promise<Pick<NativeActionScene, 'sceneGrid' | 'tokens'>>
+  /** The Scene's sight, which judges whether the reactor perceives the roller. */
+  loadAttackPerception: NonNullable<PreparationInput['loadAttackPerception']>
   /** The action sources a reaction is prepared from, as the attack's own are. */
   actionSources: Pick<PreparationInput, 'loadSource' | 'loadRelationshipFacts'>
   capture: Parameters<typeof evaluateNativeLiveActionEconomy>[0]['capture']
@@ -89,7 +85,7 @@ export async function discoverNativeRollReactions(input: {
     if (hooks.length > 0) holders.push({ reactor, reactorTarget, hooks })
   }
   if (holders.length === 0) return []
-  const scene = await input.scene.load()
+  const scene = await input.loadScene()
   const rollerToken = scene.tokens.find((token) => token.actorId === roller.id)
   if (!rollerToken) return []
   const grid = resolveEncounterSceneGrid({ encounter: state, sceneGrid: scene.sceneGrid })
@@ -110,7 +106,7 @@ export async function discoverNativeRollReactions(input: {
         overridable: false,
         movementTargets: new Map(movementTargets).set(reactor.id, reactorTarget),
         sceneContext: null,
-        loadAttackPerception: input.scene.loadAttackPerception,
+        loadAttackPerception: input.loadAttackPerception,
         ...input.actionSources
       }).catch((error: unknown) => {
         // A reaction its holder cannot pay for, or whose requirements the roller fails, is not offered.

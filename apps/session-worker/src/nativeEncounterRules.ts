@@ -515,6 +515,10 @@ export async function planNativeLiveEncounterAction(
       }),
     loadRelationshipFacts: nativeLiveRelationshipFacts({ activeEffectsByActorId })
   }
+  // The Scene's loaders for the attack, against the given targets' facts.
+  const attackScene = { state, system, actors, loadTarget, definitions, sceneContext, capture }
+  const attackSceneLoaders = (targets: typeof movementTargets) =>
+    nativeLiveAttackSceneLoaders({ ...attackScene, movementTargets: targets })
   // The attack is prepared again against a target's facts once a reaction has changed them.
   const prepareAttackAs = (
     targets: typeof movementTargets,
@@ -541,16 +545,7 @@ export async function planNativeLiveEncounterAction(
       saveWindow: true,
       movementTargets: targets,
       sceneContext,
-      ...nativeLiveAttackSceneLoaders({
-        state,
-        system,
-        actors,
-        movementTargets: targets,
-        loadTarget,
-        definitions,
-        sceneContext,
-        capture
-      }),
+      ...attackSceneLoaders(targets),
       loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
         readNativeLiveEnemyProximity({
           state,
@@ -594,19 +589,8 @@ export async function planNativeLiveEncounterAction(
           roller: unwindowed.actor,
           movementTargets,
           loadTarget,
-          scene: {
-            load: () => readNativeActionAreaScene(capture, command.actorId, actionSceneRef),
-            loadAttackPerception: nativeLiveAttackSceneLoaders({
-              state,
-              system,
-              actors,
-              movementTargets,
-              loadTarget,
-              definitions,
-              sceneContext,
-              capture
-            }).loadAttackPerception
-          },
+          loadScene: () => readNativeActionAreaScene(capture, command.actorId, actionSceneRef),
+          loadAttackPerception: attackSceneLoaders(movementTargets).loadAttackPerception,
           actionSources,
           capture
         })
