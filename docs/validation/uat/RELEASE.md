@@ -13,7 +13,7 @@ These scenarios check the alpha play guide against the running build and record 
 **Steps**
 
 1. **GM and P1:** Open the Campaign's session page and choose **Open tabletop window** in the **Live tabletop** panel. Check the guide's "Joining the live table" list: the **GM** or **Player** badge, "Live editing available" for the GM and "Play view" for the player, and the **Auto-roll** switch.
-2. **GM:** In a Sandbox Campaign with no presented Scene (Heavy setup: G5; the review Campaigns all have one), check players see "The GM has not presented a scene yet."
+2. **GM:** In a Sandbox Campaign with no presented Scene (Heavy setup: create a Campaign and do not present a Scene; the review Campaigns all have one), check players see "The GM has not presented a scene yet."
 3. **P1:** Open **Open live tabletop window** from Aria's Sheet and confirm it reaches the same room.
 4. **P1:** Open Settings, Preferences and find **Roll my dice automatically**. With it OFF, check you get a roll prompt with **Roll dice** and a place to type physical faces. Switch it ON and check there is no prompt but reactions still ask.
 5. **GM:** In the Campaign's table settings confirm **Assisted** and **Manual** exist. In Assisted, trigger a rule problem and check the warning has **Do it anyway**.
@@ -29,7 +29,7 @@ These scenarios check the alpha play guide against the running build and record 
 15. **P1, P2, P3:** Read the guide's "Known gaps" and mark any item the build contradicts, or any gap you hit that is not listed.
 16. **P1:** Follow "Sending feedback" and check every item it asks for (Campaign, Scene, round and turn, mode, what you expected, what happened, repeatable) can be found in the app.
 17. **GM (owner):** Send one real piece of feedback using that list, or write down where the list was not enough.
-18. **GM (owner):** Check the three review Campaigns exist with members, Scenes with tokens and a started Encounter, as the README describes.
+18. **GM (owner):** Check the four review Campaigns exist with members, Scenes with tokens and a started Encounter, as the README describes.
 19. **GM (owner):** For each play surface (party, creatures, areas, spells and slots, conditions, Concentration, reactions, initiative, roll cards) record a finding: fine, fix, or register as new work.
 20. **GM (owner):** Last of all, after every other UAT file has been recorded (this resets the review data): rebuild the review data once as the README says and check the same Campaigns, members, Scenes and Encounters return.
 21. **GM (owner):** Write the sign-off line in the results: "UI review signed off, findings fixed or registered", with the date and your name. If you cannot sign off, list the blocking findings.

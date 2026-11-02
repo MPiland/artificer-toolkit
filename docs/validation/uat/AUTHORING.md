@@ -165,7 +165,7 @@ Proves a GM or player can browse the SRD, copy any locked SRD record into their 
 
 - **Covers:** AUTHORING-5.1, AUTHORING-17.1, AUTHORING-17.2, AUTHORING-17.3
 - **Accounts:** GM, P1
-- **Preconditions:** Review data built. Step 9 needs a Campaign Encounter that accepts a new creature: if the already-running Encounter in Review: Party in the Field does not, create a new Scene and Encounter in it by hand (Heavy setup: G5).
+- **Preconditions:** Review data built. Step 9 needs a Campaign Encounter that accepts a new creature: if the already-running Encounter in Review: Party in the Field does not, create a new Scene and Encounter in it by hand (Heavy setup: build the Scene and Encounter).
 
 **Steps**
 

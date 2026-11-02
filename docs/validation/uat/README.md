@@ -23,7 +23,7 @@ The operator (an agent or engineer) prepares the build once per UAT run. The tes
 1. Docker Desktop is running and the local Convex container answers: `http://127.0.0.1:3210/version` returns a version. The [release runbook](../../runbooks/phase-8-2-release.md#final-local-source) covers starting it.
 2. Reset the local backend in the heavy validation lane: `pwsh -NoProfile -File scripts/resetLocalConvex.ps1 -Name uat-<date>`. This empties every app table, accounts included.
 3. Deploy the source under test to the local container and seed the SRD corpus (`yarn workspace @artificer-toolkit/apis seed:srd:convex:local`), as the release runbook's final-local-source steps describe. Record the git commit (`git rev-parse HEAD`): every result names it.
-4. Build the review data: `node scripts/seedReviewData.mjs --name=uat-<date>`. Its log ends with `Review data: 3 Campaign(s) created, 0 already finished.` (a re-run without a reset says `0 created, 3 already finished`, which is also fine). The script starts and stops its own Session Worker; see the [review data section](../../runbooks/phase-8-2-release.md#review-data) of the runbook.
+4. Build the review data: `node scripts/seedReviewData.mjs --name=uat-<date>`. Its log ends with `Review data: 4 Campaign(s) created, 0 already finished.` (a re-run without a reset says `0 created, 4 already finished`, which is also fine). The script starts and stops its own Session Worker; see the [review data section](../../runbooks/phase-8-2-release.md#review-data) of the runbook.
 5. Start the Session Worker (`yarn dev:session-worker`, port 8787) and the web app (`yarn dev`, http://localhost:3000) from the main checkout, which holds the Worker's local `.dev.vars`. Start them after step 4, which needs port 8787 free.
 6. Open the four browser profiles described [below](#running-several-users-side-by-side) and sign in to each with its [account](#accounts).
 7. Run the feature files in the order of the [coverage table](#scenario-files-and-coverage), or only the files under review. Inside a file, run the scenarios in order: later ones may build on what earlier ones created.
@@ -32,32 +32,40 @@ A scenario changes the data. To repeat a scenario from a clean state, repeat ste
 
 ## Accounts
 
-The review data creates four local-only accounts. Sign in at http://localhost:3000/sign-in with **Email or username** and the shared review password, which is the `REVIEW_PASSWORD` constant in [developmentReviewDataScenarios.ts](../../../apps/apis/tests/developmentReviewDataScenarios.ts). It exists only on the local Docker backend and guards nothing.
+The review data creates seven local-only accounts. Sign in at http://localhost:3000/sign-in with **Email or username** and the shared review password, which is the `REVIEW_PASSWORD` constant in [developmentReviewDataScenarios.ts](../../../apps/apis/tests/developmentReviewDataScenarios.ts). It exists only on the local Docker backend and guards nothing.
 
-| Name in scenarios | Username          | Email                             | Role in the review data                                    |
-| ----------------- | ----------------- | --------------------------------- | ---------------------------------------------------------- |
-| **GM**            | `Review_Gm_Rowan` | `review_gm_rowan@example.invalid` | GM of all three review Campaigns; GM plan tier             |
-| **P1**            | `Review_Pl_Aria`  | `review_pl_aria@example.invalid`  | Player: Aria (Party in the Field), Ember (Shield and Hold) |
-| **P2**            | `Review_Pl_Bryn`  | `review_pl_bryn@example.invalid`  | Player: Bryn (Party in the Field), Pyra (Fire and Thunder) |
-| **P3**            | `Review_Pl_Cade`  | `review_pl_cade@example.invalid`  | Player: Cade (Party in the Field)                          |
+| Name in scenarios | Username           | Email                              | Role in the review data                                                    |
+| ----------------- | ------------------ | ---------------------------------- | -------------------------------------------------------------------------- |
+| **GM**            | `Review_Gm_Rowan`  | `review_gm_rowan@example.invalid`  | GM of all four review Campaigns; GM plan tier                              |
+| **P1**            | `Review_Pl_Aria`   | `review_pl_aria@example.invalid`   | Player: Aria (Party in the Field), Ember (Shield and Hold), Iris (Sandbox) |
+| **P2**            | `Review_Pl_Bryn`   | `review_pl_bryn@example.invalid`   | Player: Bryn (Party in the Field), Pyra (Fire and Thunder), Juno (Sandbox) |
+| **P3**            | `Review_Pl_Cade`   | `review_pl_cade@example.invalid`   | Player: Cade (Party in the Field), Kit (Sandbox)                           |
+| **SUPERADMIN**    | `Review_Admin_Sol` | `review_admin_sol@example.invalid` | Superadmin (promoted with `authAdmin:setRole`); member of no Campaign      |
+| **SPARE1**        | `Review_Pl_Dara`   | `review_pl_dara@example.invalid`   | Player outside every Campaign; free plan tier                              |
+| **SPARE2**        | `Review_Pl_Eli`    | `review_pl_eli@example.invalid`    | Player outside every Campaign; free plan tier                              |
+
+The GM and P1 to P3 each need a browser profile for most scenarios; sign the SUPERADMIN or a spare in to a fifth profile, or sign out of one of the four, when a scenario names them. Never delete the GM, P1 to P3 or the SUPERADMIN: account-deletion scenarios delete a spare, and a reset plus a review-data run recreates it.
 
 After the review-data run every account has **Roll my dice automatically** switched **off** (Settings, Preferences, or the **Auto-roll** switch in the tabletop header), so rolls raise a prompt where you can choose **Roll dice** or type physical dice. A scenario that needs auto-roll on says so.
 
-Public sign-up is closed and local email is discarded, so testers cannot make further accounts. Scenarios that need a superadmin (`SUPERADMIN`) or an account outside every Campaign (`OUTSIDER`) are written in full but marked "Blocked until gap G2/G3 is fixed"; see [Known UAT gaps](#known-uat-gaps).
+Public sign-up is closed and local email is discarded, so testers cannot make further accounts. A spare joins a Campaign without email: the GM invites it by username from a listing and the spare accepts in the app. Steps that read an email (an invitation link, a confirmation link, a reset code) stay "Blocked until gap G1 is fixed"; see [Known UAT gaps](#known-uat-gaps).
 
 ## Review data
 
-`scripts/seedReviewData.mjs` builds three Campaigns through the product's own commands. All three use **Assisted** mode and the **Speed Factor** initiative variant, a square 5-foot grid on an 800 by 600 map, fog off, and no walls, doors, terrain or hidden tokens. Each has a Session for play, a last Session titled "Review data ready", a presented Scene with every combatant's token, and an Encounter that is started and partly played.
+`scripts/seedReviewData.mjs` builds four Campaigns through the product's own commands. Every one uses a square 5-foot grid on an 800 by 600 map. The first three use **Assisted** mode and the **Speed Factor** initiative variant, fog off, bright light, and no walls, doors, terrain or hidden tokens; **Review: Sandbox** carries those board features instead. Each has a Session for play, a last Session titled "Review data ready", a presented Scene with every combatant's token, and an Encounter that is started and partly played.
 
-| Campaign                       | Members        | Characters                                                              | Creatures                                  | Already played                                                                                        |
-| ------------------------------ | -------------- | ----------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| **Review: Party in the Field** | GM, P1, P2, P3 | Aria (P1), Bryn (P2), Cade (P3)                                         | Wolf (next to Aria), Goblin (next to Bryn) | Round 1: Aria attacks the Wolf, Bryn the Goblin, Wolf attacks Aria, Goblin attacks Bryn; round 2 open |
-| **Review: Shield and Hold**    | GM, P1         | Ember (P1): Shield, Hold Person; four 1st-level and two 2nd-level slots | Wolf (adjacent), Goblin (two squares away) | Hold Person paralyzes the Goblin (Ember concentrates); the Wolf bites Ember, who casts Shield         |
-| **Review: Fire and Thunder**   | GM, P2         | Pyra (P2): Fireball, Thunderwave; two 1st-level and two 3rd-level slots | Wolf (adjacent), three Goblins grouped     | Fireball on the Goblins (all fail); round 2 Thunderwave catches the Wolf                              |
+| Campaign                       | Members        | Characters                                                              | Creatures                                              | Already played                                                                                        |
+| ------------------------------ | -------------- | ----------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| **Review: Party in the Field** | GM, P1, P2, P3 | Aria (P1), Bryn (P2), Cade (P3)                                         | Wolf (next to Aria), Goblin (next to Bryn)             | Round 1: Aria attacks the Wolf, Bryn the Goblin, Wolf attacks Aria, Goblin attacks Bryn; round 2 open |
+| **Review: Shield and Hold**    | GM, P1         | Ember (P1): Shield, Hold Person; four 1st-level and two 2nd-level slots | Wolf (adjacent), Goblin (two squares away)             | Hold Person paralyzes the Goblin (Ember concentrates); the Wolf bites Ember, who casts Shield         |
+| **Review: Fire and Thunder**   | GM, P2         | Pyra (P2): Fireball, Thunderwave; two 1st-level and two 3rd-level slots | Wolf (adjacent), three Goblins grouped                 | Fireball on the Goblins (all fail); round 2 Thunderwave catches the Wolf                              |
+| **Review: Sandbox**            | GM, P1, P2, P3 | Iris (P1), Juno (P2), Kit (P3)                                          | Large Ogre (lit east room), hidden Goblin, hidden Wolf | Nothing: initiative is rolled and nobody has acted                                                    |
+
+**Review: Sandbox** uses **Manual** mode and **standard** initiative. Its Scene has fog of war **Per player** and **Dim** ambient light; a wall at the middle of the map splits a west room from an east room, with a closed door in the wall; a line of rubble (difficult terrain, double movement cost) crosses the west room; one point light lights the east room. The party starts in the west room. It is not "the Sandbox Campaign" that UAT-SCENE-1 has the tester build with Builder Characters; scenarios name the one they use. The Goblin's and the Wolf's tokens are hidden from players, and the Ogre's token covers 2 by 2 squares.
 
 Hit points and slot counts on screen depend on those rolls: scenarios compare against what you see before a step, not against fixed numbers.
 
-Anything else a scenario needs (a Manual-mode Campaign, standard initiative, walls, doors, fog, hidden tokens, a new Character, homebrew content, an uploaded map) is created by the tester in that file's setup steps, through the product.
+Anything else a scenario needs (a new or higher-level Character, a Builder-built caster, homebrew content, an uploaded map, a throwaway Campaign) is created by the tester in that file's setup steps, through the product.
 
 ## Running several users side by side
 
@@ -94,15 +102,15 @@ Record every run in `docs/validation/uat/results/<YYYY-MM-DD>-<FEATURE>.md` (cre
 
 ## Known UAT gaps
 
-These stop some scenarios on the local build. Each scenario that depends on one says "Blocked until gap Gn is fixed".
+These stop some scenarios on the local build. Each scenario that depends on an open one says "Blocked until gap Gn is fixed". G2, G3 and G5 are closed (RELEASE-8.T3).
 
-| Gap    | What is missing                                                                                                                                                                            | Effect                                                                                                                                             | Smallest fix                                                                                                                                                                                                                                |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **G1** | Local email is accept-and-discard: the sink in `scripts/localConvexFixtures.ps1` keeps no message, so no tester can read a password-reset, invitation, verification or notification email. | Email steps cannot be run locally; the in-app part of those flows still can.                                                                       | Have the local sink keep the most recent messages and serve them on a host loopback page (or write each one to an ignored `local-validation/local-email/` file), local mode only.                                                           |
-| **G2** | No superadmin account. Roles are set only by the deployment-admin CLI (`authAdmin:setRole`).                                                                                               | Superadmin and moderation scenarios, and editing master records as their owner, cannot be run.                                                     | Have the review-data driver provision a fifth account (for example `Review_Admin_Sol`) the same way it provisions the others and promote it with `authAdmin:setRole`, as it already lifts the GM's tier with `accountEntitlements:setTier`. |
-| **G3** | No account outside every Campaign, and no spare account to delete. Public sign-up is closed and invitations need email (G1).                                                               | Sign-up, invitation redemption, listing applications from a stranger, free-tier plan limits on a fresh account and account deletion cannot be run. | Have the review-data driver provision one or two spare player accounts that join no Campaign (for example `Review_Pl_Dara` and `Review_Pl_Eli`) through the same invitation-redeem path.                                                    |
-| **G4** | Managed staging credentials.                                                                                                                                                               | Staging and production scenarios (PERF and RELEASE) run only on an approved staging smoke, never locally.                                          | None locally: they run at the staging step of the release sequence.                                                                                                                                                                         |
-| **G5** | No sandbox review data: the review Campaigns have no walls, doors, terrain, fog, lights, hidden tokens or Large creature, and none uses Manual mode or standard initiative.                | Not blocking. Scenarios that need these say "Heavy setup: G5" and the tester builds them by hand first.                                            | Add review scenarios to `REVIEW_SCENARIOS` in `apps/apis/tests/developmentReviewDataScenarios.ts`: a sandbox Campaign whose Scene has those features, and a Manual-mode Campaign with standard initiative.                                  |
+| Gap    | What is missing                                                                                                                                                                            | Effect                                                                                                         | Smallest fix                                                                                                                                                                      |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **G1** | Local email is accept-and-discard: the sink in `scripts/localConvexFixtures.ps1` keeps no message, so no tester can read a password-reset, invitation, verification or notification email. | Email steps cannot be run locally; the in-app part of those flows still can.                                   | Have the local sink keep the most recent messages and serve them on a host loopback page (or write each one to an ignored `local-validation/local-email/` file), local mode only. |
+| **G2** | Closed: the review data provisions the **SUPERADMIN** account `Review_Admin_Sol` and promotes it with `authAdmin:setRole`.                                                                 | None.                                                                                                          | Done (RELEASE-8.T3).                                                                                                                                                              |
+| **G3** | Closed: the review data provisions **SPARE1** `Review_Pl_Dara` and **SPARE2** `Review_Pl_Eli`, who join no Campaign.                                                                       | Steps that read an invitation or confirmation email still need G1; the in-app invitation by username does not. | Done (RELEASE-8.T3).                                                                                                                                                              |
+| **G4** | Managed staging credentials.                                                                                                                                                               | Staging and production scenarios (PERF and RELEASE) run only on an approved staging smoke, never locally.      | None locally: they run at the staging step of the release sequence.                                                                                                               |
+| **G5** | Closed: **Review: Sandbox** has walls, a door, terrain, per-player fog, dim light, a point light, hidden tokens and a Large creature, in Manual mode with standard initiative.             | None. Scenarios needing other setup still say "Heavy setup:" with what to build.                               | Done (RELEASE-8.T3).                                                                                                                                                              |
 
 ## Scenario files and coverage
 
@@ -113,7 +121,7 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | Feature     | File                             | Scenarios | ACs     | Covered by a scenario | of which blocked | Covered elsewhere | Not coverable |
 | ----------- | -------------------------------- | --------- | ------- | --------------------- | ---------------- | ----------------- | ------------- |
 | PLATFORM    | [PLATFORM.md](PLATFORM.md)       | 5         | 68      | 10                    | 0                | 58                | 0             |
-| ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 12               | 8                 | 0             |
+| ACCOUNTS    | [ACCOUNTS.md](ACCOUNTS.md)       | 13        | 37      | 29                    | 7                | 8                 | 0             |
 | AUTHORING   | [AUTHORING.md](AUTHORING.md)     | 12        | 57      | 50                    | 0                | 7                 | 0             |
 | RULES       | [RULES.md](RULES.md)             | 5         | 14      | 5                     | 0                | 9                 | 0             |
 | BUILDER     | [BUILDER.md](BUILDER.md)         | 6         | 14      | 12                    | 0                | 2                 | 0             |
@@ -128,12 +136,12 @@ The coverage below is generated from the scenario files and the ledger: every AC
 | SPELLS      | [SPELLS.md](SPELLS.md)           | 27        | 102     | 98                    | 0                | 4                 | 0             |
 | REACTION    | [REACTION.md](REACTION.md)       | 7         | 14      | 14                    | 0                | 0                 | 0             |
 | PRIVACY     | [PRIVACY.md](PRIVACY.md)         | 9         | 11      | 10                    | 0                | 1                 | 0             |
-| RELIABILITY | [RELIABILITY.md](RELIABILITY.md) | 13        | 92      | 36                    | 1                | 56                | 0             |
+| RELIABILITY | [RELIABILITY.md](RELIABILITY.md) | 13        | 92      | 36                    | 0                | 56                | 0             |
 | VTT_UI      | [VTT_UI.md](VTT_UI.md)           | 4         | 13      | 12                    | 0                | 1                 | 0             |
 | PERF        | [PERF.md](PERF.md)               | 2         | 21      | 5                     | 1                | 16                | 0             |
 | QUALITY     | [QUALITY.md](QUALITY.md)         | 0         | 2       | 0                     | 0                | 2                 | 0             |
 | RELEASE     | [RELEASE.md](RELEASE.md)         | 1         | 17      | 5                     | 0                | 8                 | 4             |
-| **Total**   |                                  | **175**   | **716** | **501**               | **14**           | **211**           | **4**         |
+| **Total**   |                                  | **175**   | **716** | **501**               | **8**            | **211**           | **4**         |
 
 ### AC map
 
@@ -249,14 +257,14 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | ACCOUNTS-8.3  | [UAT-ACCOUNTS-8](ACCOUNTS.md#uat-accounts-8-private-profiles-stay-private-public-profiles-show-only-public-fields)                                                                                         |
 | ACCOUNTS-8.4  | [UAT-ACCOUNTS-8](ACCOUNTS.md#uat-accounts-8-private-profiles-stay-private-public-profiles-show-only-public-fields)                                                                                         |
 | ACCOUNTS-9.1  | Covered elsewhere                                                                                                                                                                                          |
-| ACCOUNTS-9.2  | [UAT-ACCOUNTS-9](ACCOUNTS.md#uat-accounts-9-ordinary-users-cannot-use-superadmin-tools), [UAT-ACCOUNTS-10](ACCOUNTS.md#uat-accounts-10-superadmin-moderation-blocked)                                      |
+| ACCOUNTS-9.2  | [UAT-ACCOUNTS-9](ACCOUNTS.md#uat-accounts-9-ordinary-users-cannot-use-superadmin-tools), [UAT-ACCOUNTS-10](ACCOUNTS.md#uat-accounts-10-superadmin-moderation)                                              |
 | ACCOUNTS-9.3  | Covered elsewhere                                                                                                                                                                                          |
-| ACCOUNTS-9.4  | [UAT-ACCOUNTS-9](ACCOUNTS.md#uat-accounts-9-ordinary-users-cannot-use-superadmin-tools), [UAT-ACCOUNTS-10](ACCOUNTS.md#uat-accounts-10-superadmin-moderation-blocked)                                      |
-| ACCOUNTS-10.1 | [UAT-ACCOUNTS-11](ACCOUNTS.md#uat-accounts-11-refused-account-deletions) (blocked)                                                                                                                         |
-| ACCOUNTS-10.2 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives-blocked) (blocked)                                                                                                 |
-| ACCOUNTS-10.3 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives-blocked) (blocked)                                                                                                 |
-| ACCOUNTS-10.4 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives-blocked) (blocked)                                                                                                 |
-| ACCOUNTS-10.5 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives-blocked) (blocked)                                                                                                 |
+| ACCOUNTS-9.4  | [UAT-ACCOUNTS-9](ACCOUNTS.md#uat-accounts-9-ordinary-users-cannot-use-superadmin-tools), [UAT-ACCOUNTS-10](ACCOUNTS.md#uat-accounts-10-superadmin-moderation)                                              |
+| ACCOUNTS-10.1 | [UAT-ACCOUNTS-11](ACCOUNTS.md#uat-accounts-11-refused-account-deletions)                                                                                                                                   |
+| ACCOUNTS-10.2 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives)                                                                                                                   |
+| ACCOUNTS-10.3 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives)                                                                                                                   |
+| ACCOUNTS-10.4 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives)                                                                                                                   |
+| ACCOUNTS-10.5 | [UAT-ACCOUNTS-12](ACCOUNTS.md#uat-accounts-12-delete-my-account-shared-history-survives)                                                                                                                   |
 
 </details>
 
@@ -921,7 +929,7 @@ Every acceptance criterion in the ledger and where it is checked. "(blocked)" me
 | RELIABILITY-21.5                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.6                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.7                | Covered elsewhere                                                                                                         |
-| RELIABILITY-21.8                | [UAT-RELIABILITY-13](RELIABILITY.md#uat-reliability-13-account-deletion-closes-the-live-table) (blocked)                  |
+| RELIABILITY-21.8                | [UAT-RELIABILITY-13](RELIABILITY.md#uat-reliability-13-account-deletion-closes-the-live-table)                            |
 | RELIABILITY-21.9                | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.10               | Covered elsewhere                                                                                                         |
 | RELIABILITY-21.11               | Covered elsewhere                                                                                                         |

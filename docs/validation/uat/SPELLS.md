@@ -117,7 +117,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 
 - **Covers:** SPELLS-7.3
 - **Accounts:** GM, P1
-- **Preconditions:** Scenario 2 running. Heavy setup: G5 (the GM marks a token hidden by hand).
+- **Preconditions:** Scenario 2 running. Heavy setup: the GM marks a token hidden by hand.
 
 **Steps**
 
@@ -167,7 +167,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 
 - **Covers:** SPELLS-14.1, SPELLS-14.2
 - **Accounts:** GM, P1
-- **Preconditions:** Scenario 2 running. Automatic cover ON. Heavy setup: G5 (the GM draws the walls by hand on the Scene).
+- **Preconditions:** Scenario 2 running. Automatic cover ON. Heavy setup: the GM draws the walls by hand on the Scene.
 
 **Steps**
 
@@ -222,7 +222,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 
 - **Covers:** SPELLS-2.2, SPELLS-2.5, SPELLS-2.6, SPELLS-2.7, SPELLS-2.1
 - **Accounts:** GM, P1, P2
-- **Preconditions:** Scenario 2 running. Sage and a Goblin adjacent. Auto-roll OFF for P1 and P2. Step 6 needs a hidden token (Heavy setup: G5). Step 7 needs a homebrew condition: the GM defines it on a homebrew copy of the System record under `/systems` and the Campaign must use that System; if the review Campaign cannot use it or no condition editor exists, record step 7 as BLOCKED with that reason (no Gn covers it). Clear every condition and Exhaustion from Sage and the Goblin when you finish.
+- **Preconditions:** Scenario 2 running. Sage and a Goblin adjacent. Auto-roll OFF for P1 and P2. Step 6 needs a hidden token (Heavy setup: the GM marks a token hidden by hand). Step 7 needs a homebrew condition: the GM defines it on a homebrew copy of the System record under `/systems` and the Campaign must use that System; if the review Campaign cannot use it or no condition editor exists, record step 7 as BLOCKED with that reason (no Gn covers it). Clear every condition and Exhaustion from Sage and the Goblin when you finish.
 
 **Steps**
 
@@ -420,7 +420,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 8. **P1:** Cast **Shocking Grasp** on a Wolf and confirm no reactions for it (see scenario 13).
 9. **GM:** Open a token and the turn tracker. Confirm each active grant is listed with its source and time left. Open Sage's Sheet and confirm the same.
 10. **GM:** End one grant by hand. Confirm it disappears.
-11. **GM:** Hide the source of a grant (a hidden Goblin casting a spell that grants something to Sage; Heavy setup: G5 for hidden tokens). **P1:** Confirm the label is not shown to players.
+11. **GM:** Hide the source of a grant (a hidden Goblin casting a spell that grants something to Sage; Heavy setup: the GM marks the Goblin's token hidden by hand). **P1:** Confirm the label is not shown to players.
 12. **GM:** Break Vex's Concentration (damage with a failed check). Confirm Heroism ends.
 13. **GM:** Put a Unicorn in the Encounter. At the end of another creature's turn use the Unicorn's **Shimmering Shield** legendary action on itself or a creature within 60 ft. Confirm attacks against that Character or Creature use +2 AC and that it ends at the end of the Unicorn's next turn.
 14. **P2:** Hale casts **Protection from Energy** again on Sage (she holds Concentration). **GM:** Incapacitate Hale (for example Stunned) and confirm the Protection from Energy grant on Sage ends.
@@ -575,7 +575,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 
 - **Covers:** SPELLS-27.1, SPELLS-27.2, SPELLS-29.1, SPELLS-29.2, SPELLS-30.1
 - **Accounts:** GM, P1, P2, P3
-- **Preconditions:** Scenario 2 running with Sage, Hale and a Goblin. Sage has Invisibility, Charm Person, Fear and Blindness/Deafness prepared (prepare them on the Sheet if needed). Step 6 needs a wall (Heavy setup: G5).
+- **Preconditions:** Scenario 2 running with Sage, Hale and a Goblin. Sage has Invisibility, Charm Person, Fear and Blindness/Deafness prepared (prepare them on the Sheet if needed). Step 6 needs a wall (Heavy setup: the GM draws a wall by hand).
 
 **Steps**
 
@@ -584,7 +584,7 @@ All four accounts start with Roll my dice automatically OFF, so roll prompts app
 3. **P2:** Hale casts **Sanctuary** on Sage; have **P1** attack an enemy with Sage. Confirm Sanctuary ends when Sage attacks. Recast it and have Sage cast an offensive spell at an enemy: confirm it ends the same way.
 4. **P1:** Cast **Charm Person** on the Goblin and fail its save. **P2:** Have Hale (a companion) hit the Goblin. Confirm the charm ends because the caster's companion harmed the target. Undo the hit and confirm the charm returns.
 5. **P1:** Cast **Fear** on the Goblin. Fail its save. Confirm Frightened records Sage as the source.
-6. **GM:** Move the Goblin so it loses line of sight to Sage, then have it attack. Confirm disadvantage only while it can see her (Heavy setup: G5 for a wall to break the line of sight).
+6. **GM:** Move the Goblin so it loses line of sight to Sage, then have it attack. Confirm disadvantage only while it can see her (Heavy setup: a wall drawn by hand to break the line of sight).
 7. **GM:** Move the Goblin closer to Sage. Confirm a soft warning that you can override.
 8. **GM:** Start the Goblin's turn. Confirm the GM is told it must Dash and move away; do something else and confirm a "Do it anyway" warning logged for the GM.
 9. **GM:** End the Goblin's turn without line of sight. Confirm it is offered a Wisdom save; success ends the effect for it only. Undo.

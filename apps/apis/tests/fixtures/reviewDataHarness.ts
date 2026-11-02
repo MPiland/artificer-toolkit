@@ -4,7 +4,12 @@ import { components, internal } from '../../convex/_generated/api'
 import { readySheetFixture } from './readyCharacter'
 import { createPartyUser } from './partyPlayer'
 import type { ReviewAccount, ReviewContext } from '../developmentReviewData'
-import { REVIEW_GM, REVIEW_PLAYERS } from '../developmentReviewDataScenarios'
+import {
+  REVIEW_ADMIN,
+  REVIEW_GM,
+  REVIEW_PLAYERS,
+  REVIEW_SPARES
+} from '../developmentReviewDataScenarios'
 import {
   attachRoomWorker,
   checkpointRoom,
@@ -23,7 +28,12 @@ export async function reviewDataHarness() {
   await attachRoomWorker(t)
   const accounts: ReviewAccount[] = []
   const roomClients: ReturnType<typeof roomDevelopmentClient>[] = []
-  for (const [index, spec] of [REVIEW_GM, ...REVIEW_PLAYERS].entries()) {
+  for (const [index, spec] of [
+    REVIEW_GM,
+    ...REVIEW_PLAYERS,
+    REVIEW_ADMIN,
+    ...REVIEW_SPARES
+  ].entries()) {
     const user = await createPartyUser(t, {
       username: spec.username,
       email: `draft_review00000${index}@example.invalid`
@@ -32,7 +42,12 @@ export async function reviewDataHarness() {
     roomClients.push(client)
     accounts.push({ client, userId: user.userId, username: spec.username })
   }
-  const [gm, ...players] = accounts as [ReviewAccount, ...ReviewAccount[]]
+  const [gm] = accounts as [ReviewAccount]
+  const players = accounts.slice(1, 1 + REVIEW_PLAYERS.length)
+  const [admin, ...spares] = accounts.slice(1 + REVIEW_PLAYERS.length) as [
+    ReviewAccount,
+    ...ReviewAccount[]
+  ]
   await t.run((ctx) =>
     ctx.runMutation(components.betterAuth.adapter.updateMany, {
       input: { model: 'session', update: { expiresAt: Date.now() + 3 * 86_400_000 } },
@@ -42,8 +57,12 @@ export async function reviewDataHarness() {
   const context: ReviewContext = {
     gm,
     players,
+    admin,
+    spares,
     grantGmTier: (userId) =>
       t.mutation(internal.accountEntitlements.setTier, { userId, tier: 'GM' }).then(() => {}),
+    grantSuperadmin: (userId) =>
+      t.mutation(internal.authAdmin.setRole, { userId, role: 'superadmin' }).then(() => {}),
     // Each finished Campaign's room is closed from both ends, so the next one activates on a quiet Worker.
     releaseRoom: async (campaignId) => {
       for (const client of roomClients) client.closeRooms()
@@ -60,5 +79,5 @@ export async function reviewDataHarness() {
       campaigns: (await ctx.db.query('campaigns').collect()).map((row) => row.name).sort(),
       runs: (await ctx.db.query('encounterRuns').collect()).length
     }))
-  return { context, counts }
+  return { t, context, counts }
 }

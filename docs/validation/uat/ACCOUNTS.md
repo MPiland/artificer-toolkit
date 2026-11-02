@@ -144,8 +144,8 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 ## UAT-ACCOUNTS-6: Create an account from an invitation
 
 - **Covers:** ACCOUNTS-3.1, ACCOUNTS-3.2, ACCOUNTS-3.3, ACCOUNTS-4.2
-- **Accounts:** OUTSIDER (gap G3)
-- **Preconditions:** Blocked until gap G3 is fixed: public sign-up is closed and invitation emails are not retained locally, so no tester can receive an invitation link.
+- **Accounts:** OUTSIDER (a new person with no account; gap G1)
+- **Preconditions:** Blocked until gap G1 is fixed: public sign-up is closed and invitation and email-confirmation emails are discarded locally, so no tester can read an invitation link. The spare accounts (Review_Pl_Dara, Review_Pl_Eli) already exist, so they cannot redeem an invitation.
 
 **Steps**
 
@@ -253,11 +253,11 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 - Not applicable: both are refused independently.
 
-## UAT-ACCOUNTS-10: Superadmin moderation (blocked)
+## UAT-ACCOUNTS-10: Superadmin moderation
 
 - **Covers:** ACCOUNTS-9.2, ACCOUNTS-9.4
-- **Accounts:** SUPERADMIN (gap G2)
-- **Preconditions:** Blocked until gap G2 is fixed: there is no superadmin account in the review data.
+- **Accounts:** SUPERADMIN (Review_Admin_Sol)
+- **Preconditions:** Review data built. SUPERADMIN signs in as Review_Admin_Sol, a superadmin who is a member of no Campaign.
 
 **Steps**
 
@@ -281,8 +281,8 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 ## UAT-ACCOUNTS-11: Refused account deletions
 
 - **Covers:** ACCOUNTS-10.1
-- **Accounts:** GM, SPARE (gap G3)
-- **Preconditions:** Review data built. Steps 1-4 (GM, wrong password only) can be run now. Steps 5-8 (correct password while owning an active Campaign) are blocked until gap G3 is fixed: they need a spare account that owns a throwaway Campaign. Never enter the GM's correct password in the **Delete account** dialog: a deletion that succeeds would destroy the review data ([README](README.md#review-data)).
+- **Accounts:** GM, SPARE1 (Review_Pl_Dara)
+- **Preconditions:** Review data built. Steps 1-4 use the GM with a wrong password only. Steps 5-8 use SPARE1, who owns a throwaway Campaign. Never enter the correct password of the GM, P1, P2, P3 or SUPERADMIN in the **Delete account** dialog: a deletion that succeeds would destroy the review data ([README](README.md#review-data)).
 
 **Steps**
 
@@ -290,16 +290,16 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 2. **GM:** Choose **Delete account** (the dialog opens).
 3. **GM:** Read the dialog, type the account email as asked ("Type ... to confirm"), and enter a deliberately wrong password; confirm. Do not enter the real password.
 4. **GM:** Close the dialog, reload the page and open http://localhost:3000/campaigns.
-5. **SPARE:** (blocked: G3) Sign in, create a throwaway Campaign at http://localhost:3000/campaigns/new, then open http://localhost:3000/settings/account and choose **Delete account**.
-6. **SPARE:** (blocked: G3) Type the account email, enter the correct password and confirm. The SPARE owns an active Campaign.
-7. **SPARE:** (blocked: G3) Reload the page and open http://localhost:3000/campaigns.
-8. **SPARE:** (blocked: G3) Archive the throwaway Campaign, repeat steps 5-6, and confirm the refusal still applies to an Archived Campaign. Then delete the Campaign.
+5. **SPARE1:** Sign in, create a throwaway Campaign at http://localhost:3000/campaigns/new, then open http://localhost:3000/settings/account and choose **Delete account**.
+6. **SPARE1:** Type the account email, enter the correct password and confirm. SPARE1 owns an active Campaign.
+7. **SPARE1:** Reload the page and open http://localhost:3000/campaigns.
+8. **SPARE1:** Archive the throwaway Campaign, repeat steps 5-6, and confirm the refusal still applies to an Archived Campaign. Then delete the Campaign.
 
 **Expected**
 
 - Step 3: refused ("Could not delete your account. Try again." or a wrong-password message); nothing is deleted.
-- Step 4: still signed in; the three review Campaigns are intact.
-- Step 6: refused because the SPARE owns an active Campaign; the message names the reason (hand over, archive or delete the Campaign first); no data is removed.
+- Step 4: still signed in; the four review Campaigns are intact.
+- Step 6: refused because SPARE1 owns an active Campaign; the message names the reason (hand over, archive or delete the Campaign first); no data is removed.
 - Step 7: still signed in; the throwaway Campaign is listed.
 - Step 8: the refusal also applies while the Campaign is Archived. Deleting the account itself is left to UAT-ACCOUNTS-12.
 
@@ -307,19 +307,19 @@ Proves a GM and players can sign in and out safely, that two people on one machi
 
 - **P1:** Nothing changes; the Campaigns still list the GM.
 
-## UAT-ACCOUNTS-12: Delete my account, shared history survives (blocked)
+## UAT-ACCOUNTS-12: Delete my account, shared history survives
 
 - **Covers:** ACCOUNTS-10.2, ACCOUNTS-10.3, ACCOUNTS-10.4, ACCOUNTS-10.5
-- **Accounts:** OUTSIDER (gap G3), GM
-- **Preconditions:** Blocked until gap G3 is fixed: a disposable spare account is needed (never delete a review account: it would destroy the review data). The OUTSIDER must be a member of a Campaign the GM owns, with chat and a played Encounter, and must own a private Character and a homebrew Spell. The GM adds the OUTSIDER to a new throwaway Campaign (Heavy setup: G5), not to a review Campaign.
+- **Accounts:** SPARE1 (Review_Pl_Dara), GM
+- **Preconditions:** Delete only a spare account (never GM, P1, P2, P3 or SUPERADMIN: it would destroy the review data); a reset and a rerun of the review data restores it. SPARE1 must be a member of a Campaign the GM owns, with chat and a played Encounter, and must own a private Character and a homebrew Spell. Heavy setup: the GM creates a new throwaway Campaign (not a review Campaign) and invites SPARE1 by username from SPARE1's social profile, and SPARE1 accepts in the app (UAT-SOCIAL-2 shows the invitation flow; no email is needed). Then build a Character for SPARE1, a homebrew Spell, and play a short Encounter.
 
 **Steps**
 
-1. **OUTSIDER:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
-2. **OUTSIDER:** Note the Characters and homebrew you own.
-3. **OUTSIDER:** Open http://localhost:3000/settings/account and choose **Delete account**.
-4. **OUTSIDER:** Type the account email and the password; confirm.
-5. **OUTSIDER:** Try to sign in again.
+1. **SPARE1:** Open the live tabletop of the shared Campaign and post a chat message and make one roll.
+2. **SPARE1:** Note the Characters and homebrew you own.
+3. **SPARE1:** Open http://localhost:3000/settings/account and choose **Delete account**.
+4. **SPARE1:** Type the account email and the password; confirm.
+5. **SPARE1:** Try to sign in again.
 6. **GM:** Reload the tabletop and read the chat, roll history and Session log.
 7. **GM:** Open the Encounter history and the member list.
 8. **GM:** Reload the tabletop after a minute.
@@ -367,7 +367,7 @@ ACs with no tester-visible behaviour (internal refactors, measurements, CI or co
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ACCOUNTS-1.3 | Absence of legacy tRPC/Supabase requests and exact test-account cleanup; needs request inspection, run by the browser journey.                    |
 | ACCOUNTS-1.4 | Typing before hydration completes; needs a blocked-hydration test hook, run by the browser journey. A tester cannot pause hydration.              |
-| ACCOUNTS-4.1 | Invitations are issued only by the internal CLI with hashed tokens; there is no UI to see. Redemption is covered by UAT-ACCOUNTS-6 (blocked: G3). |
+| ACCOUNTS-4.1 | Invitations are issued only by the internal CLI with hashed tokens; there is no UI to see. Redemption is covered by UAT-ACCOUNTS-6 (blocked: G1). |
 | ACCOUNTS-4.3 | Deployed HTTP origin and foreign-origin denial; a network-level test against a deployment.                                                        |
 | ACCOUNTS-4.4 | Concurrent invitation redemption on personal dev; a harness run.                                                                                  |
 | ACCOUNTS-8.1 | Native-client request authorization and spoofed user IDs; contract test (the browser-visible part is UAT-ACCOUNTS-8).                             |

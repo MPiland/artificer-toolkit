@@ -38,7 +38,7 @@ The rules engine is mostly invisible. A tester sees it in two places: authored f
 
 - **Covers:** RULES-1.2, RULES-1.4
 - **Accounts:** GM, P2
-- **Preconditions:** Review data built. P2's **Roll my dice automatically** is OFF (the review default). The GM completes the existing Encounter of Review: Fire and Thunder first (**Complete encounter** in the turn menu), then plays here. Heavy setup: G5. The review Campaigns use the Speed Factor initiative variant, whose start prompts differ from a plain initiative roll, so the GM first changes the Campaign's table settings to standard initiative (the variant is frozen into each new Encounter). Open the tabletop of that Campaign for the GM and P2 ([README](README.md#running-several-users-side-by-side)).
+- **Preconditions:** Review data built. P2's **Roll my dice automatically** is OFF (the review default). The GM completes the existing Encounter of Review: Fire and Thunder first (**Complete encounter** in the turn menu), then plays here. Heavy setup: the GM builds the new Encounter by hand (step 1). The review Campaigns use the Speed Factor initiative variant, whose start prompts differ from a plain initiative roll, so the GM first changes the Campaign's table settings to standard initiative (the variant is frozen into each new Encounter). Open the tabletop of that Campaign for the GM and P2 ([README](README.md#running-several-users-side-by-side)).
 
 **Steps**
 
@@ -127,7 +127,7 @@ The rules engine is mostly invisible. A tester sees it in two places: authored f
 
 - **Covers:** RULES-1.6
 - **Accounts:** GM, P2
-- **Preconditions:** Review data built. Heavy setup: G5. In Review: Fire and Thunder, complete the existing Encounter and create a new one (as in UAT-RULES-2; standard initiative is not needed here). Find an SRD Creature whose attack has two damage types in its stat block at http://localhost:3000/creatures (for example one with a bite that adds acid or poison damage); the GM adds it to the new Encounter beside Pyra.
+- **Preconditions:** Review data built. Heavy setup: the GM builds the new Encounter by hand. In Review: Fire and Thunder, complete the existing Encounter and create a new one (as in UAT-RULES-2; standard initiative is not needed here). Find an SRD Creature whose attack has two damage types in its stat block at http://localhost:3000/creatures (for example one with a bite that adds acid or poison damage); the GM adds it to the new Encounter beside Pyra.
 
 **Steps**
 
