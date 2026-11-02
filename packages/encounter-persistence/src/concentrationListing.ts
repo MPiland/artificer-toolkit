@@ -28,17 +28,17 @@ export async function readHeldConcentrationCount(
 }
 
 /**
- * The effects an Encounter actor's Concentration keeps alive: those depending on its live slot in
- * the Run, or for a Character the grants a finished Run carried over from its last Concentration.
- * Null when the actor is not concentrating.
+ * What an Encounter actor's Concentrations keep alive: the effects depending on its live states in
+ * the Run (with the id of each state), or for a Character the grants a finished Run carried over
+ * from its last Concentration (no live state). Null when the actor is not concentrating.
  */
-export async function readActorConcentrationEffects(
+export async function readActorConcentrations(
   ctx: EncounterReadContext,
   input: {
     state: Pick<EncounterRunState, 'id' | 'gameSystemId'>
     actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'sourceId'>
   }
-): Promise<ActiveRuleEffectRecord[] | null> {
+): Promise<{ effects: ActiveRuleEffectRecord[]; stateIds: string[] } | null> {
   const { actor, state } = input
   const slots = await readMaintainedStatesByDefinition(ctx, {
     encounterId: state.id,
@@ -51,9 +51,20 @@ export async function readActorConcentrationEffects(
     const dependents = await Promise.all(
       slots.map((slot) => readDependentEffects(ctx, state.id, slot.id))
     )
-    return dependents.flatMap(({ characters, actors }) => [...characters, ...actors])
+    return {
+      effects: dependents.flatMap(({ characters, actors }) => [...characters, ...actors]),
+      stateIds: slots.map((slot) => slot.id)
+    }
   }
   if (actor.kind !== 'CHARACTER' || !actor.sourceId) return null
   const carried = await listCarriedActiveRuleEffects(ctx, actor.sourceId)
-  return carried.length === 0 ? null : carried
+  return carried.length === 0 ? null : { effects: carried, stateIds: [] }
+}
+
+/** The effects an Encounter actor's Concentrations keep alive; null when it is not concentrating. */
+export async function readActorConcentrationEffects(
+  ctx: EncounterReadContext,
+  input: Parameters<typeof readActorConcentrations>[1]
+): Promise<ActiveRuleEffectRecord[] | null> {
+  return (await readActorConcentrations(ctx, input))?.effects ?? null
 }

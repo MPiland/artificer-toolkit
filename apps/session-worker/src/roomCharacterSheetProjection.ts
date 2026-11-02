@@ -7,6 +7,12 @@ import { projectCharacterSheetBundle } from '@artificer-toolkit/rules-runtime/ch
 import type { EncounterSpellSummon } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import type { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 
+/** The Concentrations a Character holds: what they keep alive and the ids of its live states. */
+export type RoomCharacterConcentrations = {
+  effects: readonly ActiveRuleEffectRecord[]
+  stateIds: readonly string[]
+}
+
 type RoomCharacterSheetFacts = Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>>
 
 /** The unprojected Sheet over prepared room facts, the same bundle Convex's Sheet reads build. */
@@ -17,7 +23,7 @@ export function projectRoomCharacterSheet(
    * Only the Sheet a client reads names the Concentration and the damage dice its effects add
    * against their holders; the numbers other readers take never depend on it.
    */
-  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null,
+  concentrations: RoomCharacterConcentrations | null = null,
   /** The summons the Character's Run actor owns, which the client's Sheet lists in Extras. */
   encounterSummons: readonly EncounterSpellSummon[] = []
 ) {
@@ -37,7 +43,8 @@ export function projectRoomCharacterSheet(
       vocabularySnapshot: facts.prepared.context.vocabularySnapshot
     }),
     activeEffects,
-    concentrationEffects,
+    concentrationEffects: concentrations?.effects ?? null,
+    heldConcentrationStateIds: concentrations?.stateIds ?? [],
     encounterSummons
   }).sheet
 }
@@ -50,15 +57,10 @@ export function projectRoomCharacterSheetForViewer(
   facts: RoomCharacterSheetFacts,
   activeEffects: ActiveRuleEffectRecord[],
   viewer: CharacterSheetResponseDto['meta']['viewer'] = facts.campaignContext.viewer,
-  concentrationEffects: readonly ActiveRuleEffectRecord[] | null = null,
+  concentrations: RoomCharacterConcentrations | null = null,
   encounterSummons: readonly EncounterSpellSummon[] = []
 ): CharacterSheetResponseDto {
-  const sheet = projectRoomCharacterSheet(
-    facts,
-    activeEffects,
-    concentrationEffects,
-    encounterSummons
-  )
+  const sheet = projectRoomCharacterSheet(facts, activeEffects, concentrations, encounterSummons)
   return projectCharacterSheetForViewer(
     {
       ...sheet,

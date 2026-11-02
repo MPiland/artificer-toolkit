@@ -3,7 +3,7 @@ import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/
 import type { LiveSessionWebSocketServerMessageDto } from '@artificer-toolkit/schema/api/liveSessions'
 import type { LiveSessionRoomAuthorization } from '@artificer-toolkit/schema/api/liveSessionRoomAuthorization'
 import type { EncounterSpellSummon } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
-import { readRoomCharacterConcentrationEffects } from './roomCharacterConcentration.js'
+import { readRoomCharacterConcentrations } from './roomCharacterConcentration.js'
 import { readRoomCharacterSummons } from './roomCharacterSummons.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheetForViewer } from './roomCharacterSheetProjection.js'
@@ -176,7 +176,7 @@ export class RoomCharacterSheetFeed {
           { ownerVerified: true }
         ),
         facts.campaignContext.viewer,
-        await readRoomCharacterConcentrationEffects(store, scope.campaignId, characterId),
+        await readRoomCharacterConcentrations(store, scope.campaignId, characterId),
         summons
       )
       const streamVersion = facts.active.play.streamVersion

@@ -3482,8 +3482,13 @@ same command id, even though the caster is not held; the room authorizes the cal
 `endOutsideCasterConcentration`, ends the held holders' grants at once, records the caster and writes the
 GM-only history entry `CONCENTRATION_DROPPED_OUTSIDE`; the checkpoint stays the safety net. A Creature
 or custom actor uses Encounter `UPDATE_ACTOR { endConcentration: true }` (GM only). The Sheet reads
-`overview.concentration` (caster and GM only; label null for a hidden source); the Encounter actor
-projection carries it for the actor's controllers and the GM.
+`overview.concentrations` (caster and GM only; label null for a hidden source), one row per Concentration:
+a live table lists a row per held maintained state with its `stateId` (`readActorConcentrations`, grouped by
+`maintainedEffectStateId`), while carried grants and Sheet summons list at most one row with a null `stateId`.
+SPELLS-12.3: `END_CONCENTRATION` takes an optional `stateId`; the room ends only that state's grants
+(`endChosenConcentration`), and a command with no `stateId` while more than one is held is refused. Convex,
+which holds no live states, refuses a `stateId`. The Encounter actor projection carries the single
+`concentration` listing for the actor's controllers and the GM.
 
 **Concentration.** The damage-check graph and the `rule-maintenance` definition are published System
 content shared by spells and features. A completed action stages one receipt-only child occurrence per
