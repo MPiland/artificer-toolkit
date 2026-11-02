@@ -1,9 +1,7 @@
 import type { EncounterOnHitOfferDto } from '@artificer-toolkit/schema/shared/ruleExecutionOnHitChoice'
 import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
-import {
-  continueNativeActionAfterTest,
-  reconstructNativeActionTest
-} from './encounterActionExecution.js'
+import { continueNativeActionAfterTest } from './encounterActionExecution.js'
+import { reconstructNativeActionTest } from './encounterActionTestReconstruction.js'
 import {
   encounterOnHitAudit,
   settleEncounterOnHitChoice,

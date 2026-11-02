@@ -17,7 +17,7 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { reconstructNativeActionTest } from './encounterActionExecution.js'
+import { reconstructNativeActionTest } from './encounterActionTestReconstruction.js'
 import type { prepareEncounterMovementReactionAction } from './encounterMovementReactionPreparation.js'
 import {
   bindEncounterMovementMaintenancePending,

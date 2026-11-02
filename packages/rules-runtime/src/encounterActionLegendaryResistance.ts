@@ -4,9 +4,9 @@ import type { EncounterPausePayload } from '@artificer-toolkit/schema/shared/enc
 import type { EncounterSealedChoiceSelection } from './encounterSealedChoice.js'
 import {
   continueNativeActionAfterTest,
-  reconstructNativeActionTest,
   type ResumedNativeActionGraphs
 } from './encounterActionExecution.js'
+import { reconstructNativeActionTest } from './encounterActionTestReconstruction.js'
 import { encounterTargetLegendaryResistance } from './encounterAreaLegendaryResistance.js'
 import {
   decideEncounterLegendaryResistance,
